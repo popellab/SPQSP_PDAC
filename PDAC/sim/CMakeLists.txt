@@ -81,6 +81,7 @@ endif()
 add_executable(pdac
     main.cu
     model_definition.cu
+    model_layers.cu
     initialization.cu
     ../pde/pde_integration.cu
     ../pde/pde_solver.cu
@@ -88,10 +89,10 @@ add_executable(pdac
     ../qsp/cvode/CVODEBase.cpp
     ../qsp/ode/ODE_system.cpp
     ../qsp/ode/QSPParam.cpp
+    ../qsp/qsp_integration.cu
     ../core/ParamBase.cpp
     ../core/model_functions.cu
     ../abm/gpu_param.cu
-
 )
 
 # Link against FLAMEGPU2

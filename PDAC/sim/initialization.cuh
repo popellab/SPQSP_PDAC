@@ -40,6 +40,11 @@ struct SimulationConfig {
     // PDE parameters
     float dt_abm;           // ABM timestep (seconds)
     int molecular_steps;    // PDE substeps per ABM step
+
+    // Output parameters
+    bool abm_out;
+    bool pde_out;
+    int interval_out;
     
     // Constructor with defaults
     SimulationConfig();

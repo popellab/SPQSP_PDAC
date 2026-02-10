@@ -17,6 +17,7 @@ enum GPUParamFloat {
     PARAM_SEC_PER_SLICE,
     PARAM_REC_SITE_FACTOR,
     PARAM_ADH_SITE_DENSITY,
+    PARAM_WEIGHT_QSP,
     //*************************************************************************/
     // Drug parameters
     PARAM_NIVO_DOSE_INTERVAL_TIME,

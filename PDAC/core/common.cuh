@@ -20,9 +20,9 @@ enum AgentType : int {
 enum CancerState : int {
     CANCER_STEM = 0,
     CANCER_PROGENITOR = 1,
-    CANCER_PDL1_POS = 2,
-    CANCER_PDL1_NEG = 3,
-    CANCER_SENESCENT = 4
+    CANCER_SENESCENT = 2,
+    CANCER_PDL1_POS = 3,
+    CANCER_PDL1_NEG = 4,
 };
 
 // T cell state enumeration

@@ -14,6 +14,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Environment.SecPerSlice", "seconds", "pos"},       // PARAM_SEC_PER_SLICE
     {"Param.ABM.Environment.recSiteFactor", "", "pos"},            // PARAM_REC_SITE_FACTOR
     {"Param.ABM.Environment.adhSiteDens", "", "pos"},           // PARAM_ADH_SITE_DENSITY
+    {"Param.QSP.simulation.weight_qsp","","pr"},
     //*************************************************************************/
     // Drug parameters
     {"Param.ABM.Pharmacokinetics.nivoDoseIntervalTime", "", "pr"},  // PARAM_NIVO_DOSE_INTERVAL_TIME
@@ -212,6 +213,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<int>("PARAM_NR_T_VOXELS_C", getInt(PARAM_NR_T_VOXELS_C));
     env.newProperty<int>("PARAM_STEM_MODE", getInt(PARAM_STEM_MODE));
     env.newProperty<int>("PARAM_MOLECULAR_STEPS", getInt(PARAM_MOLECULAR_STEPS));
+    env.newProperty<float>("PARAM_WEIGHT_QSP", getFloat(PARAM_WEIGHT_QSP));
 
     env.newProperty<float>("PARAM_GRID_SIZE", static_cast<float>(getInt(PARAM_X_SIZE) 
                                             * getInt(PARAM_Y_SIZE) 

@@ -596,14 +596,14 @@ FLAMEGPU_AGENT_FUNCTION(treg_update_chemicals, flamegpu::MessageNone, flamegpu::
         FLAMEGPU->environment.getProperty<unsigned long long>("pde_concentration_ptr_4"));
     
     float local_O2 = d_O2[voxel_idx];
-    float local_IFN = d_IFN[voxel_idx];
+    float local_IFNg = d_IFN[voxel_idx];
     float local_IL2 = d_IL2[voxel_idx];
     float local_IL10 = d_IL10[voxel_idx];
     float local_TGFB = d_TGFB[voxel_idx];
     
     // Set local concentration variables
     FLAMEGPU->setVariable<float>("local_O2", local_O2);
-    FLAMEGPU->setVariable<float>("local_IFN", local_IFN);
+    FLAMEGPU->setVariable<float>("local_IFNg", local_IFNg);
     FLAMEGPU->setVariable<float>("local_IL2", local_IL2);
     FLAMEGPU->setVariable<float>("local_IL10", local_IL10);
     FLAMEGPU->setVariable<float>("local_TGFB", local_TGFB);

@@ -130,6 +130,7 @@ void collect_chemical_from_agents(
         h_x[idx] = agent_vec[idx].getVariable<int>("x");
         h_y[idx] = agent_vec[idx].getVariable<int>("y");
         h_z[idx] = agent_vec[idx].getVariable<int>("z");
+        
         h_source_rates[idx] = agent_vec[idx].getVariable<float>(source_var_name);
     }
     
@@ -190,8 +191,8 @@ FLAMEGPU_HOST_FUNCTION(update_agent_chemicals) {
     read_chemical_to_agents(*FLAMEGPU, AGENT_MDSC, CHEM_O2, "local_O2");
     
     // Read IFN-gamma
-    read_chemical_to_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_IFN, "local_IFN");
-    read_chemical_to_agents(*FLAMEGPU, AGENT_TCELL, CHEM_IFN, "local_IFN");
+    read_chemical_to_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_IFN, "local_IFNg");
+    read_chemical_to_agents(*FLAMEGPU, AGENT_TCELL, CHEM_IFN, "local_IFNg");
     
     // Read IL-2
     read_chemical_to_agents(*FLAMEGPU, AGENT_TCELL, CHEM_IL2, "local_IL2");
@@ -201,19 +202,21 @@ FLAMEGPU_HOST_FUNCTION(update_agent_chemicals) {
     read_chemical_to_agents(*FLAMEGPU, AGENT_TCELL, CHEM_IL10, "local_IL10");
     
     // Read TGF-beta (immunosuppressive)
+    read_chemical_to_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_TGFB, "local_TGFB");
     read_chemical_to_agents(*FLAMEGPU, AGENT_TCELL, CHEM_TGFB, "local_TGFB");
     read_chemical_to_agents(*FLAMEGPU, AGENT_TREG, CHEM_TGFB, "local_TGFB");
     read_chemical_to_agents(*FLAMEGPU, AGENT_MDSC, CHEM_TGFB, "local_TGFB");
     
     // Read CCL2 (chemotaxis)
-    read_chemical_to_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_CCL2, "local_CCL2");
     read_chemical_to_agents(*FLAMEGPU, AGENT_MDSC, CHEM_CCL2, "local_CCL2");
 
     // Read ArgI (MDSC-produced, T cell response modifier)
+    read_chemical_to_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_ARGI, "local_ArgI");
     read_chemical_to_agents(*FLAMEGPU, AGENT_TCELL, CHEM_ARGI, "local_ArgI");
     read_chemical_to_agents(*FLAMEGPU, AGENT_TREG, CHEM_ARGI, "local_ArgI");
 
     // Read NO (MDSC-produced, T cell response modifier)
+    read_chemical_to_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_NO, "local_NO");
     read_chemical_to_agents(*FLAMEGPU, AGENT_TCELL, CHEM_NO, "local_NO");
     read_chemical_to_agents(*FLAMEGPU, AGENT_TREG, CHEM_NO, "local_NO");
 
@@ -221,7 +224,7 @@ FLAMEGPU_HOST_FUNCTION(update_agent_chemicals) {
     read_chemical_to_agents(*FLAMEGPU, AGENT_TCELL, CHEM_IL12, "local_IL12");
 
     // Read VEGF-A (cancer-produced, pro-angiogenic)
-    read_chemical_to_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_VEGFA, "local_VEGFA");
+    // read_chemical_to_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_VEGFA, "local_VEGFA");
 
     // Note: Nivolumab and Cabozantinib are now handled by QSP compartments
     // They will be transferred to GPU environment properties by the QSP coupling wrapper
@@ -243,11 +246,12 @@ FLAMEGPU_HOST_FUNCTION(collect_agent_sources) {
     g_pde_solver->reset_sources();
     
     // Collect O2 consumption from cancer cells (should be negative)
-    collect_chemical_from_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_O2, "PARAM_O2_UPTAKE");
+    collect_chemical_from_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_O2, "O2_uptake_rate");
     
     // Collect IFN-gamma production from T cells
     collect_chemical_from_agents(*FLAMEGPU, AGENT_TCELL, CHEM_IFN, "PARAM_IFNG_RELEASE");
-    
+    collect_chemical_from_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_IFN, "IFNg_uptake_rate");
+
     // Collect IL-2 production from T cells
     collect_chemical_from_agents(*FLAMEGPU, AGENT_TCELL, CHEM_IL2, "PARAM_IL2_RELEASE");
     
@@ -259,12 +263,13 @@ FLAMEGPU_HOST_FUNCTION(collect_agent_sources) {
     
     // Collect TGF-beta production from Tregs
     collect_chemical_from_agents(*FLAMEGPU, AGENT_TREG, CHEM_TGFB, "PARAM_TREG_TGFB_RELEASE");
+    collect_chemical_from_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_TGFB, "TGFB_release_rate");
     
     // Collect CCL2 production from cancer cells
-    collect_chemical_from_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_CCL2, "PARAM_CCL2_RELEASE");
+    collect_chemical_from_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_CCL2, "CCL2_release_rate");
 
     // Collect VEGF-A production from cancer cells
-    collect_chemical_from_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_VEGFA, "PARAM_PROG_VEGFA_RELEASE");
+    collect_chemical_from_agents(*FLAMEGPU, AGENT_CANCER_CELL, CHEM_VEGFA, "VEGFA_release_rate");
 
     // Collect NO production from MDSCs
     collect_chemical_from_agents(*FLAMEGPU, AGENT_MDSC, CHEM_NO, "PARAM_NO_RELEASE");
@@ -338,8 +343,8 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     g_pde_solver = new PDESolver(config);
     g_pde_solver->initialize();
     
-    // Set initial O2 concentration
-    g_pde_solver->set_initial_concentration(CHEM_O2, 0.001f);  // 1 mM O2
+    // Set initial O2 concentration, all others start at 0.0
+    g_pde_solver->set_initial_concentration(CHEM_O2, 0.673);  // Oxygen starts at 0.673 (amount/mL)
     
     std::cout << "PDE Solver initialized and coupled to FLAME GPU 2" << std::endl;
 }

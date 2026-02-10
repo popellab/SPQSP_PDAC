@@ -56,6 +56,11 @@ done
 mkdir -p "${BUILD_DIR}"
 cd "${BUILD_DIR}"
 
+# Configure ccache for CUDA compilation
+export CMAKE_CUDA_COMPILER_LAUNCHER=ccache
+export CMAKE_CXX_COMPILER_LAUNCHER=ccache
+export CMAKE_C_COMPILER_LAUNCHER=ccache
+
 # Configure CMake
 CMAKE_ARGS=(
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
@@ -84,7 +89,8 @@ cmake "${SCRIPT_DIR}" "${CMAKE_ARGS[@]}"
 
 echo ""
 echo "=== Building ==="
-cmake --build . --parallel $(nproc)
+echo "Using $(nproc) parallel jobs"
+time cmake --build . --parallel $(nproc)
 
 echo ""
 echo "=== Build Complete ==="

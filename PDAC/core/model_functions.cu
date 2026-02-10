@@ -42,9 +42,7 @@ void set_internal_params(flamegpu::ModelDescription& model, const PDAC::LymphCen
                      3)) / 6);
 
     env.newProperty<float>("PARAM_INIT_TUM_DIAM", QP(CancerVCT::P_initial_tumour_diameter));
-
-    // MDSC base recruitment
-    env.newProperty<float>("PARAM_MDSC_RECRUIT_K", QP(CancerVCT::P_k_MDSC_rec));	
+	
     //unit: nanomolarity (1e-9 mole/L) -> ng/ml; conversion factor: 1e9 (mole/L to mole/m^3), 1e6 (m^3 to ml)
     env.newProperty<float>("PARAM_MDSC_EC50_CCL2_REC",
                     QP(CancerVCT::P_CCL2_50) 
@@ -245,13 +243,13 @@ void set_internal_params(flamegpu::ModelDescription& model, const PDAC::LymphCen
     env.newProperty<float>("PARAM_FIB_ECM_MOT_EC50", QP(CancerVCT::P_ECM_50_T_mot) * 5e3);
 
     // time for resection
-    env.newProperty<float>("PARAM_RESECT_TIME_STEP", 
-                    env.getProperty<float>("PARAM_QSP_T_RESECTION") 
-                    * SEC_PER_DAY / t_step_sec);
+    // env.newProperty<float>("PARAM_RESECT_TIME_STEP", 
+    //                 env.getProperty<float>("PARAM_QSP_T_RESECTION") 
+    //                 * SEC_PER_DAY / t_step_sec);
 
     //The number of adhesion site per voxel is:
     double site_per_voxel = env.getProperty<float>("PARAM_ADH_SITE_DENSITY") 
-                                    * std::pow(env.getProperty<float>("PARAM_VOXEL_SIZE"), 3);
+                                    * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE"), 3);
     //number of adhesion sites needed to recruit a single cell (becoming a recruitment port)
     double site_per_port = env.getProperty<float>("PARAM_REC_SITE_FACTOR");
     //how many port per voxel have
@@ -264,24 +262,24 @@ void set_internal_params(flamegpu::ModelDescription& model, const PDAC::LymphCen
 
     env.newProperty<float>("PARAM_TEFF_RECRUIT_K", QP(CancerVCT::P_q_T1_T_in) 
                     * t_step_sec * AVOGADROS 
-                    * std::pow(env.getProperty<float>("PARAM_VOXEL_SIZE") / 1e6, 3) 
+                    * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) 
                     * env.getProperty<float>("PARAM_REC_PORT"));
     // TCD4 -> k (1/mol) // p = k (1/mol) * Cent.T (mol), q_T0_T_in
     //env.newProperty<float>("PARAM_TCD4_RECRUIT_K", QP(CancerVCT::P_k_T1_death) * site_per_port * t_step_sec  / w / env.getProperty<float>("PARAM_ADH_SITE_DENSITY"));
     env.newProperty<float>("PARAM_TREG_RECRUIT_K", QP(CancerVCT::P_q_T0_T_in) 
                     * t_step_sec * AVOGADROS 
-                    * std::pow(env.getProperty<float>("PARAM_VOXEL_SIZE") / 1e6, 3) 
+                    * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) 
                     * env.getProperty<float>("PARAM_REC_PORT"));
     env.newProperty<float>("PARAM_TH_RECRUIT_K", QP(CancerVCT::P_q_T0_T_in) 
                     * t_step_sec * AVOGADROS 
-                    * std::pow(env.getProperty<float>("PARAM_VOXEL_SIZE") / 1e6, 3) 
+                    * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) 
                     * env.getProperty<float>("PARAM_REC_PORT"));
     env.newProperty<float>("PARAM_MDSC_RECRUIT_K", QP(CancerVCT::P_k_MDSC_rec) 
                     * t_step_sec * AVOGADROS 
-                    * std::pow(env.getProperty<float>("PARAM_VOXEL_SIZE") / 1e6, 3));
+                    * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
     env.newProperty<float>("PARAM_MAC_RECRUIT_K", QP(CancerVCT::P_k_Mac_rec) 
                     * t_step_sec * AVOGADROS 
-                    * std::pow(env.getProperty<float>("PARAM_VOXEL_SIZE") / 1e6, 3));
+                    * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
 
     // APC -> k (m^3/mol) // p = k (m^3/mol) * (APC0_T*V_T-V_T.APC)
     env.newProperty<float>("PARAM_APC_RECRUIT_K", 0);
@@ -312,11 +310,11 @@ void set_internal_params(flamegpu::ModelDescription& model, const PDAC::LymphCen
     env.newProperty<float>("PARAM_T_CELL_LIFE_MEAN_SLICE", 
                     1 / QP(CancerVCT::P_k_T1_death) / t_step_sec / 5);
     // mean life of TCD4, unit: time step
-    env.newProperty<float>("PARAM_TCD4_LIFE_MEAN", 
+    env.newProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE", 
                     1 / QP(CancerVCT::P_k_T0_death) / t_step_sec / 5);
 
     // mean life of MDSC, unit: time step
-    env.newProperty<float>("PARAM_MDSC_LIFE_MEAN", 
+    env.newProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE", 
                     1 / QP(CancerVCT::P_k_MDSC_death) / t_step_sec);
     // mean life of MAC, unit: time step
     env.newProperty<float>("PARAM_MAC_LIFE_MEAN", 
@@ -357,12 +355,64 @@ FLAMEGPU_HOST_FUNCTION(update_agent_counts) {
     int mdsc_count = FLAMEGPU->agent(AGENT_MDSC).count();
 
     // Update environment properties
-    FLAMEGPU->environment.setProperty<int>("total_cancer_cells", cancer_count);
-    FLAMEGPU->environment.setProperty<int>("total_tcells", tcell_count);
-    FLAMEGPU->environment.setProperty<int>("total_tregs", treg_count);
-    FLAMEGPU->environment.setProperty<int>("total_mdscs", mdsc_count);
-    FLAMEGPU->environment.setProperty<int>("total_agents", 
+    FLAMEGPU->environment.setProperty<unsigned int>("total_cancer_cells", cancer_count);
+    FLAMEGPU->environment.setProperty<unsigned int>("total_tcells", tcell_count);
+    FLAMEGPU->environment.setProperty<unsigned int>("total_tregs", treg_count);
+    FLAMEGPU->environment.setProperty<unsigned int>("total_mdscs", mdsc_count);
+    FLAMEGPU->environment.setProperty<unsigned int>("total_agents",
     cancer_count + tcell_count + treg_count + mdsc_count);
+}
+
+FLAMEGPU_HOST_FUNCTION(check_cancer_count_before_movement) {
+    unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
+    int cancer_count = FLAMEGPU->agent(AGENT_CANCER_CELL).count();
+
+    std::cout << "Step " << step << " - Cancer cells before movement: " << cancer_count << std::endl;
+
+}
+
+FLAMEGPU_HOST_FUNCTION(reset_division_counters) {
+    FLAMEGPU->environment.setProperty<unsigned int>("cancer_divide_attempts", 0u);
+    FLAMEGPU->environment.setProperty<unsigned int>("cancer_divide_successes", 0u);
+    FLAMEGPU->environment.setProperty<unsigned int>("tcell_divide_attempts", 0u);
+    FLAMEGPU->environment.setProperty<unsigned int>("tcell_divide_successes", 0u);
+    FLAMEGPU->environment.setProperty<unsigned int>("treg_divide_attempts", 0u);
+    FLAMEGPU->environment.setProperty<unsigned int>("treg_divide_successes", 0u);
+}
+
+FLAMEGPU_HOST_FUNCTION(report_division_statistics) {
+    unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
+    unsigned int cancer_attempts = FLAMEGPU->environment.getProperty<unsigned int>("cancer_divide_attempts");
+    unsigned int cancer_successes = FLAMEGPU->environment.getProperty<unsigned int>("cancer_divide_successes");
+    unsigned int tcell_attempts = FLAMEGPU->environment.getProperty<unsigned int>("tcell_divide_attempts");
+    unsigned int tcell_successes = FLAMEGPU->environment.getProperty<unsigned int>("tcell_divide_successes");
+    unsigned int treg_attempts = FLAMEGPU->environment.getProperty<unsigned int>("treg_divide_attempts");
+    unsigned int treg_successes = FLAMEGPU->environment.getProperty<unsigned int>("treg_divide_successes");
+
+    std::cout << "Step " << step << " - Division Stats:"
+              << " Cancer(A:" << cancer_attempts << " S:" << cancer_successes << ")"
+              << " TCell(A:" << tcell_attempts << " S:" << tcell_successes << ")"
+              << " TReg(A:" << treg_attempts << " S:" << treg_successes << ")"
+              << std::endl;
+}
+
+FLAMEGPU_HOST_FUNCTION(check_cancer_count_after_movement) {
+    unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
+    int cancer_count = FLAMEGPU->agent(AGENT_CANCER_CELL).count();
+
+    std::cout << "Step " << step << " - Cancer cells after movement: " << cancer_count << std::endl;
+
+}
+
+FLAMEGPU_HOST_FUNCTION(check_voxel_occupancy) {
+    unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
+    int cancer_count = FLAMEGPU->agent(AGENT_CANCER_CELL).count();
+    std::cout << "Step " << step << " - Cancer cell count (before division): " << cancer_count << std::endl;
+}
+
+FLAMEGPU_HOST_FUNCTION(check_voxel_packing_after_movement) {
+    // Placeholder - the real issue is in execute_move and execute_divide
+    // Both need to check MSG_CELL_LOCATION to verify target voxel is physically empty
 }
 
 }

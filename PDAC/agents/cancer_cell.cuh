@@ -40,7 +40,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_broadcast_location, flamegpu::MessageNone, flameg
     const float voxel_size = FLAMEGPU->environment.getProperty<float>("voxel_size");
 
     FLAMEGPU->message_out.setVariable<int>("agent_type", CELL_TYPE_CANCER);
-    FLAMEGPU->message_out.setVariable<int>("agent_id", FLAMEGPU->getVariable<unsigned int>("id"));
+    FLAMEGPU->message_out.setVariable<int>("agent_id", FLAMEGPU->getID());
     FLAMEGPU->message_out.setVariable<int>("cell_state", FLAMEGPU->getVariable<int>("cell_state"));
     FLAMEGPU->message_out.setVariable<float>("PDL1", FLAMEGPU->getVariable<float>("PDL1_syn"));
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
@@ -71,6 +71,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_count_neighbors, flamegpu::MessageSpatial3D, flam
     const float my_pos_x = (my_x + 0.5f) * voxel_size;
     const float my_pos_y = (my_y + 0.5f) * voxel_size;
     const float my_pos_z = (my_z + 0.5f) * voxel_size;
+    const unsigned int my_id = FLAMEGPU->getID();
 
     int tcyt_count = 0;    // Cytotoxic T cells (can kill)
     int treg_count = 0;    // Regulatory T cells
@@ -80,6 +81,12 @@ FLAMEGPU_AGENT_FUNCTION(cancer_count_neighbors, flamegpu::MessageSpatial3D, flam
     // Track which neighbor voxels have cancer cells (bit i = neighbor direction i)
     bool neighbor_blocked[26] = {false};
     int neighbor_tcells[26] = {0};
+
+    // DEBUG: Count total messages by type to verify all broadcasts are visible
+    int total_cancer_msgs = 0;
+    int total_tcell_msgs = 0;
+    int total_treg_msgs = 0;
+    int total_mdsc_msgs = 0;
 
     for (const auto& msg : FLAMEGPU->message_in(my_pos_x, my_pos_y, my_pos_z)) {
         const int msg_x = msg.getVariable<int>("voxel_x");
@@ -165,10 +172,11 @@ FLAMEGPU_AGENT_FUNCTION(cancer_select_move_target, flamegpu::MessageNone, flameg
     const int my_y = FLAMEGPU->getVariable<int>("y");
     const int my_z = FLAMEGPU->getVariable<int>("z");
 
-    if (FLAMEGPU->getVariable<int>("dead") == 1) {
+    int moves_remaining = FLAMEGPU->getVariable<int>("moves_remaining");
+    if (FLAMEGPU->getVariable<int>("dead") == 1 || moves_remaining <= 0) {
         // Output dummy message (required)
         FLAMEGPU->message_out.setVariable<int>("agent_type", CELL_TYPE_CANCER);
-        FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getVariable<unsigned int>("id"));
+        FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getID());
         FLAMEGPU->message_out.setVariable<int>("intent_action", INTENT_NONE);
         FLAMEGPU->message_out.setVariable<int>("target_x", -1);
         FLAMEGPU->message_out.setVariable<int>("target_y", -1);
@@ -180,15 +188,18 @@ FLAMEGPU_AGENT_FUNCTION(cancer_select_move_target, flamegpu::MessageNone, flameg
         return flamegpu::ALIVE;
     }
 
-    float ECM_density = 1.0f;  // Placeholder for ECM density, should be read from environment or agent variable
-    float ECM_50 = 0.5f;  // Placeholder for ECM density at which move probability is halved, should be set in environment
-    float ECM_sat = ECM_density / (ECM_density + ECM_50);  // Saturation function to reduce move probability in dense ECM
+
+    // float ECM_density = 1.0f;  // Placeholder for ECM density, should be read from environment or agent variable
+    // float ECM_50 = 0.5f;  // Placeholder for ECM density at which move probability is halved, should be set in environment
+    // float ECM_sat = ECM_density / (ECM_density + ECM_50);  // Saturation function to reduce move probability in dense ECM
+
+    float ECM_sat = 0.2;
 
     // Density too high, do not move, but still broadcast intent for conflict resolution
     if (FLAMEGPU->random.uniform<float>() < ECM_sat) {
         // Output dummy message (required)
         FLAMEGPU->message_out.setVariable<int>("agent_type", CELL_TYPE_CANCER);
-        FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getVariable<unsigned int>("id"));
+        FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getID());
         FLAMEGPU->message_out.setVariable<int>("intent_action", INTENT_NONE);
         FLAMEGPU->message_out.setVariable<int>("target_x", -1);
         FLAMEGPU->message_out.setVariable<int>("target_y", -1);
@@ -208,10 +219,13 @@ FLAMEGPU_AGENT_FUNCTION(cancer_select_move_target, flamegpu::MessageNone, flameg
 
     int target_x = -1, target_y = -1, target_z = -1;
     int intent_action = INTENT_NONE;
+    const unsigned int my_id = FLAMEGPU->getID();
+
     if (num_available > 0) {
         // Randomly select one of the available Von Neumann neighbors
         int selected = FLAMEGPU->random.uniform<int>(0, num_available - 1);
         int count = 0;
+        int selected_dir = -1;
         for (int i = 0; i < 6; i++) {  // Only iterate through Von Neumann directions
             if (available & (1u << i)) {
                 if (count == selected) {
@@ -221,6 +235,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_select_move_target, flamegpu::MessageNone, flameg
                     target_y = my_y + dy;
                     target_z = my_z + dz;
                     intent_action = INTENT_MOVE;
+                    selected_dir = i;
                     break;
                 }
                 count++;
@@ -236,7 +251,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_select_move_target, flamegpu::MessageNone, flameg
 
     // Broadcast intent message with source position for conflict resolution
     FLAMEGPU->message_out.setVariable<int>("agent_type", CELL_TYPE_CANCER);
-    FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getVariable<unsigned int>("id"));
+    FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getID());
     FLAMEGPU->message_out.setVariable<int>("intent_action", intent_action);
     FLAMEGPU->message_out.setVariable<int>("target_x", target_x);
     FLAMEGPU->message_out.setVariable<int>("target_y", target_y);
@@ -254,7 +269,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_select_move_target, flamegpu::MessageNone, flameg
     } else {
         FLAMEGPU->message_out.setLocation(-voxel_size, -voxel_size, -voxel_size);
     }
-
+    FLAMEGPU->setVariable<int>("moves_remaining", moves_remaining - 1);
     return flamegpu::ALIVE;
 }
 
@@ -281,7 +296,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_move, flamegpu::MessageSpatial3D, flamegp
     const int target_x = FLAMEGPU->getVariable<int>("target_x");
     const int target_y = FLAMEGPU->getVariable<int>("target_y");
     const int target_z = FLAMEGPU->getVariable<int>("target_z");
-    const unsigned int my_id = FLAMEGPU->getVariable<unsigned int>("id");
+    const unsigned int my_id = FLAMEGPU->getID();
     const int my_x = FLAMEGPU->getVariable<int>("x");
     const int my_y = FLAMEGPU->getVariable<int>("y");
     const int my_z = FLAMEGPU->getVariable<int>("z");
@@ -307,13 +322,13 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_move, flamegpu::MessageSpatial3D, flamegp
             const int msg_src_y = msg.getVariable<int>("source_y");
             const int msg_src_z = msg.getVariable<int>("source_z");
 
-            // Skip if not a competing agent type or not moving
-            if (!((msg_agent_type == CELL_TYPE_CANCER || msg_agent_type == CELL_TYPE_MDSC) && msg_intent == INTENT_MOVE)) {
+            // Skip self (same source position means it's our own message)
+            if (msg_id == my_id) {
                 continue;
             }
 
-            // Skip self (same source position means it's our own message)
-            if (msg_src_x == my_x && msg_src_y == my_y && msg_src_z == my_z) {
+            // Skip if not a competing agent type
+            if (!(msg_agent_type == CELL_TYPE_CANCER || msg_agent_type == CELL_TYPE_MDSC)) {
                 continue;
             }
 
@@ -321,7 +336,6 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_move, flamegpu::MessageSpatial3D, flamegp
             if (has_higher_priority(msg_id, msg_src_x, msg_src_y, msg_src_z,
                                     my_id, my_x, my_y, my_z)) {
                 can_move = false;
-                break;
             }
         }
     }
@@ -497,6 +511,66 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
     return flamegpu::ALIVE;
 }
 
+// Diagnostic: Check for voxel packing after movement
+FLAMEGPU_AGENT_FUNCTION(cancer_check_voxel_packing, flamegpu::MessageSpatial3D, flamegpu::MessageNone) {
+    const int my_x = FLAMEGPU->getVariable<int>("x");
+    const int my_y = FLAMEGPU->getVariable<int>("y");
+    const int my_z = FLAMEGPU->getVariable<int>("z");
+    const unsigned int my_id = FLAMEGPU->getID();
+    const float voxel_size = FLAMEGPU->environment.getProperty<float>("voxel_size");
+
+    const float my_pos_x = (my_x + 0.5f) * voxel_size;
+    const float my_pos_y = (my_y + 0.5f) * voxel_size;
+    const float my_pos_z = (my_z + 0.5f) * voxel_size;
+
+    // Count cancer cells at MY exact voxel position and collect IDs
+    int colocated_count = 0;
+    unsigned int colocated_ids[10];  // Store up to 10 IDs
+    for (const auto& msg : FLAMEGPU->message_in(my_pos_x, my_pos_y, my_pos_z)) {
+        const unsigned int msg_id = msg.getVariable<unsigned int>("agent_id");
+        if (msg_id == my_id){
+            continue;
+        }
+        const int msg_x = msg.getVariable<int>("voxel_x");
+        const int msg_y = msg.getVariable<int>("voxel_y");
+        const int msg_z = msg.getVariable<int>("voxel_z");
+        const int msg_type = msg.getVariable<int>("agent_type");
+
+        if (msg_type == CELL_TYPE_CANCER &&
+            msg_x == my_x && msg_y == my_y && msg_z == my_z) {
+            if (colocated_count < 10) {
+                colocated_ids[colocated_count] = msg.getVariable<int>("agent_id");
+            }
+            colocated_count++;
+        }
+    }
+
+    // Report if multiple cells at same voxel (only print for one cell per location)
+    // Use the cell with the LOWEST ID to avoid duplicate prints
+    // colocated_count is OTHER cells (self already filtered), so > 0 means packing
+    bool should_print = (colocated_count > 0 && my_id);
+    if (should_print) {
+        // Check if I have the lowest ID
+        for (int i = 0; i < colocated_count && i < 10; i++) {
+            if (colocated_ids[i] < my_id) {
+                should_print = false;
+                break;
+            }
+        }
+    }
+
+    if (should_print) {
+        printf("[PACKING] Voxel (%d,%d,%d) has %d cancer cells. My ID=%u, Others: ",
+               my_x, my_y, my_z, colocated_count + 1, my_id);
+        for (int i = 0; i < colocated_count && i < 10; i++) {
+            printf("%u%s", colocated_ids[i], (i < colocated_count-1 && i < 9) ? ", " : "");
+        }
+        printf("\n");
+    }
+
+    return flamegpu::ALIVE;
+}
+
 // CancerCell agent function: Select division target and broadcast intent
 // Phase 1 of two-phase conflict resolution for division
 // Uses cached available_neighbors mask from scan phase
@@ -514,7 +588,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_select_divide_target, flamegpu::MessageNone, flam
 
     if (FLAMEGPU->getVariable<int>("dead") == 1) {
         FLAMEGPU->message_out.setVariable<int>("agent_type", CELL_TYPE_CANCER);
-        FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getVariable<unsigned int>("id"));
+        FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getID());
         FLAMEGPU->message_out.setVariable<int>("intent_action", INTENT_NONE);
         FLAMEGPU->message_out.setVariable<int>("target_x", -1);
         FLAMEGPU->message_out.setVariable<int>("target_y", -1);
@@ -531,7 +605,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_select_divide_target, flamegpu::MessageNone, flam
 
     if (divideFlag == 0 || divideCD > 0) {
         FLAMEGPU->message_out.setVariable<int>("agent_type", CELL_TYPE_CANCER);
-        FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getVariable<unsigned int>("id"));
+        FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getID());
         FLAMEGPU->message_out.setVariable<int>("intent_action", INTENT_NONE);
         FLAMEGPU->message_out.setVariable<int>("target_x", -1);
         FLAMEGPU->message_out.setVariable<int>("target_y", -1);
@@ -548,7 +622,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_select_divide_target, flamegpu::MessageNone, flam
     const unsigned int available = available_all & VON_NEUMANN_MASK;  // Only face neighbors (6 directions)
     // Count available Von Neumann neighbors
     int num_available = __popc(available);  // Population count (number of set bits)
-    int target_x = -1, target_y = -1, target_z = -1;
+    int target_x = my_x, target_y = my_y, target_z = my_z;
     int intent_action = INTENT_NONE;
 
     if (num_available > 0) {
@@ -573,11 +647,12 @@ FLAMEGPU_AGENT_FUNCTION(cancer_select_divide_target, flamegpu::MessageNone, flam
         FLAMEGPU->setVariable<int>("target_x", target_x);
         FLAMEGPU->setVariable<int>("target_y", target_y);
         FLAMEGPU->setVariable<int>("target_z", target_z);
+
     }
 
     // Broadcast intent message with source position for conflict resolution
     FLAMEGPU->message_out.setVariable<int>("agent_type", CELL_TYPE_CANCER);
-    FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getVariable<unsigned int>("id"));
+    FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getID());
     FLAMEGPU->message_out.setVariable<int>("intent_action", intent_action);
     FLAMEGPU->message_out.setVariable<int>("target_x", target_x);
     FLAMEGPU->message_out.setVariable<int>("target_y", target_y);
@@ -602,21 +677,21 @@ FLAMEGPU_AGENT_FUNCTION(cancer_select_divide_target, flamegpu::MessageNone, flam
 // CancerCell agent function: Execute division if won conflict
 // Phase 2 of two-phase conflict resolution for division
 FLAMEGPU_AGENT_FUNCTION(cancer_execute_divide, flamegpu::MessageSpatial3D, flamegpu::MessageNone) {
-    const int intent_action = FLAMEGPU->getVariable<int>("intent_action");
+    const float voxel_size = FLAMEGPU->environment.getProperty<float>("voxel_size");
 
+    const int intent_action = FLAMEGPU->getVariable<int>("intent_action");
     if (intent_action != INTENT_DIVIDE) {
         return flamegpu::ALIVE;
     }
 
+    const unsigned int my_id = FLAMEGPU->getID();
     const int target_x = FLAMEGPU->getVariable<int>("target_x");
     const int target_y = FLAMEGPU->getVariable<int>("target_y");
     const int target_z = FLAMEGPU->getVariable<int>("target_z");
-    const unsigned int my_id = FLAMEGPU->getVariable<unsigned int>("id");
     const int my_x = FLAMEGPU->getVariable<int>("x");
     const int my_y = FLAMEGPU->getVariable<int>("y");
     const int my_z = FLAMEGPU->getVariable<int>("z");
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-    const float voxel_size = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_SIZE");
 
     const float target_pos_x = (target_x + 0.5f) * voxel_size;
     const float target_pos_y = (target_y + 0.5f) * voxel_size;
@@ -628,23 +703,32 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_divide, flamegpu::MessageSpatial3D, flame
         const int msg_target_x = msg.getVariable<int>("target_x");
         const int msg_target_y = msg.getVariable<int>("target_y");
         const int msg_target_z = msg.getVariable<int>("target_z");
+        const int msg_src_x = msg.getVariable<int>("source_x");
+        const int msg_src_y = msg.getVariable<int>("source_y");
+        const int msg_src_z = msg.getVariable<int>("source_z");
+        const int msg_agent_type = msg.getVariable<int>("agent_type");
+        const unsigned int msg_id = msg.getVariable<unsigned int>("agent_id");
+        const int msg_intent = msg.getVariable<int>("intent_action");
+
+        // (Any cell whose source position equals our target means that voxel is occupied) 
+        // This theoretically shouldn't come up but just checking
+        if (msg_src_x == target_x && msg_src_y == target_y && msg_src_z == target_z) {
+            // A cell already exists at our target - can't divide there
+            // (unless it's a cell type that can coexist, but cancer can't share with cancer/MDSC)
+            if (msg_agent_type == CELL_TYPE_CANCER || msg_agent_type == CELL_TYPE_MDSC) {
+                can_divide = false;
+                break;
+            }
+        }
 
         if (msg_target_x == target_x && msg_target_y == target_y && msg_target_z == target_z) {
-            const int msg_agent_type = msg.getVariable<int>("agent_type");
-            const unsigned int msg_id = msg.getVariable<unsigned int>("agent_id");
-            const int msg_intent = msg.getVariable<int>("intent_action");
-            const int msg_src_x = msg.getVariable<int>("source_x");
-            const int msg_src_y = msg.getVariable<int>("source_y");
-            const int msg_src_z = msg.getVariable<int>("source_z");
-
-            // Skip if not cancer or not an action targeting this voxel
-            if (msg_agent_type != CELL_TYPE_CANCER ||
-                (msg_intent != INTENT_DIVIDE && msg_intent != INTENT_MOVE)) {
+            // Skip self (same source position means it's our own message)
+            if (msg_id == my_id) {
                 continue;
             }
 
-            // Skip self (same source position means it's our own message)
-            if (msg_src_x == my_x && msg_src_y == my_y && msg_src_z == my_z) {
+            // Skip if not a competing agent type or not dividing
+            if (!(msg_agent_type == CELL_TYPE_CANCER || msg_agent_type == CELL_TYPE_MDSC)) {
                 continue;
             }
 
@@ -660,9 +744,9 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_divide, flamegpu::MessageSpatial3D, flame
     if (!can_divide) {
         // Clear intent and exit
         FLAMEGPU->setVariable<int>("intent_action", INTENT_NONE);
-        FLAMEGPU->setVariable<int>("target_x", -1);
-        FLAMEGPU->setVariable<int>("target_y", -1);
-        FLAMEGPU->setVariable<int>("target_z", -1);
+        FLAMEGPU->setVariable<int>("target_x", my_x);
+        FLAMEGPU->setVariable<int>("target_y", my_y);
+        FLAMEGPU->setVariable<int>("target_z", my_z);
         return flamegpu::ALIVE;
     }
 
@@ -670,9 +754,11 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_divide, flamegpu::MessageSpatial3D, flame
     const float asymmetric_div_prob = FLAMEGPU->environment.getProperty<float>("PARAM_ASYM_DIV_PROB");
     const int progenitor_div_max = FLAMEGPU->environment.getProperty<int>("PARAM_PROG_DIV_MAX");
     const int divMax = FLAMEGPU->environment.getProperty<int>("PARAM_PROG_DIV_MAX");
-
-    const unsigned int parent_id = FLAMEGPU->getVariable<unsigned int>("id");
     const unsigned int stem_id = FLAMEGPU->getVariable<unsigned int>("stemID");
+
+    // Generate unique daughter ID using FLAMEGPU's built-in ID generator
+    // Don't set ID manually - FLAMEGPU auto-assigns unique IDs for new agents
+    // const unsigned int daughter_id = ...; // Remove this - use auto-assigned ID
 
     if (cell_state == CANCER_STEM) {
         if (FLAMEGPU->random.uniform<float>() < asymmetric_div_prob) {
@@ -680,7 +766,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_divide, flamegpu::MessageSpatial3D, flame
                                 "PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE");
             const float progenitor_div_interval = static_cast<int>(div_int + 0.5f);
             // Asymmetric: daughter is progenitor
-            FLAMEGPU->agent_out.setVariable<unsigned int>("id", 0u);
+            // ID auto-assigned by FLAMEGPU
             FLAMEGPU->agent_out.setVariable<int>("x", target_x);
             FLAMEGPU->agent_out.setVariable<int>("y", target_y);
             FLAMEGPU->agent_out.setVariable<int>("z", target_z);
@@ -688,13 +774,13 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_divide, flamegpu::MessageSpatial3D, flame
             FLAMEGPU->agent_out.setVariable<int>("divideCD", progenitor_div_interval);
             FLAMEGPU->agent_out.setVariable<int>("divideFlag", 1);
             FLAMEGPU->agent_out.setVariable<int>("divideCountRemaining", divMax);
-            FLAMEGPU->agent_out.setVariable<unsigned int>("stemID", parent_id);
+            FLAMEGPU->agent_out.setVariable<unsigned int>("stemID", stem_id);
         } else {
             float div_int = FLAMEGPU->environment.getProperty<float>(
                                 "PARAM_FLOAT_CANCER_CELL_STEM_DIV_INTERVAL_SLICE");
             const float stem_div_interval = static_cast<int>(div_int + 0.5f);
             // Symmetric: daughter is stem
-            FLAMEGPU->agent_out.setVariable<unsigned int>("id", 0u);
+            // ID auto-assigned by FLAMEGPU
             FLAMEGPU->agent_out.setVariable<int>("x", target_x);
             FLAMEGPU->agent_out.setVariable<int>("y", target_y);
             FLAMEGPU->agent_out.setVariable<int>("z", target_z);
@@ -713,7 +799,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_divide, flamegpu::MessageSpatial3D, flame
                                 "PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE");
         const float progenitor_div_interval = static_cast<int>(div_int + 0.5f);
         //TODO randomly sample divide count and divide CD for daughter
-        FLAMEGPU->agent_out.setVariable<unsigned int>("id", 0u);
+        // ID auto-assigned by FLAMEGPU
         FLAMEGPU->agent_out.setVariable<int>("x", target_x);
         FLAMEGPU->agent_out.setVariable<int>("y", target_y);
         FLAMEGPU->agent_out.setVariable<int>("z", target_z);
@@ -723,7 +809,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_divide, flamegpu::MessageSpatial3D, flame
         FLAMEGPU->agent_out.setVariable<int>("divideCountRemaining", divMax);
         FLAMEGPU->agent_out.setVariable<unsigned int>("stemID", stem_id);
 
-        // Fix conversion to senescent state when divideCountRemaining hits 0
+        // Turn progenitor into senescent cell
         if (divideCountRemaining <= 0) {
             FLAMEGPU->setVariable<int>("cell_state", CANCER_SENESCENT);
             FLAMEGPU->setVariable<int>("divideCD", -1);
@@ -738,9 +824,6 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_divide, flamegpu::MessageSpatial3D, flame
     }
 
     // Set common daughter variables
-    FLAMEGPU->agent_out.setVariable<float>("PDL1_syn", 0.0f);
-    FLAMEGPU->agent_out.setVariable<float>("CCL2_release_rate", 0.0f);
-    FLAMEGPU->agent_out.setVariable<float>("IFNg_uptake_rate", 0.0f);
     FLAMEGPU->agent_out.setVariable<int>("neighbor_Teff_count", 0);
     FLAMEGPU->agent_out.setVariable<int>("neighbor_Treg_count", 0);
     FLAMEGPU->agent_out.setVariable<int>("neighbor_cancer_count", 0);
@@ -889,6 +972,23 @@ FLAMEGPU_AGENT_FUNCTION(cancer_compute_chemical_sources, flamegpu::MessageNone, 
     
     return flamegpu::ALIVE;
 }
+
+// Agent function to reset moves based on state
+FLAMEGPU_AGENT_FUNCTION(cancer_reset_moves, flamegpu::MessageNone, flamegpu::MessageNone) {
+    int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    
+    // Get max moves from environment based on state
+    int max_moves;
+    if (cell_state == CANCER_STEM) {
+        max_moves = FLAMEGPU->environment.getProperty<int>("PARAM_CANCER_MOVE_STEPS_STEM");
+    } else {
+        max_moves = FLAMEGPU->environment.getProperty<int>("PARAM_CANCER_MOVE_STEPS");
+    }
+    
+    FLAMEGPU->setVariable<int>("moves_remaining", max_moves);
+    return flamegpu::ALIVE;
+}
+
 
 } // namespace PDAC
 
