@@ -432,7 +432,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
         const int neighbor_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
 
         const float PDL1 = FLAMEGPU->getVariable<float>("PDL1_syn");
-        float nivo = 0.0f;
+        float nivo = FLAMEGPU->environment.getProperty<float>("qsp_nivo_tumor");
         float bond = get_PD1_PDL1(PDL1, nivo, 
                         FLAMEGPU->environment.getProperty<float>("PARAM_PD1_SYN"),
                         FLAMEGPU->environment.getProperty<float>("PARAM_PDL1_K1"),

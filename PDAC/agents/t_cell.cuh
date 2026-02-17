@@ -210,7 +210,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
     }
 
     // TODO: need coupling from QSP to get this
-    float nivo = 0.0f;
+    float nivo = FLAMEGPU->environment.getProperty<float>("qsp_nivo_tumor");
 
     int cell_state = FLAMEGPU->getVariable<int>("cell_state");
 

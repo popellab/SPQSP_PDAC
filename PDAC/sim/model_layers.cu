@@ -26,6 +26,37 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addHostFunction(update_agent_counts);
     }
 
+    // 0a. Recruitment system (following HCC Tumor::timeSlice order)
+    // Reset recruitment sources
+    {
+        flamegpu::LayerDescription layer = model.newLayer("reset_recruitment_sources");
+        layer.addHostFunction(reset_recruitment_sources);
+    }
+
+    // Mark vascular T cell sources (phalanx cells based on IFN-γ)
+    {
+        flamegpu::LayerDescription layer = model.newLayer("mark_vascular_t_sources");
+        layer.addAgentFunction(AGENT_VASCULAR, "mark_t_sources");
+    }
+
+    // Mark MDSC sources (all voxels based on CCL2)
+    {
+        flamegpu::LayerDescription layer = model.newLayer("mark_mdsc_sources");
+        layer.addHostFunction(mark_mdsc_sources);
+    }
+
+    // Recruit T cells at marked sources
+    {
+        flamegpu::LayerDescription layer = model.newLayer("recruit_t_cells");
+        layer.addHostFunction(recruit_t_cells);
+    }
+
+    // Recruit MDSCs at marked sources
+    {
+        flamegpu::LayerDescription layer = model.newLayer("recruit_mdscs");
+        layer.addHostFunction(recruit_mdscs);
+    }
+
     // 1-4. Broadcast (separate layers required by FLAMEGPU2)
     // Messages accumulate across layers within the same step
     {

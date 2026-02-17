@@ -81,6 +81,7 @@ inline double ODE_system::get_class_param(unsigned int i){
     if (i < _class_parameter.size())
         return _class_parameter[i];
     else
+        std::cout << "Index tried: " << i << std::endl;
         throw std::invalid_argument("Accessing ODE class parameter: out of range");
 }
 inline void ODE_system::set_class_param(unsigned int i, double v){

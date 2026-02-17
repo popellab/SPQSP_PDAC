@@ -76,6 +76,10 @@ public:
     // Get total source for a substrate (for debugging)
     float get_total_source(int substrate_idx);
 
+    // Recruitment source management
+    int* get_device_recruitment_sources_ptr() { return d_recruitment_sources_; }
+    void reset_recruitment_sources();
+
     // Utility
     int get_total_voxels() const { return config_.nx * config_.ny * config_.nz; }
     
@@ -86,6 +90,9 @@ private:
     float* d_concentrations_current_;   // [num_substrates][nz][ny][nx]
     float* d_concentrations_next_;      // Double buffering (for output)
     float* d_sources_;                   // [num_substrates][nz][ny][nx]
+
+    // Recruitment sources (bit flags: 1=T_source, 2=MDSC_source, 3=both)
+    int* d_recruitment_sources_;        // [nz][ny][nx]
 
     // CG solver workspace (per voxel, not per substrate)
     float* d_cg_r_;      // Residual vector

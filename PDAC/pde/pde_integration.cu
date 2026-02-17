@@ -488,7 +488,11 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
         env.newProperty<unsigned long long>(concentration_key, static_cast<unsigned long long>(conc_ptr));
         env.newProperty<unsigned long long>(source_key, static_cast<unsigned long long>(src_ptr));
     }
-    
+
+    // Store recruitment sources pointer
+    uintptr_t recruit_ptr = reinterpret_cast<uintptr_t>(g_pde_solver->get_device_recruitment_sources_ptr());
+    env.newProperty<unsigned long long>("pde_recruitment_sources_ptr", static_cast<unsigned long long>(recruit_ptr));
+
     std::cout << "PDE device pointers stored in FLAME GPU environment" << std::endl;
 }
 
@@ -497,6 +501,334 @@ void cleanup_pde_solver() {
         delete g_pde_solver;
         g_pde_solver = nullptr;
     }
+}
+
+// ============================================================================
+// Recruitment System Implementation
+// ============================================================================
+
+// CUDA kernel to mark MDSC recruitment sources based on CCL2
+__global__ void mark_mdsc_sources_kernel(
+    int* d_recruitment_sources,
+    const float* d_ccl2,
+    int nx, int ny, int nz,
+    float ec50_ccl2,
+    unsigned int seed)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int z = blockIdx.z * blockDim.z + threadIdx.z;
+
+    if (x >= nx || y >= ny || z >= nz) return;
+
+    int idx = z * (nx * ny) + y * nx + x;
+
+    float ccl2 = d_ccl2[idx];
+    float H_CCL2 = ccl2 / (ccl2 + ec50_ccl2);
+
+    // Simple random number generation (thread-local)
+    unsigned int rng_state = seed + idx;
+    rng_state = rng_state * 1103515245u + 12345u;
+    float rand_val = (rng_state & 0x7FFFFFFF) / float(0x7FFFFFFF);
+
+    if (rand_val < H_CCL2) {
+        atomicOr(&d_recruitment_sources[idx], 2);  // Set MDSC bit (bit 1)
+    }
+}
+
+// Reset recruitment sources at start of each step
+FLAMEGPU_HOST_FUNCTION(reset_recruitment_sources) {
+    if (!g_pde_solver) return;
+    g_pde_solver->reset_recruitment_sources();
+}
+
+// Mark MDSC sources based on CCL2 concentration
+FLAMEGPU_HOST_FUNCTION(mark_mdsc_sources) {
+    if (!g_pde_solver) return;
+
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+
+    int* d_recruitment_sources = g_pde_solver->get_device_recruitment_sources_ptr();
+    const float* d_ccl2 = g_pde_solver->get_device_concentration_ptr(CHEM_CCL2);
+
+    // Get parameter (simplified - using fixed value for now, can read from environment later)
+    float ec50_ccl2 = 1e-10f;  // PARAM_MDSC_EC50_CCL2_REC from HCC
+
+    // Generate random seed from step number
+    unsigned int seed = static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 12345u;
+
+    dim3 block(8, 8, 8);
+    dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
+
+    mark_mdsc_sources_kernel<<<grid, block>>>(
+        d_recruitment_sources, d_ccl2, nx, ny, nz, ec50_ccl2, seed);
+
+    cudaDeviceSynchronize();
+}
+
+// Recruit T cells at marked T source voxels
+FLAMEGPU_HOST_FUNCTION(recruit_t_cells) {
+    if (!g_pde_solver) return;
+
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    const float voxel_size = FLAMEGPU->environment.getProperty<float>("voxel_size");
+
+    // Get QSP concentrations and recruitment rates from environment
+    float qsp_teff_conc = FLAMEGPU->environment.getProperty<float>("qsp_teff_central");
+    float k_teff = FLAMEGPU->environment.getProperty<float>("PARAM_TEFF_RECRUIT_K");
+    float p_recruit_teff = std::min(qsp_teff_conc * k_teff, 1.0f);
+
+    float qsp_treg_conc = FLAMEGPU->environment.getProperty<float>("qsp_treg_central");
+    float k_treg = FLAMEGPU->environment.getProperty<float>("PARAM_TREG_RECRUIT_K");
+    float p_recruit_treg = std::min(qsp_treg_conc * k_treg, 1.0f);
+
+    float qsp_th_conc = FLAMEGPU->environment.getProperty<float>("qsp_th_central");
+    float k_th = FLAMEGPU->environment.getProperty<float>("PARAM_TH_RECRUIT_K");
+    float p_recruit_th = std::min(qsp_th_conc * k_th, 1.0f);
+
+    // Debug output (periodic)
+    // static int debug_counter = 0;
+    // if (debug_counter % 10 == 0) {
+    //     std::cout << "T cell recruitment probabilities: Teff=" << p_recruit_teff
+    //               << " (conc=" << qsp_teff_conc << ", k=" << k_teff << ")"
+    //               << ", Treg=" << p_recruit_treg
+    //               << " (conc=" << qsp_th_conc << ", k=" << k_treg << ")" << std::endl;
+    // }
+    // debug_counter++;
+
+    // Copy recruitment sources to host
+    int total_voxels = nx * ny * nz;
+    std::vector<int> h_sources(total_voxels);
+    int* d_sources = g_pde_solver->get_device_recruitment_sources_ptr();
+    cudaMemcpy(h_sources.data(), d_sources, total_voxels * sizeof(int), cudaMemcpyDeviceToHost);
+
+    // Get agent APIs for creating new agents
+    auto tcell_api = FLAMEGPU->agent(AGENT_TCELL);
+    auto treg_api = FLAMEGPU->agent(AGENT_TREG);
+
+    int teff_recruited = 0;
+    int treg_recruited = 0;
+    int th_recruited = 0;
+
+    // Scan for T source voxels (bit 0 set)
+    for (int idx = 0; idx < total_voxels; idx++) {
+        if ((h_sources[idx] & 1) == 0) continue;  // Not a T source
+
+        int z = idx / (nx * ny);
+        int y = (idx % (nx * ny)) / nx;
+        int x = idx % nx;
+
+        // Try to recruit Teff
+        if (FLAMEGPU->random.uniform<float>() < p_recruit_teff) {
+            // Find empty neighbor voxel for placement (Moore neighborhood)
+            bool placed = false;
+            for (int dz = -1; dz <= 1 && !placed; dz++) {
+                for (int dy = -1; dy <= 1 && !placed; dy++) {
+                    for (int dx = -1; dx <= 1 && !placed; dx++) {
+                        if (dx == 0 && dy == 0 && dz == 0) continue;
+
+                        int nx_new = x + dx;
+                        int ny_new = y + dy;
+                        int nz_new = z + dz;
+
+                        if (nx_new >= 0 && nx_new < nx &&
+                            ny_new >= 0 && ny_new < ny &&
+                            nz_new >= 0 && nz_new < nz) {
+
+                            // Create new T cell (simplified initialization)
+                            auto new_agent = tcell_api.newAgent();
+                            new_agent.setVariable<int>("x", nx_new);
+                            new_agent.setVariable<int>("y", ny_new);
+                            new_agent.setVariable<int>("z", nz_new);
+                            new_agent.setVariable<int>("cell_state", 0);  // Effector state
+
+                            double lifeMean = FLAMEGPU->environment.getProperty<float>("PARAM_T_CELL_LIFE_MEAN_SLICE");
+                            double lifeSd = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
+
+                            float rnd = static_cast<float>(rand()) / RAND_MAX;
+                            int life = static_cast<int>(lifeMean * std::log(1.0f / (rnd + 0.0001f)) + 0.5f);
+                            if (life < 1) life = 1;
+
+                            new_agent.setVariable<float>("life", life);
+
+                            new_agent.setVariable<int>("divide_cd", FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_DIV_INTERNAL"));
+                            new_agent.setVariable<int>("divide_limit", FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_DIV_LIMIT"));
+
+                            new_agent.setVariable<float>("IL2_release_remain", FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_IL2_RELEASE_TIME"));
+
+                            teff_recruited++;
+                            placed = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Try to recruit Treg
+        if (FLAMEGPU->random.uniform<float>() < p_recruit_treg) {
+            bool placed = false;
+            for (int dz = -1; dz <= 1 && !placed; dz++) {
+                for (int dy = -1; dy <= 1 && !placed; dy++) {
+                    for (int dx = -1; dx <= 1 && !placed; dx++) {
+                        if (dx == 0 && dy == 0 && dz == 0) continue;
+
+                        int nx_new = x + dx;
+                        int ny_new = y + dy;
+                        int nz_new = z + dz;
+
+                        if (nx_new >= 0 && nx_new < nx &&
+                            ny_new >= 0 && ny_new < ny &&
+                            nz_new >= 0 && nz_new < nz) {
+
+                            auto new_agent = treg_api.newAgent();
+                            new_agent.setVariable<int>("x", nx_new);
+                            new_agent.setVariable<int>("y", ny_new);
+                            new_agent.setVariable<int>("z", nz_new);
+                            new_agent.setVariable<int>("cell_state", 0);
+
+                            double lifeMean = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
+                            double lifeSd = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
+
+                            float rnd = static_cast<float>(rand()) / RAND_MAX;
+                            int life = static_cast<int>(lifeMean * std::log(1.0f / (rnd + 0.0001f)) + 0.5f);
+                            if (life < 1) life = 1;
+
+                            new_agent.setVariable<int>("life", life);
+
+                            new_agent.setVariable<int>("divide_cd", FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_DIV_INTERNAL"));
+                            new_agent.setVariable<int>("divide_limit", FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_DIV_LIMIT"));
+
+                            new_agent.setVariable<float>("TGFB_release_remain", FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_TGFB_RELEASE_TIME"));
+
+                            new_agent.setVariable<float>("CTLA4", FLAMEGPU->environment.getProperty<float>("PARAM_CTLA4_TREG"));
+
+                            treg_recruited++;
+                            placed = true;
+                        }
+                    }
+                }
+            }
+        }
+        // Try to recruit TH
+        if (FLAMEGPU->random.uniform<float>() < p_recruit_th) {
+            bool placed = false;
+            for (int dz = -1; dz <= 1 && !placed; dz++) {
+                for (int dy = -1; dy <= 1 && !placed; dy++) {
+                    for (int dx = -1; dx <= 1 && !placed; dx++) {
+                        if (dx == 0 && dy == 0 && dz == 0) continue;
+
+                        int nx_new = x + dx;
+                        int ny_new = y + dy;
+                        int nz_new = z + dz;
+
+                        if (nx_new >= 0 && nx_new < nx &&
+                            ny_new >= 0 && ny_new < ny &&
+                            nz_new >= 0 && nz_new < nz) {
+
+                            auto new_agent = treg_api.newAgent();
+                            new_agent.setVariable<int>("x", nx_new);
+                            new_agent.setVariable<int>("y", ny_new);
+                            new_agent.setVariable<int>("z", nz_new);
+                            new_agent.setVariable<int>("cell_state", 1);
+
+                            double lifeMean = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
+                            double lifeSd = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
+
+                            float rnd = static_cast<float>(rand()) / RAND_MAX;
+                            int life = static_cast<int>(lifeMean * std::log(1.0f / (rnd + 0.0001f)) + 0.5f);
+                            if (life < 1) life = 1;
+
+                            new_agent.setVariable<int>("life", life);
+
+                            new_agent.setVariable<int>("divide_cd", FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_DIV_INTERNAL"));
+                            new_agent.setVariable<int>("divide_limit", FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_DIV_LIMIT"));
+
+                            new_agent.setVariable<float>("TGFB_release_remain", FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_TGFB_RELEASE_TIME"));
+
+                            new_agent.setVariable<float>("CTLA4", 0.0);
+
+                            th_recruited++;
+                            placed = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    FLAMEGPU->environment.setProperty<int>("ABM_TEFF_REC",teff_recruited);
+    FLAMEGPU->environment.setProperty<int>("ABM_TREG_REC",treg_recruited);
+    FLAMEGPU->environment.setProperty<int>("ABM_TH_REC",th_recruited);
+}
+
+// Recruit MDSCs at marked MDSC source voxels
+FLAMEGPU_HOST_FUNCTION(recruit_mdscs) {
+    if (!g_pde_solver) return;
+
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+
+    // Calculate recruitment probability: p = min(concentration * k_recruit, 1.0)
+    float p_recruit_mdsc = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_RECRUIT_K");
+
+    int total_voxels = nx * ny * nz;
+    std::vector<int> h_sources(total_voxels);
+    int* d_sources = g_pde_solver->get_device_recruitment_sources_ptr();
+    cudaMemcpy(h_sources.data(), d_sources, total_voxels * sizeof(int), cudaMemcpyDeviceToHost);
+
+    // Get agent API for creating new agents
+    auto mdsc_api = FLAMEGPU->agent(AGENT_MDSC);
+    int mdsc_recruited = 0;
+
+    // Scan for MDSC source voxels (bit 1 set)
+    for (int idx = 0; idx < total_voxels; idx++) {
+        if ((h_sources[idx] & 2) == 0) continue;  // Not an MDSC source
+
+        if (FLAMEGPU->random.uniform<float>() < p_recruit_mdsc) {
+            int z = idx / (nx * ny);
+            int y = (idx % (nx * ny)) / nx;
+            int x = idx % nx;
+
+            // Find empty neighbor voxel
+            bool placed = false;
+            for (int dz = -1; dz <= 1 && !placed; dz++) {
+                for (int dy = -1; dy <= 1 && !placed; dy++) {
+                    for (int dx = -1; dx <= 1 && !placed; dx++) {
+                        if (dx == 0 && dy == 0 && dz == 0) continue;
+
+                        int nx_new = x + dx;
+                        int ny_new = y + dy;
+                        int nz_new = z + dz;
+
+                        if (nx_new >= 0 && nx_new < nx &&
+                            ny_new >= 0 && ny_new < ny &&
+                            nz_new >= 0 && nz_new < nz) {
+
+                            auto new_agent = mdsc_api.newAgent();
+                            new_agent.setVariable<int>("x", nx_new);
+                            new_agent.setVariable<int>("y", ny_new);
+                            new_agent.setVariable<int>("z", nz_new);
+
+                            double lifeMean = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE");
+                            float rnd = static_cast<float>(rand()) / RAND_MAX;
+                            int life = static_cast<int>(lifeMean * std::log(1.0f / (rnd + 0.0001f)) + 0.5f);
+                            if (life < 1) life = 1;
+
+                            new_agent.setVariable<int>("life", life);
+
+                            mdsc_recruited++;
+                            placed = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    FLAMEGPU->environment.setProperty<int>("ABM_MDSC_REC",mdsc_recruited);
 }
 
 } // namespace PDAC

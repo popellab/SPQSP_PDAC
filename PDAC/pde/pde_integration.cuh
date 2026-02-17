@@ -41,6 +41,18 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model);
 // Cleanup PDE solver (call at end)
 void cleanup_pde_solver();
 
+// Recruitment host functions (declared and implemented in pde_integration.cu)
+
+// Mark recruitment sources based on chemical concentrations
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER mark_mdsc_sources;
+
+// Recruit new immune cells at marked sources
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER recruit_t_cells;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER recruit_mdscs;
+
+// Reset recruitment sources (call at start of each step)
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER reset_recruitment_sources;
+
 } // namespace PDAC
 
 #endif // PDE_INTEGRATION_CUH

@@ -47,6 +47,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.TCell.IL2_release_time", "", "pos"},  // PARAM_TCELL_IL2_RELEASE_TIME
     {"Param.ABM.TCell.IL2_prolif_th", "", "pos"},     // PARAM_TCELL_IL2_PROLIF_TH
     {"Param.ABM.TCell.IFNg_release_time", "", "pos"}, // PARAM_TCELL_IFNG_RELEASE_TIME
+    {"Param.ABM.TCell.IFNg_recruit_Half", "", "pos"}, 
     //*************************************************************************/
     // TCD4 cell parameters
     {"Param.ABM.TCD4.TGFB_release_time", "", "pos"},  // PARAM_TCD4_TGFB_RELEASE_TIME
@@ -270,6 +271,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_TCELL_IL2_RELEASE_TIME", getFloat(PARAM_TCELL_IL2_RELEASE_TIME));
     env.newProperty<float>("PARAM_TCELL_IL2_PROLIF_TH", getFloat(PARAM_TCELL_IL2_PROLIF_TH));
     env.newProperty<float>("PARAM_TCELL_IFNG_RELEASE_TIME", getFloat(PARAM_TCELL_IFNG_RELEASE_TIME));
+    env.newProperty<float>("PARAM_TEFF_IFN_EC50", getFloat(PARAM_TEFF_IFN_EC50));
     //TCD4 CELL PARAMETERS
     env.newProperty<int>("PARAM_TCD4_DIV_INTERNAL", getInt(PARAM_TCD4_DIV_INTERNAL));
     env.newProperty<int>("PARAM_TCD4_DIV_LIMIT", getInt(PARAM_TCD4_DIV_LIMIT));

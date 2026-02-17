@@ -32,20 +32,29 @@ struct QSPState {
     // Drug concentrations (will be transferred to GPU environment)
     double nivo_tumor;          // Nivolumab concentration in tumor
     double cabo_tumor;          // Cabozantinib concentration in tumor
+    double ipi_tumor;
 
-    // T cell pools (central/systemic)
+    // Central compartment cell pools
     double teff_central;        // Effector T cells in central compartment
     double treg_central;        // Regulatory T cells in central compartment
+    double th_central;
 
-    // Other immune mediators relevant to ABM
-    double ifn_central;         // IFN-gamma in central compartment
-    double il2_central;         // IL-2 in central compartment
-    double il10_central;        // IL-10 in central compartment
-    double tgfb_central;        // TGF-beta in central compartment
+    // Tumor compartment cell pools
+    double teff_tumor;          // CD8+ T cells in tumor (SP_V_T_C1)
+    double treg_tumor;
+    double th_tumor;            // T helper cells in tumor (SP_V_T_Th)
+    double mdsc_tumor;          // MDSCs in tumor (SP_V_T_MDSC)
+    double m1_tumor;
+    double m2_tumor;
+    double caf_tumor;
 
-    // Tumor-related signals
-    double tumor_capacity;      // Remaining capacity for tumor growth
-    double tumor_necrotic_fraction; // Fraction of tumor that is necrotic
+    double cc_tumor;
+    double cx_tumor;
+    double t_exh_tumor;
+    double tum_vol;
+    double tum_cmax;
+    double f_tum_cap;
+
 };
 
 /**
@@ -78,7 +87,15 @@ public:
     bool initialize(const std::string& param_filename);
 
     /**
-     * Advance ODE system by dt seconds
+     * Advance ODE system by dt seconds (pre-simulation mode: no drug dosing)
+     * @param t Current simulation time (seconds)
+     * @param dt Time step (seconds)
+     * @return true if successful, false if solver failed
+     */
+    bool time_step_preSimulation(double t, double dt);
+
+    /**
+     * Advance ODE system by dt seconds (main simulation mode: drug dosing applied)
      * @param t Current simulation time (seconds)
      * @param dt Time step (seconds)
      * @return true if successful, false if solver failed
@@ -86,21 +103,35 @@ public:
     bool time_step(double t, double dt);
 
     /**
-     * Update QSP state from ABM signals
-     * @param cancer_deaths Number of cancer cells killed by T cells in last ABM step
-     * @param tcell_kills Number of T cells killed in last ABM step
-     * @param teff_recruited Number of effector T cells recruited from central compartment
-     * @param treg_recruited Number of regulatory T cells recruited
-     * @param tumor_volume Current tumor volume (mm³)
-     * @param tumor_cell_count Current total cancer cell count
+     * Get tumor volume from current QSP state (cm^3)
+     */
+    double get_tumor_volume() const;
+
+    /**
+     * Update QSP state from ABM signals (called before each QSP time step).
+     * Stores scaled ABM events for application in _apply_abm_feedback().
+     *
+     * abm_scaler = (1-w)/w × lymphCC / (tumCC + abm_min_cc)
+     *   where lymphCC = QSP raw cancer molecule count,
+     *         tumCC   = ABM discrete cancer cell count,
+     *         w       = _QSP_weight (coupling weight, 0.8 default)
+     *
+     * @param cancer_deaths  ABM cancer cell deaths this step (discrete count)
+     * @param teff_recruited ABM Teff cells recruited from QSP central this step
+     * @param treg_recruited ABM TReg cells recruited from QSP central this step
+     * @param mdsc_recruited ABM MDSC cells recruited this step
+     * @param tumor_volume   ABM-estimated tumor volume (cm³)
+     * @param tumor_cell_count ABM cancer cell count (discrete agents)
+     * @param abm_scaler     Pre-computed ABM→QSP scaling factor
      */
     void update_from_abm(
         int cancer_deaths,
-        int tcell_kills,
         int teff_recruited,
         int treg_recruited,
+        int mdsc_recruited,
         double tumor_volume,
-        int tumor_cell_count
+        int tumor_cell_count,
+        double abm_scaler
     );
 
     /**
@@ -140,6 +171,20 @@ public:
     bool is_initialized() const { return _is_initialized; }
 
     /**
+     * Get the full target tumor volume (1.0× initial diameter, cm^3)
+     * Computed during initialize() from XML parameter P_initial_tumour_diameter
+     */
+    double get_full_target_volume() const { return _full_target_vol; }
+
+    /**
+     * Set/clear pre-simulation mode.
+     * When true, solve_qsp_step calls time_step_preSimulation (no drug dosing).
+     * When false (default), solve_qsp_step calls time_step (drug dosing active).
+     */
+    void set_presimulation_mode(bool presim) { _presimulation_mode = presim; }
+    bool is_presimulation_mode() const { return _presimulation_mode; }
+
+    /**
      * Get underlying ODE system (for advanced usage)
      */
     CancerVCT::ODE_system* get_ode_system() {
@@ -156,15 +201,37 @@ private:
     // Model state
     bool _is_initialized;
     double _current_time;
+    double _full_target_vol;    // π/6 × D³ (1.0× initial diameter), cm^3
+    bool _presimulation_mode;   // true → no drug dosing in ODE step
 
-    // ABM coupling variables
+    // Drug dosing schedule (read from XML Param.Pharmacokinetics)
+    bool   _nivo_on;            // Nivolumab dosing enabled
+    double _nivo_dose;          // Dose amount (moles, added to V_C_aPD1)
+    double _nivo_interval_s;    // Dosing interval (seconds)
+    int    _nivo_doses_given;   // Number of doses administered so far
+
+    bool   _cabo_on;            // Cabozantinib dosing enabled
+    double _cabo_dose;          // Dose amount (moles, added to V_C_A_site1)
+    double _cabo_interval_s;    // Dosing interval (seconds)
+    int    _cabo_doses_given;   // Number of doses administered so far
+
+    bool   _treatment_started;    // Set true on first time_step() call
+    double _treatment_start_time; // Time (s) when Phase 4 (main sim) begins
+    double _nivo_next_dose_t;    // Next nivo dose time (s, relative to treatment start)
+    double _cabo_next_dose_t;    // Next cabo dose time (s, relative to treatment start)
+
+    // Apply drug boluses for any dosing events that fall in [t, t+dt)
+    void _apply_drug_doses(double t, double dt);
+
+    // ABM coupling variables (updated each step via update_from_abm)
     struct {
         int cancer_deaths_last_step;
-        int tcell_kills_last_step;
         int teff_recruited_last_step;
         int treg_recruited_last_step;
+        int mdsc_recruited_last_step;
         double tumor_volume;
         int tumor_cell_count;
+        double abm_scaler;   // pre-computed (1-w)/w × lymphCC / (tumCC + eps)
     } _abm_signals;
 
     // Species indices (extracted from ODE_system or defined by SBML model)
@@ -177,7 +244,14 @@ private:
 
     // Helper method to apply ABM feedback to ODE system
     void _apply_abm_feedback();
+
+    // Compute tumor volume from an ODE system instance (uses SI units via getSpeciesVar false)
+    double _compute_tumor_volume(CancerVCT::ODE_system* sys) const;
 };
+
+// Global pointer setter for FLAME GPU host functions
+// (declared in qsp_integration.cu)
+void set_lymph_pointer(LymphCentralWrapper* lymph);
 
 } // namespace PDAC
 

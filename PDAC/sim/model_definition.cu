@@ -1,5 +1,6 @@
 #include "flamegpu/flamegpu.h"
 #include <memory>
+#include <limits>
 
 #include "../core/common.cuh"
 #include "../agents/cancer_cell.cuh"
@@ -154,7 +155,7 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     // Division control
     tcell.newVariable<int>("divide_flag", 0);
     tcell.newVariable<int>("divide_cd", 0);
-    tcell.newVariable<int>("divide_limit", 10);
+    tcell.newVariable<int>("divide_limit", 0);
 
     // Molecular exposure
     tcell.newVariable<float>("local_IL2", 0.0f);
@@ -191,7 +192,7 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     tcell.newVariable<unsigned int>("available_neighbors", 0u);
 
     // Lifecycle
-    tcell.newVariable<int>("life", 100);
+    tcell.newVariable<int>("life", 0);
     tcell.newVariable<int>("dead", 0);
 
     // Intent variables for two-phase conflict resolution
@@ -282,7 +283,7 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     treg.newVariable<unsigned int>("available_neighbors", 0u);
 
     // Lifecycle
-    treg.newVariable<int>("life", 100);
+    treg.newVariable<int>("life", 0);
     treg.newVariable<int>("dead", 0);
 
     // Intent variables for two-phase conflict resolution
@@ -361,7 +362,7 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state) {
     mdsc.newVariable<unsigned int>("available_neighbors", 0u);
 
     // Lifecycle
-    mdsc.newVariable<int>("life", 100);
+    mdsc.newVariable<int>("life", 0);
     mdsc.newVariable<int>("dead", 0);
 
     // Intent variables for two-phase conflict resolution
@@ -447,6 +448,9 @@ void defineVascularCellAgent(flamegpu::ModelDescription& model) {
     agent.newFunction("update_chemicals", vascular_update_chemicals);
 
     agent.newFunction("compute_chemical_sources", vascular_compute_chemical_sources);
+
+    // Recruitment source marking
+    agent.newFunction("mark_t_sources", vascular_mark_t_sources);
 
     // State transitions and division
     agent.newFunction("state_step", vascular_state_step)
@@ -534,6 +538,9 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<unsigned int>("current_step", 0u);
     env.newProperty<unsigned int>("next_agent_id", 1000u);
 
+    // Step counter that starts at 0 when the main simulation (Phase 4) begins
+    env.newProperty<unsigned int>("main_sim_step", 0u);
+
     // Agent count tracking (updated each timestep by host function)
     env.newProperty<unsigned int>("total_cancer_cells", 0u);
     env.newProperty<unsigned int>("total_tcells", 0u);
@@ -548,6 +555,39 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<unsigned int>("tcell_divide_successes", 0u);
     env.newProperty<unsigned int>("treg_divide_attempts", 0u);
     env.newProperty<unsigned int>("treg_divide_successes", 0u);
+
+    // QSP state (updated by solve_qsp_step host function)
+    env.newProperty<float>("qsp_teff_central", 0.0f);
+    env.newProperty<float>("qsp_treg_central", 0.0f);
+    env.newProperty<float>("qsp_th_central", 0.0f);
+
+    env.newProperty<float>("qsp_teff_tumor", 0.0f);
+    env.newProperty<float>("qsp_treg_tumor", 0.0f);
+    env.newProperty<float>("qsp_th_tumor", 0.0f);
+    env.newProperty<float>("qsp_mdsc_tumor", 0.0f);
+    env.newProperty<float>("qsp_m1_tumor", 0.0f);
+    env.newProperty<float>("qsp_m2_tumor", 0.0f);
+    env.newProperty<float>("qsp_caf_tumor", 0.0f);
+
+    env.newProperty<float>("qsp_nivo_tumor", 0.0f);   // Nivolumab concentration in tumor
+    env.newProperty<float>("qsp_cabo_tumor", 0.0f);   // Cabozantinib concentration in tumor
+    env.newProperty<float>("qsp_ipi_tumor", 0.0f);   // Ipilumab concentration in tumor
+
+    env.newProperty<float>("qsp_cc_tumor", 0.0f); 
+    env.newProperty<float>("qsp_cx_tumor", 0.0f);   
+    env.newProperty<float>("qsp_t_exh_tumor", 0.0f);  
+    env.newProperty<float>("qsp_tum_vol", 0.0f);  
+    env.newProperty<float>("qsp_tum_cmax", 0.0f);   
+    env.newProperty<float>("qsp_f_tum_cap", 0.0f);  
+
+    // ABM state to QSP
+    env.newProperty<int>("ABM_TEFF_REC", 0);  
+    env.newProperty<int>("ABM_TREG_REC", 0);  
+    env.newProperty<int>("ABM_TH_REC", 0);  
+    env.newProperty<int>("ABM_MDSC_REC", 0);
+    
+    env.newProperty<int>("ABM_cc_death", 0);  
+    env.newProperty<int>("ABM_cc_t_kill", 0);  
 
     // Populate ALL other parameters from XML
     params.populateFlameGPUEnvironment(env);

@@ -3,7 +3,9 @@
 
 #include "flamegpu/flamegpu.h"
 #include "gpu_param.h"
+#include "../qsp/LymphCentral_wrapper.h"
 #include <string>
+#include <vector>
 
 namespace PDAC {
 
@@ -95,6 +97,25 @@ void initializeMDSCs(
     int tumor_radius, int num_mdscs,
     float mdsc_life_mean);
 
+// QSP probability-based initialization (iterate all voxels, place if rand < p and voxel empty)
+void initializeTHCellsFromQSP(
+    flamegpu::AgentVector& treg_agents,
+    int grid_x, int grid_y, int grid_z,
+    double p_th, std::vector<bool>& occupied,
+    float life_mean, int div_limit, int div_interval);
+
+void initializeTRegCellsFromQSP(
+    flamegpu::AgentVector& treg_agents,
+    int grid_x, int grid_y, int grid_z,
+    double p_treg, std::vector<bool>& occupied,
+    float life_mean, int div_limit, int div_interval);
+
+void initializeMDSCsFromQSP(
+    flamegpu::AgentVector& mdsc_agents,
+    int grid_x, int grid_y, int grid_z,
+    double p_mdsc, std::vector<bool>& occupied,
+    float life_mean);
+
 // Initialize Vascular Cells with random walk (HCC-style)
 void initializeVascularCellsRandom(
     flamegpu::AgentVector& vascular_agents,
@@ -108,14 +129,22 @@ void initializeVascularCellsTest(
     int grid_x, int grid_y, int grid_z);
 
 // ============================================================================
-// Master Initialization Function
+// Master Initialization Functions
 // ============================================================================
 
-// Initialize all agent populations in the simulation
+// Initialize all agent populations with fixed config values (manual/default init)
 void initializeAllAgents(
     flamegpu::CUDASimulation& simulation,
     flamegpu::ModelDescription& model,
     const SimulationConfig& config);
+
+// Initialize agent populations seeded from QSP steady-state (after QSP warmup)
+// Computes cluster_radius and immune cell counts from QSP tumor volume and species
+void initializeToQSP(
+    flamegpu::CUDASimulation& simulation,
+    flamegpu::ModelDescription& model,
+    const SimulationConfig& config,
+    const LymphCentralWrapper& lymph);
 
 } // namespace PDAC
 

@@ -50,6 +50,7 @@ enum GPUParamFloat {
     PARAM_TCELL_IL2_RELEASE_TIME,
     PARAM_TCELL_IL2_PROLIF_TH,
     PARAM_TCELL_IFNG_RELEASE_TIME,
+    PARAM_TEFF_IFN_EC50,
     //*************************************************************************/
     // TCD4 cell parameters
     PARAM_TCD4_TGFB_RELEASE_TIME,

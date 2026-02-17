@@ -337,6 +337,45 @@ FLAMEGPU_AGENT_FUNCTION(vascular_execute_move, flamegpu::MessageSpatial3D, flame
     return flamegpu::ALIVE;
 }
 
+// Mark T cell recruitment sources (phalanx cells based on IFN-γ)
+FLAMEGPU_AGENT_FUNCTION(vascular_mark_t_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
+    const int vascular_state = FLAMEGPU->getVariable<int>("vascular_state");
+
+    // Only phalanx cells can be T cell sources
+    if (vascular_state != VAS_PHALANX) {
+        return flamegpu::ALIVE;
+    }
+
+    const int x = FLAMEGPU->getVariable<int>("x");
+    const int y = FLAMEGPU->getVariable<int>("y");
+    const int z = FLAMEGPU->getVariable<int>("z");
+    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+
+    // Get IFN-γ concentration at this voxel
+    const float local_IFNg = FLAMEGPU->getVariable<float>("local_VEGFA");  // Will be set correctly when we add IFN read
+
+    // Calculate Hill function (simplified from HCC - no tumor scaling for now)
+    const float ec50_ifng = FLAMEGPU->environment.getProperty<int>("PARAM_TEFF_IFN_EC50");
+    const float H_IFNg = local_IFNg / (local_IFNg + ec50_ifng);
+
+    // Simple probability check
+    const float p_entry = H_IFNg * 0.1f;  // Simplified (HCC uses tumor_scaler * vas_scaler)
+
+    if (FLAMEGPU->random.uniform<float>() < p_entry) {
+        // Get recruitment sources array pointer from environment
+        unsigned long long ptr_val = FLAMEGPU->environment.getProperty<unsigned long long>("pde_recruitment_sources_ptr");
+        int* d_recruitment_sources = reinterpret_cast<int*>(static_cast<uintptr_t>(ptr_val));
+
+        // Mark this voxel as T cell source (bit 0)
+        int idx = z * (grid_x * grid_y) + y * grid_x + x;
+        atomicOr(&d_recruitment_sources[idx], 1);  // Set T cell bit
+    }
+
+    return flamegpu::ALIVE;
+}
+
 // State transitions and division decisions (following active HCC Vas.cpp - anastomosis commented out)
 FLAMEGPU_AGENT_FUNCTION(vascular_state_step, flamegpu::MessageSpatial3D, flamegpu::MessageNone) {
     const int vascular_state = FLAMEGPU->getVariable<int>("vascular_state");

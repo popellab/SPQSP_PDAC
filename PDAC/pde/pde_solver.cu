@@ -497,6 +497,7 @@ PDESolver::PDESolver(const PDEConfig& config)
       d_concentrations_current_(nullptr),
       d_concentrations_next_(nullptr),
       d_sources_(nullptr),
+      d_recruitment_sources_(nullptr),
       d_cg_r_(nullptr),
       d_cg_p_(nullptr),
       d_cg_Ap_(nullptr),
@@ -518,6 +519,7 @@ PDESolver::~PDESolver() {
     if (d_concentrations_current_) CUDA_CHECK(cudaFree(d_concentrations_current_));
     if (d_concentrations_next_) CUDA_CHECK(cudaFree(d_concentrations_next_));
     if (d_sources_) CUDA_CHECK(cudaFree(d_sources_));
+    if (d_recruitment_sources_) CUDA_CHECK(cudaFree(d_recruitment_sources_));
     if (d_cg_r_) CUDA_CHECK(cudaFree(d_cg_r_));
     if (d_cg_p_) CUDA_CHECK(cudaFree(d_cg_p_));
     if (d_cg_Ap_) CUDA_CHECK(cudaFree(d_cg_Ap_));
@@ -543,10 +545,15 @@ void PDESolver::initialize() {
     CUDA_CHECK(cudaMalloc(&d_concentrations_next_, total_size));
     CUDA_CHECK(cudaMalloc(&d_sources_, total_size));
 
+    // Allocate recruitment sources array (int per voxel)
+    size_t recruitment_size = total_voxels * sizeof(int);
+    CUDA_CHECK(cudaMalloc(&d_recruitment_sources_, recruitment_size));
+
     // Initialize to zero
     CUDA_CHECK(cudaMemset(d_concentrations_current_, 0, total_size));
     CUDA_CHECK(cudaMemset(d_concentrations_next_, 0, total_size));
     CUDA_CHECK(cudaMemset(d_sources_, 0, total_size));
+    CUDA_CHECK(cudaMemset(d_recruitment_sources_, 0, recruitment_size));
 
     // Allocate CG workspace (per voxel, not per substrate)
     CUDA_CHECK(cudaMalloc(&d_cg_r_, voxel_size));
@@ -1036,6 +1043,12 @@ void PDESolver::reset_sources() {
     int total_voxels = get_total_voxels();
     size_t total_size = total_voxels * config_.num_substrates * sizeof(float);
     CUDA_CHECK(cudaMemset(d_sources_, 0, total_size));
+}
+
+void PDESolver::reset_recruitment_sources() {
+    int total_voxels = get_total_voxels();
+    size_t size = total_voxels * sizeof(int);
+    CUDA_CHECK(cudaMemset(d_recruitment_sources_, 0, size));
 }
 
 void PDESolver::set_initial_concentration(int substrate_idx, float value) {
