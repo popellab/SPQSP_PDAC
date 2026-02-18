@@ -409,6 +409,7 @@ void defineVascularCellAgent(flamegpu::ModelDescription& model) {
 
     // Chemical concentrations (read from PDE)
     agent.newVariable<float>("local_O2", 0.0f);
+    agent.newVariable<float>("local_IFNg", 0.0f);
     agent.newVariable<float>("local_VEGFA", 0.0f);
 
     // VEGF-A gradient (read from PDE)

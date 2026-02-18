@@ -676,7 +676,7 @@ void initializeCancerCellsRandom(
 
                 // Sample from CDF to determine Stem, Prog, or Sen
                 double p = static_cast<float>(rand()) / RAND_MAX;
-                int i = std::lower_bound(celltype_cdf.begin(), celltype_cdf.begin(), p) - celltype_cdf.begin();
+                int i = std::lower_bound(celltype_cdf.begin(), celltype_cdf.end(), p) - celltype_cdf.begin();
                 int cell_state;
                 int div_cd = 0;
                 int div = 0;

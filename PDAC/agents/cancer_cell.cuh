@@ -799,7 +799,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_divide, flamegpu::MessageSpatial3D, flame
         FLAMEGPU->agent_out.setVariable<int>("cell_state", CANCER_PROGENITOR);
         FLAMEGPU->agent_out.setVariable<int>("divideCD", progenitor_div_interval);
         FLAMEGPU->agent_out.setVariable<int>("divideFlag", 1);
-        FLAMEGPU->agent_out.setVariable<int>("divideCountRemaining", divMax);
+        FLAMEGPU->agent_out.setVariable<int>("divideCountRemaining", divideCountRemaining);
         FLAMEGPU->agent_out.setVariable<unsigned int>("stemID", stem_id);
 
         // Turn progenitor into senescent cell
@@ -835,6 +835,18 @@ FLAMEGPU_AGENT_FUNCTION(cancer_execute_divide, flamegpu::MessageSpatial3D, flame
     FLAMEGPU->setVariable<int>("target_x", -1);
     FLAMEGPU->setVariable<int>("target_y", -1);
     FLAMEGPU->setVariable<int>("target_z", -1);
+
+    // Reset parent divideCD to full interval (only if parent didn't become senescent)
+    if (cell_state == CANCER_STEM) {
+        float div_int = FLAMEGPU->environment.getProperty<float>(
+                            "PARAM_FLOAT_CANCER_CELL_STEM_DIV_INTERVAL_SLICE");
+        FLAMEGPU->setVariable<int>("divideCD", static_cast<int>(div_int + 0.5f));
+    } else if (cell_state == CANCER_PROGENITOR &&
+               FLAMEGPU->getVariable<int>("divideCountRemaining") > 0) {
+        float div_int = FLAMEGPU->environment.getProperty<float>(
+                            "PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE");
+        FLAMEGPU->setVariable<int>("divideCD", static_cast<int>(div_int + 0.5f));
+    }
 
     return flamegpu::ALIVE;
 }
