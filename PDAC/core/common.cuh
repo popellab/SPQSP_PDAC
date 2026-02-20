@@ -77,6 +77,8 @@ constexpr int MAX_T_PER_VOXEL_WITH_CANCER = 1;  // Max T cells when cancer prese
 constexpr int MAX_CANCER_PER_VOXEL = 1;         // Max cancer cells per voxel
 constexpr int MAX_MDSC_PER_VOXEL = 1;           // Max MDSC per voxel (exclusive)
 constexpr int MAX_MAC_PER_VOXEL = 1;            // Max macrophage per voxel (exclusive)
+constexpr int MAX_FIB_SLOTS = 5000;             // Max fibroblast slots in chain position MacroProperty
+constexpr int MAX_FIB_CHAIN_LENGTH = 3;         // Max cells per fibroblast chain (HEAD + N-1 followers)
 
 // Action types for intent messages
 enum IntentAction : int {

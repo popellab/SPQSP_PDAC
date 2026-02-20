@@ -1055,6 +1055,37 @@ void initializeFibroblasts(
     std::cout << "Initialized " << placed << " Fibroblasts (Normal) around tumor margin" << std::endl;
 }
 
+// Helper: find a free adjacent voxel for chain extension
+// Returns true and sets nx,ny,nz if found; returns false otherwise
+static bool findFreeAdjacent(int x, int y, int z, int grid_x, int grid_y, int grid_z,
+                              std::vector<std::vector<int>>& occupied,
+                              int& nx, int& ny, int& nz)
+{
+    // Try all 6 face-adjacent neighbors in random order
+    int dx[6] = {1,-1,0,0,0,0};
+    int dy[6] = {0,0,1,-1,0,0};
+    int dz[6] = {0,0,0,0,1,-1};
+    // Shuffle
+    for (int i = 5; i > 0; i--) {
+        int j = rand() % (i + 1);
+        std::swap(dx[i], dx[j]);
+        std::swap(dy[i], dy[j]);
+        std::swap(dz[i], dz[j]);
+    }
+    for (int i = 0; i < 6; i++) {
+        int cx = x + dx[i];
+        int cy = y + dy[i];
+        int cz = z + dz[i];
+        if (cx < 0 || cx >= grid_x || cy < 0 || cy >= grid_y || cz < 0 || cz >= grid_z) continue;
+        int idx = cx + cy * grid_x + cz * grid_x * grid_y;
+        if (occupied[idx][0] == 0) {
+            nx = cx; ny = cy; nz = cz;
+            return true;
+        }
+    }
+    return false;
+}
+
 void initializeFibroblastsFromQSP(
     flamegpu::AgentVector& fib_agents,
     int grid_x, int grid_y, int grid_z,
@@ -1063,29 +1094,77 @@ void initializeFibroblastsFromQSP(
     float life_mean)
 {
     int placed = 0;
+    int slot_counter = 0;
+    const int chain_len = MAX_FIB_CHAIN_LENGTH;  // 3: HEAD → MIDDLE → TAIL
+
     for (int z = 0; z < grid_z; z++) {
         for (int y = 0; y < grid_y; y++) {
             for (int x = 0; x < grid_x; x++) {
                 const float rnd = static_cast<float>(rand()) / RAND_MAX;
                 if (rnd >= static_cast<float>(p_fib)) continue;
+                if (slot_counter + chain_len > MAX_FIB_SLOTS) break;
 
-                float life_rnd = static_cast<float>(rand()) / RAND_MAX;
-                int life = static_cast<int>(life_mean * std::log(1.0f / (life_rnd + 1e-4f)) + 0.5f);
-                if (life < 1) life = 1;
+                // Check if starting voxel is free
+                int idx0 = x + y * grid_x + z * grid_x * grid_y;
+                if (occupied[idx0][0] != 0) continue;
 
-                fib_agents.push_back();
-                flamegpu::AgentVector::Agent agent = fib_agents.back();
-                agent.setVariable<int>("x", x);
-                agent.setVariable<int>("y", y);
-                agent.setVariable<int>("z", z);
-                agent.setVariable<int>("fib_state", FIB_NORMAL);
-                agent.setVariable<int>("life", life);
+                // Try to form a chain of chain_len cells starting here
+                // Positions for each cell in the chain
+                int cx[MAX_FIB_CHAIN_LENGTH], cy[MAX_FIB_CHAIN_LENGTH], cz[MAX_FIB_CHAIN_LENGTH];
+                cx[0] = x; cy[0] = y; cz[0] = z;
+                occupied[idx0][0] = 1;  // Mark HEAD occupied tentatively
 
-                placed++;
+                int actual_len = 1;
+                for (int c = 1; c < chain_len; c++) {
+                    if (!findFreeAdjacent(cx[c-1], cy[c-1], cz[c-1],
+                                          grid_x, grid_y, grid_z, occupied,
+                                          cx[c], cy[c], cz[c])) {
+                        break;
+                    }
+                    int idxc = cx[c] + cy[c] * grid_x + cz[c] * grid_x * grid_y;
+                    occupied[idxc][0] = 1;
+                    actual_len++;
+                }
+                // Note: HEAD already marked occupied above, all chain cells marked tentatively.
+                // actual_len is how many were placed (1 to chain_len).
+
+                // Assign slots for this chain: [slot_counter .. slot_counter+actual_len-1]
+                // Chain: cell[0]=HEAD (divides, future), cell[1]=MIDDLE, cell[actual_len-1]=TAIL (chemotaxis, leader_slot=-1)
+                //        cell[2] (leader_slot=slot_counter+1), etc.
+                if (slot_counter + actual_len > MAX_FIB_SLOTS) {
+                    // Not enough slots left — undo occupancy and stop placing
+                    for (int c = 0; c < actual_len; c++) {
+                        int idxc = cx[c] + cy[c] * grid_x + cz[c] * grid_x * grid_y;
+                        occupied[idxc][0] = 0;
+                    }
+                    break;
+                }
+
+                for (int c = 0; c < actual_len; c++) {
+                    float life_rnd = static_cast<float>(rand()) / RAND_MAX;
+                    int life = static_cast<int>(life_mean * std::log(1.0f / (life_rnd + 1e-4f)) + 0.5f);
+                    if (life < 1) life = 1;
+
+                    fib_agents.push_back();
+                    flamegpu::AgentVector::Agent agent = fib_agents.back();
+                    agent.setVariable<int>("x", cx[c]);
+                    agent.setVariable<int>("y", cy[c]);
+                    agent.setVariable<int>("z", cz[c]);
+                    agent.setVariable<int>("fib_state", FIB_NORMAL);
+                    agent.setVariable<int>("life", life);
+                    agent.setVariable<int>("my_slot", slot_counter + c);
+                    // TAIL (c==actual_len-1): leader_slot=-1 (moves via chemotaxis)
+                    // Others: leader_slot = slot of cell directly toward tail (follows the tail's movement)
+                    agent.setVariable<int>("leader_slot", (c == actual_len - 1) ? -1 : (slot_counter + c + 1));
+                }
+
+                slot_counter += actual_len;
+                placed += actual_len;
             }
         }
     }
-    std::cout << "  Placed " << placed << " Fibroblasts (probability-based QSP)" << std::endl;
+    std::cout << "  Placed " << placed << " Fibroblasts in chains (probability-based QSP), "
+              << slot_counter << " slots used" << std::endl;
 }
 
 // ============================================================================
@@ -1311,7 +1390,7 @@ void initializeToQSP(
     const double p_mdsc =        qsp.mdsc_tumor  / (qsp.mdsc_tumor + cc_SI + eps);
     const double p_treg = 0.0;
     const double p_mac  =        qsp.m2_tumor / (qsp.m2_tumor + cc_SI + eps);
-    const double p_fib  =        qsp.caf_tumor / (qsp.caf_tumor + cc_SI + eps);
+    double p_fib  =        qsp.caf_tumor / (qsp.caf_tumor + cc_SI + eps);
     if (p_fib > 0.1) {
 		p_fib = 0.1;
 	} else if (p_fib < 0.001) {

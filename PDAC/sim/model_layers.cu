@@ -230,9 +230,29 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
             flamegpu::LayerDescription layer = model.newLayer("move_macrophage_" + std::to_string(i));
             layer.addAgentFunction(AGENT_MACROPHAGE, "move");
         }
+        // Fibroblast chain movement: 4 layers per move cycle
+        // 1. Snapshot positions + reset fib_moved flags
+        // 2. HEAD (sensor) runs TGFB chemotaxis
+        // 3. Direct followers (1 step behind HEAD) move to leader's old position
+        // 4. Second-order followers (2 steps behind HEAD) move
+        // This propagates through chains of up to MAX_FIB_CHAIN_LENGTH cells
         for (int i = 0; i < fib_steps; i++) {
-            flamegpu::LayerDescription layer = model.newLayer("move_fibroblast_" + std::to_string(i));
-            layer.addAgentFunction(AGENT_FIBROBLAST, "move");
+            {
+                flamegpu::LayerDescription layer = model.newLayer("fib_write_pos_" + std::to_string(i));
+                layer.addAgentFunction(AGENT_FIBROBLAST, "write_pos");
+            }
+            {
+                flamegpu::LayerDescription layer = model.newLayer("fib_sensor_move_" + std::to_string(i));
+                layer.addAgentFunction(AGENT_FIBROBLAST, "sensor_move");
+            }
+            {
+                flamegpu::LayerDescription layer = model.newLayer("fib_follow_move_0_" + std::to_string(i));
+                layer.addAgentFunction(AGENT_FIBROBLAST, "follow_move");
+            }
+            {
+                flamegpu::LayerDescription layer = model.newLayer("fib_follow_move_1_" + std::to_string(i));
+                layer.addAgentFunction(AGENT_FIBROBLAST, "follow_move");
+            }
         }
         {
             flamegpu::LayerDescription layer = model.newLayer("move_vascular");

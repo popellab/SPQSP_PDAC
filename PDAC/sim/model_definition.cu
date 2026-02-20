@@ -513,14 +513,26 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
     fib.newVariable<float>("move_direction_z", 0.0f);
     fib.newVariable<int>("tumble", 0);  // 0=running, 1=tumbling
 
-    // Movement control
-    fib.newVariable<int>("moves_remaining", 0);
+    // Chain-based follower-leader movement variables
+    // Chain: HEAD (divides, future) → MIDDLE → TAIL (senses gradient, chemotaxis)
+    // leader_slot: slot of cell toward TAIL end; -1 = this cell IS the TAIL (mover)
+    // my_slot: this cell's unique slot index in MacroProperty arrays fib_pos_x/y/z and fib_moved
+    fib.newVariable<int>("leader_slot", -1);  // -1 = TAIL (does chemotaxis)
+    fib.newVariable<int>("my_slot", -1);       // assigned during initialization
 
     // Lifecycle
     fib.newVariable<int>("life", 0);
 
     // Chemical release rates (computed per step)
     fib.newVariable<float>("TGFB_release_rate", 0.0f);
+
+    // MacroProperty arrays for chain movement:
+    // fib_pos_x/y/z: snapshot positions written at start of each step
+    // fib_moved: 1 if this slot's cell moved this step, 0 otherwise
+    model.Environment().newMacroProperty<int, MAX_FIB_SLOTS>("fib_pos_x");
+    model.Environment().newMacroProperty<int, MAX_FIB_SLOTS>("fib_pos_y");
+    model.Environment().newMacroProperty<int, MAX_FIB_SLOTS>("fib_pos_z");
+    model.Environment().newMacroProperty<int, MAX_FIB_SLOTS>("fib_moved");
 
     // Define agent functions
     fib.newFunction("broadcast_location", fib_broadcast_location)
@@ -530,7 +542,9 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
 
     if (include_state) {
         fib.newFunction("write_to_occ_grid", fib_write_to_occ_grid);
-        fib.newFunction("move", fib_move);
+        fib.newFunction("write_pos", fib_write_pos);
+        fib.newFunction("sensor_move", fib_sensor_move);
+        fib.newFunction("follow_move", fib_follow_move);
         fib.newFunction("state_step", fib_state_step)
             .setAllowAgentDeath(true);
     }
