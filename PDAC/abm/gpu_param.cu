@@ -161,6 +161,9 @@ const char* _gpu_param_description[][3] = {
     // Macrophage cell parameters
     {"Param.ABM.Mac.moveSteps", "", "pos"},   // PARAM_MAC_MOVE_STEPS
     //*************************************************************************/
+    // Fibroblast cell parameters
+    {"Param.ABM.Fib.moveSteps", "", "pos"},   // PARAM_FIB_MOVE_STEPS
+    //*************************************************************************/
     // Molecular parameters
 
     ////////////////////////////////////////////////////////////////////////////
@@ -287,6 +290,8 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<int>("PARAM_MDSC_MOVE_STEPS", getInt(PARAM_MDSC_MOVE_STEPS));
     //MACROPHAGE CELL PARAMETERS
     env.newProperty<int>("PARAM_MAC_MOVE_STEPS", getInt(PARAM_MAC_MOVE_STEPS));
+    //FIBROBLAST CELL PARAMETERS
+    env.newProperty<int>("PARAM_FIB_MOVE_STEPS", getInt(PARAM_FIB_MOVE_STEPS));
     //VAS CELL PARAMETERS
     env.newProperty<float>("PARAM_VAS_MAXPERVOXEL", getFloat(PARAM_VAS_MAXPERVOXEL));
     env.newProperty<float>("PARAM_VAS_50", getFloat(PARAM_VAS_50));

@@ -8,6 +8,7 @@
 #include "../agents/t_reg.cuh"
 #include "../agents/mdsc.cuh"
 #include "../agents/macrophage.cuh"
+#include "../agents/fibroblast.cuh"
 #include "../agents/vascular_cell.cuh"
 
 #include "../pde/pde_integration.cuh"
@@ -33,6 +34,7 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
 void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divide);
 void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state);
 void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state);
+void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state);
 void defineVascularCellAgent(flamegpu::ModelDescription& model);
 
 // Forward declaration (implemented in model_layers.cu)
@@ -486,6 +488,54 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
     }
 }
 
+void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state) {
+    flamegpu::AgentDescription fib = model.newAgent(AGENT_FIBROBLAST);
+
+    // Position
+    fib.newVariable<int>("x");
+    fib.newVariable<int>("y");
+    fib.newVariable<int>("z");
+
+    // Fibroblast state (0=NORMAL, 1=CAF)
+    fib.newVariable<int>("fib_state", FIB_NORMAL);
+
+    // Chemical concentrations (read from PDE)
+    fib.newVariable<float>("local_TGFB", 0.0f);
+
+    // TGFB gradient for chemotaxis
+    fib.newVariable<float>("tgfb_grad_x", 0.0f);
+    fib.newVariable<float>("tgfb_grad_y", 0.0f);
+    fib.newVariable<float>("tgfb_grad_z", 0.0f);
+
+    // Movement state for run-tumble chemotaxis
+    fib.newVariable<float>("move_direction_x", 0.0f);
+    fib.newVariable<float>("move_direction_y", 0.0f);
+    fib.newVariable<float>("move_direction_z", 0.0f);
+    fib.newVariable<int>("tumble", 0);  // 0=running, 1=tumbling
+
+    // Movement control
+    fib.newVariable<int>("moves_remaining", 0);
+
+    // Lifecycle
+    fib.newVariable<int>("life", 0);
+
+    // Chemical release rates (computed per step)
+    fib.newVariable<float>("TGFB_release_rate", 0.0f);
+
+    // Define agent functions
+    fib.newFunction("broadcast_location", fib_broadcast_location)
+        .setMessageOutput(MSG_CELL_LOCATION);
+
+    fib.newFunction("compute_chemical_sources", fib_compute_chemical_sources);
+
+    if (include_state) {
+        fib.newFunction("write_to_occ_grid", fib_write_to_occ_grid);
+        fib.newFunction("move", fib_move);
+        fib.newFunction("state_step", fib_state_step)
+            .setAllowAgentDeath(true);
+    }
+}
+
 // Define the VascularCell agent (Phase 1: Basic O2 secretion and VEGF-A uptake)
 void defineVascularCellAgent(flamegpu::ModelDescription& model) {
     flamegpu::AgentDescription agent = model.newAgent(AGENT_VASCULAR);
@@ -672,7 +722,8 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<int>("ABM_TREG_REC", 0);  
     env.newProperty<int>("ABM_TH_REC", 0);  
     env.newProperty<int>("ABM_MDSC_REC", 0);
-    
+    env.newProperty<int>("ABM_MAC_REC", 0);
+
     env.newProperty<int>("ABM_cc_death", 0);  
     env.newProperty<int>("ABM_cc_t_kill", 0);  
 
@@ -705,6 +756,7 @@ std::unique_ptr<flamegpu::ModelDescription> buildModel(
     defineTRegAgent(*model, true);
     defineMDSCAgent(*model, true);
     defineMacrophageAgent(*model, true);
+    defineFibroblastAgent(*model, true);
     defineVascularCellAgent(*model);
 
     // Define environment with GPU parameters loaded from XML

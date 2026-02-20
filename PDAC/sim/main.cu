@@ -199,6 +199,38 @@ void exportABMData_step0(flamegpu::CUDASimulation& sim, flamegpu::ModelDescripti
                  << "MDSC,life=" << life << "\n";
         }
     }
+    // Macrophages
+    {
+        flamegpu::AgentVector mac_pop(model.Agent(PDAC::AGENT_MACROPHAGE));
+        sim.getPopulationData(mac_pop);
+        for (unsigned int i = 0; i < mac_pop.size(); ++i) {
+            unsigned int id = mac_pop[i].getID();
+            int x = mac_pop[i].getVariable<int>("x");
+            int y = mac_pop[i].getVariable<int>("y");
+            int z = mac_pop[i].getVariable<int>("z");
+            int mac_state = mac_pop[i].getVariable<int>("mac_state");
+            int life = mac_pop[i].getVariable<int>("life");
+            file << "MAC," << id << "," << x << "," << y << "," << z << ","
+                 << (mac_state == PDAC::MAC_M1 ? "M1" : "M2")
+                 << ",life=" << life << "\n";
+        }
+    }
+    // Fibroblasts
+    {
+        flamegpu::AgentVector fib_pop(model.Agent(PDAC::AGENT_FIBROBLAST));
+        sim.getPopulationData(fib_pop);
+        for (unsigned int i = 0; i < fib_pop.size(); ++i) {
+            unsigned int id = fib_pop[i].getID();
+            int x = fib_pop[i].getVariable<int>("x");
+            int y = fib_pop[i].getVariable<int>("y");
+            int z = fib_pop[i].getVariable<int>("z");
+            int fib_state = fib_pop[i].getVariable<int>("fib_state");
+            int life = fib_pop[i].getVariable<int>("life");
+            file << "FIB," << id << "," << x << "," << y << "," << z << ","
+                 << (fib_state == PDAC::FIB_CAF ? "CAF" : "NORMAL")
+                 << ",life=" << life << "\n";
+        }
+    }
     file.close();
 }
 
@@ -302,9 +334,49 @@ FLAMEGPU_STEP_FUNCTION(exportABMData) {
                 int y = mdsc_pop[i].getVariable<int>("y");
                 int z = mdsc_pop[i].getVariable<int>("z");
                 int life = mdsc_pop[i].getVariable<int>("life");
-                
-                file << "MDSC," << id << "," << x << "," << y << "," << z << "," 
+
+                file << "MDSC," << id << "," << x << "," << y << "," << z << ","
                      << "MDSC,life=" << life << "\n";
+            }
+        }
+    }
+    // Macrophages
+    {
+        auto agent = FLAMEGPU->agent(PDAC::AGENT_MACROPHAGE);
+        unsigned int count = agent.count();
+        if (count > 0) {
+            flamegpu::DeviceAgentVector mac_pop = agent.getPopulationData();
+            for (unsigned int i = 0; i < count; ++i) {
+                unsigned int id = mac_pop[i].getID();
+                int x = mac_pop[i].getVariable<int>("x");
+                int y = mac_pop[i].getVariable<int>("y");
+                int z = mac_pop[i].getVariable<int>("z");
+                int mac_state = mac_pop[i].getVariable<int>("mac_state");
+                int life = mac_pop[i].getVariable<int>("life");
+
+                file << "MAC," << id << "," << x << "," << y << "," << z << ","
+                     << (mac_state == PDAC::MAC_M1 ? "M1" : "M2")
+                     << ",life=" << life << "\n";
+            }
+        }
+    }
+    // Fibroblasts
+    {
+        auto agent = FLAMEGPU->agent(PDAC::AGENT_FIBROBLAST);
+        unsigned int count = agent.count();
+        if (count > 0) {
+            flamegpu::DeviceAgentVector fib_pop = agent.getPopulationData();
+            for (unsigned int i = 0; i < count; ++i) {
+                unsigned int id = fib_pop[i].getID();
+                int x = fib_pop[i].getVariable<int>("x");
+                int y = fib_pop[i].getVariable<int>("y");
+                int z = fib_pop[i].getVariable<int>("z");
+                int fib_state = fib_pop[i].getVariable<int>("fib_state");
+                int life = fib_pop[i].getVariable<int>("life");
+
+                file << "FIB," << id << "," << x << "," << y << "," << z << ","
+                     << (fib_state == PDAC::FIB_CAF ? "CAF" : "NORMAL")
+                     << ",life=" << life << "\n";
             }
         }
     }
@@ -519,17 +591,23 @@ int main(int argc, const char** argv) {
     flamegpu::AgentVector final_tcells(model->Agent(PDAC::AGENT_TCELL));
     flamegpu::AgentVector final_tregs(model->Agent(PDAC::AGENT_TREG));
     flamegpu::AgentVector final_mdscs(model->Agent(PDAC::AGENT_MDSC));
-    
+    flamegpu::AgentVector final_macs(model->Agent(PDAC::AGENT_MACROPHAGE));
+    flamegpu::AgentVector final_fibs(model->Agent(PDAC::AGENT_FIBROBLAST));
+
     simulation.getPopulationData(final_cancer);
     simulation.getPopulationData(final_tcells);
     simulation.getPopulationData(final_tregs);
     simulation.getPopulationData(final_mdscs);
+    simulation.getPopulationData(final_macs);
+    simulation.getPopulationData(final_fibs);
 
     std::cout << "\nFinal Population Counts:" << std::endl;
     std::cout << "  Cancer cells: " << final_cancer.size() << std::endl;
     std::cout << "  T cells: " << final_tcells.size() << std::endl;
     std::cout << "  TRegs: " << final_tregs.size() << std::endl;
     std::cout << "  MDSCs: " << final_mdscs.size() << std::endl;
+    std::cout << "  Macrophages: " << final_macs.size() << std::endl;
+    std::cout << "  Fibroblasts: " << final_fibs.size() << std::endl;
 
     // Count T cell states
     if (final_tcells.size() > 0) {

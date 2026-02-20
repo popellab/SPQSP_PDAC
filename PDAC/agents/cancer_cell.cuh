@@ -1194,7 +1194,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_reset_moves, flamegpu::MessageNone, flamegpu::Mes
 // Single-phase cancer cell movement using occupancy grid.
 // Replaces two-phase select_move_target + execute_move.
 // Reads occ_grid to find open Von Neumann neighbors, claims atomically with CAS.
-// Cancer cells require target voxel to have no cancer AND no MDSC.
+// Cancer cells require target voxel to have no cancer, no MDSC, and no fibroblast.
 FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     if (FLAMEGPU->getVariable<int>("dead") == 1) return flamegpu::ALIVE;
 
@@ -1224,7 +1224,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
     const int ddy[6] = { 0, 0, -1, 1,  0, 0};
     const int ddz[6] = { 0, 0,  0, 0, -1, 1};
 
-    // Build candidate list: neighbors empty of cancer and MDSC
+    // Build candidate list: neighbors empty of cancer and Fibs
     int cands[6];
     int n_cands = 0;
     for (int i = 0; i < 6; i++) {
@@ -1232,7 +1232,9 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
         int ny = y + ddy[i];
         int nz = z + ddz[i];
         if (nx < 0 || nx >= size_x || ny < 0 || ny >= size_y || nz < 0 || nz >= size_z) continue;
-        if (occ[nx][ny][nz][CELL_TYPE_CANCER] == 0u && occ[nx][ny][nz][CELL_TYPE_MDSC] == 0u) {
+        if (occ[nx][ny][nz][CELL_TYPE_CANCER] == 0u && occ[nx][ny][nz][CELL_TYPE_FIB] == 0u &&
+            occ[nx][ny][nz][CELL_TYPE_T] <= 1u &&
+            occ[nx][ny][nz][CELL_TYPE_TREG] <= 1u) {
             cands[n_cands++] = i;
         }
     }

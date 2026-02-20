@@ -172,7 +172,7 @@ enum GPUParamInt {
     PARAM_MAC_MOVE_STEPS,
     //*************************************************************************/
     // Fibroblast cell parameters
-
+    PARAM_FIB_MOVE_STEPS,
     //*************************************************************************/
     // Molecular parameters
 

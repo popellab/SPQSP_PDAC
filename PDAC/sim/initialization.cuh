@@ -33,6 +33,7 @@ struct SimulationConfig {
     int num_tregs;
     int num_mdscs;
     int num_macrophages;
+    int num_fibroblasts;
 
     // Vasculature initialization mode
     std::string vascular_mode;  // "random", "xml", "test"
@@ -104,6 +105,19 @@ void initializeMacrophages(
     int grid_x, int grid_y, int grid_z,
     int tumor_radius, int num_macrophages,
     float mac_life_mean);
+
+// Initialize Fibroblasts around tumor margin
+void initializeFibroblasts(
+    flamegpu::AgentVector& fib_agents,
+    int grid_x, int grid_y, int grid_z,
+    int tumor_radius, int num_fibroblasts,
+    float fib_life_mean);
+
+void initializeFibroblastsFromQSP(
+    flamegpu::AgentVector& fib_agents,
+    int grid_x, int grid_y, int grid_z,
+    double p_fib, std::vector<std::vector<int>>& occupied,
+    float life_mean);
 
 // QSP probability-based initialization (iterate all voxels, place if rand < p and voxel empty)
 void initializeTHCellsFromQSP(

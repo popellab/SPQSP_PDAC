@@ -241,6 +241,15 @@ void set_internal_params(flamegpu::ModelDescription& model, const PDAC::LymphCen
     env.newProperty<float>("PARAM_FIB_ECM_BASELINE", QP(CancerVCT::P_ECM_base) * 1e3);
     env.newProperty<float>("PARAM_FIB_ECM_SATURATION", QP(CancerVCT::P_ECM_max) * 1e3);
     env.newProperty<float>("PARAM_FIB_ECM_MOT_EC50", QP(CancerVCT::P_ECM_50_T_mot) * 5e3);
+    // CAF TGFB secretion rate per cell per timestep (using M2 macrophage rate as proxy)
+    // units: mole/cell/s * t_step_sec -> mole/cell/timestep
+    env.newProperty<float>("PARAM_FIB_TGFB_RELEASE",
+                    QP(CancerVCT::P_k_TGFb_Msec) * t_step_sec
+                    * env.getProperty<float>("PARAM_TGFB_MOLECULAR_WEIGHT") * 1e9);
+    // mean lifespan of fibroblast in timesteps (use avg of fib and CAF death rates)
+    env.newProperty<float>("PARAM_FIB_LIFE_MEAN",
+                    1.0f / ((QP(CancerVCT::P_k_fib_death) + QP(CancerVCT::P_k_CAF_death)) / 2.0)
+                    / t_step_sec);
 
     // time for resection
     // env.newProperty<float>("PARAM_RESECT_TIME_STEP", 

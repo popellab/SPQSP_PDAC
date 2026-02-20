@@ -306,6 +306,9 @@ FLAMEGPU_HOST_FUNCTION(update_agent_chemicals) {
     read_chemical_to_agents(*FLAMEGPU, AGENT_MACROPHAGE, CHEM_CCL2, "local_CCL2");
     read_chemical_to_agents(*FLAMEGPU, AGENT_MACROPHAGE, CHEM_IL12, "local_IL12");
 
+    // Fibroblast reads
+    read_chemical_to_agents(*FLAMEGPU, AGENT_FIBROBLAST, CHEM_TGFB, "local_TGFB");
+
     // Vasculature reads
     read_chemical_to_agents(*FLAMEGPU, AGENT_VASCULAR, CHEM_O2, "local_O2");
     read_chemical_to_agents(*FLAMEGPU, AGENT_VASCULAR, CHEM_IFN, "local_IFNg");
@@ -340,8 +343,8 @@ FLAMEGPU_HOST_FUNCTION(update_agent_chemicals) {
     // Macrophage: CCL2 gradient for chemotaxis
     calculate_chemical_gradient_for_agents(*FLAMEGPU, AGENT_MACROPHAGE, CHEM_CCL2, "ccl2_grad");
 
-    // Fibroblast: TGFB gradient for chemotaxis and CAF activation
-    // calculate_chemical_gradient_for_agents(*FLAMEGPU, AGENT_FIBROBLAST, CHEM_TGFB, "tgfb_grad");
+    // Fibroblast: TGFB gradient for chemotaxis
+    calculate_chemical_gradient_for_agents(*FLAMEGPU, AGENT_FIBROBLAST, CHEM_TGFB, "tgfb_grad");
 
     // VascularCell: calculate VEGF-A gradient for tip cell chemotaxis
     calculate_chemical_gradient_for_agents(*FLAMEGPU, AGENT_VASCULAR, CHEM_VEGFA, "vegfa_grad");
@@ -398,6 +401,9 @@ FLAMEGPU_HOST_FUNCTION(collect_agent_sources) {
     collect_chemical_from_agents(*FLAMEGPU, AGENT_MACROPHAGE, CHEM_IL10, "IL10_release_rate");
     collect_chemical_from_agents(*FLAMEGPU, AGENT_MACROPHAGE, CHEM_VEGFA, "VEGFA_release_rate");
     collect_chemical_from_agents(*FLAMEGPU, AGENT_MACROPHAGE, CHEM_CCL2, "CCL2_uptake_rate");
+
+    // Fibroblast: collect TGFB production (CAFs only, filtered by agent function)
+    collect_chemical_from_agents(*FLAMEGPU, AGENT_FIBROBLAST, CHEM_TGFB, "TGFB_release_rate");
 
     // VascularCell: collect O2 sources (phalanx only, filtered by agent function)
     collect_chemical_from_agents(*FLAMEGPU, AGENT_VASCULAR, CHEM_O2, "O2_source");
