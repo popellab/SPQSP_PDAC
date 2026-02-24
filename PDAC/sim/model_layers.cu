@@ -33,6 +33,51 @@ FLAMEGPU_HOST_FUNCTION(debug_before_division) {
     std::cout.flush();
 }
 
+FLAMEGPU_HOST_FUNCTION(debug_before_divide_cancer) {
+    std::cout << "[DEBUG-LAYER] About to execute divide_cancer" << std::endl;
+    std::cout.flush();
+}
+
+FLAMEGPU_HOST_FUNCTION(debug_before_divide_tcell) {
+    std::cout << "[DEBUG-LAYER] About to execute divide_tcell" << std::endl;
+    std::cout.flush();
+}
+
+FLAMEGPU_HOST_FUNCTION(debug_before_divide_treg) {
+    std::cout << "[DEBUG-LAYER] About to execute divide_treg" << std::endl;
+    std::cout.flush();
+}
+
+FLAMEGPU_HOST_FUNCTION(debug_before_divide_vascular) {
+    std::cout << "[DEBUG-LAYER] About to execute divide_vascular" << std::endl;
+    std::cout.flush();
+}
+
+FLAMEGPU_HOST_FUNCTION(debug_before_fib_divide) {
+    std::cout << "[DEBUG-LAYER] About to execute fib_execute_divide" << std::endl;
+    std::cout.flush();
+}
+
+FLAMEGPU_HOST_FUNCTION(debug_after_fib_divide) {
+    std::cout << "[DEBUG-LAYER] Completed fib_execute_divide" << std::endl;
+    std::cout.flush();
+}
+
+FLAMEGPU_HOST_FUNCTION(debug_after_fib_check) {
+    std::cout << "[DEBUG-LAYER] Completed execution after fib_execute_divide" << std::endl;
+    std::cout.flush();
+}
+
+FLAMEGPU_HOST_FUNCTION(debug_before_aggregate) {
+    std::cout << "[DEBUG-LAYER] About to execute aggregate_abm_events" << std::endl;
+    std::cout.flush();
+}
+
+FLAMEGPU_HOST_FUNCTION(debug_after_aggregate) {
+    std::cout << "[DEBUG-LAYER] Completed aggregate_abm_events" << std::endl;
+    std::cout.flush();
+}
+
 FLAMEGPU_HOST_FUNCTION(debug_after_state_transitions) {
     std::cout << "[DEBUG] State transitions complete" << std::endl;
     std::cout.flush();
@@ -346,21 +391,28 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     // 14. Single-phase division (atomicCAS replaces select → execute pair).
     // Each successful claim updates the grid immediately, so concurrent
     // threads in the same kernel see the updated occupancy.
+    { flamegpu::LayerDescription l = model.newLayer("debug_div_cancer_pre"); l.addHostFunction(debug_before_divide_cancer); }
     {
         flamegpu::LayerDescription layer = model.newLayer("divide_cancer");
         layer.addAgentFunction(AGENT_CANCER_CELL, "divide");
     }
     { flamegpu::LayerDescription l = model.newLayer("chk_after_div_cancer"); l.addHostFunction(chk_after_div_cancer); }
+
+    { flamegpu::LayerDescription l = model.newLayer("debug_div_tcell_pre"); l.addHostFunction(debug_before_divide_tcell); }
     {
         flamegpu::LayerDescription layer = model.newLayer("divide_tcell");
         layer.addAgentFunction(AGENT_TCELL, "divide");
     }
     { flamegpu::LayerDescription l = model.newLayer("chk_after_div_tcell"); l.addHostFunction(chk_after_div_tcell); }
+
+    { flamegpu::LayerDescription l = model.newLayer("debug_div_treg_pre"); l.addHostFunction(debug_before_divide_treg); }
     {
         flamegpu::LayerDescription layer = model.newLayer("divide_treg");
         layer.addAgentFunction(AGENT_TREG, "divide");
     }
     { flamegpu::LayerDescription l = model.newLayer("chk_after_div_treg"); l.addHostFunction(chk_after_div_treg); }
+
+    { flamegpu::LayerDescription l = model.newLayer("debug_div_vas_pre"); l.addHostFunction(debug_before_divide_vascular); }
     {
         flamegpu::LayerDescription layer = model.newLayer("divide_vascular");
         layer.addAgentFunction(AGENT_VASCULAR, "vascular_divide");
@@ -368,15 +420,31 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     { flamegpu::LayerDescription l = model.newLayer("chk_after_div_vas"); l.addHostFunction(chk_after_div_vas); }
 
     // 14b. Fibroblast HEAD division execution (creates new cells, extends chain, converts to CAF)
+    { flamegpu::LayerDescription l = model.newLayer("debug_fib_div_pre"); l.addHostFunction(debug_before_fib_divide); }
     {
         flamegpu::LayerDescription layer = model.newLayer("fib_execute_divide");
         layer.addHostFunction(fib_execute_divide);
     }
+    { flamegpu::LayerDescription l = model.newLayer("debug_fib_div_post"); l.addHostFunction(debug_after_fib_divide); }
+
+    // --- DEBUG LAYER AFTER FIB DIVIDE ---
+    {
+        flamegpu::LayerDescription l = model.newLayer("debug_after_fib_check");
+        l.addHostFunction(debug_after_fib_check);
+    }
 
     // 15a. Aggregate ABM events from agents (count deaths by cause)
     {
+        flamegpu::LayerDescription l = model.newLayer("debug_before_aggregate");
+        l.addHostFunction(debug_before_aggregate);
+    }
+    {
         flamegpu::LayerDescription layer = model.newLayer("aggregate_abm_events");
         layer.addHostFunction(aggregate_abm_events);
+    }
+    {
+        flamegpu::LayerDescription l = model.newLayer("debug_after_aggregate");
+        l.addHostFunction(debug_after_aggregate);
     }
     // 15b. Copy ABM event counters from MacroProperty to environment properties (for QSP to read)
     {

@@ -380,6 +380,8 @@ PDESolver::~PDESolver() {
     if (d_concentrations_current_) CUDA_CHECK(cudaFree(d_concentrations_current_));
     if (d_concentrations_next_) CUDA_CHECK(cudaFree(d_concentrations_next_));
     if (d_sources_) CUDA_CHECK(cudaFree(d_sources_));
+    if (d_uptakes_) CUDA_CHECK(cudaFree(d_uptakes_));
+    if (d_recruitment_sources_) CUDA_CHECK(cudaFree(d_recruitment_sources_));
     if (d_cg_r_) CUDA_CHECK(cudaFree(d_cg_r_));
     if (d_cg_z_) CUDA_CHECK(cudaFree(d_cg_z_));
     if (d_cg_p_) CUDA_CHECK(cudaFree(d_cg_p_));
@@ -404,6 +406,10 @@ void PDESolver::initialize() {
     // Allocate source array for ALL substrates (not just one!)
     CUDA_CHECK(cudaMalloc(&d_sources_, total_size));  // FIX: was voxel_size, now total_size
     CUDA_CHECK(cudaMemset(d_sources_, 0, total_size));
+
+    // Allocate uptakes array for ALL substrates
+    CUDA_CHECK(cudaMalloc(&d_uptakes_, total_size));
+    CUDA_CHECK(cudaMemset(d_uptakes_, 0, total_size));
 
     // Allocate recruitment sources array (int per voxel)
     size_t recruitment_size = total_voxels * sizeof(int);
@@ -439,7 +445,9 @@ void PDESolver::reset_recruitment_sources() {
 }
 
 void PDESolver::reset_uptakes() {
-    // Stub: uptakes are reset internally in apply_sources_and_decay_kernel
+    int total_voxels = config_.nx * config_.ny * config_.nz;
+    size_t total_size = total_voxels * config_.num_substrates * sizeof(float);
+    CUDA_CHECK(cudaMemset(d_uptakes_, 0, total_size));
 }
 
 void PDESolver::reset_concentrations() {
@@ -459,9 +467,9 @@ float* PDESolver::get_device_source_ptr(int substrate_idx) {
     return d_sources_ + substrate_idx * total_voxels;
 }
 
-// Stub for compatibility
 float* PDESolver::get_device_uptake_ptr(int substrate_idx) {
-    return nullptr;  // Not used in v2
+    int total_voxels = config_.nx * config_.ny * config_.nz;
+    return d_uptakes_ + substrate_idx * total_voxels;
 }
 
 /**
@@ -600,9 +608,75 @@ void PDESolver::solve_timestep() {
 // Stubs for compatibility
 void PDESolver::set_sources(const float* h_sources, int substrate_idx) {}
 void PDESolver::add_source_at_voxel(int x, int y, int z, int substrate_idx, float value) {}
-void PDESolver::get_concentrations(float* h_concentrations, int substrate_idx) const {}
-float PDESolver::get_concentration_at_voxel(int x, int y, int z, int substrate_idx) const { return 0.0f; }
-void PDESolver::set_initial_concentration(int substrate_idx, float value) {}
-float PDESolver::get_total_source(int substrate_idx) { return 0.0f; }
+void PDESolver::get_concentrations(float* h_concentrations, int substrate_idx) const {
+    if (substrate_idx < 0 || substrate_idx >= config_.num_substrates) {
+        throw std::runtime_error("Invalid substrate index");
+    }
+
+    int total_voxels = config_.nx * config_.ny * config_.nz;
+
+    // Copy concentrations from device to host
+    CUDA_CHECK(cudaMemcpy(
+        h_concentrations,
+        d_concentrations_current_ + substrate_idx * total_voxels,
+        total_voxels * sizeof(float),
+        cudaMemcpyDeviceToHost
+    ));
+}
+
+float PDESolver::get_concentration_at_voxel(int x, int y, int z, int substrate_idx) const {
+    if (x < 0 || x >= config_.nx || y < 0 || y >= config_.ny || z < 0 || z >= config_.nz) {
+        return 0.0f;
+    }
+    if (substrate_idx < 0 || substrate_idx >= config_.num_substrates) {
+        return 0.0f;
+    }
+
+    int voxel_idx = z * (config_.nx * config_.ny) + y * config_.nx + x;
+    int total_voxels = config_.nx * config_.ny * config_.nz;
+    int offset_voxel = substrate_idx * total_voxels + voxel_idx;
+
+    float value = 0.0f;
+    CUDA_CHECK(cudaMemcpy(&value, d_concentrations_current_ + offset_voxel, sizeof(float), cudaMemcpyDeviceToHost));
+    return value;
+}
+
+void PDESolver::set_initial_concentration(int substrate_idx, float value) {
+    if (substrate_idx < 0 || substrate_idx >= config_.num_substrates) {
+        throw std::runtime_error("Invalid substrate index");
+    }
+
+    int total_voxels = config_.nx * config_.ny * config_.nz;
+    std::vector<float> h_data(total_voxels, value);
+
+    CUDA_CHECK(cudaMemcpy(
+        d_concentrations_current_ + substrate_idx * total_voxels,
+        h_data.data(),
+        total_voxels * sizeof(float),
+        cudaMemcpyHostToDevice
+    ));
+}
+
+float PDESolver::get_total_source(int substrate_idx) {
+    if (substrate_idx < 0 || substrate_idx >= config_.num_substrates) {
+        return 0.0f;
+    }
+
+    int total_voxels = config_.nx * config_.ny * config_.nz;
+    std::vector<float> h_sources(total_voxels);
+
+    CUDA_CHECK(cudaMemcpy(
+        h_sources.data(),
+        d_sources_ + substrate_idx * total_voxels,
+        total_voxels * sizeof(float),
+        cudaMemcpyDeviceToHost
+    ));
+
+    float total = 0.0f;
+    for (int i = 0; i < total_voxels; i++) {
+        total += h_sources[i];
+    }
+    return total;
+}
 
 }  // namespace PDAC

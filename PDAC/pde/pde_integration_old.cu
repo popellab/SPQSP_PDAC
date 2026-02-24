@@ -4,16 +4,6 @@
 #include <vector>
 #include <nvtx3/nvToolsExt.h>
 
-// CUDA error checking macro
-#define CUDA_CHECK(call) \
-    do { \
-        cudaError_t err = call; \
-        if (err != cudaSuccess) { \
-            std::cerr << "CUDA Error at line " << __LINE__ << ": " << cudaGetErrorString(err) << std::endl; \
-            throw std::runtime_error("CUDA Error: " + std::string(cudaGetErrorString(err))); \
-        } \
-    } while(0)
-
 namespace PDAC {
 
 // Global PDE solver instance
@@ -150,18 +140,18 @@ void collect_chemical_from_agents(
     int* d_y;
     int* d_z;
     float* d_source_rates;
-
-    CUDA_CHECK(cudaMalloc(&d_x, agent_count * sizeof(int)));
-    CUDA_CHECK(cudaMalloc(&d_y, agent_count * sizeof(int)));
-    CUDA_CHECK(cudaMalloc(&d_z, agent_count * sizeof(int)));
-    CUDA_CHECK(cudaMalloc(&d_source_rates, agent_count * sizeof(float)));
-
+    
+    cudaMalloc(&d_x, agent_count * sizeof(int));
+    cudaMalloc(&d_y, agent_count * sizeof(int));
+    cudaMalloc(&d_z, agent_count * sizeof(int));
+    cudaMalloc(&d_source_rates, agent_count * sizeof(float));
+    
     // Copy to device
-    CUDA_CHECK(cudaMemcpy(d_x, h_x.data(), agent_count * sizeof(int), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(d_y, h_y.data(), agent_count * sizeof(int), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(d_z, h_z.data(), agent_count * sizeof(int), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(d_source_rates, h_source_rates.data(),
-               agent_count * sizeof(float), cudaMemcpyHostToDevice));
+    cudaMemcpy(d_x, h_x.data(), agent_count * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_y, h_y.data(), agent_count * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_z, h_z.data(), agent_count * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_source_rates, h_source_rates.data(), 
+               agent_count * sizeof(float), cudaMemcpyHostToDevice);
     
     // Get PDE source and uptake device pointers
     float* d_pde_sources = g_pde_solver->get_device_source_ptr(substrate_idx);
@@ -189,14 +179,14 @@ void collect_chemical_from_agents(
         voxel_volume,
         dt
     );
-    CUDA_CHECK(cudaGetLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
+
+    cudaDeviceSynchronize();
 
     // Cleanup
-    CUDA_CHECK(cudaFree(d_x));
-    CUDA_CHECK(cudaFree(d_y));
-    CUDA_CHECK(cudaFree(d_z));
-    CUDA_CHECK(cudaFree(d_source_rates));
+    cudaFree(d_x);
+    cudaFree(d_y);
+    cudaFree(d_z);
+    cudaFree(d_source_rates);
 }
 
 // ============================================================================
@@ -506,31 +496,25 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
 
 // Call this after model initialization but before simulation starts
 void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
-    if (!g_pde_solver) {
-        std::cerr << "[ERROR] g_pde_solver is NULL!" << std::endl;
-        return;
-    }
-
-    std::cout << "[DEBUG] Storing PDE device pointers in environment..." << std::endl;
-
+    if (!g_pde_solver) return;
+    
+    flamegpu::EnvironmentDescription env = model.Environment();
+    
     // Store device pointers as unsigned long long (can be cast back to float*)
     for (int sub = 0; sub < NUM_SUBSTRATES; sub++) {
         std::string concentration_key = "pde_concentration_ptr_" + std::to_string(sub);
         std::string source_key = "pde_source_ptr_" + std::to_string(sub);
-
+        
         uintptr_t conc_ptr = reinterpret_cast<uintptr_t>(g_pde_solver->get_device_concentration_ptr(sub));
         uintptr_t src_ptr = reinterpret_cast<uintptr_t>(g_pde_solver->get_device_source_ptr(sub));
-
-        std::cout << "[DEBUG] Sub " << sub << ": conc_ptr=" << (void*)conc_ptr << " src_ptr=" << (void*)src_ptr << std::endl;
-
-        model.Environment().newProperty<unsigned long long>(concentration_key, static_cast<unsigned long long>(conc_ptr));
-        model.Environment().newProperty<unsigned long long>(source_key, static_cast<unsigned long long>(src_ptr));
+        
+        env.newProperty<unsigned long long>(concentration_key, static_cast<unsigned long long>(conc_ptr));
+        env.newProperty<unsigned long long>(source_key, static_cast<unsigned long long>(src_ptr));
     }
 
     // Store recruitment sources pointer
     uintptr_t recruit_ptr = reinterpret_cast<uintptr_t>(g_pde_solver->get_device_recruitment_sources_ptr());
-    std::cout << "[DEBUG] recruit_ptr=" << (void*)recruit_ptr << std::endl;
-    model.Environment().newProperty<unsigned long long>("pde_recruitment_sources_ptr", static_cast<unsigned long long>(recruit_ptr));
+    env.newProperty<unsigned long long>("pde_recruitment_sources_ptr", static_cast<unsigned long long>(recruit_ptr));
 
     std::cout << "PDE device pointers stored in FLAME GPU environment" << std::endl;
 }
@@ -1161,14 +1145,160 @@ FLAMEGPU_HOST_FUNCTION(reset_abm_event_counters) {
 // ============================================================================
 // Fibroblast HEAD Division: Create 2 new HEAD cells and convert chain to CAF
 // ============================================================================
-// DISABLED 2026-02-24: Fibroblast division function causes FLAME GPU device memory corruption
-// Issue: Calling fib_api.newAgent() in a host function corrupts DeviceAgentVector state
-// This causes cudaErrorInvalidValue on subsequent steps
-// TODO: Either rewrite to avoid newAgent() calls, or use different mechanism for fibroblast growth
 FLAMEGPU_HOST_FUNCTION(fib_execute_divide) {
-    // DISABLED - fibroblast division was not functioning correctly and caused CUDA crashes
-    // Fibroblasts will persist but not divide
-    return;
+    auto fib_api = FLAMEGPU->agent(AGENT_FIBROBLAST);
+    const unsigned int fib_count = fib_api.count();
+    if (fib_count == 0) return;
+
+    flamegpu::DeviceAgentVector fib_vec = fib_api.getPopulationData();
+
+    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    const float mean_life = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_LIFE_MEAN");
+
+    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
+        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
+    auto fib_pos_x = FLAMEGPU->environment.getMacroProperty<int, MAX_FIB_SLOTS>("fib_pos_x");
+    auto fib_pos_y = FLAMEGPU->environment.getMacroProperty<int, MAX_FIB_SLOTS>("fib_pos_y");
+    auto fib_pos_z = FLAMEGPU->environment.getMacroProperty<int, MAX_FIB_SLOTS>("fib_pos_z");
+
+    // --- Build slot->index map and find max slot ---
+    std::unordered_map<int, unsigned int> slot_to_idx;
+    int max_slot = -1;
+    for (unsigned int i = 0; i < fib_count; i++) {
+        int ms = fib_vec[i].getVariable<int>("my_slot");
+        if (ms >= 0) {
+            slot_to_idx[ms] = i;
+            if (ms > max_slot) max_slot = ms;
+        }
+    }
+    int next_slot = max_slot + 1;  // Next free slot index
+
+    // Claimed positions this function call (to avoid duplicate placement)
+    std::set<std::tuple<int,int,int>> claimed;
+
+    // 6 face-adjacent directions
+    const int dx6[] = {1,-1,0,0,0,0};
+    const int dy6[] = {0,0,1,-1,0,0};
+    const int dz6[] = {0,0,0,0,1,-1};
+
+    for (unsigned int i = 0; i < fib_count; i++) {
+        if (fib_vec[i].getVariable<int>("divide_flag") != 1) continue;
+
+        const int head_slot = fib_vec[i].getVariable<int>("my_slot");
+        const int ls        = fib_vec[i].getVariable<int>("leader_slot");
+        const int fs        = fib_vec[i].getVariable<int>("fib_state");
+
+        // Safety: must be a HEAD in a chain and still NORMAL
+        if (head_slot < 0 || ls == -1 || fs != FIB_NORMAL) {
+            fib_vec[i].setVariable<int>("divide_flag", 0);
+            continue;
+        }
+
+        const int hx = fib_vec[i].getVariable<int>("x");
+        const int hy = fib_vec[i].getVariable<int>("y");
+        const int hz = fib_vec[i].getVariable<int>("z");
+
+        // --- Find 2 adjacent free voxels in sequence ---
+        // NEW_HEAD_2: adjacent to old HEAD
+        // NEW_HEAD_1: adjacent to NEW_HEAD_2 (not necessarily adjacent to old HEAD)
+        int new_x[2], new_y[2], new_z[2];
+        int n_found = 0;
+
+        // Search from HEAD for first free voxel (NEW_HEAD_2 position)
+        for (int d = 0; d < 6 && n_found < 1; d++) {
+            int nx = hx + dx6[d];
+            int ny = hy + dy6[d];
+            int nz = hz + dz6[d];
+            if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z) continue;
+            if (static_cast<unsigned int>(occ[nx][ny][nz][CELL_TYPE_FIB]) > 0u) continue;
+            if (static_cast<unsigned int>(occ[nx][ny][nz][CELL_TYPE_CANCER]) > 0u) continue;
+            if (claimed.count({nx, ny, nz})) continue;
+            new_x[0] = nx; new_y[0] = ny; new_z[0] = nz;
+            n_found = 1;
+            claimed.insert({nx, ny, nz});
+        }
+
+        // If first cell found, search from IT for second free voxel (NEW_HEAD_1 position)
+        if (n_found == 1) {
+            for (int d = 0; d < 6; d++) {
+                int nx = new_x[0] + dx6[d];
+                int ny = new_y[0] + dy6[d];
+                int nz = new_z[0] + dz6[d];
+                if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z) continue;
+                if (static_cast<unsigned int>(occ[nx][ny][nz][CELL_TYPE_FIB]) > 0u) continue;
+                if (static_cast<unsigned int>(occ[nx][ny][nz][CELL_TYPE_CANCER]) > 0u) continue;
+                if (claimed.count({nx, ny, nz})) continue;
+                new_x[1] = nx; new_y[1] = ny; new_z[1] = nz;
+                n_found = 2;
+                claimed.insert({nx, ny, nz});
+                break;
+            }
+        }
+
+        // If can't find 2 free voxels, still convert chain but create fewer new cells
+        // Assign slots: slot A = NEW_HEAD_2 (next to old HEAD), slot B = NEW_HEAD_1 (outermost)
+        int slot_A = next_slot++;    // NEW_HEAD_2: leader_slot = head_slot (points to old HEAD)
+        int slot_B = next_slot++;    // NEW_HEAD_1: leader_slot = slot_A   (points to NEW_HEAD_2)
+
+        // Guard against slot overflow
+        if (slot_A >= MAX_FIB_SLOTS || slot_B >= MAX_FIB_SLOTS) {
+            fib_vec[i].setVariable<int>("divide_flag", 0);
+            continue;
+        }
+
+        // --- Create NEW_HEAD_2 (adjacent to old HEAD) ---
+        if (n_found >= 1) {
+            auto cell2 = fib_api.newAgent();
+            cell2.setVariable<int>("x", new_x[0]);
+            cell2.setVariable<int>("y", new_y[0]);
+            cell2.setVariable<int>("z", new_z[0]);
+            cell2.setVariable<int>("fib_state", FIB_NORMAL);
+            cell2.setVariable<int>("my_slot", slot_A);
+            cell2.setVariable<int>("leader_slot", head_slot);  // Points to old HEAD
+            cell2.setVariable<int>("life", static_cast<int>(mean_life));
+            cell2.setVariable<int>("divide_flag", 0);
+            // Write initial pos snapshot to MacroProperty
+            fib_pos_x[slot_A] = new_x[0];
+            fib_pos_y[slot_A] = new_y[0];
+            fib_pos_z[slot_A] = new_z[0];
+            // Mark occupancy
+            occ[new_x[0]][new_y[0]][new_z[0]][CELL_TYPE_FIB] = 1u;
+        }
+
+        // --- Create NEW_HEAD_1 (the new outermost HEAD) ---
+        if (n_found >= 2) {
+            auto cell1 = fib_api.newAgent();
+            cell1.setVariable<int>("x", new_x[1]);
+            cell1.setVariable<int>("y", new_y[1]);
+            cell1.setVariable<int>("z", new_z[1]);
+            cell1.setVariable<int>("fib_state", FIB_NORMAL);
+            cell1.setVariable<int>("my_slot", slot_B);
+            cell1.setVariable<int>("leader_slot", slot_A);   // Points to NEW_HEAD_2
+            cell1.setVariable<int>("life", static_cast<int>(mean_life));
+            cell1.setVariable<int>("divide_flag", 0);
+            fib_pos_x[slot_B] = new_x[1];
+            fib_pos_y[slot_B] = new_y[1];
+            fib_pos_z[slot_B] = new_z[1];
+            occ[new_x[1]][new_y[1]][new_z[1]][CELL_TYPE_FIB] = 1u;
+        }
+
+        // --- Convert entire chain to CAF ---
+        // HEAD itself
+        fib_vec[i].setVariable<int>("fib_state", FIB_CAF);
+        fib_vec[i].setVariable<int>("divide_flag", 0);
+
+        // Follow leader_slot chain to TAIL
+        int follow = ls;  // leader_slot of HEAD points to MIDDLE (or TAIL)
+        while (follow != -1) {
+            auto it = slot_to_idx.find(follow);
+            if (it == slot_to_idx.end()) break;
+            unsigned int idx = it->second;
+            fib_vec[idx].setVariable<int>("fib_state", FIB_CAF);
+            follow = fib_vec[idx].getVariable<int>("leader_slot");
+        }
+    }
 }
 
 // ---- Debug checkpoints: disabled for production ----

@@ -1,0 +1,81 @@
+Loading parameters from: /home/chase/SPQSP/SPQSP_PDAC-main/PDAC/sim/resource/param_all_test.xml
+Parameters loaded successfully.
+
+=== TNBC ABM-PDE GPU Simulation ===
+Grid: 50x50x50
+Voxel size: 20 µm
+Steps: 1
+Random seed: 12345
+
+Initial Cell Populations:
+  Tumor radius: 5 voxels
+  T cells: 50
+  TRegs: 10
+  MDSCs: 5
+
+PDE Integration:
+  ABM timestep: 21600 s (360 min)
+  Molecular substeps: 1
+  PDE timestep: 21600 s
+===================================
+
+Building FLAME GPU 2 model...
+Populated 116 parameters into FLAMEGPU environment from XML
+Initializing PDE solver...
+[PDESolver] Initialized: 50x50x50 grid, 10 substrates
+PDE Solver initialized and coupled to FLAME GPU 2
+PDE device pointers stored in FLAME GPU environment
+Initializing QSP LymphCentral model from: /home/chase/SPQSP/SPQSP_PDAC-main/PDAC/sim/resource/param_all_test.xml
+QSPParam setup: 482 parameters configured
+Loading QSP parameters from: /home/chase/SPQSP/SPQSP_PDAC-main/PDAC/sim/resource/param_all_test.xml
+✓ All 482 QSP parameters loaded successfully
+  presimulation_diam_frac = 0.95
+  weight_qsp              = 0.8
+  dt (sec/slice)          = 21600
+  nivo dosing: on=1 dose=0.000279 mol interval=14 days
+  cabo dosing: on=1 dose=9.44e-05 mol interval=1 days
+QSP steady-state warmup:
+  initial_tumour_diameter = 0.05 cm
+  presim target diameter  = 0.0475 cm
+  presim target volume    = 5.61151e-05 cm^3
+  t=125 d  tum_vol=1.2634e-07 cm^3  (target=5.61151e-05)
+  t=250 d  tum_vol=3.11443e-07 cm^3  (target=5.61151e-05)
+  t=375 d  tum_vol=1.25126e-06 cm^3  (target=5.61151e-05)
+  t=500 d  tum_vol=5.31557e-06 cm^3  (target=5.61151e-05)
+  t=625 d  tum_vol=2.23686e-05 cm^3  (target=5.61151e-05)
+QSP steady-state warmup complete: t=706.75 d, tum_vol=5.61175e-05 cm^3
+QSP model initialization complete
+  Species count: 153
+  Parameters:   277
+  Start time:   706.75 d
+Creating CUDA simulation...
+Initializing agents from QSP steady-state (init_method=1)...
+
+=== Initializing Agents from QSP State ===
+  QSP tumor volume  : 5.61175e-05 cm^3
+  QSP cc_tumor (raw): 1.67681e+10 molecules
+  QSP Teff (SI)     : 8.508e-16
+  QSP Treg (SI)     : 6.72733e-16
+  QSP MDSC (SI)     : 3.51714e-17
+  cluster_radius  = 22 voxels
+  p_treg = 0
+  p_th   = 0.00198401
+  p_mdsc = 0.00126156
+  p_mac  = 0.0146265
+  p_fib  = 0.0211909
+Initialized 30112 cancer cells in cluster
+  Placed 273 TH cells (probability-based QSP)
+  Placed 0 TReg cells (probability-based QSP)
+  Placed 163 MDSCs (probability-based QSP)
+  Placed 1787 Macrophages (probability-based QSP)
+  Placed 4999 Fibroblasts in chains (probability-based QSP), 4999 slots used
+Initialized 169 vascular cells (random walk, 4 segments)
+QSP-based agent initialization complete
+
+
+=== Phase 3: Pre-simulation (ABM+QSP, no drugs) ===
+  Target volume (1.0x diam): 6.54498e-05 cm^3
+  Current QSP volume       : 5.61175e-05 cm^3
+terminate called after throwing an instance of 'flamegpu::exception::CUDAError'
+  what():  /home/chase/SPQSP/SPQSP_PDAC-main/PDAC/sim/build/_deps/flamegpu-src/include/flamegpu/simulation/detail/CUDAErrorChecking.cuh(28): CUDA Error: /home/chase/SPQSP/SPQSP_PDAC-main/PDAC/sim/build/_deps/flamegpu-src/src/flamegpu/simulation/detail/RandomManager.cu(144): cudaErrorInvalidValue invalid argument
+timeout: the monitored command dumped core
