@@ -13,31 +13,14 @@ namespace PDAC {
 // environment properties or a singleton pattern.
 extern PDESolver* g_pde_solver;
 
-// Read a specific chemical substrate from PDE into agent variable
-void read_chemical_to_agents(
-    flamegpu::HostAPI& host_api,
-    const std::string& agent_name,
-    int substrate_idx,
-    const std::string& output_var_name);
-
-// Collect a specific chemical source from agents into PDE
-void collect_chemical_from_agents(
-    flamegpu::HostAPI& host_api,
-    const std::string& agent_name,
-    int substrate_idx,
-    const std::string& source_var_name);
-
-// Compute spatial gradients of a chemical and update agent variables
-void compute_chemical_gradients_for_agents(
-    flamegpu::HostAPI& host_api,
-    const std::string& agent_name,
-    int substrate_idx,
-    const std::string& grad_x_var,
-    const std::string& grad_y_var,
-    const std::string& grad_z_var);
-
 // FLAME GPU 2 host functions for PDE integration
 // (Declared and implemented in pde_integration.cu)
+
+// Reset source/uptake buffers before agent compute_chemical_sources functions run
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER reset_pde_buffers;
+
+// Compute gradients for chemotaxis substrates (call after solve_pde_step)
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER compute_pde_gradients;
 
 // Initialize PDE solver (call once at start)
 void initialize_pde_solver(int grid_x, int grid_y, int grid_z,

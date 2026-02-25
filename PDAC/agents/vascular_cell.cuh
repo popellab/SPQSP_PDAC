@@ -56,18 +56,30 @@ FLAMEGPU_AGENT_FUNCTION(vascular_write_to_occ_grid, flamegpu::MessageNone, flame
 
 // Read VEGF-A concentration and gradient from PDE (set by host function)
 FLAMEGPU_AGENT_FUNCTION(vascular_update_chemicals, flamegpu::MessageNone, flamegpu::MessageNone) {
-    // VEGF-A, O2, and gradients already written to agent variables by host function
+    // Chemical concentrations are now read directly from PDE device pointers where needed.
     return flamegpu::ALIVE;
 }
 
-// Compute O2 source and VEGF-A sink rates
+// Compute O2 source and VEGF-A sink rates — atomicAdd directly to PDE arrays
 FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int vascular_state = FLAMEGPU->getVariable<int>("vascular_state");
-    const float local_VEGFA = FLAMEGPU->getVariable<float>("local_VEGFA");
-    const float local_O2 = FLAMEGPU->getVariable<float>("local_O2");
+
+    // Compute voxel index and volume
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int ax = FLAMEGPU->getVariable<int>("x");
+    const int ay = FLAMEGPU->getVariable<int>("y");
+    const int az = FLAMEGPU->getVariable<int>("z");
+    const int voxel = az * ny*nx + ay * nx + ax;
+
+    const float vs_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
+    const float voxel_volume = vs_cm * vs_cm * vs_cm;
+
+    // Read concentrations directly from PDE
+    const float local_O2 = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_0"))[voxel];
 
     // === O2 SECRETION (PHALANX ONLY) ===
-    float O2_source = 0.0f;
     if (vascular_state == VAS_PHALANX) {
         float pi = 3.1415926f;
         const float sigma = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_SIGMA");
@@ -79,17 +91,21 @@ FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone
         double lambda = 1 - w * w;
         double Kv = 2 * pi * FLAMEGPU->environment.getProperty<float>("PARAM_O2_DIFFUSIVITY")
                         * (lambda / (sigma * lambda - (2 + lambda) / 4 + (1 / lambda) * std::log(1 / w)));
-        O2_source = Kv * Lv * (FLAMEGPU->environment.getProperty<float>("PARAM_VAS_O2_CONC") - local_O2);
-        if (O2_source < 0.0f) O2_source = 0.0f;
+        float O2_source = Kv * Lv * (FLAMEGPU->environment.getProperty<float>("PARAM_VAS_O2_CONC") - local_O2);
+        if (O2_source > 0.0f) {
+            // O2 secretion → src ptr 0 (O2), divide by voxel_volume to get [conc/s]
+            atomicAdd(&reinterpret_cast<float*>(
+                FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_0"))[voxel],
+                O2_source / voxel_volume);
+        }
     }
 
     // === VEGF-A UPTAKE (ALL STATES) ===
+    // VEGFA_uptake is a rate constant [1/s]; atomicAdd to uptake array (no volume scaling)
     const float VEGFA_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_VEGFA_UPTAKE");
-    const float VEGFA_sink = -VEGFA_uptake * local_VEGFA;
-
-    // Store rates for collection by host function
-    FLAMEGPU->setVariable<float>("O2_source", O2_source);
-    FLAMEGPU->setVariable<float>("VEGFA_sink", VEGFA_sink);
+    atomicAdd(&reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_uptake_ptr_9"))[voxel],
+        VEGFA_uptake);
 
     return flamegpu::ALIVE;
 }
@@ -113,15 +129,20 @@ FLAMEGPU_AGENT_FUNCTION(vascular_select_move_target, flamegpu::MessageNone, flam
     const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
     const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
 
-    const float vegfa_grad_x = FLAMEGPU->getVariable<float>("vegfa_grad_x");
-    const float vegfa_grad_y = FLAMEGPU->getVariable<float>("vegfa_grad_y");
-    const float vegfa_grad_z = FLAMEGPU->getVariable<float>("vegfa_grad_z");
-
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
     const float voxel_size = FLAMEGPU->environment.getProperty<float>("voxel_size");
     const float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
+
+    // VEGFA gradient — read directly from PDE
+    const int voxel_smv = z * grid_y*grid_x + y * grid_x + x;
+    const float vegfa_grad_x = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_VEGFA_x"))[voxel_smv];
+    const float vegfa_grad_y = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_VEGFA_y"))[voxel_smv];
+    const float vegfa_grad_z = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_VEGFA_z"))[voxel_smv];
 
     int target_x = x;
     int target_y = y;
@@ -370,8 +391,10 @@ FLAMEGPU_AGENT_FUNCTION(vascular_mark_t_sources, flamegpu::MessageNone, flamegpu
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    // Get IFN-γ concentration at this voxel
-    const float local_IFNg = FLAMEGPU->getVariable<float>("local_IFNg");  // Will be set correctly when we add IFN read
+    // Get IFN-γ concentration at this voxel — read directly from PDE
+    const int voxel_ts = z * (grid_x * grid_y) + y * grid_x + x;
+    const float local_IFNg = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_1"))[voxel_ts];
 
     // Calculate Hill function (simplified from HCC - no tumor scaling for now)
     const float ec50_ifng = FLAMEGPU->environment.getProperty<float>("PARAM_TEFF_IFN_EC50");
@@ -434,7 +457,12 @@ FLAMEGPU_AGENT_FUNCTION(vascular_state_step, flamegpu::MessageSpatial3D, flamegp
 
     // VAS_PHALANX: VEGF-dependent sprouting (HCC lines 266-319)
     else if (vascular_state == VAS_PHALANX) {
-        const float local_VEGFA = FLAMEGPU->getVariable<float>("local_VEGFA");
+        // Read VEGFA directly from PDE
+        const int nx_ss = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+        const int ny_ss = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int voxel_ss = z * ny_ss*nx_ss + y * nx_ss + x;
+        const float local_VEGFA = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_9"))[voxel_ss];
         const float vas_50 = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_50");
 
         // Probability of sprouting (VEGF-dependent) - HCC line 270
@@ -570,13 +598,6 @@ FLAMEGPU_AGENT_FUNCTION(vascular_execute_divide, flamegpu::MessageSpatial3D, fla
             FLAMEGPU->agent_out.setVariable<float>("move_direction_z", FLAMEGPU->getVariable<float>("move_direction_z"));
             FLAMEGPU->agent_out.setVariable<int>("tumble", FLAMEGPU->getVariable<int>("tumble"));
             FLAMEGPU->agent_out.setVariable<int>("branch", 0);
-            FLAMEGPU->agent_out.setVariable<float>("local_O2", FLAMEGPU->getVariable<float>("local_O2"));
-            FLAMEGPU->agent_out.setVariable<float>("local_VEGFA", FLAMEGPU->getVariable<float>("local_VEGFA"));
-            FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_x", FLAMEGPU->getVariable<float>("vegfa_grad_x"));
-            FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_y", FLAMEGPU->getVariable<float>("vegfa_grad_y"));
-            FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_z", FLAMEGPU->getVariable<float>("vegfa_grad_z"));
-            FLAMEGPU->agent_out.setVariable<float>("O2_source", 0.0f);
-            FLAMEGPU->agent_out.setVariable<float>("VEGFA_sink", 0.0f);
             FLAMEGPU->agent_out.setVariable<int>("intent_action", INTENT_NONE);
             FLAMEGPU->agent_out.setVariable<int>("target_x", -1);
             FLAMEGPU->agent_out.setVariable<int>("target_y", -1);
@@ -609,13 +630,6 @@ FLAMEGPU_AGENT_FUNCTION(vascular_execute_divide, flamegpu::MessageSpatial3D, fla
             FLAMEGPU->agent_out.setVariable<float>("move_direction_z", dir_z);
             FLAMEGPU->agent_out.setVariable<int>("tumble", 1);  // Start in tumble phase
             FLAMEGPU->agent_out.setVariable<int>("branch", 0);
-            FLAMEGPU->agent_out.setVariable<float>("local_O2", FLAMEGPU->getVariable<float>("local_O2"));
-            FLAMEGPU->agent_out.setVariable<float>("local_VEGFA", FLAMEGPU->getVariable<float>("local_VEGFA"));
-            FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_x", 0.0f);
-            FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_y", 0.0f);
-            FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_z", 0.0f);
-            FLAMEGPU->agent_out.setVariable<float>("O2_source", 0.0f);
-            FLAMEGPU->agent_out.setVariable<float>("VEGFA_sink", 0.0f);
             FLAMEGPU->agent_out.setVariable<int>("intent_action", INTENT_NONE);
             FLAMEGPU->agent_out.setVariable<int>("target_x", -1);
             FLAMEGPU->agent_out.setVariable<int>("target_y", -1);
@@ -679,14 +693,6 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
         FLAMEGPU->agent_out.setVariable<float>("move_direction_z", 0.0f);
         FLAMEGPU->agent_out.setVariable<int>("tumble", 0);
         FLAMEGPU->agent_out.setVariable<int>("branch", 0);
-        FLAMEGPU->agent_out.setVariable<float>("local_O2",    FLAMEGPU->getVariable<float>("local_O2"));
-        FLAMEGPU->agent_out.setVariable<float>("local_IFNg",  0.0f);
-        FLAMEGPU->agent_out.setVariable<float>("local_VEGFA", FLAMEGPU->getVariable<float>("local_VEGFA"));
-        FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_x", 0.0f);
-        FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_y", 0.0f);
-        FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_z", 0.0f);
-        FLAMEGPU->agent_out.setVariable<float>("O2_source",  0.0f);
-        FLAMEGPU->agent_out.setVariable<float>("VEGFA_sink", 0.0f);
         FLAMEGPU->agent_out.setVariable<int>("intent_action", INTENT_NONE);
         FLAMEGPU->agent_out.setVariable<int>("target_x", -1);
         FLAMEGPU->agent_out.setVariable<int>("target_y", -1);
@@ -715,14 +721,6 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
         FLAMEGPU->agent_out.setVariable<float>("move_direction_z", cosf(phi));
         FLAMEGPU->agent_out.setVariable<int>("tumble", 1);
         FLAMEGPU->agent_out.setVariable<int>("branch", 0);
-        FLAMEGPU->agent_out.setVariable<float>("local_O2",    FLAMEGPU->getVariable<float>("local_O2"));
-        FLAMEGPU->agent_out.setVariable<float>("local_IFNg",  0.0f);
-        FLAMEGPU->agent_out.setVariable<float>("local_VEGFA", FLAMEGPU->getVariable<float>("local_VEGFA"));
-        FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_x", 0.0f);
-        FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_y", 0.0f);
-        FLAMEGPU->agent_out.setVariable<float>("vegfa_grad_z", 0.0f);
-        FLAMEGPU->agent_out.setVariable<float>("O2_source",  0.0f);
-        FLAMEGPU->agent_out.setVariable<float>("VEGFA_sink", 0.0f);
         FLAMEGPU->agent_out.setVariable<int>("intent_action", INTENT_NONE);
         FLAMEGPU->agent_out.setVariable<int>("target_x", -1);
         FLAMEGPU->agent_out.setVariable<int>("target_y", -1);
@@ -765,14 +763,19 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
     const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
     const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
 
-    const float vegfa_grad_x = FLAMEGPU->getVariable<float>("vegfa_grad_x");
-    const float vegfa_grad_y = FLAMEGPU->getVariable<float>("vegfa_grad_y");
-    const float vegfa_grad_z = FLAMEGPU->getVariable<float>("vegfa_grad_z");
-
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
     const float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
+
+    // VEGFA gradient — read directly from PDE
+    const int voxel_mv = z * grid_y*grid_x + y * grid_x + x;
+    const float vegfa_grad_x = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_VEGFA_x"))[voxel_mv];
+    const float vegfa_grad_y = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_VEGFA_y"))[voxel_mv];
+    const float vegfa_grad_z = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_VEGFA_z"))[voxel_mv];
 
     int target_x = x;
     int target_y = y;

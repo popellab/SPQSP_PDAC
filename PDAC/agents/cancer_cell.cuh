@@ -452,9 +452,18 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
                         FLAMEGPU->environment.getProperty<float>("PARAM_N_PD1_PDL1"),
                         FLAMEGPU->environment.getProperty<float>("PARAM_PD1_PDL1_HALF"));
 
-        float NO = FLAMEGPU->getVariable<float>("local_NO");
-        float ArgI = FLAMEGPU->getVariable<float>("local_ArgI");
-        float TGFB = FLAMEGPU->getVariable<float>("local_TGFB");
+        const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+        const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int ax = FLAMEGPU->getVariable<int>("x");
+        const int ay = FLAMEGPU->getVariable<int>("y");
+        const int az = FLAMEGPU->getVariable<int>("z");
+        const int voxel = az * ny*nx + ay * nx + ax;
+        float NO = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_7"))[voxel];
+        float ArgI = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_6"))[voxel];
+        float TGFB = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_4"))[voxel];
 
         float H_mdsc_c1 = 1 - (1 - (ArgI / (ArgI 
             + FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_IC50_ArgI_CTL"))));
@@ -495,8 +504,16 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
                         FLAMEGPU->environment.getProperty<float>("PARAM_PDL1_K2"),
                         FLAMEGPU->environment.getProperty<float>("PARAM_PDL1_K3"));
         
-        float IL10 = FLAMEGPU->getVariable<float>("local_IL10");
-        float TGFB = FLAMEGPU->getVariable<float>("local_TGFB");
+        const int nx_m1 = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+        const int ny_m1 = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int ax_m1 = FLAMEGPU->getVariable<int>("x");
+        const int ay_m1 = FLAMEGPU->getVariable<int>("y");
+        const int az_m1 = FLAMEGPU->getVariable<int>("z");
+        const int voxel = az_m1 * ny_m1*nx_m1 + ay_m1 * nx_m1 + ax_m1;
+        float IL10 = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_3"))[voxel];
+        float TGFB = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_4"))[voxel];
 
         float A_SYN = FLAMEGPU->environment.getProperty<float>("PARAM_A_SYN");
         float N_PD1_PDL1 = FLAMEGPU->environment.getProperty<float>("PARAM_N_PD1_PDL1");
@@ -1088,15 +1105,24 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
 // Cancer Cell agent function: Update chemicals from PDE
 // Reads local concentrations and computes molecular responses
 FLAMEGPU_AGENT_FUNCTION(cancer_update_chemicals, flamegpu::MessageNone, flamegpu::MessageNone) {
-    // ========== READ CHEMICAL CONCENTRATIONS FROM AGENT VARIABLES ==========
-    // These were already set by the host function update_agent_chemicals in layer 6
-    // No need to access PDE memory directly!
+    // ========== READ CHEMICAL CONCENTRATIONS DIRECTLY FROM PDE ==========
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int ax = FLAMEGPU->getVariable<int>("x");
+    const int ay = FLAMEGPU->getVariable<int>("y");
+    const int az = FLAMEGPU->getVariable<int>("z");
+    const int voxel = az * ny*nx + ay * nx + ax;
 
-    float local_O2 = FLAMEGPU->getVariable<float>("local_O2");
-    float local_IFNg = FLAMEGPU->getVariable<float>("local_IFNg");
-    float local_TGFB = FLAMEGPU->getVariable<float>("local_TGFB");
-    float local_ArgI = FLAMEGPU->getVariable<float>("local_ArgI");
-    float local_NO = FLAMEGPU->getVariable<float>("local_NO");
+    float local_O2 = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_0"))[voxel];
+    float local_IFNg = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_1"))[voxel];
+    float local_TGFB = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_4"))[voxel];
+    float local_ArgI = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_6"))[voxel];
+    float local_NO = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_7"))[voxel];
     
     // ========== COMPUTE DERIVED MOLECULAR STATES ==========
     
@@ -1169,14 +1195,37 @@ FLAMEGPU_AGENT_FUNCTION(cancer_compute_chemical_sources, flamegpu::MessageNone, 
         TGFB_release = 0.0f;
         VEGFA_release = 0.0f;
     }
-    // Sources
-    FLAMEGPU->setVariable<float>("CCL2_release_rate", CCL2_release);
-    FLAMEGPU->setVariable<float>("TGFB_release_rate", TGFB_release);
-    FLAMEGPU->setVariable<float>("VEGFA_release_rate", VEGFA_release);
-    // Sinks
-    FLAMEGPU->setVariable<float>("O2_uptake_rate", -O2_uptake);  // NEGATIVE for consumption!
-    FLAMEGPU->setVariable<float>("IFNg_uptake_rate", -IFNg_uptake);  // NEGATIVE for consumption!
-    
+
+    // Compute voxel index and volume for direct PDE writes
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int ax = FLAMEGPU->getVariable<int>("x");
+    const int ay = FLAMEGPU->getVariable<int>("y");
+    const int az = FLAMEGPU->getVariable<int>("z");
+    const int voxel = az * ny*nx + ay * nx + ax;
+
+    const float vs_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
+    const float voxel_volume = vs_cm * vs_cm * vs_cm;
+
+    // Sources (secretion): atomicAdd to pde_source, divide by voxel_volume to get [conc/s]
+    atomicAdd(&reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_5"))[voxel],
+        CCL2_release / voxel_volume);
+    atomicAdd(&reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_4"))[voxel],
+        TGFB_release / voxel_volume);
+    atomicAdd(&reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_9"))[voxel],
+        VEGFA_release / voxel_volume);
+
+    // Uptakes (consumption): atomicAdd to pde_uptake with positive magnitude [1/s]
+    atomicAdd(&reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_uptake_ptr_0"))[voxel],
+        O2_uptake);
+    atomicAdd(&reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_uptake_ptr_1"))[voxel],
+        IFNg_uptake);
+
     return flamegpu::ALIVE;
 }
 

@@ -21,8 +21,6 @@ namespace PDAC {
 // Declare HostFunction objects from pde_integration.cu
 // These are defined using FLAMEGPU_HOST_FUNCTION macro which creates
 // flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER global variables
-extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_agent_chemicals;
-extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER collect_agent_sources;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER solve_pde_step;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_agent_counts;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER solve_qsp_step;
@@ -64,13 +62,6 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     cancer_cell.newVariable<int>("divideCountRemaining", 0);
     cancer_cell.newVariable<unsigned int>("stemID", 0);
 
-    cancer_cell.newVariable<float>("local_NO", 0.0f);
-    cancer_cell.newVariable<float>("local_ArgI", 0.0f);
-    cancer_cell.newVariable<float>("local_TGFB", 0.0f);
-    cancer_cell.newVariable<float>("local_O2", 0.0f);
-    cancer_cell.newVariable<float>("local_IFNg", 0.0f);
-    cancer_cell.newVariable<float>("local_IL10", 0.0f);
-
     // Molecular state (affects behavior)
     cancer_cell.newVariable<float>("PDL1_syn", 0.0f);
     cancer_cell.newVariable<int>("hypoxic", 0);                // Boolean: O2 below threshold
@@ -98,13 +89,6 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     cancer_cell.newVariable<int>("target_x", -1);
     cancer_cell.newVariable<int>("target_y", -1);
     cancer_cell.newVariable<int>("target_z", -1);
-
-    // Source/Sink rates
-    cancer_cell.newVariable<float>("CCL2_release_rate", 0.0f);
-    cancer_cell.newVariable<float>("TGFB_release_rate", 0.0f);
-    cancer_cell.newVariable<float>("VEGFA_release_rate", 0.0f);
-    cancer_cell.newVariable<float>("O2_uptake_rate", 0.0f);
-    cancer_cell.newVariable<float>("IFNg_uptake_rate", 0.0f);
 
     // Define agent functions - movement functions always needed
     cancer_cell.newFunction("broadcast_location", cancer_broadcast_location)
@@ -155,17 +139,6 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     tcell.newVariable<int>("divide_flag", 0);
     tcell.newVariable<int>("divide_cd", 0);
     tcell.newVariable<int>("divide_limit", 0);
-
-    // Molecular exposure
-    tcell.newVariable<float>("local_IL2", 0.0f);
-
-    // Chemical gradients for chemotaxis (IFN-γ or CCL2)
-    tcell.newVariable<float>("ifng_grad_x", 0.0f);
-    tcell.newVariable<float>("ifng_grad_y", 0.0f);
-    tcell.newVariable<float>("ifng_grad_z", 0.0f);
-    tcell.newVariable<float>("ccl2_grad_x", 0.0f);
-    tcell.newVariable<float>("ccl2_grad_y", 0.0f);
-    tcell.newVariable<float>("ccl2_grad_z", 0.0f);
 
     // Movement state for run-tumble chemotaxis
     tcell.newVariable<float>("move_direction_x", 0.0f);
@@ -259,29 +232,11 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     treg.newVariable<int>("divide_cd", 0);
     treg.newVariable<int>("divide_limit", 0);
 
-     // Local chemical concentrations
-    treg.newVariable<float>("local_TGFB", 0.0f);
-    treg.newVariable<float>("local_IFNg", 0.0f); // might need to be gradient instead
-    treg.newVariable<float>("local_ArgI", 0.0f);
-
-    // Chemical gradients for chemotaxis (IFN-γ or CCL2)
-    treg.newVariable<float>("ifng_grad_x", 0.0f);
-    treg.newVariable<float>("ifng_grad_y", 0.0f);
-    treg.newVariable<float>("ifng_grad_z", 0.0f);
-    treg.newVariable<float>("ccl2_grad_x", 0.0f);
-    treg.newVariable<float>("ccl2_grad_y", 0.0f);
-    treg.newVariable<float>("ccl2_grad_z", 0.0f);
-
     // Movement state for run-tumble chemotaxis
     treg.newVariable<float>("move_direction_x", 0.0f);
     treg.newVariable<float>("move_direction_y", 0.0f);
     treg.newVariable<float>("move_direction_z", 0.0f);
     treg.newVariable<int>("tumble", 0);  // 0=running, 1=tumbling
-
-    // Chemical production (Tregs are major source of IL10 and TGF-beta)
-    treg.newVariable<float>("IL10_release_rate", 0.0f);
-    treg.newVariable<float>("TGFB_release_rate", 0.0f);
-    treg.newVariable<float>("IL2_release_rate",0.0f);
 
     treg.newVariable<float>("TGFB_release_remain", 0.0f);
 
@@ -350,13 +305,6 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state) {
     mdsc.newVariable<int>("y");
     mdsc.newVariable<int>("z");
 
-    mdsc.newVariable<float>("local_IFNg", 0.0f);
-
-    // Chemical gradients for chemotaxis (CCL2 primarily)
-    mdsc.newVariable<float>("ccl2_grad_x", 0.0f);
-    mdsc.newVariable<float>("ccl2_grad_y", 0.0f);
-    mdsc.newVariable<float>("ccl2_grad_z", 0.0f);
-
     // Movement state for run-tumble chemotaxis
     mdsc.newVariable<float>("move_direction_x", 0.0f);
     mdsc.newVariable<float>("move_direction_y", 0.0f);
@@ -365,16 +313,6 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state) {
 
     // Molecular state (affects behavior)
     mdsc.newVariable<float>("PDL1_syn", 0.0f);
-
-    // Chemical production (MDSCs produce immunosuppressive factors)
-    mdsc.newVariable<float>("NO_release_rate", 0.0f);    // Nitric oxide
-    mdsc.newVariable<float>("ArgI_release_rate", 0.0f);  // Arginase I (immune suppression)
-    mdsc.newVariable<float>("CCL2_uptake_rate", 0.0f);  // CCL2
-
-    // Chemotaxis state (for directed migration)
-    mdsc.newVariable<float>("CCL2_gradient_x", 0.0f);
-    mdsc.newVariable<float>("CCL2_gradient_y", 0.0f);
-    mdsc.newVariable<float>("CCL2_gradient_z", 0.0f);
 
     // Neighbor counts (computed via messaging)
     mdsc.newVariable<int>("neighbor_cancer_count", 0);
@@ -430,18 +368,6 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
     // Macrophage state (0=M1, 1=M2)
     mac.newVariable<int>("mac_state", 1);  // Default: M2
 
-    // Chemical concentrations (read from PDE)
-    mac.newVariable<float>("local_CCL2", 0.0f);
-    mac.newVariable<float>("local_TGFB", 0.0f);
-    mac.newVariable<float>("local_IL10", 0.0f);
-    mac.newVariable<float>("local_IL12", 0.0f);
-    mac.newVariable<float>("local_IFNg", 0.0f);
-
-    // Chemical gradients for chemotaxis (toward CCL2)
-    mac.newVariable<float>("ccl2_grad_x", 0.0f);
-    mac.newVariable<float>("ccl2_grad_y", 0.0f);
-    mac.newVariable<float>("ccl2_grad_z", 0.0f);
-
     // Movement state for run-tumble chemotaxis
     mac.newVariable<float>("move_direction_x", 0.0f);
     mac.newVariable<float>("move_direction_y", 0.0f);
@@ -460,13 +386,6 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
     // Lifecycle
     mac.newVariable<int>("life", 0);
     mac.newVariable<int>("dead", 0);
-
-    mac.newVariable<float>("IFNg_release_rate", 0.0f); 
-    mac.newVariable<float>("IL12_release_rate", 0.0f); 
-    mac.newVariable<float>("TGFB_release_rate", 0.0f); 
-    mac.newVariable<float>("IL10_release_rate", 0.0f); 
-    mac.newVariable<float>("VEGFA_release_rate", 0.0f); 
-    mac.newVariable<float>("CCL2_uptake_rate", 0.0f); 
 
     // Define agent functions
     mac.newFunction("broadcast_location", mac_broadcast_location)
@@ -500,14 +419,6 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
     // Fibroblast state (0=NORMAL, 1=CAF)
     fib.newVariable<int>("fib_state", FIB_NORMAL);
 
-    // Chemical concentrations (read from PDE)
-    fib.newVariable<float>("local_TGFB", 0.0f);
-
-    // TGFB gradient for chemotaxis
-    fib.newVariable<float>("tgfb_grad_x", 0.0f);
-    fib.newVariable<float>("tgfb_grad_y", 0.0f);
-    fib.newVariable<float>("tgfb_grad_z", 0.0f);
-
     // Movement state for run-tumble chemotaxis
     fib.newVariable<float>("move_direction_x", 0.0f);
     fib.newVariable<float>("move_direction_y", 0.0f);
@@ -526,9 +437,6 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
 
     // Division flag (set by state_step, used by fib_execute_divide)
     fib.newVariable<int>("divide_flag", 0);
-
-    // Chemical release rates (computed per step)
-    fib.newVariable<float>("TGFB_release_rate", 0.0f);
 
     // MacroProperty arrays for chain movement:
     // fib_pos_x/y/z: snapshot positions written at start of each step
@@ -566,20 +474,6 @@ void defineVascularCellAgent(flamegpu::ModelDescription& model) {
 
     // State (VAS_TIP, VAS_STALK, VAS_PHALANX)
     agent.newVariable<int>("vascular_state", VAS_PHALANX);  // Default: mature vessel
-
-    // Chemical concentrations (read from PDE)
-    agent.newVariable<float>("local_O2", 0.0f);
-    agent.newVariable<float>("local_IFNg", 0.0f);
-    agent.newVariable<float>("local_VEGFA", 0.0f);
-
-    // VEGF-A gradient (read from PDE)
-    agent.newVariable<float>("vegfa_grad_x", 0.0f);
-    agent.newVariable<float>("vegfa_grad_y", 0.0f);
-    agent.newVariable<float>("vegfa_grad_z", 0.0f);
-
-    // Chemical source/sink rates (computed by agent)
-    agent.newVariable<float>("O2_source", 0.0f);
-    agent.newVariable<float>("VEGFA_sink", 0.0f);
 
     // Movement direction (for tip cells)
     agent.newVariable<float>("move_direction_x", 1.0f);

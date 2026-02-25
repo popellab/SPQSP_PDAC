@@ -352,9 +352,15 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_write_to_occ_grid, flamegpu::MessageNone, flamegpu:
 
 // MDSC agent function: Update chemicals from PDE
 FLAMEGPU_AGENT_FUNCTION(mdsc_update_chemicals, flamegpu::MessageNone, flamegpu::MessageNone) {
-    // ========== READ CHEMICAL CONCENTRATIONS FROM AGENT VARIABLES ==========
-    // These were already set by the host function update_agent_chemicals in layer 6
-    float local_IFNg = FLAMEGPU->getVariable<float>("local_IFNg");
+    // ========== READ CHEMICAL CONCENTRATIONS DIRECTLY FROM PDE ==========
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int ax = FLAMEGPU->getVariable<int>("x");
+    const int ay = FLAMEGPU->getVariable<int>("y");
+    const int az = FLAMEGPU->getVariable<int>("z");
+    const int voxel = az * ny*nx + ay * nx + ax;
+    float local_IFNg = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_1"))[voxel];
     
     // ========== COMPUTE DERIVED STATES ==========
 
@@ -373,26 +379,44 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_update_chemicals, flamegpu::MessageNone, flamegpu::
 }
 
 // MDSC agent function: Compute chemical sources
+// atomicAdds directly to PDE source/uptake arrays
 FLAMEGPU_AGENT_FUNCTION(mdsc_compute_chemical_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int dead = FLAMEGPU->getVariable<int>("dead");
-    
+
     // Dead cells don't produce
     if (dead == 1) {
-        FLAMEGPU->setVariable<float>("ArgI_release_rate", 0.0f);
-        FLAMEGPU->setVariable<float>("NO_release_rate", 0.0f);
-        FLAMEGPU->setVariable<float>("CCL2_uptake_rate", 0.0f);
         return flamegpu::ALIVE;
     }
 
+    // Compute voxel index and volume
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int ax = FLAMEGPU->getVariable<int>("x");
+    const int ay = FLAMEGPU->getVariable<int>("y");
+    const int az = FLAMEGPU->getVariable<int>("z");
+    const int voxel = az * ny*nx + ay * nx + ax;
+
+    const float vs_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
+    const float voxel_volume = vs_cm * vs_cm * vs_cm;
+
+    // ArgI secretion → src ptr 6 (ARGI)
     const float ArgI_release = FLAMEGPU->environment.getProperty<float>("PARAM_ARGI_RELEASE");
-    FLAMEGPU->setVariable<float>("ArgI_release_rate", ArgI_release);
+    atomicAdd(&reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_6"))[voxel],
+        ArgI_release / voxel_volume);
 
+    // NO secretion → src ptr 7 (NO)
     const float NO_release = FLAMEGPU->environment.getProperty<float>("PARAM_NO_RELEASE");
-    FLAMEGPU->setVariable<float>("NO_release_rate", NO_release);
+    atomicAdd(&reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_7"))[voxel],
+        NO_release / voxel_volume);
 
+    // CCL2 uptake → upt ptr 5 (CCL2), positive [1/s], no volume scaling
     const float CCL2_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_UPTAKE");
-    FLAMEGPU->setVariable<float>("CCL2_uptake_rate", -CCL2_uptake);
-    
+    atomicAdd(&reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_uptake_ptr_5"))[voxel],
+        CCL2_uptake);
+
     return flamegpu::ALIVE;
 }
 
@@ -422,10 +446,16 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone)
     const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
     const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
 
-    // Use CCL2 gradient for chemotaxis
-    const float grad_x = FLAMEGPU->getVariable<float>("ccl2_grad_x");
-    const float grad_y = FLAMEGPU->getVariable<float>("ccl2_grad_y");
-    const float grad_z = FLAMEGPU->getVariable<float>("ccl2_grad_z");
+    // Use CCL2 gradient for chemotaxis — read directly from PDE
+    const int nx_mv = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny_mv = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int voxel_mv = z * ny_mv*nx_mv + y * nx_mv + x;
+    const float grad_x = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_CCL2_x"))[voxel_mv];
+    const float grad_y = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_CCL2_y"))[voxel_mv];
+    const float grad_z = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_CCL2_z"))[voxel_mv];
 
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");

@@ -55,16 +55,26 @@ FLAMEGPU_AGENT_FUNCTION(fib_write_to_occ_grid, flamegpu::MessageNone, flamegpu::
 
 // ============================================================================
 // Fibroblast: Compute chemical sources
-// CAFs secrete TGFB; normal fibroblasts do not
+// CAFs secrete TGFB — atomicAdd directly to PDE source array
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int fib_state = FLAMEGPU->getVariable<int>("fib_state");
 
     if (fib_state == FIB_CAF) {
-        FLAMEGPU->setVariable<float>("TGFB_release_rate",
-            FLAMEGPU->environment.getProperty<float>("PARAM_FIB_TGFB_RELEASE"));
-    } else {
-        FLAMEGPU->setVariable<float>("TGFB_release_rate", 0.0f);
+        const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+        const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int ax = FLAMEGPU->getVariable<int>("x");
+        const int ay = FLAMEGPU->getVariable<int>("y");
+        const int az = FLAMEGPU->getVariable<int>("z");
+        const int voxel = az * ny*nx + ay * nx + ax;
+
+        const float vs_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
+        const float voxel_volume = vs_cm * vs_cm * vs_cm;
+
+        // TGF-β secretion → src ptr 4 (TGFB)
+        atomicAdd(&reinterpret_cast<float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_4"))[voxel],
+            FLAMEGPU->environment.getProperty<float>("PARAM_FIB_TGFB_RELEASE") / voxel_volume);
     }
 
     return flamegpu::ALIVE;
@@ -121,10 +131,16 @@ FLAMEGPU_AGENT_FUNCTION(fib_sensor_move, flamegpu::MessageNone, flamegpu::Messag
     const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
     const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
 
-    // Use TGFB gradient for chemotaxis
-    const float grad_x = FLAMEGPU->getVariable<float>("tgfb_grad_x");
-    const float grad_y = FLAMEGPU->getVariable<float>("tgfb_grad_y");
-    const float grad_z = FLAMEGPU->getVariable<float>("tgfb_grad_z");
+    // Use TGFB gradient for chemotaxis — read directly from PDE
+    const int nx_mv = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny_mv = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int voxel_mv = z * ny_mv*nx_mv + y * nx_mv + x;
+    const float grad_x = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_TGFB_x"))[voxel_mv];
+    const float grad_y = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_TGFB_y"))[voxel_mv];
+    const float grad_z = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_TGFB_z"))[voxel_mv];
 
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
@@ -328,7 +344,14 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
         return flamegpu::ALIVE;
     }
 
-    const float TGFB     = FLAMEGPU->getVariable<float>("local_TGFB");
+    const int nx_ss = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny_ss = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int ax_ss = FLAMEGPU->getVariable<int>("x");
+    const int ay_ss = FLAMEGPU->getVariable<int>("y");
+    const int az_ss = FLAMEGPU->getVariable<int>("z");
+    const int voxel_ss = az_ss * ny_ss*nx_ss + ay_ss * nx_ss + ax_ss;
+    const float TGFB = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_4"))[voxel_ss];
     const float ec50     = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_CAF_EC50");
     const float caf_act  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_CAF_ACTIVATION");
     const float activation = caf_act * 5 * (1 + TGFB / (TGFB + ec50));
@@ -353,11 +376,15 @@ FLAMEGPU_AGENT_FUNCTION(fib_build_density_field, flamegpu::MessageNone, flamegpu
     const int cy = FLAMEGPU->getVariable<int>("y");
     const int cz = FLAMEGPU->getVariable<int>("z");
     const int fib_state = FLAMEGPU->getVariable<int>("fib_state");
-    const float local_TGFB = FLAMEGPU->getVariable<float>("local_TGFB");
 
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+
+    // Read TGFB directly from PDE
+    const int voxel_bd = cz * grid_y*grid_x + cy * grid_x + cx;
+    const float local_TGFB = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_4"))[voxel_bd];
 
     const float ec50  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_CAF_EC50");
     const float scale = (fib_state == FIB_CAF) ? 1.0f : 0.5f;

@@ -84,8 +84,8 @@ FLAMEGPU_HOST_FUNCTION(debug_after_state_transitions) {
 }
 
 // Declare HostFunction objects from pde_integration.cu
-extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_agent_chemicals;
-extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER collect_agent_sources;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER reset_pde_buffers;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER compute_pde_gradients;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER solve_pde_step;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_agent_counts;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER solve_qsp_step;
@@ -208,12 +208,12 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_MACROPHAGE, "scan_neighbors");
     }
 
-    // 6. READ chemicals from PDE to agents
+    // 6. Reset PDE source/uptake buffers (agents will atomicAdd directly in compute_chemical_sources)
     {
-        flamegpu::LayerDescription layer = model.newLayer("read_chemicals_from_pde");
-        layer.addHostFunction(update_agent_chemicals);
+        flamegpu::LayerDescription layer = model.newLayer("reset_pde_buffers");
+        layer.addHostFunction(reset_pde_buffers);
     }
-    // 7. Agents update their chemical states (PDL1, activation, etc.)
+    // 7. Agents update their chemical states (PDL1, activation, etc.) — reads PDE directly via env ptr
     {
         flamegpu::LayerDescription layer = model.newLayer("update_chemical_states");
         layer.addAgentFunction(AGENT_CANCER_CELL, "update_chemicals");
@@ -261,15 +261,16 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_VASCULAR, "compute_chemical_sources");
     }
 
-    // 10. WRITE agent sources to PDE
-    {
-        flamegpu::LayerDescription layer = model.newLayer("write_sources_to_pde");
-        layer.addHostFunction(collect_agent_sources);
-    }
+    // 10. (removed) agent sources now atomicAdd directly in compute_chemical_sources above
     // 11. SOLVE PDE for one timestep
     {
         flamegpu::LayerDescription layer = model.newLayer("solve_pde");
         layer.addHostFunction(solve_pde_step);
+    }
+    // 11a. Compute gradients for chemotaxis (IFN, TGFB, CCL2, VEGFA)
+    {
+        flamegpu::LayerDescription layer = model.newLayer("compute_pde_gradients");
+        layer.addHostFunction(compute_pde_gradients);
     }
     // 11b. ECM deposition with Gaussian smoothing:
     // Step 1: Zero density field (reset from previous step)

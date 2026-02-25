@@ -419,14 +419,6 @@ void initializeMacrophages(
         // Macrophage state (1=M2 by default)
         agent.setVariable<int>("mac_state", 1);
 
-        // Chemical concentrations
-        agent.setVariable<float>("local_CCL2", 0.0f);
-
-        // Chemical gradients for chemotaxis
-        agent.setVariable<float>("ccl2_grad_x", 0.0f);
-        agent.setVariable<float>("ccl2_grad_y", 0.0f);
-        agent.setVariable<float>("ccl2_grad_z", 0.0f);
-
         // Lifecycle
         agent.setVariable<int>("life", life);
         agent.setVariable<int>("dead", 0);
@@ -465,17 +457,10 @@ inline void setVascularCellVariables(
     agent.setVariable<int>("y", y);
     agent.setVariable<int>("z", z);
     agent.setVariable<int>("vascular_state", state);
-    agent.setVariable<float>("local_O2", 0.0f);
-    agent.setVariable<float>("local_VEGFA", 0.0f);
-    agent.setVariable<float>("O2_source", 0.0f);
-    agent.setVariable<float>("VEGFA_sink", 0.0f);
     agent.setVariable<float>("move_direction_x", move_dir_x);
     agent.setVariable<float>("move_direction_y", move_dir_y);
     agent.setVariable<float>("move_direction_z", move_dir_z);
     agent.setVariable<int>("tumble", 1);  // Start in tumble phase
-    agent.setVariable<float>("vegfa_grad_x", 0.0f);
-    agent.setVariable<float>("vegfa_grad_y", 0.0f);
-    agent.setVariable<float>("vegfa_grad_z", 0.0f);
     agent.setVariable<int>("intent_action", 0);  // INTENT_NONE
     agent.setVariable<int>("target_x", -1);
     agent.setVariable<int>("target_y", -1);
@@ -843,15 +828,6 @@ void initializeTHCellsFromQSP(
                 agent.setVariable<int>("divide_limit", div_limit);
                 agent.setVariable<int>("life", life);
 
-                // Initialize chemical state variables
-                agent.setVariable<float>("local_TGFB", 0.0f);
-                agent.setVariable<float>("local_IFNg", 0.0f);
-                agent.setVariable<float>("local_ArgI", 0.0f);
-
-                // Initialize chemical production rates
-                agent.setVariable<float>("IL10_release_rate", 0.0f);
-                agent.setVariable<float>("TGFB_release_rate", 0.0f);
-                agent.setVariable<float>("IL2_release_rate", 0.0f);
                 agent.setVariable<float>("TGFB_release_remain", 0.0f);
 
                 // Initialize molecular state

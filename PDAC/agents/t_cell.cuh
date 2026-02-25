@@ -237,8 +237,15 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
     const float PD1_PDL1_half = FLAMEGPU->environment.getProperty<float>("PARAM_PD1_PDL1_HALF");
     const float n_PD1_PDL1 = FLAMEGPU->environment.getProperty<float>("PARAM_N_PD1_PDL1");
 
-    // Update IL2 exposure (simplified - would need grid coupling for full implementation)
-    float IL2 = FLAMEGPU->getVariable<float>("local_IL2");
+    // Update IL2 exposure — read directly from PDE
+    const int nx_t = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny_t = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int ax_t = FLAMEGPU->getVariable<int>("x");
+    const int ay_t = FLAMEGPU->getVariable<int>("y");
+    const int az_t = FLAMEGPU->getVariable<int>("z");
+    const int voxel_t = az_t * ny_t*nx_t + ay_t * nx_t + ax_t;
+    float IL2 = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_2"))[voxel_t];
     float IL2_exposure = FLAMEGPU->getVariable<float>("IL2_exposure");
     IL2_exposure += IL2 * sec_per_slice;
 
@@ -854,12 +861,17 @@ FLAMEGPU_AGENT_FUNCTION(tcell_divide, flamegpu::MessageNone, flamegpu::MessageNo
 }
 
 FLAMEGPU_AGENT_FUNCTION(tcell_update_chemicals, flamegpu::MessageNone, flamegpu::MessageNone) {
-    // ========== READ CHEMICAL CONCENTRATIONS FROM AGENT VARIABLES ==========
-    // These were already set by the host function update_agent_chemicals in layer 6
-    // No need to access PDE memory directly!
+    // ========== READ CHEMICAL CONCENTRATIONS DIRECTLY FROM PDE ==========
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int ax = FLAMEGPU->getVariable<int>("x");
+    const int ay = FLAMEGPU->getVariable<int>("y");
+    const int az = FLAMEGPU->getVariable<int>("z");
+    const int voxel = az * ny*nx + ay * nx + ax;
 
-    float local_IL2 = FLAMEGPU->getVariable<float>("local_IL2");
-    
+    float local_IL2 = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_2"))[voxel];
+
     // ========== COMPUTE DERIVED STATES ==========
     
     // 1. Update cumulative IL2 exposure ///// UPDATES IN STATE STEP NOW /////
@@ -872,7 +884,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_update_chemicals, flamegpu::MessageNone, flamegpu:
 }
 
 // T Cell agent function: Compute chemical sources
-// Updates in state step now
+// atomicAdds directly to PDE source/uptake arrays
 FLAMEGPU_AGENT_FUNCTION(tcell_compute_chemical_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int dead = FLAMEGPU->getVariable<int>("dead");
 
@@ -881,8 +893,43 @@ FLAMEGPU_AGENT_FUNCTION(tcell_compute_chemical_sources, flamegpu::MessageNone, f
         return flamegpu::DEAD;
     }
 
-    // NOTE: IFNg_release_rate is already set by state_step based on cancer detection
-    // No action needed here - just let state_step values be used
+    // Compute voxel index
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int ax = FLAMEGPU->getVariable<int>("x");
+    const int ay = FLAMEGPU->getVariable<int>("y");
+    const int az = FLAMEGPU->getVariable<int>("z");
+    const int voxel = az * ny*nx + ay * nx + ax;
+
+    const float vs_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
+    const float voxel_volume = vs_cm * vs_cm * vs_cm;
+
+    // Read rates set by state_step
+    const float IFNg_rate = FLAMEGPU->getVariable<float>("IFNg_release_rate");
+    const float IL2_rate  = FLAMEGPU->getVariable<float>("IL2_release_rate");
+    // IL2_uptake_rate was stored as negative magnitude in state_step; get positive magnitude
+    const float IL2_upt   = -FLAMEGPU->getVariable<float>("IL2_uptake_rate");  // negate to get positive [1/s]
+
+    // IFN-γ secretion → src ptr 1 (IFN), divide by voxel_volume
+    if (IFNg_rate > 0.0f) {
+        atomicAdd(&reinterpret_cast<float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_1"))[voxel],
+            IFNg_rate / voxel_volume);
+    }
+
+    // IL-2 secretion → src ptr 2 (IL2), divide by voxel_volume
+    if (IL2_rate > 0.0f) {
+        atomicAdd(&reinterpret_cast<float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_2"))[voxel],
+            IL2_rate / voxel_volume);
+    }
+
+    // IL-2 uptake → upt ptr 2 (IL2), positive [1/s], no volume scaling
+    if (IL2_upt > 0.0f) {
+        atomicAdd(&reinterpret_cast<float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_uptake_ptr_2"))[voxel],
+            IL2_upt);
+    }
 
     return flamegpu::ALIVE;
 }
@@ -918,10 +965,16 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
     const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
     const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
 
-    // Use IFN-γ gradient for chemotaxis (T cell primary attractant)
-    const float grad_x = FLAMEGPU->getVariable<float>("ifng_grad_x");
-    const float grad_y = FLAMEGPU->getVariable<float>("ifng_grad_y");
-    const float grad_z = FLAMEGPU->getVariable<float>("ifng_grad_z");
+    // Use IFN-γ gradient for chemotaxis (T cell primary attractant) — read directly from PDE
+    const int nx_mv = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny_mv = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int voxel_mv = z * ny_mv*nx_mv + y * nx_mv + x;
+    const float grad_x = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_IFN_x"))[voxel_mv];
+    const float grad_y = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_IFN_y"))[voxel_mv];
+    const float grad_z = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_IFN_z"))[voxel_mv];
 
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");

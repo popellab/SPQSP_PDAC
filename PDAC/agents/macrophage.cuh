@@ -87,30 +87,57 @@ FLAMEGPU_AGENT_FUNCTION(mac_update_chemicals, flamegpu::MessageNone, flamegpu::M
 }
 
 // ============================================================================
-// Macrophage: Compute chemical sources (no secretion currently)
+// Macrophage: Compute chemical sources
+// atomicAdds directly to PDE source/uptake arrays
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(mac_compute_chemical_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int cell_state = FLAMEGPU->getVariable<int>("mac_state");
     const int dead = FLAMEGPU->getVariable<int>("dead");
-    
+
     // Dead cells don't produce or consume
     if (dead == 1) {
         return flamegpu::ALIVE;
     }
 
-    FLAMEGPU->setVariable<float>("CCL2_uptake_rate",-FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_UPTAKE"));
-    if (cell_state == MAC_M1){
-        FLAMEGPU->setVariable<float>("IFNg_release_rate",FLAMEGPU->environment.getProperty<float>("PARAM_IFNG_RELEASE"));
-        FLAMEGPU->setVariable<float>("IL12_release_rate",FLAMEGPU->environment.getProperty<float>("PARAM_IL12_RELEASE"));
-        FLAMEGPU->setVariable<float>("TGFB_release_rate", 0.0f);
-        FLAMEGPU->setVariable<float>("IL10_release_rate", 0.0f);
-        FLAMEGPU->setVariable<float>("VEGFA_release_rate", 0.0f);
-    } else if (cell_state == MAC_M2){
-        FLAMEGPU->setVariable<float>("IFNg_release_rate", 0.0f);
-        FLAMEGPU->setVariable<float>("IL12_release_rate", 0.0f);
-        FLAMEGPU->setVariable<float>("TGFB_release_rate",FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_RELEASE"));
-        FLAMEGPU->setVariable<float>("IL10_release_rate",FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL10_RELEASE"));
-        FLAMEGPU->setVariable<float>("VEGFA_release_rate",FLAMEGPU->environment.getProperty<float>("PARAM_MAC_VEGFA_RELEASE"));
+    // Compute voxel index and volume
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int ax = FLAMEGPU->getVariable<int>("x");
+    const int ay = FLAMEGPU->getVariable<int>("y");
+    const int az = FLAMEGPU->getVariable<int>("z");
+    const int voxel = az * ny*nx + ay * nx + ax;
+
+    const float vs_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
+    const float voxel_volume = vs_cm * vs_cm * vs_cm;
+
+    // CCL2 uptake → upt ptr 5 (CCL2), positive [1/s], no volume scaling
+    const float CCL2_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_UPTAKE");
+    atomicAdd(&reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_uptake_ptr_5"))[voxel],
+        CCL2_uptake);
+
+    if (cell_state == MAC_M1) {
+        // IFN-γ secretion → src ptr 1 (IFN)
+        atomicAdd(&reinterpret_cast<float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_1"))[voxel],
+            FLAMEGPU->environment.getProperty<float>("PARAM_IFNG_RELEASE") / voxel_volume);
+        // IL-12 secretion → src ptr 8 (IL12)
+        atomicAdd(&reinterpret_cast<float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_8"))[voxel],
+            FLAMEGPU->environment.getProperty<float>("PARAM_IL12_RELEASE") / voxel_volume);
+    } else if (cell_state == MAC_M2) {
+        // TGF-β secretion → src ptr 4 (TGFB)
+        atomicAdd(&reinterpret_cast<float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_4"))[voxel],
+            FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_RELEASE") / voxel_volume);
+        // IL-10 secretion → src ptr 3 (IL10)
+        atomicAdd(&reinterpret_cast<float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_3"))[voxel],
+            FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL10_RELEASE") / voxel_volume);
+        // VEGF-A secretion → src ptr 9 (VEGFA)
+        atomicAdd(&reinterpret_cast<float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_source_ptr_9"))[voxel],
+            FLAMEGPU->environment.getProperty<float>("PARAM_MAC_VEGFA_RELEASE") / voxel_volume);
     }
 
     return flamegpu::ALIVE;
@@ -142,10 +169,16 @@ FLAMEGPU_AGENT_FUNCTION(mac_move, flamegpu::MessageNone, flamegpu::MessageNone) 
     const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
     const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
 
-    // Use CCL2 gradient for chemotaxis
-    const float grad_x = FLAMEGPU->getVariable<float>("ccl2_grad_x");
-    const float grad_y = FLAMEGPU->getVariable<float>("ccl2_grad_y");
-    const float grad_z = FLAMEGPU->getVariable<float>("ccl2_grad_z");
+    // Use CCL2 gradient for chemotaxis — read directly from PDE
+    const int nx_mv = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny_mv = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int voxel_mv = z * ny_mv*nx_mv + y * nx_mv + x;
+    const float grad_x = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_CCL2_x"))[voxel_mv];
+    const float grad_y = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_CCL2_y"))[voxel_mv];
+    const float grad_z = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("pde_grad_CCL2_z"))[voxel_mv];
 
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
@@ -285,10 +318,16 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
     }
     FLAMEGPU->setVariable<int>("life", life);
 
-    // M1/M2 polarization dynamics
-    if (mac_state == MAC_M1) { 
-        float TGFB = FLAMEGPU->getVariable<float>("local_TGFB");
-        float IL10 = FLAMEGPU->getVariable<float>("local_IL10");
+    // M1/M2 polarization dynamics — read chemicals directly from PDE
+    const int nx_ss = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny_ss = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int voxel_ss = z * ny_ss*nx_ss + y * nx_ss + x;
+
+    if (mac_state == MAC_M1) {
+        float TGFB = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_4"))[voxel_ss];
+        float IL10 = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_3"))[voxel_ss];
 
         double alpha = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M2_POL") * 
                             ((TGFB / (TGFB + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_EC50"))) + 
@@ -302,8 +341,10 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
     }
 
     if (mac_state == MAC_M2){
-        float IL12 = FLAMEGPU->getVariable<float>("local_IL12");
-        float IFNg = FLAMEGPU->getVariable<float>("local_IFNg");
+        float IL12 = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_8"))[voxel_ss];
+        float IFNg = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("pde_concentration_ptr_1"))[voxel_ss];
 
         double alpha = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M1_POL") * 
                             ((IFNg / (IFNg + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IFN_G_EC50"))) + 

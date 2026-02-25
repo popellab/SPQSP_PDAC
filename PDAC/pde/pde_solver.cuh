@@ -7,8 +7,7 @@
 
 namespace PDAC {
 
-// Chemical substrate indices (matching CPU HCC implementation)
-// Note: NIVO and CABO moved to QSP compartments, 4 new chemicals added
+// Chemical substrate indices
 enum ChemicalSubstrate {
     CHEM_O2 = 0,
     CHEM_IFN,       // IFN-gamma
@@ -16,244 +15,133 @@ enum ChemicalSubstrate {
     CHEM_IL10,      // IL-10
     CHEM_TGFB,      // TGF-beta
     CHEM_CCL2,      // CCL2
-    CHEM_ARGI,      // Arginase I (MDSC produces)
-    CHEM_NO,        // Nitric Oxide (MDSC produces)
-    CHEM_IL12,      // IL-12 (M1 macrophages produce)
-    CHEM_VEGFA,     // VEGF-A (cancer cells produce)
+    CHEM_ARGI,      // Arginase I
+    CHEM_NO,        // Nitric Oxide
+    CHEM_IL12,      // IL-12
+    CHEM_VEGFA,     // VEGF-A
     NUM_SUBSTRATES
 };
 
-// Configuration for PDE solver
+// Gradient substrates (subset used for chemotaxis)
+// GRAD_IFN=0 → CHEM_IFN, GRAD_TGFB=1 → CHEM_TGFB, GRAD_CCL2=2 → CHEM_CCL2, GRAD_VEGFA=3 → CHEM_VEGFA
+enum GradientSubstrate {
+    GRAD_IFN = 0,
+    GRAD_TGFB,
+    GRAD_CCL2,
+    GRAD_VEGFA,
+    NUM_GRAD_SUBSTRATES
+};
+
 struct PDEConfig {
     int nx, ny, nz;                    // Grid dimensions
     int num_substrates;                 // Number of chemical species
     float voxel_size;                   // Spatial resolution (cm)
     float dt_abm;                       // ABM timestep (seconds)
-    float dt_pde;                       // PDE timestep (seconds)
-    int substeps_per_abm;               // PDE substeps per ABM step
-    
-    // Diffusion coefficients (cm²/s) for each substrate
-    float diffusion_coeffs[NUM_SUBSTRATES];
-    
-    // Decay rates (1/s) for each substrate
-    float decay_rates[NUM_SUBSTRATES];
-    
-    // Boundary conditions (0 = Neumann/no-flux, 1 = Dirichlet)
-    int boundary_type;
+    float dt_pde;                       // PDE timestep (seconds, = dt_abm since LOD is unconditionally stable)
+    int substeps_per_abm;               // Unused (LOD needs no substeps)
+    int boundary_type;                  // Unused (always Neumann no-flux)
+
+    float diffusion_coeffs[NUM_SUBSTRATES];  // cm²/s
+    float decay_rates[NUM_SUBSTRATES];       // 1/s (background decay λ)
 };
 
+/**
+ * PDESolver: LOD (Locally One-Dimensional) implicit diffusion + exact ODE source/uptake
+ *
+ * Mathematics (matches HCC BioFVM exactly):
+ *
+ * Source/uptake step (per voxel, no background decay):
+ *   dp/dt = S - U*p
+ *   if U > 1e-10: p_new = (p - S/U)*exp(-U*dt) + S/U
+ *   else:         p_new = p + S*dt
+ *   where S [conc/s] = secretion [mol/s] / voxel_volume, U [1/s] = uptake rate constant
+ *
+ * LOD diffusion+decay step (3 implicit 1D sweeps):
+ *   ∂p/∂t = D∇²p - λp
+ *   Thomas algorithm per line, decay λ split as λ/3 per dimension
+ *   c1 = dt*D/dx², c2 = dt*λ/3
+ *   Diagonal: 1 + 2*c1 + c2 (interior), 1 + c1 + c2 (boundary)
+ *   Off-diagonal: -c1
+ *
+ * Agent-PDE coupling (direct device pointer access):
+ *   Agent FLAMEGPU functions atomicAdd to d_src_[] / d_upt_[] via uint64_t env pointers
+ *   Agents read d_conc_[] directly via env pointers (no host loops needed)
+ */
 class PDESolver {
 public:
     PDESolver(const PDEConfig& config);
     ~PDESolver();
-    
-    // Initialize solver and allocate memory
+
+    // Initialize solver: allocate memory, precompute Thomas coefficients
     void initialize();
-    
-    // Run PDE for one ABM timestep (runs substeps internally)
+
+    // Run one timestep: apply sources/uptakes (exact ODE) then LOD diffusion+decay
     void solve_timestep();
-    
-    // Agent-PDE coupling: set source/sink values
-    // sources: array of size [num_substrates][nz][ny][nx]
-    void set_sources(const float* h_sources, int substrate_idx);
-    void add_source_at_voxel(int x, int y, int z, int substrate_idx, float value);
-    
-    // Agent-PDE coupling: get concentration values
-    void get_concentrations(float* h_concentrations, int substrate_idx) const;
-    float get_concentration_at_voxel(int x, int y, int z, int substrate_idx) const;
-    
-    // Direct device pointer access (for FLAME GPU integration)
+
+    // Compute gradients for chemotaxis substrates (call after solve_timestep)
+    void compute_gradients();
+
+    // Reset source/uptake arrays to zero (call before agent compute functions)
+    void reset_sources();
+    void reset_uptakes();
+    void reset_recruitment_sources();
+    void reset_concentrations();
+
+    // D2H copy for CSV output
+    void get_concentrations(float* h_buf, int substrate_idx) const;
+
+    // Set uniform initial concentration
+    void set_initial_concentration(int substrate_idx, float value);
+
+    // Device pointer accessors (stored as uint64_t env properties for agent access)
     float* get_device_concentration_ptr(int substrate_idx);
     float* get_device_source_ptr(int substrate_idx);
     float* get_device_uptake_ptr(int substrate_idx);
+    // Gradient pointers: grad_substrate_idx in [0, NUM_GRAD_SUBSTRATES)
+    float* get_device_gradx_ptr(int grad_substrate_idx);
+    float* get_device_grady_ptr(int grad_substrate_idx);
+    float* get_device_gradz_ptr(int grad_substrate_idx);
+    // Recruitment sources (integer bit-flags per voxel)
+    int*   get_device_recruitment_sources_ptr();
 
-    // Reset all concentrations to zero
-    void reset_concentrations();
-    void reset_sources();
-    void reset_uptakes();
-    
-    // Set uniform initial concentration for a substrate
-    void set_initial_concentration(int substrate_idx, float value);
-
-    // Get total source for a substrate (for debugging)
+    // Diagnostics
     float get_total_source(int substrate_idx);
+    int   get_total_voxels() const { return config_.nx * config_.ny * config_.nz; }
 
-    // Recruitment source management
-    int* get_device_recruitment_sources_ptr() { return d_recruitment_sources_; }
-    void reset_recruitment_sources();
+    // Point query (D2H, for diagnostics only - slow)
+    float get_concentration_at_voxel(int x, int y, int z, int substrate_idx) const;
 
-    // Utility
-    int get_total_voxels() const { return config_.nx * config_.ny * config_.nz; }
-    
+    // Compatibility stubs (unused)
+    void set_sources(const float* h_sources, int substrate_idx) {}
+    void add_source_at_voxel(int x, int y, int z, int substrate_idx, float value) {}
+
 private:
     PDEConfig config_;
 
-    // Device memory
-    float* d_concentrations_current_;   // [num_substrates][nz][ny][nx]
-    float* d_concentrations_next_;      // Double buffering (for output)
-    float* d_sources_;                   // [num_substrates][nz][ny][nx] - positive sources only
-    float* d_uptakes_;                   // [num_substrates][nz][ny][nx] - positive uptake rates
+    // --- Device arrays ---
+    float* d_conc_;        // Concentrations:   [NUM_SUBSTRATES * V]
+    float* d_src_;         // Sources [conc/s]:  [NUM_SUBSTRATES * V]
+    float* d_upt_;         // Uptakes [1/s]:     [NUM_SUBSTRATES * V]
+    // Gradients: layout [grad_s * 3 * V + dim * V + voxel_idx]
+    //   dim 0=x, 1=y, 2=z; grad_s ∈ {GRAD_IFN, GRAD_TGFB, GRAD_CCL2, GRAD_VEGFA}
+    float* d_grad_;        // [NUM_GRAD_SUBSTRATES * 3 * V]
+    int*   d_recruitment_; // [V]
 
-    // Recruitment sources (bit flags: 1=T_source, 2=MDSC_source, 3=both)
-    int* d_recruitment_sources_;        // [nz][ny][nx]
+    // --- Precomputed Thomas coefficients ---
+    // Layout per array: [substrate_idx * N + element_idx]
+    float* d_thomas_denom_x_; // Modified pivots, x-direction: [NUM_SUBSTRATES * nx]
+    float* d_thomas_c_x_;     // Back-sub coefficients, x:     [NUM_SUBSTRATES * nx]
+    float* d_thomas_denom_y_; // [NUM_SUBSTRATES * ny]
+    float* d_thomas_c_y_;     // [NUM_SUBSTRATES * ny]
+    float* d_thomas_denom_z_; // [NUM_SUBSTRATES * nz]
+    float* d_thomas_c_z_;     // [NUM_SUBSTRATES * nz]
 
-    // CG solver workspace (per voxel, not per substrate)
-    float* d_cg_r_;      // Residual vector
-    float* d_cg_p_;      // Search direction
-    float* d_cg_Ap_;     // A*p product
-    float* d_cg_z_;      // Preconditioned residual (for diagonal preconditioner)
-    float* d_cg_temp_;   // Temporary storage
-    float* d_dot_buffer_; // Reduction buffer for dot products
-    float* d_precond_diag_inv_; // Diagonal preconditioner M^{-1} (inverse stored)
-    int cg_reduction_blocks_;
-    float last_residual_norm_;  // Final residual from last CG solve (for diagnostics)
+    // Per-substrate c1 = dt*D/dx² values (for LOD kernel arguments)
+    float h_c1_[NUM_SUBSTRATES];
 
-    // Multigrid workspace
-    float* d_mg_residual_;     // Residual on fine grid
-    float* d_mg_correction_;   // Correction from coarse grid
-    float* d_mg_coarse_;       // Solution on coarse grid (nx/2 × ny/2 × nz/2)
-    float* d_mg_coarse_rhs_;   // RHS on coarse grid
-    int mg_coarse_nx_, mg_coarse_ny_, mg_coarse_nz_;  // Coarse grid dimensions
-
-    // Host memory (for transfers)
-    float* h_temp_buffer_;
-
-    // Internal indexing
-    inline int idx(int x, int y, int z) const {
-        return z * (config_.nx * config_.ny) + y * config_.nx + x;
-    }
-
-    inline int idx_substrate(int x, int y, int z, int substrate) const {
-        return substrate * (config_.nx * config_.ny * config_.nz) + idx(x, y, z);
-    }
-
-    // CG solver for diffusion: solves (I - dt*D*∇²)C_new = C_old
-    int solve_cg_diffusion(
-        float* d_C_current,
-        const float* d_RHS,
-        float D,
-        float dt,
-        float dx,
-        int n);
-
-    // CG solver internals
-    int solve_implicit_cg(float* d_C, const float* d_rhs, const float* d_uptakes_per_voxel, float D, float lambda, float dt, float dx);
-
-    // Multigrid solver internals
-    int solve_multigrid(float* d_C, const float* d_rhs, const float* d_uptakes_per_voxel, float D, float lambda, float dt, float dx);
-    void mg_smooth(float* d_x, const float* d_rhs, const float* d_uptakes, float D, float lambda, float dt, float dx,
-                   int nx, int ny, int nz, int num_iters, float omega);
-    void mg_compute_residual(const float* d_x, const float* d_rhs, float* d_residual,
-                             float D, float lambda, float dt, float dx, int nx, int ny, int nz);
-
-    // Swap current and next buffers
-    void swap_buffers();
+    // Precompute Thomas coefficients on host and upload
+    void precompute_thomas_coefficients();
 };
-
-// CUDA kernel declarations
-__global__ void diffusion_reaction_kernel(
-    const float* __restrict__ C_curr,
-    float* __restrict__ C_next,
-    const float* __restrict__ sources,
-    int nx, int ny, int nz,
-    float D, float lambda, float dt, float dx
-);
-
-__global__ void copy_substrate_kernel(
-    const float* __restrict__ src,
-    float* __restrict__ dst,
-    int n
-);
-
-__global__ void read_concentrations_at_voxels(
-    const float* __restrict__ d_concentrations,
-    const int* __restrict__ d_agent_x,
-    const int* __restrict__ d_agent_y,
-    const int* __restrict__ d_agent_z,
-    float* __restrict__ d_agent_concentrations,
-    int num_agents,
-    int substrate_idx,
-    int nx, int ny, int nz);
-
-// Gradient computation kernels (central difference: grad_x = (C[x+1] - C[x-1])/(2*dx))
-__global__ void compute_gradients_at_voxels(
-    const float* __restrict__ d_concentrations,
-    const int* __restrict__ d_agent_x,
-    const int* __restrict__ d_agent_y,
-    const int* __restrict__ d_agent_z,
-    float* __restrict__ d_grad_x,
-    float* __restrict__ d_grad_y,
-    float* __restrict__ d_grad_z,
-    int num_agents,
-    int substrate_idx,
-    int nx, int ny, int nz,
-    float voxel_size);
-
-__global__ void add_sources_from_agents(
-    float* __restrict__ d_sources,
-    float* __restrict__ d_uptakes,  // NEW: separate uptakes array
-    const int* __restrict__ d_agent_x,
-    const int* __restrict__ d_agent_y,
-    const int* __restrict__ d_agent_z,
-    const float* __restrict__ d_agent_source_rates,
-    int num_agents,
-    int substrate_idx,
-    int nx, int ny, int nz,
-    float voxel_volume,
-    float dt);
-
-// CG solver kernels
-__global__ void apply_diffusion_operator(
-    const float* __restrict__ x,
-    float* __restrict__ Ax,
-    const float* __restrict__ uptakes,  // NEW: uptake rates per voxel
-    int nx, int ny, int nz,
-    float D, float lambda, float dt, float dx);
-
-__global__ void vector_axpy(
-    float* __restrict__ y,
-    const float* __restrict__ x,
-    float alpha,
-    int n);
-
-__global__ void vector_scale(
-    float* __restrict__ y,
-    const float* __restrict__ x,
-    float alpha,
-    int n);
-
-__global__ void vector_copy(
-    float* __restrict__ dst,
-    const float* __restrict__ src,
-    int n);
-
-__global__ void dot_product_kernel(
-    const float* __restrict__ x,
-    const float* __restrict__ y,
-    float* __restrict__ partial_sums,
-    int n);
-
-__global__ void clamp_nonnegative(
-    float* __restrict__ x,
-    int n);
-
-// Multigrid kernels
-__global__ void restrict_residual(
-    const float* __restrict__ fine,
-    float* __restrict__ coarse,
-    int nx_fine, int ny_fine, int nz_fine);
-
-__global__ void prolong_correction(
-    const float* __restrict__ coarse,
-    float* __restrict__ fine,
-    int nx_fine, int ny_fine, int nz_fine);
-
-__global__ void weighted_jacobi_kernel(
-    const float* __restrict__ x_old,
-    const float* __restrict__ rhs,
-    float* __restrict__ x_new,
-    int nx, int ny, int nz,
-    float D, float lambda, float dt, float dx, float omega);
 
 } // namespace PDAC
 
