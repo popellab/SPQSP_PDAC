@@ -545,7 +545,7 @@ void initializeVascularCellsRandom(
             vascular_agents.push_back();
             flamegpu::AgentVector::Agent agent = vascular_agents.back();
             setVascularCellVariables(agent, current_x, current_y, current_z,
-                                   2, 1.0f, 0.0f, 0.0f, seg);  // VAS_PHALANX, tip_id=seg
+                                   2, 1.0f, 0.0f, 0.0f, 0u);  // VAS_PHALANX, tip_id=0 (all initial vessels same network)
             total_vessels++;
         }
 
@@ -659,7 +659,7 @@ void initializeVascularCellsRandom(
                 vascular_agents.push_back();
                 flamegpu::AgentVector::Agent agent = vascular_agents.back();
                 setVascularCellVariables(agent, current_x, current_y, current_z,
-                                       2, 1.0f, 0.0f, 0.0f, seg);  // VAS_PHALANX, tip_id=seg
+                                       2, 1.0f, 0.0f, 0.0f, 0u);  // VAS_PHALANX, tip_id=0 (all initial vessels same network)
                 total_vessels++;
             }
 

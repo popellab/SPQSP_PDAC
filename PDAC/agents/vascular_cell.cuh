@@ -68,25 +68,33 @@ FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone
     const float vs_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
     const float voxel_volume = vs_cm * vs_cm * vs_cm;
 
-    // Read concentrations directly from PDE
-    const float local_O2 = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_CONC_O2))[voxel];
-
-    // === O2 SECRETION (PHALANX ONLY) ===
+    // === O2 SECRETION via Krogh cylinder model (PHALANX ONLY) ===
+    // Formula identical to HCC Tumor.cpp lines 326-336 (Sharan et al.)
+    // HCC applies this as a per-step BioFVM source with small substeps.
+    // Here we split Kv*Lv*(C_blood - C_local) = Kv*Lv*C_blood - Kv*Lv*C_local
+    // and put Kv*Lv into the uptake array (implicit in backward Euler) to avoid
+    // oscillation at large dt=21600s.
     if (cell_state == VAS_PHALANX) {
-        float pi = 3.1415926f;
+        const float pi = 3.1415926f;
         const float sigma = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_SIGMA");
-        const float RC = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_RC");
-        const float voxel_volume_cm = std::pow(FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_SIZE_CM"), 3);
-        float Lv = voxel_volume_cm / (std::pow(RC, 2) * pi);
-        double Rt = 1 / std::pow(Lv * pi, 0.5);
-        double w = RC / Rt;
-        double lambda = 1 - w * w;
-        double Kv = 2 * pi * FLAMEGPU->environment.getProperty<float>("PARAM_O2_DIFFUSIVITY")
-                        * (lambda / (sigma * lambda - (2 + lambda) / 4 + (1 / lambda) * std::log(1 / w)));
-        float O2_source = Kv * Lv * (FLAMEGPU->environment.getProperty<float>("PARAM_VAS_O2_CONC") - local_O2);
-        float O2_transport = O2_source > 0 ? O2_source : 0;
-        PDE_SECRETE(FLAMEGPU,PDE_SRC_O2,voxel,O2_transport / voxel_volume);
+        const float RC    = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_RC");
+        const float C_blood = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_O2_CONC");
+
+        // Identical to HCC Tumor.cpp
+        float Lv     = voxel_volume / (RC * RC * pi);           // [cm]  (vessel length)
+        float Rt     = 1.0f / std::sqrt(Lv * pi);              // [cm^-0.5] (Krogh cylinder radius)
+        float w      = RC / Rt;
+        float lambda = 1.0f - w * w;
+        float Kv = 2.0f * pi * FLAMEGPU->environment.getProperty<float>("PARAM_O2_DIFFUSIVITY")
+                   * (lambda / (sigma * lambda - (2.0f + lambda) / 4.0f
+                                + (1.0f / lambda) * std::log(1.0f / w)));
+        float KvLv = Kv * Lv;  // O2 transport coefficient [cm^3/s]
+
+        // Split into implicit form for numerical stability at large dt:
+        //   source  += KvLv * C_blood / voxel_volume   [conc/s, constant inflow]
+        //   uptake  += KvLv / voxel_volume              [1/s, handled implicitly by solver]
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_O2, voxel, KvLv * C_blood / voxel_volume);
+        PDE_UPTAKE(FLAMEGPU,  PDE_UPT_O2, voxel, KvLv / voxel_volume);
     }
 
     // === VEGF-A UPTAKE (ALL STATES) ===
@@ -330,6 +338,9 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
     int target_y = y;
     int target_z = z;
 
+    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
+        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
+
     // === RUN PHASE (tumble == 0) ===
     if (tumble == 0) {
         float v_x = move_dir_x / dt;
@@ -367,10 +378,15 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
             target_z < 0 || target_z >= grid_z) {
             return flamegpu::ALIVE;
         }
+
+        // Only move if target voxel is not occupied by a stationary vascular cell (HCC: voxelIsOpen)
+        if (occ[target_x][target_y][target_z][CELL_TYPE_VASCULAR] != 0u) {
+            FLAMEGPU->setVariable<int>("tumble", 1);
+            return flamegpu::ALIVE;
+        }
     }
     // === TUMBLE PHASE (tumble == 1) ===
     else {
-        const float sigma = 0.524f;
         float prob_sum = 0.0f;
         float probs[26];
         int dirs[26][3];
@@ -389,7 +405,9 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
                     float norm_dir = std::sqrt(static_cast<float>(i*i + j*j + k*k));
                     float cos_theta = dot_product / (norm_dir * norm_movedir);
                     if (cos_theta > 0) {
-                        float rho = std::exp(cos_theta / (sigma * sigma)) / std::exp(1.0f / (sigma * sigma));
+                        // HCC formula: exp(cos_theta/sigma*sigma) / exp(1/sigma*sigma)
+                    // Due to C++ left-to-right precedence this simplifies to exp(cos_theta - 1)
+                    float rho = std::exp(cos_theta - 1.0f);
                         prob_sum += rho;
                         probs[n_dirs] = prob_sum;
                         dirs[n_dirs][0] = i;

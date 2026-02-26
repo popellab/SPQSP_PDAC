@@ -72,9 +72,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, fla
         const float voxel_volume = vs_cm * vs_cm * vs_cm;
 
         // TGF-β secretion → src ptr 4 (TGFB)
-        atomicAdd(&reinterpret_cast<float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_SRC_TGFB))[voxel],
-            FLAMEGPU->environment.getProperty<float>("PARAM_FIB_TGFB_RELEASE") / voxel_volume);
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB, voxel, FLAMEGPU->environment.getProperty<float>("PARAM_FIB_TGFB_RELEASE") / voxel_volume);
     }
 
     return flamegpu::ALIVE;

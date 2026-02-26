@@ -426,6 +426,33 @@ FLAMEGPU_STEP_FUNCTION(exportABMData) {
             }
         }
     }
+
+    // Vasculature
+    {
+        auto agent = FLAMEGPU->agent(PDAC::AGENT_VASCULAR);
+        unsigned int count = agent.count();
+        if (count > 0) {
+            flamegpu::DeviceAgentVector vas_pop = agent.getPopulationData();
+            for (unsigned int i = 0; i < count; ++i) {
+                unsigned int id = vas_pop[i].getID();
+                int x = vas_pop[i].getVariable<int>("x");
+                int y = vas_pop[i].getVariable<int>("y");
+                int z = vas_pop[i].getVariable<int>("z");
+                int cell_state = vas_pop[i].getVariable<int>("cell_state");
+                std::string state_name;
+                switch (cell_state) {
+                    case 0: state_name = "TIP"; break;
+                    case 1: state_name = "STALK"; break;
+                    case 2: state_name = "PHALANX"; break;
+                    default: state_name = "UNKNOWN"; break;
+                }
+
+                file << "VAS," << id << "," << x << "," << y << "," << z << ","
+                     << state_name
+                     << ",life=" << 0 << "\n";
+            }
+        }
+    }
     file.close();
 }
 
