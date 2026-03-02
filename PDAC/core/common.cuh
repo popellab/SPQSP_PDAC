@@ -202,7 +202,7 @@ __device__ __forceinline__ int voxel_index(int x, int y, int z, int size_x, int 
 // Max grid dimension for compile-time MacroProperty allocation.
 // Only voxels [0..runtime_grid_size-1] are actually used.
 // Memory: 128^3 * 8 types * 4 bytes = ~67 MB (acceptable for modern GPU).
-constexpr int OCC_GRID_MAX = 128;
+constexpr int OCC_GRID_MAX = 320;
 
 // Number of occupancy type slots (matches AgentType enum max index + 1).
 // Index 0 (AGENT_DUMMY) is unused; indices 1-7 map directly to AgentType values.

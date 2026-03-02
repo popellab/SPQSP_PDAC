@@ -19,6 +19,12 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER reset_abm_event_counters;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER output_events;
 
 void defineMainModelLayers(flamegpu::ModelDescription& model) {
+    // ── Timing checkpoint: start of step ──
+    {
+        flamegpu::LayerDescription layer = model.newLayer("timing_step_start");
+        layer.addHostFunction(timing_step_start);
+    }
+
     // 0. Update agent counts for QSP
     {
         flamegpu::LayerDescription layer = model.newLayer("update_agent_counts");
@@ -67,6 +73,12 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addHostFunction(recruit_macrophages);
     }
 
+    // ── Timing checkpoint: after Phase 0 (all recruitment) ──
+    {
+        flamegpu::LayerDescription layer = model.newLayer("timing_after_recruit");
+        layer.addHostFunction(timing_after_recruit);
+    }
+
     // 1-4. Broadcast locations (separate layers required by FLAMEGPU2)
     {
        flamegpu::LayerDescription layer = model.newLayer("final_broadcast_cancer");
@@ -105,6 +117,12 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_TREG, "scan_neighbors");
         layer.addAgentFunction(AGENT_MDSC, "scan_neighbors");
         layer.addAgentFunction(AGENT_MACROPHAGE, "scan_neighbors");
+    }
+
+    // ── Timing checkpoint: after Phase 1 (broadcast + neighbor scan) ──
+    {
+        flamegpu::LayerDescription layer = model.newLayer("timing_after_broadcast");
+        layer.addHostFunction(timing_after_broadcast);
     }
 
     // 6. Reset PDE source/uptake buffers (agents will atomicAdd directly in compute_chemical_sources)
@@ -146,15 +164,34 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_VASCULAR, "compute_chemical_sources");
     }
 
+    // ── Timing checkpoint: after state transitions + chemical sources ──
+    {
+        flamegpu::LayerDescription layer = model.newLayer("timing_after_sources");
+        layer.addHostFunction(timing_after_sources);
+    }
+
     // 10. Solve PDE for one timestep
     {
         flamegpu::LayerDescription layer = model.newLayer("solve_pde");
         layer.addHostFunction(solve_pde_step);
     }
+
+    // ── Timing checkpoint: after PDE solve (wall time cross-check vs g_last_pde_ms) ──
+    {
+        flamegpu::LayerDescription layer = model.newLayer("timing_after_pde");
+        layer.addHostFunction(timing_after_pde);
+    }
+
     // 10a. Compute gradients for chemotaxis (IFN, TGFB, CCL2, VEGFA)
     {
         flamegpu::LayerDescription layer = model.newLayer("compute_pde_gradients");
         layer.addHostFunction(compute_pde_gradients);
+    }
+
+    // ── Timing checkpoint: after gradient computation ──
+    {
+        flamegpu::LayerDescription layer = model.newLayer("timing_after_gradients");
+        layer.addHostFunction(timing_after_gradients);
     }
 
     // 10b. ECM deposition: zero density field, scatter Gaussian kernels, apply update
@@ -169,6 +206,12 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     {
         flamegpu::LayerDescription layer = model.newLayer("update_ecm");
         layer.addHostFunction(update_ecm_grid);
+    }
+
+    // ── Timing checkpoint: after Phase 3 (ECM) ──
+    {
+        flamegpu::LayerDescription layer = model.newLayer("timing_after_ecm");
+        layer.addHostFunction(timing_after_ecm);
     }
 
     // 11. Occupancy grid: zero then populate with current live agent positions
@@ -247,6 +290,12 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         }
     }
 
+    // ── Timing checkpoint: after Phase 4 (occ grid + all movement) ──
+    {
+        flamegpu::LayerDescription layer = model.newLayer("timing_after_movement");
+        layer.addHostFunction(timing_after_movement);
+    }
+
     // 13. Single-phase division (atomicCAS on occupancy grid)
     {
         flamegpu::LayerDescription layer = model.newLayer("divide_cancer");
@@ -268,6 +317,12 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     {
         flamegpu::LayerDescription layer = model.newLayer("fib_execute_divide");
         layer.addHostFunction(fib_execute_divide);
+    }
+
+    // ── Timing checkpoint: after Phase 5 (all division) ──
+    {
+        flamegpu::LayerDescription layer = model.newLayer("timing_after_division");
+        layer.addHostFunction(timing_after_division);
     }
 
     // 14. Aggregate ABM events and advance QSP

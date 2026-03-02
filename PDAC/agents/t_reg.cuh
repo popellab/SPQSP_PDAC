@@ -402,7 +402,7 @@ FLAMEGPU_AGENT_FUNCTION(treg_compute_chemical_sources, flamegpu::MessageNone, fl
 
     float IL10_release = 0.0f;
     float TGFB_release = 0.0f;
-    float IL2_release = 0.0;
+    float IL2_release = 0.0f;
 
     int cell_state = FLAMEGPU->getVariable<int>("cell_state");
     if (dead == 0){
@@ -410,7 +410,7 @@ FLAMEGPU_AGENT_FUNCTION(treg_compute_chemical_sources, flamegpu::MessageNone, fl
             if (FLAMEGPU->getVariable<int>("found_progenitor") == 1){
                 IL2_release = FLAMEGPU->environment.getProperty<float>("PARAM_IL2_RELEASE");
             }
-        } else {
+        } else if (cell_state == TCD4_TREG){
             IL10_release = FLAMEGPU->environment.getProperty<float>("PARAM_TREG_IL10_RELEASE");
             if (FLAMEGPU->getVariable<int>("found_progenitor") == 1 &&
                     FLAMEGPU->getVariable<float>("TGFB_release_remain") > 0.0){

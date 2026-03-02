@@ -1,19 +1,25 @@
 /**
- * PDE Solver v3: LOD + Exact ODE Source/Uptake
+ * PDE Solver v4: LOD diffusion only + Exact ODE Source/Uptake/Decay
  *
- * Diffusion method: Locally One-Dimensional (LOD) — 3 implicit 1D Thomas sweeps per step.
- *   Matches BioFVM diffusion_decay_solver__constant_coefficients_LOD_3D() exactly.
- *   Coefficients precomputed once at init; per-step kernels only operate on RHS.
+ * Source/uptake/decay step (exact ODE, per voxel, unconditionally stable):
+ *   dp/dt = S - (λ + U)*p
+ *   if (λ+U) > 1e-10: p_new = (p - S/(λ+U))*exp(-(λ+U)*dt) + S/(λ+U)
+ *   else:             p_new = p + S*dt
+ *   where S [conc/s], U [1/s] = cell uptake, λ [1/s] = background decay
+ *   → Correct steady state S/(λ+U) for ANY timestep dt (no large-dt instability)
  *
- * Source/uptake method: Exact ODE solution (no background decay in this step).
- *   Matches BioFVM BioFVMGrid::set_internal_rates() (#else branch).
- *   dp/dt = S - U*p  →  p_new = (p - S/U)*exp(-U*dt) + S/U  (if U > 1e-10)
+ * LOD diffusion step (3 implicit 1D Thomas sweeps, diffusion only — no decay):
+ *   ∂p/∂t = D∇²p
+ *   c1 = dt*D/dx², c2 = 0 (decay handled in source step above)
+ *   Diagonal: 1 + 2*c1 (interior), 1 + c1 (boundary)
+ *   Off-diagonal: -c1
+ *
+ * Why this matters: BioFVM uses ~36 molecular substeps per ABM step (dt_pde ≈ 600s).
+ * PDAC uses 1 substep (dt_pde = 21600s). With the old split (decay in LOD, source separate),
+ * fast-decaying chemicals (NO: λ*dt = 33.7) get exp(-33.7) ≈ 0 applied after each source
+ * step → near-zero steady state. Moving decay into the exact ODE source step fixes this.
  *
  * Agent coupling: direct device pointer atomicAdds (no host loops).
- *
- * Reference:
- *   BioFVM_solvers.cpp: diffusion_decay_solver__constant_coefficients_LOD_3D()
- *   BioFVMGrid.cpp:     BioFVMSinkSource::set_internal_rates()
  */
 
 #include "pde_solver.cuh"
@@ -54,7 +60,8 @@ namespace PDAC {
 __global__ void apply_sources_uptakes_kernel(
     float* __restrict__ C,         // [V] concentration for one substrate (in-place update)
     const float* __restrict__ S,   // [V] source [conc/s]
-    const float* __restrict__ U,   // [V] uptake rate constant [1/s]
+    const float* __restrict__ U,   // [V] cell uptake rate constant [1/s]
+    float lambda,                  // background decay rate [1/s] (same for all voxels)
     float dt,
     int V)
 {
@@ -63,7 +70,7 @@ __global__ void apply_sources_uptakes_kernel(
 
     float p = C[idx];
     float s = S[idx];
-    float u = U[idx];
+    float u = U[idx] + lambda;     // total removal = cell uptake + background decay
 
     float p_new;
     if (u > 1e-10f) {
@@ -326,12 +333,13 @@ void PDESolver::precompute_thomas_coefficients() {
 
     for (int s = 0; s < NUM_SUBSTRATES; s++) {
         float D      = config_.diffusion_coeffs[s];
-        float lambda = config_.decay_rates[s];
+        // Decay is now handled in the exact ODE source/uptake step, not the LOD.
+        // c2 = 0 → Thomas sweeps handle diffusion only (∂p/∂t = D∇²p).
         float dt     = config_.dt_pde;
         float dx     = config_.voxel_size;
 
         float c1 = dt * D / (dx * dx);
-        float c2 = dt * lambda / 3.0f;
+        float c2 = 0.0f;
         h_c1_[s] = c1;
 
         float b_interior = 1.0f + 2.0f*c1 + c2;
@@ -400,14 +408,16 @@ void PDESolver::solve_timestep() {
         float* U  = d_upt_  + (size_t)s * V;
         float  c1 = h_c1_[s];
 
-        // --- Step 1: exact ODE for source/uptake ---
+        // --- Step 1: exact ODE for source/uptake/decay ---
+        // Includes background decay λ so large dt is safe (p_ss = S/(λ+U) for any dt)
         {
             int blocks = (V + threads - 1) / threads;
-            apply_sources_uptakes_kernel<<<blocks, threads>>>(C, S, U, dt, V);
+            apply_sources_uptakes_kernel<<<blocks, threads>>>(C, S, U, config_.decay_rates[s], dt, V);
         }
 
-        // Only need to run LOD if D > 0 or λ > 0
-        if (config_.diffusion_coeffs[s] == 0.0f && config_.decay_rates[s] == 0.0f) {
+        // LOD handles diffusion only (decay moved to source step above)
+        // Skip LOD entirely if D = 0 — diffusion-free substrate
+        if (config_.diffusion_coeffs[s] == 0.0f) {
             continue;
         }
 

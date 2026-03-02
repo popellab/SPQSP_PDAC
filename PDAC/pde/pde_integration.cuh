@@ -12,6 +12,10 @@ namespace PDAC {
 // can't easily pass custom objects. In production, you'd use
 // environment properties or a singleton pattern.
 extern PDESolver* g_pde_solver;
+extern double g_last_pde_ms;
+
+// Accessor for last PDE solve time (milliseconds)
+double get_last_pde_ms();
 
 // FLAME GPU 2 host functions for PDE integration
 // (Declared and implemented in pde_integration.cu)
@@ -56,6 +60,18 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_occupancy_grid;
 // ECM grid: decay ECM each step after fibroblasts have deposited
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_grid;
 
+// ============================================================================
+// Timing Checkpoint Host Functions (inserted at phase boundaries)
+// ============================================================================
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_step_start;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_recruit;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_broadcast;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_sources;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_pde;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_gradients;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_ecm;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_movement;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_division;
 
 } // namespace PDAC
 

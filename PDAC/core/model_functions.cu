@@ -2,6 +2,7 @@
 #include "../core/common.cuh"
 #include "../qsp/LymphCentral_wrapper.h"
 #include "../qsp/ode/QSP_enum.h"
+#include <nvtx3/nvToolsExt.h>
 
 
 #define QP(x) CancerVCT::ODE_system::get_class_param(x)
@@ -357,6 +358,7 @@ void set_internal_params(flamegpu::ModelDescription& model, const PDAC::LymphCen
 }
 
 FLAMEGPU_HOST_FUNCTION(update_agent_counts) {
+    nvtxRangePush("Update Agent Counts");
     // Get counts for each agent type
     int cancer_count = FLAMEGPU->agent(AGENT_CANCER_CELL).count();
     int tcell_count = FLAMEGPU->agent(AGENT_TCELL).count();
@@ -370,6 +372,7 @@ FLAMEGPU_HOST_FUNCTION(update_agent_counts) {
     FLAMEGPU->environment.setProperty<unsigned int>("total_mdscs", mdsc_count);
     FLAMEGPU->environment.setProperty<unsigned int>("total_agents",
     cancer_count + tcell_count + treg_count + mdsc_count);
+    nvtxRangePop();
 }
 
 FLAMEGPU_HOST_FUNCTION(check_cancer_count_before_movement) {

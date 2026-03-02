@@ -4,6 +4,8 @@
 
 #include <fstream>
 #include <filesystem>
+#include <chrono>
+#include <nvtx3/nvToolsExt.h>
 
 // File stream for QSP CSV output — file-scope (not in PDAC namespace) so the
 // exportQSPData step function (also at file scope) can access it directly.
@@ -13,6 +15,7 @@ namespace PDAC{
 
 // Global pointer to the lymph wrapper (initialized in main)
 static LymphCentralWrapper* g_lymph = nullptr;
+double g_last_qsp_ms = 0.0;  // exposed for timing CSV
 
 void set_lymph_pointer(LymphCentralWrapper* lymph) {
     g_lymph = lymph;
@@ -29,7 +32,8 @@ LymphCentralWrapper* get_lymph_pointer() {
 }
 
 FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
-    if (!g_lymph) return;
+    nvtxRangePush("QSP Solve");
+    if (!g_lymph) { nvtxRangePop(); return; }
 
     // Get current simulation time/step from environment
     unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
@@ -79,11 +83,14 @@ FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
     // Solve ODE for one ABM timestep (CPU-based)
     double dt_abm = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
     double t = static_cast<double>(step) * dt_abm;
+    auto qsp_t0 = std::chrono::high_resolution_clock::now();
     if (g_lymph->is_presimulation_mode()) {
         g_lymph->time_step_preSimulation(t, dt_abm);
     } else {
         g_lymph->time_step(t, dt_abm);
     }
+    auto qsp_t1 = std::chrono::high_resolution_clock::now();
+    g_last_qsp_ms = std::chrono::duration<double, std::milli>(qsp_t1 - qsp_t0).count();
 
     // Get QSP outputs and update environment for ABM to use
     auto qsp_state = g_lymph->get_state_for_abm();
@@ -120,9 +127,17 @@ FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
     // Update Cabo resistance
     float cabo = static_cast<float>(qsp_state.cabo_tumor);
     FLAMEGPU->environment.setProperty<float>("R_cabo", cabo/ (cabo + FLAMEGPU->environment.getProperty<float>("PARAM_IC50_AXL")));
-
-    }
+    nvtxRangePop();
 }
+
+// ============================================================================
+// Timing Accessor: Last QSP Solve Time (milliseconds)
+// ============================================================================
+double get_last_qsp_ms() {
+    return g_last_qsp_ms;
+}
+
+} // namespace PDAC
 
 // QSP CSV export step function — defined at file scope (not inside PDAC namespace)
 // so it matches the linkage of exportPDEData/exportABMData/stepCounter in main.cu.

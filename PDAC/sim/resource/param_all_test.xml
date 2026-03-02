@@ -90,7 +90,7 @@
     </Fib>
   </ABM>
   <Molecular>
-    <stepPerSlice>1</stepPerSlice>  <!-- Single implicit solve per ABM step -->
+    <stepPerSlice>36</stepPerSlice>  <!-- 36 substeps per ABM step, matching HCC (dt_pde = dt_abm/36 = 600s) -->
     <biofvm>
       <IFNg>
         <diffusivity>1e-7</diffusivity>

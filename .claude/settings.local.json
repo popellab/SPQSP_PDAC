@@ -17,7 +17,12 @@
       "Bash(/tmp/delivery_checklist.txt:*)",
       "Bash(cat:*)",
       "Bash(cd:*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(chmod +x:*)",
+      "Bash(python:*)",
+      "Bash(dot:*)",
+      "Bash(npm install:*)",
+      "Bash(python/venv/bin/python3:*)"
     ]
   }
 }

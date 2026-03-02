@@ -50,17 +50,18 @@ struct PDEConfig {
  *
  * Mathematics (matches HCC BioFVM exactly):
  *
- * Source/uptake step (per voxel, no background decay):
- *   dp/dt = S - U*p
- *   if U > 1e-10: p_new = (p - S/U)*exp(-U*dt) + S/U
- *   else:         p_new = p + S*dt
- *   where S [conc/s] = secretion [mol/s] / voxel_volume, U [1/s] = uptake rate constant
+ * Source/uptake/decay step (exact ODE, unconditionally stable at any dt):
+ *   dp/dt = S - (λ+U)*p
+ *   if (λ+U) > 1e-10: p_new = (p - S/(λ+U))*exp(-(λ+U)*dt) + S/(λ+U)
+ *   else:             p_new = p + S*dt
+ *   where S [conc/s] = secretion / voxel_volume, U [1/s] = cell uptake, λ [1/s] = decay
+ *   → p_ss = S/(λ+U) correct for any timestep (no large-dt instability)
  *
- * LOD diffusion+decay step (3 implicit 1D sweeps):
- *   ∂p/∂t = D∇²p - λp
- *   Thomas algorithm per line, decay λ split as λ/3 per dimension
- *   c1 = dt*D/dx², c2 = dt*λ/3
- *   Diagonal: 1 + 2*c1 + c2 (interior), 1 + c1 + c2 (boundary)
+ * LOD diffusion step (3 implicit 1D sweeps, diffusion only):
+ *   ∂p/∂t = D∇²p
+ *   Thomas algorithm per line, c2 = 0 (decay handled above)
+ *   c1 = dt*D/dx²
+ *   Diagonal: 1 + 2*c1 (interior), 1 + c1 (boundary)
  *   Off-diagonal: -c1
  *
  * Agent-PDE coupling (direct device pointer access):

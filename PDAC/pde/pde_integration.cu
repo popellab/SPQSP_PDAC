@@ -1,8 +1,17 @@
 #include "pde_integration.cuh"
 #include "../core/common.cuh"
+#include "../core/layer_timing.h"
 #include <iostream>
 #include <vector>
 #include <nvtx3/nvToolsExt.h>
+
+// ============================================================================
+// Layer Timing Globals (defined once here, declared extern in layer_timing.h)
+// ============================================================================
+namespace PDAC {
+    std::vector<LayerTime> g_layer_timings;
+    ClockPoint g_checkpoint_t = std::chrono::high_resolution_clock::now();
+} // namespace PDAC
 
 // CUDA error checking macro
 #define CUDA_CHECK(call) \
@@ -20,6 +29,7 @@ namespace PDAC {
 // Global PDE solver instance
 // ============================================================================
 PDESolver* g_pde_solver = nullptr;
+double g_last_pde_ms = 0.0;  // exposed for timing CSV
 
 // Flat device array: cancer occupancy per voxel (0 = empty, >0 = cancer present).
 // Populated by cancer_write_to_occ_grid, zeroed by zero_occupancy_grid.
@@ -31,9 +41,11 @@ static unsigned int* d_cancer_occ = nullptr;
 // ============================================================================
 
 FLAMEGPU_HOST_FUNCTION(reset_pde_buffers) {
-    if (!g_pde_solver) return;
+    nvtxRangePush("Reset PDE Buffers");
+    if (!g_pde_solver) { nvtxRangePop(); return; }
     g_pde_solver->reset_sources();
     g_pde_solver->reset_uptakes();
+    nvtxRangePop();
 }
 
 // ============================================================================
@@ -47,7 +59,13 @@ FLAMEGPU_HOST_FUNCTION(solve_pde_step) {
         return;
     }
 
-    g_pde_solver->solve_timestep();
+    int substeps = FLAMEGPU->environment.getProperty<int>("PARAM_MOLECULAR_STEPS");
+    auto pde_t0 = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < substeps; i++) {
+        g_pde_solver->solve_timestep();
+    }
+    auto pde_t1 = std::chrono::high_resolution_clock::now();
+    g_last_pde_ms = std::chrono::duration<double, std::milli>(pde_t1 - pde_t0).count();
 
     unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
     if (step % 50 == 0) {
@@ -61,8 +79,10 @@ FLAMEGPU_HOST_FUNCTION(solve_pde_step) {
 // ============================================================================
 
 FLAMEGPU_HOST_FUNCTION(compute_pde_gradients) {
-    if (!g_pde_solver) return;
+    nvtxRangePush("Compute PDE Gradients");
+    if (!g_pde_solver) { nvtxRangePop(); return; }
     g_pde_solver->compute_gradients();
+    nvtxRangePop();
 }
 
 // ============================================================================
@@ -276,19 +296,24 @@ __global__ void mark_mac_sources_kernel(
 
 // Update vasculature count env property (used by vascular_mark_t_sources device function)
 FLAMEGPU_HOST_FUNCTION(update_vasculature_count) {
+    nvtxRangePush("Update Vas Count");
     int n_vas = static_cast<int>(FLAMEGPU->agent(AGENT_VASCULAR).count());
     FLAMEGPU->environment.setProperty<int>("n_vasculature_total", std::max(1, n_vas));
+    nvtxRangePop();
 }
 
 // Reset recruitment sources at start of each step
 FLAMEGPU_HOST_FUNCTION(reset_recruitment_sources) {
-    if (!g_pde_solver) return;
+    nvtxRangePush("Reset Recruit Sources");
+    if (!g_pde_solver) { nvtxRangePop(); return; }
     g_pde_solver->reset_recruitment_sources();
+    nvtxRangePop();
 }
 
 // Mark MDSC sources based on CCL2 concentration
 FLAMEGPU_HOST_FUNCTION(mark_mdsc_sources) {
-    if (!g_pde_solver) return;
+    nvtxRangePush("Mark MDSC Sources");
+    if (!g_pde_solver) { nvtxRangePop(); return; }
 
     const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
@@ -310,11 +335,13 @@ FLAMEGPU_HOST_FUNCTION(mark_mdsc_sources) {
         d_recruitment_sources, d_ccl2, d_cancer_occ, nx, ny, nz, ec50_ccl2, seed);
 
     cudaDeviceSynchronize();
+    nvtxRangePop();
 }
 
 // Recruit T cells at marked T source voxels
 FLAMEGPU_HOST_FUNCTION(recruit_t_cells) {
-    if (!g_pde_solver) return;
+    nvtxRangePush("Recruit T Cells");
+    if (!g_pde_solver) { nvtxRangePop(); return; }
 
     const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
@@ -520,11 +547,13 @@ FLAMEGPU_HOST_FUNCTION(recruit_t_cells) {
         host_val += treg_recruited;
         cudaMemcpy(reinterpret_cast<unsigned int*>(th_recruit_ptr), &host_val, sizeof(unsigned int), cudaMemcpyHostToDevice);
     }
+    nvtxRangePop();
 }
 
 // Recruit MDSCs at marked MDSC source voxels
 FLAMEGPU_HOST_FUNCTION(recruit_mdscs) {
-    if (!g_pde_solver) return;
+    nvtxRangePush("Recruit MDSCs");
+    if (!g_pde_solver) { nvtxRangePop(); return; }
 
     const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
@@ -590,11 +619,13 @@ FLAMEGPU_HOST_FUNCTION(recruit_mdscs) {
     // Update MacroProperty counters (will be copied to environment by copy_abm_counters_to_environment)
     auto counters = FLAMEGPU->environment.getMacroProperty<int, ABM_EVENT_COUNTER_SIZE>("abm_event_counters");
     counters[ABM_COUNT_MDSC_REC] += mdsc_recruited;
+    nvtxRangePop();
 }
 
 // Mark macrophage sources based on CCL2 concentration
 FLAMEGPU_HOST_FUNCTION(mark_mac_sources) {
-    if (!g_pde_solver) return;
+    nvtxRangePush("Mark MAC Sources");
+    if (!g_pde_solver) { nvtxRangePop(); return; }
 
     const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
@@ -616,11 +647,13 @@ FLAMEGPU_HOST_FUNCTION(mark_mac_sources) {
         d_recruitment_sources, d_ccl2, d_cancer_occ, nx, ny, nz, ec50_ccl2, seed);
 
     cudaDeviceSynchronize();
+    nvtxRangePop();
 }
 
 // Recruit macrophages at marked macrophage source voxels
 FLAMEGPU_HOST_FUNCTION(recruit_macrophages) {
-    if (!g_pde_solver) return;
+    nvtxRangePush("Recruit MACs");
+    if (!g_pde_solver) { nvtxRangePop(); return; }
 
     const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
@@ -696,12 +729,14 @@ FLAMEGPU_HOST_FUNCTION(recruit_macrophages) {
     // Update MacroProperty counters (will be copied to environment by copy_abm_counters_to_environment)
     auto counters = FLAMEGPU->environment.getMacroProperty<int, ABM_EVENT_COUNTER_SIZE>("abm_event_counters");
     counters[ABM_COUNT_MAC_REC] += mac_recruited;
+    nvtxRangePop();
 }
 
 // ============================================================================
 // Occupancy Grid: Zero the grid at the start of each step's division phase
 // ============================================================================
 FLAMEGPU_HOST_FUNCTION(zero_occupancy_grid) {
+    nvtxRangePush("Zero Occ Grid");
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
     occ.zero();
@@ -711,21 +746,25 @@ FLAMEGPU_HOST_FUNCTION(zero_occupancy_grid) {
         int total_voxels = g_pde_solver->get_total_voxels();
         cudaMemset(d_cancer_occ, 0, total_voxels * sizeof(unsigned int));
     }
+    nvtxRangePop();
 }
 
 // ============================================================================
 // Zero Fibroblast Density Field (reset before scatter)
 // ============================================================================
 FLAMEGPU_HOST_FUNCTION(zero_fib_density_field) {
+    nvtxRangePush("Zero Fib Density");
     auto field = FLAMEGPU->environment.getMacroProperty<float,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX>("fib_density_field");
     field.zero();
+    nvtxRangePop();
 }
 
 // ============================================================================
 // ECM Grid: Apply decay, deposition from fibroblast density field, and clamp
 // ============================================================================
 FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
+    nvtxRangePush("Update ECM Grid");
     auto ecm = FLAMEGPU->environment.getMacroProperty<float,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX>("ecm_grid");
     auto field = FLAMEGPU->environment.getMacroProperty<float,
@@ -771,6 +810,7 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
             }
         }
     }
+    nvtxRangePop();
 }
 
 // ============================================================================
@@ -778,6 +818,7 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
 // Counts cancer cell deaths by cause from agents marked as dead
 // ============================================================================
 FLAMEGPU_HOST_FUNCTION(aggregate_abm_events) {
+    nvtxRangePush("Aggregate ABM Events");
     auto counters = FLAMEGPU->environment.getMacroProperty<int, ABM_EVENT_COUNTER_SIZE>("abm_event_counters");
     auto cc_api = FLAMEGPU->agent("CancerCell");
 
@@ -810,6 +851,7 @@ FLAMEGPU_HOST_FUNCTION(aggregate_abm_events) {
     counters[ABM_COUNT_CC_DEATH_NATURAL] = cc_death_natural;
     counters[ABM_COUNT_CC_DEATH_T_KILL] = cc_death_t_kill;
     counters[ABM_COUNT_CC_DEATH_MAC_KILL] = cc_death_mac_kill;
+    nvtxRangePop();
 }
 
 // ============================================================================
@@ -817,6 +859,7 @@ FLAMEGPU_HOST_FUNCTION(aggregate_abm_events) {
 // Called BEFORE QSP so the ODE model can read accumulated counts this step
 // ============================================================================
 FLAMEGPU_HOST_FUNCTION(copy_abm_counters_to_environment) {
+    nvtxRangePush("Copy ABM Counters");
     auto counters = FLAMEGPU->environment.getMacroProperty<int, ABM_EVENT_COUNTER_SIZE>("abm_event_counters");
 
     // Copy from MacroProperty array to environment properties for QSP access
@@ -829,6 +872,7 @@ FLAMEGPU_HOST_FUNCTION(copy_abm_counters_to_environment) {
     FLAMEGPU->environment.setProperty<int>("ABM_TREG_REC", static_cast<int>(counters[ABM_COUNT_TREG_REC]));
     FLAMEGPU->environment.setProperty<int>("ABM_MDSC_REC", static_cast<int>(counters[ABM_COUNT_MDSC_REC]));
     FLAMEGPU->environment.setProperty<int>("ABM_MAC_REC", static_cast<int>(counters[ABM_COUNT_MAC_REC]));
+    nvtxRangePop();
 }
 
 // ============================================================================
@@ -836,12 +880,14 @@ FLAMEGPU_HOST_FUNCTION(copy_abm_counters_to_environment) {
 // Clears MacroProperty array for next step's accumulation
 // ============================================================================
 FLAMEGPU_HOST_FUNCTION(reset_abm_event_counters) {
+    nvtxRangePush("Reset ABM Counters");
     auto counters = FLAMEGPU->environment.getMacroProperty<int, ABM_EVENT_COUNTER_SIZE>("abm_event_counters");
 
     // Reset all counter elements to zero
     for (int i = 0; i < ABM_EVENT_COUNTER_SIZE; i++) {
         counters[i] = 0;
     }
+    nvtxRangePop();
 }
 
 // ============================================================================
@@ -855,6 +901,96 @@ FLAMEGPU_HOST_FUNCTION(fib_execute_divide) {
     // DISABLED - fibroblast division was not functioning correctly and caused CUDA crashes
     // Fibroblasts will persist but not divide
     return;
+}
+
+// ============================================================================
+// Timing Accessor: Last PDE Solve Time (milliseconds)
+// ============================================================================
+double get_last_pde_ms() {
+    return g_last_pde_ms;
+}
+
+// ============================================================================
+// Timing Checkpoint Host Functions
+//
+// These are thin FLAMEGPU host function layers inserted at phase boundaries.
+// Each records elapsed wall-clock time since the previous checkpoint.
+// Because FLAMEGPU2 fully completes all GPU kernels in a layer before calling
+// the next host function, wall-clock accurately captures GPU time per phase.
+//
+// Phase map (in layer execution order):
+//   timing_step_start        → resets the clock (very first layer)
+//   [Phase 0: recruitment]
+//   timing_after_recruit     → captures recruit time
+//   [Phase 1: broadcast + neighbor scan]
+//   timing_after_broadcast   → captures broadcast+scan time
+//   [reset_pde_buffers + state_transitions + compute_chemical_sources]
+//   timing_after_sources     → captures state+sources time
+//   [solve_pde  -- internally timed via g_last_pde_ms]
+//   timing_after_pde         → captures solve_pde wall time (for cross-check)
+//   [compute_pde_gradients]
+//   timing_after_gradients   → captures gradients time
+//   [Phase 3: ECM]
+//   timing_after_ecm         → captures ECM time
+//   [Phase 4: occ + movement]
+//   timing_after_movement    → captures movement time
+//   [Phase 5: division]
+//   timing_after_division    → captures division time
+//   [Phase 6: QSP -- internally timed via g_last_qsp_ms]
+// ============================================================================
+
+FLAMEGPU_HOST_FUNCTION(timing_step_start) {
+    nvtxRangePush("Step Start");
+    reset_step_timer();
+    nvtxRangePop();
+}
+
+FLAMEGPU_HOST_FUNCTION(timing_after_recruit) {
+    nvtxRangePush("Timing Checkpoint: recruit");
+    record_checkpoint("recruit");
+    nvtxRangePop();
+}
+
+FLAMEGPU_HOST_FUNCTION(timing_after_broadcast) {
+    nvtxRangePush("Timing Checkpoint: broadcast_scan");
+    record_checkpoint("broadcast_scan");
+    nvtxRangePop();
+}
+
+FLAMEGPU_HOST_FUNCTION(timing_after_sources) {
+    nvtxRangePush("Timing Checkpoint: state_sources");
+    record_checkpoint("state_sources");
+    nvtxRangePop();
+}
+
+FLAMEGPU_HOST_FUNCTION(timing_after_pde) {
+    nvtxRangePush("Timing Checkpoint: pde_wall");
+    record_checkpoint("pde_wall");
+    nvtxRangePop();
+}
+
+FLAMEGPU_HOST_FUNCTION(timing_after_gradients) {
+    nvtxRangePush("Timing Checkpoint: gradients");
+    record_checkpoint("gradients");
+    nvtxRangePop();
+}
+
+FLAMEGPU_HOST_FUNCTION(timing_after_ecm) {
+    nvtxRangePush("Timing Checkpoint: ecm");
+    record_checkpoint("ecm");
+    nvtxRangePop();
+}
+
+FLAMEGPU_HOST_FUNCTION(timing_after_movement) {
+    nvtxRangePush("Timing Checkpoint: movement");
+    record_checkpoint("movement");
+    nvtxRangePop();
+}
+
+FLAMEGPU_HOST_FUNCTION(timing_after_division) {
+    nvtxRangePush("Timing Checkpoint: division");
+    record_checkpoint("division");
+    nvtxRangePop();
 }
 
 } // namespace PDAC

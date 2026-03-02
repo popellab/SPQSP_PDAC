@@ -10,6 +10,7 @@
 #include <filesystem>
 
 #include "../core/common.cuh"
+#include "../core/layer_timing.h"
 #include "../pde/pde_integration.cuh"
 #include "initialization.cuh"
 #include "gpu_param.h"
@@ -17,7 +18,11 @@
 #include "../core/model_functions.cuh"
 
 // Exposed by qsp_integration.cu — true during Phase 3 pre-simulation
-namespace PDAC { extern bool is_presim_mode_active(); }
+namespace PDAC {
+extern bool is_presim_mode_active();
+extern double get_last_pde_ms();
+extern double get_last_qsp_ms();
+}
 
 // QSP CSV export step function (defined in qsp_integration.cu)
 extern flamegpu::FLAMEGPU_STEP_FUNCTION_POINTER exportQSPData;
@@ -202,9 +207,16 @@ void exportABMData_step0(flamegpu::CUDASimulation& sim, flamegpu::ModelDescripti
             int x = treg_pop[i].getVariable<int>("x");
             int y = treg_pop[i].getVariable<int>("y");
             int z = treg_pop[i].getVariable<int>("z");
+            int state = treg_pop[i].getVariable<int>("cell_state");
             int life = treg_pop[i].getVariable<int>("life");
+            std::string state_name;
+            switch (state) {
+                case 0: state_name = "TH"; break;
+                case 1: state_name = "REGULATORY"; break;
+                default: state_name = "UNKNOWN"; break;
+            }
             file << "TREG," << id << "," << x << "," << y << "," << z << ","
-                 << "REGULATORY,life=" << life << "\n";
+                 << state_name << ",life=" << life << "\n";
         }
     }
 
@@ -357,10 +369,11 @@ FLAMEGPU_STEP_FUNCTION(exportABMData) {
                 int x = treg_pop[i].getVariable<int>("x");
                 int y = treg_pop[i].getVariable<int>("y");
                 int z = treg_pop[i].getVariable<int>("z");
+                int state = treg_pop[i].getVariable<int>("cell_state");
                 int life = treg_pop[i].getVariable<int>("life");
-                
-                file << "TREG," << id << "," << x << "," << y << "," << z << "," 
-                     << "REGULATORY,life=" << life << "\n";
+                std::string state_name = (state == PDAC::TCD4_TH) ? "TH" : "REGULATORY";
+                file << "TREG," << id << "," << x << "," << y << "," << z << ","
+                     << state_name << ",life=" << life << "\n";
             }
         }
     }
@@ -545,7 +558,19 @@ int main(int argc, const char** argv) {
 
     // Seed random number generator
     srand(config.random_seed);
-    
+
+    // ========== INITIALIZATION TIMING ==========
+    std::ofstream init_file("outputs/init_timing.csv");
+    init_file << "phase,ms\n";
+    auto init_t0 = std::chrono::high_resolution_clock::now();
+    auto init_lap = [&](const std::string& label) {
+        auto init_t1 = std::chrono::high_resolution_clock::now();
+        double ms = std::chrono::duration<double, std::milli>(init_t1 - init_t0).count();
+        init_file << label << "," << ms << "\n";
+        init_file.flush();
+        init_t0 = init_t1;
+    };
+
     // ========== BUILD MODEL ==========
     std::cout << "Building FLAME GPU 2 model..." << std::endl;
     auto model = PDAC::buildModel(
@@ -555,16 +580,25 @@ int main(int argc, const char** argv) {
 
     // Store output interval in environment for step functions
     model->Environment().newProperty<int>("interval_out", config.interval_out);
+    init_lap("build_model");
 
     // ========== INITIALIZE PDE SOLVER ==========
     std::cout << "Initializing PDE solver..." << std::endl;
     PDAC::initialize_pde_solver(
-        config.grid_x, config.grid_y, config.grid_z, 
+        config.grid_x, config.grid_y, config.grid_z,
         config.voxel_size, config.dt_abm, config.molecular_steps,
          gpu_params);
-    
+
     // Store PDE device pointers in model environment
     PDAC::set_pde_pointers_in_environment(*model);
+    init_lap("init_pde");
+
+    // ========== GPU MEMORY QUERY (after PDE allocation) ==========
+    size_t free_mem_1, total_mem_1;
+    cudaMemGetInfo(&free_mem_1, &total_mem_1);
+    size_t used_mem_1 = total_mem_1 - free_mem_1;
+    std::cout << "[MEM] After PDE init: " << (used_mem_1 / (1024*1024)) << " MB used / "
+              << (total_mem_1 / (1024*1024)) << " MB total" << std::endl;
 
     // Process internal parameters from env params and new QSP params
     // ========== INITIALIZE QSP SOLVER ==========
@@ -572,6 +606,7 @@ int main(int argc, const char** argv) {
     _lymph.initialize(param_file);
     PDAC::set_internal_params(*model, _lymph);
     PDAC::set_lymph_pointer(&_lymph);  // Set global pointer for QSP host functions
+    init_lap("init_qsp");
 
     // ========== ADD STEP FUNCTIONS ==========
     if (config.pde_out) {
@@ -610,7 +645,8 @@ int main(int argc, const char** argv) {
     flamegpu::CUDASimulation simulation(*model);
     simulation.SimulationConfig().steps = config.steps;
     simulation.SimulationConfig().random_seed = config.random_seed;
-    
+    init_lap("cuda_sim_create");
+
     // ========== INITIALIZE AGENTS ==========
     if (config.init_method == 1) {
         std::cout << "Initializing agents from QSP steady-state (init_method=1)..." << std::endl;
@@ -621,7 +657,15 @@ int main(int argc, const char** argv) {
     }
     std::cout << "[DEBUG] Agent initialization complete" << std::endl;
     std::cout.flush();
-    
+    init_lap("init_agents");
+
+    // ========== GPU MEMORY QUERY (after agent allocation) ==========
+    size_t free_mem_2, total_mem_2;
+    cudaMemGetInfo(&free_mem_2, &total_mem_2);
+    size_t used_mem_2 = total_mem_2 - free_mem_2;
+    std::cout << "[MEM] After agent init: " << (used_mem_2 / (1024*1024)) << " MB used / "
+              << (total_mem_2 / (1024*1024)) << " MB total" << std::endl;
+
     // ========== PHASE 3: PRE-SIMULATION (QSP-seeded init only) ==========
     // Run ABM+QSP (no drugs) until QSP tumor volume reaches 1.0× target diameter.
     // This fills the gap between the 0.95× warmup and the treatment start.
@@ -662,7 +706,11 @@ int main(int argc, const char** argv) {
 
         std::cout << "  Pre-simulation complete: " << presim_step << " steps, "
                   << "QSP tum_vol=" << cur_vol << " cm^3" << std::endl;
+        init_lap("presim");
+    } else {
+        init_lap("presim");  // Log presim time even if not run
     }
+    init_file.close();
 
     // ========== EXPORT DAY-0 STATE (after presim, before first treatment step) ==========
     if (config.pde_out) exportPDEData_step0(config.grid_x, config.grid_y, config.grid_z);
@@ -677,12 +725,51 @@ int main(int argc, const char** argv) {
         event_file << "Step,prolif.CD8.cytotoxic,recruit.CD8.effector,prolif.Th.default,recruit.Th.default,prolif.Treg.default\n";
     }
 
+    // Open timing output file for per-step timing CSV
+    std::ofstream timing_file("outputs/timing.csv");
+    timing_file << "step,total_ms,pde_ms,qsp_ms,abm_ms\n";
+
+    // Open per-layer timing CSV (long format: step, layer_name, time_ms)
+    std::ofstream layer_file("outputs/layer_timing.csv");
+    layer_file << "step,layer,ms\n";
+
     // Manual stepping loop with NVTX markers for profiling
     const unsigned int total_steps = simulation.SimulationConfig().steps;
     for (unsigned int i = 0; i < total_steps; i++) {
         nvtxRangePush("ABM Step");
+        auto step_t0 = std::chrono::high_resolution_clock::now();
         bool continue_sim = simulation.step();
+        auto step_t1 = std::chrono::high_resolution_clock::now();
         nvtxRangePop();
+
+        // Capture high-level timing
+        double step_ms = std::chrono::duration<double, std::milli>(step_t1 - step_t0).count();
+        double pde_ms = PDAC::get_last_pde_ms();
+        double qsp_ms = PDAC::get_last_qsp_ms();
+        double abm_ms = step_ms - pde_ms - qsp_ms;
+        timing_file << i << "," << step_ms << "," << pde_ms << "," << qsp_ms << "," << abm_ms << "\n";
+        timing_file.flush();
+
+        // Write per-layer timings collected by checkpoint host functions
+        {
+            // GPU memory snapshot after this step
+            size_t free_m = 0, total_m = 0;
+            cudaMemGetInfo(&free_m, &total_m);
+            int gpu_used_mb = static_cast<int>((total_m - free_m) / (1024 * 1024));
+
+            layer_file << i << ",gpu_mem_mb," << gpu_used_mb << "\n";
+            layer_file << i << ",total_ms," << step_ms << "\n";
+            layer_file << i << ",pde_solve_ms," << pde_ms << "\n";
+            layer_file << i << ",qsp_solve_ms," << qsp_ms << "\n";
+
+            // Checkpoint-recorded phases (filled by timing_after_* host functions)
+            for (const auto& lt : PDAC::g_layer_timings) {
+                layer_file << i << "," << lt.name << "," << lt.ms << "\n";
+            }
+            PDAC::g_layer_timings.clear();
+
+            layer_file.flush();
+        }
 
         // Read event counts from GPU and output
         if (event_file.is_open()) {
@@ -707,6 +794,16 @@ int main(int argc, const char** argv) {
     if (event_file.is_open()) {
         event_file.close();
         std::cout << "Created: outputs/event.csv" << std::endl;
+    }
+
+    if (timing_file.is_open()) {
+        timing_file.close();
+        std::cout << "Created: outputs/timing.csv" << std::endl;
+    }
+
+    if (layer_file.is_open()) {
+        layer_file.close();
+        std::cout << "Created: outputs/layer_timing.csv" << std::endl;
     }
 
     // ========== REPORT RESULTS ==========

@@ -44,7 +44,9 @@ os.makedirs(OUT_DIR, exist_ok=True)
 def parse_hcc_step(step):
     path = os.path.join(HCC_DIR, f"cell_{step}.csv")
     counts = dict(cancer_stem=0, cancer_prog=0, cancer_sen=0,
-                  tcell=0, treg=0, mdsc=0, mac=0, mac_m1=0, mac_m2=0, fib=0,
+                  tcell=0, teff=0, tcyt=0, tsup=0,
+                  th=0, treg=0,
+                  mdsc=0, mac=0, mac_m1=0, mac_m2=0, fib=0,
                   vas_tip=0, vas_phalanx=0)
     if not os.path.exists(path):
         return counts
@@ -58,9 +60,13 @@ def parse_hcc_step(step):
             if   t == 1 and s == 6:  counts['cancer_stem']  += 1
             elif t == 1 and s == 7:  counts['cancer_prog']  += 1
             elif t == 1 and s == 8:  counts['cancer_sen']   += 1
-            elif t == 2:             counts['tcell']         += 1
+            elif t == 2:
+                counts['tcell'] += 1
+                if   s == 3: counts['teff'] += 1
+                elif s == 4: counts['tcyt'] += 1
+                elif s == 5: counts['tsup'] += 1
+            elif t == 3 and s == 9:  counts['th']           += 1
             elif t == 3 and s == 10: counts['treg']          += 1
-            elif t == 3 and s == 9:  pass   # Th — skip for now
             elif t == 4:             counts['mdsc']          += 1
             elif t == 5:
                 counts['mac']           += 1
@@ -76,7 +82,9 @@ def parse_hcc_step(step):
 def parse_pdac_step(step):
     path = os.path.join(PDAC_ABM_DIR, f"agents_step_{step:06d}.csv")
     counts = dict(cancer_stem=0, cancer_prog=0, cancer_sen=0,
-                  tcell=0, treg=0, mdsc=0, mac=0, mac_m1=0, mac_m2=0, fib=0,
+                  tcell=0, teff=0, tcyt=0, tsup=0,
+                  th=0, treg=0,
+                  mdsc=0, mac=0, mac_m1=0, mac_m2=0, fib=0,
                   vas_tip=0, vas_phalanx=0)
     if not os.path.exists(path):
         return counts
@@ -91,8 +99,14 @@ def parse_pdac_step(step):
                 if   state == 'STEM':       counts['cancer_stem'] += 1
                 elif state == 'PROGENITOR': counts['cancer_prog'] += 1
                 elif state == 'SENESCENT':  counts['cancer_sen']  += 1
-            elif atype == 'TCELL':       counts['tcell']      += 1
-            elif atype == 'TREG':        counts['treg']       += 1
+            elif atype == 'TCELL':
+                counts['tcell'] += 1
+                if   state == 'EFFECTOR':   counts['teff'] += 1
+                elif state == 'CYTOTOXIC':  counts['tcyt'] += 1
+                elif state == 'SUPPRESSED': counts['tsup'] += 1
+            elif atype == 'TREG':
+                if   state == 'TH':         counts['th']   += 1
+                else:                       counts['treg'] += 1  # REGULATORY or fallback
             elif atype == 'MDSC':        counts['mdsc']       += 1
             elif atype == 'MAC':
                 counts['mac']        += 1
@@ -309,7 +323,9 @@ print(f"PDAC steps: {len(pdac_steps)} ({pdac_steps[0]}–{pdac_steps[-1]})")
 
 print("Parsing HCC ABM...", flush=True)
 hcc_counts = {k: [] for k in ['cancer_stem','cancer_prog','cancer_sen',
-                                'tcell','treg','mdsc','mac','mac_m1','mac_m2','fib',
+                                'tcell','teff','tcyt','tsup',
+                                'th','treg',
+                                'mdsc','mac','mac_m1','mac_m2','fib',
                                 'vas_tip','vas_phalanx']}
 for s in hcc_steps:
     c = parse_hcc_step(s)
@@ -352,6 +368,10 @@ pop_labels = [
     ('Cancer Prog',    'cancer_prog'),
     ('Cancer Sen',     'cancer_sen'),
     ('T Cells',        'tcell'),
+    ('  T Effector',   'teff'),
+    ('  T Cytotoxic',  'tcyt'),
+    ('  T Suppressed', 'tsup'),
+    ('T Helper (Th)',  'th'),
     ('TRegs',          'treg'),
     ('MDSCs',          'mdsc'),
     ('Macrophages',    'mac'),
@@ -385,16 +405,16 @@ pdac_t = np.array(pdac_steps, dtype=float)
 # Each panel shows one cell type; multi-state types use different line styles.
 # HCC = blue, PDAC = orange throughout.
 abm_panels = [
-    ("Cancer (all)",  [('Stem', 'cancer_stem'), ('Prog', 'cancer_prog'), ('Sen', 'cancer_sen')]),
-    ("T Cells",       [('',     'tcell')]),
-    ("TRegs",         [('',     'treg')]),
-    ("MDSCs",         [('',     'mdsc')]),
-    ("Macrophages",   [('M1',   'mac_m1'), ('M2', 'mac_m2')]),
-    ("Fibroblasts",   [('',     'fib')]),
-    ("VAS TIP",       [('',     'vas_tip')]),
-    ("VAS Phalanx",   [('',     'vas_phalanx')]),
-    ("Cancer stem",   [('',     'cancer_stem')]),
-    ("Cancer prog",   [('',     'cancer_prog')]),
+    ("Cancer (all)",     [('Stem', 'cancer_stem'), ('Prog', 'cancer_prog'), ('Sen', 'cancer_sen')]),
+    ("T Cells (states)", [('Eff', 'teff'), ('Cyt', 'tcyt'), ('Sup', 'tsup')]),
+    ("Th + TReg",        [('Th', 'th'), ('TReg', 'treg')]),
+    ("MDSCs",            [('',   'mdsc')]),
+    ("Macrophages",      [('M1', 'mac_m1'), ('M2', 'mac_m2')]),
+    ("Fibroblasts",      [('',   'fib')]),
+    ("VAS TIP",          [('',   'vas_tip')]),
+    ("VAS Phalanx",      [('',   'vas_phalanx')]),
+    ("Cancer stem",      [('',   'cancer_stem')]),
+    ("Cancer prog",      [('',   'cancer_prog')]),
 ]
 linestyles = ['-', '--', ':']
 
@@ -433,58 +453,58 @@ plt.savefig(os.path.join(OUT_DIR, "pde_means.png"), dpi=120)
 print(f"Saved: {OUT_DIR}/pde_means.png")
 
 # --- T Cell and TReg dynamics ---
-fig3, axes3 = plt.subplots(2, 2, figsize=(14, 10))
+fig3, axes3 = plt.subplots(2, 3, figsize=(18, 10))
 fig3.suptitle("T Cell and TReg Dynamics  ■ HCC (blue)  ■ PDAC GPU (orange)", fontsize=13)
 
-# T Cells
+# T Cells: Effector
 ax = axes3[0, 0]
-ax.plot(hcc_t,  hcc_counts['tcell'],  color=HCC_COLOR,  lw=2.0, label="HCC")
-ax.plot(pdac_t, pdac_counts['tcell'], color=PDAC_COLOR, lw=2.0, label="PDAC")
-ax.set_title("T Cells (Total)", fontsize=11)
-ax.set_xlabel("Step")
-ax.set_ylabel("Count")
-ax.legend(fontsize=9)
-ax.grid(True, alpha=0.3)
+ax.plot(hcc_t,  hcc_counts['teff'],  color=HCC_COLOR,  lw=2.0, label="HCC")
+ax.plot(pdac_t, pdac_counts['teff'], color=PDAC_COLOR, lw=2.0, label="PDAC")
+ax.set_title("T Effector", fontsize=11)
+ax.set_xlabel("Step"); ax.set_ylabel("Count")
+ax.legend(fontsize=9); ax.grid(True, alpha=0.3)
+
+# T Cells: Cytotoxic
+ax = axes3[0, 1]
+ax.plot(hcc_t,  hcc_counts['tcyt'],  color=HCC_COLOR,  lw=2.0, label="HCC")
+ax.plot(pdac_t, pdac_counts['tcyt'], color=PDAC_COLOR, lw=2.0, label="PDAC")
+ax.set_title("T Cytotoxic", fontsize=11)
+ax.set_xlabel("Step"); ax.set_ylabel("Count")
+ax.legend(fontsize=9); ax.grid(True, alpha=0.3)
+
+# T Cells: Suppressed
+ax = axes3[0, 2]
+ax.plot(hcc_t,  hcc_counts['tsup'],  color=HCC_COLOR,  lw=2.0, label="HCC")
+ax.plot(pdac_t, pdac_counts['tsup'], color=PDAC_COLOR, lw=2.0, label="PDAC")
+ax.set_title("T Suppressed", fontsize=11)
+ax.set_xlabel("Step"); ax.set_ylabel("Count")
+ax.legend(fontsize=9); ax.grid(True, alpha=0.3)
+
+# T Helper
+ax = axes3[1, 0]
+ax.plot(hcc_t,  hcc_counts['th'],  color=HCC_COLOR,  lw=2.0, label="HCC")
+ax.plot(pdac_t, pdac_counts['th'], color=PDAC_COLOR, lw=2.0, label="PDAC")
+ax.set_title("T Helper (Th)", fontsize=11)
+ax.set_xlabel("Step"); ax.set_ylabel("Count")
+ax.legend(fontsize=9); ax.grid(True, alpha=0.3)
 
 # TRegs
-ax = axes3[0, 1]
+ax = axes3[1, 1]
 ax.plot(hcc_t,  hcc_counts['treg'],  color=HCC_COLOR,  lw=2.0, label="HCC")
 ax.plot(pdac_t, pdac_counts['treg'], color=PDAC_COLOR, lw=2.0, label="PDAC")
-ax.set_title("TRegs (Total)", fontsize=11)
-ax.set_xlabel("Step")
-ax.set_ylabel("Count")
-ax.legend(fontsize=9)
-ax.grid(True, alpha=0.3)
+ax.set_title("TReg (Regulatory)", fontsize=11)
+ax.set_xlabel("Step"); ax.set_ylabel("Count")
+ax.legend(fontsize=9); ax.grid(True, alpha=0.3)
 
-# T Cell vs TReg ratio (HCC)
-ax = axes3[1, 0]
-hcc_tc_treg = np.array(hcc_counts['tcell']) / (np.array(hcc_counts['treg']) + 1)
-pdac_tc_treg = np.array(pdac_counts['tcell']) / (np.array(pdac_counts['treg']) + 1)
-ax.plot(hcc_t,  hcc_tc_treg,  color=HCC_COLOR,  lw=2.0, label="HCC")
-ax.plot(pdac_t, pdac_tc_treg, color=PDAC_COLOR, lw=2.0, label="PDAC")
-ax.set_title("T Cell / TReg Ratio", fontsize=11)
-ax.set_xlabel("Step")
-ax.set_ylabel("Ratio")
-ax.legend(fontsize=9)
-ax.grid(True, alpha=0.3)
-
-# Growth rates (normalized to initial)
-ax = axes3[1, 1]
-if len(hcc_counts['tcell']) > 0 and hcc_counts['tcell'][0] > 0:
-    hcc_tc_norm = np.array(hcc_counts['tcell']) / hcc_counts['tcell'][0]
-    hcc_treg_norm = np.array(hcc_counts['treg']) / (hcc_counts['treg'][0] + 1)
-    ax.plot(hcc_t,  hcc_tc_norm,  color=HCC_COLOR,  lw=2.0, label="HCC T Cells", linestyle='-')
-    ax.plot(hcc_t,  hcc_treg_norm, color=HCC_COLOR,  lw=2.0, label="HCC TRegs", linestyle='--')
-if len(pdac_counts['tcell']) > 0 and pdac_counts['tcell'][0] > 0:
-    pdac_tc_norm = np.array(pdac_counts['tcell']) / pdac_counts['tcell'][0]
-    pdac_treg_norm = np.array(pdac_counts['treg']) / (pdac_counts['treg'][0] + 1)
-    ax.plot(pdac_t, pdac_tc_norm, color=PDAC_COLOR, lw=2.0, label="PDAC T Cells", linestyle='-')
-    ax.plot(pdac_t, pdac_treg_norm, color=PDAC_COLOR, lw=2.0, label="PDAC TRegs", linestyle='--')
-ax.set_title("Normalized Growth (Initial=1.0)", fontsize=11)
-ax.set_xlabel("Step")
-ax.set_ylabel("Fold Change")
-ax.legend(fontsize=8)
-ax.grid(True, alpha=0.3)
+# Suppressed fraction of total T cells
+ax = axes3[1, 2]
+hcc_sup_frac  = np.array(hcc_counts['tsup'],  dtype=float) / (np.array(hcc_counts['tcell'],  dtype=float) + 1)
+pdac_sup_frac = np.array(pdac_counts['tsup'], dtype=float) / (np.array(pdac_counts['tcell'], dtype=float) + 1)
+ax.plot(hcc_t,  hcc_sup_frac,  color=HCC_COLOR,  lw=2.0, label="HCC")
+ax.plot(pdac_t, pdac_sup_frac, color=PDAC_COLOR, lw=2.0, label="PDAC")
+ax.set_title("Suppressed Fraction of T Cells", fontsize=11)
+ax.set_xlabel("Step"); ax.set_ylabel("Fraction")
+ax.legend(fontsize=9); ax.grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig(os.path.join(OUT_DIR, "tcell_treg_dynamics.png"), dpi=120)
