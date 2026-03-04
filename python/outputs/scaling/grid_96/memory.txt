@@ -1,2 +1,0 @@
-[MEM] After PDE init: 1363 MB used / 12226 MB total
-[MEM] After agent init: 3767 MB used / 12226 MB total

@@ -1,7 +1,0 @@
-phase,ms
-build_model,0.277856
-init_pde,249.865
-init_qsp,9019.03
-cuda_sim_create,6.40092
-init_agents,330.409
-presim,0.102389
