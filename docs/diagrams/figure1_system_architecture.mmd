@@ -1,0 +1,41 @@
+graph TB
+    subgraph GPU["GPU (FLAME GPU 2)"]
+        ABM["Agent-Based Model"]
+        ABM_agents["• Cancer cells (stem/progenitor/senescent)<br/>• T cells (effector/cytotoxic/suppressed)<br/>• TRegs, MDSCs<br/>• Macrophages (M1/M2)<br/>• Fibroblasts (HEAD/TAIL)<br/>• Vascular cells"]
+        ABM -.-> ABM_agents
+
+        PDE["PDE Solver"]
+        PDE_chem["10 Chemical Substrates:<br/>O₂ | IFN-γ | IL-2 | IL-10<br/>TGF-β | CCL2 | ArgI | NO<br/>IL-12 | VEGF-A"]
+        PDE -.-> PDE_chem
+
+        PDE_method["Implicit CG Solver<br/>(Backward Euler)<br/>Unconditionally Stable<br/>36 substeps/ABM step"]
+        PDE -.-> PDE_method
+    end
+
+    subgraph CPU["CPU (SUNDIALS + Host)"]
+        QSP["QSP Model (ODE System)"]
+        QSP_detail["LymphCentral<br/>153 species<br/>277 parameters<br/>CVODE integration"]
+        QSP -.-> QSP_detail
+
+        PARAMS["Parameter System"]
+        PARAMS_detail["XML-based config<br/>120+ parameters<br/>Runtime loading"]
+        PARAMS -.-> PARAMS_detail
+    end
+
+    ABM -->|Agent sources<br/>PDE concentrations| GPU_CPU_couple["PDE-ABM Coupling"]
+    GPU_CPU_couple -->|Local chemical<br/>concentrations| ABM
+
+    QSP -->|Cell deaths<br/>Immune recruitment<br/>Population counts| CPU_QSP_couple["QSP-ABM Coupling"]
+    CPU_QSP_couple -->|Drug concentrations<br/>Cell flux rates| QSP
+
+    PARAMS -->|Load parameters| GPU
+    PARAMS -->|Load parameters| QSP
+
+    style GPU fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style CPU fill:#F5A623,stroke:#A67C1A,color:#fff
+    style ABM fill:#357ABD
+    style PDE fill:#357ABD
+    style QSP fill:#E8932F
+    style PARAMS fill:#E8932F
+    style GPU_CPU_couple fill:#7ED321,stroke:#5A9A1A
+    style CPU_QSP_couple fill:#7ED321,stroke:#5A9A1A

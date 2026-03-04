@@ -1,0 +1,1 @@
+Error 414: The request URI's length exceeds 4096. You can update this value by setting KROKI_MAX_URI_LENGTH environment variable. Please read: https://docs.kroki.io/kroki/setup/configuration/#_max_uri_length for more information.

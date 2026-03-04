@@ -1,0 +1,72 @@
+graph TD
+    START["START: Each ABM Timestep<br/>(600s = 10 min)"]
+
+    subgraph Host["HOST Phase"]
+        H1["Update Macro Properties<br/>cancer_count, immune_counts<br/>vasculature_count"]
+    end
+
+    subgraph GPU_Recruit["GPU Phase 1: Mark Recruitment Sources"]
+        L1["Layer 1: Mark T Cell<br/>Recruitment Sources"]
+        L2["Layer 2: Mark Macrophage<br/>Recruitment Sources"]
+        L3["Layer 3: Mark Fibroblast<br/>Recruitment Sources"]
+        L1 --> L2 --> L3
+    end
+
+    subgraph GPU_Move["GPU Phase 2: Movement & Sensing"]
+        L4["Layer 4: Vascular Cell Step<br/>(movement, sprouting)"]
+        L5["Layer 5: Movement<br/>(cancer, immune, fibroblasts)"]
+        L6["Layer 6: Neighbor Scanning<br/>(26-voxel Moore neighborhood)"]
+        L4 --> L5 --> L6
+    end
+
+    subgraph GPU_Chem["GPU Phase 3: Chemical Response"]
+        L7["Layer 7: Read PDE Concentrations<br/>→ Agent Variables"]
+        L8["Layer 8: Update Agent State<br/>(hypoxia, PDL1, etc.)"]
+        L9["Layer 9: State Machine Transitions"]
+        L7 --> L8 --> L9
+    end
+
+    subgraph GPU_Source["GPU Phase 4: Chemical Production"]
+        L10["Layer 10: Compute Chemical<br/>Sources & Sinks"]
+        L11["Layer 11: Write Sources to PDE<br/>(atomic operations)"]
+        L10 --> L11
+    end
+
+    subgraph GPU_Div["GPU Phase 5: Division"]
+        L12a["Layer 12a: Division Intent<br/>(mark ready to divide)"]
+        L12b["Layer 12b: Division Execute<br/>(create daughter cells)"]
+        L12a --> L12b
+    end
+
+    subgraph GPU_Solve["GPU Phase 6: PDE Solve"]
+        L13["Layer 13: Reset PDE Buffers<br/>Compute Gradients"]
+        PDESOLVE["GPU: Implicit CG Solver<br/>(36 substeps × 600s)"]
+        L13 --> PDESOLVE
+    end
+
+    subgraph CPU_Solve["CPU Phase: QSP Integration"]
+        QSPSOLVE["CPU: CVODE Solver<br/>Advance ODE system by 600s"]
+        BOOK["Bookkeep: Deaths, Recruitment<br/>for next QSP step"]
+        QSPSOLVE --> BOOK
+    end
+
+    START --> Host
+    Host --> GPU_Recruit
+    GPU_Recruit --> GPU_Move
+    GPU_Move --> GPU_Chem
+    GPU_Chem --> GPU_Source
+    GPU_Source --> GPU_Div
+    GPU_Div --> GPU_Solve
+    GPU_Solve --> CPU_Solve
+    CPU_Solve --> END["END: Proceed to next ABM step"]
+
+    style START fill:#90EE90
+    style END fill:#FFB6C6
+    style Host fill:#FFD700,stroke:#CC9900
+    style GPU_Recruit fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style GPU_Move fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style GPU_Chem fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style GPU_Source fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style GPU_Div fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style GPU_Solve fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style CPU_Solve fill:#F5A623,stroke:#A67C1A,color:#fff

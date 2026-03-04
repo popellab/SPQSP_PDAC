@@ -1,0 +1,94 @@
+digraph device_memory {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname=monospace, fontsize=10];
+    edge [fontname=monospace, fontsize=9];
+
+    // Title
+    title [shape=plaintext, label="Device Memory & Pointer Management", fontsize=16, fontweight=bold];
+
+    // FLAMEGPU Agent State
+    subgraph cluster_agent_state {
+        label="FLAME GPU Agent State\n(auto-managed by FLAME GPU)";
+        style=filled;
+        fillcolor="#E8F4F8";
+        color=black;
+        fontsize=12;
+
+        agent_mem [label="agents.data[agent_id]\n{\n  x, y, z (positions)\n  state, type (discrete)\n  division_countdown (timers)\n  il2_stored, pdl1_level (float)\n  ... (many properties)\n}", fillcolor="#4A90E2", fontcolor=white];
+    }
+
+    // Occupancy Grid
+    subgraph cluster_occupancy {
+        label="Occupancy Grid\n(device 3D array)";
+        style=filled;
+        fillcolor="#FFE5E5";
+        color=black;
+        fontsize=12;
+
+        occupancy [label="d_cancer_occ[50³]\natomicCAS(0→1 or 1→0)\nPrevents two cancers\nin same voxel", fillcolor="#FF6B6B", fontcolor=white];
+    }
+
+    // PDE Grids
+    subgraph cluster_pde_grids {
+        label="PDE Grids\n(float arrays, 10 chemical substrates)";
+        style=filled;
+        fillcolor="#E8F8E8";
+        color=black;
+        fontsize=12;
+
+        pde_conc [label="pde_conc[CHEM × NVOXEL]\n(concentration)", fillcolor="#7ED321"];
+        pde_source [label="pde_source[CHEM × NVOXEL]\n(secretion rates)", fillcolor="#7ED321"];
+        pde_uptake [label="pde_uptake[CHEM × NVOXEL]\n(consumption rates)", fillcolor="#7ED321"];
+        pde_grad [label="pde_gradx/y/z[CHEM × NVOXEL]\n(gradient fields)", fillcolor="#7ED321"];
+    }
+
+    // Environment Properties
+    subgraph cluster_env_props {
+        label="Environment Properties\n(FLAME GPU)";
+        style=filled;
+        fillcolor="#FFF8E5";
+        color=black;
+        fontsize=12;
+
+        env_props [label="pde_conc_ptr ← uint64_t\n(cast to float*)\npde_source_ptr ← uint64_t\npde_uptake_ptr ← uint64_t\npde_gradx_ptr ← uint64_t\ncancer_occ_ptr ← uint64_t\n(cast to uint*)\n\ncancer_count (macro)\nimmune_counts (macro)\nvasculature_count (macro)", fillcolor="#F5A623", fontcolor=white];
+    }
+
+    // Agent Read/Write Pattern
+    subgraph cluster_patterns {
+        label="Agent Read/Write Patterns";
+        style=filled;
+        fillcolor="#FFE5FF";
+        color=black;
+        fontsize=12;
+
+        read_pattern [label="READ: const float* conc_ptr =\n  reinterpret_cast<const float*>(\n    FLAMEGPU->environment\n      .getProperty<uint64_t>(\n        \"pde_conc_ptr_N\"));\n  float C = conc_ptr[voxel_idx];", fillcolor="#B19CD9"];
+
+        write_pattern [label="WRITE: atomicAdd(\n  &reinterpret_cast<float*>(\n    FLAMEGPU->environment\n      .getProperty<uint64_t>(\n        \"pde_source_ptr_N\"))[voxel],\n  release_rate / voxel_volume);", fillcolor="#B19CD9"];
+    }
+
+    // Connections
+    agent_mem -> read_pattern [label="reads from", fontcolor=blue];
+    agent_mem -> write_pattern [label="writes to", fontcolor=red];
+
+    env_props -> pde_conc [label="points to", fontcolor=blue];
+    env_props -> pde_source [label="points to", fontcolor=red];
+    env_props -> pde_uptake [label="points to", fontcolor=red];
+    env_props -> pde_grad [label="points to", fontcolor=blue];
+    env_props -> occupancy [label="points to", fontcolor=red];
+
+    read_pattern -> pde_conc [label="via ptr", fontcolor=blue];
+    write_pattern -> pde_source [label="via ptr", fontcolor=red];
+
+    // Legend
+    legend [shape=plaintext, label=<
+<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="5">
+<TR><TD COLSPAN="2"><B>Key Concepts</B></TD></TR>
+<TR><TD BGCOLOR="#4A90E2" COLSPAN="2"><FONT COLOR="white"><B>Agent State</B>: Per-agent properties managed by FLAME GPU</FONT></TD></TR>
+<TR><TD BGCOLOR="#FF6B6B" COLSPAN="2"><FONT COLOR="white"><B>Occupancy Grid</B>: Exclusive cells (cancer, MDSC, etc.) use CAS</FONT></TD></TR>
+<TR><TD BGCOLOR="#7ED321" COLSPAN="2"><B>PDE Grids</B>: Continuous fields for chemical transport</FONT></TD></TR>
+<TR><TD BGCOLOR="#F5A623" COLSPAN="2"><FONT COLOR="white"><B>Env Properties</B>: uint64_t pointers stored as environment variables</FONT></TD></TR>
+<TR><TD BGCOLOR="blue"><FONT COLOR="white">←</FONT></TD><TD>Blue arrows: READ (agents consume)</TD></TR>
+<TR><TD BGCOLOR="red"><FONT COLOR="white">→</FONT></TD><TD>Red arrows: WRITE (agents produce)</TD></TR>
+</TABLE>
+    >, fontsize=10];
+}

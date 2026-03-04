@@ -1,0 +1,42 @@
+graph TD
+    subgraph AgentMem["Device Memory: Agent Population"]
+        CC["CancerCell[0..N]<br/>x, y, z, state, pdl1<br/>division_countdown, ..."]
+        TC["TCell[0..N]<br/>x, y, z, state, il2_store<br/>kill_cooldown, ..."]
+        IM["Immune[0..N]<br/>TReg, MDSC, MAC, FIB<br/>vascular, etc."]
+        CC -.-> TC -.-> IM
+    end
+
+    subgraph Kernel["FLAME GPU Layer = Parallel Kernel"]
+        K1["__global__ kernel_agent_function()<br/>Launched with N blocks × threads/block<br/>Each thread = 1 agent via blockIdx+tid"]
+        K2["Thread Operations:<br/>1. Read own agent state<br/>2. Access occupancy grid / neighbors<br/>3. Compute new state<br/>4. Atomic ops for shared resources<br/>5. Write back to device memory"]
+        K1 --> K2
+    end
+
+    subgraph Memory["Device Memory Updates"]
+        M1["Agent State Updated<br/>(positions, timers, flags)"]
+        M2["Occupancy Grid Updated<br/>(exclusive cells: CAS 0→1 or 1→0)"]
+        M3["Shared Buffers Updated<br/>(PDE sources via atomicAdd)"]
+        M1 & M2 & M3
+    end
+
+    subgraph Messaging["Message Passing<br/>(Layer to Layer Communication)"]
+        MSG["LocationMessage[0..M]<br/>agent_id, x, y, z<br/>(all agents broadcast)<br/><br/>Generated in Layer N<br/>Consumed in Layer N+1<br/>(neighbor scanning)"]
+    end
+
+    subgraph Sync["Synchronization"]
+        SYNC1["GPU Barrier<br/>Between Layers"]
+        SYNC2["Host Coordinates<br/>Layer Sequencing"]
+        SYNC1 -.-> SYNC2
+    end
+
+    AgentMem --> Kernel
+    Kernel --> Memory
+    Kernel --> Messaging
+    Memory --> Sync
+    Messaging --> Sync
+
+    style AgentMem fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style Kernel fill:#357ABD,stroke:#2E5C8A,color:#fff
+    style Memory fill:#357ABD,stroke:#2E5C8A,color:#fff
+    style Messaging fill:#7ED321,stroke:#5A9A1A,color:#000
+    style Sync fill:#F5A623,stroke:#A67C1A,color:#fff

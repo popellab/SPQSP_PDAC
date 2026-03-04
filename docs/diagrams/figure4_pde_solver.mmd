@@ -1,0 +1,48 @@
+graph TD
+    subgraph Problem["Problem Formulation"]
+        P1["Diffusion-Decay-Reaction Equation:<br/>∂C/∂t = D∇²C - λC + S"]
+        P2["Backward Euler Discretization:<br/>I·C^n+1 + dt·λ·C^n+1 - dt·D·∇²C^n+1 = C^n + dt·S<br/><br/>Rearranged: (I + dt·λ - dt·D·∇²)C^n+1 = b"]
+        P1 --> P2
+    end
+
+    subgraph Linear["Linear System Solver"]
+        LS["Matrix-Free CG Iteration<br/>(No explicit matrix storage)"]
+        LS1["for iter = 0 to max_iter:<br/>  x_new = matvec(A, x)<br/>  // A·x = (I + dt·λ - dt·D·∇²)·x<br/>  <br/>  β = (r^T·r) / (p^T·A·p)<br/>  x += β·p<br/>  r -= β·A·p<br/>  check convergence (|| r || < ε)"]
+        LS -.-> LS1
+    end
+
+    subgraph Spatial["Spatial Discretization"]
+        S1["7-Point Stencil<br/>(6 neighbors + center)"]
+        S2["∇²C[i,j,k] = sum(C_neighbors) - 6·C[i,j,k]<br/>────────────────────────<br/>            (Δx)²<br/><br/>Applies to all directions:<br/>±x, ±y, ±z"]
+        S3["Boundary Conditions: Neumann<br/>(no-flux: boundary = neighbor)"]
+        S1 -.-> S2 --> S3
+    end
+
+    subgraph Memory["Device Memory Layout"]
+        M1["conc[chem_id × N_voxel]<br/>(current concentrations)"]
+        M2["source[chem_id × N_voxel]<br/>(agent secretion rates)"]
+        M3["uptake[chem_id × N_voxel]<br/>(agent consumption rates)"]
+        M4["gradx/y/z[chem_id × N_voxel]<br/>(gradient fields)"]
+        M1 & M2 & M3 & M4
+    end
+
+    subgraph Substrates["10 Chemical Substrates"]
+        SUB["O₂ | IFN-γ | IL-2 | IL-10 | TGF-β<br/>CCL2 | ArgI | NO | IL-12 | VEGF-A<br/><br/>Each: diffusivity D, decay rate λ"]
+    end
+
+    subgraph Stability["Solver Properties"]
+        STAB["✓ Unconditionally Stable<br/>✓ No CFL constraint<br/>✓ Single solve per ABM step<br/>✓ 36 substeps @ 600s each<br/>→ Fine temporal resolution"]
+    end
+
+    Problem --> Linear
+    Linear --> Spatial
+    Spatial --> Memory
+    Spatial --> Substrates
+    Memory --> STAB
+
+    style Problem fill:#357ABD,stroke:#2E5C8A,color:#fff
+    style Linear fill:#357ABD,stroke:#2E5C8A,color:#fff
+    style Spatial fill:#357ABD,stroke:#2E5C8A,color:#fff
+    style Memory fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style Substrates fill:#7ED321,stroke:#5A9A1A
+    style STAB fill:#90EE90,stroke:#5A9A1A

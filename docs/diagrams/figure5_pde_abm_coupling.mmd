@@ -1,0 +1,48 @@
+graph TD
+    subgraph PDE["PDE Grid<br/>(10 chemicals, 50³ voxels)"]
+        PDEDATA["conc[O2, IFNγ, IL2, ... ][voxel]<br/>Each voxel = 20×20×20 µm³<br/>Capacity = 1 cancer/voxel"]
+    end
+
+    subgraph LAYER7["LAYER 7: Read PDE"]
+        READ["Agent reads local concentration<br/>from PDE grid"]
+        VOXEL["voxel_idx = (x/dx, y/dy, z/dz)<br/>C = conc[CHEM][voxel]"]
+        READ --> VOXEL
+    end
+
+    subgraph AGENT_UPDATE["Agent Processing (Layers 8-9)"]
+        HYPOXIA["Hypoxia Check:<br/>is_hypoxic = (C[O2] &lt; 0.1)"]
+        PDL1["PDL1 from IFN-γ:<br/>pdl1_level = baseline +<br/>0.9 × Hill_eq(IFNγ)"]
+        CHEMO["Chemotaxis Gradient:<br/>∇C = (gradx, grady, gradz)<br/>move toward ↑ gradient"]
+        HYPOXIA -.-> PDL1 -.-> CHEMO
+    end
+
+    subgraph LAYER10["LAYER 10: Compute Chemical Sources"]
+        UPTAKE["Uptake (negative):<br/>O2_uptake = -0.001<br/>[concentration/time]"]
+        SOURCE["Secretion (positive):<br/>CCL2_release = 2.56e-13<br/>[moles/cell/time]"]
+        UPTAKE -.-> SOURCE
+    end
+
+    subgraph LAYER11["LAYER 11: Write to PDE"]
+        ATOMIC_U["atomicAdd(&pde_uptake[O2][voxel],<br/>O2_uptake)"]
+        ATOMIC_S["atomicAdd(&pde_source[CCL2][voxel],<br/>CCL2_release / voxel_volume)"]
+        UNIT["Unit Conversion:<br/>• Uptake: use as-is<br/>• Source: divide by vol"]
+        ATOMIC_U -.-> ATOMIC_S --> UNIT
+    end
+
+    subgraph PDE_SOLVE["PDE Solver Step"]
+        PDESOLVE["C^(n+1) = solve(<br/>C^n + dt·[Sources - Uptake])"]
+    end
+
+    PDEDATA --> LAYER7
+    LAYER7 --> AGENT_UPDATE
+    AGENT_UPDATE --> LAYER10
+    LAYER10 --> LAYER11
+    LAYER11 --> PDE_SOLVE
+    PDE_SOLVE -->|Updated concentrations| PDEDATA
+
+    style PDE fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style LAYER7 fill:#7ED321,stroke:#5A9A1A
+    style AGENT_UPDATE fill:#357ABD,stroke:#2E5C8A,color:#fff
+    style LAYER10 fill:#7ED321,stroke:#5A9A1A
+    style LAYER11 fill:#7ED321,stroke:#5A9A1A
+    style PDE_SOLVE fill:#F5A623,stroke:#A67C1A,color:#fff

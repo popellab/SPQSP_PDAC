@@ -1,0 +1,83 @@
+graph TD
+    START["Cancer Cell Lifecycle<br/>Birth → Movement → Division → Senescence"]
+
+    subgraph L5["LAYER 5: Movement"]
+        M1["if state ≠ SENESCENT:"]
+        M2["  x_new = x + random_walk()<br/>  // Random displacement ±1 voxel"]
+        M3["  if try_move_to(x_new):<br/>    atomicCAS(occ_grid, 0, 1)<br/>    x = x_new<br/>  else: stay in place"]
+        M1 --> M2 --> M3
+    end
+
+    subgraph L6["LAYER 6: Neighbor Scanning"]
+        N1["for voxel in 26-neighbor Moore hood:"]
+        N2["  scan_voxel(voxel)<br/>  n_tcell += T cell count<br/>  n_treg += TReg count<br/>  n_mdsc += MDSC count"]
+        N1 --> N2
+    end
+
+    subgraph L7["LAYER 7: Read PDE Concentrations"]
+        R1["voxel_idx = (x/dx, y/dy, z/dz)"]
+        R2["local_O2 = pde_conc[CHEM_O2][voxel]<br/>local_IFNg = pde_conc[CHEM_IFN][voxel]"]
+        R1 --> R2
+    end
+
+    subgraph L8["LAYER 8: Update Agent State"]
+        U1["Hypoxia Detection:"]
+        U2["  is_hypoxic = (local_O2 &lt; 0.1)"]
+        U3["PDL1 Response to IFN-γ:"]
+        U4["  pdl1_baseline = 0.1<br/>  Hill_ec50 = 0.0725<br/>  pdl1_level = pdl1_baseline +<br/>              0.9 × Hill_eq(IFNg, ec50, n=2)"]
+        U1 --> U2 --> U3 --> U4
+    end
+
+    subgraph L9["LAYER 9: State Transitions"]
+        S1["if state == PROGENITOR:"]
+        S2["  division_countdown--<br/>  if countdown == 0:<br/>    mark_division_intent()"]
+        S3["if divisions_executed ≥ max_divisions:"]
+        S4["  state = SENESCENT"]
+        S1 --> S2 --> S3 --> S4
+    end
+
+    subgraph L10["LAYER 10: Compute Chemical Sources"]
+        C1["O2 Uptake (negative):"]
+        C2["  O2_uptake = -0.001<br/>  atomicAdd(&pde_uptake[O2][voxel],<br/>           O2_uptake)"]
+        C3["CCL2 Secretion (all states):"]
+        C4["  CCL2_release = 2.56e-13<br/>  atomicAdd(&pde_source[CCL2][voxel],<br/>           CCL2_release / voxel_volume)"]
+        C5["TGF-β & VEGF-A (STEM only):"]
+        C6["  if state == STEM:<br/>    TGFB_release = 1.06e-10<br/>    VEGFA_release = 1.27e-12<br/>    // Secretion to PDE"]
+        C1 --> C2 --> C3 --> C4 --> C5 --> C6
+    end
+
+    subgraph L12["LAYER 12: Division (Two-phase)"]
+        D1a["Phase 1a - Intent:<br/>if division_intent:<br/>  mark for division"]
+        D1b["Phase 1b - Execute:<br/>daughter = newAgent()<br/>daughter.x = x + random(±1 voxel)<br/>daughter.state = PROGENITOR<br/>daughter.max_div = max_div - 1<br/>division_countdown = reset_timer()"]
+        D1a --> D1b
+    end
+
+    subgraph L13["LAYER 13-PDE: Solve"]
+        PDE["PDE Solver Step:<br/>C^(n+1) = solve(<br/>C^n + dt·[Sources - Uptake])"]
+    end
+
+    subgraph KILL["T Cell Killing (Special Case)"]
+        K1["if neighbor T cell:<br/>  p_kill = get_pdl1_kill_rate(pdl1_level)<br/>  if random() &lt; p_kill:<br/>    mark_for_removal()<br/>    // T cell agent removes itself"]
+    end
+
+    START --> L5
+    L5 --> L6
+    L6 --> L7
+    L7 --> L8
+    L8 --> L9
+    L9 --> L10
+    L10 --> L12
+    L12 --> L13
+    L10 -.->|during compute<br/>sources| KILL
+    L13 --> END["End Timestep<br/>Proceed to QSP Solver"]
+
+    style L5 fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style L6 fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style L7 fill:#7ED321,stroke:#5A9A1A
+    style L8 fill:#357ABD,stroke:#2E5C8A,color:#fff
+    style L9 fill:#357ABD,stroke:#2E5C8A,color:#fff
+    style L10 fill:#7ED321,stroke:#5A9A1A
+    style L12 fill:#F5A623,stroke:#A67C1A,color:#fff
+    style L13 fill:#357ABD,stroke:#2E5C8A,color:#fff
+    style KILL fill:#FFB6C1,stroke:#C71585,color:#000
+    style END fill:#90EE90,stroke:#228B22,color:#000
