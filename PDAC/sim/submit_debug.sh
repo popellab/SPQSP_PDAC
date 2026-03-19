@@ -38,7 +38,10 @@ DEFAULT_ARGS="-s 50 -g 50 -oa 1 -op 1"
 # Adjust these to match your cluster's module names
 module purge
 module load modtree/gpu
-module load cmake gcc cuda/12.8.0
+module load gcc cuda/12.8.0 cmake
+echo "  nvcc: $(nvcc --version 2>/dev/null | grep release)"
+echo "  cmake: $(cmake --version | head -1)"
+echo "  gcc: $(gcc --version | head -1)"
 
 echo "================================================"
 echo "PDAC Job: ${SLURM_JOB_ID}"
