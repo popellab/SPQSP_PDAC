@@ -49,26 +49,23 @@ endif()
 
 set(_SUNDIALS_READY FALSE)
 
-# Check explicit directory
-if(SUNDIALS_DIR)
-    if(EXISTS "${SUNDIALS_DIR}/include/cvode/cvode.h")
+# Check explicit directory for pre-built install (must have headers AND libraries)
+if(SUNDIALS_DIR AND EXISTS "${SUNDIALS_DIR}/include/cvode/cvode.h")
+    # Find the lib directory (lib/ or lib64/)
+    if(EXISTS "${SUNDIALS_DIR}/lib64/libsundials_cvode.so" OR EXISTS "${SUNDIALS_DIR}/lib64/libsundials_cvode.a")
+        set(_SLIB "${SUNDIALS_DIR}/lib64")
+    elseif(EXISTS "${SUNDIALS_DIR}/lib/libsundials_cvode.so" OR EXISTS "${SUNDIALS_DIR}/lib/libsundials_cvode.a")
+        set(_SLIB "${SUNDIALS_DIR}/lib")
+    endif()
+    if(_SLIB)
         set(_SUNDIALS_READY TRUE)
-        # Find the lib directory (lib/ or lib64/)
-        if(EXISTS "${SUNDIALS_DIR}/lib64/libsundials_cvode.so" OR EXISTS "${SUNDIALS_DIR}/lib64/libsundials_cvode.a")
-            set(_SLIB "${SUNDIALS_DIR}/lib64")
-        else()
-            set(_SLIB "${SUNDIALS_DIR}/lib")
-        endif()
-        # Prefer shared, fall back to static
         if(EXISTS "${_SLIB}/libsundials_cvode.so")
             set(SUNDIALS_LIBRARIES "${_SLIB}/libsundials_cvode.so" "${_SLIB}/libsundials_nvecserial.so")
         else()
             set(SUNDIALS_LIBRARIES "${_SLIB}/libsundials_cvode.a" "${_SLIB}/libsundials_nvecserial.a")
         endif()
         set(SUNDIALS_INCLUDE_DIR "${SUNDIALS_DIR}/include")
-        message(STATUS "SUNDIALS: using ${SUNDIALS_DIR}")
-    else()
-        message(WARNING "SUNDIALS_DIR set to ${SUNDIALS_DIR} but cvode.h not found there")
+        message(STATUS "SUNDIALS: using pre-built install at ${SUNDIALS_DIR}")
     endif()
 endif()
 
@@ -83,11 +80,7 @@ if(NOT _SUNDIALS_READY)
 endif()
 
 # Build from local source directory (pre-cloned for offline clusters)
-if(NOT _SUNDIALS_READY AND SUNDIALS_DIR AND EXISTS "${SUNDIALS_DIR}/CMakeLists.txt"
-   AND NOT EXISTS "${SUNDIALS_DIR}/lib/libsundials_cvode.so"
-   AND NOT EXISTS "${SUNDIALS_DIR}/lib/libsundials_cvode.a"
-   AND NOT EXISTS "${SUNDIALS_DIR}/lib64/libsundials_cvode.so"
-   AND NOT EXISTS "${SUNDIALS_DIR}/lib64/libsundials_cvode.a")
+if(NOT _SUNDIALS_READY AND SUNDIALS_DIR AND EXISTS "${SUNDIALS_DIR}/CMakeLists.txt")
     message(STATUS "SUNDIALS: building from local source at ${SUNDIALS_DIR}...")
     set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
     set(EXAMPLES_ENABLE_C OFF CACHE BOOL "" FORCE)
