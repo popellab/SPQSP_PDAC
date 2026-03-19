@@ -82,7 +82,30 @@ if(NOT _SUNDIALS_READY)
     endif()
 endif()
 
-# Auto-fetch from source
+# Build from local source directory (pre-cloned for offline clusters)
+if(NOT _SUNDIALS_READY AND SUNDIALS_DIR AND EXISTS "${SUNDIALS_DIR}/CMakeLists.txt"
+   AND NOT EXISTS "${SUNDIALS_DIR}/include/cvode/cvode.h")
+    message(STATUS "SUNDIALS: building from local source at ${SUNDIALS_DIR}...")
+    set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    set(EXAMPLES_ENABLE_C OFF CACHE BOOL "" FORCE)
+    set(EXAMPLES_ENABLE_CXX OFF CACHE BOOL "" FORCE)
+    set(EXAMPLES_INSTALL OFF CACHE BOOL "" FORCE)
+    set(BUILD_CVODE ON CACHE BOOL "" FORCE)
+    set(BUILD_ARKODE OFF CACHE BOOL "" FORCE)
+    set(BUILD_IDA OFF CACHE BOOL "" FORCE)
+    set(BUILD_IDAS OFF CACHE BOOL "" FORCE)
+    set(BUILD_KINSOL OFF CACHE BOOL "" FORCE)
+    set(BUILD_CVODES OFF CACHE BOOL "" FORCE)
+    add_subdirectory("${SUNDIALS_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/sundials")
+    set(SUNDIALS_LIBRARIES sundials_cvode_static sundials_nvecserial_static)
+    set(SUNDIALS_INCLUDE_DIR
+        "${SUNDIALS_DIR}/include"
+        "${CMAKE_CURRENT_BINARY_DIR}/sundials/include"
+    )
+    set(_SUNDIALS_READY TRUE)
+endif()
+
+# Auto-fetch from source (requires network)
 if(NOT _SUNDIALS_READY)
     message(STATUS "SUNDIALS: not found — fetching v4.1.0 from GitHub...")
     FetchContent_Declare(

@@ -87,22 +87,37 @@ Outputs are written to `./outputs/` relative to the **current working directory*
 
 ## Anvil HPC Workflow
 
-The repo lives on `/anvil/projects/`, but simulation outputs go to `/anvil/scratch/` for I/O performance. CUDA is only available on GPU nodes (not login nodes), so building and running both happen via SLURM. The included `submit.sh` handles everything.
+Anvil GPU nodes have no internet access, so dependencies must be pre-staged on a login node. Simulation outputs go to `/anvil/scratch/` for I/O performance. CUDA is only available on GPU nodes, so building and running both happen via SLURM.
 
 ### One-Time Setup
 
+Run these on a **login node** (which has internet access):
+
 ```bash
-cd /anvil/projects/$USER
-git clone <repo-url> PDAC
+# Clone the project
+cd /anvil/scratch/$USER
+git clone <repo-url> SPQSP_PDAC-main
+cd SPQSP_PDAC-main
+
+# Pre-fetch dependencies (GPU nodes cannot download these)
+mkdir -p external
+git clone --branch v2.0.0-rc.4 --depth 1 https://github.com/FLAMEGPU/FLAMEGPU2.git external/flamegpu2
+cd external/flamegpu2 && git submodule update --init --recursive && cd ../..
+git clone --branch v4.1.0 --depth 1 https://github.com/LLNL/sundials.git external/sundials
 ```
+
+Boost is loaded from the cluster module system (`boost/1.86.0`) — no pre-fetch needed.
 
 ### Submitting Jobs
 
 ```bash
-cd /anvil/projects/$USER/PDAC/sim
+cd /anvil/scratch/$USER/SPQSP_PDAC-main/PDAC/sim
 
 # First submission builds automatically, then runs (500 steps, 50^3 grid)
 sbatch submit.sh
+
+# Debug queue (30 min limit, faster scheduling)
+sbatch submit_debug.sh -s 50 -g 50
 
 # Custom parameters — pass any pdac flags after the script
 sbatch submit.sh -s 1000 -g 101
@@ -110,22 +125,23 @@ sbatch submit.sh -s 1000 -g 101
 # Outputs land in /anvil/scratch/$USER/pdac_runs/<job_id>/outputs/
 ```
 
-On first submission, `submit.sh` detects no binary exists and runs `build.sh` on the GPU node (~8 min). Subsequent submissions skip the build and run immediately.
+On first submission, `submit.sh` detects no binary exists and runs `build.sh` on the GPU node (~8 min) using the pre-staged dependencies. Subsequent submissions skip the build and run immediately.
 
 ### What `submit.sh` Does
 
-1. Builds the binary on the GPU node if it doesn't exist (A100, `--cuda-arch 80`)
-2. Creates a run directory on scratch: `/anvil/scratch/$USER/pdac_runs/<job_id>/`
-3. Copies the XML parameter file there for reproducibility
-4. `cd`s to scratch and runs the binary (so `./outputs/` writes to scratch)
-5. Prints the output path when done
+1. Loads modules: `cmake`, `gcc`, `cuda`, `boost/1.86.0`
+2. Builds the binary on the GPU node if it doesn't exist (A100, `--cuda-arch 80`), using local FLAME GPU and SUNDIALS from `external/`
+3. Creates a run directory on scratch: `/anvil/scratch/$USER/pdac_runs/<job_id>/`
+4. Copies the XML parameter file there for reproducibility
+5. `cd`s to scratch and runs the binary (so `./outputs/` writes to scratch)
+6. Prints the output path when done
 
 ### Rebuilding
 
 To force a rebuild (e.g., after code changes):
 
 ```bash
-cd /anvil/projects/$USER/PDAC/sim
+cd /anvil/scratch/$USER/SPQSP_PDAC-main/PDAC/sim
 ./build.sh --clean          # removes old build (can run from login node)
 sbatch submit.sh            # next submission rebuilds on GPU node
 ```
@@ -136,3 +152,4 @@ sbatch submit.sh            # next submission rebuilds on GPU node
 - **Memory**: Grid 50^3 uses ~2 GB VRAM; 320^3 uses ~8 GB.
 - SLURM logs go to `pdac_<job_id>.out` / `.err` in the directory you submit from.
 - The param XML is resolved relative to the executable, so it works from any working directory.
+- If you need to update FLAME GPU or SUNDIALS, re-clone into `external/` on a login node.
