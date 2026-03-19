@@ -84,7 +84,10 @@ endif()
 
 # Build from local source directory (pre-cloned for offline clusters)
 if(NOT _SUNDIALS_READY AND SUNDIALS_DIR AND EXISTS "${SUNDIALS_DIR}/CMakeLists.txt"
-   AND NOT EXISTS "${SUNDIALS_DIR}/include/cvode/cvode.h")
+   AND NOT EXISTS "${SUNDIALS_DIR}/lib/libsundials_cvode.so"
+   AND NOT EXISTS "${SUNDIALS_DIR}/lib/libsundials_cvode.a"
+   AND NOT EXISTS "${SUNDIALS_DIR}/lib64/libsundials_cvode.so"
+   AND NOT EXISTS "${SUNDIALS_DIR}/lib64/libsundials_cvode.a")
     message(STATUS "SUNDIALS: building from local source at ${SUNDIALS_DIR}...")
     set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
     set(EXAMPLES_ENABLE_C OFF CACHE BOOL "" FORCE)
