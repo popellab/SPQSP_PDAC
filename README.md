@@ -99,14 +99,19 @@ cd /anvil/scratch/$USER
 git clone <repo-url> SPQSP_PDAC-main
 cd SPQSP_PDAC-main
 
-# Pre-fetch dependencies (GPU nodes cannot download these)
+# Pre-fetch dependencies into PDAC/sim/external/ (GPU nodes cannot download these)
+cd PDAC/sim
 mkdir -p external
 git clone --branch v2.0.0-rc.4 --depth 1 https://github.com/FLAMEGPU/FLAMEGPU2.git external/flamegpu2
 cd external/flamegpu2 && git submodule update --init --recursive && cd ../..
 git clone --branch v4.1.0 --depth 1 https://github.com/LLNL/sundials.git external/sundials
-```
 
-Boost is loaded from the cluster module system (`boost/1.86.0`) — no pre-fetch needed.
+# Download Boost source (module system may not work on all clusters)
+cd external
+wget https://github.com/boostorg/boost/releases/download/boost-1.82.0/boost-1.82.0.tar.gz
+tar xzf boost-1.82.0.tar.gz && mv boost-1.82.0 boost && rm boost-1.82.0.tar.gz
+cd ..
+```
 
 ### Submitting Jobs
 

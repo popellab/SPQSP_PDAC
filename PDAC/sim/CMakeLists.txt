@@ -142,13 +142,9 @@ endif()
 
 set(_BOOST_READY FALSE)
 
-find_package(Boost 1.65 QUIET COMPONENTS serialization)
-if(Boost_FOUND)
-    set(_BOOST_READY TRUE)
-    message(STATUS "Boost: found via find_package (${Boost_VERSION})")
-endif()
+message(STATUS "Boost: BOOST_ROOT='${BOOST_ROOT}'")
 
-# Build from local source directory (pre-staged for offline clusters)
+# Build from local source directory first (pre-staged for offline clusters)
 if(NOT _BOOST_READY AND BOOST_ROOT AND EXISTS "${BOOST_ROOT}/CMakeLists.txt")
     message(STATUS "Boost: building from local source at ${BOOST_ROOT}...")
     set(BOOST_INCLUDE_LIBRARIES serialization property_tree CACHE STRING "" FORCE)

@@ -53,7 +53,7 @@ if [[ ! -x "${PDAC_BIN}" ]]; then
     echo "=== Binary not found — building on GPU node ==="
     cd "${PROJECT_DIR}"
     rm -rf build  # clear stale CMake cache
-    EXT_DIR="${PROJECT_DIR}/../../external"
+    EXT_DIR="${PROJECT_DIR}/external"
     echo "=== External deps check ==="
     echo "  FLAMEGPU: $(ls ${EXT_DIR}/flamegpu2/CMakeLists.txt 2>/dev/null && echo OK || echo MISSING)"
     echo "  SUNDIALS: $(ls ${EXT_DIR}/sundials/CMakeLists.txt 2>/dev/null && echo OK || echo MISSING)"
