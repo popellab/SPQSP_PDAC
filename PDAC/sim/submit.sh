@@ -38,7 +38,13 @@ DEFAULT_ARGS="-s 500 -g 50 -oa 1 -op 1"
 # Adjust these to match your cluster's module names
 module purge
 module load modtree/gpu
-module load cmake gcc cuda/12.8.0
+module load gcc cuda/12.8.0
+
+# Use local cmake (Anvil system cmake is too old for FLAME GPU 2)
+LOCAL_CMAKE="${PROJECT_DIR}/external/cmake-3.28.3-linux-x86_64/bin"
+if [[ -x "${LOCAL_CMAKE}/cmake" ]]; then
+    export PATH="${LOCAL_CMAKE}:${PATH}"
+fi
 
 echo "================================================"
 echo "PDAC Job: ${SLURM_JOB_ID}"
