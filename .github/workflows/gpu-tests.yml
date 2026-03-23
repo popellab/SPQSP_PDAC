@@ -2,11 +2,6 @@ name: GPU Tests (Anvil)
 
 on:
   workflow_dispatch:
-    inputs:
-      image_tag:
-        description: 'Test image tag (default: latest)'
-        required: false
-        default: 'latest'
 
 # Requires:
 #   Repository secrets:
@@ -19,7 +14,6 @@ jobs:
   test:
     runs-on: ubuntu-22.04
     env:
-      IMAGE: ghcr.io/${{ github.repository_owner }}/spqsp-pdac-test:${{ inputs.image_tag }}
       REMOTE: ${{ secrets.ANVIL_USER }}@${{ secrets.ANVIL_HOST }}
 
     steps:
@@ -31,26 +25,25 @@ jobs:
           ssh-keyscan -H ${{ secrets.ANVIL_HOST }} >> ~/.ssh/known_hosts
 
       - name: Submit GPU test job
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ssh $REMOTE "bash -s" <<EOF
           set -euo pipefail
+          SIF=/anvil/scratch/\$USER/pdac_sif/pdac-test.sif
           SCRATCH=/anvil/scratch/\$USER/pdac_test_${{ github.run_id }}
           mkdir -p \$SCRATCH
-
-          module load apptainer 2>/dev/null || true
           cd \$SCRATCH
-          export APPTAINER_DOCKER_USERNAME=${{ github.actor }}
-          export APPTAINER_DOCKER_PASSWORD=${{ secrets.GITHUB_TOKEN }}
-          apptainer pull --force test.sif docker://$IMAGE
+
+          if [[ ! -f \$SIF ]]; then
+            echo "ERROR: SIF not found at \$SIF — run Build Test Image workflow first"
+            exit 1
+          fi
 
           JOB_ID=\$(sbatch --parsable \
             -A ${{ secrets.ANVIL_ACCOUNT }} \
             -p gpu -N1 --gpus-per-node=1 \
             -t 00:15:00 \
             -o test_output.log \
-            --wrap "apptainer run --nv \$SCRATCH/test.sif")
+            --wrap "apptainer run --nv \$SIF")
 
           echo "Submitted job \$JOB_ID, waiting..."
 
