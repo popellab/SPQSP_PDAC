@@ -68,7 +68,7 @@ RUN cmake -S . -B build \
         -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
         -DSUNDIALS_DIR=/usr/local \
         -DBOOST_ROOT=/usr 2>&1 | tail -30 && \
-    cmake --build build --parallel $(nproc) 2>&1 || \
+    cmake --build build --parallel 2 2>&1 || \
     (cmake --build build 2>&1 | tail -50 && false)
 
 # Default: run all tests
