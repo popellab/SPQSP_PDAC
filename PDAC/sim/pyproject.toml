@@ -1,0 +1,20 @@
+[project]
+name = "pdac-sim"
+version = "0.1.0"
+description = "PDAC ABM-PDE-QSP GPU simulation"
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "lz4",
+]
+analysis = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "lz4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
