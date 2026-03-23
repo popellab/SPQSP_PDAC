@@ -32,7 +32,7 @@ RUN apt-get update -qq && \
     && ln -s /usr/lib/x86_64-linux-gnu/libboost_serialization.so /usr/lib/libboost_serialization.so 2>/dev/null || true
 
 # SUNDIALS
-ARG SUNDIALS_VER=6.3.0
+ARG SUNDIALS_VER=7.6.0
 RUN cd /tmp && \
     curl -sL "https://github.com/LLNL/sundials/releases/download/v${SUNDIALS_VER}/sundials-${SUNDIALS_VER}.tar.gz" | tar xz && \
     cd sundials-${SUNDIALS_VER} && \

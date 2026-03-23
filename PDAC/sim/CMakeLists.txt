@@ -103,11 +103,11 @@ endif()
 
 # Auto-fetch from source (requires network)
 if(NOT _SUNDIALS_READY)
-    message(STATUS "SUNDIALS: not found — fetching v6.3.0 from GitHub...")
+    message(STATUS "SUNDIALS: not found — fetching v7.6.0 from GitHub...")
     FetchContent_Declare(
         sundials
         GIT_REPOSITORY https://github.com/LLNL/sundials.git
-        GIT_TAG        v6.3.0
+        GIT_TAG        v7.6.0
         GIT_SHALLOW    TRUE
     )
     set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
