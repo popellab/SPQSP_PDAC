@@ -1,0 +1,75 @@
+# ============================================================================
+# Test environment for SPQSP_PDAC simulation
+#
+# Build (from repo root):
+#   docker build -f Dockerfile.test -t pdac-test:latest .
+#
+# Run tests (Docker):
+#   docker run --gpus all pdac-test:latest
+#
+# Run tests (Apptainer on HPC):
+#   apptainer build pdac-test.sif docker-daemon://pdac-test:latest
+#   apptainer run --nv pdac-test.sif
+#
+# Run specific test file:
+#   docker run --gpus all pdac-test:latest pytest tests/test_io.py -v
+#
+# Interactive shell:
+#   docker run --gpus all -it pdac-test:latest bash
+# ============================================================================
+
+FROM nvidia/cuda:12.8.0-devel-ubuntu24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# System dependencies
+RUN apt-get update -qq && \
+    apt-get install -y -qq --no-install-recommends \
+        cmake g++ git ca-certificates curl \
+        libboost-serialization-dev \
+        python3 python3-pip python3-venv \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/lib/x86_64-linux-gnu/libboost_serialization.so /usr/lib/libboost_serialization.so 2>/dev/null || true
+
+# SUNDIALS
+ARG SUNDIALS_VER=6.3.0
+RUN cd /tmp && \
+    curl -sL "https://github.com/LLNL/sundials/releases/download/v${SUNDIALS_VER}/sundials-${SUNDIALS_VER}.tar.gz" | tar xz && \
+    cd sundials-${SUNDIALS_VER} && \
+    cmake -S . -B build \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_SHARED_LIBS=ON \
+        -DEXAMPLES_ENABLE_C=OFF \
+        -DEXAMPLES_ENABLE_CXX=OFF && \
+    cmake --build build --parallel $(nproc) && \
+    cmake --install build && \
+    rm -rf /tmp/sundials-${SUNDIALS_VER}
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy source
+COPY PDAC/ /sim/PDAC/
+COPY Dockerfile.test /sim/
+
+WORKDIR /sim/PDAC/sim
+
+# Install Python test dependencies
+RUN uv venv /sim/.venv && \
+    . /sim/.venv/bin/activate && \
+    uv pip install pytest lz4
+ENV PATH="/sim/.venv/bin:$PATH"
+
+# Build simulation
+ARG CUDA_ARCH="80;90"
+RUN cmake -S . -B build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
+        -DSUNDIALS_DIR=/usr/local \
+        -DBOOST_ROOT=/usr && \
+    cmake --build build --parallel $(nproc)
+
+# Default: run all tests
+ENTRYPOINT ["pytest"]
+CMD ["tests/", "-v"]
