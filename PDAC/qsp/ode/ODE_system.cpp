@@ -1375,7 +1375,7 @@ void ODE_system::setup_instance_tolerance(QSPParam& param){
     //Tolerance
     realtype reltol = PFILE(QSP_SIM_TOL_REL);
     realtype abstol_base = PFILE(QSP_SIM_TOL_ABS);
-    N_Vector abstol = N_VNew_Serial(_neq);
+    N_Vector abstol = N_VNew_Serial(_neq, _sunctx);
 
     for (size_t i = 0; i < 153; i++)
     {

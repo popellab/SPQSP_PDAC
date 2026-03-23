@@ -531,8 +531,8 @@ and any other serial type blocks
 bool CVODEBase::freeMem(){
 
 	/* Free y and abstol vectors */
-	N_VDestroy_Serial(_y);
-	//N_VDestroy_Serial(_abstol);
+	N_VDestroy(_y);
+	//N_VDestroy(_abstol);
 
 	/* Free integrator memory */
 	CVodeFree(&_cvode_mem);
