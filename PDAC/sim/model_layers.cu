@@ -5,6 +5,9 @@
 #include "../core/common.cuh"
 #include "../pde/pde_integration.cuh"
 
+// From main.cu (global scope): prepares GPU buffer for ABM export
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER prepare_abm_export;
+
 namespace PDAC {
 
 // Extern declarations for host functions not declared in pde_integration.cuh
@@ -238,6 +241,24 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     {
         flamegpu::LayerDescription layer = model.newLayer("timing_after_sources");
         layer.addHostFunction(timing_after_sources);
+    }
+
+    // 7b. Prepare ABM export: reset counter and set flag
+    {
+        flamegpu::LayerDescription layer = model.newLayer("prepare_abm_export");
+        layer.addHostFunction(prepare_abm_export);
+    }
+
+    // 7c. GPU-side agent packing for async ABM export (controlled by do_abm_export flag)
+    {
+        flamegpu::LayerDescription layer = model.newLayer("pack_for_export");
+        layer.addAgentFunction(AGENT_CANCER_CELL, "pack_for_export");
+        layer.addAgentFunction(AGENT_TCELL, "pack_for_export");
+        layer.addAgentFunction(AGENT_TREG, "pack_for_export");
+        layer.addAgentFunction(AGENT_MDSC, "pack_for_export");
+        layer.addAgentFunction(AGENT_MACROPHAGE, "pack_for_export");
+        layer.addAgentFunction(AGENT_FIBROBLAST, "pack_for_export");
+        layer.addAgentFunction(AGENT_VASCULAR, "pack_for_export");
     }
 
     // 8. Wave-interleaved division (N_DIVIDE_WAVES rounds, cancer/tcell/treg interleaved).

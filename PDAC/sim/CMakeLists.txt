@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 
 # CUDA language support
-project(PDAC CUDA CXX)
+project(PDAC C CUDA CXX)
 
 # Set C++ and CUDA standards
 set(CMAKE_CXX_STANDARD 17)
@@ -187,6 +187,7 @@ endif()
 # Define executable with ALL source files
 add_executable(pdac
     main.cu
+    third_party/lz4/lz4.c
     model_definition.cu
     model_layers.cu
     initialization.cu
@@ -253,6 +254,13 @@ set_target_properties(pdac PROPERTIES
 
 target_compile_options(pdac PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=1301>
+)
+
+# Boost 1.82+ uses std::source_location in throw_exception.hpp which triggers
+# an nvcc bug with consteval. BOOST_DISABLE_CURRENT_LOCATION is the official
+# Boost flag to disable std::source_location usage in throw_exception.
+target_compile_definitions(pdac PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:BOOST_DISABLE_CURRENT_LOCATION>
 )
 
 # Build type

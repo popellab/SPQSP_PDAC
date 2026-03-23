@@ -10,6 +10,7 @@
 #include "../agents/macrophage.cuh"
 #include "../agents/fibroblast.cuh"
 #include "../agents/vascular_cell.cuh"
+#include "../agents/pack_for_export.cuh"
 
 #include "../pde/pde_integration.cuh"
 #include "gpu_param.h"
@@ -104,6 +105,7 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     cancer_cell.newFunction("update_chemicals", cancer_update_chemicals);
 
     cancer_cell.newFunction("compute_chemical_sources", cancer_compute_chemical_sources);
+    cancer_cell.newFunction("pack_for_export", pack_export_cancer);
 
     // Movement, state, division, and occupancy grid functions only in main model
     // (these access occ_grid which is not defined in submodel environments)
@@ -200,6 +202,7 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     tcell.newFunction("update_chemicals", tcell_update_chemicals);
 
     tcell.newFunction("compute_chemical_sources", tcell_compute_chemical_sources);
+    tcell.newFunction("pack_for_export", pack_export_tcell);
 
     // Movement, state, division, and occupancy grid functions only in main model
     if (include_state_divide) {
@@ -281,6 +284,7 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     treg.newFunction("update_chemicals", treg_update_chemicals);
 
     treg.newFunction("compute_chemical_sources", treg_compute_chemical_sources);
+    treg.newFunction("pack_for_export", pack_export_treg);
 
     // Movement, state, division, and occupancy grid functions only in main model
     if (include_state_divide) {
@@ -347,6 +351,7 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state) {
     mdsc.newFunction("update_chemicals", mdsc_update_chemicals);
 
     mdsc.newFunction("compute_chemical_sources", mdsc_compute_chemical_sources);
+    mdsc.newFunction("pack_for_export", pack_export_mdsc);
 
     // Movement and state functions only in main model (MDSCs don't divide)
     if (include_state) {
@@ -403,6 +408,7 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
     mac.newFunction("update_chemicals", mac_update_chemicals);
 
     mac.newFunction("compute_chemical_sources", mac_compute_chemical_sources);
+    mac.newFunction("pack_for_export", pack_export_mac);
 
     // Movement and state functions only in main model
     if (include_state) {
@@ -449,6 +455,7 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
         .setMessageOutput(MSG_CELL_LOCATION);
 
     fib.newFunction("compute_chemical_sources", fib_compute_chemical_sources);
+    fib.newFunction("pack_for_export", pack_export_fib);
 
     if (include_state) {
         fib.newFunction("write_to_occ_grid", fib_write_to_occ_grid);
@@ -500,6 +507,7 @@ void defineVascularCellAgent(flamegpu::ModelDescription& model) {
     agent.newFunction("update_chemicals", vascular_update_chemicals);
 
     agent.newFunction("compute_chemical_sources", vascular_compute_chemical_sources);
+    agent.newFunction("pack_for_export", pack_export_vas);
 
     // Occupancy grid write function
     agent.newFunction("write_to_occ_grid", vascular_write_to_occ_grid);
@@ -666,6 +674,11 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     // state_counters_ptr → device_state_counters[ABM_STATE_COUNTER_SIZE]  (per-state agent counts)
     env.newProperty<uint64_t>("event_counters_ptr", 0u);
     env.newProperty<uint64_t>("state_counters_ptr", 0u);
+
+    // ABM export: GPU-side buffer and atomic counter (set at runtime by main.cu)
+    env.newProperty<uint64_t>("abm_export_buf_ptr", 0u);
+    env.newProperty<uint64_t>("abm_export_counter_ptr", 0u);
+    env.newProperty<int>("do_abm_export", 0);
 
     // Populate ALL other parameters from XML
     params.populateFlameGPUEnvironment(env);

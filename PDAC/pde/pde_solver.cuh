@@ -89,6 +89,12 @@ public:
     // D2H copy for CSV output
     void get_concentrations(float* h_buf, int substrate_idx) const;
 
+    // D2H copy of ALL substrates in one transfer: [NUM_SUBSTRATES * V] floats
+    void get_all_concentrations(float* h_buf) const;
+
+    // Async D2H copy of all substrates on the given stream (h_buf must be pinned memory)
+    void get_all_concentrations_async(float* h_buf, cudaStream_t stream) const;
+
     // Set uniform initial concentration
     void set_initial_concentration(int substrate_idx, float value);
 
