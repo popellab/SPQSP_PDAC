@@ -10,8 +10,13 @@
 #include <nvector/nvector_serial.h>    /* access to serial N_Vector            */
 #include <sunmatrix/sunmatrix_dense.h> /* access to dense SUNMatrix            */
 #include <sunlinsol/sunlinsol_dense.h> /* access to dense SUNLinearSolver      */
-#include <sundials/sundials_types.h>   /* defs. of realtype, sunindextype      */
+#include <sundials/sundials_types.h>   /* defs. of sunrealtype, sunindextype   */
 #include <sundials/sundials_context.h> /* SUNContext (SUNDIALS >= 6)            */
+
+// SUNDIALS 7 renamed realtype → sunrealtype
+#if !defined(realtype)
+typedef sunrealtype realtype;
+#endif
 
 
 
