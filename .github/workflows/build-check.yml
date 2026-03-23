@@ -1,0 +1,43 @@
+name: Build Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install CUDA toolkit
+        uses: Jimver/cuda-toolkit@v0.2.16
+        with:
+          cuda: '12.1.0'
+          method: network
+          sub-packages: '["nvcc", "cudart-dev"]'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake g++ libboost-serialization-dev
+
+      - name: Configure
+        run: |
+          cd PDAC/sim
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CUDA_ARCHITECTURES=80
+
+      - name: Build
+        run: |
+          cd PDAC/sim
+          cmake --build build --parallel $(nproc)
+
+      - name: Run build tests
+        run: |
+          cd PDAC/sim
+          pip install pytest
+          pytest tests/test_build.py -v
