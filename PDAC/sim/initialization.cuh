@@ -24,16 +24,8 @@ struct SimulationConfig {
     unsigned int steps;
     unsigned int random_seed;
 
-    // Initialization parameters
-    int init_method;
-    
     // Initial cell populations
     int cluster_radius;
-    int num_tcells;
-    int num_tregs;
-    int num_mdscs;
-    int num_macrophages;
-    int num_fibroblasts;
 
     // Vasculature initialization mode
     std::string vascular_mode;  // "random", "xml", "test"
@@ -67,51 +59,6 @@ struct SimulationConfig {
 // ============================================================================
 // Agent Population Initialization Functions
 // ============================================================================
-
-// Initialize cancer cell cluster at grid center
-void initializeCancerCellCluster(
-    flamegpu::AgentVector& cancer_agents,
-    int grid_x, int grid_y, int grid_z,
-    int cluster_radius,
-    float stem_div_interval,
-    float progenitor_div_interval,
-    int progenitor_div_max);
-
-// Initialize T cells around tumor margin
-void initializeTCells(
-    flamegpu::AgentVector& tcell_agents,
-    int grid_x, int grid_y, int grid_z,
-    int tumor_radius, int num_tcells,
-    float tcell_life_mean, int div_limit,
-    float IL2_release_time, float IFN_release_time);
-
-// Initialize TReg cells around tumor margin
-void initializeTRegs(
-    flamegpu::AgentVector& treg_agents,
-    int grid_x, int grid_y, int grid_z,
-    int tumor_radius, int num_tregs,
-    float treg_life_mean, int div_limit);
-
-// Initialize MDSCs around tumor margin
-void initializeMDSCs(
-    flamegpu::AgentVector& mdsc_agents,
-    int grid_x, int grid_y, int grid_z,
-    int tumor_radius, int num_mdscs,
-    float mdsc_life_mean);
-
-// Initialize Macrophages around tumor margin
-void initializeMacrophages(
-    flamegpu::AgentVector& mac_agents,
-    int grid_x, int grid_y, int grid_z,
-    int tumor_radius, int num_macrophages,
-    float mac_life_mean);
-
-// Initialize Fibroblasts around tumor margin
-void initializeFibroblasts(
-    flamegpu::AgentVector& fib_agents,
-    int grid_x, int grid_y, int grid_z,
-    int tumor_radius, int num_fibroblasts,
-    float fib_life_mean);
 
 void initializeFibroblastsFromQSP(
     flamegpu::AgentVector& fib_agents,
@@ -147,6 +94,15 @@ void initializeVascularCellsRandom(
     float branch_prob,
     unsigned int seed);
 
+// Sequentially assign INTENT_DIVIDE to spatially distributed PHALANX cells pre-simulation.
+// Must be called after initializeVascularCellsRandom; step 0 of vascular_state_step is skipped
+// so these intents are preserved until vascular_divide executes.
+void assignInitialVascularTips(
+    flamegpu::AgentVector& vascular_agents,
+    int grid_x, int grid_y, int grid_z,
+    int min_neighbor_range,
+    unsigned int seed);
+
 // Initialize Vascular Cells with manual test pattern
 void initializeVascularCellsTest(
     flamegpu::AgentVector& vascular_agents,
@@ -155,12 +111,6 @@ void initializeVascularCellsTest(
 // ============================================================================
 // Master Initialization Functions
 // ============================================================================
-
-// Initialize all agent populations with fixed config values (manual/default init)
-void initializeAllAgents(
-    flamegpu::CUDASimulation& simulation,
-    flamegpu::ModelDescription& model,
-    const SimulationConfig& config);
 
 // Initialize agent populations seeded from QSP steady-state (after QSP warmup)
 // Computes cluster_radius and immune cell counts from QSP tumor volume and species

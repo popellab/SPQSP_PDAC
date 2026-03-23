@@ -60,7 +60,7 @@ FLAMEGPU_AGENT_FUNCTION(vascular_write_to_occ_grid, flamegpu::MessageNone, flame
     unsigned int* vas_tip_id = reinterpret_cast<unsigned int*>(
         FLAMEGPU->environment.getProperty<uint64_t>("vas_tip_id_grid_ptr"));
     const unsigned int my_tip_id = FLAMEGPU->getVariable<unsigned int>("tip_id");
-    vas_tip_id[vidx] = my_tip_id;
+    atomicMax(&vas_tip_id[vidx], my_tip_id);
 
     return flamegpu::ALIVE;
 }
@@ -185,6 +185,12 @@ FLAMEGPU_AGENT_FUNCTION(vascular_mark_t_sources, flamegpu::MessageNone, flamegpu
 
 // State transitions and division decisions for vascular cells
 FLAMEGPU_AGENT_FUNCTION(vascular_state_step, flamegpu::MessageNone, flamegpu::MessageNone) {
+    // Step 0: intent_action was pre-assigned by host initialization (assignInitialVascularTips).
+    // Skip state transitions so the pre-set INTENT_DIVIDE flags are preserved for vascular_divide.
+    if (FLAMEGPU->getStepCounter() == 0) {
+        return flamegpu::ALIVE;
+    }
+
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
@@ -317,6 +323,8 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
         FLAMEGPU->agent_out.setVariable<int>("target_y", -1);
         FLAMEGPU->agent_out.setVariable<int>("target_z", -1);
         FLAMEGPU->agent_out.setVariable<int>("mature_to_phalanx", 0);
+        auto* evts_tip = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+        atomicAdd(&evts_tip[EVT_PROLIF_VAS_PHALANX], 1u);
 
     // ── PHALANX SPROUTING ──────────────────────────────────────────────────────
     // (HCC Vas.cpp lines 266-319 / Tumor.cpp lines 959-990)
@@ -345,13 +353,11 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
         FLAMEGPU->agent_out.setVariable<int>("target_z", -1);
         FLAMEGPU->agent_out.setVariable<int>("mature_to_phalanx", 0);
 
-        // Parent phalanx stays phalanx; clear branch flag
+        // Parent phalanx stays phalanx; clear branch flag and count new TIP
         FLAMEGPU->setVariable<int>("branch", 0);
+        auto* evts_phalanx = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+        atomicAdd(&evts_phalanx[EVT_PROLIF_VAS_TIP], 1u);
     }
-
-    // Count new vascular cell (one per division, TIP→PHALANX or PHALANX→TIP)
-    auto* evts_vas = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
-    atomicAdd(&evts_vas[EVT_PROLIF_VAS_TIP], 1u);
 
     FLAMEGPU->setVariable<int>("intent_action", INTENT_NONE);
     return flamegpu::ALIVE;

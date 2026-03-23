@@ -866,16 +866,8 @@ int main(int argc, const char** argv) {
     init_lap("cuda_sim_create");
 
     // ========== INITIALIZE AGENTS ==========
-    if (config.init_method == 1) {
-        std::cout << "Initializing agents from QSP steady-state (init_method=1)..." << std::endl;
-        PDAC::initializeToQSP(simulation, *model, config, _lymph);
-    } else if (config.init_method == 2) {
-        std::cout << "Initializing for neighbor scan test (init_method=2)..." << std::endl;
-        PDAC::initializeNeighborTest(simulation, *model, config);
-    } else {
-        std::cout << "Initializing agents with default distribution (init_method=0)..." << std::endl;
-        PDAC::initializeAllAgents(simulation, *model, config);
-    }
+    std::cout << "Initializing agents from QSP steady-state..." << std::endl;
+    PDAC::initializeToQSP(simulation, *model, config, _lymph);
     std::cout << "[DEBUG] Agent initialization complete" << std::endl;
     std::cout.flush();
     init_lap("init_agents");
@@ -890,47 +882,43 @@ int main(int argc, const char** argv) {
     // ========== PHASE 3: PRE-SIMULATION (QSP-seeded init only) ==========
     // Run ABM+QSP (no drugs) until QSP tumor volume reaches 1.0× target diameter.
     // This fills the gap between the 0.95× warmup and the treatment start.
-    if (config.init_method == 1) {
-        const double full_target_vol = _lymph.get_full_target_volume();
-        double cur_vol = _lymph.get_tumor_volume();
+    const double full_target_vol = _lymph.get_full_target_volume();
+    double cur_vol = _lymph.get_tumor_volume();
 
-        std::cout << "\n=== Phase 3: Pre-simulation (ABM+QSP, no drugs) ===" << std::endl;
-        std::cout << "  Target volume (1.0x diam): " << full_target_vol << " cm^3" << std::endl;
-        std::cout << "  Current QSP volume       : " << cur_vol         << " cm^3" << std::endl;
+    std::cout << "\n=== Phase 3: Pre-simulation (ABM+QSP, no drugs) ===" << std::endl;
+    std::cout << "  Target volume (1.0x diam): " << full_target_vol << " cm^3" << std::endl;
+    std::cout << "  Current QSP volume       : " << cur_vol         << " cm^3" << std::endl;
 
-        _lymph.set_presimulation_mode(true);
+    _lymph.set_presimulation_mode(true);
 
-        const unsigned int max_presim_steps = 100000;
-        unsigned int presim_step = 0;
+    const unsigned int max_presim_steps = 100000;
+    unsigned int presim_step = 0;
 
-        while (cur_vol < full_target_vol && presim_step < max_presim_steps) {
-            // std::cout << "[DEBUG] About to call simulation.step() for presim step " << presim_step << std::endl;
-            // std::cout.flush();
-            bool ok = simulation.step();
-            // std::cout << "[DEBUG] Returned from simulation.step() successfully" << std::endl;
-            // std::cout.flush();
-            if (!ok) {
-                std::cout << "  Pre-simulation: ABM terminated early (all cancer cells gone)" << std::endl;
-                break;
-            }
-            cur_vol = _lymph.get_tumor_volume();
-            presim_step++;
-
-            if (presim_step % 50 == 0) {
-                std::cout << "  Presim step " << presim_step
-                          << ": QSP tum_vol=" << cur_vol
-                          << " cm^3  (target=" << full_target_vol << ")" << std::endl;
-            }
+    while (cur_vol < full_target_vol && presim_step < max_presim_steps) {
+        // std::cout << "[DEBUG] About to call simulation.step() for presim step " << presim_step << std::endl;
+        // std::cout.flush();
+        bool ok = simulation.step();
+        // std::cout << "[DEBUG] Returned from simulation.step() successfully" << std::endl;
+        // std::cout.flush();
+        if (!ok) {
+            std::cout << "  Pre-simulation: ABM terminated early (all cancer cells gone)" << std::endl;
+            break;
         }
+        cur_vol = _lymph.get_tumor_volume();
+        presim_step++;
 
-        _lymph.set_presimulation_mode(false);
-
-        std::cout << "  Pre-simulation complete: " << presim_step << " steps, "
-                  << "QSP tum_vol=" << cur_vol << " cm^3" << std::endl;
-        init_lap("presim");
-    } else {
-        init_lap("presim");  // Log presim time even if not run
+        if (presim_step % 50 == 0) {
+            std::cout << "  Presim step " << presim_step
+                      << ": QSP tum_vol=" << cur_vol
+                      << " cm^3  (target=" << full_target_vol << ")" << std::endl;
+        }
     }
+
+    _lymph.set_presimulation_mode(false);
+
+    std::cout << "  Pre-simulation complete: " << presim_step << " steps, "
+              << "QSP tum_vol=" << cur_vol << " cm^3" << std::endl;
+    init_lap("presim");
     init_file.close();
 
     // ========== BUILD SEED-STAMPED FILE NAMES ==========
