@@ -31,6 +31,8 @@ jobs:
           ssh-keyscan -H ${{ secrets.ANVIL_HOST }} >> ~/.ssh/known_hosts
 
       - name: Submit GPU test job
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ssh $REMOTE "bash -s" <<EOF
           set -euo pipefail
@@ -39,6 +41,8 @@ jobs:
 
           module load apptainer 2>/dev/null || true
           cd \$SCRATCH
+          export APPTAINER_DOCKER_USERNAME=${{ github.actor }}
+          export APPTAINER_DOCKER_PASSWORD=${{ secrets.GITHUB_TOKEN }}
           apptainer pull --force test.sif docker://$IMAGE
 
           JOB_ID=\$(sbatch --parsable \
