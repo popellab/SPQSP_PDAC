@@ -534,6 +534,16 @@ void PDESolver::get_concentrations(float* h_buf, int substrate_idx) const {
         cudaMemcpyDeviceToHost));
 }
 
+void PDESolver::get_all_concentrations(float* h_buf) const {
+    size_t total_bytes = (size_t)NUM_SUBSTRATES * get_total_voxels() * sizeof(float);
+    CUDA_CHECK(cudaMemcpy(h_buf, d_conc_, total_bytes, cudaMemcpyDeviceToHost));
+}
+
+void PDESolver::get_all_concentrations_async(float* h_buf, cudaStream_t stream) const {
+    size_t total_bytes = (size_t)NUM_SUBSTRATES * get_total_voxels() * sizeof(float);
+    CUDA_CHECK(cudaMemcpyAsync(h_buf, d_conc_, total_bytes, cudaMemcpyDeviceToHost, stream));
+}
+
 float PDESolver::get_concentration_at_voxel(int x, int y, int z, int substrate_idx) const {
     if (x < 0 || x >= config_.nx || y < 0 || y >= config_.ny || z < 0 || z >= config_.nz) return 0.0f;
     int V = get_total_voxels();

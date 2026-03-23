@@ -10,6 +10,8 @@
 #include <filesystem>
 #include <thread>
 
+#include "third_party/lz4/lz4.h"
+
 #include "../core/common.cuh"
 #include "../core/layer_timing.h"
 #include "../pde/pde_integration.cuh"
@@ -17,6 +19,8 @@
 #include "gpu_param.h"
 #include "../qsp/LymphCentral_wrapper.h"
 #include "../core/model_functions.cuh"
+
+constexpr int ABM_EXPORT_NCOLS = 8; // must match pack_for_export.cuh
 
 // Exposed by qsp_integration.cu — true during Phase 3 pre-simulation
 namespace PDAC {
@@ -62,64 +66,81 @@ void ensureOutputDirectories() {
 // ============================================================================
 
 // ============================================================================
-// NPY Writer for PDE Output
-// Writes all NUM_SUBSTRATES chemical fields as a single NPY file.
-// Shape: (NUM_SUBSTRATES, grid_z, grid_y, grid_x), dtype float32, C-order.
-// Python: arr = np.load("pde_step_000001.npy")  → shape (10, nz, ny, nx)
+// LZ4-compressed binary writer for PDE output
+//
+// File format (.pde.lz4):
+//   Bytes 0-3:   magic "PDE1"
+//   Bytes 4-7:   grid_x (int32)
+//   Bytes 8-11:  grid_y (int32)
+//   Bytes 12-15: grid_z (int32)
+//   Bytes 16-19: num_substrates (int32)
+//   Bytes 20-23: uncompressed_size (int32, bytes)
+//   Bytes 24-27: compressed_size (int32, bytes)
+//   Bytes 28+:   LZ4-compressed float32 data
+//
+// Python reader:
+//   import lz4.block, struct, numpy as np
+//   with open("pde_step_000001.pde.lz4", "rb") as f:
+//       magic = f.read(4)
+//       gx, gy, gz, ns, raw_sz, comp_sz = struct.unpack('<6i', f.read(24))
+//       data = np.frombuffer(lz4.block.decompress(f.read(), raw_sz), dtype=np.float32)
+//       data = data.reshape(ns, gz, gy, gx)
 // ============================================================================
-// Write a pre-filled float buffer as NPY to disk (no device access — safe from background thread).
-static void write_pde_npy_buf(const char* path, int grid_x, int grid_y, int grid_z,
-                               const std::vector<float>& buf) {
+static void write_pde_lz4(const char* path, int grid_x, int grid_y, int grid_z,
+                           const float* data, size_t n_floats) {
     const int ns = PDAC::NUM_SUBSTRATES;
+    const int raw_bytes = static_cast<int>(n_floats * sizeof(float));
+    const int max_comp = LZ4_compressBound(raw_bytes);
 
-    char header_str[256];
-    int header_len = snprintf(header_str, sizeof(header_str),
-        "{'descr': '<f4', 'fortran_order': False, 'shape': (%d, %d, %d, %d), }",
-        ns, grid_z, grid_y, grid_x);
+    std::vector<char> comp_buf(max_comp);
+    int comp_bytes = LZ4_compress_default(
+        reinterpret_cast<const char*>(data), comp_buf.data(), raw_bytes, max_comp);
 
-    const int prefix_size = 10;
-    int padded_header_len = header_len + 1;
-    int block = ((prefix_size + padded_header_len + 63) / 64) * 64;
-    int pad_spaces = block - prefix_size - padded_header_len;
-
-    FILE* fp = fopen(path, "wb");
-    if (!fp) {
-        std::cerr << "[WARN] Could not open NPY file for write: " << path << std::endl;
+    if (comp_bytes <= 0) {
+        std::cerr << "[WARN] LZ4 compression failed for: " << path << std::endl;
         return;
     }
 
-    const unsigned char magic[8] = {0x93, 'N', 'U', 'M', 'P', 'Y', 0x01, 0x00};
-    fwrite(magic, 1, 8, fp);
+    FILE* fp = fopen(path, "wb");
+    if (!fp) {
+        std::cerr << "[WARN] Could not open file for write: " << path << std::endl;
+        return;
+    }
 
-    uint16_t hdr_total = static_cast<uint16_t>(padded_header_len + pad_spaces);
-    fwrite(&hdr_total, sizeof(uint16_t), 1, fp);
-
-    fwrite(header_str, 1, header_len, fp);
-    for (int i = 0; i < pad_spaces; i++) fputc(' ', fp);
-    fputc('\n', fp);
-
-    fwrite(buf.data(), sizeof(float), buf.size(), fp);
+    fwrite("PDE1", 1, 4, fp);
+    fwrite(&grid_x, 4, 1, fp);
+    fwrite(&grid_y, 4, 1, fp);
+    fwrite(&grid_z, 4, 1, fp);
+    fwrite(&ns, 4, 1, fp);
+    fwrite(&raw_bytes, 4, 1, fp);
+    fwrite(&comp_bytes, 4, 1, fp);
+    fwrite(comp_buf.data(), 1, comp_bytes, fp);
     fclose(fp);
 }
 
-// Collect all substrates from device into a host buffer (must run on main thread).
-static void collect_pde_to_buf(std::vector<float>& buf, int grid_x, int grid_y, int grid_z) {
-    const int ns = PDAC::NUM_SUBSTRATES;
-    const int total_voxels = grid_x * grid_y * grid_z;
-    buf.resize(static_cast<size_t>(ns) * total_voxels);
-    for (int s = 0; s < ns; s++)
-        PDAC::g_pde_solver->get_concentrations(buf.data() + s * total_voxels, s);
-}
+// ============================================================================
+// Async I/O with pinned memory + CUDA streams
+//
+// Optimizations over the previous version:
+//   1. PDE: single cudaMemcpyAsync of all substrates (was 10 separate cudaMemcpy)
+//   2. Pinned (page-locked) host memory for DMA-capable async D2H transfers
+//   3. Dedicated CUDA stream so D2H can overlap with next step's GPU compute
+//   4. Double-buffered: one buffer receives D2H while the other is written to disk
+// ============================================================================
 
-// ============================================================================
-// Async I/O: double-buffered background write threads.
-// D2H collection stays synchronous on the main thread.
-// File writes (the slow part) are launched in background std::thread.
-// Each call joins the previous write before starting a new one.
-// Call flush_async_io() before cleanup to drain pending writes.
-// ============================================================================
-static std::vector<float>   g_pde_bufs[2];
-static std::vector<int32_t> g_abm_bufs[2];
+// Pinned-memory double buffers for PDE output
+static float*   g_pde_pinned[2] = {nullptr, nullptr};
+static size_t   g_pde_buf_floats = 0;       // NUM_SUBSTRATES * total_voxels
+static cudaStream_t g_pde_stream = nullptr;  // dedicated D2H stream
+static cudaEvent_t  g_pde_event  = nullptr;  // signals D2H completion
+
+// ABM GPU-side packing: device buffer + atomic counter + pinned host double buffers
+static int32_t*      g_abm_device_buf = nullptr;   // device buffer for packed agent data
+static unsigned int* g_abm_device_counter = nullptr; // atomic row counter on device
+static int32_t*      g_abm_pinned[2] = {nullptr, nullptr}; // pinned host double buffers
+static size_t        g_abm_max_agents = 0;          // max agents the buffer can hold
+static std::vector<int32_t> g_abm_bufs[2];          // fallback for step-0 (before sim starts)
+
 static std::vector<float>   g_ecm_bufs[2];
 static std::thread g_pde_io_thread;
 static std::thread g_abm_io_thread;
@@ -128,25 +149,74 @@ static int g_pde_buf_idx = 0;
 static int g_abm_buf_idx = 0;
 static int g_ecm_buf_idx = 0;
 
+// Allocate pinned PDE buffers and CUDA stream (call once after grid size is known)
+static void init_pde_io(int grid_x, int grid_y, int grid_z) {
+    g_pde_buf_floats = static_cast<size_t>(PDAC::NUM_SUBSTRATES) * grid_x * grid_y * grid_z;
+    size_t bytes = g_pde_buf_floats * sizeof(float);
+    cudaMallocHost(&g_pde_pinned[0], bytes);
+    cudaMallocHost(&g_pde_pinned[1], bytes);
+    cudaStreamCreateWithFlags(&g_pde_stream, cudaStreamNonBlocking);
+    cudaEventCreateWithFlags(&g_pde_event, cudaEventDisableTiming);
+}
+
+// Allocate GPU buffer + pinned host buffers for ABM export
+static void init_abm_io(size_t max_agents) {
+    g_abm_max_agents = max_agents;
+    size_t buf_bytes = max_agents * ABM_EXPORT_NCOLS * sizeof(int32_t);
+    cudaMalloc(&g_abm_device_buf, buf_bytes);
+    cudaMalloc(&g_abm_device_counter, sizeof(unsigned int));
+    cudaMemset(g_abm_device_counter, 0, sizeof(unsigned int));
+    cudaMallocHost(&g_abm_pinned[0], buf_bytes);
+    cudaMallocHost(&g_abm_pinned[1], buf_bytes);
+}
+
+static void cleanup_abm_io() {
+    if (g_abm_device_buf) { cudaFree(g_abm_device_buf); g_abm_device_buf = nullptr; }
+    if (g_abm_device_counter) { cudaFree(g_abm_device_counter); g_abm_device_counter = nullptr; }
+    if (g_abm_pinned[0]) { cudaFreeHost(g_abm_pinned[0]); g_abm_pinned[0] = nullptr; }
+    if (g_abm_pinned[1]) { cudaFreeHost(g_abm_pinned[1]); g_abm_pinned[1] = nullptr; }
+}
+
+// Free pinned PDE buffers and stream (call at cleanup)
+static void cleanup_pde_io() {
+    if (g_pde_pinned[0]) { cudaFreeHost(g_pde_pinned[0]); g_pde_pinned[0] = nullptr; }
+    if (g_pde_pinned[1]) { cudaFreeHost(g_pde_pinned[1]); g_pde_pinned[1] = nullptr; }
+    if (g_pde_stream) { cudaStreamDestroy(g_pde_stream); g_pde_stream = nullptr; }
+    if (g_pde_event)  { cudaEventDestroy(g_pde_event);  g_pde_event  = nullptr; }
+}
+
 static void flush_async_io() {
     if (g_pde_io_thread.joinable()) g_pde_io_thread.join();
     if (g_abm_io_thread.joinable()) g_abm_io_thread.join();
     if (g_ecm_io_thread.joinable()) g_ecm_io_thread.join();
 }
 
+// Collect all PDE substrates via single async D2H into pinned buffer, then
+// launch background file write once D2H completes.
+// Kick off async D2H + background write (caller must join previous thread first)
+static void export_pde_async_no_join(int grid_x, int grid_y, int grid_z, const std::string& path) {
+    int bi = g_pde_buf_idx;
+    float* dst = g_pde_pinned[bi];
+
+    // Single async D2H of all substrates on dedicated stream
+    PDAC::g_pde_solver->get_all_concentrations_async(dst, g_pde_stream);
+    cudaEventRecord(g_pde_event, g_pde_stream);
+
+    size_t n_floats = g_pde_buf_floats;
+    g_pde_io_thread = std::thread([dst, n_floats, path, grid_x, grid_y, grid_z]() {
+        // Wait for D2H to finish (non-spinning — yields CPU)
+        cudaEventSynchronize(g_pde_event);
+        write_pde_lz4(path.c_str(), grid_x, grid_y, grid_z, dst, n_floats);
+    });
+    g_pde_buf_idx = 1 - bi;
+}
+
 // Called manually from main() after presim completes — captures true day-0 PDE state.
 void exportPDEData_step0(int grid_x, int grid_y, int grid_z) {
     ensureOutputDirectories();
     if (!PDAC::g_pde_solver) return;
-
     if (g_pde_io_thread.joinable()) g_pde_io_thread.join();
-    int bi = g_pde_buf_idx;
-    collect_pde_to_buf(g_pde_bufs[bi], grid_x, grid_y, grid_z);
-    std::string path = "outputs/pde/pde_step_000000.npy";
-    g_pde_io_thread = std::thread([bi, path, grid_x, grid_y, grid_z]() {
-        write_pde_npy_buf(path.c_str(), grid_x, grid_y, grid_z, g_pde_bufs[bi]);
-    });
-    g_pde_buf_idx = 1 - bi;
+    export_pde_async_no_join(grid_x, grid_y, grid_z, "outputs/pde/pde_step_000000.pde.lz4");
 }
 
 FLAMEGPU_STEP_FUNCTION(exportPDEData) {
@@ -159,22 +229,26 @@ FLAMEGPU_STEP_FUNCTION(exportPDEData) {
 
     ensureOutputDirectories();
 
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    if (g_pde_io_thread.joinable()) g_pde_io_thread.join();
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    if (g_pde_io_thread.joinable()) g_pde_io_thread.join();
-    int bi = g_pde_buf_idx;
-    collect_pde_to_buf(g_pde_bufs[bi], grid_x, grid_y, grid_z);
-
     char path_buf[256];
-    snprintf(path_buf, sizeof(path_buf), "outputs/pde/pde_step_%06d.npy",
+    snprintf(path_buf, sizeof(path_buf), "outputs/pde/pde_step_%06d.pde.lz4",
              static_cast<int>(main_step + 1));
-    std::string path = path_buf;
-    g_pde_io_thread = std::thread([bi, path, grid_x, grid_y, grid_z]() {
-        write_pde_npy_buf(path.c_str(), grid_x, grid_y, grid_z, g_pde_bufs[bi]);
-    });
-    g_pde_buf_idx = 1 - bi;
+    export_pde_async_no_join(grid_x, grid_y, grid_z, std::string(path_buf));
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+    PDAC::g_layer_timings.push_back({"io_pde_join",
+        std::chrono::duration<double, std::milli>(t1 - t0).count()});
+    PDAC::g_layer_timings.push_back({"io_pde_export",
+        std::chrono::duration<double, std::milli>(t2 - t1).count()});
 }
 
 // ============================================================================
@@ -290,29 +364,54 @@ static constexpr int32_t ABM_TYPE_VAS    = 6;
 // g_abm_buf kept for step-0 (uses AgentVector API outside step functions)
 static std::vector<int32_t> g_abm_buf;
 
-// Write int32 ABM buffer to NPY (no device access — safe from background thread).
-static void write_abm_npy(const char* path, const std::vector<int32_t>& buf) {
-    int n_agents = static_cast<int>(buf.size()) / ABM_NCOLS;
-    char hdr[256];
-    int hlen = snprintf(hdr, sizeof(hdr),
-        "{'descr': '<i4', 'fortran_order': False, 'shape': (%d, %d), }",
-        n_agents, ABM_NCOLS);
-    const int prefix = 10;
-    int padded = hlen + 1;
-    int block = ((prefix + padded + 63) / 64) * 64;
-    int spaces = block - prefix - padded;
+// ============================================================================
+// LZ4-compressed binary writer for ABM output
+//
+// File format (.abm.lz4):
+//   Bytes 0-3:   magic "ABM1"
+//   Bytes 4-7:   n_agents (int32)
+//   Bytes 8-11:  n_cols (int32)
+//   Bytes 12-15: uncompressed_size (int32, bytes)
+//   Bytes 16-19: compressed_size (int32, bytes)
+//   Bytes 20+:   LZ4-compressed int32 data
+//
+// Python reader:
+//   import lz4.block, struct, numpy as np
+//   with open("agents_step_000001.abm.lz4", "rb") as f:
+//       magic = f.read(4)
+//       n, nc, raw_sz, comp_sz = struct.unpack('<4i', f.read(16))
+//       data = np.frombuffer(lz4.block.decompress(f.read(), raw_sz), dtype=np.int32)
+//       data = data.reshape(n, nc)
+// ============================================================================
+static void write_abm_lz4_buf(const char* path, const int32_t* data, int n_agents) {
+    int raw_bytes = n_agents * ABM_NCOLS * static_cast<int>(sizeof(int32_t));
+    int max_comp = LZ4_compressBound(raw_bytes);
+
+    std::vector<char> comp_buf(max_comp);
+    int comp_bytes = LZ4_compress_default(
+        reinterpret_cast<const char*>(data), comp_buf.data(), raw_bytes, max_comp);
+
+    if (comp_bytes <= 0) {
+        std::cerr << "[WARN] LZ4 compression failed for: " << path << std::endl;
+        return;
+    }
 
     FILE* fp = fopen(path, "wb");
     if (!fp) { std::cerr << "[WARN] Cannot open " << path << "\n"; return; }
-    const unsigned char magic[8] = {0x93,'N','U','M','P','Y',0x01,0x00};
-    fwrite(magic, 1, 8, fp);
-    uint16_t hdr_total = static_cast<uint16_t>(padded + spaces);
-    fwrite(&hdr_total, 2, 1, fp);
-    fwrite(hdr, 1, hlen, fp);
-    for (int i = 0; i < spaces; i++) fputc(' ', fp);
-    fputc('\n', fp);
-    fwrite(buf.data(), sizeof(int32_t), buf.size(), fp);
+
+    fwrite("ABM1", 1, 4, fp);
+    fwrite(&n_agents, 4, 1, fp);
+    int ncols = ABM_NCOLS;
+    fwrite(&ncols, 4, 1, fp);
+    fwrite(&raw_bytes, 4, 1, fp);
+    fwrite(&comp_bytes, 4, 1, fp);
+    fwrite(comp_buf.data(), 1, comp_bytes, fp);
     fclose(fp);
+}
+
+// Vector overload for step-0 export (uses CPU-side collection)
+static void write_abm_lz4(const char* path, const std::vector<int32_t>& buf) {
+    write_abm_lz4_buf(path, buf.data(), static_cast<int>(buf.size()) / ABM_NCOLS);
 }
 
 static inline void abm_push(std::vector<int32_t>& buf,
@@ -465,15 +564,32 @@ static void collect_abm_step(flamegpu::HostAPI* FLAMEGPU, std::vector<int32_t>& 
     }
 }
 
+// Host function: prepare GPU buffer for ABM export (runs as a layer before pack_for_export)
+FLAMEGPU_HOST_FUNCTION(prepare_abm_export) {
+    if (PDAC::is_presim_mode_active()) {
+        FLAMEGPU->environment.setProperty<int>("do_abm_export", 0);
+        return;
+    }
+    const unsigned int main_step = FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
+    const int interval = FLAMEGPU->environment.getProperty<int>("interval_out");
+    if (main_step % interval != 0) {
+        FLAMEGPU->environment.setProperty<int>("do_abm_export", 0);
+        return;
+    }
+    // Reset counter and enable export for this step
+    cudaMemset(g_abm_device_counter, 0, sizeof(unsigned int));
+    FLAMEGPU->environment.setProperty<int>("do_abm_export", 1);
+}
+
 // Called manually from main() after presim completes — captures true day-0 agent state.
 void exportABMData_step0(flamegpu::CUDASimulation& sim, flamegpu::ModelDescription& model) {
     ensureOutputDirectories();
     if (g_abm_io_thread.joinable()) g_abm_io_thread.join();
     int bi = g_abm_buf_idx;
     collect_abm_step0(sim, model, g_abm_bufs[bi]);
-    std::string path = "outputs/abm/agents_step_000000.npy";
+    std::string path = "outputs/abm/agents_step_000000.abm.lz4";
     g_abm_io_thread = std::thread([bi, path]() {
-        write_abm_npy(path.c_str(), g_abm_bufs[bi]);
+        write_abm_lz4(path.c_str(), g_abm_bufs[bi]);
     });
     g_abm_buf_idx = 1 - bi;
 }
@@ -506,18 +622,41 @@ FLAMEGPU_STEP_FUNCTION(exportABMData) {
     if (main_step % interval != 0) return;
     ensureOutputDirectories();
 
+    auto t0 = std::chrono::high_resolution_clock::now();
+
     if (g_abm_io_thread.joinable()) g_abm_io_thread.join();
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+
+    // Read agent count from GPU counter
+    unsigned int n_agents = 0;
+    cudaMemcpy(&n_agents, g_abm_device_counter, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+
+    // Async D2H of packed buffer into pinned host buffer
     int bi = g_abm_buf_idx;
-    collect_abm_step(FLAMEGPU, g_abm_bufs[bi]);
+    size_t copy_bytes = static_cast<size_t>(n_agents) * ABM_EXPORT_NCOLS * sizeof(int32_t);
+    cudaMemcpyAsync(g_abm_pinned[bi], g_abm_device_buf, copy_bytes,
+                    cudaMemcpyDeviceToHost, g_pde_stream);
+    cudaEventRecord(g_pde_event, g_pde_stream);
+
+    auto t2 = std::chrono::high_resolution_clock::now();
 
     char path_buf[256];
-    snprintf(path_buf, sizeof(path_buf), "outputs/abm/agents_step_%06d.npy",
+    snprintf(path_buf, sizeof(path_buf), "outputs/abm/agents_step_%06d.abm.lz4",
              static_cast<int>(main_step + 1));
     std::string path = path_buf;
-    g_abm_io_thread = std::thread([bi, path]() {
-        write_abm_npy(path.c_str(), g_abm_bufs[bi]);
+    int32_t* host_buf = g_abm_pinned[bi];
+    int n_agents_copy = static_cast<int>(n_agents);
+    g_abm_io_thread = std::thread([host_buf, n_agents_copy, path]() {
+        cudaEventSynchronize(g_pde_event);
+        write_abm_lz4_buf(path.c_str(), host_buf, n_agents_copy);
     });
     g_abm_buf_idx = 1 - bi;
+
+    double join_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    double collect_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
+    PDAC::g_layer_timings.push_back({"io_abm_join", join_ms});
+    PDAC::g_layer_timings.push_back({"io_abm_collect", collect_ms});
 }
 
 FLAMEGPU_STEP_FUNCTION(stepCounter) {
@@ -656,6 +795,11 @@ int main(int argc, const char** argv) {
 
     // Store PDE device pointers in model environment
     PDAC::set_pde_pointers_in_environment(*model);
+
+    // Allocate pinned host buffers and CUDA stream for async PDE output
+    if (config.grid_out & 2) {
+        init_pde_io(config.grid_x, config.grid_y, config.grid_z);
+    }
     init_lap("init_pde");
 
     // ========== GPU MEMORY QUERY (after PDE allocation) ==========
@@ -684,6 +828,17 @@ int main(int argc, const char** argv) {
     model->addStepFunction(exportQSPData);
     model->addStepFunction(stepCounter);
     model->addExitCondition(checkSimulationEnd);
+
+    // ========== ALLOCATE GPU BUFFER FOR ABM EXPORT ==========
+    // Always allocate (pack_for_export layer runs unconditionally; agents check do_abm_export flag)
+    {
+        size_t max_agents = static_cast<size_t>(config.grid_x) * config.grid_y * config.grid_z * 2;
+        init_abm_io(max_agents);
+        model->Environment().setProperty<uint64_t>("abm_export_buf_ptr",
+            reinterpret_cast<uint64_t>(g_abm_device_buf));
+        model->Environment().setProperty<uint64_t>("abm_export_counter_ptr",
+            reinterpret_cast<uint64_t>(g_abm_device_counter));
+    }
 
     // ========== ALLOCATE GPU MEMORY FOR EVENT/STATE COUNTERS ==========
     // Do this BEFORE creating CUDASimulation so environment properties are synced
@@ -848,73 +1003,6 @@ int main(int argc, const char** argv) {
         }
     }
 
-    // ── Compute step-0 state counts from host AgentVectors (before first broadcast) ──
-    unsigned int init_states[PDAC::ABM_STATE_COUNTER_SIZE] = {};
-    {
-        {
-            flamegpu::AgentVector p(model->Agent(PDAC::AGENT_CANCER_CELL));
-            simulation.getPopulationData(p);
-            for (unsigned i = 0; i < p.size(); ++i) {
-                int s = p[i].getVariable<int>("cell_state");
-                if      (s == PDAC::CANCER_STEM)       init_states[PDAC::SC_CANCER_STEM]++;
-                else if (s == PDAC::CANCER_PROGENITOR) init_states[PDAC::SC_CANCER_PROG]++;
-                else                                   init_states[PDAC::SC_CANCER_SEN]++;
-            }
-        }
-        {
-            flamegpu::AgentVector p(model->Agent(PDAC::AGENT_TCELL));
-            simulation.getPopulationData(p);
-            for (unsigned i = 0; i < p.size(); ++i) {
-                int s = p[i].getVariable<int>("cell_state");
-                if      (s == PDAC::T_CELL_EFF) init_states[PDAC::SC_CD8_EFF]++;
-                else if (s == PDAC::T_CELL_CYT) init_states[PDAC::SC_CD8_CYT]++;
-                else                            init_states[PDAC::SC_CD8_SUP]++;
-            }
-        }
-        {
-            flamegpu::AgentVector p(model->Agent(PDAC::AGENT_TREG));
-            simulation.getPopulationData(p);
-            for (unsigned i = 0; i < p.size(); ++i) {
-                int s = p[i].getVariable<int>("cell_state");
-                if (s == PDAC::TCD4_TH) init_states[PDAC::SC_TH]++;
-                else                    init_states[PDAC::SC_TREG]++;
-            }
-        }
-        {
-            flamegpu::AgentVector p(model->Agent(PDAC::AGENT_MDSC));
-            simulation.getPopulationData(p);
-            init_states[PDAC::SC_MDSC] = p.size();
-        }
-        {
-            flamegpu::AgentVector p(model->Agent(PDAC::AGENT_MACROPHAGE));
-            simulation.getPopulationData(p);
-            for (unsigned i = 0; i < p.size(); ++i) {
-                int s = p[i].getVariable<int>("cell_state");
-                if (s == PDAC::MAC_M1) init_states[PDAC::SC_MAC_M1]++;
-                else                   init_states[PDAC::SC_MAC_M2]++;
-            }
-        }
-        {
-            flamegpu::AgentVector p(model->Agent(PDAC::AGENT_FIBROBLAST));
-            simulation.getPopulationData(p);
-            for (unsigned i = 0; i < p.size(); ++i) {
-                int s    = p[i].getVariable<int>("cell_state");
-                int clen = p[i].getVariable<int>("chain_len");
-                if (s == PDAC::FIB_NORMAL) init_states[PDAC::SC_FIB_NORM] += clen;
-                else                       init_states[PDAC::SC_FIB_CAF]  += clen;
-            }
-        }
-        {
-            flamegpu::AgentVector p(model->Agent(PDAC::AGENT_VASCULAR));
-            simulation.getPopulationData(p);
-            for (unsigned i = 0; i < p.size(); ++i) {
-                int s = p[i].getVariable<int>("cell_state");
-                if (s == PDAC::VAS_TIP) init_states[PDAC::SC_VAS_TIP]++;
-                else                    init_states[PDAC::SC_VAS_PHALANX]++;
-            }
-        }
-    }
-
     // Open stats output file (always written, seed-stamped)
     std::ofstream stats_file(stats_path);
     if (stats_file.is_open()) {
@@ -948,20 +1036,11 @@ int main(int argc, const char** argv) {
             << "death.VAS.tip,death.VAS.phalanx,"
             // PDL1 fraction
             << "PDL1_frac\n";
-        // Step 0: real initial state counts, all event columns zero
-        stats_file << "0,"
-            << init_states[PDAC::SC_CANCER_STEM] << "," << init_states[PDAC::SC_CANCER_PROG] << "," << init_states[PDAC::SC_CANCER_SEN] << ","
-            << init_states[PDAC::SC_CD8_EFF]     << "," << init_states[PDAC::SC_CD8_CYT]     << "," << init_states[PDAC::SC_CD8_SUP]   << ","
-            << init_states[PDAC::SC_TH]          << "," << init_states[PDAC::SC_TREG]         << ","
-            << init_states[PDAC::SC_MDSC]        << ","
-            << init_states[PDAC::SC_MAC_M1]      << "," << init_states[PDAC::SC_MAC_M2]       << ","
-            << init_states[PDAC::SC_FIB_NORM]    << "," << init_states[PDAC::SC_FIB_CAF]      << ","
-            << init_states[PDAC::SC_VAS_TIP]     << "," << init_states[PDAC::SC_VAS_PHALANX]  << ","
-            // All event columns (recruit/prolif/death/PDL1) are zero at step 0
-            << "0,0,0,0,0,0," // recruit (6)
-            << "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0," // prolif (15)
-            << "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0," // death (15)
-            << "0.0000\n";    // PDL1_frac
+        // Step 0: initial counts (all events zero)
+        // (State counts not available yet before first broadcast — write zeros)
+        stats_file << "0";
+        for (int c = 0; c < 15 + 6 + 15 + 15 + 1; c++) stats_file << ",0";
+        stats_file << "\n";
         stats_file.flush();
     }
 
@@ -1131,6 +1210,8 @@ int main(int argc, const char** argv) {
     flush_async_io();
 
     // ========== CLEANUP ==========
+    cleanup_pde_io();
+    cleanup_abm_io();
     PDAC::cleanup_pde_solver();
 
     // Free GPU event counter memory
