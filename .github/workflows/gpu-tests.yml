@@ -2,6 +2,10 @@ name: GPU Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      pr:
+        description: 'PR number (leave empty for latest)'
+        required: false
 
 # Requires repository secrets:
 #   ANVIL_SSH_KEY, ANVIL_USER, ANVIL_HOST, ANVIL_ACCOUNT
@@ -11,7 +15,7 @@ jobs:
     runs-on: ubuntu-22.04
     if: github.repository == 'popellab/SPQSP_PDAC'
     env:
-      IMAGE: ghcr.io/${{ github.repository_owner }}/spqsp-pdac-test:${{ github.sha }}
+      IMAGE: ghcr.io/${{ github.repository_owner }}/spqsp-pdac-test:${{ inputs.pr && format('pr-{0}', inputs.pr) || 'latest' }}
       REMOTE: ${{ secrets.ANVIL_USER }}@${{ secrets.ANVIL_HOST }}
 
     steps:
