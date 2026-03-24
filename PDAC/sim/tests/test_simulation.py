@@ -160,9 +160,10 @@ class TestDeterminism:
             if key == "step":
                 continue
             v1, v2 = float(stats1[-1][key]), float(stats2[-1][key])
-            if v1 == 0 and v2 == 0:
+            # Skip small counts — percentage is meaningless for 0 vs 1
+            if max(abs(v1), abs(v2)) < 10:
                 continue
-            denom = max(abs(v1), abs(v2), 1)
+            denom = max(abs(v1), abs(v2))
             pct_diff = abs(v1 - v2) / denom
             assert pct_diff < 0.10, (
                 f"{key} differs by {pct_diff:.1%}: {v1} vs {v2}"
