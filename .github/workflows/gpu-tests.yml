@@ -1,21 +1,22 @@
-name: GPU Tests (Anvil)
+name: GPU Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag (e.g. pr-2, latest, or a commit SHA)'
+        required: false
+        default: 'latest'
 
-# Requires:
-#   Repository secrets:
-#     ANVIL_SSH_KEY     — private key for SSH to Anvil
-#     ANVIL_USER        — username (e.g. x-jeliason)
-#     ANVIL_HOST        — hostname (e.g. anvil.rcac.purdue.edu)
-#     ANVIL_ACCOUNT     — Slurm account (e.g. mth260020-gpu)
+# Requires repository secrets:
+#   ANVIL_SSH_KEY, ANVIL_USER, ANVIL_HOST, ANVIL_ACCOUNT
 
 jobs:
   test:
     runs-on: ubuntu-22.04
     if: github.repository == 'popellab/SPQSP_PDAC'
     env:
-      IMAGE: ghcr.io/${{ github.repository_owner }}/spqsp-pdac-test:latest
+      IMAGE: ghcr.io/${{ github.repository_owner }}/spqsp-pdac-test:${{ inputs.image_tag }}
       REMOTE: ${{ secrets.ANVIL_USER }}@${{ secrets.ANVIL_HOST }}
 
     steps:
@@ -31,7 +32,7 @@ jobs:
             ServerAliveCountMax 10
           SSHEOF
 
-      - name: Submit GPU test job
+      - name: Run GPU tests on Anvil
         run: |
           ssh $REMOTE "bash -s" <<EOF
           set -euo pipefail
@@ -42,10 +43,9 @@ jobs:
           module load apptainer 2>/dev/null || true
           export APPTAINER_DOCKER_USERNAME=${{ github.actor }}
           export APPTAINER_DOCKER_PASSWORD=${{ secrets.GITHUB_TOKEN }}
-          apptainer pull --force test.sif docker://${{ env.IMAGE }}
+          apptainer pull --force test.sif docker://$IMAGE
           SIF=\$SCRATCH/test.sif
 
-          # Clone latest tests from the repo
           git clone --depth 1 --branch ${{ github.ref_name }} \
             https://github.com/${{ github.repository }}.git repo
           TESTS=\$SCRATCH/repo/PDAC/sim/tests
