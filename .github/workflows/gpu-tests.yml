@@ -24,6 +24,11 @@ jobs:
           echo "${{ secrets.ANVIL_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.ANVIL_HOST }} >> ~/.ssh/known_hosts
+          cat >> ~/.ssh/config <<SSHEOF
+          Host *
+            ServerAliveInterval 30
+            ServerAliveCountMax 10
+          SSHEOF
 
       - name: Submit GPU test job
         run: |
