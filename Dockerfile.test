@@ -66,9 +66,10 @@ COPY --from=builder /build/PDAC/sim/build/bin/pdac /sim/build/bin/pdac
 COPY --from=builder /runtime-libs/ /usr/local/lib/
 RUN ldconfig
 
-# Copy test files and param resources
+# Copy test files, param resources, and vendored sources
 COPY --from=builder /build/PDAC/sim/tests/ /sim/tests/
 COPY --from=builder /build/PDAC/sim/resource/ /sim/resource/
+COPY --from=builder /build/PDAC/sim/third_party/ /sim/third_party/
 
 # Install uv + test deps
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv

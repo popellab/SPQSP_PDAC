@@ -139,6 +139,8 @@ static int32_t*      g_abm_device_buf = nullptr;   // device buffer for packed a
 static unsigned int* g_abm_device_counter = nullptr; // atomic row counter on device
 static int32_t*      g_abm_pinned[2] = {nullptr, nullptr}; // pinned host double buffers
 static size_t        g_abm_max_agents = 0;          // max agents the buffer can hold
+static cudaStream_t  g_abm_stream = nullptr;        // dedicated D2H stream for ABM
+static cudaEvent_t   g_abm_event  = nullptr;        // signals ABM D2H completion
 static std::vector<int32_t> g_abm_bufs[2];          // fallback for step-0 (before sim starts)
 
 static std::vector<float>   g_ecm_bufs[2];
@@ -168,6 +170,8 @@ static void init_abm_io(size_t max_agents) {
     cudaMemset(g_abm_device_counter, 0, sizeof(unsigned int));
     cudaMallocHost(&g_abm_pinned[0], buf_bytes);
     cudaMallocHost(&g_abm_pinned[1], buf_bytes);
+    cudaStreamCreateWithFlags(&g_abm_stream, cudaStreamNonBlocking);
+    cudaEventCreateWithFlags(&g_abm_event, cudaEventDisableTiming);
 }
 
 static void cleanup_abm_io() {
@@ -175,6 +179,8 @@ static void cleanup_abm_io() {
     if (g_abm_device_counter) { cudaFree(g_abm_device_counter); g_abm_device_counter = nullptr; }
     if (g_abm_pinned[0]) { cudaFreeHost(g_abm_pinned[0]); g_abm_pinned[0] = nullptr; }
     if (g_abm_pinned[1]) { cudaFreeHost(g_abm_pinned[1]); g_abm_pinned[1] = nullptr; }
+    if (g_abm_stream) { cudaStreamDestroy(g_abm_stream); g_abm_stream = nullptr; }
+    if (g_abm_event)  { cudaEventDestroy(g_abm_event);  g_abm_event  = nullptr; }
 }
 
 // Free pinned PDE buffers and stream (call at cleanup)
@@ -636,8 +642,8 @@ FLAMEGPU_STEP_FUNCTION(exportABMData) {
     int bi = g_abm_buf_idx;
     size_t copy_bytes = static_cast<size_t>(n_agents) * ABM_EXPORT_NCOLS * sizeof(int32_t);
     cudaMemcpyAsync(g_abm_pinned[bi], g_abm_device_buf, copy_bytes,
-                    cudaMemcpyDeviceToHost, g_pde_stream);
-    cudaEventRecord(g_pde_event, g_pde_stream);
+                    cudaMemcpyDeviceToHost, g_abm_stream);
+    cudaEventRecord(g_abm_event, g_abm_stream);
 
     auto t2 = std::chrono::high_resolution_clock::now();
 
@@ -648,7 +654,7 @@ FLAMEGPU_STEP_FUNCTION(exportABMData) {
     int32_t* host_buf = g_abm_pinned[bi];
     int n_agents_copy = static_cast<int>(n_agents);
     g_abm_io_thread = std::thread([host_buf, n_agents_copy, path]() {
-        cudaEventSynchronize(g_pde_event);
+        cudaEventSynchronize(g_abm_event);
         write_abm_lz4_buf(path.c_str(), host_buf, n_agents_copy);
     });
     g_abm_buf_idx = 1 - bi;

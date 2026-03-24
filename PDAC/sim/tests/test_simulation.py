@@ -119,7 +119,7 @@ class TestSimulationWithIO:
         assert len(rows) > 0, "Stats CSV is empty"
         # Check that at least some agent type has positive counts
         last_row = rows[-1]
-        total = sum(int(last_row.get(k, 0)) for k in last_row if k != "step")
+        total = sum(float(last_row.get(k, 0)) for k in last_row if k != "step")
         assert total > 0, "All agent counts are zero in final step"
 
 
