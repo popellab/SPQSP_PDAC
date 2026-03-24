@@ -681,6 +681,9 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<uint64_t>("abm_export_counter_ptr", 0u);
     env.newProperty<int>("do_abm_export", 0);
 
+    // Ductal wall face flags pointer (set by ductal init when -i 1, null otherwise)
+    env.newProperty<uint64_t>("face_flags_ptr", 0u);
+
     // Populate ALL other parameters from XML
     params.populateFlameGPUEnvironment(env);
 }

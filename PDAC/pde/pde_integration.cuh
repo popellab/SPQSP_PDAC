@@ -52,6 +52,14 @@ void initialize_ecm_to_saturation(float ecm_saturation);
 float* get_ecm_grid_device_ptr();
 float* get_fib_density_field_device_ptr();
 
+// Return device pointers for ECM orientation field (for output)
+float* get_ecm_orient_x_device_ptr();
+float* get_ecm_orient_y_device_ptr();
+float* get_ecm_orient_z_device_ptr();
+
+// Initialize ECM orientation with random unit vectors (call once after PDE init)
+void initialize_ecm_orientation(unsigned int seed);
+
 // Return device pointer for vascular tip_id grid (for output/debug)
 unsigned int* get_vas_tip_id_grid_device_ptr();
 
@@ -79,6 +87,10 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_occupancy_grid;
 
 // ECM grid: decay ECM each step after fibroblasts have deposited
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_grid;
+
+// ECM orientation: zero reorientation accumulator, then update orientation from it
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_ecm_reorient_field;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_orientation;
 
 // ============================================================================
 // Timing Checkpoint Host Functions (inserted at phase boundaries)

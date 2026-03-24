@@ -190,7 +190,8 @@ add_executable(pdac
     third_party/lz4/lz4.c
     model_definition.cu
     model_layers.cu
-    initialization.cu
+    ../init/initialization.cu
+    ../init/ductal_init.cu
     ../pde/pde_integration.cu
     ../pde/pde_solver.cu
     ../qsp/LymphCentral_wrapper.cpp
@@ -240,6 +241,7 @@ cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH MY_PARENT_DIR)
 # Include directories
 target_include_directories(pdac PRIVATE
     ${MY_PARENT_DIR}/core
+    ${MY_PARENT_DIR}/init
     ${MY_PARENT_DIR}/pde
     ${MY_PARENT_DIR}/agents
     ${MY_PARENT_DIR}/qsp

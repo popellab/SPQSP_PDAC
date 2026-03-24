@@ -414,6 +414,9 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
 
+    const uint8_t* face_flags = reinterpret_cast<const uint8_t*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("face_flags_ptr"));
+
     // === RUN PHASE (tumble == 0) ===
     if (tumble == 0) {
         float v_x = move_dir_x / dt;
@@ -452,9 +455,13 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
             return flamegpu::ALIVE;
         }
 
+        // Ductal wall check
+        if (is_ductal_wall_blocked(face_flags, x, y, z, target_x-x, target_y-y, target_z-z, grid_x, grid_y)) {
+            return flamegpu::ALIVE;
+        }
+
         // Only move if target voxel is not occupied by a stationary vascular cell (HCC: voxelIsOpen)
         if (occ[target_x][target_y][target_z][CELL_TYPE_VASCULAR] != 0u) {
-            // FLAMEGPU->setVariable<int>("tumble", 1);
             return flamegpu::ALIVE;
         }
     }
@@ -516,6 +523,11 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
         if (target_x < 0 || target_x >= grid_x ||
             target_y < 0 || target_y >= grid_y ||
             target_z < 0 || target_z >= grid_z) {
+            FLAMEGPU->setVariable<int>("tumble", 1);
+            return flamegpu::ALIVE;
+        }
+
+        if (is_ductal_wall_blocked(face_flags, x, y, z, dx, dy, dz, grid_x, grid_y)) {
             FLAMEGPU->setVariable<int>("tumble", 1);
             return flamegpu::ALIVE;
         }

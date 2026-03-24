@@ -47,11 +47,16 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addHostFunction(timing_step_start);
     }
 
-    // 1. ECM update: zero density field, scatter fibroblast Gaussian kernels, apply decay + secretion.
+    // 1. ECM update: zero density field + reorientation accumulator, scatter fibroblast Gaussian
+    //    kernels (density + traction), apply decay + secretion.
     //    Matches HCC update_ECM() which runs first in timeSlice before recruitment.
     {
         flamegpu::LayerDescription layer = model.newLayer("zero_fib_density_field");
         layer.addHostFunction(zero_fib_density_field);
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("zero_ecm_reorient_field");
+        layer.addHostFunction(zero_ecm_reorient_field);
     }
     {
         flamegpu::LayerDescription layer = model.newLayer("build_density_field");
@@ -172,6 +177,12 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
             flamegpu::LayerDescription layer = model.newLayer("move_vascular");
             layer.addAgentFunction(AGENT_VASCULAR, "move");
         }
+    }
+
+    // 5b. Update ECM orientation from reorientation accumulator (fibroblast traction + cancer stress)
+    {
+        flamegpu::LayerDescription layer = model.newLayer("update_ecm_orientation");
+        layer.addHostFunction(update_ecm_orientation);
     }
 
     // ── Timing checkpoint: after movement ──

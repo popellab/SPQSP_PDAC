@@ -16,6 +16,7 @@
 #include "../core/layer_timing.h"
 #include "../pde/pde_integration.cuh"
 #include "initialization.cuh"
+#include "ductal_init.cuh"
 #include "gpu_param.h"
 #include "../qsp/LymphCentral_wrapper.h"
 #include "../core/model_functions.cuh"
@@ -253,10 +254,13 @@ FLAMEGPU_STEP_FUNCTION(exportPDEData) {
 
 // ============================================================================
 // LZ4-compressed binary writer for ECM (stroma) Output
-// Writes ECM density and fibroblast density field as a single LZ4 file.
-// Shape: (2, grid_z, grid_y, grid_x), dtype float32, C-order.
+// Writes ECM density, fibroblast density, and fiber orientation as a single LZ4 file.
+// Shape: (5, grid_z, grid_y, grid_x), dtype float32, C-order.
 //   channel 0: ECM_density  (d_ecm_grid)
 //   channel 1: Fib_field    (d_fib_density_field)
+//   channel 2: Orient_x     (d_ecm_orient_x)
+//   channel 3: Orient_y     (d_ecm_orient_y)
+//   channel 4: Orient_z     (d_ecm_orient_z)
 //
 // File format (.ecm.lz4):
 //   Bytes 0-3:   magic "ECM1"
@@ -278,7 +282,7 @@ FLAMEGPU_STEP_FUNCTION(exportPDEData) {
 // ============================================================================
 static void write_ecm_lz4_buf(const char* path, int grid_x, int grid_y, int grid_z,
                                const std::vector<float>& buf) {
-    const int n_channels = 2;
+    const int n_channels = 5;
     const int raw_bytes = static_cast<int>(buf.size() * sizeof(float));
     const int max_comp = LZ4_compressBound(raw_bytes);
 
@@ -308,15 +312,21 @@ static void write_ecm_lz4_buf(const char* path, int grid_x, int grid_y, int grid
     fclose(fp);
 }
 
-// Collect ECM + fib density from device into a host buffer.
-// buf layout: [ecm_grid (total_voxels floats), fib_field (total_voxels floats)]
+// Collect ECM + fib density + orientation from device into a host buffer.
+// buf layout: [ecm_grid, fib_field, orient_x, orient_y, orient_z] (5 channels × total_voxels)
 static void collect_ecm_to_buf(std::vector<float>& buf, int grid_x, int grid_y, int grid_z) {
     const int total_voxels = grid_x * grid_y * grid_z;
-    buf.resize(static_cast<size_t>(2) * total_voxels);
+    buf.resize(static_cast<size_t>(5) * total_voxels);
     float* d_ecm = PDAC::get_ecm_grid_device_ptr();
     float* d_fib = PDAC::get_fib_density_field_device_ptr();
-    if (d_ecm) cudaMemcpy(buf.data(),                  d_ecm, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
-    if (d_fib) cudaMemcpy(buf.data() + total_voxels,   d_fib, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    float* d_ox  = PDAC::get_ecm_orient_x_device_ptr();
+    float* d_oy  = PDAC::get_ecm_orient_y_device_ptr();
+    float* d_oz  = PDAC::get_ecm_orient_z_device_ptr();
+    if (d_ecm) cudaMemcpy(buf.data(),                      d_ecm, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    if (d_fib) cudaMemcpy(buf.data() + total_voxels,       d_fib, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    if (d_ox)  cudaMemcpy(buf.data() + 2 * total_voxels,   d_ox,  total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    if (d_oy)  cudaMemcpy(buf.data() + 3 * total_voxels,   d_oy,  total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    if (d_oz)  cudaMemcpy(buf.data() + 4 * total_voxels,   d_oz,  total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
 }
 
 void exportECMData_step0(int grid_x, int grid_y, int grid_z) {
@@ -356,6 +366,79 @@ FLAMEGPU_STEP_FUNCTION(exportECMData) {
         write_ecm_lz4_buf(path.c_str(), grid_x, grid_y, grid_z, g_ecm_bufs[bi]);
     });
     g_ecm_buf_idx = 1 - bi;
+}
+
+// ============================================================================
+// LZ4-compressed binary writer for ductal structure output
+//
+// File format (.lz4):
+//   Bytes 0-3:   magic "DCT1"
+//   Bytes 4-7:   grid_x (int32)
+//   Bytes 8-11:  grid_y (int32)
+//   Bytes 12-15: grid_z (int32)
+//   Bytes 16-19: num_channels (int32) = 2
+//   Bytes 20-23: uncompressed_size (int32, bytes)
+//   Bytes 24-27: compressed_size (int32, bytes)
+//   Bytes 28+:   LZ4-compressed data
+//
+// Channel layout (all flattened in z-major order, gz*gy*gx per channel):
+//   Channel 0: face_flags     (uint8, cast to float32 for uniform layout)
+//   Channel 1: septum_density (float32, native)
+//
+// Python reader:
+//   import lz4.block, struct, numpy as np
+//   with open("ducts.lz4", "rb") as f:
+//       magic = f.read(4)
+//       gx, gy, gz, nc, raw_sz, comp_sz = struct.unpack('<6i', f.read(24))
+//       data = np.frombuffer(lz4.block.decompress(f.read(), raw_sz), dtype=np.float32)
+//       data = data.reshape(nc, gz, gy, gx)
+//       face_flags     = data[0].astype(np.uint8)
+//       septum_density = data[1]
+// ============================================================================
+static void write_ductal_lz4(const char* path, const PDAC::DuctalNetwork& net) {
+    try { std::filesystem::create_directories("outputs"); } catch (...) {}
+
+    const int total = net.total_voxels;
+    const int n_channels = 2;
+
+    // Download GPU arrays to host
+    std::vector<uint8_t> h_face_flags(total);
+    std::vector<float>   h_septum(total);
+
+    cudaMemcpy(h_face_flags.data(), net.d_face_flags,     total * sizeof(uint8_t), cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_septum.data(),     net.d_septum_density, total * sizeof(float),   cudaMemcpyDeviceToHost);
+
+    // Pack into float32 buffer: [face_flags_as_float, septum_density]
+    std::vector<float> buf(static_cast<size_t>(n_channels) * total);
+    for (int i = 0; i < total; ++i) buf[i]         = static_cast<float>(h_face_flags[i]);
+    for (int i = 0; i < total; ++i) buf[total + i] = h_septum[i];
+
+    const int raw_bytes = static_cast<int>(buf.size() * sizeof(float));
+    const int max_comp = LZ4_compressBound(raw_bytes);
+    std::vector<char> comp_buf(max_comp);
+    int comp_bytes = LZ4_compress_default(
+        reinterpret_cast<const char*>(buf.data()), comp_buf.data(), raw_bytes, max_comp);
+
+    if (comp_bytes <= 0) {
+        std::cerr << "[WARN] LZ4 compression failed for ductal output: " << path << std::endl;
+        return;
+    }
+
+    FILE* fp = fopen(path, "wb");
+    if (!fp) {
+        std::cerr << "[WARN] Could not open file for write: " << path << std::endl;
+        return;
+    }
+
+    fwrite("DCT1", 1, 4, fp);
+    fwrite(&net.grid_x, 4, 1, fp);
+    fwrite(&net.grid_y, 4, 1, fp);
+    fwrite(&net.grid_z, 4, 1, fp);
+    fwrite(&n_channels, 4, 1, fp);
+    fwrite(&raw_bytes, 4, 1, fp);
+    fwrite(&comp_bytes, 4, 1, fp);
+    fwrite(comp_buf.data(), 1, comp_bytes, fp);
+    fclose(fp);
 }
 
 // ============================================================================
@@ -818,6 +901,41 @@ int main(int argc, const char** argv) {
     }
     init_lap("init_pde");
 
+    // ========== DUCTAL NETWORK GENERATION (init_mode 1 only) ==========
+    // Declared in outer scope so GPU memory lives until program exit
+    PDAC::DuctalNetwork ductal_network;
+    if (config.init_mode == 1) {
+        if (config.grid_x < PDAC::DUCTAL_INIT_MIN_GRID ||
+            config.grid_y < PDAC::DUCTAL_INIT_MIN_GRID ||
+            config.grid_z < PDAC::DUCTAL_INIT_MIN_GRID) {
+            std::cerr << "[FATAL] init_mode=1 requires grid >= "
+                      << PDAC::DUCTAL_INIT_MIN_GRID << " per side (got "
+                      << config.grid_x << "x" << config.grid_y << "x" << config.grid_z << ")\n";
+            return 1;
+        }
+        std::cout << "\n=== Generating ductal network ===" << std::endl;
+        ductal_network = PDAC::generate_ductal_network(
+            config.grid_x, config.grid_y, config.grid_z,
+            config.voxel_size, config.random_seed);
+        std::cout << "  Ductal tree: " << ductal_network.nodes.size() << " nodes, "
+                  << ductal_network.total_voxels << " voxels" << std::endl;
+
+        PDAC::register_ductal_pointers(*model, ductal_network);
+
+        // Export ductal structure to LZ4 file
+        write_ductal_lz4("outputs/ducts.lz4", ductal_network);
+        std::cout << "  Exported ductal structure to outputs/ducts.lz4" << std::endl;
+
+        // Clear any stale CUDA errors from ductal generation
+        cudaError_t duct_err = cudaGetLastError();
+        if (duct_err != cudaSuccess) {
+            std::cerr << "[WARN] CUDA error after ductal generation: "
+                      << cudaGetErrorString(duct_err) << std::endl;
+        }
+
+        init_lap("init_ductal");
+    }
+
     // ========== GPU MEMORY QUERY (after PDE allocation) ==========
     size_t free_mem_1, total_mem_1;
     cudaMemGetInfo(&free_mem_1, &total_mem_1);
@@ -883,8 +1001,13 @@ int main(int argc, const char** argv) {
     init_lap("cuda_sim_create");
 
     // ========== INITIALIZE AGENTS ==========
-    std::cout << "Initializing agents from QSP steady-state..." << std::endl;
-    PDAC::initializeToQSP(simulation, *model, config, _lymph);
+    if (config.init_mode == 1) {
+        std::cout << "Initializing agents (ductal mode)..." << std::endl;
+        PDAC::initializeWholePDAC(simulation, *model, config, _lymph, ductal_network);
+    } else {
+        std::cout << "Initializing agents (sphere mode)..." << std::endl;
+        PDAC::initializeSphere(simulation, *model, config, _lymph);
+    }
     std::cout << "[DEBUG] Agent initialization complete" << std::endl;
     std::cout.flush();
     init_lap("init_agents");
@@ -1011,11 +1134,14 @@ int main(int argc, const char** argv) {
         {
             std::ofstream f("outputs/ecm_lz4_def.txt");
             f << "ECM snapshot LZ4 definition (.ecm.lz4)\n"
-              << "Header (28 bytes): magic='ECM1', grid_x(i32), grid_y(i32), grid_z(i32), n_channels=2(i32), raw_bytes(i32), comp_bytes(i32)\n"
-              << "Data: LZ4-compressed float32 array, shape (2, grid_z, grid_y, grid_x)\n"
+              << "Header (28 bytes): magic='ECM1', grid_x(i32), grid_y(i32), grid_z(i32), n_channels=5(i32), raw_bytes(i32), comp_bytes(i32)\n"
+              << "Data: LZ4-compressed float32 array, shape (5, grid_z, grid_y, grid_x)\n"
               << "Channel index -> field:\n"
               << "  0: ECM_density   (d_ecm_grid, smoothed ECM density [0..1])\n"
               << "  1: Fib_field     (d_fib_density_field, raw Gaussian fib density)\n"
+              << "  2: Orient_x      (d_ecm_orient_x, fiber orientation x component)\n"
+              << "  3: Orient_y      (d_ecm_orient_y, fiber orientation y component)\n"
+              << "  4: Orient_z      (d_ecm_orient_z, fiber orientation z component)\n"
               << "Loading:\n"
               << "  import lz4.block, struct, numpy as np\n"
               << "  with open('ecm_step_000001.ecm.lz4', 'rb') as f:\n"
@@ -1023,7 +1149,31 @@ int main(int argc, const char** argv) {
               << "      gx, gy, gz, nc, raw_sz, comp_sz = struct.unpack('<6i', f.read(24))\n"
               << "      data = np.frombuffer(lz4.block.decompress(f.read(), raw_sz), dtype=np.float32)\n"
               << "      data = data.reshape(nc, gz, gy, gx)\n"
-              << "      ecm = data[0]; fib = data[1]\n";
+              << "      ecm = data[0]; fib = data[1]; ox = data[2]; oy = data[3]; oz = data[4]\n";
+        }
+        {
+            std::ofstream f("outputs/ductal_lz4_def.txt");
+            f << "Ductal structure LZ4 definition (.lz4)\n"
+              << "Header (28 bytes): magic='DCT1', grid_x(i32), grid_y(i32), grid_z(i32), n_channels=2(i32), raw_bytes(i32), comp_bytes(i32)\n"
+              << "Data: LZ4-compressed float32 array, shape (2, grid_z, grid_y, grid_x)\n"
+              << "Channel index -> field:\n"
+              << "  0: face_flags     (uint8 cast to float32, 6-bit ductal wall face flags)\n"
+              << "     bit 0 (0x01): wall on -x face\n"
+              << "     bit 1 (0x02): wall on +x face\n"
+              << "     bit 2 (0x04): wall on -y face\n"
+              << "     bit 3 (0x08): wall on +y face\n"
+              << "     bit 4 (0x10): wall on -z face\n"
+              << "     bit 5 (0x20): wall on +z face\n"
+              << "  1: septum_density (float32, static septum ECM density [0..1])\n"
+              << "Loading:\n"
+              << "  import lz4.block, struct, numpy as np\n"
+              << "  with open('ducts.lz4', 'rb') as f:\n"
+              << "      magic = f.read(4)\n"
+              << "      gx, gy, gz, nc, raw_sz, comp_sz = struct.unpack('<6i', f.read(24))\n"
+              << "      data = np.frombuffer(lz4.block.decompress(f.read(), raw_sz), dtype=np.float32)\n"
+              << "      data = data.reshape(nc, gz, gy, gx)\n"
+              << "      face_flags = data[0].astype(np.uint8)\n"
+              << "      septum_density = data[1]\n";
         }
     }
 

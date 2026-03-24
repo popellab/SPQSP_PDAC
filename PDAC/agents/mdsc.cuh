@@ -276,6 +276,9 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone)
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
 
+    const uint8_t* face_flags = reinterpret_cast<const uint8_t*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("face_flags_ptr"));
+
     const float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
 
     // === RUN PHASE (tumble == 0) ===
@@ -307,7 +310,11 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone)
         int tz = z + static_cast<int>(std::round(move_dir_z));
 
         if (tx < 0 || tx >= grid_x || ty < 0 || ty >= grid_y || tz < 0 || tz >= grid_z) {
-            // FLAMEGPU->setVariable<int>("tumble", 1);
+            return flamegpu::ALIVE;
+        }
+
+        // Ductal wall check
+        if (is_ductal_wall_blocked(face_flags, x, y, z, tx-x, ty-y, tz-z, grid_x, grid_y)) {
             return flamegpu::ALIVE;
         }
 
@@ -329,6 +336,7 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone)
             if (di==0 && dj==0 && dk==0) continue;
             int nx = x+di, ny = y+dj, nz = z+dk;
             if (nx<0||nx>=grid_x||ny<0||ny>=grid_y||nz<0||nz>=grid_z) continue;
+            if (is_ductal_wall_blocked(face_flags, x, y, z, di, dj, dk, grid_x, grid_y)) continue;
             if (occ[nx][ny][nz][CELL_TYPE_MDSC] != 0u) continue;
             cand_x[n_cands] = nx; cand_y[n_cands] = ny; cand_z[n_cands] = nz;
             n_cands++;

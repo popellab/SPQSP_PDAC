@@ -329,6 +329,9 @@ FLAMEGPU_AGENT_FUNCTION(tcell_divide, flamegpu::MessageNone, flamegpu::MessageNo
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
 
+    const uint8_t* face_flags = reinterpret_cast<const uint8_t*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("face_flags_ptr"));
+
     // Collect Moore (26-direction) neighbors below T cell capacity
     int cand_x[26], cand_y[26], cand_z[26];
     int n_cands = 0;
@@ -338,6 +341,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_divide, flamegpu::MessageNone, flamegpu::MessageNo
         get_moore_direction(i, dx, dy, dz);
         const int nx = my_x + dx, ny = my_y + dy, nz = my_z + dz;
         if (!is_in_bounds(nx, ny, nz, size_x, size_y, size_z)) continue;
+        if (is_ductal_wall_blocked(face_flags, my_x, my_y, my_z, dx, dy, dz, size_x, size_y)) continue;
 
         bool has_cancer = (occ[nx][ny][nz][CELL_TYPE_CANCER] > 0u);
         max_cap[n_cands] = static_cast<unsigned int>(has_cancer ? MAX_T_PER_VOXEL_WITH_CANCER : MAX_T_PER_VOXEL);
@@ -502,6 +506,9 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
 
+    const uint8_t* face_flags = reinterpret_cast<const uint8_t*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("face_flags_ptr"));
+
     int target_x = x;
     int target_y = y;
     int target_z = z;
@@ -520,7 +527,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
             FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Y))[voxel_mv];
         const float grad_z = reinterpret_cast<const float*>(
             FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Z))[voxel_mv];
-        
+
         float v_x = move_dir_x / dt;
         float v_y = move_dir_y / dt;
         float v_z = move_dir_z / dt;
@@ -548,7 +555,11 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
         int tz = z + static_cast<int>(std::round(move_dir_z));
 
         if (tx < 0 || tx >= grid_x || ty < 0 || ty >= grid_y || tz < 0 || tz >= grid_z) {
-            // FLAMEGPU->setVariable<int>("tumble", 1);
+            return flamegpu::ALIVE;
+        }
+
+        // Ductal wall check
+        if (is_ductal_wall_blocked(face_flags, x, y, z, tx-x, ty-y, tz-z, grid_x, grid_y)) {
             return flamegpu::ALIVE;
         }
 
@@ -560,7 +571,6 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
         const unsigned int old_count = occ[tx][ty][tz][CELL_TYPE_T] + 1u;
         if (old_count >= max_t) {
             occ[tx][ty][tz][CELL_TYPE_T] -= 1u;  // undo — voxel was full
-            // FLAMEGPU->setVariable<int>("tumble", 1);
         } else {
             occ[x][y][z][CELL_TYPE_T] -= 1u;
             FLAMEGPU->setVariable<int>("x", tx);
@@ -577,6 +587,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
             if (di==0 && dj==0 && dk==0) continue;
             int nx = x+di, ny = y+dj, nz = z+dk;
             if (nx<0||nx>=grid_x||ny<0||ny>=grid_y||nz<0||nz>=grid_z) continue;
+            if (is_ductal_wall_blocked(face_flags, x, y, z, di, dj, dk, grid_x, grid_y)) continue;
             unsigned int max_t = (occ[nx][ny][nz][CELL_TYPE_CANCER] > 0u)
                 ? static_cast<unsigned int>(MAX_T_PER_VOXEL_WITH_CANCER)
                 : static_cast<unsigned int>(MAX_T_PER_VOXEL);

@@ -6,6 +6,43 @@
 
 namespace PDAC {
 
+// ============================================================================
+// Helper: Deposit radial outward stress kernel around a cancer cell position.
+// Pushes ECM orientation away from the cancer cell (expansion pressure).
+// Called on successful movement and division events.
+// ============================================================================
+__device__ void deposit_cancer_stress(
+    float* reorient_x, float* reorient_y, float* reorient_z,
+    int cx, int cy, int cz,
+    int grid_x, int grid_y, int grid_z,
+    float strength)
+{
+    const int stress_radius = 5;
+    const float variance = 4.0f;  // sigma^2 = 2^2
+
+    for (int dx = -stress_radius; dx <= stress_radius; dx++) {
+        int nx = cx + dx;
+        if (nx < 0 || nx >= grid_x) continue;
+        for (int dy = -stress_radius; dy <= stress_radius; dy++) {
+            int ny = cy + dy;
+            if (ny < 0 || ny >= grid_y) continue;
+            for (int dz = -stress_radius; dz <= stress_radius; dz++) {
+                int nz = cz + dz;
+                if (nz < 0 || nz >= grid_z) continue;
+                float dist_sq = static_cast<float>(dx * dx + dy * dy + dz * dz);
+                if (dist_sq < 1e-6f) continue;  // skip self
+                float weight = strength * expf(-dist_sq / (2.0f * variance));
+                float inv_dist = rsqrtf(dist_sq);
+                int vidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
+                // Radial outward: direction from cancer cell to voxel = (dx, dy, dz)
+                atomicAdd(&reorient_x[vidx], weight * dx * inv_dist);
+                atomicAdd(&reorient_y[vidx], weight * dy * inv_dist);
+                atomicAdd(&reorient_z[vidx], weight * dz * inv_dist);
+            }
+        }
+    }
+}
+
 // CancerCell agent function: Broadcast location to spatial message list
 FLAMEGPU_AGENT_FUNCTION(cancer_broadcast_location, flamegpu::MessageNone, flamegpu::MessageSpatial3D) {
     const int x = FLAMEGPU->getVariable<int>("x");
@@ -198,6 +235,9 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
 
+    const uint8_t* face_flags = reinterpret_cast<const uint8_t*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("face_flags_ptr"));
+
     // Collect Moore (26-direction) neighbors that appear empty for cancer and MDSC.
     int cand_x[26], cand_y[26], cand_z[26];
     int n_cands = 0;
@@ -206,6 +246,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
         get_moore_direction(i, dx, dy, dz);
         const int nx = my_x + dx, ny = my_y + dy, nz = my_z + dz;
         if (!is_in_bounds(nx, ny, nz, size_x, size_y, size_z)) continue;
+        if (is_ductal_wall_blocked(face_flags, my_x, my_y, my_z, dx, dy, dz, size_x, size_y)) continue;
         // Empty for cancer AND not occupied by MDSC (matching execute_divide logic)
         if (occ[nx][ny][nz][CELL_TYPE_CANCER] == 0u &&
             occ[nx][ny][nz][CELL_TYPE_FIB] == 0u) {
@@ -611,8 +652,19 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
 
+    const uint8_t* face_flags = reinterpret_cast<const uint8_t*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("face_flags_ptr"));
+
+    // ECM orientation field for contact guidance
+    const float* orient_x = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("ecm_orient_x_ptr"));
+    const float* orient_y = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("ecm_orient_y_ptr"));
+    const float* orient_z = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("ecm_orient_z_ptr"));
+
     // Moore neighborhood offsets (26 directions)
-    // Build candidate list: neighbors empty of cancer and Fibs and low T numbers
+    // Build candidate list: neighbors empty of cancer and Fibs, filtered by contact guidance
     int cands[26];
     int n_cands = 0;
     for (int i = 0; i < 26; i++) {
@@ -622,8 +674,22 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
         int ny = y + ddy;
         int nz = z + ddz;
         if (nx < 0 || nx >= size_x || ny < 0 || ny >= size_y || nz < 0 || nz >= size_z) continue;
+        if (is_ductal_wall_blocked(face_flags, x, y, z, ddx, ddy, ddz, size_x, size_y)) continue;
         if (occ[nx][ny][nz][CELL_TYPE_CANCER] == 0u && occ[nx][ny][nz][CELL_TYPE_FIB] == 0u) {
-            cands[n_cands++] = i;
+            // Contact guidance: check alignment of move direction with fiber orientation
+            // at target voxel. Accept with probability based on |cos(theta)| (0→1 normalized).
+            int tidx = nz * (size_x * size_y) + ny * size_x + nx;
+            float fx = orient_x[tidx], fy = orient_y[tidx], fz = orient_z[tidx];
+            float move_len = sqrtf(static_cast<float>(ddx*ddx + ddy*ddy + ddz*ddz));
+            float cos_theta = (ddx * fx + ddy * fy + ddz * fz) / move_len;
+            // Use absolute value: fibers are undirected (moving along OR against is fine)
+            float alignment = fabsf(cos_theta);  // 0 = perpendicular, 1 = aligned
+            // Accept with probability = alignment (fully aligned → always accept,
+            // perpendicular → never accept). Add floor so cells aren't completely stuck.
+            float p_accept = 0.3f + 0.7f * alignment;
+            if (FLAMEGPU->random.uniform<float>() < p_accept) {
+                cands[n_cands++] = i;
+            }
         }
     }
     if (n_cands == 0) return flamegpu::ALIVE;
@@ -649,6 +715,17 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
             FLAMEGPU->setVariable<int>("x", nx);
             FLAMEGPU->setVariable<int>("y", ny);
             FLAMEGPU->setVariable<int>("z", nz);
+
+            // Deposit radial outward stress kernel at new position
+            float* reorient_x = reinterpret_cast<float*>(
+                FLAMEGPU->environment.getProperty<uint64_t>("ecm_reorient_x_ptr"));
+            float* reorient_y = reinterpret_cast<float*>(
+                FLAMEGPU->environment.getProperty<uint64_t>("ecm_reorient_y_ptr"));
+            float* reorient_z = reinterpret_cast<float*>(
+                FLAMEGPU->environment.getProperty<uint64_t>("ecm_reorient_z_ptr"));
+            deposit_cancer_stress(reorient_x, reorient_y, reorient_z,
+                nx, ny, nz, size_x, size_y, size_z, 0.3f);
+
             break;
         }
     }

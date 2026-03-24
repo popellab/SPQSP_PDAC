@@ -41,6 +41,11 @@ struct SimulationConfig {
     float dt_abm;           // ABM timestep (seconds)
     int molecular_steps;    // PDE substeps per ABM step
 
+    // Initialization mode
+    // 0 = test mode (no ductal structure, quick init)
+    // 1 = production mode (ductal network + full tissue init)
+    int init_mode;
+
     // Output parameters
     // grid_out: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both
     int grid_out;
@@ -114,11 +119,22 @@ void initializeVascularCellsTest(
 
 // Initialize agent populations seeded from QSP steady-state (after QSP warmup)
 // Computes cluster_radius and immune cell counts from QSP tumor volume and species
-void initializeToQSP(
+// Used for -i 0 (test mode, no ductal structure)
+void initializeSphere(
     flamegpu::CUDASimulation& simulation,
     flamegpu::ModelDescription& model,
     const SimulationConfig& config,
     const LymphCentralWrapper& lymph);
+
+// Production initialization for -i 1 (ductal network mode).
+// Places cancer cells inside duct lumen, vasculature/fibroblasts/immune in stroma.
+struct DuctalNetwork;  // forward declaration (defined in ductal_init.cuh)
+void initializeWholePDAC(
+    flamegpu::CUDASimulation& simulation,
+    flamegpu::ModelDescription& model,
+    const SimulationConfig& config,
+    const LymphCentralWrapper& lymph,
+    const DuctalNetwork& ductal_network);
 
 // Test initialization for neighbor scanning diagnostics (init_method=2)
 // Places exactly 3 agents in an 11^3 grid to test macrophage-cancer neighbor detection

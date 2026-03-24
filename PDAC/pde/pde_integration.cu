@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <nvtx3/nvToolsExt.h>
 #include <cmath>
+#include <random>
 
 // ============================================================================
 // Layer Timing Globals (defined once here, declared extern in layer_timing.h)
@@ -55,6 +56,18 @@ static unsigned int* d_vas_tip_id_grid = nullptr;
 // Layout: idx = z * (nx * ny) + y * nx + x  (z-major, x-minor; matches PDE convention)
 static float* d_ecm_grid = nullptr;
 static float* d_fib_density_field = nullptr;
+
+// ECM orientation field: unit vector (ox, oy, oz) per voxel representing dominant fiber direction.
+// Initialized with random unit vectors; reshaped each step by fibroblast traction and cancer stress.
+static float* d_ecm_orient_x = nullptr;
+static float* d_ecm_orient_y = nullptr;
+static float* d_ecm_orient_z = nullptr;
+
+// Per-step reorientation accumulator: fibroblasts add traction vectors, cancer adds stress vectors.
+// Zeroed at start of each step, then blended into orientation field in update_ecm_orientation.
+static float* d_ecm_reorient_x = nullptr;
+static float* d_ecm_reorient_y = nullptr;
+static float* d_ecm_reorient_z = nullptr;
 
 // Flat occupancy arrays for GPU recruitment kernel (populated by agent write_to_occ_grid).
 // d_t_occ: T cell + TReg count per voxel (only CELL_TYPE_T and CELL_TYPE_TREG increment).
@@ -130,6 +143,31 @@ __global__ void update_ecm_grid_kernel(
     new_ecm = fmaxf(new_ecm, ecm_baseline);
 
     ecm[idx] = new_ecm;
+}
+
+// ============================================================================
+// CUDA Kernel: Update ECM orientation from reorientation accumulator
+// orient = normalize(orient + rate * reorient)
+// ============================================================================
+__global__ void update_ecm_orientation_kernel(
+    float* ox, float* oy, float* oz,
+    const float* rx, const float* ry, const float* rz,
+    int total_voxels, float blend_rate)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= total_voxels) return;
+
+    float nx = ox[idx] + blend_rate * rx[idx];
+    float ny = oy[idx] + blend_rate * ry[idx];
+    float nz = oz[idx] + blend_rate * rz[idx];
+
+    float len = sqrtf(nx * nx + ny * ny + nz * nz);
+    if (len > 1e-8f) {
+        ox[idx] = nx / len;
+        oy[idx] = ny / len;
+        oz[idx] = nz / len;
+    }
+    // If len ≈ 0 (opposing forces cancel), keep old orientation unchanged
 }
 
 // ============================================================================
@@ -255,6 +293,21 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     CUDA_CHECK(cudaMalloc(&d_fib_density_field, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_fib_density_field, 0, total_voxels * sizeof(float)));
 
+    // Allocate ECM orientation field (3 floats per voxel) + reorientation accumulator
+    // Orientation initialized with random unit vectors via initialize_ecm_orientation()
+    CUDA_CHECK(cudaMalloc(&d_ecm_orient_x, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_ecm_orient_y, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_ecm_orient_z, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_orient_x, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_orient_y, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_orient_z, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_ecm_reorient_x, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_ecm_reorient_y, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_ecm_reorient_z, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_reorient_x, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_reorient_y, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_reorient_z, 0, total_voxels * sizeof(float)));
+
     // Allocate flat occupancy arrays for GPU recruitment kernel
     CUDA_CHECK(cudaMalloc(&d_t_occ, total_voxels * sizeof(unsigned int)));
     CUDA_CHECK(cudaMemset(d_t_occ, 0, total_voxels * sizeof(unsigned int)));
@@ -332,6 +385,22 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
     model.Environment().newProperty<unsigned long long>("fib_density_field_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_fib_density_field)));
 
+    // ECM orientation field pointers (read by agents for contact guidance)
+    model.Environment().newProperty<unsigned long long>("ecm_orient_x_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_orient_x)));
+    model.Environment().newProperty<unsigned long long>("ecm_orient_y_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_orient_y)));
+    model.Environment().newProperty<unsigned long long>("ecm_orient_z_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_orient_z)));
+
+    // ECM reorientation accumulator pointers (written by agents: fibroblast traction + cancer stress)
+    model.Environment().newProperty<unsigned long long>("ecm_reorient_x_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_reorient_x)));
+    model.Environment().newProperty<unsigned long long>("ecm_reorient_y_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_reorient_y)));
+    model.Environment().newProperty<unsigned long long>("ecm_reorient_z_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_reorient_z)));
+
     // Store flat occupancy array pointers for GPU recruitment kernel
     model.Environment().newProperty<unsigned long long>("t_occ_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_t_occ)));
@@ -360,6 +429,12 @@ void cleanup_pde_solver() {
         cudaFree(d_fib_density_field);
         d_fib_density_field = nullptr;
     }
+    if (d_ecm_orient_x)  { cudaFree(d_ecm_orient_x);  d_ecm_orient_x = nullptr; }
+    if (d_ecm_orient_y)  { cudaFree(d_ecm_orient_y);  d_ecm_orient_y = nullptr; }
+    if (d_ecm_orient_z)  { cudaFree(d_ecm_orient_z);  d_ecm_orient_z = nullptr; }
+    if (d_ecm_reorient_x) { cudaFree(d_ecm_reorient_x); d_ecm_reorient_x = nullptr; }
+    if (d_ecm_reorient_y) { cudaFree(d_ecm_reorient_y); d_ecm_reorient_y = nullptr; }
+    if (d_ecm_reorient_z) { cudaFree(d_ecm_reorient_z); d_ecm_reorient_z = nullptr; }
     if (d_vas_tip_id_grid) {
         cudaFree(d_vas_tip_id_grid);
         d_vas_tip_id_grid = nullptr;
@@ -384,7 +459,35 @@ void initialize_ecm_to_saturation(float ecm_saturation) {
 
 float* get_ecm_grid_device_ptr() { return d_ecm_grid; }
 float* get_fib_density_field_device_ptr() { return d_fib_density_field; }
+float* get_ecm_orient_x_device_ptr() { return d_ecm_orient_x; }
+float* get_ecm_orient_y_device_ptr() { return d_ecm_orient_y; }
+float* get_ecm_orient_z_device_ptr() { return d_ecm_orient_z; }
 unsigned int* get_vas_tip_id_grid_device_ptr() { return d_vas_tip_id_grid; }
+
+void initialize_ecm_orientation(unsigned int seed) {
+    if (!d_ecm_orient_x || !g_pde_solver) return;
+    int total_voxels = g_pde_solver->get_total_voxels();
+
+    // Generate random unit vectors on host, upload to device
+    std::mt19937 rng(seed + 999);  // offset seed to avoid correlation with agent init
+    std::uniform_real_distribution<float> dist_z(-1.0f, 1.0f);
+    std::uniform_real_distribution<float> dist_phi(0.0f, 6.283185307f);
+
+    std::vector<float> h_ox(total_voxels), h_oy(total_voxels), h_oz(total_voxels);
+    for (int i = 0; i < total_voxels; i++) {
+        float z = dist_z(rng);
+        float phi = dist_phi(rng);
+        float r = sqrtf(1.0f - z * z);
+        h_ox[i] = r * cosf(phi);
+        h_oy[i] = r * sinf(phi);
+        h_oz[i] = z;
+    }
+
+    CUDA_CHECK(cudaMemcpy(d_ecm_orient_x, h_ox.data(), total_voxels * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_ecm_orient_y, h_oy.data(), total_voxels * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_ecm_orient_z, h_oz.data(), total_voxels * sizeof(float), cudaMemcpyHostToDevice));
+    std::cout << "[ECM] Initialized orientation field with random unit vectors (seed=" << seed << ")" << std::endl;
+}
 
 // ============================================================================
 // Recruitment System Implementation
@@ -1126,6 +1229,44 @@ FLAMEGPU_HOST_FUNCTION(zero_fib_density_field) {
         int total_voxels = g_pde_solver->get_total_voxels();
         cudaMemset(d_fib_density_field, 0, total_voxels * sizeof(float));
     }
+    nvtxRangePop();
+}
+
+// ============================================================================
+// Zero ECM reorientation accumulator (reset before agents scatter traction/stress)
+// ============================================================================
+FLAMEGPU_HOST_FUNCTION(zero_ecm_reorient_field) {
+    nvtxRangePush("Zero ECM Reorient");
+    if (d_ecm_reorient_x && g_pde_solver) {
+        int total_voxels = g_pde_solver->get_total_voxels();
+        cudaMemset(d_ecm_reorient_x, 0, total_voxels * sizeof(float));
+        cudaMemset(d_ecm_reorient_y, 0, total_voxels * sizeof(float));
+        cudaMemset(d_ecm_reorient_z, 0, total_voxels * sizeof(float));
+    }
+    nvtxRangePop();
+}
+
+// ============================================================================
+// Update ECM orientation field from accumulated reorientation vectors.
+// Called after fibroblasts and cancer cells have scattered traction/stress.
+// ============================================================================
+FLAMEGPU_HOST_FUNCTION(update_ecm_orientation) {
+    nvtxRangePush("Update ECM Orientation");
+    if (!d_ecm_orient_x || !g_pde_solver) { nvtxRangePop(); return; }
+
+    int total_voxels = g_pde_solver->get_total_voxels();
+    // Blend rate controls how quickly orientation responds to forces.
+    // 0.1 = moderate responsiveness (10% of accumulated force per step)
+    const float blend_rate = 0.1f;
+
+    int block_size = 256;
+    int grid_size = (total_voxels + block_size - 1) / block_size;
+    update_ecm_orientation_kernel<<<grid_size, block_size>>>(
+        d_ecm_orient_x, d_ecm_orient_y, d_ecm_orient_z,
+        d_ecm_reorient_x, d_ecm_reorient_y, d_ecm_reorient_z,
+        total_voxels, blend_rate);
+    cudaDeviceSynchronize();
+
     nvtxRangePop();
 }
 

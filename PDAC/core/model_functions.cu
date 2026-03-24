@@ -244,6 +244,8 @@ void set_internal_params(flamegpu::ModelDescription& model, const PDAC::LymphCen
     // Initialize ECM grid to saturation (matches HCC: all voxels start fully saturated,
     // so cancer movement is strongly restricted from step 0, not only after fibroblasts deposit ECM).
     PDAC::initialize_ecm_to_saturation(static_cast<float>(QP(CancerVCT::P_ECM_max) * 1e3));
+    // Initialize ECM orientation field with random unit vectors
+    PDAC::initialize_ecm_orientation(12345);  // deterministic seed for reproducibility
     // mean lifespan of fibroblast in timesteps (use avg of fib and CAF death rates)
     env.newProperty<float>("PARAM_FIB_LIFE_MEAN",
                     1.0f / ((QP(CancerVCT::P_k_fib_death) + QP(CancerVCT::P_k_CAF_death)) / 2.0)

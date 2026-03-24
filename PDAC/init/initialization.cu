@@ -1,4 +1,5 @@
 #include "initialization.cuh"
+#include "ductal_init.cuh"
 #include "../core/common.cuh"
 #include "../abm/gpu_param.h"
 #include <iostream>
@@ -9,6 +10,8 @@
 #include <algorithm>
 #include <random>
 #include <vector>
+#include <queue>
+#include <unordered_set>
 
 namespace PDAC {
 
@@ -22,6 +25,7 @@ SimulationConfig::SimulationConfig()
     , cluster_radius(5)
     , vascular_mode("random")
     , vascular_xml_file("")
+    , init_mode(0)
     , grid_out(0)
     , interval_out(1)
 {
@@ -57,6 +61,8 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             vascular_mode = argv[++i];
         } else if ((arg == "--vascular-xml" || arg == "-vx") && i + 1 < argc) {
             vascular_xml_file = argv[++i];
+        } else if ((arg == "--init-mode" || arg == "-i") && i + 1 < argc) {
+            init_mode = std::atoi(argv[++i]);
         } else if (arg == "-h" || arg == "--help") {
             std::cout << "Usage: " << argv[0] << " [options]\n"
                       << "\nOptions:\n"
@@ -66,6 +72,7 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  -G, --grid-output N      Grid output: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both [default: 0]\n"
                       << "  -oi, --out_int N         Output interval frequency [default: 1]\n"
                       << "  --seed N                 Random seed [default: 12345]\n"
+                      << "  -i, --init-mode N        Init mode: 0=test (quick), 1=production (ductal network) [default: 0]\n"
                       << "  -vm, --vascular-mode STR Vasculature initialization: random, xml, test [default: random]\n"
                       << "  -vx, --vascular-xml FILE XML file for vasculature (when mode=xml)\n"
                       << "  -h, --help               Show this help\n";
@@ -89,6 +96,7 @@ void SimulationConfig::print() const {
     std::cout << "Random seed: " << random_seed << std::endl;
     
     std::cout << "\nInitial Cell Populations:" << std::endl;
+    std::cout << "  Init mode: " << init_mode << (init_mode == 1 ? " (production — ductal network)" : " (test — quick)") << std::endl;
     std::cout << "  Tumor radius: " << cluster_radius << " voxels" << std::endl;
 
     std::cout << "\nPDE Integration:" << std::endl;
@@ -867,7 +875,7 @@ std::vector<double> get_celltype_cdf(flamegpu::ModelDescription& model){
 // QSP-Seeded Initialization
 // ============================================================================
 
-void initializeToQSP(
+void initializeSphere(
     flamegpu::CUDASimulation& simulation,
     flamegpu::ModelDescription& model,
     const SimulationConfig& config,
@@ -1074,7 +1082,929 @@ void initializeToQSP(
         std::cout << "[DEBUG] Vascular population set" << std::endl;
     }
 
-    std::cout << "QSP-based agent initialization complete\n" << std::endl;
+    std::cout << "Sphere-based agent initialization complete\n" << std::endl;
+}
+
+// ============================================================================
+// Helper: find free adjacent voxel constrained to stroma
+// ============================================================================
+static bool findFreeAdjacentStroma(int x, int y, int z,
+                                    int grid_x, int grid_y, int grid_z,
+                                    std::vector<std::vector<int>>& occupied,
+                                    const std::vector<uint8_t>& wall_mask,
+                                    int& nx, int& ny, int& nz)
+{
+    int ddx[6] = {1,-1,0,0,0,0};
+    int ddy[6] = {0,0,1,-1,0,0};
+    int ddz[6] = {0,0,0,0,1,-1};
+    for (int i = 5; i > 0; i--) {
+        int j = rand() % (i + 1);
+        std::swap(ddx[i], ddx[j]);
+        std::swap(ddy[i], ddy[j]);
+        std::swap(ddz[i], ddz[j]);
+    }
+    for (int i = 0; i < 6; i++) {
+        int cx = x + ddx[i];
+        int cy = y + ddy[i];
+        int cz = z + ddz[i];
+        if (cx < 0 || cx >= grid_x || cy < 0 || cy >= grid_y || cz < 0 || cz >= grid_z) continue;
+        int idx = cx + cy * grid_x + cz * grid_x * grid_y;
+        if (wall_mask[idx] != TISSUE_NONE) continue;
+        if (occupied[idx][0] == 0 && occupied[idx][1] == 0) {
+            nx = cx; ny = cy; nz = cz;
+            return true;
+        }
+    }
+    return false;
+}
+
+// ============================================================================
+// Periductal Vascular Tree Generation
+// ============================================================================
+// Generates a vascular network in stroma with:
+//   Phase 1: Trunk vessels from domain boundaries, random walk inward
+//   Phase 2: Branches that increase near duct walls (periductal plexus)
+//   Phase 3: Short capillary segments in lobular stroma (septum-weighted)
+// All vessels are constrained to stroma voxels (wall_mask == TISSUE_NONE).
+
+static void initializeVascularPeriductal(
+    flamegpu::AgentVector& vascular_agents,
+    int gx, int gy, int gz,
+    const std::vector<uint8_t>& wall_mask,
+    const std::vector<float>& dist_to_wall,
+    const std::vector<float>& septum_density,
+    float branch_prob,
+    std::mt19937& rng)
+{
+    auto u01 = [&]() { return std::uniform_real_distribution<float>(0.0f, 1.0f)(rng); };
+    auto vidx = [&](int x, int y, int z) { return x + y * gx + z * gx * gy; };
+    auto in_bounds = [&](int x, int y, int z) {
+        return x >= 0 && x < gx && y >= 0 && y < gy && z >= 0 && z < gz;
+    };
+    auto is_stroma = [&](int x, int y, int z) {
+        return in_bounds(x, y, z) && wall_mask[vidx(x, y, z)] == TISSUE_NONE;
+    };
+
+    // Track occupied vascular positions to avoid doubling up
+    std::unordered_set<int> vas_occupied;
+
+    auto place_phalanx = [&](int x, int y, int z, float dx, float dy, float dz, int branch_flag) -> bool {
+        int idx = vidx(x, y, z);
+        if (vas_occupied.count(idx)) return false;
+        vas_occupied.insert(idx);
+        vascular_agents.push_back();
+        auto agent = vascular_agents.back();
+        setVascularCellVariables(agent, x, y, z, 2 /*VAS_PHALANX*/, dx, dy, dz, 1u, branch_flag);
+        return true;
+    };
+
+    // ── Phase 1 & 2: Trunk vessels with periductal branching ──────────────
+    //
+    // Start N trunk vessels from random positions on the 6 grid faces.
+    // Each trunk does a biased random walk inward with high persistence.
+    // When near duct walls, branching probability increases.
+    // Branches do shorter walks with lower persistence.
+
+    const int n_entries = 10;              // number of trunk vessels
+    const int trunk_max_len = gx + gy;    // max steps per trunk
+    const int branch_max_len = 40;        // max steps per branch
+    const int max_branch_depth = 3;       // trunk=0, branch=1, sub-branch=2, ...
+    const float persistence_trunk = 0.85f;
+    const float persistence_branch = 0.6f;
+    const float p_branch_base = 0.02f;    // base branching probability per step
+    const float p_branch_periductal = 0.15f;  // additional near duct walls
+    const float periductal_decay = 5.0f;  // distance scale for periductal boost
+
+    struct WalkState {
+        int x, y, z;
+        float dx, dy, dz;  // current direction (unit-ish)
+        int steps_remaining;
+        int depth;
+    };
+
+    std::vector<WalkState> walk_queue;
+
+    // Seed trunk entry points on grid faces
+    for (int e = 0; e < n_entries; e++) {
+        int face = e % 6;
+        int sx, sy, sz;
+        float ddx = 0, ddy = 0, ddz = 0;
+
+        // Pick random position on the chosen face, direction inward
+        switch (face) {
+            case 0: sx = 0;      sy = static_cast<int>(u01() * (gy-1)); sz = static_cast<int>(u01() * (gz-1)); ddx =  1; break;
+            case 1: sx = gx - 1; sy = static_cast<int>(u01() * (gy-1)); sz = static_cast<int>(u01() * (gz-1)); ddx = -1; break;
+            case 2: sy = 0;      sx = static_cast<int>(u01() * (gx-1)); sz = static_cast<int>(u01() * (gz-1)); ddy =  1; break;
+            case 3: sy = gy - 1; sx = static_cast<int>(u01() * (gx-1)); sz = static_cast<int>(u01() * (gz-1)); ddy = -1; break;
+            case 4: sz = 0;      sx = static_cast<int>(u01() * (gx-1)); sy = static_cast<int>(u01() * (gy-1)); ddz =  1; break;
+            case 5: sz = gz - 1; sx = static_cast<int>(u01() * (gx-1)); sy = static_cast<int>(u01() * (gy-1)); ddz = -1; break;
+        }
+
+        // Find a stroma entry point (search inward if face voxel is blocked)
+        for (int step = 0; step < 20; step++) {
+            if (is_stroma(sx, sy, sz)) break;
+            sx += static_cast<int>(ddx);
+            sy += static_cast<int>(ddy);
+            sz += static_cast<int>(ddz);
+        }
+        if (!is_stroma(sx, sy, sz)) continue;
+
+        walk_queue.push_back({sx, sy, sz, ddx, ddy, ddz, trunk_max_len, 0});
+    }
+
+    // Process walk queue (BFS-like: trunks spawn branches, branches spawn sub-branches)
+    int total_placed = 0;
+    int branches_spawned = 0;
+
+    while (!walk_queue.empty()) {
+        WalkState ws = walk_queue.back();
+        walk_queue.pop_back();
+
+        float persistence = (ws.depth == 0) ? persistence_trunk : persistence_branch;
+        float cur_dx = ws.dx, cur_dy = ws.dy, cur_dz = ws.dz;
+        int cx = ws.x, cy = ws.y, cz = ws.z;
+
+        for (int step = 0; step < ws.steps_remaining; step++) {
+            // Place phalanx at current position
+            if (is_stroma(cx, cy, cz)) {
+                place_phalanx(cx, cy, cz, cur_dx, cur_dy, cur_dz, 0);
+                total_placed++;
+            }
+
+            // Check branching
+            if (ws.depth < max_branch_depth) {
+                int cur_idx = vidx(cx, cy, cz);
+                float dw = (cur_idx >= 0 && cur_idx < gx*gy*gz) ? dist_to_wall[cur_idx] : 30.0f;
+                float p_branch = p_branch_base + p_branch_periductal * std::exp(-dw / periductal_decay);
+                if (u01() < p_branch) {
+                    // Pick a random perpendicular-ish direction for branch
+                    float bx = u01() - 0.5f;
+                    float by = u01() - 0.5f;
+                    float bz = u01() - 0.5f;
+                    // Reduce component along trunk direction to make branch roughly perpendicular
+                    float dot = bx * cur_dx + by * cur_dy + bz * cur_dz;
+                    bx -= dot * cur_dx * 0.7f;
+                    by -= dot * cur_dy * 0.7f;
+                    bz -= dot * cur_dz * 0.7f;
+                    float len = std::sqrt(bx*bx + by*by + bz*bz);
+                    if (len > 0.01f) { bx /= len; by /= len; bz /= len; }
+
+                    int b_max = branch_max_len / (ws.depth + 1);  // shorter at deeper levels
+                    walk_queue.push_back({cx, cy, cz, bx, by, bz, b_max, ws.depth + 1});
+                    branches_spawned++;
+                }
+            }
+
+            // Move: pick next position
+            // With probability=persistence, keep current direction + small perturbation
+            // Otherwise, pick a random 26-neighbor direction
+            float nx, ny, nz;
+            if (u01() < persistence) {
+                // Perturb current direction slightly
+                nx = cur_dx + (u01() - 0.5f) * 0.6f;
+                ny = cur_dy + (u01() - 0.5f) * 0.6f;
+                nz = cur_dz + (u01() - 0.5f) * 0.6f;
+            } else {
+                // Random tumble
+                nx = u01() - 0.5f;
+                ny = u01() - 0.5f;
+                nz = u01() - 0.5f;
+            }
+            // Normalize
+            float nlen = std::sqrt(nx*nx + ny*ny + nz*nz);
+            if (nlen > 0.01f) { nx /= nlen; ny /= nlen; nz /= nlen; }
+            cur_dx = nx; cur_dy = ny; cur_dz = nz;
+
+            // Step to nearest voxel in direction
+            int next_x = cx + static_cast<int>(std::round(cur_dx));
+            int next_y = cy + static_cast<int>(std::round(cur_dy));
+            int next_z = cz + static_cast<int>(std::round(cur_dz));
+
+            // Boundary reflection
+            if (next_x < 0) { next_x = 0; cur_dx = std::abs(cur_dx); }
+            if (next_x >= gx) { next_x = gx - 1; cur_dx = -std::abs(cur_dx); }
+            if (next_y < 0) { next_y = 0; cur_dy = std::abs(cur_dy); }
+            if (next_y >= gy) { next_y = gy - 1; cur_dy = -std::abs(cur_dy); }
+            if (next_z < 0) { next_z = 0; cur_dz = std::abs(cur_dz); }
+            if (next_z >= gz) { next_z = gz - 1; cur_dz = -std::abs(cur_dz); }
+
+            // If next position is not stroma, try up to 5 random neighbors
+            if (!is_stroma(next_x, next_y, next_z)) {
+                bool found = false;
+                for (int attempt = 0; attempt < 5; attempt++) {
+                    int rx = cx + (static_cast<int>(u01() * 3) - 1);
+                    int ry = cy + (static_cast<int>(u01() * 3) - 1);
+                    int rz = cz + (static_cast<int>(u01() * 3) - 1);
+                    if (is_stroma(rx, ry, rz)) {
+                        next_x = rx; next_y = ry; next_z = rz;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) break;  // walk terminates — stuck in non-stroma
+            }
+
+            cx = next_x; cy = next_y; cz = next_z;
+        }
+    }
+
+    // ── Phase 3: Capillary fill in lobular stroma ────────────────────────
+    // Place additional short random walks seeded from stroma voxels near
+    // septum boundaries, weighted by septum_density.
+    const int n_capillary_seeds = std::max(1, (gx * gy * gz) / 50000);  // ~160 for 200^3
+    const int capillary_walk_len = 20;
+
+    for (int cs = 0; cs < n_capillary_seeds; cs++) {
+        // Pick a random stroma voxel, weighted by septum density
+        int tries = 0;
+        int sx, sy, sz;
+        do {
+            sx = static_cast<int>(u01() * gx) % gx;
+            sy = static_cast<int>(u01() * gy) % gy;
+            sz = static_cast<int>(u01() * gz) % gz;
+            tries++;
+        } while (tries < 100 &&
+                 (!is_stroma(sx, sy, sz) ||
+                  u01() > (0.2f + septum_density[vidx(sx, sy, sz)])));
+
+        if (!is_stroma(sx, sy, sz)) continue;
+
+        // Short random walk
+        float dx = u01() - 0.5f, dy = u01() - 0.5f, dz = u01() - 0.5f;
+        float len = std::sqrt(dx*dx + dy*dy + dz*dz);
+        if (len > 0.01f) { dx /= len; dy /= len; dz /= len; }
+
+        int cx = sx, cy = sy, cz = sz;
+        for (int step = 0; step < capillary_walk_len; step++) {
+            if (is_stroma(cx, cy, cz)) {
+                place_phalanx(cx, cy, cz, dx, dy, dz, 0);
+                total_placed++;
+            }
+
+            // Low persistence walk
+            if (u01() < 0.4f) {
+                dx = u01() - 0.5f;
+                dy = u01() - 0.5f;
+                dz = u01() - 0.5f;
+                float l = std::sqrt(dx*dx + dy*dy + dz*dz);
+                if (l > 0.01f) { dx /= l; dy /= l; dz /= l; }
+            }
+
+            int nx = cx + static_cast<int>(std::round(dx));
+            int ny = cy + static_cast<int>(std::round(dy));
+            int nz = cz + static_cast<int>(std::round(dz));
+            if (!is_stroma(nx, ny, nz)) break;
+            cx = nx; cy = ny; cz = nz;
+        }
+    }
+
+    std::cout << "  Periductal vasculature: " << total_placed << " PHALANX cells placed ("
+              << n_entries << " trunks, " << branches_spawned << " branches, "
+              << n_capillary_seeds << " capillary seeds)" << std::endl;
+}
+
+// ============================================================================
+// Ductal-Aware Initialization (-i 1)
+// ============================================================================
+
+// Compute distance-to-wall field via multi-source BFS from TISSUE_WALL voxels.
+// Returns float array [total_voxels], capped at max_dist. Non-stroma voxels get -1.
+static std::vector<float> compute_dist_to_wall(
+    const std::vector<uint8_t>& wall_mask,
+    int gx, int gy, int gz, float max_dist = 30.0f)
+{
+    const int total = gx * gy * gz;
+    std::vector<float> dist(total, max_dist + 1.0f);
+
+    // Seed queue with all TISSUE_WALL voxels
+    std::queue<int> q;
+    for (int i = 0; i < total; i++) {
+        if (wall_mask[i] == TISSUE_WALL) {
+            dist[i] = 0.0f;
+            q.push(i);
+        } else if (wall_mask[i] == TISSUE_LUMEN) {
+            dist[i] = -1.0f;  // mark lumen as invalid
+        }
+    }
+
+    // BFS (6-connected) into stroma only
+    const int offsets[6][3] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+    while (!q.empty()) {
+        int idx = q.front(); q.pop();
+        int z = idx / (gx * gy);
+        int y = (idx - z * gx * gy) / gx;
+        int x = idx - z * gx * gy - y * gx;
+        float cur_d = dist[idx];
+        if (cur_d >= max_dist) continue;
+
+        for (int d = 0; d < 6; d++) {
+            int nx = x + offsets[d][0];
+            int ny = y + offsets[d][1];
+            int nz = z + offsets[d][2];
+            if (nx < 0 || nx >= gx || ny < 0 || ny >= gy || nz < 0 || nz >= gz) continue;
+            int nidx = nx + ny * gx + nz * gx * gy;
+            if (wall_mask[nidx] != TISSUE_NONE) continue;  // only propagate into stroma
+            float new_d = cur_d + 1.0f;
+            if (new_d < dist[nidx]) {
+                dist[nidx] = new_d;
+                q.push(nidx);
+            }
+        }
+    }
+
+    // Cap remaining stroma voxels that were unreached
+    for (int i = 0; i < total; i++) {
+        if (wall_mask[i] == TISSUE_NONE && dist[i] > max_dist) {
+            dist[i] = max_dist;
+        }
+    }
+
+    return dist;
+}
+
+// Find terminal ductules (nodes with no children)
+static std::vector<int> find_terminal_nodes(const std::vector<DuctNode>& nodes) {
+    std::unordered_set<int> parents;
+    for (size_t i = 0; i < nodes.size(); i++) {
+        if (nodes[i].parent >= 0) parents.insert(nodes[i].parent);
+    }
+    std::vector<int> terminals;
+    for (size_t i = 0; i < nodes.size(); i++) {
+        if (parents.find(static_cast<int>(i)) == parents.end()) {
+            terminals.push_back(static_cast<int>(i));
+        }
+    }
+    return terminals;
+}
+
+// Collect lumen voxels near a duct segment (between node and its parent)
+static void collect_segment_lumen(const DuctNode& a, const DuctNode& b,
+                                   const std::vector<uint8_t>& wall_mask,
+                                   int gx, int gy, int gz,
+                                   std::vector<int>& out_indices)
+{
+    float dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    float seg_len = std::sqrt(dx*dx + dy*dy + dz*dz);
+    if (seg_len < 0.01f) return;
+
+    int n_samples = std::max(1, static_cast<int>(std::ceil(seg_len)));
+    for (int s = 0; s <= n_samples; s++) {
+        float t = static_cast<float>(s) / static_cast<float>(n_samples);
+        float cx = a.x + dx * t;
+        float cy = a.y + dy * t;
+        float cz = a.z + dz * t;
+        float r  = a.radius + (b.radius - a.radius) * t;
+
+        int r_ceil = static_cast<int>(std::ceil(r)) + 1;
+        int ix = static_cast<int>(std::round(cx));
+        int iy = static_cast<int>(std::round(cy));
+        int iz = static_cast<int>(std::round(cz));
+
+        for (int vz = iz - r_ceil; vz <= iz + r_ceil; vz++) {
+            for (int vy = iy - r_ceil; vy <= iy + r_ceil; vy++) {
+                for (int vx = ix - r_ceil; vx <= ix + r_ceil; vx++) {
+                    if (vx < 0 || vx >= gx || vy < 0 || vy >= gy || vz < 0 || vz >= gz) continue;
+                    int idx = vx + vy * gx + vz * gx * gy;
+                    if (wall_mask[idx] == TISSUE_LUMEN) {
+                        out_indices.push_back(idx);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Initialize cancer cells inside duct lumen, starting from a terminal ductule
+// and walking up the tree until we hit the target cell count.
+static int initializeCancerInDuct(
+    flamegpu::AgentVector& cancer_agents,
+    const DuctalNetwork& net,
+    int target_cells,
+    float stem_div_interval,
+    float progenitor_div_interval,
+    int progenitor_div_max,
+    float senescent_mean_life,
+    std::vector<double>& celltype_cdf,
+    std::vector<std::vector<int>>& occupied,
+    std::mt19937& rng,
+    float& seed_cx, float& seed_cy, float& seed_cz)  // output: cancer seed center
+{
+    const int gx = net.grid_x, gy = net.grid_y, gz = net.grid_z;
+    const auto& nodes = net.nodes;
+    const auto& wall_mask = net.wall_mask;
+
+    // Find terminal nodes and pick one randomly
+    std::vector<int> terminals = find_terminal_nodes(nodes);
+    if (terminals.empty()) {
+        std::cerr << "[initializeCancerInDuct] ERROR: No terminal ductules found!" << std::endl;
+        return 0;
+    }
+    std::uniform_int_distribution<int> term_dist(0, static_cast<int>(terminals.size()) - 1);
+    int seed_node_idx = terminals[term_dist(rng)];
+
+    seed_cx = nodes[seed_node_idx].x;
+    seed_cy = nodes[seed_node_idx].y;
+    seed_cz = nodes[seed_node_idx].z;
+
+    std::cout << "  Cancer seed: terminal node " << seed_node_idx
+              << " at (" << seed_cx << ", " << seed_cy
+              << ", " << seed_cz << ") gen=" << nodes[seed_node_idx].generation
+              << " radius=" << nodes[seed_node_idx].radius << std::endl;
+
+    // Walk up tree from terminal, collecting lumen voxels for each segment
+    // Use a set to deduplicate (segments overlap at shared radii)
+    std::unordered_set<int> lumen_set;
+    int cur = seed_node_idx;
+    while (cur >= 0 && static_cast<int>(lumen_set.size()) < target_cells * 2) {
+        if (nodes[cur].parent >= 0) {
+            std::vector<int> seg_voxels;
+            collect_segment_lumen(nodes[nodes[cur].parent], nodes[cur],
+                                  wall_mask, gx, gy, gz, seg_voxels);
+            for (int idx : seg_voxels) lumen_set.insert(idx);
+        }
+        // Also collect siblings of current node (fill branching junctions)
+        cur = nodes[cur].parent;
+    }
+
+    // Convert to shuffled vector for random sampling
+    std::vector<int> lumen_voxels(lumen_set.begin(), lumen_set.end());
+    std::shuffle(lumen_voxels.begin(), lumen_voxels.end(), rng);
+
+    int placed = 0;
+    int max_place = std::min(target_cells, static_cast<int>(lumen_voxels.size()));
+
+    std::cout << "  Available lumen voxels: " << lumen_voxels.size()
+              << ", target: " << target_cells << ", will place: " << max_place << std::endl;
+
+    for (int vi = 0; vi < max_place; vi++) {
+        int idx = lumen_voxels[vi];
+        int z = idx / (gx * gy);
+        int y = (idx - z * gx * gy) / gx;
+        int x = idx - z * gx * gy - y * gx;
+
+        // Sample from CDF (same as initializeCancerCellsRandom)
+        std::uniform_real_distribution<double> u01(0.0, 1.0);
+        double p = u01(rng);
+        int i = static_cast<int>(std::lower_bound(celltype_cdf.begin(), celltype_cdf.end(), p) - celltype_cdf.begin());
+        int cell_state;
+        int div_cd = 0;
+        int div = 0;
+        int divide_flag = 0;
+        int is_stem = 0;
+
+        if (i > progenitor_div_max + 1) continue;  // skip overflow (shouldn't happen with CDF)
+
+        cancer_agents.push_back();
+        flamegpu::AgentVector::Agent agent = cancer_agents.back();
+
+        if (i == 0) {
+            cell_state = CANCER_STEM;
+            float rf = std::uniform_real_distribution<float>(0.0f, 1.0f)(rng);
+            div_cd = static_cast<int>(stem_div_interval * rf) + 1;
+            divide_flag = 1;
+            is_stem = 1;
+        } else if (i == progenitor_div_max + 1) {
+            cell_state = CANCER_SENESCENT;
+        } else {
+            cell_state = CANCER_PROGENITOR;
+            div = progenitor_div_max + 1 - i;
+            float rf = std::uniform_real_distribution<float>(0.0f, 1.0f)(rng);
+            div_cd = static_cast<int>(progenitor_div_interval * rf) + 1;
+            divide_flag = 1;
+        }
+
+        const int id = agent.getID();
+        agent.setVariable<int>("x", x);
+        agent.setVariable<int>("y", y);
+        agent.setVariable<int>("z", z);
+        agent.setVariable<int>("cell_state", cell_state);
+        agent.setVariable<int>("divideCD", div_cd);
+        agent.setVariable<int>("divideFlag", divide_flag);
+        agent.setVariable<int>("divideCountRemaining", div);
+        agent.setVariable<unsigned int>("stemID", is_stem ? id : 0);
+
+        if (cell_state == CANCER_SENESCENT) {
+            float r = std::uniform_real_distribution<float>(0.0f, 1.0f)(rng);
+            int sen_life = static_cast<int>(-senescent_mean_life * logf(r + 0.0001f) + 0.5f);
+            agent.setVariable<int>("life", sen_life > 0 ? sen_life : 1);
+        }
+
+        occupied[idx][0] = 1;
+        placed++;
+    }
+
+    return placed;
+}
+
+// ============================================================================
+// initializeWholePDAC: Production initialization for -i 1
+// ============================================================================
+void initializeWholePDAC(
+    flamegpu::CUDASimulation& simulation,
+    flamegpu::ModelDescription& model,
+    const SimulationConfig& config,
+    const LymphCentralWrapper& lymph,
+    const DuctalNetwork& ductal_network)
+{
+    std::cout << "\n=== Initializing Agents (Ductal Mode) ===" << std::endl;
+    const int gx = config.grid_x, gy = config.grid_y, gz = config.grid_z;
+    const int total_voxels = gx * gy * gz;
+    const auto& wall_mask = ductal_network.wall_mask;
+
+    // RNG seeded from config
+    std::mt19937 rng(config.random_seed);
+
+    // -----------------------------------------------------------------------
+    // QSP state & parameters (same as initializeSphere)
+    // -----------------------------------------------------------------------
+    QSPState qsp = lymph.get_state_for_abm();
+    std::cout << "  QSP tumor volume  : " << qsp.tum_vol    << " cm^3" << std::endl;
+
+    const double avogadros = 6.022140857e23;
+    const double cc_SI     = qsp.cc_tumor / avogadros;
+    const double eps = 1e-30;
+
+    const double p_th   = 0.03 * qsp.th_tumor   / (qsp.th_tumor + cc_SI + eps);
+    const double p_mdsc =        qsp.mdsc_tumor  / (qsp.mdsc_tumor + cc_SI + eps);
+    const double p_treg = 0.0;
+    const double p_mac  =        qsp.m2_tumor / (qsp.m2_tumor + cc_SI + eps);
+    double p_fib  =        qsp.caf_tumor / (qsp.caf_tumor + cc_SI + eps);
+    if (p_fib > 0.1) p_fib = 0.1;
+    else if (p_fib < 0.001) p_fib = 0.001;
+
+    std::cout << "  p_th=" << p_th << "  p_mdsc=" << p_mdsc
+              << "  p_mac=" << p_mac << "  p_fib=" << p_fib << std::endl;
+
+    // Cell-lifecycle parameters
+    const float stem_div         = model.Environment().getProperty<float>("PARAM_FLOAT_CANCER_CELL_STEM_DIV_INTERVAL_SLICE");
+    const float prog_div         = model.Environment().getProperty<float>("PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE");
+    const int   prog_max         = model.Environment().getProperty<int>("PARAM_PROG_DIV_MAX");
+    const float cancer_sen_life  = model.Environment().getProperty<float>("PARAM_CANCER_SENESCENT_MEAN_LIFE");
+    const float treg_life        = model.Environment().getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
+    const float treg_life_sd     = model.Environment().getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
+    const int   treg_div_limit   = model.Environment().getProperty<int>("PARAM_TCD4_DIV_LIMIT");
+    const int   treg_div_interval = model.Environment().getProperty<int>("PARAM_TCD4_DIV_INTERNAL");
+    const float mdsc_life        = model.Environment().getProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE");
+    const float mac_life         = model.Environment().getProperty<float>("PARAM_MAC_LIFE_MEAN");
+    const float fib_life         = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
+    const float vas_branch_prob  = model.Environment().getProperty<float>("PARAM_VAS_BRANCH_PROB");
+    const int   vas_min_neighbor = static_cast<int>(model.Environment().getProperty<float>("PARAM_VAS_MIN_NEIGHBOR"));
+    std::vector<double> celltype_cdf = get_celltype_cdf(model);
+
+    // -----------------------------------------------------------------------
+    // Precompute helper fields
+    // -----------------------------------------------------------------------
+    std::cout << "  Computing distance-to-wall field..." << std::endl;
+    std::vector<float> dist_to_wall = compute_dist_to_wall(wall_mask, gx, gy, gz);
+
+    // Count tissue types
+    int n_lumen = 0, n_wall = 0, n_stroma = 0;
+    for (int i = 0; i < total_voxels; i++) {
+        if (wall_mask[i] == TISSUE_LUMEN) n_lumen++;
+        else if (wall_mask[i] == TISSUE_WALL) n_wall++;
+        else n_stroma++;
+    }
+    std::cout << "  Tissue: " << n_lumen << " lumen, " << n_wall << " wall, "
+              << n_stroma << " stroma voxels" << std::endl;
+
+    // Occupancy grid
+    std::vector<std::vector<int>> occupied(total_voxels, std::vector<int>(3, 0));
+
+    // -----------------------------------------------------------------------
+    // 1. Cancer cells: fill a random duct branch lumen
+    // -----------------------------------------------------------------------
+    int target_cancer = 20000;  // default target; fill terminal branch + parents
+    float tumor_cx = 0, tumor_cy = 0, tumor_cz = 0;  // filled by initializeCancerInDuct
+    {
+        flamegpu::AgentVector cancer_pop(model.Agent(AGENT_CANCER_CELL));
+        int placed = initializeCancerInDuct(
+            cancer_pop, ductal_network, target_cancer,
+            stem_div, prog_div, prog_max, cancer_sen_life,
+            celltype_cdf, occupied, rng,
+            tumor_cx, tumor_cy, tumor_cz);
+        std::cout << "  Cancer cells placed: " << placed << " (in duct lumen)" << std::endl;
+        simulation.setPopulationData(cancer_pop);
+    }
+
+    // -----------------------------------------------------------------------
+    // 1b. Break duct walls at tumor site
+    //     Download face flags from GPU, clear wall faces at cancer-occupied
+    //     lumen voxels (randomly, not every face), then re-upload.
+    //     This represents tumor invasion through the duct wall.
+    // -----------------------------------------------------------------------
+    {
+        const float p_break = 0.7f;  // probability of breaking each wall face at tumor
+        std::vector<uint8_t> h_face_flags(total_voxels);
+        cudaMemcpy(h_face_flags.data(), ductal_network.d_face_flags,
+                   total_voxels * sizeof(uint8_t), cudaMemcpyDeviceToHost);
+
+        // Face direction table: for each of 6 directions, the offset and the
+        // bit on the source voxel and the complementary bit on the neighbor.
+        struct FaceDir { int dx, dy, dz; uint8_t src_bit, dst_bit; };
+        const FaceDir dirs[6] = {
+            {-1,  0,  0, FACE_NEG_X, FACE_POS_X},
+            { 1,  0,  0, FACE_POS_X, FACE_NEG_X},
+            { 0, -1,  0, FACE_NEG_Y, FACE_POS_Y},
+            { 0,  1,  0, FACE_POS_Y, FACE_NEG_Y},
+            { 0,  0, -1, FACE_NEG_Z, FACE_POS_Z},
+            { 0,  0,  1, FACE_POS_Z, FACE_NEG_Z},
+        };
+
+        int faces_broken = 0;
+        for (int idx = 0; idx < total_voxels; idx++) {
+            if (occupied[idx][0] == 0) continue;  // no cancer here
+            if (h_face_flags[idx] == 0) continue;  // no wall faces to break
+
+            int z = idx / (gx * gy);
+            int y = (idx - z * gx * gy) / gx;
+            int x = idx - z * gx * gy - y * gx;
+
+            for (int d = 0; d < 6; d++) {
+                if (!(h_face_flags[idx] & dirs[d].src_bit)) continue;  // no wall on this face
+
+                // Randomly decide whether to break this face
+                float r = std::uniform_real_distribution<float>(0.0f, 1.0f)(rng);
+                if (r >= p_break) continue;
+
+                int nx = x + dirs[d].dx;
+                int ny = y + dirs[d].dy;
+                int nz = z + dirs[d].dz;
+
+                // Clear source side
+                h_face_flags[idx] &= ~dirs[d].src_bit;
+
+                // Clear neighbor side (if in bounds)
+                if (nx >= 0 && nx < gx && ny >= 0 && ny < gy && nz >= 0 && nz < gz) {
+                    int nidx = nx + ny * gx + nz * gx * gy;
+                    h_face_flags[nidx] &= ~dirs[d].dst_bit;
+                }
+                faces_broken++;
+            }
+        }
+
+        // Re-upload modified face flags to GPU
+        cudaMemcpy(ductal_network.d_face_flags, h_face_flags.data(),
+                   total_voxels * sizeof(uint8_t), cudaMemcpyHostToDevice);
+
+        std::cout << "  Duct walls broken at tumor: " << faces_broken << " faces cleared" << std::endl;
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. T cells: none at init (recruited during simulation)
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector tcell_pop(model.Agent(AGENT_TCELL));
+        simulation.setPopulationData(tcell_pop);
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. TH and TReg cells: stroma only, peritumoral enrichment
+    // -----------------------------------------------------------------------
+    // Peritumoral enrichment: immune cells are denser near the tumor
+    const float peritumoral_radius = 30.0f;  // voxels (~600 um)
+    const float peritumoral_boost = 3.0f;    // multiplier at tumor edge
+    const float peritumoral_decay = 15.0f;   // distance decay scale
+    auto peritumoral_factor = [&](int x, int y, int z) -> float {
+        float dx = x - tumor_cx, dy = y - tumor_cy, dz = z - tumor_cz;
+        float dist = std::sqrt(dx*dx + dy*dy + dz*dz);
+        if (dist > peritumoral_radius * 2.0f) return 1.0f;
+        return 1.0f + peritumoral_boost * std::exp(-dist / peritumoral_decay);
+    };
+
+    {
+        flamegpu::AgentVector treg_pop(model.Agent(AGENT_TREG));
+
+        // TH cells — stroma-filtered with peritumoral enrichment
+        int th_placed = 0;
+        for (int z = 0; z < gz; z++) {
+            for (int y = 0; y < gy; y++) {
+                for (int x = 0; x < gx; x++) {
+                    int idx = x + y * gx + z * gx * gy;
+                    if (wall_mask[idx] != TISSUE_NONE) continue;
+                    float p_eff = static_cast<float>(p_th) * peritumoral_factor(x, y, z);
+                    float rnd = static_cast<float>(rand()) / RAND_MAX;
+                    if (rnd >= p_eff) continue;
+
+                    // Box-Muller normal life
+                    float u1 = static_cast<float>(rand()) / RAND_MAX;
+                    float u2 = static_cast<float>(rand()) / RAND_MAX;
+                    float z0 = std::sqrt(-2.0f * std::log(u1 + 1e-10f)) * std::cos(2.0f * M_PI * u2);
+                    int life = static_cast<int>(treg_life + z0 * treg_life_sd + 0.5f);
+                    if (life < 1) life = 1;
+
+                    treg_pop.push_back();
+                    auto agent = treg_pop.back();
+                    agent.setVariable<int>("x", x);
+                    agent.setVariable<int>("y", y);
+                    agent.setVariable<int>("z", z);
+                    agent.setVariable<int>("cell_state", TCD4_TH);
+                    agent.setVariable<int>("life", life);
+                    agent.setVariable<int>("divide_cd", rand() % std::max(1, treg_div_interval));
+                    agent.setVariable<int>("divide_limit", treg_div_limit);
+                    agent.setVariable<int>("divide_flag", 0);
+                    agent.setVariable<int>("intent_action", 0);
+                    th_placed++;
+                }
+            }
+        }
+
+        // TReg cells (p_treg = 0 currently, but loop is ready)
+        int treg_placed = 0;
+        for (int z = 0; z < gz; z++) {
+            for (int y = 0; y < gy; y++) {
+                for (int x = 0; x < gx; x++) {
+                    int idx = x + y * gx + z * gx * gy;
+                    if (wall_mask[idx] != TISSUE_NONE) continue;
+                    float p_eff = static_cast<float>(p_treg) * peritumoral_factor(x, y, z);
+                    float rnd = static_cast<float>(rand()) / RAND_MAX;
+                    if (rnd >= p_eff) continue;
+
+                    float u1 = static_cast<float>(rand()) / RAND_MAX;
+                    float u2 = static_cast<float>(rand()) / RAND_MAX;
+                    float z0 = std::sqrt(-2.0f * std::log(u1 + 1e-10f)) * std::cos(2.0f * M_PI * u2);
+                    int life = static_cast<int>(treg_life + z0 * treg_life_sd + 0.5f);
+                    if (life < 1) life = 1;
+
+                    treg_pop.push_back();
+                    auto agent = treg_pop.back();
+                    agent.setVariable<int>("x", x);
+                    agent.setVariable<int>("y", y);
+                    agent.setVariable<int>("z", z);
+                    agent.setVariable<int>("cell_state", TCD4_TREG);
+                    agent.setVariable<int>("life", life);
+                    agent.setVariable<int>("divide_cd", rand() % std::max(1, treg_div_interval));
+                    agent.setVariable<int>("divide_limit", treg_div_limit);
+                    agent.setVariable<int>("divide_flag", 0);
+                    agent.setVariable<int>("intent_action", 0);
+                    treg_placed++;
+                }
+            }
+        }
+        std::cout << "  TH cells placed: " << th_placed << "  TReg cells placed: " << treg_placed
+                  << " (stroma only)" << std::endl;
+        simulation.setPopulationData(treg_pop);
+    }
+
+    // -----------------------------------------------------------------------
+    // 4. MDSCs: stroma only, peritumoral enrichment
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector mdsc_pop(model.Agent(AGENT_MDSC));
+        int mdsc_placed = 0;
+        for (int z = 0; z < gz; z++) {
+            for (int y = 0; y < gy; y++) {
+                for (int x = 0; x < gx; x++) {
+                    int idx = x + y * gx + z * gx * gy;
+                    if (wall_mask[idx] != TISSUE_NONE) continue;
+                    float p_eff = static_cast<float>(p_mdsc) * peritumoral_factor(x, y, z);
+                    float rnd = static_cast<float>(rand()) / RAND_MAX;
+                    if (rnd >= p_eff) continue;
+
+                    float life_rnd = static_cast<float>(rand()) / RAND_MAX;
+                    int life = static_cast<int>(mdsc_life * std::log(1.0f / (life_rnd + 1e-4f)) + 0.5f);
+                    if (life < 1) life = 1;
+
+                    mdsc_pop.push_back();
+                    auto agent = mdsc_pop.back();
+                    agent.setVariable<int>("x", x);
+                    agent.setVariable<int>("y", y);
+                    agent.setVariable<int>("z", z);
+                    agent.setVariable<int>("life", life);
+                    agent.setVariable<int>("intent_action", 0);
+                    agent.setVariable<int>("target_x", -1);
+                    agent.setVariable<int>("target_y", -1);
+                    agent.setVariable<int>("target_z", -1);
+                    mdsc_placed++;
+                }
+            }
+        }
+        std::cout << "  MDSCs placed: " << mdsc_placed << " (stroma only)" << std::endl;
+        simulation.setPopulationData(mdsc_pop);
+    }
+
+    // -----------------------------------------------------------------------
+    // 5. Macrophages: stroma only, M2, peritumoral enrichment
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector mac_pop(model.Agent(AGENT_MACROPHAGE));
+        int mac_placed = 0;
+        for (int z = 0; z < gz; z++) {
+            for (int y = 0; y < gy; y++) {
+                for (int x = 0; x < gx; x++) {
+                    int idx = x + y * gx + z * gx * gy;
+                    if (wall_mask[idx] != TISSUE_NONE) continue;
+                    float p_eff = static_cast<float>(p_mac) * peritumoral_factor(x, y, z);
+                    float rnd = static_cast<float>(rand()) / RAND_MAX;
+                    if (rnd >= p_eff) continue;
+
+                    float life_rnd = static_cast<float>(rand()) / RAND_MAX;
+                    int life = static_cast<int>(mac_life * std::log(1.0f / (life_rnd + 1e-4f)) + 0.5f);
+                    if (life < 1) life = 1;
+
+                    mac_pop.push_back();
+                    auto agent = mac_pop.back();
+                    agent.setVariable<int>("x", x);
+                    agent.setVariable<int>("y", y);
+                    agent.setVariable<int>("z", z);
+                    agent.setVariable<int>("life", life);
+                    agent.setVariable<int>("cell_state", MAC_M2);
+                    mac_placed++;
+                }
+            }
+        }
+        std::cout << "  Macrophages placed: " << mac_placed << " (stroma only, M2)" << std::endl;
+        simulation.setPopulationData(mac_pop);
+    }
+
+    // -----------------------------------------------------------------------
+    // 6. Fibroblasts: stroma only, weighted by proximity to duct walls + septum
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector fib_pop(model.Agent(AGENT_FIBROBLAST));
+        int fib_placed = 0;
+        const int init_chain_len = 3;
+        const float fib_wall_boost = 3.0f;     // multiplier for near-wall density
+        const float fib_wall_decay = 5.0f;     // distance scale (voxels)
+        const float fib_septum_boost = 2.0f;   // multiplier for septum boundary density
+        const auto& septum = ductal_network.septum_density;
+
+        for (int z = 0; z < gz; z++) {
+            for (int y = 0; y < gy; y++) {
+                for (int x = 0; x < gx; x++) {
+                    int idx = x + y * gx + z * gx * gy;
+                    if (wall_mask[idx] != TISSUE_NONE) continue;
+
+                    // Weighted probability: higher near walls and at septum boundaries
+                    float dw = dist_to_wall[idx];
+                    float wall_factor = 1.0f + fib_wall_boost * std::exp(-dw / fib_wall_decay);
+                    float sept_factor = 1.0f + fib_septum_boost * septum[idx];
+                    float p_eff = static_cast<float>(p_fib) * wall_factor * sept_factor;
+                    if (p_eff > 0.5f) p_eff = 0.5f;  // cap
+
+                    float rnd = static_cast<float>(rand()) / RAND_MAX;
+                    if (rnd >= p_eff) continue;
+
+                    // Find 3 chain positions in stroma
+                    int c1x, c1y, c1z;
+                    if (!findFreeAdjacentStroma(x, y, z, gx, gy, gz, occupied, wall_mask, c1x, c1y, c1z)) continue;
+                    int c2x, c2y, c2z;
+                    if (!findFreeAdjacentStroma(c1x, c1y, c1z, gx, gy, gz, occupied, wall_mask, c2x, c2y, c2z)) continue;
+                    int c3x, c3y, c3z;
+                    if (!findFreeAdjacentStroma(c2x, c2y, c2z, gx, gy, gz, occupied, wall_mask, c3x, c3y, c3z)) continue;
+                    if (c3x == c1x && c3y == c1y && c3z == c1z) continue;
+
+                    int idx1 = c1x + c1y * gx + c1z * gx * gy;
+                    int idx2 = c2x + c2y * gx + c2z * gx * gy;
+                    int idx3 = c3x + c3y * gx + c3z * gx * gy;
+                    occupied[idx1][1] = 1;
+                    occupied[idx2][1] = 1;
+                    occupied[idx3][1] = 1;
+
+                    float life_rnd = static_cast<float>(rand()) / RAND_MAX;
+                    int life = static_cast<int>(fib_life * std::log(1.0f / (life_rnd + 1e-4f)) + 0.5f);
+                    if (life < 1) life = 1;
+
+                    int cx_arr[MAX_FIB_CHAIN_LENGTH] = {c1x, c2x, c3x, 0, 0};
+                    int cy_arr[MAX_FIB_CHAIN_LENGTH] = {c1y, c2y, c3y, 0, 0};
+                    int cz_arr[MAX_FIB_CHAIN_LENGTH] = {c1z, c2z, c3z, 0, 0};
+
+                    fib_pop.push_back();
+                    auto agent = fib_pop.back();
+                    agent.setVariable<int>("x", c1x);
+                    agent.setVariable<int>("y", c1y);
+                    agent.setVariable<int>("z", c1z);
+                    std::array<int, MAX_FIB_CHAIN_LENGTH> asx, asy, asz;
+                    for (int j = 0; j < MAX_FIB_CHAIN_LENGTH; j++) { asx[j] = cx_arr[j]; asy[j] = cy_arr[j]; asz[j] = cz_arr[j]; }
+                    agent.setVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_x", asx);
+                    agent.setVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_y", asy);
+                    agent.setVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_z", asz);
+                    agent.setVariable<int>("chain_len", init_chain_len);
+                    agent.setVariable<int>("cell_state", FIB_NORMAL);
+                    agent.setVariable<int>("life", life);
+                    fib_placed++;
+                }
+            }
+        }
+        std::cout << "  Fibroblasts placed: " << fib_placed << " (stroma, wall+septum weighted)" << std::endl;
+        simulation.setPopulationData(fib_pop);
+    }
+
+    // -----------------------------------------------------------------------
+    // 7. Vasculature: periductal vascular tree
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector vascular_vec(model.Agent(AGENT_VASCULAR));
+        initializeVascularPeriductal(
+            vascular_vec, gx, gy, gz,
+            wall_mask, dist_to_wall, ductal_network.septum_density,
+            vas_branch_prob, rng);
+        assignInitialVascularTips(
+            vascular_vec, gx, gy, gz,
+            vas_min_neighbor, config.random_seed);
+        simulation.setPopulationData(vascular_vec);
+    }
+
+    std::cout << "Ductal-mode agent initialization complete\n" << std::endl;
 }
 
 // ============================================================================

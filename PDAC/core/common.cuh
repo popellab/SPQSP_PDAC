@@ -376,6 +376,69 @@ __device__ __forceinline__ void get_moore_direction(int idx, int& dx, int& dy, i
 // Von Neumann mask: only face neighbors (bits 0-5)
 constexpr unsigned int VON_NEUMANN_MASK = 0x3Fu;  // binary: 00111111
 
+// ── Ductal wall face flag helpers ───────────────────────────────────────────
+// Face flag bit layout (from ductal_init.cuh constants):
+//   bit 0 = -x, bit 1 = +x, bit 2 = -y, bit 3 = +y, bit 4 = -z, bit 5 = +z
+// Maps Von Neumann direction index (0-5) to the face bit crossed when moving.
+__device__ constexpr uint8_t DIR_TO_FACE_BIT[6] = {
+    0x01,  // dir 0: (-1, 0, 0) → FACE_NEG_X
+    0x02,  // dir 1: (+1, 0, 0) → FACE_POS_X
+    0x04,  // dir 2: (0, -1, 0) → FACE_NEG_Y
+    0x08,  // dir 3: (0, +1, 0) → FACE_POS_Y
+    0x10,  // dir 4: (0, 0, -1) → FACE_NEG_Z
+    0x20,  // dir 5: (0, 0, +1) → FACE_POS_Z
+};
+
+// Check whether movement from (x,y,z) in Von Neumann direction dir_idx (0-5)
+// is blocked by a ductal wall face flag.
+__device__ __forceinline__
+bool is_wall_blocked(const uint8_t* face_flags,
+                     int x, int y, int z,
+                     int dir_idx,
+                     int size_x, int size_y) {
+    int voxel = x + y * size_x + z * size_x * size_y;
+    return (face_flags[voxel] & DIR_TO_FACE_BIT[dir_idx]) != 0;
+}
+
+// Check whether a diagonal (edge/corner) move is blocked by any ductal wall.
+// For diagonal moves we check all face-aligned components: moving (+1,+1,0)
+// is blocked if EITHER the +x or +y face carries a wall flag.
+__device__ __forceinline__
+bool is_wall_blocked_diagonal(const uint8_t* face_flags,
+                              int x, int y, int z,
+                              int dx, int dy, int dz,
+                              int size_x, int size_y) {
+    int voxel = x + y * size_x + z * size_x * size_y;
+    uint8_t flags = face_flags[voxel];
+    if (dx == -1 && (flags & 0x01)) return true;
+    if (dx == +1 && (flags & 0x02)) return true;
+    if (dy == -1 && (flags & 0x04)) return true;
+    if (dy == +1 && (flags & 0x08)) return true;
+    if (dz == -1 && (flags & 0x10)) return true;
+    if (dz == +1 && (flags & 0x20)) return true;
+    return false;
+}
+
+// Unified wall check for any Moore direction (dx, dy, dz).
+// Returns true if movement from (x,y,z) by (dx,dy,dz) crosses a ductal wall.
+// Safe to call with face_flags == nullptr (always returns false → no ductal structure).
+__device__ __forceinline__
+bool is_ductal_wall_blocked(const uint8_t* face_flags,
+                            int x, int y, int z,
+                            int dx, int dy, int dz,
+                            int size_x, int size_y) {
+    if (face_flags == nullptr) return false;
+    int voxel = x + y * size_x + z * size_x * size_y;
+    uint8_t flags = face_flags[voxel];
+    if (dx == -1 && (flags & 0x01)) return true;
+    if (dx == +1 && (flags & 0x02)) return true;
+    if (dy == -1 && (flags & 0x04)) return true;
+    if (dy == +1 && (flags & 0x08)) return true;
+    if (dz == -1 && (flags & 0x10)) return true;
+    if (dz == +1 && (flags & 0x20)) return true;
+    return false;
+}
+
 } // namespace PDAC
 
 #endif // PDAC_COMMON_CUH

@@ -17,13 +17,13 @@
       </Tumor>
     </Environment>
     <Pharmacokinetics>
-      <nivoOn>1</nivoOn>
+      <nivoOn>0</nivoOn>
       <nivoDoseIntervalTime>14</nivoDoseIntervalTime>
       <nivoDose>2.79e-4</nivoDose>
       <ipiOn>0</ipiOn>
       <ipiDoseIntervalTime>14</ipiDoseIntervalTime>
       <ipiDose>0.93e-4</ipiDose>
-      <caboOn>1</caboOn>
+      <caboOn>0</caboOn>
       <caboDoseIntervalTime>1</caboDoseIntervalTime>
       <caboDose>9.44e-5</caboDose>
       <entOn>0</entOn>

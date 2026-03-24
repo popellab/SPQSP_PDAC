@@ -112,6 +112,9 @@ FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) 
     auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
         OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
 
+    const uint8_t* face_flags = reinterpret_cast<const uint8_t*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("face_flags_ptr"));
+
     const float EC50_grad = 1.0f;
     const float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
 
@@ -151,6 +154,11 @@ FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) 
             return flamegpu::ALIVE;
         }
 
+        // Ductal wall check
+        if (is_ductal_wall_blocked(face_flags, x, y, z, tx-x, ty-y, tz-z, grid_x, grid_y)) {
+            return flamegpu::ALIVE;
+        }
+
         // Try CAS claim on head's target voxel
         if (occ[tx][ty][tz][CELL_TYPE_CANCER] == 0u &&
             occ[tx][ty][tz][CELL_TYPE_FIB].CAS(0u, 1u) == 0u) {
@@ -165,6 +173,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) 
             if (di == 0 && dj == 0 && dk == 0) continue;
             int nx = x + di, ny = y + dj, nz = z + dk;
             if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z) continue;
+            if (is_ductal_wall_blocked(face_flags, x, y, z, di, dj, dk, grid_x, grid_y)) continue;
             if (occ[nx][ny][nz][CELL_TYPE_CANCER] != 0u) continue;
             if (occ[nx][ny][nz][CELL_TYPE_FIB] != 0u) continue;
             cand_x[n_cands] = nx; cand_y[n_cands] = ny; cand_z[n_cands] = nz;
@@ -351,23 +360,46 @@ FLAMEGPU_AGENT_FUNCTION(fib_build_density_field, flamegpu::MessageNone, flamegpu
     float* field_ptr = reinterpret_cast<float*>(
         FLAMEGPU->environment.getProperty<uint64_t>("fib_density_field_ptr"));
 
+    // ECM reorientation accumulator: fibroblasts pull nearby ECM toward themselves
+    float* reorient_x = reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("ecm_reorient_x_ptr"));
+    float* reorient_y = reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("ecm_reorient_y_ptr"));
+    float* reorient_z = reinterpret_cast<float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("ecm_reorient_z_ptr"));
+
+    // Traction strength: how strongly fibroblasts pull ECM toward themselves
+    // CAF pulls harder than normal fibroblasts (matching ECM deposition scale)
+    const float traction_strength = scale * 0.5f;
+
     for (int seg = 0; seg < chain_len; seg++) {
         const int cx = FLAMEGPU->getVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_x", seg);
         const int cy = FLAMEGPU->getVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_y", seg);
         const int cz = FLAMEGPU->getVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_z", seg);
 
         for (int dx = -radius; dx <= radius; dx++) {
-            const int nx = cx + dx;
-            if (nx < 0 || nx >= grid_x) continue;
+            const int nx_v = cx + dx;
+            if (nx_v < 0 || nx_v >= grid_x) continue;
             for (int dy = -radius; dy <= radius; dy++) {
-                const int ny = cy + dy;
-                if (ny < 0 || ny >= grid_y) continue;
+                const int ny_v = cy + dy;
+                if (ny_v < 0 || ny_v >= grid_y) continue;
                 for (int dz = -radius; dz <= radius; dz++) {
-                    const int nz = cz + dz;
-                    if (nz < 0 || nz >= grid_z) continue;
+                    const int nz_v = cz + dz;
+                    if (nz_v < 0 || nz_v >= grid_z) continue;
                     float dist_sq = static_cast<float>(dx * dx + dy * dy + dz * dz);
+                    if (dist_sq < 1e-6f) continue;  // skip self-voxel
                     float kernel_val = scale * normalizer * expf(-dist_sq / (2.0f * variance));
-                    atomicAdd(&field_ptr[nz * (grid_x * grid_y) + ny * grid_x + nx], kernel_val);
+                    int vidx = nz_v * (grid_x * grid_y) + ny_v * grid_x + nx_v;
+                    atomicAdd(&field_ptr[vidx], kernel_val);
+
+                    // Traction: vector from voxel toward fibroblast segment, Gaussian weighted
+                    float inv_dist = rsqrtf(dist_sq);  // 1/sqrt(dist_sq)
+                    float trac = traction_strength * kernel_val * inv_dist;
+                    // Direction: (cx-nx_v, cy-ny_v, cz-nz_v) normalized * weight
+                    // Note: dx = nx_v - cx, so toward fib = (-dx, -dy, -dz)
+                    atomicAdd(&reorient_x[vidx], trac * static_cast<float>(-dx));
+                    atomicAdd(&reorient_y[vidx], trac * static_cast<float>(-dy));
+                    atomicAdd(&reorient_z[vidx], trac * static_cast<float>(-dz));
                 }
             }
         }
