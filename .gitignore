@@ -10,7 +10,9 @@
 /python/
 /outputs/
 /docs/
+/data/
 /.claude/
 /.vscode/
+/memory/
 CLAUDE.md
 
