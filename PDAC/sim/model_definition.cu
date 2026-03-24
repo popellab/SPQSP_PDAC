@@ -591,6 +591,7 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     // Simulation tracking
     env.newProperty<unsigned int>("current_step", 0u);
     env.newProperty<unsigned int>("next_agent_id", 1000u);
+    env.newProperty<unsigned int>("sim_seed", 0u);  // Set from config.random_seed in main.cu
 
     // Step counter that starts at 0 when the main simulation (Phase 4) begins
     env.newProperty<unsigned int>("main_sim_step", 0u);

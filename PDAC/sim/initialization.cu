@@ -6,6 +6,9 @@
 #include <cstdlib>
 #include <string>
 #include <array>
+#include <algorithm>
+#include <random>
+#include <vector>
 
 namespace PDAC {
 
@@ -16,16 +19,10 @@ namespace PDAC {
 SimulationConfig::SimulationConfig()
     : steps(200)
     , random_seed(12345)
-    , init_method(1)
     , cluster_radius(5)
-    , num_tcells(50)
-    , num_tregs(10)
-    , num_mdscs(5)
-    , num_macrophages(10)
-    , num_fibroblasts(10)
     , vascular_mode("random")
     , vascular_xml_file("")
-    , grid_out(3)
+    , grid_out(0)
     , interval_out(1)
 {
 }
@@ -43,8 +40,6 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
 
         if ((arg == "--param-file" || arg == "-p") && i + 1 < argc) {
             ++i;  // already handled before parseCommandLine
-        } else if ((arg == "--initialization" || arg == "-i") && i + 1 < argc) {
-            init_method = std::atoi(argv[++i]);
         } else if ((arg == "--grid-size" || arg == "-g") && i + 1 < argc) {
             int size = std::atoi(argv[++i]);
             grid_x = size;
@@ -66,10 +61,9 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             std::cout << "Usage: " << argv[0] << " [options]\n"
                       << "\nOptions:\n"
                       << "  -p, --param-file FILE    Path to parameter XML file [default: param_all_test.xml]\n"
-                      << "  -i, --initialization N   initialization type: 0=random, 1=QSP-seeded [default: 1]\n"
                       << "  -g, --grid-size N        Grid dimensions NxNxN [default: from XML]\n"
                       << "  -s, --steps N            Number of simulation steps [default: 200]\n"
-                      << "  -G, --grid-output N      Grid output: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both [default: 3]\n"
+                      << "  -G, --grid-output N      Grid output: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both [default: 0]\n"
                       << "  -oi, --out_int N         Output interval frequency [default: 1]\n"
                       << "  --seed N                 Random seed [default: 12345]\n"
                       << "  -vm, --vascular-mode STR Vasculature initialization: random, xml, test [default: random]\n"
@@ -96,357 +90,12 @@ void SimulationConfig::print() const {
     
     std::cout << "\nInitial Cell Populations:" << std::endl;
     std::cout << "  Tumor radius: " << cluster_radius << " voxels" << std::endl;
-    std::cout << "  T cells: " << num_tcells << std::endl;
-    std::cout << "  TRegs: " << num_tregs << std::endl;
-    std::cout << "  MDSCs: " << num_mdscs << std::endl;
-    
+
     std::cout << "\nPDE Integration:" << std::endl;
     std::cout << "  ABM timestep: " << dt_abm << " s (" << (dt_abm/60.0f) << " min)" << std::endl;
     std::cout << "  Molecular substeps: " << molecular_steps << std::endl;
     std::cout << "  PDE timestep: " << (dt_abm / molecular_steps) << " s" << std::endl;
     std::cout << "===================================\n" << std::endl;
-}
-
-// ============================================================================
-// Cancer Cell Initialization
-// ============================================================================
-
-void initializeCancerCellCluster(
-    flamegpu::AgentVector& cancer_agents,
-    int grid_x, int grid_y, int grid_z,
-    int cluster_radius,
-    float stem_div_interval,
-    float progenitor_div_interval,
-    int progenitor_div_max)
-{
-    unsigned int count = 1;
-    const int cx = grid_x / 2;
-    const int cy = grid_y / 2;
-    const int cz = grid_z / 2;
-
-    for (int x = cx - cluster_radius; x <= cx + cluster_radius; x++) {
-        for (int y = cy - cluster_radius; y <= cy + cluster_radius; y++) {
-            for (int z = cz - cluster_radius; z <= cz + cluster_radius; z++) {
-                const float dist = std::sqrt(
-                    static_cast<float>((x - cx) * (x - cx) +
-                    (y - cy) * (y - cy) +
-                    (z - cz) * (z - cz))
-                );
-
-                if (dist > cluster_radius) continue;
-
-                cancer_agents.push_back();
-                flamegpu::AgentVector::Agent agent = cancer_agents.back();
-
-                // Stem cells at center, progenitors at periphery
-                bool is_stem = (dist < cluster_radius * 0.3f);
-                int cell_state = is_stem ? CANCER_STEM : CANCER_PROGENITOR;
-
-                // Randomize division cooldown: uniform [1, interval] matching HCC randomize_div_cd(mean)
-                float base_interval = is_stem ? stem_div_interval : progenitor_div_interval;
-                float random_factor = (static_cast<float>(rand()) / (RAND_MAX + 1.0f));  // [0, 1)
-                int div_cd = static_cast<int>(base_interval * random_factor) + 1;  // [1, interval]
-
-                // Basic identity and state
-                const int id = agent.getID();
-                agent.setVariable<int>("x", x);
-                agent.setVariable<int>("y", y);
-                agent.setVariable<int>("z", z);
-                agent.setVariable<int>("cell_state", cell_state);
-                agent.setVariable<int>("divideCD", div_cd);
-                agent.setVariable<int>("divideFlag", 1);
-                agent.setVariable<int>("divideCountRemaining", progenitor_div_max);
-                agent.setVariable<unsigned int>("stemID", is_stem ? id : 0);
-
-                count++;
-            }
-        }
-    }
-    std::cout << "Initialized " << (count - 1) << " cancer cells in cluster" << std::endl;
-}
-
-// ============================================================================
-// T Cell Initialization
-// ============================================================================
-
-void initializeTCells(
-    flamegpu::AgentVector& tcell_agents,
-    int grid_x, int grid_y, int grid_z,
-    int tumor_radius, int num_tcells,
-    float tcell_life_mean, float tcell_life_sd, int div_limit,
-    float IL2_release_time, int tcell_div_interval)
-{
-    const int cx = grid_x / 2;
-    const int cy = grid_y / 2;
-    const int cz = grid_z / 2;
-
-    // Place T cells in shell around tumor (invasive front)
-    const float inner_radius = tumor_radius + 1;
-    const float outer_radius = tumor_radius + 4;
-
-    int placed = 0;
-    int attempts = 0;
-    const int max_attempts = num_tcells * 100;
-
-    while (placed < num_tcells && attempts < max_attempts) {
-        attempts++;
-
-        // Random spherical coordinates
-        float theta = static_cast<float>(rand()) / RAND_MAX * 2.0f * 3.14159f;
-        float phi = std::acos(2.0f * static_cast<float>(rand()) / RAND_MAX - 1.0f);
-        float r = inner_radius + static_cast<float>(rand()) / RAND_MAX * (outer_radius - inner_radius);
-
-        int x = cx + static_cast<int>(r * std::sin(phi) * std::cos(theta));
-        int y = cy + static_cast<int>(r * std::sin(phi) * std::sin(theta));
-        int z = cz + static_cast<int>(r * std::cos(phi));
-
-        // Bounds check
-        if (x < 0 || x >= grid_x || y < 0 || y >= grid_y || z < 0 || z >= grid_z) {
-            continue;
-        }
-
-        // Use normal distribution: lifeMean + gaussian * lifeSD (Box-Muller)
-        float u1 = static_cast<float>(rand()) / RAND_MAX;
-        float u2 = static_cast<float>(rand()) / RAND_MAX;
-        if (u1 < 1e-6f) u1 = 1e-6f;
-        float z0 = std::sqrt(-2.0f * std::log(u1)) * std::cos(2.0f * 3.14159f * u2);
-        int life = static_cast<int>(tcell_life_mean + z0 * tcell_life_sd + 0.5f);
-        if (life < 1) life = 1;
-
-        tcell_agents.push_back();
-        flamegpu::AgentVector::Agent agent = tcell_agents.back();
-
-        float random_factor = (static_cast<float>(rand()) / RAND_MAX);  // Range: [0.0, 1.0]
-        int div_cd = static_cast<int>((tcell_div_interval * random_factor) + 0.5);
-
-        // Basic identity and state
-        agent.setVariable<int>("x", x);
-        agent.setVariable<int>("y", y);
-        agent.setVariable<int>("z", z);
-        agent.setVariable<int>("cell_state", T_CELL_EFF);
-        agent.setVariable<int>("divide_flag", 0);
-        agent.setVariable<int>("divide_cd", div_cd);
-        agent.setVariable<int>("divide_limit", div_limit);
-
-        // Chemical production/exposure
-        agent.setVariable<float>("IL2_release_remain", IL2_release_time);
-
-        // Lifecycle
-        agent.setVariable<int>("life", life);
-
-        // Movement: start in tumble phase to pick a random initial direction
-        agent.setVariable<int>("tumble", 1);
-
-        placed++;
-    }
-
-    std::cout << "Initialized " << placed << " T cells around tumor margin" << std::endl;
-}
-
-// ============================================================================
-// TReg Initialization
-// ============================================================================
-
-void initializeTRegs(
-    flamegpu::AgentVector& treg_agents,
-    int grid_x, int grid_y, int grid_z,
-    int tumor_radius, int num_tregs,
-    float treg_life_mean, float treg_life_sd, int div_limit, int treg_div_interval)
-{
-    const int cx = grid_x / 2;
-    const int cy = grid_y / 2;
-    const int cz = grid_z / 2;
-
-    const float inner_radius = tumor_radius + 1;
-    const float outer_radius = tumor_radius + 4;
-
-    int placed = 0;
-    int attempts = 0;
-    const int max_attempts = num_tregs * 100;
-
-    while (placed < num_tregs && attempts < max_attempts) {
-        attempts++;
-
-        float theta = static_cast<float>(rand()) / RAND_MAX * 2.0f * 3.14159f;
-        float phi = std::acos(2.0f * static_cast<float>(rand()) / RAND_MAX - 1.0f);
-        float r = inner_radius + static_cast<float>(rand()) / RAND_MAX * (outer_radius - inner_radius);
-
-        int x = cx + static_cast<int>(r * std::sin(phi) * std::cos(theta));
-        int y = cy + static_cast<int>(r * std::sin(phi) * std::sin(theta));
-        int z = cz + static_cast<int>(r * std::cos(phi));
-
-        if (x < 0 || x >= grid_x || y < 0 || y >= grid_y || z < 0 || z >= grid_z) {
-            continue;
-        }
-
-        // Use normal distribution: lifeMean + gaussian * lifeSD (Box-Muller)
-        float u1 = static_cast<float>(rand()) / RAND_MAX;
-        float u2 = static_cast<float>(rand()) / RAND_MAX;
-        if (u1 < 1e-6f) u1 = 1e-6f;
-        float z0 = std::sqrt(-2.0f * std::log(u1)) * std::cos(2.0f * 3.14159f * u2);
-        int life = static_cast<int>(treg_life_mean + z0 * treg_life_sd + 0.5f);
-        if (life < 1) life = 1;
-
-        treg_agents.push_back();
-        flamegpu::AgentVector::Agent agent = treg_agents.back();
-
-        float random_factor = (static_cast<float>(rand()) / RAND_MAX);  // Range: [0.0, 1.0]
-        int div_cd = static_cast<int>((treg_div_interval * random_factor) + 0.5);
-
-        // Basic identity
-        agent.setVariable<int>("x", x);
-        agent.setVariable<int>("y", y);
-        agent.setVariable<int>("z", z);
-        agent.setVariable<int>("divide_flag", 0);
-        agent.setVariable<int>("divide_cd", div_cd);
-        agent.setVariable<int>("divide_limit", div_limit);
-
-        // Lifecycle
-        agent.setVariable<int>("life", life);
-
-        // State
-        agent.setVariable<int>("cell_state", TCD4_TH); // initialize as T-Helper cells
-
-        // Movement: start in tumble phase to pick a random initial direction
-        agent.setVariable<int>("tumble", 1);
-
-        placed++;
-    }
-
-    std::cout << "Initialized " << placed << " TReg cells around tumor margin" << std::endl;
-}
-
-// ============================================================================
-// MDSC Initialization
-// ============================================================================
-
-void initializeMDSCs(
-    flamegpu::AgentVector& mdsc_agents,
-    int grid_x, int grid_y, int grid_z,
-    int tumor_radius, int num_mdscs,
-    float mdsc_life_mean)
-{
-    const int cx = grid_x / 2;
-    const int cy = grid_y / 2;
-    const int cz = grid_z / 2;
-
-    const float inner_radius = tumor_radius + 1;
-    const float outer_radius = tumor_radius + 5;
-
-    int placed = 0;
-    int attempts = 0;
-    const int max_attempts = num_mdscs * 100;
-
-    while (placed < num_mdscs && attempts < max_attempts) {
-        attempts++;
-
-        float theta = static_cast<float>(rand()) / RAND_MAX * 2.0f * 3.14159f;
-        float phi = std::acos(2.0f * static_cast<float>(rand()) / RAND_MAX - 1.0f);
-        float r = inner_radius + static_cast<float>(rand()) / RAND_MAX * (outer_radius - inner_radius);
-
-        int x = cx + static_cast<int>(r * std::sin(phi) * std::cos(theta));
-        int y = cy + static_cast<int>(r * std::sin(phi) * std::sin(theta));
-        int z = cz + static_cast<int>(r * std::cos(phi));
-
-        if (x < 0 || x >= grid_x || y < 0 || y >= grid_y || z < 0 || z >= grid_z) {
-            continue;
-        }
-
-        float rnd = static_cast<float>(rand()) / RAND_MAX;
-        int life = static_cast<int>(mdsc_life_mean * std::log(1.0f / (rnd + 0.0001f)) + 0.5f);
-        if (life < 1) life = 1;
-
-        mdsc_agents.push_back();
-        flamegpu::AgentVector::Agent agent = mdsc_agents.back();
-
-        // Basic identity
-        agent.setVariable<int>("x", x);
-        agent.setVariable<int>("y", y);
-        agent.setVariable<int>("z", z);
-        
-        // Lifecycle
-        agent.setVariable<int>("life", life);
-        
-        // Intent
-        agent.setVariable<int>("intent_action", INTENT_NONE);
-        agent.setVariable<int>("target_x", -1);
-        agent.setVariable<int>("target_y", -1);
-        agent.setVariable<int>("target_z", -1);
-
-        placed++;
-    }
-
-    std::cout << "Initialized " << placed << " MDSCs around tumor margin" << std::endl;
-}
-
-// ============================================================================
-// Macrophage Initialization
-// ============================================================================
-void initializeMacrophages(
-    flamegpu::AgentVector& mac_agents,
-    int grid_x, int grid_y, int grid_z,
-    int tumor_radius, int num_macrophages,
-    float mac_life_mean)
-{
-    const int cx = grid_x / 2;
-    const int cy = grid_y / 2;
-    const int cz = grid_z / 2;
-
-    const float inner_radius = tumor_radius + 1;
-    const float outer_radius = tumor_radius + 5;
-
-    int placed = 0;
-    int attempts = 0;
-    const int max_attempts = num_macrophages * 100;
-
-    while (placed < num_macrophages && attempts < max_attempts) {
-        attempts++;
-
-        float theta = static_cast<float>(rand()) / RAND_MAX * 2.0f * 3.14159f;
-        float phi = std::acos(2.0f * static_cast<float>(rand()) / RAND_MAX - 1.0f);
-        float r = inner_radius + static_cast<float>(rand()) / RAND_MAX * (outer_radius - inner_radius);
-
-        int x = cx + static_cast<int>(r * std::sin(phi) * std::cos(theta));
-        int y = cy + static_cast<int>(r * std::sin(phi) * std::sin(theta));
-        int z = cz + static_cast<int>(r * std::cos(phi));
-
-        if (x < 0 || x >= grid_x || y < 0 || y >= grid_y || z < 0 || z >= grid_z) {
-            continue;
-        }
-
-        float rnd = static_cast<float>(rand()) / RAND_MAX;
-        int life = static_cast<int>(mac_life_mean * std::log(1.0f / (rnd + 0.0001f)) + 0.5f);
-        if (life < 1) life = 1;
-
-        mac_agents.push_back();
-        flamegpu::AgentVector::Agent agent = mac_agents.back();
-
-        // Basic identity
-        agent.setVariable<int>("x", x);
-        agent.setVariable<int>("y", y);
-        agent.setVariable<int>("z", z);
-
-        // Macrophage state (1=M2 by default)
-        agent.setVariable<int>("cell_state", 1);
-
-        // Lifecycle
-        agent.setVariable<int>("life", life);
-        agent.setVariable<int>("dead", 0);
-
-        // Movement state
-        agent.setVariable<float>("move_direction_x", 0.0f);
-        agent.setVariable<float>("move_direction_y", 0.0f);
-        agent.setVariable<float>("move_direction_z", 0.0f);
-        agent.setVariable<int>("tumble", 1);
-        agent.setVariable<int>("moves_remaining", 0);
-
-        // Initialize neighbor counts
-        agent.setVariable<int>("neighbor_cancer_count", 0);
-
-        placed++;
-    }
-
-    std::cout << "Initialized " << placed << " Macrophages (M2) around tumor margin" << std::endl;
 }
 
 // ============================================================================
@@ -565,7 +214,7 @@ void initializeVascularCellsRandom(
             flamegpu::AgentVector::Agent agent = vascular_agents.back();
             int branch_flag = (rand_unif() < p_branch_init) ? 1 : 0;
             setVascularCellVariables(agent, current_x, current_y, current_z,
-                                   2, static_cast<float>(dx), static_cast<float>(dy), static_cast<float>(dz), 0u, branch_flag);
+                                   2, static_cast<float>(dx), static_cast<float>(dy), static_cast<float>(dz), 1u, branch_flag);
             total_vessels++;
         }
 
@@ -680,7 +329,7 @@ void initializeVascularCellsRandom(
                 flamegpu::AgentVector::Agent agent = vascular_agents.back();
                 int branch_flag = (rand_unif() < p_branch_init) ? 1 : 0;
                 setVascularCellVariables(agent, current_x, current_y, current_z,
-                                       2, static_cast<float>(dx), static_cast<float>(dy), static_cast<float>(dz), 0u, branch_flag);
+                                       2, static_cast<float>(dx), static_cast<float>(dy), static_cast<float>(dz), 1u, branch_flag);
                 total_vessels++;
             }
 
@@ -690,6 +339,69 @@ void initializeVascularCellsRandom(
 
     std::cout << "Initialized " << total_vessels << " vascular cells (random walk, "
               << num_segments << " segments)" << std::endl;
+}
+
+// Sequentially assign initial TIP sprout intents to a subset of initialized PHALANX cells.
+// Called after initializeVascularCellsRandom, before simulation starts.
+// Shuffles PHALANX agents, then greedily assigns INTENT_DIVIDE to cells that are at least
+// min_neighbor_range voxels away from any already-assigned cell — matching the runtime
+// nearby-vessel exclusion logic but without the GPU race condition.
+// Step 0 of vascular_state_step is skipped so these pre-set intents survive to vascular_divide.
+void assignInitialVascularTips(
+    flamegpu::AgentVector& vascular_agents,
+    int grid_x, int grid_y, int grid_z,
+    int min_neighbor_range,
+    unsigned int seed)
+{
+    // Collect indices of all PHALANX agents
+    std::vector<size_t> phalanx_indices;
+    for (size_t i = 0; i < vascular_agents.size(); i++) {
+        if (vascular_agents[i].getVariable<int>("cell_state") == VAS_PHALANX) {
+            phalanx_indices.push_back(i);
+        }
+    }
+
+    // Shuffle to avoid bias toward agents added first
+    std::mt19937 rng(seed);
+    std::shuffle(phalanx_indices.begin(), phalanx_indices.end(), rng);
+
+    // Flat grid marking claimed positions (true = a tip source is here)
+    std::vector<bool> claimed(grid_x * grid_y * grid_z, false);
+
+    int num_assigned = 0;
+    for (size_t idx : phalanx_indices) {
+        auto agent = vascular_agents[idx];
+        const int ax = agent.getVariable<int>("x");
+        const int ay = agent.getVariable<int>("y");
+        const int az = agent.getVariable<int>("z");
+
+        // Check if any already-claimed position is within min_neighbor_range
+        // Mirror HCC range: [-range, range) exclusive upper bound
+        bool nearby = false;
+        for (int dx = -min_neighbor_range; dx < min_neighbor_range && !nearby; dx++) {
+            for (int dy = -min_neighbor_range; dy < min_neighbor_range && !nearby; dy++) {
+                for (int dz = -min_neighbor_range; dz < min_neighbor_range && !nearby; dz++) {
+                    if (dx == 0 && dy == 0 && dz == 0) continue;
+                    const int cx = ax + dx;
+                    const int cy = ay + dy;
+                    const int cz = az + dz;
+                    if (cx < 0 || cx >= grid_x || cy < 0 || cy >= grid_y || cz < 0 || cz >= grid_z) continue;
+                    if (claimed[cz * grid_y * grid_x + cy * grid_x + cx]) {
+                        nearby = true;
+                    }
+                }
+            }
+        }
+
+        if (!nearby) {
+            agent.setVariable<int>("intent_action", 2);
+            claimed[az * grid_y * grid_x + ay * grid_x + ax] = true;
+            num_assigned++;
+        }
+    }
+
+    std::cout << "Assigned initial TIP sprout intents to " << num_assigned
+              << " / " << phalanx_indices.size() << " PHALANX cells" << std::endl;
 }
 
 void initializeVascularCellsTest(
@@ -1015,114 +727,6 @@ void initializeMacsFromQSP(
     std::cout << "  Placed " << placed << " Macrophages (probability-based QSP)" << std::endl;
 }
 
-// ============================================================================
-// Fibroblast Initialization
-// ============================================================================
-
-void initializeFibroblasts(
-    flamegpu::AgentVector& fib_agents,
-    int grid_x, int grid_y, int grid_z,
-    int tumor_radius, int num_fibroblasts,
-    float fib_life_mean)
-{
-    const int center_x = grid_x / 2;
-    const int center_y = grid_y / 2;
-    const int center_z = grid_z / 2;
-
-    const float inner_radius = tumor_radius + 1;
-    const float outer_radius = tumor_radius + 5;
-
-    // Track occupied voxels for chain placement
-    const int total_voxels = grid_x * grid_y * grid_z;
-    std::vector<bool> occupied(total_voxels, false);
-
-    // Von Neumann offsets for chain extension
-    const int dx6[6] = {1, -1, 0, 0, 0, 0};
-    const int dy6[6] = {0, 0, 1, -1, 0, 0};
-    const int dz6[6] = {0, 0, 0, 0, 1, -1};
-
-    int placed = 0;
-    int attempts = 0;
-    const int max_attempts = num_fibroblasts * 200;
-
-    while (placed < num_fibroblasts && attempts < max_attempts) {
-        attempts++;
-
-        float theta = static_cast<float>(rand()) / RAND_MAX * 2.0f * 3.14159f;
-        float phi = std::acos(2.0f * static_cast<float>(rand()) / RAND_MAX - 1.0f);
-        float r = inner_radius + static_cast<float>(rand()) / RAND_MAX * (outer_radius - inner_radius);
-
-        int hx = center_x + static_cast<int>(r * std::sin(phi) * std::cos(theta));
-        int hy = center_y + static_cast<int>(r * std::sin(phi) * std::sin(theta));
-        int hz = center_z + static_cast<int>(r * std::cos(phi));
-
-        if (hx < 0 || hx >= grid_x || hy < 0 || hy >= grid_y || hz < 0 || hz >= grid_z) continue;
-        int idx0 = hx + hy * grid_x + hz * grid_x * grid_y;
-        if (occupied[idx0]) continue;
-
-        // Try to build a 3-segment chain: head, mid, tail via Von Neumann neighbors
-        int sx[MAX_FIB_CHAIN_LENGTH] = {hx, 0, 0, 0, 0};
-        int sy[MAX_FIB_CHAIN_LENGTH] = {hy, 0, 0, 0, 0};
-        int sz[MAX_FIB_CHAIN_LENGTH] = {hz, 0, 0, 0, 0};
-        occupied[idx0] = true;
-
-        bool chain_ok = true;
-        for (int c = 1; c < 3; c++) {
-            bool found = false;
-            // Shuffle directions
-            int order[6] = {0, 1, 2, 3, 4, 5};
-            for (int i = 5; i > 0; i--) {
-                int j = rand() % (i + 1);
-                std::swap(order[i], order[j]);
-            }
-            for (int di = 0; di < 6; di++) {
-                int d = order[di];
-                int nx = sx[c-1] + dx6[d], ny = sy[c-1] + dy6[d], nz = sz[c-1] + dz6[d];
-                if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z) continue;
-                int idx = nx + ny * grid_x + nz * grid_x * grid_y;
-                if (occupied[idx]) continue;
-                sx[c] = nx; sy[c] = ny; sz[c] = nz;
-                occupied[idx] = true;
-                found = true;
-                break;
-            }
-            if (!found) { chain_ok = false; break; }
-        }
-
-        if (!chain_ok) {
-            // Release all claimed voxels
-            for (int c = 0; c < 3; c++) {
-                if (sx[c] == 0 && sy[c] == 0 && sz[c] == 0 && c > 0) break;
-                int idx = sx[c] + sy[c] * grid_x + sz[c] * grid_x * grid_y;
-                occupied[idx] = false;
-            }
-            continue;
-        }
-
-        float rnd = static_cast<float>(rand()) / RAND_MAX;
-        int life = static_cast<int>(fib_life_mean * std::log(1.0f / (rnd + 0.0001f)) + 0.5f);
-        if (life < 1) life = 1;
-
-        fib_agents.push_back();
-        flamegpu::AgentVector::Agent agent = fib_agents.back();
-        agent.setVariable<int>("x", sx[0]);
-        agent.setVariable<int>("y", sy[0]);
-        agent.setVariable<int>("z", sz[0]);
-        std::array<int, MAX_FIB_CHAIN_LENGTH> asx, asy, asz;
-        for (int i = 0; i < MAX_FIB_CHAIN_LENGTH; i++) { asx[i] = sx[i]; asy[i] = sy[i]; asz[i] = sz[i]; }
-        agent.setVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_x", asx);
-        agent.setVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_y", asy);
-        agent.setVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_z", asz);
-        agent.setVariable<int>("chain_len", 3);
-        agent.setVariable<int>("cell_state", FIB_NORMAL);
-        agent.setVariable<int>("life", life);
-
-        placed++;
-    }
-
-    std::cout << "Initialized " << placed << " Fibroblast chains (3-segment, Normal) around tumor margin" << std::endl;
-}
-
 // Helper: find a free adjacent voxel for chain extension
 // Returns true and sets nx,ny,nz if found; returns false otherwise
 static bool findFreeAdjacent(int x, int y, int z, int grid_x, int grid_y, int grid_z,
@@ -1146,7 +750,7 @@ static bool findFreeAdjacent(int x, int y, int z, int grid_x, int grid_y, int gr
         int cz = z + dz[i];
         if (cx < 0 || cx >= grid_x || cy < 0 || cy >= grid_y || cz < 0 || cz >= grid_z) continue;
         int idx = cx + cy * grid_x + cz * grid_x * grid_y;
-        if (occupied[idx][0] == 0) {
+        if (occupied[idx][0] == 0 && occupied[idx][1] == 0) {
             nx = cx; ny = cy; nz = cz;
             return true;
         }
@@ -1170,48 +774,40 @@ void initializeFibroblastsFromQSP(
                 const float rnd = static_cast<float>(rand()) / RAND_MAX;
                 if (rnd >= static_cast<float>(p_fib)) continue;
 
-                // Check if starting voxel is free
-                int idx0 = x + y * grid_x + z * grid_x * grid_y;
-                if (occupied[idx0][0] != 0) continue;
+                // HCC algorithm: anchor (x,y,z) is NOT checked or marked.
+                // Find all 3 chain positions first, then mark all at once.
+                // c1 = free VN neighbor of anchor
+                // c2 = free VN neighbor of c1
+                // c3 = free VN neighbor of c2, with c3 != c1
+                int c1x, c1y, c1z;
+                if (!findFreeAdjacent(x, y, z, grid_x, grid_y, grid_z, occupied, c1x, c1y, c1z)) continue;
+                int c2x, c2y, c2z;
+                if (!findFreeAdjacent(c1x, c1y, c1z, grid_x, grid_y, grid_z, occupied, c2x, c2y, c2z)) continue;
+                int c3x, c3y, c3z;
+                if (!findFreeAdjacent(c2x, c2y, c2z, grid_x, grid_y, grid_z, occupied, c3x, c3y, c3z)) continue;
+                if (c3x == c1x && c3y == c1y && c3z == c1z) continue;  // no loop
 
-                // Try to form a 3-segment chain starting here
-                int cx[MAX_FIB_CHAIN_LENGTH] = {x, 0, 0, 0, 0};
-                int cy[MAX_FIB_CHAIN_LENGTH] = {y, 0, 0, 0, 0};
-                int cz[MAX_FIB_CHAIN_LENGTH] = {z, 0, 0, 0, 0};
-                occupied[idx0][0] = 1;
-
-                int actual_len = 1;
-                for (int c = 1; c < init_chain_len; c++) {
-                    int nx, ny, nz;
-                    if (!findFreeAdjacent(cx[c-1], cy[c-1], cz[c-1],
-                                          grid_x, grid_y, grid_z, occupied,
-                                          nx, ny, nz)) {
-                        break;
-                    }
-                    cx[c] = nx; cy[c] = ny; cz[c] = nz;
-                    int idxc = nx + ny * grid_x + nz * grid_x * grid_y;
-                    occupied[idxc][0] = 1;
-                    actual_len++;
-                }
-
-                // Require full 3-segment chain
-                if (actual_len < init_chain_len) {
-                    for (int c = 0; c < actual_len; c++) {
-                        int idxc = cx[c] + cy[c] * grid_x + cz[c] * grid_x * grid_y;
-                        occupied[idxc][0] = 0;
-                    }
-                    continue;
-                }
+                // All 3 found — mark occupied and create chain
+                int idx1 = c1x + c1y * grid_x + c1z * grid_x * grid_y;
+                int idx2 = c2x + c2y * grid_x + c2z * grid_x * grid_y;
+                int idx3 = c3x + c3y * grid_x + c3z * grid_x * grid_y;
+                occupied[idx1][1] = 1;
+                occupied[idx2][1] = 1;
+                occupied[idx3][1] = 1;
 
                 float life_rnd = static_cast<float>(rand()) / RAND_MAX;
                 int life = static_cast<int>(life_mean * std::log(1.0f / (life_rnd + 1e-4f)) + 0.5f);
                 if (life < 1) life = 1;
 
+                int cx[MAX_FIB_CHAIN_LENGTH] = {c1x, c2x, c3x, 0, 0};
+                int cy[MAX_FIB_CHAIN_LENGTH] = {c1y, c2y, c3y, 0, 0};
+                int cz[MAX_FIB_CHAIN_LENGTH] = {c1z, c2z, c3z, 0, 0};
+
                 fib_agents.push_back();
                 flamegpu::AgentVector::Agent agent = fib_agents.back();
-                agent.setVariable<int>("x", cx[0]);
-                agent.setVariable<int>("y", cy[0]);
-                agent.setVariable<int>("z", cz[0]);
+                agent.setVariable<int>("x", c1x);
+                agent.setVariable<int>("y", c1y);
+                agent.setVariable<int>("z", c1z);
                 std::array<int, MAX_FIB_CHAIN_LENGTH> asx, asy, asz;
                 for (int i = 0; i < MAX_FIB_CHAIN_LENGTH; i++) { asx[i] = cx[i]; asy[i] = cy[i]; asz[i] = cz[i]; }
                 agent.setVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_x", asx);
@@ -1228,138 +824,6 @@ void initializeFibroblastsFromQSP(
     std::cout << "  Placed " << placed << " Fibroblast chains (3-segment, probability-based QSP)" << std::endl;
 }
 
-// ============================================================================
-// Master Initialization Function
-// ============================================================================
-
-void initializeAllAgents(
-    flamegpu::CUDASimulation& simulation,
-    flamegpu::ModelDescription& model,
-    const SimulationConfig& config)
-{
-    std::cout << "\n=== Initializing Agent Populations ===" << std::endl;
-    
-    // Get environment properties for agent initialization
-    const float stem_div = model.Environment().getProperty<float>("PARAM_FLOAT_CANCER_CELL_STEM_DIV_INTERVAL_SLICE");
-    const float prog_div = model.Environment().getProperty<float>("PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE");
-    const int prog_max = model.Environment().getProperty<int>("PARAM_PROG_DIV_MAX");
-    const float tcell_life = model.Environment().getProperty<float>("PARAM_T_CELL_LIFE_MEAN_SLICE");
-    const float tcell_life_sd = model.Environment().getProperty<float>("PARAM_TCELL_LIFESPAN_SD");
-    const int tcell_div_limit = model.Environment().getProperty<int>("PARAM_TCELL_DIV_LIMIT");
-    const float IL2_release_time = model.Environment().getProperty<float>("PARAM_TCELL_IL2_RELEASE_TIME");
-    const int tcell_div_interval = model.Environment().getProperty<int>("PARAM_TCELL_DIV_INTERNAL");
-    const float treg_life = model.Environment().getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
-    const float treg_life_sd = model.Environment().getProperty<float>("PARAM_TCD4_LIFESPAN_SD");
-    const int treg_div_limit = model.Environment().getProperty<int>("PARAM_TCD4_DIV_LIMIT");
-    const int treg_div_interval = model.Environment().getProperty<int>("PARAM_TCD4_DIV_INTERNAL");
-    const float mdsc_life = model.Environment().getProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE");
-    const float mac_life = model.Environment().getProperty<float>("PARAM_MAC_LIFE_MEAN");
-    const float fib_life = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
-    const float vas_branch_prob = model.Environment().getProperty<float>("PARAM_VAS_BRANCH_PROB");
-
-    // Initialize cancer cells
-    {
-        flamegpu::AgentVector cancer_pop(model.Agent(AGENT_CANCER_CELL));
-        initializeCancerCellCluster(
-            cancer_pop, 
-            config.grid_x, config.grid_y, config.grid_z,
-            config.cluster_radius, stem_div, prog_div, prog_max);
-        simulation.setPopulationData(cancer_pop);
-    }
-    
-    // Initialize T cells
-    if (config.num_tcells > 0) {
-        flamegpu::AgentVector tcell_pop(model.Agent(AGENT_TCELL));
-        initializeTCells(
-            tcell_pop,
-            config.grid_x, config.grid_y, config.grid_z,
-            config.cluster_radius, config.num_tcells,
-            tcell_life, tcell_life_sd, tcell_div_limit,
-            IL2_release_time, tcell_div_interval);
-        simulation.setPopulationData(tcell_pop);
-    }
-    
-    // Initialize TRegs
-    if (config.num_tregs > 0) {
-        flamegpu::AgentVector treg_pop(model.Agent(AGENT_TREG));
-        initializeTRegs(
-            treg_pop,
-            config.grid_x, config.grid_y, config.grid_z,
-            config.cluster_radius, config.num_tregs,
-            treg_life, treg_life_sd, treg_div_limit, treg_div_interval);
-        simulation.setPopulationData(treg_pop);
-    }
-    
-    // Initialize MDSCs
-    if (config.num_mdscs > 0) {
-        flamegpu::AgentVector mdsc_pop(model.Agent(AGENT_MDSC));
-        initializeMDSCs(
-            mdsc_pop,
-            config.grid_x, config.grid_y, config.grid_z,
-            config.cluster_radius, config.num_mdscs,
-            mdsc_life);
-        simulation.setPopulationData(mdsc_pop);
-    }
-
-    // Initialize Macrophages
-    if (config.num_macrophages > 0) {
-        flamegpu::AgentVector mac_pop(model.Agent(AGENT_MACROPHAGE));
-        initializeMacrophages(
-            mac_pop,
-            config.grid_x, config.grid_y, config.grid_z,
-            config.cluster_radius, config.num_macrophages,
-            mac_life);
-        simulation.setPopulationData(mac_pop);
-    }
-
-    // Initialize Fibroblasts
-    if (config.num_fibroblasts > 0) {
-        flamegpu::AgentVector fib_pop(model.Agent(AGENT_FIBROBLAST));
-        initializeFibroblasts(
-            fib_pop,
-            config.grid_x, config.grid_y, config.grid_z,
-            config.cluster_radius, config.num_fibroblasts,
-            fib_life);
-        simulation.setPopulationData(fib_pop);
-    }
-
-    // === VASCULAR CELLS ===
-    {
-        flamegpu::AgentVector vascular_vec(model.Agent(AGENT_VASCULAR));
-
-        if (config.vascular_mode == "random") {
-            // Random walk initialization (HCC-style)
-            int num_segments = 4;  // Default: 4 vessel segments
-            initializeVascularCellsRandom(
-                vascular_vec,
-                config.grid_x, config.grid_y, config.grid_z,
-                config.cluster_radius,
-                num_segments,
-                vas_branch_prob,
-                config.random_seed);
-        }
-        else if (config.vascular_mode == "xml") {
-            // XML-based initialization (Phase 2)
-            std::cout << "WARNING: XML vasculature loading not yet implemented" << std::endl;
-            std::cout << "  Falling back to test mode" << std::endl;
-            initializeVascularCellsTest(vascular_vec, config.grid_x, config.grid_y, config.grid_z);
-        }
-        else if (config.vascular_mode == "test") {
-            // Manual test pattern (5 vessels at center)
-            initializeVascularCellsTest(vascular_vec, config.grid_x, config.grid_y, config.grid_z);
-        }
-        else {
-            std::cerr << "ERROR: Unknown vascular mode '" << config.vascular_mode << "'" << std::endl;
-            std::cerr << "  Valid modes: random, xml, test" << std::endl;
-            std::cerr << "  Falling back to test mode" << std::endl;
-            initializeVascularCellsTest(vascular_vec, config.grid_x, config.grid_y, config.grid_z);
-        }
-
-        simulation.setPopulationData(vascular_vec);
-    }
-
-    std::cout << "Agent initialization complete\n" << std::endl;
-}
 // ============================================================================
 // Get cell type CDF
 // ============================================================================
@@ -1448,7 +912,7 @@ void initializeToQSP(
     //   CC is NOT in this denominator (it uses a separate fibroblast-style
     //   formula in HCC).  ε = 1e-30 prevents division by zero.
     // -----------------------------------------------------------------------
-    const double avogadros = 6.022140857e23;  
+    const double avogadros = 6.022140857e23;
     const double cc_SI     = qsp.cc_tumor / avogadros;
     const double eps = 1e-30;
 
@@ -1462,6 +926,7 @@ void initializeToQSP(
 	} else if (p_fib < 0.001) {
         p_fib = 0.001;
     }
+
 
     std::cout << "  p_treg = " << p_treg   << std::endl;
     std::cout << "  p_th   = " << p_th   << std::endl;
@@ -1487,6 +952,7 @@ void initializeToQSP(
     const float mac_life        = model.Environment().getProperty<float>("PARAM_MAC_LIFE_MEAN");
     const float fib_life        = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
     const float vas_branch_prob = model.Environment().getProperty<float>("PARAM_VAS_BRANCH_PROB");
+    const int vas_min_neighbor = static_cast<int>(model.Environment().getProperty<float>("PARAM_VAS_MIN_NEIGHBOR"));
     // -----------------------------------------------------------------------
     // Get CDF for cancer cell population
     // -----------------------------------------------------------------------
@@ -1583,11 +1049,18 @@ void initializeToQSP(
         std::cout << "[DEBUG] Initializing Vascular cells..." << std::endl;
         flamegpu::AgentVector vascular_vec(model.Agent(AGENT_VASCULAR));
         if (config.vascular_mode == "random") {
+            // Match HCC: radius = 0.5 * grid_x, 1 segment
+            int vas_radius = config.grid_x / 2;
             initializeVascularCellsRandom(
                 vascular_vec,
                 config.grid_x, config.grid_y, config.grid_z,
-                cluster_radius, /*num_segments=*/1,
+                vas_radius, /*num_segments=*/1,
                 vas_branch_prob,
+                config.random_seed);
+            assignInitialVascularTips(
+                vascular_vec,
+                config.grid_x, config.grid_y, config.grid_z,
+                vas_min_neighbor,
                 config.random_seed);
         } else if (config.vascular_mode == "test") {
             initializeVascularCellsTest(vascular_vec, config.grid_x, config.grid_y, config.grid_z);

@@ -4,24 +4,73 @@ GPU-accelerated agent-based model (FLAME GPU 2) with CPU QSP coupling (SUNDIALS 
 
 ## Requirements
 
-- **CUDA Toolkit** 11.0+ (tested up to 12.5)
+- **CUDA Toolkit** 11.0+ (tested up to 12.8)
 - **CMake** 3.18+
 - **C++17 compiler** (g++ 7+)
 - **git**
 
 FLAME GPU 2, SUNDIALS, and Boost are **automatically downloaded and built** if not already present on the system.
 
-## Quick Start
+## Quick Start (HPC)
 
 ```bash
-cd sim
-./build.sh                    # That's it — deps are auto-fetched
-./build/bin/pdac -s 10 -g 11  # Quick test run
+cd PDAC/sim
+cp cluster.conf.example cluster.conf   # edit ACCOUNT for your allocation
+./setup_deps.sh                        # one command — fetches FLAMEGPU2, SUNDIALS, Boost
+sbatch submit.sh -s 10 -g 11           # build + test run (first build ~8 min)
+```
+
+`submit.sh` auto-detects the cluster (Delta, Anvil), loads modules, builds if needed, runs the simulation on scratch, and copies outputs back to `PDAC/sim/outputs/<job_id>/`.
+
+### Supported Clusters
+
+| Cluster | Partition (default) | CUDA arch | Scratch |
+|---------|-------------------|-----------|---------|
+| Delta (NCSA) | `gpuA100x4` | 80 (A100), 86 (A40), 90 (H200) | `/work/hdd/<project>/<user>` |
+| Anvil (Purdue) | `gpu` | 80 (A100) | `/anvil/scratch/<user>` |
+
+Adding a new cluster: add a `setup_<name>()` function in `submit.sh` and a hostname pattern in `detect_cluster()`.
+
+## Quick Start (Local)
+
+If you have CUDA and cmake available locally (workstation, Docker, etc.):
+
+```bash
+cd PDAC/sim
+./build.sh                    # auto-fetches deps via network
+./build/bin/pdac -s 10 -g 11  # quick test run
 ```
 
 First build takes ~8 minutes (downloads and compiles all dependencies). Subsequent builds are incremental (~1-2 min).
 
-## Build Options
+## Setup Details
+
+### `cluster.conf`
+
+Per-user SLURM settings. Only `ACCOUNT` is required — everything else is auto-detected:
+
+```bash
+ACCOUNT="bgre-delta-gpu"     # required
+# PARTITION=""                # override auto-detected partition
+# CUDA_ARCH=""                # override auto-detected GPU arch
+# SCRATCH_BASE=""             # override auto-detected scratch path
+```
+
+### `setup_deps.sh`
+
+Fetches FLAMEGPU2, SUNDIALS, and Boost into `external/`. Idempotent — skips deps already present. Run on a node with internet access (login nodes).
+
+```bash
+./setup_deps.sh              # fetch all deps
+./setup_deps.sh --status     # check what's fetched
+./setup_deps.sh --clean      # remove external/ and re-fetch
+```
+
+If your cluster has internet on GPU nodes, you can skip `setup_deps.sh` — CMake will auto-fetch deps during the build.
+
+### `build.sh`
+
+Portable build script. Works anywhere with cmake, nvcc, g++, and git on PATH.
 
 ```
 ./build.sh [options]
@@ -33,30 +82,11 @@ First build takes ~8 minutes (downloads and compiles all dependencies). Subseque
   --clean                 Remove build directory
 ```
 
-### Using System Libraries
-
-If SUNDIALS or Boost are already installed (e.g., via `module load`), point to them to skip the fetch:
+System-installed libraries can be used via environment variables:
 
 ```bash
-module load cuda cmake boost sundials      # typical HPC module names
-./build.sh
-
-# Or explicitly:
 SUNDIALS_DIR=/path/to/sundials BOOST_ROOT=/path/to/boost ./build.sh
 ```
-
-### CUDA Architecture Reference
-
-| GPU | Architecture |
-|-----|-------------|
-| V100 | 70 |
-| RTX 2080 / T4 | 75 |
-| A100 | 80 |
-| RTX 3090 | 86 |
-| RTX 4090 | 89 |
-| H100 | 90 |
-
-Example: `./build.sh --cuda-arch 80` for A100 cluster.
 
 ## Running
 
@@ -73,88 +103,56 @@ Example: `./build.sh --cuda-arch 80` for A100 cluster.
   -i, --qsp-init FLAG     0=skip, 1=run QSP to steady state before ABM (default: 0)
 ```
 
-## Output Files
-
-Outputs are written to `./outputs/` relative to the **current working directory** (not the executable location):
-
-| File | Contents |
-|------|----------|
-| `outputs/abm/agents_step_NNNNNN.npy` | Agent positions, states, properties |
-| `outputs/pde/pde_step_NNNNNN.npy` | Chemical concentrations (10 species, NumPy format) |
-| `outputs/ecm/ecm_step_NNNNNN.npy` | ECM density field |
-| `outputs/qsp.csv` | QSP ODE state (153 species) per step |
-| `outputs/timing.csv` | Per-step wall-time breakdown |
-
-## Anvil HPC Workflow
-
-Anvil GPU nodes have no internet access, so dependencies must be pre-staged on a login node. Simulation outputs go to `/anvil/scratch/` for I/O performance. CUDA is only available on GPU nodes, so building and running both happen via SLURM.
-
-### One-Time Setup
-
-Run these on a **login node** (which has internet access):
+### SLURM Submission
 
 ```bash
-# Clone the project
-cd /anvil/scratch/$USER
-git clone <repo-url> SPQSP_PDAC-main
-cd SPQSP_PDAC-main
-
-# Pre-fetch dependencies into PDAC/sim/external/ (GPU nodes cannot download these)
-cd PDAC/sim
-mkdir -p external
-git clone --branch v2.0.0-rc.4 --depth 1 https://github.com/FLAMEGPU/FLAMEGPU2.git external/flamegpu2
-cd external/flamegpu2 && git submodule update --init --recursive && cd ../..
-git clone --branch v4.1.0 --depth 1 https://github.com/LLNL/sundials.git external/sundials
-
-# Download Boost source (module system may not work on all clusters)
-cd external
-wget https://github.com/boostorg/boost/releases/download/boost-1.82.0/boost-1.82.0.tar.gz
-tar xzf boost-1.82.0.tar.gz && mv boost-1.82.0 boost && rm boost-1.82.0.tar.gz
-cd ..
+sbatch submit.sh                       # defaults: 500 steps, 50^3 grid
+sbatch submit.sh -s 1000 -g 101       # custom parameters
 ```
 
-### Submitting Jobs
-
-```bash
-cd /anvil/scratch/$USER/SPQSP_PDAC-main/PDAC/sim
-
-# First submission builds automatically, then runs (500 steps, 50^3 grid)
-sbatch submit.sh
-
-# Debug queue (30 min limit, faster scheduling)
-sbatch submit_debug.sh -s 50 -g 50
-
-# Custom parameters — pass any pdac flags after the script
-sbatch submit.sh -s 1000 -g 101
-
-# Outputs land in /anvil/scratch/$USER/pdac_runs/<job_id>/outputs/
-```
-
-On first submission, `submit.sh` detects no binary exists and runs `build.sh` on the GPU node (~8 min) using the pre-staged dependencies. Subsequent submissions skip the build and run immediately.
-
-### What `submit.sh` Does
-
-1. Loads modules: `cmake`, `gcc`, `cuda`, `boost/1.86.0`
-2. Builds the binary on the GPU node if it doesn't exist (A100, `--cuda-arch 80`), using local FLAME GPU and SUNDIALS from `external/`
-3. Creates a run directory on scratch: `/anvil/scratch/$USER/pdac_runs/<job_id>/`
-4. Copies the XML parameter file there for reproducibility
-5. `cd`s to scratch and runs the binary (so `./outputs/` writes to scratch)
-6. Prints the output path when done
+What `submit.sh` does:
+1. Reads `cluster.conf` for account name
+2. Auto-detects cluster, loads modules, picks partition and CUDA arch
+3. Builds the binary on the GPU node if it doesn't exist
+4. Creates a run directory on scratch for fast I/O
+5. Runs the simulation
+6. Copies outputs back to `PDAC/sim/outputs/<job_id>/`
 
 ### Rebuilding
 
-To force a rebuild (e.g., after code changes):
-
 ```bash
-cd /anvil/scratch/$USER/SPQSP_PDAC-main/PDAC/sim
-./build.sh --clean          # removes old build (can run from login node)
-sbatch submit.sh            # next submission rebuilds on GPU node
+./build.sh --clean          # removes old build
+sbatch submit.sh            # next submission rebuilds
 ```
 
-### Notes
+## Output Files
+
+Outputs are written to `./outputs/` relative to the working directory. On SLURM, they are also copied to `PDAC/sim/outputs/<job_id>/`.
+
+| File | Contents |
+|------|----------|
+| `outputs/abm/agents_step_NNNNNN.abm.lz4` | Agent positions, states, properties (LZ4 compressed) |
+| `outputs/pde/pde_step_NNNNNN.pde.lz4` | Chemical concentrations (10 species, LZ4 compressed) |
+| `outputs/ecm/ecm_step_NNNNNN.npy` | ECM density field (NumPy format) |
+| `outputs/qsp_<seed>.csv` | QSP ODE state (153 species) per step |
+| `outputs/stats_<seed>.csv` | Per-step agent counts, recruitment, proliferation, death events |
+| `outputs/timing_<seed>.csv` | Per-step wall-time breakdown |
+| `outputs/layer_timing.csv` | Per-layer wall-time breakdown |
+
+### CUDA Architecture Reference
+
+| GPU | Architecture |
+|-----|-------------|
+| V100 | 70 |
+| RTX 2080 / T4 | 75 |
+| A100 | 80 |
+| A40 / RTX 3090 | 86 |
+| RTX 4090 | 89 |
+| H100 / H200 | 90 |
+
+## Notes
 
 - **First run** after build takes 5-10 minutes for CUDA JIT warmup (not a hang).
 - **Memory**: Grid 50^3 uses ~2 GB VRAM; 320^3 uses ~8 GB.
 - SLURM logs go to `pdac_<job_id>.out` / `.err` in the directory you submit from.
 - The param XML is resolved relative to the executable, so it works from any working directory.
-- If you need to update FLAME GPU or SUNDIALS, re-clone into `external/` on a login node.

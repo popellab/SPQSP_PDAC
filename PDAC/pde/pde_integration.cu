@@ -68,6 +68,29 @@ static unsigned int* d_mdsc_occ = nullptr;
 static RecruitRequest* d_recruit_requests = nullptr;
 static int* d_recruit_count = nullptr;
 
+// ── Recruitment diagnostics (device-side atomic counters) ──
+struct RecruitDiag {
+    int t_sources;         // voxels with T source flag
+    int mdsc_sources;      // voxels with MDSC source flag
+    int mac_sources;       // voxels with MAC source flag
+    int teff_roll_pass;    // p_teff rolls that passed
+    int teff_place_ok;     // Teff placements that succeeded
+    int teff_place_fail;   // Teff placements that failed (cap blocked)
+    int treg_roll_pass;
+    int treg_place_ok;
+    int treg_place_fail;
+    int th_roll_pass;
+    int th_place_ok;
+    int th_place_fail;
+    int mdsc_roll_pass;
+    int mdsc_place_ok;
+    int mdsc_place_fail;
+    int mac_roll_pass;
+    int mac_place_ok;
+    int mac_place_fail;
+};
+static RecruitDiag* d_recruit_diag = nullptr;
+
 // ============================================================================
 // CUDA Kernel: ECM Grid Update
 // Applies decay + fibroblast deposition + saturation clamping per voxel in parallel.
@@ -245,6 +268,10 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     CUDA_CHECK(cudaMalloc(&d_recruit_count, sizeof(int)));
     CUDA_CHECK(cudaMemset(d_recruit_count, 0, sizeof(int)));
 
+    // Recruitment diagnostics buffer
+    CUDA_CHECK(cudaMalloc(&d_recruit_diag, sizeof(RecruitDiag)));
+    CUDA_CHECK(cudaMemset(d_recruit_diag, 0, sizeof(RecruitDiag)));
+
     std::cout << "PDE Solver initialized and coupled to FLAME GPU 2" << std::endl;
 }
 
@@ -342,6 +369,7 @@ void cleanup_pde_solver() {
     if (d_mdsc_occ)  { cudaFree(d_mdsc_occ);  d_mdsc_occ = nullptr; }
     if (d_recruit_requests) { cudaFree(d_recruit_requests); d_recruit_requests = nullptr; }
     if (d_recruit_count)    { cudaFree(d_recruit_count);    d_recruit_count = nullptr; }
+    if (d_recruit_diag)     { cudaFree(d_recruit_diag);     d_recruit_diag = nullptr; }
 }
 
 void initialize_ecm_to_saturation(float ecm_saturation) {
@@ -481,8 +509,9 @@ FLAMEGPU_HOST_FUNCTION(mark_mdsc_sources) {
     // Get parameter
     float ec50_ccl2 = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_EC50_CCL2_REC");
 
-    // Generate random seed from step number
-    unsigned int seed = static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 12345u;
+    // Seed: combine environment seed with step counter (salt=0x9E3779B9 for MDSC)
+    unsigned int base_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    unsigned int seed = base_seed ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 2654435761u + 0x9E3779B9u);
 
     dim3 block(8, 8, 8);
     dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
@@ -651,6 +680,7 @@ __global__ void recruit_all_kernel(
     unsigned int* d_mdsc_occ,
     RecruitRequest* d_requests,
     int* d_request_count,
+    RecruitDiag* diag,
     RecruitKernelParams p)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -671,11 +701,15 @@ __global__ void recruit_all_kernel(
 
     // ── T source (bit 0): recruit Teff, TReg, TH ──
     if (flags & 1) {
+        atomicAdd(&diag->t_sources, 1);
+
         // Try Teff
         if (rng_uniform(rng) < p.p_teff) {
+            atomicAdd(&diag->teff_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, CELL_TYPE_T, p.nx, p.ny, p.nz,
                     p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
                     d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+                atomicAdd(&diag->teff_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
                     RecruitRequest req;
@@ -690,14 +724,18 @@ __global__ void recruit_all_kernel(
                     req.CTLA4 = 0.0f;
                     d_requests[slot] = req;
                 }
+            } else {
+                atomicAdd(&diag->teff_place_fail, 1);
             }
         }
 
         // Try TReg
         if (rng_uniform(rng) < p.p_treg) {
+            atomicAdd(&diag->treg_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, CELL_TYPE_TREG, p.nx, p.ny, p.nz,
                     p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
                     d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+                atomicAdd(&diag->treg_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
                     RecruitRequest req;
@@ -712,14 +750,18 @@ __global__ void recruit_all_kernel(
                     req.CTLA4 = p.ctla4_treg;
                     d_requests[slot] = req;
                 }
+            } else {
+                atomicAdd(&diag->treg_place_fail, 1);
             }
         }
 
         // Try TH
         if (rng_uniform(rng) < p.p_th) {
+            atomicAdd(&diag->th_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, CELL_TYPE_TREG, p.nx, p.ny, p.nz,
                     p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
                     d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+                atomicAdd(&diag->th_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
                     RecruitRequest req;
@@ -734,16 +776,21 @@ __global__ void recruit_all_kernel(
                     req.CTLA4 = 0.0f;
                     d_requests[slot] = req;
                 }
+            } else {
+                atomicAdd(&diag->th_place_fail, 1);
             }
         }
     }
 
     // ── MDSC source (bit 1) ──
     if (flags & 2) {
+        atomicAdd(&diag->mdsc_sources, 1);
         if (rng_uniform(rng) < p.p_mdsc) {
+            atomicAdd(&diag->mdsc_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, CELL_TYPE_MDSC, p.nx, p.ny, p.nz,
                     p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
                     d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+                atomicAdd(&diag->mdsc_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
                     RecruitRequest req;
@@ -758,16 +805,21 @@ __global__ void recruit_all_kernel(
                     req.CTLA4 = 0.0f;
                     d_requests[slot] = req;
                 }
+            } else {
+                atomicAdd(&diag->mdsc_place_fail, 1);
             }
         }
     }
 
     // ── MAC source (bit 2) ──
     if (flags & 4) {
+        atomicAdd(&diag->mac_sources, 1);
         if (rng_uniform(rng) < p.p_mac) {
+            atomicAdd(&diag->mac_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, CELL_TYPE_MAC, p.nx, p.ny, p.nz,
                     p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
                     d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+                atomicAdd(&diag->mac_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
                     RecruitRequest req;
@@ -783,6 +835,8 @@ __global__ void recruit_all_kernel(
                     req.CTLA4 = 0.0f;
                     d_requests[slot] = req;
                 }
+            } else {
+                atomicAdd(&diag->mac_place_fail, 1);
             }
         }
     }
@@ -799,8 +853,9 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    // Reset atomic counter
+    // Reset atomic counter and diagnostics
     CUDA_CHECK(cudaMemset(d_recruit_count, 0, sizeof(int)));
+    CUDA_CHECK(cudaMemset(d_recruit_diag, 0, sizeof(RecruitDiag)));
 
     // Build parameter struct
     RecruitKernelParams p;
@@ -841,8 +896,9 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     p.p_mac = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_RECRUIT_K");
     p.mac_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_LIFE_MEAN");
 
-    // RNG seed from step counter
-    p.seed = static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 2654435761u + 1u;
+    // RNG seed: combine environment seed with step counter (salt=0x1 for recruitment)
+    unsigned int base_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    p.seed = base_seed ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 2654435761u + 1u);
 
     // Launch kernel
     dim3 block(8, 8, 8);
@@ -851,7 +907,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     recruit_all_kernel<<<grid, block>>>(
         g_pde_solver->get_device_recruitment_sources_ptr(),
         d_t_occ, d_cancer_occ, d_mac_occ, d_mdsc_occ,
-        d_recruit_requests, d_recruit_count, p);
+        d_recruit_requests, d_recruit_count, d_recruit_diag, p);
 
     CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -863,9 +919,36 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     g_recruit_stats.qsp_treg = qsp_treg;
     g_recruit_stats.qsp_th   = qsp_th;
 
-    // Count total T sources for stats
-    // (Skip the D2H copy of full source array — just read the count from the kernel output)
-    g_recruit_stats.t_sources = 0;  // No longer cheaply available; could add atomic counter to kernel if needed
+    // Copy diagnostics from device
+    RecruitDiag diag_host;
+    CUDA_CHECK(cudaMemcpy(&diag_host, d_recruit_diag, sizeof(RecruitDiag), cudaMemcpyDeviceToHost));
+    g_recruit_stats.t_sources = diag_host.t_sources;
+    g_recruit_stats.mdsc_sources = diag_host.mdsc_sources;
+    g_recruit_stats.mac_sources = diag_host.mac_sources;
+
+    // Print recruitment diagnostics
+    int step = FLAMEGPU->getStepCounter();
+    std::cout << "[Recruit Diag step=" << step << "] "
+              << "T_src=" << diag_host.t_sources
+              << " | Teff: roll=" << diag_host.teff_roll_pass
+              << " ok=" << diag_host.teff_place_ok
+              << " fail=" << diag_host.teff_place_fail
+              << " | TReg: roll=" << diag_host.treg_roll_pass
+              << " ok=" << diag_host.treg_place_ok
+              << " fail=" << diag_host.treg_place_fail
+              << " | TH: roll=" << diag_host.th_roll_pass
+              << " ok=" << diag_host.th_place_ok
+              << " fail=" << diag_host.th_place_fail
+              << " | MDSC: roll=" << diag_host.mdsc_roll_pass
+              << " ok=" << diag_host.mdsc_place_ok
+              << " fail=" << diag_host.mdsc_place_fail
+              << " | MAC: roll=" << diag_host.mac_roll_pass
+              << " ok=" << diag_host.mac_place_ok
+              << " fail=" << diag_host.mac_place_fail
+              << " | p_teff=" << p.p_teff
+              << " p_treg=" << p.p_treg
+              << " p_th=" << p.p_th
+              << std::endl;
 
     nvtxRangePop();
 }
@@ -998,8 +1081,9 @@ FLAMEGPU_HOST_FUNCTION(mark_mac_sources) {
     // Get parameter
     float ec50_ccl2 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_EC50_CCL2_REC");
 
-    // Generate random seed from step number
-    unsigned int seed = static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 12345u + 54321u;
+    // Seed: combine environment seed with step counter (salt=0x517CC1B7 for MAC)
+    unsigned int base_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    unsigned int seed = base_seed ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 2654435761u + 0x517CC1B7u);
 
     dim3 block(8, 8, 8);
     dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);

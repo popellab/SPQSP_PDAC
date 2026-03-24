@@ -1,9 +1,27 @@
 #include "flamegpu/flamegpu.h"
 #include <string>
 #include <iostream>
+#include <vector>
+#include <set>
 
 #include "../core/common.cuh"
 #include "../pde/pde_integration.cuh"
+
+// Build a set of evenly-spaced substep indices for an agent type with
+// `n_moves` moves spread across `max_steps` total substeps.
+// E.g. spread_steps(5, 53) → {0, 10, 21, 31, 42}
+static std::set<int> spread_steps(int n_moves, int max_steps) {
+    std::set<int> steps;
+    if (n_moves <= 0 || max_steps <= 0) return steps;
+    if (n_moves >= max_steps) {
+        for (int i = 0; i < max_steps; i++) steps.insert(i);
+        return steps;
+    }
+    for (int i = 0; i < n_moves; i++) {
+        steps.insert(i * max_steps / n_moves);
+    }
+    return steps;
+}
 
 // From main.cu (global scope): prepares GPU buffer for ABM export
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER prepare_abm_export;
@@ -130,25 +148,25 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         const int fib_steps    = model.Environment().getProperty<int>("PARAM_FIB_MOVE_STEPS");
 
         // Interleaved movement: all mobile agent types compete for voxels in the
-        // same layer each substep, matching HCC's single-loop sequential processing
-        // where cancer and immune cells block each other's movement in real time.
+        // same layer each substep. Each type's moves are spread evenly across the
+        // full substep range so slower types (cancer, MDSC, MAC) aren't front-loaded.
         // Cancer uses moves_remaining (stem=5, progenitor=1) and returns early when
         // exhausted; immune agents run for their full step count.
-        const int max_steps = std::max({cancer_steps, tcell_steps, treg_steps, mdsc_steps, mac_steps});
+        const int max_steps = std::max({cancer_steps, tcell_steps, treg_steps, mdsc_steps, mac_steps, fib_steps});
+        const auto cancer_on = spread_steps(cancer_steps, max_steps);
+        const auto tcell_on  = spread_steps(tcell_steps,  max_steps);
+        const auto treg_on   = spread_steps(treg_steps,   max_steps);
+        const auto mdsc_on   = spread_steps(mdsc_steps,   max_steps);
+        const auto mac_on    = spread_steps(mac_steps,     max_steps);
+        const auto fib_on    = spread_steps(fib_steps,     max_steps);
         for (int i = 0; i < max_steps; i++) {
             flamegpu::LayerDescription layer = model.newLayer("move_interleaved_" + std::to_string(i));
-            if (i < cancer_steps) layer.addAgentFunction(AGENT_CANCER_CELL, "move");
-            if (i < tcell_steps)  layer.addAgentFunction(AGENT_TCELL, "move");
-            if (i < treg_steps)   layer.addAgentFunction(AGENT_TREG, "move");
-            if (i < mdsc_steps)   layer.addAgentFunction(AGENT_MDSC, "move");
-            if (i < mac_steps)    layer.addAgentFunction(AGENT_MACROPHAGE, "move");
-        }
-        // Fibroblast movement: single agent = single chain, head moves + segments shift atomically.
-        // No multi-pass synchronization needed. Separate from interleaved movement since
-        // fibroblasts use their own occ slot and don't compete with cancer/immune cells.
-        for (int i = 0; i < fib_steps; i++) {
-            flamegpu::LayerDescription layer = model.newLayer("fib_move_" + std::to_string(i));
-            layer.addAgentFunction(AGENT_FIBROBLAST, "move");
+            if (cancer_on.count(i)) layer.addAgentFunction(AGENT_CANCER_CELL, "move");
+            if (tcell_on.count(i))  layer.addAgentFunction(AGENT_TCELL, "move");
+            if (treg_on.count(i))   layer.addAgentFunction(AGENT_TREG, "move");
+            if (mdsc_on.count(i))   layer.addAgentFunction(AGENT_MDSC, "move");
+            if (mac_on.count(i))    layer.addAgentFunction(AGENT_MACROPHAGE, "move");
+            if (fib_on.count(i))    layer.addAgentFunction(AGENT_FIBROBLAST, "move");
         }
         {
             flamegpu::LayerDescription layer = model.newLayer("move_vascular");
