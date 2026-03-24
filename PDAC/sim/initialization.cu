@@ -22,7 +22,7 @@ SimulationConfig::SimulationConfig()
     , cluster_radius(5)
     , vascular_mode("random")
     , vascular_xml_file("")
-    , grid_out(3)
+    , grid_out(0)
     , interval_out(1)
 {
 }
@@ -63,7 +63,7 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  -p, --param-file FILE    Path to parameter XML file [default: param_all_test.xml]\n"
                       << "  -g, --grid-size N        Grid dimensions NxNxN [default: from XML]\n"
                       << "  -s, --steps N            Number of simulation steps [default: 200]\n"
-                      << "  -G, --grid-output N      Grid output: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both [default: 3]\n"
+                      << "  -G, --grid-output N      Grid output: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both [default: 0]\n"
                       << "  -oi, --out_int N         Output interval frequency [default: 1]\n"
                       << "  --seed N                 Random seed [default: 12345]\n"
                       << "  -vm, --vascular-mode STR Vasculature initialization: random, xml, test [default: random]\n"

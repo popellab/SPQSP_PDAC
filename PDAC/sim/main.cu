@@ -252,38 +252,59 @@ FLAMEGPU_STEP_FUNCTION(exportPDEData) {
 }
 
 // ============================================================================
-// NPY Writer for ECM (stroma) Output
-// Writes ECM density and fibroblast density field as a single NPY file.
+// LZ4-compressed binary writer for ECM (stroma) Output
+// Writes ECM density and fibroblast density field as a single LZ4 file.
 // Shape: (2, grid_z, grid_y, grid_x), dtype float32, C-order.
 //   channel 0: ECM_density  (d_ecm_grid)
 //   channel 1: Fib_field    (d_fib_density_field)
-// Python: arr = np.load("ecm_step_000001.npy")  → shape (2, nz, ny, nx)
+//
+// File format (.ecm.lz4):
+//   Bytes 0-3:   magic "ECM1"
+//   Bytes 4-7:   grid_x (int32)
+//   Bytes 8-11:  grid_y (int32)
+//   Bytes 12-15: grid_z (int32)
+//   Bytes 16-19: num_channels=2 (int32)
+//   Bytes 20-23: uncompressed_size (int32, bytes)
+//   Bytes 24-27: compressed_size (int32, bytes)
+//   Bytes 28+:   LZ4-compressed float32 data
+//
+// Python reader:
+//   import lz4.block, struct, numpy as np
+//   with open("ecm_step_000001.ecm.lz4", "rb") as f:
+//       magic = f.read(4)
+//       gx, gy, gz, nc, raw_sz, comp_sz = struct.unpack('<6i', f.read(24))
+//       data = np.frombuffer(lz4.block.decompress(f.read(), raw_sz), dtype=np.float32)
+//       data = data.reshape(nc, gz, gy, gx)
 // ============================================================================
-static void write_ecm_npy_buf(const char* path, int grid_x, int grid_y, int grid_z,
+static void write_ecm_lz4_buf(const char* path, int grid_x, int grid_y, int grid_z,
                                const std::vector<float>& buf) {
-    char header_str[256];
-    int header_len = snprintf(header_str, sizeof(header_str),
-        "{'descr': '<f4', 'fortran_order': False, 'shape': (2, %d, %d, %d), }",
-        grid_z, grid_y, grid_x);
+    const int n_channels = 2;
+    const int raw_bytes = static_cast<int>(buf.size() * sizeof(float));
+    const int max_comp = LZ4_compressBound(raw_bytes);
 
-    const int prefix_size = 10;
-    int padded_header_len = header_len + 1;
-    int block = ((prefix_size + padded_header_len + 63) / 64) * 64;
-    int pad_spaces = block - prefix_size - padded_header_len;
+    std::vector<char> comp_buf(max_comp);
+    int comp_bytes = LZ4_compress_default(
+        reinterpret_cast<const char*>(buf.data()), comp_buf.data(), raw_bytes, max_comp);
+
+    if (comp_bytes <= 0) {
+        std::cerr << "[WARN] LZ4 compression failed for: " << path << std::endl;
+        return;
+    }
 
     FILE* fp = fopen(path, "wb");
     if (!fp) {
-        std::cerr << "[WARN] Could not open ECM NPY file for write: " << path << std::endl;
+        std::cerr << "[WARN] Could not open ECM LZ4 file for write: " << path << std::endl;
         return;
     }
-    const unsigned char magic[8] = {0x93, 'N', 'U', 'M', 'P', 'Y', 0x01, 0x00};
-    fwrite(magic, 1, 8, fp);
-    uint16_t hdr_total = static_cast<uint16_t>(padded_header_len + pad_spaces);
-    fwrite(&hdr_total, sizeof(uint16_t), 1, fp);
-    fwrite(header_str, 1, header_len, fp);
-    for (int i = 0; i < pad_spaces; i++) fputc(' ', fp);
-    fputc('\n', fp);
-    fwrite(buf.data(), sizeof(float), buf.size(), fp);
+
+    fwrite("ECM1", 1, 4, fp);
+    fwrite(&grid_x, 4, 1, fp);
+    fwrite(&grid_y, 4, 1, fp);
+    fwrite(&grid_z, 4, 1, fp);
+    fwrite(&n_channels, 4, 1, fp);
+    fwrite(&raw_bytes, 4, 1, fp);
+    fwrite(&comp_bytes, 4, 1, fp);
+    fwrite(comp_buf.data(), 1, comp_bytes, fp);
     fclose(fp);
 }
 
@@ -303,9 +324,9 @@ void exportECMData_step0(int grid_x, int grid_y, int grid_z) {
     if (g_ecm_io_thread.joinable()) g_ecm_io_thread.join();
     int bi = g_ecm_buf_idx;
     collect_ecm_to_buf(g_ecm_bufs[bi], grid_x, grid_y, grid_z);
-    std::string path = "outputs/ecm/ecm_step_000000.npy";
+    std::string path = "outputs/ecm/ecm_step_000000.ecm.lz4";
     g_ecm_io_thread = std::thread([bi, path, grid_x, grid_y, grid_z]() {
-        write_ecm_npy_buf(path.c_str(), grid_x, grid_y, grid_z, g_ecm_bufs[bi]);
+        write_ecm_lz4_buf(path.c_str(), grid_x, grid_y, grid_z, g_ecm_bufs[bi]);
     });
     g_ecm_buf_idx = 1 - bi;
 }
@@ -328,17 +349,17 @@ FLAMEGPU_STEP_FUNCTION(exportECMData) {
     collect_ecm_to_buf(g_ecm_bufs[bi], grid_x, grid_y, grid_z);
 
     char path_buf[256];
-    snprintf(path_buf, sizeof(path_buf), "outputs/ecm/ecm_step_%06d.npy",
+    snprintf(path_buf, sizeof(path_buf), "outputs/ecm/ecm_step_%06d.ecm.lz4",
              static_cast<int>(main_step + 1));
     std::string path = path_buf;
     g_ecm_io_thread = std::thread([bi, path, grid_x, grid_y, grid_z]() {
-        write_ecm_npy_buf(path.c_str(), grid_x, grid_y, grid_z, g_ecm_bufs[bi]);
+        write_ecm_lz4_buf(path.c_str(), grid_x, grid_y, grid_z, g_ecm_bufs[bi]);
     });
     g_ecm_buf_idx = 1 - bi;
 }
 
 // ============================================================================
-// Binary NPY ABM Output
+// LZ4-compressed binary ABM Output
 //
 // Shape: (N_agents, 8), dtype int32
 // Columns: [type_id, agent_id, x, y, z, cell_state, life, extra]
@@ -346,11 +367,6 @@ FLAMEGPU_STEP_FUNCTION(exportECMData) {
 //   cell_state: enum int (STEM=0/PROG=1/SEN=2; EFF=0/CYT=1/SUPP=2; etc.)
 //   life:       age counter (0 for cancer/vascular which don't use it)
 //   extra:      divideCD for cancer, 0 for all others
-//
-// Python:
-//   import numpy as np, pandas as pd
-//   arr = np.load("agents_step_000001.npy")
-//   df = pd.DataFrame(arr, columns=["type","id","x","y","z","state","life","extra"])
 // ============================================================================
 static constexpr int ABM_NCOLS = 8;
 static constexpr int32_t ABM_TYPE_CANCER = 0;
@@ -939,13 +955,14 @@ int main(int argc, const char** argv) {
     // ========== RUN SIMULATION ==========
     std::cout << "\n=== Starting Simulation ===" << std::endl;
 
-    // Write NPY definition text files once at init
+    // Write LZ4 format definition text files once at init
     {
         std::filesystem::create_directories("outputs");
         {
-            std::ofstream f("outputs/abm_npy_def.txt");
-            f << "ABM snapshot NPY definition\n"
-              << "dtype: int32, shape: (N_agents, 8)\n"
+            std::ofstream f("outputs/abm_lz4_def.txt");
+            f << "ABM snapshot LZ4 definition (.abm.lz4)\n"
+              << "Header (20 bytes): magic='ABM1', n_agents(i32), n_cols=8(i32), raw_bytes(i32), comp_bytes(i32)\n"
+              << "Data: LZ4-compressed int32 array, shape (N_agents, 8)\n"
               << "Columns: [type_id, agent_id, x, y, z, cell_state, life, extra]\n"
               << "  type_id:    0=CANCER 1=TCELL 2=TREG 3=MDSC 4=MAC 5=FIB 6=VAS\n"
               << "  cell_state: state enum per type\n"
@@ -958,13 +975,19 @@ int main(int argc, const char** argv) {
               << "    VAS:    TIP=0, PHALANX=2\n"
               << "  life:  age counter (steps alive)\n"
               << "  extra: divideCD for CANCER, 0 otherwise\n"
-              << "Loading: arr=np.load('agents_step_000001.npy')\n"
-              << "         df=pd.DataFrame(arr, columns=['type','id','x','y','z','state','life','extra'])\n";
+              << "Loading:\n"
+              << "  import lz4.block, struct, numpy as np\n"
+              << "  with open('agents_step_000001.abm.lz4', 'rb') as f:\n"
+              << "      magic = f.read(4)\n"
+              << "      n, nc, raw_sz, comp_sz = struct.unpack('<4i', f.read(16))\n"
+              << "      data = np.frombuffer(lz4.block.decompress(f.read(), raw_sz), dtype=np.int32)\n"
+              << "      data = data.reshape(n, nc)\n";
         }
         {
-            std::ofstream f("outputs/pde_npy_def.txt");
-            f << "PDE concentration NPY definition\n"
-              << "dtype: float32, shape: (NUM_SUBSTRATES, grid_z, grid_y, grid_x)\n"
+            std::ofstream f("outputs/pde_lz4_def.txt");
+            f << "PDE concentration LZ4 definition (.pde.lz4)\n"
+              << "Header (28 bytes): magic='PDE1', grid_x(i32), grid_y(i32), grid_z(i32), n_substrates=10(i32), raw_bytes(i32), comp_bytes(i32)\n"
+              << "Data: LZ4-compressed float32 array, shape (NUM_SUBSTRATES, grid_z, grid_y, grid_x)\n"
               << "NUM_SUBSTRATES = 10\n"
               << "Channel index -> chemical:\n"
               << "  0: O2\n"
@@ -977,18 +1000,30 @@ int main(int argc, const char** argv) {
               << "  7: NO\n"
               << "  8: IL12\n"
               << "  9: VEGFA\n"
-              << "Loading: arr=np.load('pde_step_000001.npy')  # shape (10,nz,ny,nx)\n"
-              << "         o2=arr[0]  # shape (nz,ny,nx)\n";
+              << "Loading:\n"
+              << "  import lz4.block, struct, numpy as np\n"
+              << "  with open('pde_step_000001.pde.lz4', 'rb') as f:\n"
+              << "      magic = f.read(4)\n"
+              << "      gx, gy, gz, ns, raw_sz, comp_sz = struct.unpack('<6i', f.read(24))\n"
+              << "      data = np.frombuffer(lz4.block.decompress(f.read(), raw_sz), dtype=np.float32)\n"
+              << "      data = data.reshape(ns, gz, gy, gx)\n";
         }
         {
-            std::ofstream f("outputs/ecm_npy_def.txt");
-            f << "ECM snapshot NPY definition\n"
-              << "dtype: float32, shape: (2, grid_z, grid_y, grid_x)\n"
+            std::ofstream f("outputs/ecm_lz4_def.txt");
+            f << "ECM snapshot LZ4 definition (.ecm.lz4)\n"
+              << "Header (28 bytes): magic='ECM1', grid_x(i32), grid_y(i32), grid_z(i32), n_channels=2(i32), raw_bytes(i32), comp_bytes(i32)\n"
+              << "Data: LZ4-compressed float32 array, shape (2, grid_z, grid_y, grid_x)\n"
               << "Channel index -> field:\n"
               << "  0: ECM_density   (d_ecm_grid, smoothed ECM density [0..1])\n"
               << "  1: Fib_field     (d_fib_density_field, raw Gaussian fib density)\n"
-              << "Loading: arr=np.load('ecm_step_000001.npy')  # shape (2,nz,ny,nx)\n"
-              << "         ecm=arr[0]; fib=arr[1]\n";
+              << "Loading:\n"
+              << "  import lz4.block, struct, numpy as np\n"
+              << "  with open('ecm_step_000001.ecm.lz4', 'rb') as f:\n"
+              << "      magic = f.read(4)\n"
+              << "      gx, gy, gz, nc, raw_sz, comp_sz = struct.unpack('<6i', f.read(24))\n"
+              << "      data = np.frombuffer(lz4.block.decompress(f.read(), raw_sz), dtype=np.float32)\n"
+              << "      data = data.reshape(nc, gz, gy, gx)\n"
+              << "      ecm = data[0]; fib = data[1]\n";
         }
     }
 
