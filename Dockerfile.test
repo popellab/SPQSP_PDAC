@@ -1,37 +1,24 @@
 # ============================================================================
-# Test environment for SPQSP_PDAC simulation
+# Test environment for SPQSP_PDAC simulation (multi-stage, ~2GB vs ~12GB)
 #
-# Build (from repo root):
-#   docker build -f Dockerfile.test -t pdac-test:latest .
-#
-# Run tests (Docker):
-#   docker run --gpus all pdac-test:latest
-#
-# Run tests (Apptainer on HPC):
-#   apptainer build pdac-test.sif docker-daemon://pdac-test:latest
-#   apptainer run --nv pdac-test.sif
-#
-# Run specific test file:
-#   docker run --gpus all pdac-test:latest pytest tests/test_io.py -v
-#
-# Interactive shell:
-#   docker run --gpus all -it pdac-test:latest bash
+# Build:   docker build -f Dockerfile.test -t pdac-test:latest .
+# Run:     docker run --gpus all pdac-test:latest
+# Shell:   docker run --gpus all -it pdac-test:latest bash
+# HPC:     apptainer run --nv pdac-test.sif
 # ============================================================================
 
-FROM nvidia/cuda:12.8.0-devel-ubuntu24.04
+# --------------- Stage 1: build ---------------
+FROM nvidia/cuda:12.8.0-devel-ubuntu24.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# System dependencies
 RUN apt-get update -qq && \
     apt-get install -y -qq --no-install-recommends \
         cmake g++ git ca-certificates curl \
         libboost-serialization-dev \
-        python3 python3-pip python3-venv \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -s /usr/lib/x86_64-linux-gnu/libboost_serialization.so /usr/lib/libboost_serialization.so 2>/dev/null || true
+    && rm -rf /var/lib/apt/lists/*
 
-# SUNDIALS
+# SUNDIALS 7
 ARG SUNDIALS_VER=7.6.0
 RUN cd /tmp && \
     curl -sL "https://github.com/LLNL/sundials/releases/download/v${SUNDIALS_VER}/sundials-${SUNDIALS_VER}.tar.gz" | tar xz && \
@@ -46,31 +33,50 @@ RUN cd /tmp && \
     cmake --install build && \
     rm -rf /tmp/sundials-${SUNDIALS_VER}
 
-# Install uv
+COPY PDAC/ /build/PDAC/
+
+ARG CUDA_ARCH="80;90"
+WORKDIR /build/PDAC/sim
+RUN cmake -S . -B build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
+        -DSUNDIALS_DIR=/usr/local \
+        -DBOOST_ROOT=/usr && \
+    cmake --build build --parallel 2 && \
+    strip build/bin/pdac
+
+# --------------- Stage 2: runtime (~2GB) ---------------
+FROM nvidia/cuda:12.8.0-runtime-ubuntu24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+RUN apt-get update -qq && \
+    apt-get install -y -qq --no-install-recommends \
+        python3 python3-pip python3-venv \
+        libboost-serialization1.83.0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy binary
+COPY --from=builder /build/PDAC/sim/build/bin/pdac /sim/build/bin/pdac
+
+# Copy shared libs (SUNDIALS + FLAMEGPU2 runtime)
+COPY --from=builder /usr/local/lib/libsundials_* /usr/local/lib/
+RUN ldconfig
+
+# Copy test files and param resources
+COPY --from=builder /build/PDAC/sim/tests/ /sim/tests/
+COPY --from=builder /build/PDAC/sim/resource/ /sim/resource/
+
+# Install uv + test deps
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-
-# Copy source
-COPY PDAC/ /sim/PDAC/
-COPY Dockerfile.test /sim/
-
-WORKDIR /sim/PDAC/sim
-
-# Install Python test dependencies
 RUN uv venv /sim/.venv && \
     . /sim/.venv/bin/activate && \
     uv pip install pytest lz4
 ENV PATH="/sim/.venv/bin:$PATH"
 
-# Build simulation
-ARG CUDA_ARCH="80;90"
-RUN cmake -S . -B build \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
-        -DSUNDIALS_DIR=/usr/local \
-        -DBOOST_ROOT=/usr 2>&1 | tail -30 && \
-    cmake --build build --parallel 2 2>&1 || \
-    (cmake --build build 2>&1 | tail -50 && false)
+WORKDIR /sim
 
-# Default: run all tests
 ENTRYPOINT ["pytest"]
 CMD ["tests/", "-v"]
