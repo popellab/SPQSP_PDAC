@@ -40,21 +40,3 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-
-      - name: Pre-cache SIF on Anvil
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.ANVIL_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.ANVIL_HOST }} >> ~/.ssh/known_hosts
-
-          ssh ${{ secrets.ANVIL_USER }}@${{ secrets.ANVIL_HOST }} "bash -s" <<EOF
-          set -euo pipefail
-          SIF_DIR=/anvil/scratch/\$USER/pdac_sif
-          mkdir -p \$SIF_DIR
-          module load apptainer 2>/dev/null || true
-          export APPTAINER_DOCKER_USERNAME=${{ github.actor }}
-          export APPTAINER_DOCKER_PASSWORD=${{ secrets.GITHUB_TOKEN }}
-          apptainer pull --force \$SIF_DIR/pdac-test.sif docker://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          echo "SIF cached at \$SIF_DIR/pdac-test.sif"
-          EOF

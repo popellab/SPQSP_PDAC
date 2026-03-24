@@ -14,6 +14,7 @@ jobs:
   test:
     runs-on: ubuntu-22.04
     env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/spqsp-pdac-test:latest
       REMOTE: ${{ secrets.ANVIL_USER }}@${{ secrets.ANVIL_HOST }}
 
     steps:
@@ -28,15 +29,15 @@ jobs:
         run: |
           ssh $REMOTE "bash -s" <<EOF
           set -euo pipefail
-          SIF=/anvil/scratch/\$USER/pdac_sif/pdac-test.sif
           SCRATCH=/anvil/scratch/\$USER/pdac_test_${{ github.run_id }}
           mkdir -p \$SCRATCH
           cd \$SCRATCH
 
-          if [[ ! -f \$SIF ]]; then
-            echo "ERROR: SIF not found at \$SIF — run Build Test Image workflow first"
-            exit 1
-          fi
+          module load apptainer 2>/dev/null || true
+          export APPTAINER_DOCKER_USERNAME=${{ github.actor }}
+          export APPTAINER_DOCKER_PASSWORD=${{ secrets.GITHUB_TOKEN }}
+          apptainer pull --force test.sif docker://${{ env.IMAGE }}
+          SIF=\$SCRATCH/test.sif
 
           JOB_ID=\$(sbatch --parsable \
             -A ${{ secrets.ANVIL_ACCOUNT }} \
