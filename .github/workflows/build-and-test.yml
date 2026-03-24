@@ -1,21 +1,63 @@
-name: GPU Tests
+name: Build and Test
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      pr:
-        description: 'PR number (leave empty for latest)'
-        required: false
 
-# Requires repository secrets:
-#   ANVIL_SSH_KEY, ANVIL_USER, ANVIL_HOST, ANVIL_ACCOUNT
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/spqsp-pdac-test
 
 jobs:
-  test:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "tag=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.test
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+  gpu-test:
+    needs: build
     runs-on: ubuntu-22.04
     if: github.repository == 'popellab/SPQSP_PDAC'
     env:
-      IMAGE: ghcr.io/${{ github.repository_owner }}/spqsp-pdac-test:${{ inputs.pr && format('pr-{0}', inputs.pr) || 'latest' }}
+      IMAGE: ghcr.io/${{ github.repository_owner }}/spqsp-pdac-test:${{ github.sha }}
       REMOTE: ${{ secrets.ANVIL_USER }}@${{ secrets.ANVIL_HOST }}
 
     steps:
@@ -45,7 +87,7 @@ jobs:
           apptainer pull --force test.sif docker://$IMAGE
           SIF=\$SCRATCH/test.sif
 
-          git clone --depth 1 --branch ${{ github.ref_name }} \
+          git clone --depth 1 --branch ${{ github.head_ref || github.ref_name }} \
             https://github.com/${{ github.repository }}.git repo
           TESTS=\$SCRATCH/repo/PDAC/sim/tests
 
