@@ -66,8 +66,9 @@ COPY --from=builder /build/PDAC/sim/build/bin/pdac /sim/build/bin/pdac
 COPY --from=builder /runtime-libs/ /usr/local/lib/
 RUN ldconfig
 
-# Copy test files, param resources, and vendored sources
-COPY --from=builder /build/PDAC/sim/tests/ /sim/tests/
+# Copy test files directly from context (excluded from builder via .dockerignore)
+COPY PDAC/sim/tests/ /sim/tests/
+# Copy resources and vendored sources from builder
 COPY --from=builder /build/PDAC/sim/resource/ /sim/resource/
 COPY --from=builder /build/PDAC/sim/third_party/ /sim/third_party/
 
