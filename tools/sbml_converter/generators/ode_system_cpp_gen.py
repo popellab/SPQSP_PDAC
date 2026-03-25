@@ -40,6 +40,13 @@ def _fmt(value: float) -> str:
     return f"{value:.17g}"
 
 
+def _scaling_expr(scaling: float) -> str:
+    """Return ' * factor' or '' if scaling is 1.0."""
+    if scaling == 1.0:
+        return ""
+    return f" * {_fmt(scaling)}"
+
+
 # ============================================================================
 # Preamble: includes, macros, static members
 # ============================================================================
@@ -122,17 +129,17 @@ def _gen_setup_class_parameters(model, mapper, class_name):
     for comp in model.compartments:
         p_enum = mapper.param_enum(comp.id)
         qsp_enum = mapper.qsp_enum(comp.id)
-        scaling = _fmt(comp.unit_si_scaling)
+        scale = _scaling_expr(comp.unit_si_scaling)
         lines.append(f"    //{comp.name}, {comp.id}")
-        lines.append(f"    _class_parameter[{p_enum}] = PFILE({qsp_enum}) * {scaling};")
+        lines.append(f"    _class_parameter[{p_enum}] = PFILE({qsp_enum}){scale};")
 
     # Constant parameters
     for param in model.p_const:
         p_enum = mapper.param_enum(param.id)
         qsp_enum = mapper.qsp_enum(param.id)
-        scaling = _fmt(param.unit_si_scaling)
+        scale = _scaling_expr(param.unit_si_scaling)
         lines.append(f"    //{param.name}, {param.id}")
-        lines.append(f"    _class_parameter[{p_enum}] = PFILE({qsp_enum}) * {scaling};")
+        lines.append(f"    _class_parameter[{p_enum}] = PFILE({qsp_enum}){scale};")
 
     lines.append("}")
     lines.append("")
@@ -168,16 +175,16 @@ def _gen_setup_instance_variables(model, mapper, class_name):
     for sp in model.sp_var:
         enum = mapper.species_enum(sp.id)
         qsp_enum = mapper.qsp_enum(sp.id)
-        scaling = _fmt(sp.unit_si_scaling)
+        scale = _scaling_expr(sp.unit_si_scaling)
         lines.append(f"    //{mapper.display_name(sp.id)}, {sp.id}")
-        lines.append(f"    _species_var[{enum}] = PFILE({qsp_enum}) * {scaling};")
+        lines.append(f"    _species_var[{enum}] = PFILE({qsp_enum}){scale};")
 
     # Non-species variables
     for i, nsp in enumerate(model.nsp_var):
         qsp_enum = mapper.qsp_enum(nsp.id)
-        scaling = _fmt(nsp.unit_si_scaling if hasattr(nsp, 'unit_si_scaling') else 1.0)
+        scale = _scaling_expr(nsp.unit_si_scaling if hasattr(nsp, 'unit_si_scaling') else 1.0)
         lines.append(f"    //{nsp.name}, {nsp.id}")
-        lines.append(f"    _nonspecies_var[{i}] = PFILE({qsp_enum}) * {scaling};")
+        lines.append(f"    _nonspecies_var[{i}] = PFILE({qsp_enum}){scale};")
 
     lines.append("    return;")
     lines.append("}")
@@ -688,6 +695,7 @@ def _gen_unit_conversion(model, mapper, class_name):
     lines.append("    static std::vector<realtype> scalor = {")
     lines.append("        //sp_var")
     for sp in model.sp_var:
+        # scaling used for tolerance computation: species_abstol = base_abstol * scaling
         lines.append(f"        {_fmt(sp.unit_si_scaling)},")
     lines.append("        //sp_other")
     for sp in model.sp_other:

@@ -54,6 +54,10 @@ def main():
     parser.add_argument(
         "--output", type=Path, default=DEFAULT_OUTPUT, help="Output directory for C++ files"
     )
+    parser.add_argument(
+        "--no-unit-conversion", action="store_true",
+        help="Skip SI unit conversion (keep model units: cells, nM, mL, 1/day)"
+    )
     args = parser.parse_args()
 
     # Get SBML file
@@ -73,8 +77,9 @@ def main():
     # Build name mappings
     mapper = NameMapper(model)
 
-    # Compute unit conversions
-    compute_unit_conversions(model)
+    # Compute unit conversions (or skip for model-unit mode)
+    if not args.no_unit_conversion:
+        compute_unit_conversions(model)
 
     # Sort assignment rules and initial assignments by dependencies
     model.assignment_rule_order = sort_assignment_rules(model)

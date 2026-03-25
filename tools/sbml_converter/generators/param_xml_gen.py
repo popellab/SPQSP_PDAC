@@ -16,8 +16,8 @@ def generate_param_xml(model: SBMLModel, mapper: NameMapper) -> str:
     lines.append("      <start>0</start>")
     lines.append("      <step>1</step>")
     lines.append("      <n_step>360</n_step>")
-    lines.append("      <tol_rel>1e-09</tol_rel>")
-    lines.append("      <tol_abs>1e-12</tol_abs>")
+    lines.append("      <tol_rel>1e-06</tol_rel>")
+    lines.append("      <tol_abs>1e-09</tol_abs>")
     lines.append("    </simulation>")
 
     # Initial values

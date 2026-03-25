@@ -10,7 +10,7 @@ def test_species_count(parsed_model):
 
 
 def test_parameter_count(parsed_model):
-    assert len(parsed_model.parameters) == 398
+    assert len(parsed_model.parameters) == 400
 
 
 def test_reaction_count(parsed_model):
@@ -18,7 +18,7 @@ def test_reaction_count(parsed_model):
 
 
 def test_assignment_rule_count(parsed_model):
-    assert len(parsed_model.assignment_rules) == 65
+    assert len(parsed_model.assignment_rules) == 66
 
 
 def test_event_count(parsed_model):
@@ -32,7 +32,7 @@ def test_species_classification(parsed_model):
 
 
 def test_param_classification(parsed_model):
-    assert len(parsed_model.p_const) == 336
+    assert len(parsed_model.p_const) == 337
 
 
 def test_compartment_names(parsed_model):
