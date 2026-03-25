@@ -27,9 +27,10 @@ int main(int argc, char* argv[]) {
     double t_end_days = argc > 3 ? std::stod(argv[3]) : 365.0;
     double dt_days = argc > 4 ? std::stod(argv[4]) : 0.1;
 
-    // Time in days (matching model time units)
-    double t_end = t_end_days;
-    double dt = dt_days;
+    // Convert to seconds (ODE solver uses SI units internally)
+    const double SEC_PER_DAY = 86400.0;
+    double t_end = t_end_days * SEC_PER_DAY;
+    double dt = dt_days * SEC_PER_DAY;
 
     // Load parameters
     QSPParam param;
@@ -62,7 +63,7 @@ int main(int argc, char* argv[]) {
 
     // Write initial state (sp_var only, in model units to match MATLAB)
     auto write_state = [&](double t) {
-        out << t;  // time already in days
+        out << t / SEC_PER_DAY;  // output in days
         for (unsigned int i = 0; i < n_sp; i++) {
             out << "," << ode.getSpeciesVar(i, true);  // model units (cells, nM, etc.)
         }
@@ -82,7 +83,7 @@ int main(int argc, char* argv[]) {
         write_state(t);
 
         if (step % 1000 == 0) {
-            std::cerr << "  t=" << t << " days" << std::endl;
+            std::cerr << "  t=" << t / SEC_PER_DAY << " days" << std::endl;
         }
     }
 

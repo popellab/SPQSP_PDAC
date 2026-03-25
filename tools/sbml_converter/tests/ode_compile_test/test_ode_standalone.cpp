@@ -62,7 +62,7 @@ int main() {
 
     // 9. Try a short simulation step
     try {
-        ode.simOdeStep(0.0, 0.1);  // 0.1 day step
+        ode.simOdeStep(0.0, 8640.0);  // 0.1 day = 8640 seconds
         std::cout << "Simulation step completed" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Simulation step failed: " << e.what() << std::endl;
