@@ -370,7 +370,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_build_density_field, flamegpu::MessageNone, flamegpu
 
     // Traction strength: how strongly fibroblasts pull ECM toward themselves
     // CAF pulls harder than normal fibroblasts (matching ECM deposition scale)
-    const float traction_strength = scale * 0.5f;
+    const float traction_strength = scale * 2.0f;
 
     for (int seg = 0; seg < chain_len; seg++) {
         const int cx = FLAMEGPU->getVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_x", seg);

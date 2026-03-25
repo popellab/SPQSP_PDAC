@@ -31,8 +31,9 @@ set(FLAMEGPU_SEATBELTS OFF CACHE BOOL "Disable FLAMEGPU2 seatbelt checks" FORCE)
 #   80 = A100
 #   86 = RTX 30xx
 #   89 = RTX 40xx
+#   120 = RTX 50xx (Blackwell)
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    set(CMAKE_CUDA_ARCHITECTURES 75 80 86)
+    set(CMAKE_CUDA_ARCHITECTURES 75 80 86 120)
 endif()
 
 # ============================================================================

@@ -695,6 +695,7 @@ __device__ bool try_find_open_neighbor(
     const unsigned int* d_cancer_occ,
     unsigned int* d_mac_occ,
     unsigned int* d_mdsc_occ,
+    const uint8_t* face_flags,
     unsigned int& rng,
     int& out_x, int& out_y, int& out_z)
 {
@@ -724,6 +725,10 @@ __device__ bool try_find_open_neighbor(
         int cy = sy + offsets[i][1];
         int cz = sz + offsets[i][2];
         if (cx < 0 || cx >= nx || cy < 0 || cy >= ny || cz < 0 || cz >= nz) continue;
+
+        // Check ductal wall: don't recruit across walls
+        if (PDAC::is_ductal_wall_blocked(face_flags, sx, sy, sz,
+                offsets[i][0], offsets[i][1], offsets[i][2], nx, ny)) continue;
 
         int vidx = cz * (nx * ny) + cy * nx + cx;
 
@@ -781,6 +786,7 @@ __global__ void recruit_all_kernel(
     const unsigned int* __restrict__ d_cancer_occ,
     unsigned int* d_mac_occ,
     unsigned int* d_mdsc_occ,
+    const uint8_t* __restrict__ d_face_flags,
     RecruitRequest* d_requests,
     int* d_request_count,
     RecruitDiag* diag,
@@ -811,7 +817,7 @@ __global__ void recruit_all_kernel(
             atomicAdd(&diag->teff_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, CELL_TYPE_T, p.nx, p.ny, p.nz,
                     p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
-                    d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+                    d_mac_occ, d_mdsc_occ, d_face_flags, rng, px, py, pz)) {
                 atomicAdd(&diag->teff_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
@@ -837,7 +843,7 @@ __global__ void recruit_all_kernel(
             atomicAdd(&diag->treg_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, CELL_TYPE_TREG, p.nx, p.ny, p.nz,
                     p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
-                    d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+                    d_mac_occ, d_mdsc_occ, d_face_flags, rng, px, py, pz)) {
                 atomicAdd(&diag->treg_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
@@ -863,7 +869,7 @@ __global__ void recruit_all_kernel(
             atomicAdd(&diag->th_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, CELL_TYPE_TREG, p.nx, p.ny, p.nz,
                     p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
-                    d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+                    d_mac_occ, d_mdsc_occ, d_face_flags, rng, px, py, pz)) {
                 atomicAdd(&diag->th_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
@@ -892,7 +898,7 @@ __global__ void recruit_all_kernel(
             atomicAdd(&diag->mdsc_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, CELL_TYPE_MDSC, p.nx, p.ny, p.nz,
                     p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
-                    d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+                    d_mac_occ, d_mdsc_occ, d_face_flags, rng, px, py, pz)) {
                 atomicAdd(&diag->mdsc_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
@@ -921,7 +927,7 @@ __global__ void recruit_all_kernel(
             atomicAdd(&diag->mac_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, CELL_TYPE_MAC, p.nx, p.ny, p.nz,
                     p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
-                    d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+                    d_mac_occ, d_mdsc_occ, d_face_flags, rng, px, py, pz)) {
                 atomicAdd(&diag->mac_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
@@ -1007,9 +1013,13 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     dim3 block(8, 8, 8);
     dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
 
+    // Get face_flags pointer for ductal wall check during recruitment placement
+    const uint8_t* face_flags = reinterpret_cast<const uint8_t*>(
+        FLAMEGPU->environment.getProperty<uint64_t>("face_flags_ptr"));
+
     recruit_all_kernel<<<grid, block>>>(
         g_pde_solver->get_device_recruitment_sources_ptr(),
-        d_t_occ, d_cancer_occ, d_mac_occ, d_mdsc_occ,
+        d_t_occ, d_cancer_occ, d_mac_occ, d_mdsc_occ, face_flags,
         d_recruit_requests, d_recruit_count, d_recruit_diag, p);
 
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -1257,7 +1267,7 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_orientation) {
     int total_voxels = g_pde_solver->get_total_voxels();
     // Blend rate controls how quickly orientation responds to forces.
     // 0.1 = moderate responsiveness (10% of accumulated force per step)
-    const float blend_rate = 0.1f;
+    const float blend_rate = 0.3f;
 
     int block_size = 256;
     int grid_size = (total_voxels + block_size - 1) / block_size;

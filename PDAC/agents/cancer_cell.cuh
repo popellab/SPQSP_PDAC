@@ -724,7 +724,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
             float* reorient_z = reinterpret_cast<float*>(
                 FLAMEGPU->environment.getProperty<uint64_t>("ecm_reorient_z_ptr"));
             deposit_cancer_stress(reorient_x, reorient_y, reorient_z,
-                nx, ny, nz, size_x, size_y, size_z, 0.3f);
+                nx, ny, nz, size_x, size_y, size_z, 1.5f);
 
             break;
         }

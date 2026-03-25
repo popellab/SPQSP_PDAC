@@ -156,8 +156,7 @@ static void init_pde_io(int grid_x, int grid_y, int grid_z) {
     size_t bytes = g_pde_buf_floats * sizeof(float);
     cudaMallocHost(&g_pde_pinned[0], bytes);
     cudaMallocHost(&g_pde_pinned[1], bytes);
-    cudaStreamCreateWithFlags(&g_pde_stream, cudaStreamNonBlocking);
-    cudaEventCreateWithFlags(&g_pde_event, cudaEventDisableTiming);
+    // Stream + event created earlier in main() (shared with ABM export)
 }
 
 // Allocate GPU buffer + pinned host buffers for ABM export
@@ -895,7 +894,11 @@ int main(int argc, const char** argv) {
     // Store PDE device pointers in model environment
     PDAC::set_pde_pointers_in_environment(*model);
 
-    // Allocate pinned host buffers and CUDA stream for async PDE output
+    // Always create CUDA stream+event (used by both PDE and ABM async export)
+    cudaStreamCreateWithFlags(&g_pde_stream, cudaStreamNonBlocking);
+    cudaEventCreateWithFlags(&g_pde_event, cudaEventDisableTiming);
+
+    // Allocate pinned host buffers for async PDE output
     if (config.grid_out & 2) {
         init_pde_io(config.grid_x, config.grid_y, config.grid_z);
     }

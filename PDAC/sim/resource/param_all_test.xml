@@ -59,7 +59,7 @@
       <moveSteps>6</moveSteps>
     </Mac>
     <CancerCell>
-      <progGrowthRate>.5</progGrowthRate>
+      <progGrowthRate>2.0</progGrowthRate>
       <senescentDeathRate>1</senescentDeathRate>
       <asymmetricDivProb>.95</asymmetricDivProb>
       <progenitorDivMax>9</progenitorDivMax>
@@ -393,7 +393,7 @@
       <H_PD1_APC>0.998725</H_PD1_APC>
       <H_CD28_C1>0.955333</H_CD28_C1>
       <H_CD28_APC>0.955944</H_CD28_APC>
-      <k_C1_growth>0.012</k_C1_growth>
+      <k_C1_growth>0.048</k_C1_growth>
       <C_max>3.24765e+11</C_max>
       <k_C1_death>0.0001</k_C1_death>
       <k_C1_therapy>0</k_C1_therapy>
