@@ -295,26 +295,28 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
 
         // Drug concentrations (tumor compartment)
         state.nivo_tumor = getVAR(CancerVCT::SP_V_T_aPD1);
-        state.cabo_tumor = getVAR(CancerVCT::SP_V_T_cabozantinib);
+        state.cabo_tumor = 0.0;  // cabozantinib module disabled
         state.ipi_tumor = 0.0;
 
         // Central compartment search - for recruitment
-        state.teff_central = getVAR(CancerVCT::SP_V_C_T1);
-        state.treg_central = getVAR(CancerVCT::SP_V_C_T0); 
+        state.teff_central = getVAR(CancerVCT::SP_V_C_CD8);
+        state.treg_central = getVAR(CancerVCT::SP_V_C_Treg); 
         state.th_central = getVAR(CancerVCT::SP_V_C_Th);
 
         // Tumor compartment search - for initialization
-        state.teff_tumor = getVAR(CancerVCT::SP_V_T_T1);
-        state.treg_tumor = getVAR(CancerVCT::SP_V_T_T0);
+        state.teff_tumor = getVAR(CancerVCT::SP_V_T_CD8);
+        state.treg_tumor = getVAR(CancerVCT::SP_V_T_Treg);
         state.th_tumor = getVAR(CancerVCT::SP_V_T_Th);
         state.mdsc_tumor = getVAR(CancerVCT::SP_V_T_MDSC);
         state.m1_tumor = getVAR(CancerVCT::SP_V_T_Mac_M1);
         state.m2_tumor = getVAR(CancerVCT::SP_V_T_Mac_M2);
-        state.caf_tumor = getVAR(CancerVCT::SP_V_T_CAF);
+        state.caf_tumor = getVAR(CancerVCT::SP_V_T_iCAF)
+                        + getVAR(CancerVCT::SP_V_T_myCAF)
+                        + getVAR(CancerVCT::SP_V_T_apCAF);
 
         state.cc_tumor = getVAR_RAW(CancerVCT::SP_V_T_C1);
         state.cx_tumor = getVAR(CancerVCT::SP_V_T_C_x);
-        state.t_exh_tumor = getVAR(CancerVCT::SP_V_T_T1_exh);
+        state.t_exh_tumor = getVAR(CancerVCT::SP_V_T_CD8_exh);
         state.tum_cmax = getVAR(CancerVCT::SP_V_T_K);
 
         state.tum_vol = _compute_tumor_volume(ode_sys);
@@ -367,25 +369,32 @@ double LymphCentralWrapper::get_tumor_volume() const {
     return _compute_tumor_volume(_qsp_model->getSystem());
 }
 
-// Compute tumor volume from any ODE system instance using SI species values
-// Formula matches get_state_for_abm() - uses getSpeciesVar(x, false) for moles
+// Compute tumor volume from any ODE system instance using SI species values.
+// Formula matches the V_T assignment rule in the SBML model (from simbio_init.m).
+// Uses getSpeciesVar(x, false) for moles.
 double LymphCentralWrapper::_compute_tumor_volume(CancerVCT::ODE_system* sys) const {
     using namespace CancerVCT;
 
     auto getS = [&](int idx) { return sys->getSpeciesVar(idx, false); };
 
-    double C_total = getS(SP_V_T_C1) + getS(SP_V_T_C2);
-    double T_total = getS(SP_V_T_T0) + getS(SP_V_T_T1) + getS(SP_V_T_Th);
+    double C_total = getS(SP_V_T_C1);
+    double T_total = getS(SP_V_T_Treg) + getS(SP_V_T_CD8) + getS(SP_V_T_Th);
     double M_total = getS(SP_V_T_Mac_M1) + getS(SP_V_T_Mac_M2) + getS(SP_V_T_MDSC);
 
     double vol =
+        // Cellular volume: (dead + cancer)*vol_cell + (exhausted + active T)*vol_Tcell
         ((getS(SP_V_T_C_x) + C_total) * QP(P_vol_cell) +
-         (getS(SP_V_T_T1_exh) + getS(SP_V_T_Th_exh) + T_total) * QP(P_vol_Tcell))
+         (getS(SP_V_T_CD8_exh) + getS(SP_V_T_Th_exh) + T_total) * QP(P_vol_Tcell))
             / QP(P_Ve_T)
+        // Macrophages
         + M_total * QP(P_vol_Mcell) / QP(P_Ve_T)
-        + getS(SP_V_T_Fib) * QP(P_vol_Fibcell) / QP(P_Ve_T)
-        + getS(SP_V_T_CAF) * QP(P_vol_CAFcell) / QP(P_Ve_T)
-        + getS(SP_V_T_ECM) * QP(P_ECM_MW) / QP(P_ECM_density);
+        // Fibroblast subtypes (qPSC, iCAF, myCAF, apCAF)
+        + getS(SP_V_T_qPSC)  * QP(P_vol_qPSCcell)  / QP(P_Ve_T)
+        + getS(SP_V_T_iCAF)  * QP(P_vol_iCAFcell)  / QP(P_Ve_T)
+        + getS(SP_V_T_myCAF) * QP(P_vol_myCAFcell) / QP(P_Ve_T)
+        + getS(SP_V_T_apCAF) * QP(P_vol_apCAFcell) / QP(P_Ve_T)
+        // ECM (collagen mass / density)
+        + getS(SP_V_T_collagen) / QP(P_rho_collagen);
 
     return vol;
 }
@@ -428,25 +437,9 @@ void LymphCentralWrapper::_apply_drug_doses(double t, double dt) {
         }
 
         // --- Cabozantinib (oral, two-site absorption) ---
-        if (_cabo_on && _cabo_interval_s > 0.0 && _cabo_dose > 0.0) {
-            while (treat_t >= _cabo_next_dose_t) {
-                // Split dose between absorption sites (ODE uses two-lag model)
-                double s1 = ode->getSpeciesVar(SP_V_C_A_site1, false);
-                double s2 = ode->getSpeciesVar(SP_V_C_A_site2, false);
-
-                double f1 = 0.675;
-                double s1_dose = f1*_cabo_dose / QP(P_V_C);
-                double s2_dose = (1-f1)*_cabo_dose / QP(P_V_C);
-
-                ode->setSpeciesVar(SP_V_C_A_site1, s1 + s1_dose, false);
-                ode->setSpeciesVar(SP_V_C_A_site2, s2 + s2_dose, false);
-                _cabo_doses_given++;
-                // std::cout << "  [Dosing] Cabozantinib dose #" << _cabo_doses_given
-                //           << " at treat_day=" << (_cabo_next_dose_t / 86400.0)
-                //           << " (t=" << (t / 86400.0) << " d)" << std::endl;
-                _cabo_next_dose_t += _cabo_interval_s;
-            }
-        }
+        // NOTE: Cabozantinib module disabled in current SBML model.
+        // Dosing code retained but inactive (_cabo_on defaults to false).
+        // Re-enable when cabozantinib_module is added back to the model.
     }
 }
 
@@ -471,19 +464,19 @@ void LymphCentralWrapper::_apply_abm_feedback() {
     // Antigen increase
     double p0 = ode->getSpeciesVar(SP_V_T_P0, false);
     double p1 = ode->getSpeciesVar(SP_V_T_P1, false);
-    double factor_p0 = ode->get_class_param(P_n_T0_clones) * ode->get_class_param(P_P0_C1);
-    double factor_p1 = ode->get_class_param(P_n_T1_clones) * ode->get_class_param(P_P1_C1);
+    double factor_p0 = ode->get_class_param(P_n_CD4_clones) * ode->get_class_param(P_P0_C1);
+    double factor_p1 = ode->get_class_param(P_n_CD8_clones) * ode->get_class_param(P_P1_C1);
 
     ode->setSpeciesVar(SP_V_T_P0, p0 + _abm_signals.cancer_deaths_last_step * scaler * factor_p0, false);
     ode->setSpeciesVar(SP_V_T_P1, p1 + _abm_signals.cancer_deaths_last_step * scaler * factor_p1, false);
 
     // Recruitment decrease
-    double cent_t_eff = ode->getSpeciesVar(SP_V_C_T1, false);
-    double cent_t_reg = ode->getSpeciesVar(SP_V_C_T0, false);
+    double cent_t_eff = ode->getSpeciesVar(SP_V_C_CD8, false);
+    double cent_t_reg = ode->getSpeciesVar(SP_V_C_Treg, false);
     double cent_t_h = ode->getSpeciesVar(SP_V_C_Th, false);
 
-    ode->setSpeciesVar(SP_V_C_T1, std::max(0.0, cent_t_eff - _abm_signals.teff_recruited_last_step * scaler), false);
-    ode->setSpeciesVar(SP_V_C_T0, std::max(0.0, cent_t_reg - _abm_signals.treg_recruited_last_step * scaler), false);
+    ode->setSpeciesVar(SP_V_C_CD8, std::max(0.0, cent_t_eff - _abm_signals.teff_recruited_last_step * scaler), false);
+    ode->setSpeciesVar(SP_V_C_Treg, std::max(0.0, cent_t_reg - _abm_signals.treg_recruited_last_step * scaler), false);
     ode->setSpeciesVar(SP_V_C_Th, std::max(0.0, cent_t_h - _abm_signals.th_recruited_last_step * scaler), false);
 }
 

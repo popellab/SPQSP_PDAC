@@ -297,11 +297,11 @@ void set_internal_params(flamegpu::ModelDescription& model, const PDAC::LymphCen
     // APC transmigration rate from tumor to lymph node
     env.newProperty<float>("PARAM_APC_TRANSMIG", QP(CancerVCT::P_k_APC_mig));
 
-    // Number of T0 cell Clonality to lymph node
-    env.newProperty<float>("PARAM_T0_CLONE", QP(CancerVCT::P_n_T0_clones));
+    // Number of CD4 T cell clonality to lymph node
+    env.newProperty<float>("PARAM_T0_CLONE", QP(CancerVCT::P_n_CD4_clones));
 
-    // Number of T1 cell Clonality to lymph node
-    env.newProperty<float>("PARAM_T1_CLONE", QP(CancerVCT::P_n_T1_clones));
+    // Number of CD8 T cell clonality to lymph node
+    env.newProperty<float>("PARAM_T1_CLONE", QP(CancerVCT::P_n_CD8_clones));
 
     // antigen concentration in cancer cell
     env.newProperty<float>("PARAM_ANTIGEN_PER_CELL", QP(CancerVCT::P_P1_C1));

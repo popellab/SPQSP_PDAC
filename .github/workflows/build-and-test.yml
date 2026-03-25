@@ -21,6 +21,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Generate ODE code from SBML
+        run: |
+          pip install python-libsbml lxml pytest numpy
+          python tools/sbml_converter/convert_sbml.py --fetch --output PDAC/qsp/ode/
+
+      - name: Tier 1 — converter tests
+        run: |
+          cd tools/sbml_converter
+          python -m pytest tests/ -v --ignore=tests/ode_compile_test
+
+      - name: Install Boost (for Tier 2)
+        run: sudo apt-get install -y libboost-serialization-dev
+
+      - name: Tier 2 — C++ ODE compile and smoke test
+        run: |
+          cd tools/sbml_converter/tests/ode_compile_test
+          mkdir -p build && cd build
+          cmake .. -DPARAM_XML_PATH=${{ github.workspace }}/PDAC/sim/resource/param_all.xml
+          cmake --build . -j$(nproc)
+          ./ode_compile_test
+
+      - name: Check MATLAB validation stamp
+        run: |
+          STAMP=tools/sbml_converter/tests/validation_stamp.txt
+          if [ ! -f "$STAMP" ]; then
+            echo "::error::MATLAB validation stamp missing. Run: tools/sbml_converter/tests/run_validation.sh"
+            exit 1
+          fi
+          STAMP_SHA=$(cut -d' ' -f1 "$STAMP")
+          HEAD_SHA=$(git rev-parse HEAD)
+          if [ "$STAMP_SHA" != "$HEAD_SHA" ]; then
+            echo "::warning::Validation stamp is from $STAMP_SHA, HEAD is $HEAD_SHA. Re-run: tools/sbml_converter/tests/run_validation.sh"
+          fi
+
       - name: Compute image tag
         id: tag
         run: |

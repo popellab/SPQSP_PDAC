@@ -18,3 +18,17 @@ CLAUDE.md
 /PDAC/sim/cluster.conf
 /PDAC/sim/external/
 
+# Generated ODE files (produced by tools/sbml_converter/)
+/PDAC/qsp/ode/ODE_system.h
+/PDAC/qsp/ode/ODE_system.cpp
+/PDAC/qsp/ode/QSP_enum.h
+/PDAC/qsp/ode/QSPParam.h
+/PDAC/qsp/ode/QSPParam.cpp
+/PDAC/sim/resource/param_all.xml
+
+# Converter build artifacts
+/tools/sbml_converter/.venv/
+/tools/sbml_converter/tests/ode_compile_test/build/
+/tools/sbml_converter/__pycache__/
+/tools/sbml_converter/**/__pycache__/
+
