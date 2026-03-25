@@ -19,11 +19,12 @@ CVODEBase::CVODEBase()
 , _A(NULL)
 , _LS(NULL)
 , _cvode_mem(NULL)
+, _sunctx(NULL)
 , _trigger_element_type()
 , _trigger_element_satisfied()
 , _event_triggered()
 {
-
+	SUNContext_Create(SUN_COMM_NULL, &_sunctx);
 }
 
 CVODEBase::CVODEBase(const CVODEBase & c)
@@ -38,15 +39,17 @@ CVODEBase::CVODEBase(const CVODEBase & c)
 , _A(NULL)
 , _LS(NULL)
 , _cvode_mem(NULL)
+, _sunctx(NULL)
 , _trigger_element_type()
 , _trigger_element_satisfied()
 , _event_triggered()
 {
-
+	SUNContext_Create(SUN_COMM_NULL, &_sunctx);
 }
 CVODEBase::~CVODEBase()
 {
 	freeMem();
+	if (_sunctx) { SUNContext_Free(&_sunctx); _sunctx = NULL; }
 }
 
 /*! simulate model for some time
@@ -208,13 +211,13 @@ void CVODEBase::setupCVODE(){
 	try{
 		int flag;
 
-		_y = N_VNew_Serial(_neq);
+		_y = N_VNew_Serial(_neq, _sunctx);
 		check_flag((void *)_y, "N_VNew_Serial", 0);
 
-		//_abstol = N_VNew_Serial(_neq);
+		//_abstol = N_VNew_Serial(_neq, _sunctx);
 		//check_flag((void *)_abstol, "N_VNew_Serial", 0);
 
-		_cvode_mem = CVodeCreate(CV_BDF);
+		_cvode_mem = CVodeCreate(CV_BDF, _sunctx);
 		check_flag((void *)_cvode_mem, "CVodeCreate", 0);
 
 		/* Call CVodeInit to initialize the integrator memory and specify the
@@ -239,11 +242,11 @@ void CVODEBase::setupCVODE(){
 		check_flag(&flag, "CVodeSVtolerances", 1);
 
 		/* Create dense SUNMatrix for use in linear solves */
-		_A = SUNDenseMatrix(_neq, _neq);
+		_A = SUNDenseMatrix(_neq, _neq, _sunctx);
 		check_flag(&flag, "SUNDenseMatrix", 1);
 
 		/* Create dense SUNLinearSolver object for use by CVode */
-		_LS = SUNLinSol_Dense(_y, _A);
+		_LS = SUNLinSol_Dense(_y, _A, _sunctx);
 		check_flag(&flag, "SUNLinSol_Dense", 1);
 
 		/* Call CVodeSetLinearSolver to attach the matrix and linear solver to CVode */
@@ -528,8 +531,8 @@ and any other serial type blocks
 bool CVODEBase::freeMem(){
 
 	/* Free y and abstol vectors */
-	N_VDestroy_Serial(_y);
-	//N_VDestroy_Serial(_abstol);
+	N_VDestroy(_y);
+	//N_VDestroy(_abstol);
 
 	/* Free integrator memory */
 	CVodeFree(&_cvode_mem);

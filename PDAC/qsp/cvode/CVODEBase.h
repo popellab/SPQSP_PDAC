@@ -10,7 +10,9 @@
 #include <nvector/nvector_serial.h>    /* access to serial N_Vector            */
 #include <sunmatrix/sunmatrix_dense.h> /* access to dense SUNMatrix            */
 #include <sunlinsol/sunlinsol_dense.h> /* access to dense SUNLinearSolver      */
-#include <sundials/sundials_types.h>   /* defs. of realtype, sunindextype      */
+#include <sundials/sundials_types.h>            /* defs. of sunrealtype, sunindextype */
+#include <sundials/sundials_types_deprecated.h> /* realtype compat (removed in v7)    */
+#include <sundials/sundials_context.h>          /* SUNContext (SUNDIALS >= 6)         */
 
 
 
@@ -144,6 +146,8 @@ protected:
 	SUNLinearSolver _LS;
 	//! solver memory block
 	void * _cvode_mem;
+	//! SUNDIALS context (required by SUNDIALS >= 6)
+	SUNContext _sunctx;
 
 	//! event only triggered when g(y, t) = 0. Serialization not needed. 
 	std::vector<EVENT_TRIGGER_ELEM_TYPE>  _trigger_element_type;
