@@ -237,8 +237,16 @@ def _gen_eval_init_assignment(model, mapper, class_name):
         lines.append("    //InitialAssignment")
         for ia in model.initial_assignment_order:
             expr = trans.translate(ia.math_ast)
-            resolved = mapper.resolve_name(ia.symbol_id, "event")
-            lines.append(f"    {resolved} = {expr};")
+            # Write to _species_var (not _y) so updateVar()->restore_y() propagates correctly
+            if mapper.is_ode_species(ia.symbol_id):
+                target = f"_species_var[{mapper.species_enum(ia.symbol_id)}]"
+            elif mapper.is_other_species(ia.symbol_id):
+                idx = next(i for i, sp in enumerate(model.sp_other) if sp.id == ia.symbol_id)
+                target = f"_species_other[{idx}]"
+            else:
+                # Non-species (parameter/compartment) — shouldn't normally happen
+                target = mapper.resolve_name(ia.symbol_id, "event")
+            lines.append(f"    {target} = {expr};")
 
     lines.append("    updateVar();")
     lines.append("    return;")
