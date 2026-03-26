@@ -423,22 +423,15 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
 void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state) {
     flamegpu::AgentDescription fib = model.newAgent(AGENT_FIBROBLAST);
 
-    // Head position (segment 0 alias — used by broadcast_location and neighbor messaging)
+    // Position (single voxel — no chain model)
     fib.newVariable<int>("x");
     fib.newVariable<int>("y");
     fib.newVariable<int>("z");
 
-    // Multi-voxel chain: one agent occupies chain_len voxels (3=NORMAL, 5=CAF)
-    // Segment 0 = head (chemotaxis), segment chain_len-1 = tail
-    fib.newVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_x", {0, 0, 0, 0, 0});
-    fib.newVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_y", {0, 0, 0, 0, 0});
-    fib.newVariable<int, MAX_FIB_CHAIN_LENGTH>("seg_z", {0, 0, 0, 0, 0});
-    fib.newVariable<int>("chain_len", 3);
+    // Fibroblast state (0=QUIESCENT, 1=MYCAF, 2=ICAF)
+    fib.newVariable<int>("cell_state", FIB_QUIESCENT);
 
-    // Fibroblast state (0=NORMAL, 1=CAF)
-    fib.newVariable<int>("cell_state", FIB_NORMAL);
-
-    // Movement state for run-tumble chemotaxis (head segment)
+    // Movement state for run-tumble
     fib.newVariable<float>("move_direction_x", 0.0f);
     fib.newVariable<float>("move_direction_y", 0.0f);
     fib.newVariable<float>("move_direction_z", 0.0f);
@@ -447,8 +440,10 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
     // Lifecycle
     fib.newVariable<int>("life", 0);
 
-    // Activation flag (set by state_step, consumed by fib_activate)
+    // Division
     fib.newVariable<int>("divide_flag", 0);
+    fib.newVariable<int>("divide_cooldown", 0);
+    fib.newVariable<int>("divide_count", 0);
 
     // Define agent functions
     fib.newFunction("broadcast_location", fib_broadcast_location)
@@ -462,7 +457,8 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
         fib.newFunction("move", fib_move);
         fib.newFunction("state_step", fib_state_step)
             .setAllowAgentDeath(true);
-        fib.newFunction("activate", fib_activate);
+        fib.newFunction("divide", fib_divide)
+            .setAgentOutput(fib);
         fib.newFunction("build_density_field", fib_build_density_field);
     }
 }

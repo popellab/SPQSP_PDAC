@@ -19,6 +19,9 @@ enum ChemicalSubstrate {
     CHEM_NO,        // Nitric Oxide
     CHEM_IL12,      // IL-12
     CHEM_VEGFA,     // VEGF-A
+    CHEM_IL1,       // IL-1
+    CHEM_IL6,       // IL-6
+    CHEM_CXCL13,    // CXCL13
     NUM_SUBSTRATES
 };
 

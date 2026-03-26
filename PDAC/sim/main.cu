@@ -473,17 +473,10 @@ static void collect_abm_step0(flamegpu::CUDASimulation& sim,
     {
         flamegpu::AgentVector p(model.Agent(PDAC::AGENT_FIBROBLAST));
         sim.getPopulationData(p);
-        for (unsigned i = 0; i < p.size(); ++i) {
-            const int32_t id    = (int32_t)p[i].getID();
-            const int     state = p[i].getVariable<int>("cell_state");
-            const int     life  = p[i].getVariable<int>("life");
-            const int     clen  = p[i].getVariable<int>("chain_len");
-            const auto    sx    = p[i].getVariable<int, PDAC::MAX_FIB_CHAIN_LENGTH>("seg_x");
-            const auto    sy    = p[i].getVariable<int, PDAC::MAX_FIB_CHAIN_LENGTH>("seg_y");
-            const auto    sz    = p[i].getVariable<int, PDAC::MAX_FIB_CHAIN_LENGTH>("seg_z");
-            for (int s = 0; s < clen; ++s)
-                abm_push(buf, ABM_TYPE_FIB, id, sx[s], sy[s], sz[s], state, life, 0);
-        }
+        for (unsigned i = 0; i < p.size(); ++i)
+            abm_push(buf, ABM_TYPE_FIB, (int32_t)p[i].getID(),
+                p[i].getVariable<int>("x"), p[i].getVariable<int>("y"), p[i].getVariable<int>("z"),
+                p[i].getVariable<int>("cell_state"), p[i].getVariable<int>("life"), 0);
     }
     {
         flamegpu::AgentVector p(model.Agent(PDAC::AGENT_VASCULAR));
@@ -539,18 +532,10 @@ static void collect_abm_step(flamegpu::HostAPI* FLAMEGPU, std::vector<int32_t>& 
     }
     {
         flamegpu::DeviceAgentVector p = FLAMEGPU->agent(PDAC::AGENT_FIBROBLAST).getPopulationData();
-        for (unsigned i = 0; i < p.size(); ++i) {
-            const int32_t id    = (int32_t)p[i].getID();
-            const int     state = p[i].getVariable<int>("cell_state");
-            const int     life  = p[i].getVariable<int>("life");
-            const int     clen  = p[i].getVariable<int>("chain_len");
-            for (int s = 0; s < clen; ++s)
-                abm_push(buf, ABM_TYPE_FIB, id,
-                    p[i].getVariable<int, PDAC::MAX_FIB_CHAIN_LENGTH>("seg_x", s),
-                    p[i].getVariable<int, PDAC::MAX_FIB_CHAIN_LENGTH>("seg_y", s),
-                    p[i].getVariable<int, PDAC::MAX_FIB_CHAIN_LENGTH>("seg_z", s),
-                    state, life, 0);
-        }
+        for (unsigned i = 0; i < p.size(); ++i)
+            abm_push(buf, ABM_TYPE_FIB, (int32_t)p[i].getID(),
+                p[i].getVariable<int>("x"), p[i].getVariable<int>("y"), p[i].getVariable<int>("z"),
+                p[i].getVariable<int>("cell_state"), p[i].getVariable<int>("life"), 0);
     }
     {
         flamegpu::DeviceAgentVector p = FLAMEGPU->agent(PDAC::AGENT_VASCULAR).getPopulationData();
@@ -865,17 +850,9 @@ int main(int argc, const char** argv) {
     simulation.SimulationConfig().random_seed = config.random_seed;
     init_lap("cuda_sim_create");
 
-    // ========== INITIALIZE AGENTS ==========
-    if (config.init_method == 1) {
-        std::cout << "Initializing agents from QSP steady-state (init_method=1)..." << std::endl;
-        PDAC::initializeToQSP(simulation, *model, config, _lymph);
-    } else if (config.init_method == 2) {
-        std::cout << "Initializing for neighbor scan test (init_method=2)..." << std::endl;
-        PDAC::initializeNeighborTest(simulation, *model, config);
-    } else {
-        std::cout << "Initializing agents with default distribution (init_method=0)..." << std::endl;
-        PDAC::initializeAllAgents(simulation, *model, config);
-    }
+    // ========== INITIALIZE AGENTS (QSP-seeded) ==========
+    std::cout << "Initializing agents from QSP steady-state..." << std::endl;
+    PDAC::initializeToQSP(simulation, *model, config, _lymph);
     std::cout << "[DEBUG] Agent initialization complete" << std::endl;
     std::cout.flush();
     init_lap("init_agents");
@@ -890,7 +867,7 @@ int main(int argc, const char** argv) {
     // ========== PHASE 3: PRE-SIMULATION (QSP-seeded init only) ==========
     // Run ABM+QSP (no drugs) until QSP tumor volume reaches 1.0× target diameter.
     // This fills the gap between the 0.95× warmup and the treatment start.
-    if (config.init_method == 1) {
+    {
         const double full_target_vol = _lymph.get_full_target_volume();
         double cur_vol = _lymph.get_tumor_volume();
 
@@ -904,11 +881,7 @@ int main(int argc, const char** argv) {
         unsigned int presim_step = 0;
 
         while (cur_vol < full_target_vol && presim_step < max_presim_steps) {
-            // std::cout << "[DEBUG] About to call simulation.step() for presim step " << presim_step << std::endl;
-            // std::cout.flush();
             bool ok = simulation.step();
-            // std::cout << "[DEBUG] Returned from simulation.step() successfully" << std::endl;
-            // std::cout.flush();
             if (!ok) {
                 std::cout << "  Pre-simulation: ABM terminated early (all cancer cells gone)" << std::endl;
                 break;
@@ -928,8 +901,6 @@ int main(int argc, const char** argv) {
         std::cout << "  Pre-simulation complete: " << presim_step << " steps, "
                   << "QSP tum_vol=" << cur_vol << " cm^3" << std::endl;
         init_lap("presim");
-    } else {
-        init_lap("presim");  // Log presim time even if not run
     }
     init_file.close();
 
@@ -1013,7 +984,7 @@ int main(int argc, const char** argv) {
             << "agentCount.Th.default,agentCount.Treg.default,"
             << "agentCount.MDSC.default,"
             << "agentCount.MAC.M1,agentCount.MAC.M2,"
-            << "agentCount.FIB.normal,agentCount.FIB.CAF,"
+            << "agentCount.FIB.quiescent,agentCount.FIB.myCAF,agentCount.FIB.iCAF,"
             << "agentCount.VAS.tip,agentCount.VAS.default,"
             // Recruitment
             << "recruit.CD8.effector,recruit.Th.default,recruit.Treg.default,"
@@ -1024,7 +995,7 @@ int main(int argc, const char** argv) {
             << "prolif.MDSC.default,"
             << "prolif.cancer.stem,prolif.cancer.prog,prolif.cancer.sen,"
             << "prolif.MAC.M1,prolif.MAC.M2,"
-            << "prolif.FIB.normal,prolif.FIB.CAF,"
+            << "prolif.FIB.quiescent,prolif.FIB.myCAF,prolif.FIB.iCAF,"
             << "prolif.VAS.tip,prolif.VAS.phalanx,"
             // Death by state
             << "death.CD8.effector,death.CD8.cytotoxic,death.CD8.suppressed,"
@@ -1032,7 +1003,7 @@ int main(int argc, const char** argv) {
             << "death.MDSC.default,"
             << "death.cancer.stem,death.cancer.prog,death.cancer.sen,"
             << "death.MAC.M1,death.MAC.M2,"
-            << "death.FIB.normal,death.FIB.CAF,"
+            << "death.FIB.quiescent,death.FIB.myCAF,death.FIB.iCAF,"
             << "death.VAS.tip,death.VAS.phalanx,"
             // PDL1 fraction
             << "PDL1_frac\n";
@@ -1116,7 +1087,7 @@ int main(int argc, const char** argv) {
                 << host_states[PDAC::SC_TH] << "," << host_states[PDAC::SC_TREG] << ","
                 << host_states[PDAC::SC_MDSC] << ","
                 << host_states[PDAC::SC_MAC_M1] << "," << host_states[PDAC::SC_MAC_M2] << ","
-                << host_states[PDAC::SC_FIB_NORM] << "," << host_states[PDAC::SC_FIB_CAF] << ","
+                << host_states[PDAC::SC_FIB_QUIESCENT] << "," << host_states[PDAC::SC_FIB_MYCAF] << "," << host_states[PDAC::SC_FIB_ICAF] << ","
                 << host_states[PDAC::SC_VAS_TIP] << "," << host_states[PDAC::SC_VAS_PHALANX] << ","
                 // recruit (6 cols)
                 << rs.teff_rec << "," << rs.th_rec << "," << rs.treg_rec << ","
@@ -1127,7 +1098,7 @@ int main(int argc, const char** argv) {
                 << host_events[PDAC::EVT_PROLIF_MDSC] << ","
                 << host_events[PDAC::EVT_PROLIF_CANCER_STEM] << "," << host_events[PDAC::EVT_PROLIF_CANCER_PROG] << "," << host_events[PDAC::EVT_PROLIF_CANCER_SEN] << ","
                 << host_events[PDAC::EVT_PROLIF_MAC_M1] << "," << host_events[PDAC::EVT_PROLIF_MAC_M2] << ","
-                << host_events[PDAC::EVT_PROLIF_FIB_NORM] << "," << host_events[PDAC::EVT_PROLIF_FIB_CAF] << ","
+                << host_events[PDAC::EVT_PROLIF_FIB_QUIESCENT] << "," << host_events[PDAC::EVT_PROLIF_FIB_MYCAF] << "," << host_events[PDAC::EVT_PROLIF_FIB_ICAF] << ","
                 << host_events[PDAC::EVT_PROLIF_VAS_TIP] << "," << host_events[PDAC::EVT_PROLIF_VAS_PHALANX] << ","
                 // death by state (15 cols)
                 << host_events[PDAC::EVT_DEATH_CD8_EFF] << "," << host_events[PDAC::EVT_DEATH_CD8_CYT] << "," << host_events[PDAC::EVT_DEATH_CD8_SUP] << ","
@@ -1135,7 +1106,7 @@ int main(int argc, const char** argv) {
                 << host_events[PDAC::EVT_DEATH_MDSC] << ","
                 << host_events[PDAC::EVT_DEATH_CANCER_STEM] << "," << host_events[PDAC::EVT_DEATH_CANCER_PROG] << "," << host_events[PDAC::EVT_DEATH_CANCER_SEN] << ","
                 << host_events[PDAC::EVT_DEATH_MAC_M1] << "," << host_events[PDAC::EVT_DEATH_MAC_M2] << ","
-                << host_events[PDAC::EVT_DEATH_FIB_NORM] << "," << host_events[PDAC::EVT_DEATH_FIB_CAF] << ","
+                << host_events[PDAC::EVT_DEATH_FIB_QUIESCENT] << "," << host_events[PDAC::EVT_DEATH_FIB_MYCAF] << "," << host_events[PDAC::EVT_DEATH_FIB_ICAF] << ","
                 << host_events[PDAC::EVT_DEATH_VAS_TIP] << "," << host_events[PDAC::EVT_DEATH_VAS_PHALANX] << ","
                 // PDL1 fraction
                 << std::fixed << std::setprecision(4) << pdl1_frac << "\n";

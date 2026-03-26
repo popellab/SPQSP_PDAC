@@ -56,8 +56,30 @@ const char* _gpu_param_description[][3] = {
     // MDSC cell parameters
     {"Param.ABM.MDSC.lifespanSD", "", "pos"},  // PARAM_MDSC_LIFESPAN_SD
     //*************************************************************************/
+    // Fibroblast cell parameters
+    {"Param.ABM.Fib.myCAF_TGFB_EC50", "", "pr"},              // PARAM_FIB_MYCAF_TGFB_EC50
+    {"Param.ABM.Fib.myCAF_TGFB_hill_n", "", "pr"},            // PARAM_FIB_MYCAF_TGFB_HILL_N
+    {"Param.ABM.Fib.iCAF_IL1_EC50", "", "pr"},                // PARAM_FIB_ICAF_IL1_EC50
+    {"Param.ABM.Fib.iCAF_IL1_hill_n", "", "pr"},              // PARAM_FIB_ICAF_IL1_HILL_N
+    {"Param.ABM.Fib.iCAF_TGFB_suppress_EC50", "", "pr"},      // PARAM_FIB_ICAF_TGFB_SUPPRESS_EC50
+    {"Param.ABM.Fib.iCAF_TGFB_suppress_n", "", "pr"},         // PARAM_FIB_ICAF_TGFB_SUPPRESS_N
+    {"Param.ABM.Fib.activation_rate", "", "pr"},               // PARAM_FIB_ACTIVATION_RATE
+    {"Param.ABM.Fib.move_prob_quiescent", "", "pr"},           // PARAM_FIB_MOVE_PROB_QUIESCENT
+    {"Param.ABM.Fib.move_prob_myCAF", "", "pr"},               // PARAM_FIB_MOVE_PROB_MYCAF
+    {"Param.ABM.Fib.move_prob_iCAF", "", "pr"},                // PARAM_FIB_MOVE_PROB_ICAF
+    {"Param.ABM.Fib.myCAF_TGFB_release", "", "pr"},           // PARAM_FIB_MYCAF_TGFB_RELEASE
+    {"Param.ABM.Fib.myCAF_CCL2_release", "", "pr"},            // PARAM_FIB_MYCAF_CCL2_RELEASE
+    {"Param.ABM.Fib.iCAF_IL6_release", "", "pr"},              // PARAM_FIB_ICAF_IL6_RELEASE
+    {"Param.ABM.Fib.iCAF_CXCL13_release", "", "pr"},           // PARAM_FIB_ICAF_CXCL13_RELEASE
+    {"Param.ABM.Fib.iCAF_CCL2_release", "", "pr"},             // PARAM_FIB_ICAF_CCL2_RELEASE
+    {"Param.ABM.Fib.ECM_radius", "", "pr"},                    // PARAM_FIB_ECM_RADIUS
+    {"Param.ABM.Fib.ECM_variance", "", "pr"},                  // PARAM_FIB_ECM_VARIANCE
+    {"Param.ABM.Fib.div_prob", "", "pr"},                      // PARAM_FIB_DIV_PROB
+    {"Param.ABM.Fib.div_cooldown", "", "pr"},                  // PARAM_FIB_DIV_COOLDOWN
+    {"Param.ABM.Fib.div_max", "", "pr"},                       // PARAM_FIB_DIV_MAX
+    //*************************************************************************/
     // Vas cell parameters
-    {"Param.ABM.Vas.maxPerVoxel", "", "pos"},  // 
+    {"Param.ABM.Vas.maxPerVoxel", "", "pos"},  //
     {"Param.ABM.Vas.vas_50", "", "pr"},  // 
     {"Param.ABM.Vas.O2_conc", "", "pr"},  // 
     {"Param.ABM.Vas.Rc", "", "pr"},  // 
@@ -80,6 +102,9 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.IL12.diffusivity", "", "pr"},  // PARAM_IL12_DIFFUSIVITY
     {"Param.Molecular.biofvm.VEGFA.diffusivity", "", "pr"}, // PARAM_VEGFA_DIFFUSIVITY
     {"Param.Molecular.biofvm.O2.diffusivity", "", "pr"},    // PARAM_O2_DIFFUSIVITY
+    {"Param.Molecular.biofvm.IL1.diffusivity", "", "pr"},     // PARAM_IL1_DIFFUSIVITY
+    {"Param.Molecular.biofvm.IL6.diffusivity", "", "pr"},     // PARAM_IL6_DIFFUSIVITY
+    {"Param.Molecular.biofvm.CXCL13.diffusivity", "", "pr"},  // PARAM_CXCL13_DIFFUSIVITY
 
     {"Param.Molecular.biofvm.IFNg.decayRate", "", "pr"},    // PARAM_IFNG_DECAY_RATE
     {"Param.Molecular.biofvm.IL_2.decayRate", "", "pr"},    // PARAM_IL2_DECAY_RATE
@@ -91,6 +116,9 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.IL12.decayRate", "", "pr"},    // PARAM_IL12_DECAY_RATE
     {"Param.Molecular.biofvm.VEGFA.decayRate", "", "pr"},   // PARAM_VEGFA_DECAY_RATE
     {"Param.Molecular.biofvm.O2.decayRate", "", "pr"},      // PARAM_O2_DECAY_RATE
+    {"Param.Molecular.biofvm.IL1.decayRate", "", "pr"},       // PARAM_IL1_DECAY_RATE
+    {"Param.Molecular.biofvm.IL6.decayRate", "", "pr"},       // PARAM_IL6_DECAY_RATE
+    {"Param.Molecular.biofvm.CXCL13.decayRate", "", "pr"},    // PARAM_CXCL13_DECAY_RATE
 
     {"Param.Molecular.biofvm.IFNg.release", "", "pr"},       // PARAM_IFNG_RELEASE_RATE
     {"Param.Molecular.biofvm.IL_2.release", "", "pr"},       // PARAM_IL2_RELEASE_RATE
@@ -107,6 +135,8 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.VEGFA.release.CancerStem", "", "pr"},       // PARAM_STEM_VEGFA_RELEASE_RATE
     {"Param.Molecular.biofvm.VEGFA.release.CancerProgenitor", "", "pr"}, // PARAM_PROG_VEGFA_RELEASE_RATE
     {"Param.Molecular.biofvm.VEGFA.release.Mac", "", "pr"},
+    {"Param.Molecular.biofvm.IL1.release.Cancer", "", "pr"},  // PARAM_CANCER_IL1_RELEASE
+    {"Param.Molecular.biofvm.IL1.release.MacM1", "", "pr"},   // PARAM_MAC_M1_IL1_RELEASE
 
     {"Param.Molecular.biofvm.IL_2.uptake", "", "pr"},    // PARAM_IL2
     {"Param.Molecular.biofvm.CCL2.uptake", "", "pr"},    // PARAM_CCL2_UPTAKE
@@ -123,6 +153,9 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.IL12.molecularWeight", "", "pr"},  // PARAM_IL12_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.VEGFA.molecularWeight", "", "pr"}, // PARAM_VEGFA_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.O2.molecularWeight", "", "pr"},    // PARAM_O2_MOLECULAR_WEIGHT
+    {"Param.Molecular.biofvm.IL1.molecularWeight", "", "pr"},     // PARAM_IL1_MOLECULAR_WEIGHT
+    {"Param.Molecular.biofvm.IL6.molecularWeight", "", "pr"},     // PARAM_IL6_MOLECULAR_WEIGHT
+    {"Param.Molecular.biofvm.CXCL13.molecularWeight", "", "pr"},  // PARAM_CXCL13_MOLECULAR_WEIGHT
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -295,6 +328,26 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<int>("PARAM_MAC_MOVE_STEPS", getInt(PARAM_MAC_MOVE_STEPS));
     //FIBROBLAST CELL PARAMETERS
     env.newProperty<int>("PARAM_FIB_MOVE_STEPS", getInt(PARAM_FIB_MOVE_STEPS));
+    env.newProperty<float>("PARAM_FIB_MYCAF_TGFB_EC50", getFloat(PARAM_FIB_MYCAF_TGFB_EC50));
+    env.newProperty<float>("PARAM_FIB_MYCAF_TGFB_HILL_N", getFloat(PARAM_FIB_MYCAF_TGFB_HILL_N));
+    env.newProperty<float>("PARAM_FIB_ICAF_IL1_EC50", getFloat(PARAM_FIB_ICAF_IL1_EC50));
+    env.newProperty<float>("PARAM_FIB_ICAF_IL1_HILL_N", getFloat(PARAM_FIB_ICAF_IL1_HILL_N));
+    env.newProperty<float>("PARAM_FIB_ICAF_TGFB_SUPPRESS_EC50", getFloat(PARAM_FIB_ICAF_TGFB_SUPPRESS_EC50));
+    env.newProperty<float>("PARAM_FIB_ICAF_TGFB_SUPPRESS_N", getFloat(PARAM_FIB_ICAF_TGFB_SUPPRESS_N));
+    env.newProperty<float>("PARAM_FIB_ACTIVATION_RATE", getFloat(PARAM_FIB_ACTIVATION_RATE));
+    env.newProperty<float>("PARAM_FIB_MOVE_PROB_QUIESCENT", getFloat(PARAM_FIB_MOVE_PROB_QUIESCENT));
+    env.newProperty<float>("PARAM_FIB_MOVE_PROB_MYCAF", getFloat(PARAM_FIB_MOVE_PROB_MYCAF));
+    env.newProperty<float>("PARAM_FIB_MOVE_PROB_ICAF", getFloat(PARAM_FIB_MOVE_PROB_ICAF));
+    env.newProperty<float>("PARAM_FIB_MYCAF_TGFB_RELEASE", getFloat(PARAM_FIB_MYCAF_TGFB_RELEASE));
+    env.newProperty<float>("PARAM_FIB_MYCAF_CCL2_RELEASE", getFloat(PARAM_FIB_MYCAF_CCL2_RELEASE));
+    env.newProperty<float>("PARAM_FIB_ICAF_IL6_RELEASE", getFloat(PARAM_FIB_ICAF_IL6_RELEASE));
+    env.newProperty<float>("PARAM_FIB_ICAF_CXCL13_RELEASE", getFloat(PARAM_FIB_ICAF_CXCL13_RELEASE));
+    env.newProperty<float>("PARAM_FIB_ICAF_CCL2_RELEASE", getFloat(PARAM_FIB_ICAF_CCL2_RELEASE));
+    env.newProperty<float>("PARAM_FIB_ECM_RADIUS", getFloat(PARAM_FIB_ECM_RADIUS));
+    env.newProperty<float>("PARAM_FIB_ECM_VARIANCE", getFloat(PARAM_FIB_ECM_VARIANCE));
+    env.newProperty<float>("PARAM_FIB_DIV_PROB", getFloat(PARAM_FIB_DIV_PROB));
+    env.newProperty<float>("PARAM_FIB_DIV_COOLDOWN", getFloat(PARAM_FIB_DIV_COOLDOWN));
+    env.newProperty<float>("PARAM_FIB_DIV_MAX", getFloat(PARAM_FIB_DIV_MAX));
     //VAS CELL PARAMETERS
     env.newProperty<float>("PARAM_VAS_MAXPERVOXEL", getFloat(PARAM_VAS_MAXPERVOXEL));
     env.newProperty<float>("PARAM_VAS_50", getFloat(PARAM_VAS_50));
@@ -318,6 +371,9 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_IL12_DIFFUSIVITY", getFloat(PARAM_IL12_DIFFUSIVITY));
     env.newProperty<float>("PARAM_VEGFA_DIFFUSIVITY", getFloat(PARAM_VEGFA_DIFFUSIVITY));
     env.newProperty<float>("PARAM_O2_DIFFUSIVITY", getFloat(PARAM_O2_DIFFUSIVITY));
+    env.newProperty<float>("PARAM_IL1_DIFFUSIVITY", getFloat(PARAM_IL1_DIFFUSIVITY));
+    env.newProperty<float>("PARAM_IL6_DIFFUSIVITY", getFloat(PARAM_IL6_DIFFUSIVITY));
+    env.newProperty<float>("PARAM_CXCL13_DIFFUSIVITY", getFloat(PARAM_CXCL13_DIFFUSIVITY));
 
     env.newProperty<float>("PARAM_IFNG_DECAY_RATE", getFloat(PARAM_IFNG_DECAY_RATE));
     env.newProperty<float>("PARAM_IL2_DECAY_RATE", getFloat(PARAM_IL2_DECAY_RATE));
@@ -329,6 +385,9 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_IL12_DECAY_RATE", getFloat(PARAM_IL12_DECAY_RATE));
     env.newProperty<float>("PARAM_VEGFA_DECAY_RATE", getFloat(PARAM_VEGFA_DECAY_RATE));
     env.newProperty<float>("PARAM_O2_DECAY_RATE", getFloat(PARAM_O2_DECAY_RATE));
+    env.newProperty<float>("PARAM_IL1_DECAY_RATE", getFloat(PARAM_IL1_DECAY_RATE));
+    env.newProperty<float>("PARAM_IL6_DECAY_RATE", getFloat(PARAM_IL6_DECAY_RATE));
+    env.newProperty<float>("PARAM_CXCL13_DECAY_RATE", getFloat(PARAM_CXCL13_DECAY_RATE));
 
     env.newProperty<float>("PARAM_IFNG_RELEASE", getFloat(PARAM_IFNG_RELEASE));              // Cyt TCells
     env.newProperty<float>("PARAM_IL2_RELEASE", getFloat(PARAM_IL2_RELEASE));                // Cyt TCells
@@ -345,6 +404,8 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_STEM_VEGFA_RELEASE", getFloat(PARAM_STEM_VEGFA_RELEASE));  // Stem Cancer
     env.newProperty<float>("PARAM_PROG_VEGFA_RELEASE", getFloat(PARAM_PROG_VEGFA_RELEASE));  // Prog Cancer
     env.newProperty<float>("PARAM_MAC_VEGFA_RELEASE", getFloat(PARAM_MAC_VEGFA_RELEASE));
+    env.newProperty<float>("PARAM_CANCER_IL1_RELEASE", getFloat(PARAM_CANCER_IL1_RELEASE));
+    env.newProperty<float>("PARAM_MAC_M1_IL1_RELEASE", getFloat(PARAM_MAC_M1_IL1_RELEASE));
 
     env.newProperty<float>("PARAM_IL2_UPTAKE", getFloat(PARAM_IL2_UPTAKE));      // Cyt TCells
     env.newProperty<float>("PARAM_CCL2_UPTAKE", getFloat(PARAM_CCL2_UPTAKE));
@@ -361,6 +422,9 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_IL12_MOLECULAR_WEIGHT", getFloat(PARAM_IL12_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_VEGFA_MOLECULAR_WEIGHT", getFloat(PARAM_VEGFA_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_O2_MOLECULAR_WEIGHT", getFloat(PARAM_O2_MOLECULAR_WEIGHT));
+    env.newProperty<float>("PARAM_IL1_MOLECULAR_WEIGHT", getFloat(PARAM_IL1_MOLECULAR_WEIGHT));
+    env.newProperty<float>("PARAM_IL6_MOLECULAR_WEIGHT", getFloat(PARAM_IL6_MOLECULAR_WEIGHT));
+    env.newProperty<float>("PARAM_CXCL13_MOLECULAR_WEIGHT", getFloat(PARAM_CXCL13_MOLECULAR_WEIGHT));
 
     // Internally processed parameters
     // float SEC_PER_DAY = 24.0f * 60.0f * 60.0f;

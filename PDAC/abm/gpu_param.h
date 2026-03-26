@@ -63,6 +63,26 @@ enum GPUParamFloat {
 
     //*************************************************************************/
     // Fibroblast cell parameters
+    PARAM_FIB_MYCAF_TGFB_EC50,        // TGF-β EC50 for quiescent→myCAF activation
+    PARAM_FIB_MYCAF_TGFB_HILL_N,      // Hill coefficient for myCAF activation
+    PARAM_FIB_ICAF_IL1_EC50,          // IL-1 EC50 for quiescent→iCAF activation
+    PARAM_FIB_ICAF_IL1_HILL_N,        // Hill coefficient for iCAF activation
+    PARAM_FIB_ICAF_TGFB_SUPPRESS_EC50,// TGF-β EC50 for iCAF suppression
+    PARAM_FIB_ICAF_TGFB_SUPPRESS_N,   // Hill coefficient for TGF-β suppression of iCAF
+    PARAM_FIB_ACTIVATION_RATE,        // Base activation probability per step
+    PARAM_FIB_MOVE_PROB_QUIESCENT,    // Movement probability per step (quiescent)
+    PARAM_FIB_MOVE_PROB_MYCAF,        // Movement probability per step (myCAF)
+    PARAM_FIB_MOVE_PROB_ICAF,         // Movement probability per step (iCAF)
+    PARAM_FIB_MYCAF_TGFB_RELEASE,     // myCAF TGF-β secretion rate
+    PARAM_FIB_MYCAF_CCL2_RELEASE,     // myCAF CCL2 secretion rate
+    PARAM_FIB_ICAF_IL6_RELEASE,       // iCAF IL-6 secretion rate
+    PARAM_FIB_ICAF_CXCL13_RELEASE,    // iCAF CXCL13 secretion rate
+    PARAM_FIB_ICAF_CCL2_RELEASE,      // iCAF CCL2 secretion rate
+    PARAM_FIB_ECM_RADIUS,             // ECM Gaussian kernel radius (voxels)
+    PARAM_FIB_ECM_VARIANCE,           // ECM Gaussian kernel variance (σ²)
+    PARAM_FIB_DIV_PROB,               // Base division probability per step (activated)
+    PARAM_FIB_DIV_COOLDOWN,           // Steps between divisions
+    PARAM_FIB_DIV_MAX,                // Max division count before senescence
     //*************************************************************************/
     // Vas cell parameters
     PARAM_VAS_MAXPERVOXEL,
@@ -88,6 +108,9 @@ enum GPUParamFloat {
     PARAM_IL12_DIFFUSIVITY,
     PARAM_VEGFA_DIFFUSIVITY,
     PARAM_O2_DIFFUSIVITY,
+    PARAM_IL1_DIFFUSIVITY,
+    PARAM_IL6_DIFFUSIVITY,
+    PARAM_CXCL13_DIFFUSIVITY,
 
     PARAM_IFNG_DECAY_RATE,
     PARAM_IL2_DECAY_RATE,
@@ -99,6 +122,9 @@ enum GPUParamFloat {
     PARAM_IL12_DECAY_RATE,
     PARAM_VEGFA_DECAY_RATE,
     PARAM_O2_DECAY_RATE,
+    PARAM_IL1_DECAY_RATE,
+    PARAM_IL6_DECAY_RATE,
+    PARAM_CXCL13_DECAY_RATE,
 
     PARAM_IFNG_RELEASE,
     PARAM_IL2_RELEASE,
@@ -115,6 +141,8 @@ enum GPUParamFloat {
     PARAM_STEM_VEGFA_RELEASE,
     PARAM_PROG_VEGFA_RELEASE,
     PARAM_MAC_VEGFA_RELEASE,
+    PARAM_CANCER_IL1_RELEASE,         // Cancer cell IL-1 secretion (drives iCAF activation)
+    PARAM_MAC_M1_IL1_RELEASE,         // M1 macrophage IL-1 secretion
 
     PARAM_IL2_UPTAKE,
     PARAM_CCL2_UPTAKE,
@@ -131,6 +159,9 @@ enum GPUParamFloat {
     PARAM_IL12_MOLECULAR_WEIGHT,
     PARAM_VEGFA_MOLECULAR_WEIGHT,
     PARAM_O2_MOLECULAR_WEIGHT,
+    PARAM_IL1_MOLECULAR_WEIGHT,
+    PARAM_IL6_MOLECULAR_WEIGHT,
+    PARAM_CXCL13_MOLECULAR_WEIGHT,
 
     GPU_PARAM_FLOAT_COUNT
 };

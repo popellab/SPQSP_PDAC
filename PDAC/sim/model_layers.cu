@@ -134,7 +134,7 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         // where cancer and immune cells block each other's movement in real time.
         // Cancer uses moves_remaining (stem=5, progenitor=1) and returns early when
         // exhausted; immune agents run for their full step count.
-        const int max_steps = std::max({cancer_steps, tcell_steps, treg_steps, mdsc_steps, mac_steps});
+        const int max_steps = std::max({cancer_steps, tcell_steps, treg_steps, mdsc_steps, mac_steps, fib_steps});
         for (int i = 0; i < max_steps; i++) {
             flamegpu::LayerDescription layer = model.newLayer("move_interleaved_" + std::to_string(i));
             if (i < cancer_steps) layer.addAgentFunction(AGENT_CANCER_CELL, "move");
@@ -142,13 +142,7 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
             if (i < treg_steps)   layer.addAgentFunction(AGENT_TREG, "move");
             if (i < mdsc_steps)   layer.addAgentFunction(AGENT_MDSC, "move");
             if (i < mac_steps)    layer.addAgentFunction(AGENT_MACROPHAGE, "move");
-        }
-        // Fibroblast movement: single agent = single chain, head moves + segments shift atomically.
-        // No multi-pass synchronization needed. Separate from interleaved movement since
-        // fibroblasts use their own occ slot and don't compete with cancer/immune cells.
-        for (int i = 0; i < fib_steps; i++) {
-            flamegpu::LayerDescription layer = model.newLayer("fib_move_" + std::to_string(i));
-            layer.addAgentFunction(AGENT_FIBROBLAST, "move");
+            if (i < fib_steps)    layer.addAgentFunction(AGENT_FIBROBLAST, "move");
         }
         {
             flamegpu::LayerDescription layer = model.newLayer("move_vascular");
@@ -292,8 +286,8 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_VASCULAR, "vascular_divide");
     }
     {
-        flamegpu::LayerDescription layer = model.newLayer("fib_activate");
-        layer.addAgentFunction(AGENT_FIBROBLAST, "activate");
+        flamegpu::LayerDescription layer = model.newLayer("fib_divide");
+        layer.addAgentFunction(AGENT_FIBROBLAST, "divide");
     }
 
     // ── Timing checkpoint: after division ──

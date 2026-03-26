@@ -87,6 +87,31 @@
     </Vas>
     <Fib>
       <moveSteps>16</moveSteps>
+      <!-- Activation thresholds -->
+      <myCAF_TGFB_EC50>0.01</myCAF_TGFB_EC50>          <!-- TGF-β EC50 for quiescent→myCAF [mM] -->
+      <myCAF_TGFB_hill_n>2.0</myCAF_TGFB_hill_n>       <!-- Hill coefficient -->
+      <iCAF_IL1_EC50>0.005</iCAF_IL1_EC50>              <!-- IL-1 EC50 for quiescent→iCAF [mM] -->
+      <iCAF_IL1_hill_n>2.0</iCAF_IL1_hill_n>            <!-- Hill coefficient -->
+      <iCAF_TGFB_suppress_EC50>0.005</iCAF_TGFB_suppress_EC50>  <!-- TGF-β EC50 that suppresses iCAF -->
+      <iCAF_TGFB_suppress_n>2.0</iCAF_TGFB_suppress_n>
+      <activation_rate>0.1</activation_rate>            <!-- Base activation probability per step -->
+      <!-- Movement probabilities per step -->
+      <move_prob_quiescent>0.05</move_prob_quiescent>
+      <move_prob_myCAF>0.15</move_prob_myCAF>
+      <move_prob_iCAF>0.2</move_prob_iCAF>
+      <!-- Secretion rates -->
+      <myCAF_TGFB_release>1.06e-10</myCAF_TGFB_release>    <!-- Same order as cancer stem TGF-β -->
+      <myCAF_CCL2_release>2.56e-13</myCAF_CCL2_release>     <!-- Same order as cancer CCL2 -->
+      <iCAF_IL6_release>1e-11</iCAF_IL6_release>            <!-- Order-of-magnitude estimate -->
+      <iCAF_CXCL13_release>1e-11</iCAF_CXCL13_release>      <!-- Order-of-magnitude estimate -->
+      <iCAF_CCL2_release>2.56e-13</iCAF_CCL2_release>       <!-- Same as cancer CCL2 -->
+      <!-- ECM deposition (myCAF only) -->
+      <ECM_radius>3</ECM_radius>                            <!-- Gaussian kernel radius [voxels] -->
+      <ECM_variance>2.0</ECM_variance>                      <!-- Gaussian σ² -->
+      <!-- Division -->
+      <div_prob>0.01</div_prob>                             <!-- Division probability per step (activated) -->
+      <div_cooldown>50</div_cooldown>                       <!-- Steps between divisions -->
+      <div_max>10</div_max>                                 <!-- Max divisions -->
     </Fib>
   </ABM>
   <Molecular>
@@ -167,6 +192,25 @@
         <decayRate>1e-5</decayRate>
         <molecularWeight>16</molecularWeight>
       </O2>
+      <IL1>
+        <diffusivity>1e-7</diffusivity>            <!-- Similar to IFN-γ (small cytokine) -->
+        <release>
+          <Cancer>1e-11</Cancer>                   <!-- Order-of-magnitude estimate -->
+          <MacM1>5e-12</MacM1>                     <!-- M1 macrophage IL-1 secretion -->
+        </release>
+        <decayRate>1e-4</decayRate>                <!-- Similar to TGF-β range -->
+        <molecularWeight>17</molecularWeight>      <!-- IL-1β ~17 kDa -->
+      </IL1>
+      <IL6>
+        <diffusivity>1e-7</diffusivity>            <!-- Similar to IFN-γ -->
+        <decayRate>1e-4</decayRate>
+        <molecularWeight>21</molecularWeight>      <!-- IL-6 ~21 kDa -->
+      </IL6>
+      <CXCL13>
+        <diffusivity>1e-7</diffusivity>            <!-- Small chemokine -->
+        <decayRate>1e-4</decayRate>
+        <molecularWeight>10</molecularWeight>      <!-- CXCL13 ~10 kDa -->
+      </CXCL13>
     </biofvm>
     <allMolecularOff>0</allMolecularOff>
     <diffusionOff>0</diffusionOff>

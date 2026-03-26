@@ -517,14 +517,17 @@ FLAMEGPU_AGENT_FUNCTION(cancer_compute_chemical_sources, flamegpu::MessageNone, 
     float CCL2_release = 0.0f;
     float TGFB_release = 0.0f;
     float VEGFA_release = 0.0f;
+    float IL1_release = 0.0f;
     if (cell_state == CANCER_STEM){
         CCL2_release = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_RELEASE");
         TGFB_release = FLAMEGPU->environment.getProperty<float>("PARAM_STEM_TGFB_RELEASE");
         VEGFA_release = FLAMEGPU->environment.getProperty<float>("PARAM_STEM_VEGFA_RELEASE");
+        IL1_release = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_IL1_RELEASE");
     } else if (cell_state == CANCER_PROGENITOR){
         CCL2_release = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_RELEASE");
         TGFB_release = FLAMEGPU->environment.getProperty<float>("PARAM_PROG_TGFB_RELEASE");
         VEGFA_release = FLAMEGPU->environment.getProperty<float>("PARAM_PROG_VEGFA_RELEASE");
+        IL1_release = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_IL1_RELEASE");
     }
 
     // Dead cells don't produce or consume
@@ -532,6 +535,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_compute_chemical_sources, flamegpu::MessageNone, 
         CCL2_release = 0.0f;
         TGFB_release = 0.0f;
         VEGFA_release = 0.0f;
+        IL1_release = 0.0f;
         O2_uptake = 0.0f;
         IFNg_uptake = 0.0f;
     }
@@ -551,6 +555,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_compute_chemical_sources, flamegpu::MessageNone, 
     PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL2, voxel, CCL2_release/voxel_volume);
     PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB, voxel, TGFB_release/voxel_volume);
     PDE_SECRETE(FLAMEGPU, PDE_SRC_VEGFA, voxel, VEGFA_release/voxel_volume);
+    PDE_SECRETE(FLAMEGPU, PDE_SRC_IL1, voxel, IL1_release/voxel_volume);
 
     // Uptakes (consumption): atomicAdd to pde_uptake with positive magnitude [1/s]
     PDE_UPTAKE(FLAMEGPU, PDE_UPT_O2, voxel, O2_uptake);

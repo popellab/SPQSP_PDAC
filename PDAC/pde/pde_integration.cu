@@ -196,6 +196,9 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     config.diffusion_coeffs[CHEM_NO]    = gpu_params.getFloat(PARAM_NO_DIFFUSIVITY);
     config.diffusion_coeffs[CHEM_IL12]  = gpu_params.getFloat(PARAM_IL12_DIFFUSIVITY);
     config.diffusion_coeffs[CHEM_VEGFA] = gpu_params.getFloat(PARAM_VEGFA_DIFFUSIVITY);
+    config.diffusion_coeffs[CHEM_IL1]   = gpu_params.getFloat(PARAM_IL1_DIFFUSIVITY);
+    config.diffusion_coeffs[CHEM_IL6]   = gpu_params.getFloat(PARAM_IL6_DIFFUSIVITY);
+    config.diffusion_coeffs[CHEM_CXCL13]= gpu_params.getFloat(PARAM_CXCL13_DIFFUSIVITY);
 
     // Set decay rates (1/s) from params file
     config.decay_rates[CHEM_O2]    = gpu_params.getFloat(PARAM_O2_DECAY_RATE);
@@ -208,7 +211,10 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     config.decay_rates[CHEM_NO]    = gpu_params.getFloat(PARAM_NO_DECAY_RATE);
     config.decay_rates[CHEM_IL12]  = gpu_params.getFloat(PARAM_IL12_DECAY_RATE);
     config.decay_rates[CHEM_VEGFA] = gpu_params.getFloat(PARAM_VEGFA_DECAY_RATE);
-    
+    config.decay_rates[CHEM_IL1]   = gpu_params.getFloat(PARAM_IL1_DECAY_RATE);
+    config.decay_rates[CHEM_IL6]   = gpu_params.getFloat(PARAM_IL6_DECAY_RATE);
+    config.decay_rates[CHEM_CXCL13]= gpu_params.getFloat(PARAM_CXCL13_DECAY_RATE);
+
     g_pde_solver = new PDESolver(config);
     g_pde_solver->initialize();
 

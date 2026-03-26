@@ -130,6 +130,7 @@ FLAMEGPU_AGENT_FUNCTION(mac_compute_chemical_sources, flamegpu::MessageNone, fla
             // }
             IFNg_release_rate = FLAMEGPU->environment.getProperty<float>("PARAM_IFNG_RELEASE");
             IL12_release_rate = FLAMEGPU->environment.getProperty<float>("PARAM_IL12_RELEASE");
+            // M1 macrophages also secrete IL-1 (drives iCAF activation)
         } else {
             TGFB_release_rate = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_RELEASE");
             IL10_release_rate = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL10_RELEASE");
@@ -166,6 +167,12 @@ FLAMEGPU_AGENT_FUNCTION(mac_compute_chemical_sources, flamegpu::MessageNone, fla
 
     // VEGF-A secretion → src ptr 9 (VEGFA)
     PDE_SECRETE(FLAMEGPU, PDE_SRC_VEGFA, voxel, VEGFA_release_rate / voxel_volume);
+
+    // IL-1 secretion (M1 only)
+    if (dead == 0 && cell_state == MAC_M1) {
+        float IL1_release_rate = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M1_IL1_RELEASE");
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_IL1, voxel, IL1_release_rate / voxel_volume);
+    }
 
     return flamegpu::ALIVE;
 }

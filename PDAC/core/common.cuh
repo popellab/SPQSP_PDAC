@@ -48,8 +48,9 @@ enum MacrophageState : int {
 
 // Fibroblast state enumeration
 enum FibroblastState : int {
-    FIB_NORMAL = 0,  // Normal fibroblast
-    FIB_CAF = 1      // Cancer-associated fibroblast
+    FIB_QUIESCENT = 0,  // Quiescent fibroblast (tissue maintenance)
+    FIB_MYCAF = 1,      // Myofibroblastic CAF (ECM deposition, contractile)
+    FIB_ICAF = 2        // Inflammatory CAF (IL-6, CXCL13 secretion)
 };
 
 // Vascular cell cell_states
@@ -85,7 +86,7 @@ constexpr int MAX_CANCER_PER_VOXEL = 1;         // Max cancer cells per voxel
 constexpr int MAX_MDSC_PER_VOXEL = 1;           // Max MDSC per voxel (exclusive)
 constexpr int N_DIVIDE_WAVES = 1;               // Wave-interleaved division rounds (cancer/tcell/treg)
 constexpr int MAX_MAC_PER_VOXEL = 1;            // Max macrophage per voxel (exclusive)
-constexpr int MAX_FIB_CHAIN_LENGTH = 5;         // Max segments per fibroblast chain (3 normal, 5 CAF)
+// MAX_FIB_CHAIN_LENGTH removed — fibroblasts are now single-cell agents
 // ── Per-step event counters (device_event_counters[], env prop "event_counters_ptr") ──────────────
 // Reset each step. Written by agent device functions via atomicAdd.
 enum EventCounterIdx : int {
@@ -101,8 +102,9 @@ enum EventCounterIdx : int {
     EVT_PROLIF_CANCER_SEN,    // 0 — senescent cells don't divide
     EVT_PROLIF_MAC_M1,        // 0 — division not implemented
     EVT_PROLIF_MAC_M2,        // 0
-    EVT_PROLIF_FIB_NORM,      // 0 — division disabled
-    EVT_PROLIF_FIB_CAF,       // 0
+    EVT_PROLIF_FIB_QUIESCENT, // 0 — quiescent fibroblasts don't divide
+    EVT_PROLIF_FIB_MYCAF,
+    EVT_PROLIF_FIB_ICAF,
     EVT_PROLIF_VAS_TIP,
     EVT_PROLIF_VAS_PHALANX,   // 0
     // Deaths (all causes combined, by cell type/state)
@@ -117,8 +119,9 @@ enum EventCounterIdx : int {
     EVT_DEATH_CANCER_SEN,
     EVT_DEATH_MAC_M1,
     EVT_DEATH_MAC_M2,
-    EVT_DEATH_FIB_NORM,
-    EVT_DEATH_FIB_CAF,
+    EVT_DEATH_FIB_QUIESCENT,
+    EVT_DEATH_FIB_MYCAF,
+    EVT_DEATH_FIB_ICAF,
     EVT_DEATH_VAS_TIP,
     EVT_DEATH_VAS_PHALANX,
     // PDL1 expression numerator (divide by total cancer for PDL1_frac)
@@ -140,8 +143,9 @@ enum StateCounterIdx : int {
     SC_MDSC,
     SC_MAC_M1,
     SC_MAC_M2,
-    SC_FIB_NORM,
-    SC_FIB_CAF,
+    SC_FIB_QUIESCENT,
+    SC_FIB_MYCAF,
+    SC_FIB_ICAF,
     SC_VAS_TIP,
     SC_VAS_PHALANX,
     ABM_STATE_COUNTER_SIZE    // = 15
@@ -211,6 +215,9 @@ enum ABMEventCounterIndex : int {
 #define PDE_CONC_NO    "pde_concentration_ptr_7"
 #define PDE_CONC_IL12  "pde_concentration_ptr_8"
 #define PDE_CONC_VEGFA "pde_concentration_ptr_9"
+#define PDE_CONC_IL1   "pde_concentration_ptr_10"
+#define PDE_CONC_IL6   "pde_concentration_ptr_11"
+#define PDE_CONC_CXCL13 "pde_concentration_ptr_12"
 
 // Source pointers (atomicAdd secretion rate / voxel_volume → [conc/s])
 #define PDE_SRC_O2    "pde_source_ptr_0"
@@ -223,6 +230,9 @@ enum ABMEventCounterIndex : int {
 #define PDE_SRC_NO    "pde_source_ptr_7"
 #define PDE_SRC_IL12  "pde_source_ptr_8"
 #define PDE_SRC_VEGFA "pde_source_ptr_9"
+#define PDE_SRC_IL1   "pde_source_ptr_10"
+#define PDE_SRC_IL6   "pde_source_ptr_11"
+#define PDE_SRC_CXCL13 "pde_source_ptr_12"
 
 // Uptake pointers (atomicAdd first-order decay rate [1/s], no volume scaling)
 #define PDE_UPT_O2    "pde_uptake_ptr_0"
@@ -235,6 +245,9 @@ enum ABMEventCounterIndex : int {
 #define PDE_UPT_NO    "pde_uptake_ptr_7"
 #define PDE_UPT_IL12  "pde_uptake_ptr_8"
 #define PDE_UPT_VEGFA "pde_uptake_ptr_9"
+#define PDE_UPT_IL1   "pde_uptake_ptr_10"
+#define PDE_UPT_IL6   "pde_uptake_ptr_11"
+#define PDE_UPT_CXCL13 "pde_uptake_ptr_12"
 
 // Gradient pointers (read-only, filled by compute_pde_gradients each step)
 #define PDE_GRAD_IFN_X   "pde_grad_IFN_x"
