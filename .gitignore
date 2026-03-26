@@ -6,13 +6,14 @@
 /PDAC/sim/HCC_outputs-donotuse/
 /PDAC/sim/TNBC_outputs/
 /PDAC/sim/TNBC_outputs_2/
+/PDAC/sim/cluster.conf
+/PDAC/sim/external/
 /figs/
 /python/
 /outputs/
 /docs/
+/data/
+/memory/
 /.claude/
 /.vscode/
 CLAUDE.md
-/data/
-/memory/
-

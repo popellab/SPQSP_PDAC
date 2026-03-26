@@ -6,6 +6,9 @@
 #include <cstdlib>
 #include <string>
 #include <array>
+#include <algorithm>
+#include <random>
+#include <vector>
 
 namespace PDAC {
 
@@ -19,7 +22,7 @@ SimulationConfig::SimulationConfig()
     , init_method(0)
     , vascular_mode("random")
     , vascular_xml_file("")
-    , grid_out(3)
+    , grid_out(0)
     , interval_out(1)
 {
 }
@@ -66,7 +69,7 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  -i, --initialization N   initialization type: 0=QSP-seeded [default: 0]\n"
                       << "  -g, --grid-size N        Grid dimensions NxNxN [default: from XML]\n"
                       << "  -s, --steps N            Number of simulation steps [default: 200]\n"
-                      << "  -G, --grid-output N      Grid output: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both [default: 3]\n"
+                      << "  -G, --grid-output N      Grid output: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both [default: 0]\n"
                       << "  -oi, --out_int N         Output interval frequency [default: 1]\n"
                       << "  --seed N                 Random seed [default: 12345]\n"
                       << "  -vm, --vascular-mode STR Vasculature initialization: random, xml, test [default: random]\n"
@@ -215,7 +218,7 @@ void initializeVascularCellsRandom(
             flamegpu::AgentVector::Agent agent = vascular_agents.back();
             int branch_flag = (rand_unif() < p_branch_init) ? 1 : 0;
             setVascularCellVariables(agent, current_x, current_y, current_z,
-                                   2, static_cast<float>(dx), static_cast<float>(dy), static_cast<float>(dz), 0u, branch_flag);
+                                   2, static_cast<float>(dx), static_cast<float>(dy), static_cast<float>(dz), 1u, branch_flag);
             total_vessels++;
         }
 
@@ -330,7 +333,7 @@ void initializeVascularCellsRandom(
                 flamegpu::AgentVector::Agent agent = vascular_agents.back();
                 int branch_flag = (rand_unif() < p_branch_init) ? 1 : 0;
                 setVascularCellVariables(agent, current_x, current_y, current_z,
-                                       2, static_cast<float>(dx), static_cast<float>(dy), static_cast<float>(dz), 0u, branch_flag);
+                                       2, static_cast<float>(dx), static_cast<float>(dy), static_cast<float>(dz), 1u, branch_flag);
                 total_vessels++;
             }
 
@@ -340,6 +343,69 @@ void initializeVascularCellsRandom(
 
     std::cout << "Initialized " << total_vessels << " vascular cells (random walk, "
               << num_segments << " segments)" << std::endl;
+}
+
+// Sequentially assign initial TIP sprout intents to a subset of initialized PHALANX cells.
+// Called after initializeVascularCellsRandom, before simulation starts.
+// Shuffles PHALANX agents, then greedily assigns INTENT_DIVIDE to cells that are at least
+// min_neighbor_range voxels away from any already-assigned cell — matching the runtime
+// nearby-vessel exclusion logic but without the GPU race condition.
+// Step 0 of vascular_state_step is skipped so these pre-set intents survive to vascular_divide.
+void assignInitialVascularTips(
+    flamegpu::AgentVector& vascular_agents,
+    int grid_x, int grid_y, int grid_z,
+    int min_neighbor_range,
+    unsigned int seed)
+{
+    // Collect indices of all PHALANX agents
+    std::vector<size_t> phalanx_indices;
+    for (size_t i = 0; i < vascular_agents.size(); i++) {
+        if (vascular_agents[i].getVariable<int>("cell_state") == VAS_PHALANX) {
+            phalanx_indices.push_back(i);
+        }
+    }
+
+    // Shuffle to avoid bias toward agents added first
+    std::mt19937 rng(seed);
+    std::shuffle(phalanx_indices.begin(), phalanx_indices.end(), rng);
+
+    // Flat grid marking claimed positions (true = a tip source is here)
+    std::vector<bool> claimed(grid_x * grid_y * grid_z, false);
+
+    int num_assigned = 0;
+    for (size_t idx : phalanx_indices) {
+        auto agent = vascular_agents[idx];
+        const int ax = agent.getVariable<int>("x");
+        const int ay = agent.getVariable<int>("y");
+        const int az = agent.getVariable<int>("z");
+
+        // Check if any already-claimed position is within min_neighbor_range
+        // Mirror HCC range: [-range, range) exclusive upper bound
+        bool nearby = false;
+        for (int dx = -min_neighbor_range; dx < min_neighbor_range && !nearby; dx++) {
+            for (int dy = -min_neighbor_range; dy < min_neighbor_range && !nearby; dy++) {
+                for (int dz = -min_neighbor_range; dz < min_neighbor_range && !nearby; dz++) {
+                    if (dx == 0 && dy == 0 && dz == 0) continue;
+                    const int cx = ax + dx;
+                    const int cy = ay + dy;
+                    const int cz = az + dz;
+                    if (cx < 0 || cx >= grid_x || cy < 0 || cy >= grid_y || cz < 0 || cz >= grid_z) continue;
+                    if (claimed[cz * grid_y * grid_x + cy * grid_x + cx]) {
+                        nearby = true;
+                    }
+                }
+            }
+        }
+
+        if (!nearby) {
+            agent.setVariable<int>("intent_action", 2);
+            claimed[az * grid_y * grid_x + ay * grid_x + ax] = true;
+            num_assigned++;
+        }
+    }
+
+    std::cout << "Assigned initial TIP sprout intents to " << num_assigned
+              << " / " << phalanx_indices.size() << " PHALANX cells" << std::endl;
 }
 
 void initializeVascularCellsTest(
@@ -797,7 +863,7 @@ void initializeToQSP(
     //   CC is NOT in this denominator (it uses a separate fibroblast-style
     //   formula in HCC).  ε = 1e-30 prevents division by zero.
     // -----------------------------------------------------------------------
-    const double avogadros = 6.022140857e23;  
+    const double avogadros = 6.022140857e23;
     const double cc_SI     = qsp.cc_tumor / avogadros;
     const double eps = 1e-30;
 
@@ -811,6 +877,7 @@ void initializeToQSP(
 	} else if (p_fib < 0.001) {
         p_fib = 0.001;
     }
+
 
     std::cout << "  p_treg = " << p_treg   << std::endl;
     std::cout << "  p_th   = " << p_th   << std::endl;
@@ -836,6 +903,7 @@ void initializeToQSP(
     const float mac_life        = model.Environment().getProperty<float>("PARAM_MAC_LIFE_MEAN");
     const float fib_life        = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
     const float vas_branch_prob = model.Environment().getProperty<float>("PARAM_VAS_BRANCH_PROB");
+    const int vas_min_neighbor = static_cast<int>(model.Environment().getProperty<float>("PARAM_VAS_MIN_NEIGHBOR"));
     // -----------------------------------------------------------------------
     // Get CDF for cancer cell population
     // -----------------------------------------------------------------------
@@ -932,11 +1000,18 @@ void initializeToQSP(
         std::cout << "[DEBUG] Initializing Vascular cells..." << std::endl;
         flamegpu::AgentVector vascular_vec(model.Agent(AGENT_VASCULAR));
         if (config.vascular_mode == "random") {
+            // Match HCC: radius = 0.5 * grid_x, 1 segment
+            int vas_radius = config.grid_x / 2;
             initializeVascularCellsRandom(
                 vascular_vec,
                 config.grid_x, config.grid_y, config.grid_z,
-                cluster_radius, /*num_segments=*/1,
+                vas_radius, /*num_segments=*/1,
                 vas_branch_prob,
+                config.random_seed);
+            assignInitialVascularTips(
+                vascular_vec,
+                config.grid_x, config.grid_y, config.grid_z,
+                vas_min_neighbor,
                 config.random_seed);
         } else if (config.vascular_mode == "test") {
             initializeVascularCellsTest(vascular_vec, config.grid_x, config.grid_y, config.grid_z);

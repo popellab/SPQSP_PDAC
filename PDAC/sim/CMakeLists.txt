@@ -61,8 +61,15 @@ if(SUNDIALS_DIR AND EXISTS "${SUNDIALS_DIR}/include/cvode/cvode.h")
         set(_SUNDIALS_READY TRUE)
         if(EXISTS "${_SLIB}/libsundials_cvode.so")
             set(SUNDIALS_LIBRARIES "${_SLIB}/libsundials_cvode.so" "${_SLIB}/libsundials_nvecserial.so")
+            # SUNDIALS >= 7 splits core functions (SUNContext) into a separate library
+            if(EXISTS "${_SLIB}/libsundials_core.so")
+                list(APPEND SUNDIALS_LIBRARIES "${_SLIB}/libsundials_core.so")
+            endif()
         else()
             set(SUNDIALS_LIBRARIES "${_SLIB}/libsundials_cvode.a" "${_SLIB}/libsundials_nvecserial.a")
+            if(EXISTS "${_SLIB}/libsundials_core.a")
+                list(APPEND SUNDIALS_LIBRARIES "${_SLIB}/libsundials_core.a")
+            endif()
         endif()
         set(SUNDIALS_INCLUDE_DIR "${SUNDIALS_DIR}/include")
         message(STATUS "SUNDIALS: using pre-built install at ${SUNDIALS_DIR}")
@@ -103,11 +110,11 @@ endif()
 
 # Auto-fetch from source (requires network)
 if(NOT _SUNDIALS_READY)
-    message(STATUS "SUNDIALS: not found — fetching v4.1.0 from GitHub...")
+    message(STATUS "SUNDIALS: not found — fetching v7.6.0 from GitHub...")
     FetchContent_Declare(
         sundials
         GIT_REPOSITORY https://github.com/LLNL/sundials.git
-        GIT_TAG        v4.1.0
+        GIT_TAG        v7.6.0
         GIT_SHALLOW    TRUE
     )
     set(BUILD_TESTING OFF CACHE BOOL "" FORCE)

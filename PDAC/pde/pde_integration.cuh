@@ -22,7 +22,7 @@ struct RecruitStats {
     int teff_rec = 0, treg_rec = 0, th_rec = 0;
     int mdsc_rec = 0, mac_rec = 0, mac_m1_rec = 0, mac_m2_rec = 0;
     float p_teff = 0.f, p_treg = 0.f, p_th = 0.f;
-    int t_sources = 0;
+    int t_sources = 0, mdsc_sources = 0, mac_sources = 0;
     float qsp_teff = 0.f, qsp_treg = 0.f, qsp_th = 0.f;
 };
 RecruitStats get_last_recruit_stats();

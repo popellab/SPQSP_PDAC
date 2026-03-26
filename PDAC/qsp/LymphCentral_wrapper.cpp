@@ -470,12 +470,12 @@ void LymphCentralWrapper::_apply_abm_feedback() {
 
     // Antigen increase
     double p0 = ode->getSpeciesVar(SP_V_T_P0, false);
-    double p1 = ode->getSpeciesVar(SP_V_T_P0, false);
+    double p1 = ode->getSpeciesVar(SP_V_T_P1, false);
     double factor_p0 = ode->get_class_param(P_n_T0_clones) * ode->get_class_param(P_P0_C1);
     double factor_p1 = ode->get_class_param(P_n_T1_clones) * ode->get_class_param(P_P1_C1);
 
-    ode->setSpeciesVar(SP_V_T_P0, _abm_signals.cancer_deaths_last_step * scaler * factor_p0, false);
-    ode->setSpeciesVar(SP_V_T_P1, _abm_signals.cancer_deaths_last_step * scaler * factor_p1, false);
+    ode->setSpeciesVar(SP_V_T_P0, p0 + _abm_signals.cancer_deaths_last_step * scaler * factor_p0, false);
+    ode->setSpeciesVar(SP_V_T_P1, p1 + _abm_signals.cancer_deaths_last_step * scaler * factor_p1, false);
 
     // Recruitment decrease
     double cent_t_eff = ode->getSpeciesVar(SP_V_C_T1, false);

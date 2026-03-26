@@ -1,0 +1,22 @@
+# cluster.conf — per-user settings for SLURM submission
+# Copy this to cluster.conf and edit. cluster.conf is gitignored.
+#
+# Only ACCOUNT is required. Everything else is auto-detected.
+
+# SLURM account/allocation (required)
+ACCOUNT="bgre-delta-gpu"
+
+# Override auto-detected cluster (anvil, delta)
+# CLUSTER=""
+
+# Override GPU partition (auto-detected from cluster)
+# PARTITION=""
+
+# Override CUDA architecture (auto-detected from partition/GPU type)
+# CUDA_ARCH=""
+
+# Override scratch base directory (auto-detected from cluster)
+# SCRATCH_BASE=""
+
+# Extra module loads (space-separated, added after auto-detected modules)
+# EXTRA_MODULES=""

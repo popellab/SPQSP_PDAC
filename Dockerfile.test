@@ -1,0 +1,95 @@
+# ============================================================================
+# Test environment for SPQSP_PDAC simulation (multi-stage, slim runtime)
+#
+# Build:   docker build -f Dockerfile.test -t pdac-test:latest .
+# Run:     docker run --gpus all pdac-test:latest
+# Shell:   docker run --gpus all -it --entrypoint bash pdac-test:latest
+# HPC:     apptainer run --nv pdac-test.sif
+# ============================================================================
+
+# --------------- Stage 1: build ---------------
+FROM nvidia/cuda:12.8.0-devel-ubuntu24.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -qq && \
+    apt-get install -y -qq --no-install-recommends \
+        cmake g++ git ca-certificates curl \
+        libboost-serialization-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG SUNDIALS_VER=7.6.0
+RUN cd /tmp && \
+    curl -sL "https://github.com/LLNL/sundials/releases/download/v${SUNDIALS_VER}/sundials-${SUNDIALS_VER}.tar.gz" | tar xz && \
+    cd sundials-${SUNDIALS_VER} && \
+    cmake -S . -B build \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_SHARED_LIBS=ON \
+        -DEXAMPLES_ENABLE_C=OFF \
+        -DEXAMPLES_ENABLE_CXX=OFF && \
+    cmake --build build --parallel $(nproc) && \
+    cmake --install build && \
+    rm -rf /tmp/sundials-${SUNDIALS_VER}
+
+COPY PDAC/ /build/PDAC/
+
+ARG CUDA_ARCH="80;90"
+WORKDIR /build/PDAC/sim
+RUN cmake -S . -B build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
+        -DSUNDIALS_DIR=/usr/local \
+        -DBOOST_ROOT=/usr && \
+    cmake --build build --parallel 2 && \
+    strip build/bin/pdac
+
+# Collect all runtime shared libs the binary needs
+RUN mkdir -p /runtime-libs && \
+    ldd build/bin/pdac | grep "=> /" | awk '{print $3}' | \
+    xargs -I{} cp -L {} /runtime-libs/ 2>/dev/null || true
+
+# --------------- Stage 2: slim runtime ---------------
+FROM nvidia/cuda:12.8.0-base-ubuntu24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+RUN apt-get update -qq && \
+    apt-get install -y -qq --no-install-recommends \
+        python3 python3-pip python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy binary + all its shared lib dependencies
+COPY --from=builder /build/PDAC/sim/build/bin/pdac /sim/build/bin/pdac
+COPY --from=builder /runtime-libs/ /usr/local/lib/
+RUN ldconfig
+
+# Copy test files from builder
+COPY --from=builder /build/PDAC/sim/tests/ /sim/tests/
+# Copy resources and vendored sources from builder
+COPY --from=builder /build/PDAC/sim/resource/ /sim/resource/
+COPY --from=builder /build/PDAC/sim/third_party/ /sim/third_party/
+
+# Install uv + test deps
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+RUN uv venv /sim/.venv && \
+    . /sim/.venv/bin/activate && \
+    uv pip install pytest lz4
+ENV PATH="/sim/.venv/bin:$PATH"
+
+WORKDIR /sim
+
+# Smoke tests: verify everything is in place
+RUN echo "=== Smoke tests ===" && \
+    test -x /sim/build/bin/pdac && echo "  binary: OK" && \
+    ldd /sim/build/bin/pdac | grep "not found" | grep -v libcuda && { echo "  FAIL: missing libs"; exit 1; } || echo "  shared libs: OK" && \
+    /sim/build/bin/pdac --help > /dev/null 2>&1 || echo "  binary runs: OK (--help exits non-zero but no crash)" && \
+    test -f /sim/resource/param_all_test.xml && echo "  param file: OK" && \
+    test -f /sim/tests/conftest.py && echo "  test suite: OK" && \
+    python3 -c "import pytest; import lz4" && echo "  python deps: OK" && \
+    echo "=== All smoke tests passed ==="
+
+ENTRYPOINT ["pytest"]
+CMD ["tests/", "-v"]

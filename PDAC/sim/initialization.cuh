@@ -93,6 +93,15 @@ void initializeVascularCellsRandom(
     float branch_prob,
     unsigned int seed);
 
+// Sequentially assign INTENT_DIVIDE to spatially distributed PHALANX cells pre-simulation.
+// Must be called after initializeVascularCellsRandom; step 0 of vascular_state_step is skipped
+// so these intents are preserved until vascular_divide executes.
+void assignInitialVascularTips(
+    flamegpu::AgentVector& vascular_agents,
+    int grid_x, int grid_y, int grid_z,
+    int min_neighbor_range,
+    unsigned int seed);
+
 // Initialize Vascular Cells with manual test pattern
 void initializeVascularCellsTest(
     flamegpu::AgentVector& vascular_agents,
