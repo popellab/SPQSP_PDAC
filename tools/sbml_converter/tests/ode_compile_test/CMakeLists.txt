@@ -83,6 +83,18 @@ add_executable(dump_trajectories
 target_include_directories(dump_trajectories PRIVATE ${PDAC_ROOT})
 target_link_libraries(dump_trajectories PRIVATE ${SUNDIALS_LIBRARIES} Boost::serialization)
 
+# --- RHS diagnostics ---
+add_executable(diag_rhs
+    diag_rhs.cpp
+    ${PDAC_ROOT}/qsp/ode/ODE_system.cpp
+    ${PDAC_ROOT}/qsp/ode/QSPParam.cpp
+    ${PDAC_ROOT}/qsp/cvode/CVODEBase.cpp
+    ${PDAC_ROOT}/core/ParamBase.cpp
+)
+target_include_directories(diag_rhs PRIVATE ${PDAC_ROOT})
+target_link_libraries(diag_rhs PRIVATE ${SUNDIALS_LIBRARIES} Boost::serialization)
+target_compile_definitions(diag_rhs PRIVATE PARAM_XML_PATH="${PARAM_XML_PATH}")
+
 # --- CTest ---
 enable_testing()
 add_test(NAME ode_standalone_test COMMAND ode_compile_test)

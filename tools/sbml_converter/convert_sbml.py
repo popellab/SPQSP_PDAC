@@ -58,6 +58,10 @@ def main():
         "--no-unit-conversion", action="store_true",
         help="Skip SI unit conversion (keep model units: cells, nM, mL, 1/day)"
     )
+    parser.add_argument(
+        "--model-units", action="store_true",
+        help="Keep model units with per-expression correction factors (SimBiology-compatible)"
+    )
     args = parser.parse_args()
 
     # Get SBML file
@@ -78,12 +82,33 @@ def main():
     mapper = NameMapper(model)
 
     # Compute unit conversions (or skip for model-unit mode)
-    if not args.no_unit_conversion:
+    if not args.no_unit_conversion or args.model_units:
         compute_unit_conversions(model)
 
     # Sort assignment rules and initial assignments by dependencies
     model.assignment_rule_order = sort_assignment_rules(model)
     model.initial_assignment_order = sort_initial_assignments(model)
+
+    # Build model-unit annotator if requested
+    annotator = None
+    if args.model_units:
+        from unit_scale_annotator import UnitScaleAnnotator
+        from unit_converter import get_model_time_scale
+        time_scale = get_model_time_scale(model._sbml_model)
+        print(f"  Model time scale: {time_scale} (s/model_time_unit)")
+        annotator = UnitScaleAnnotator(model, mapper, time_scale)
+        annotator.process_all()
+        n_param_conv = sum(1 for f in annotator.param_conversions.values()
+                           if abs(f - 1.0) > 1e-6)
+        print(f"  Parameter conversions: {n_param_conv} non-trivial")
+        for pid, cf in sorted(annotator.param_conversions.items(),
+                               key=lambda x: abs(x[1]), reverse=True):
+            if abs(cf - 1.0) > 1e-6:
+                name = model.id_to_element[pid].name if pid in model.id_to_element else pid
+                print(f"    {name}: ×{cf:.6e}")
+        n_stoich = sum(1 for f in annotator.stoich_factors.values()
+                       if abs(f - 1.0) > 1e-6)
+        print(f"  Non-trivial stoich factors: {n_stoich}")
 
     # Generate all output files
     output_dir = args.output
@@ -92,7 +117,7 @@ def main():
     files = {
         "QSP_enum.h": generate_qsp_enum_h(model, mapper, NAMESPACE),
         "ODE_system.h": generate_ode_system_h(NAMESPACE, CLASS_NAME),
-        "ODE_system.cpp": generate_ode_system_cpp(model, mapper, NAMESPACE, CLASS_NAME),
+        "ODE_system.cpp": generate_ode_system_cpp(model, mapper, NAMESPACE, CLASS_NAME, annotator=annotator),
         "QSPParam.h": generate_qsp_param_h(model, mapper, NAMESPACE),
         "QSPParam.cpp": generate_qsp_param_cpp(model, mapper, NAMESPACE),
     }

@@ -150,6 +150,24 @@ Outputs are written to `./outputs/` relative to the working directory. On SLURM,
 | RTX 4090 | 89 |
 | H100 / H200 | 90 |
 
+## SBML-to-C++ Converter
+
+The QSP ODE system is generated from a SimBiology SBML model using `tools/sbml_converter/`:
+
+```bash
+cd tools/sbml_converter
+
+# Default (SI units):
+python convert_sbml.py --sbml path/to/PDAC_model.sbml
+
+# Model-unit mode (matches SimBiology's internal solver):
+python convert_sbml.py --sbml path/to/PDAC_model.sbml --model-units
+```
+
+The `--model-units` flag keeps species in their declared units (cells, nM, molecules/um2) and applies per-parameter conversion factors at load time so expressions evaluate with the same numerical values as SimBiology's `UnitConversion=ON`. This eliminates the 24-order-of-magnitude spread that causes solver path divergence in SI mode.
+
+Generated files go to `PDAC/qsp/ode/` (C++ ODE code) and `PDAC/sim/resource/param_all.xml` (default parameters).
+
 ## Notes
 
 - **First run** after build takes 5-10 minutes for CUDA JIT warmup (not a hang).

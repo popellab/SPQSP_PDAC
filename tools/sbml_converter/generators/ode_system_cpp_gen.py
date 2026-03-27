@@ -6,26 +6,27 @@ from ast_translator import ASTTranslator
 
 
 def generate_ode_system_cpp(
-    model: SBMLModel, mapper: NameMapper, namespace: str, class_name: str
+    model: SBMLModel, mapper: NameMapper, namespace: str, class_name: str,
+    annotator=None,
 ) -> str:
     sections = []
     sections.append(_gen_preamble(model, mapper, namespace, class_name))
     sections.append(_gen_constructor(model, class_name))
     sections.append(_gen_init_solver(class_name))
-    sections.append(_gen_setup_class_parameters(model, mapper, class_name))
+    sections.append(_gen_setup_class_parameters(model, mapper, class_name, annotator))
     sections.append(_gen_setup_variables(model, mapper, class_name))
-    sections.append(_gen_setup_instance_variables(model, mapper, class_name))
+    sections.append(_gen_setup_instance_variables(model, mapper, class_name, annotator))
     sections.append(_gen_setup_instance_tolerance(class_name))
-    sections.append(_gen_eval_init_assignment(model, mapper, class_name))
+    sections.append(_gen_eval_init_assignment(model, mapper, class_name, annotator))
     sections.append(_gen_setup_events(model, mapper, class_name))
-    sections.append(_gen_f_function(model, mapper, class_name))
-    sections.append(_gen_g_function(model, mapper, class_name))
-    sections.append(_gen_trigger_component_evaluate(model, mapper, class_name))
+    sections.append(_gen_f_function(model, mapper, class_name, annotator))
+    sections.append(_gen_g_function(model, mapper, class_name, annotator))
+    sections.append(_gen_trigger_component_evaluate(model, mapper, class_name, annotator))
     sections.append(_gen_event_evaluate(model, mapper, class_name))
-    sections.append(_gen_event_execution(model, mapper, class_name))
-    sections.append(_gen_update_y_other(model, mapper, class_name))
+    sections.append(_gen_event_execution(model, mapper, class_name, annotator))
+    sections.append(_gen_update_y_other(model, mapper, class_name, annotator))
     sections.append(_gen_get_header(model, mapper, class_name))
-    sections.append(_gen_unit_conversion(model, mapper, class_name))
+    sections.append(_gen_unit_conversion(model, mapper, class_name, annotator))
     sections.append(f"}};")  # close namespace
 
     return "\n".join(sections)
@@ -121,7 +122,7 @@ void {class_name}::initSolver(realtype t){{
 # setup_class_parameters
 # ============================================================================
 
-def _gen_setup_class_parameters(model, mapper, class_name):
+def _gen_setup_class_parameters(model, mapper, class_name, annotator=None):
     lines = []
     lines.append(f"void {class_name}::setup_class_parameters(QSPParam& param){{")
 
@@ -129,7 +130,10 @@ def _gen_setup_class_parameters(model, mapper, class_name):
     for comp in model.compartments:
         p_enum = mapper.param_enum(comp.id)
         qsp_enum = mapper.qsp_enum(comp.id)
-        scale = _scaling_expr(comp.unit_si_scaling)
+        if annotator:
+            scale = _scaling_expr(annotator.param_conversions.get(comp.id, 1.0))
+        else:
+            scale = _scaling_expr(comp.unit_si_scaling)
         lines.append(f"    //{comp.name}, {comp.id}")
         lines.append(f"    _class_parameter[{p_enum}] = PFILE({qsp_enum}){scale};")
 
@@ -137,7 +141,10 @@ def _gen_setup_class_parameters(model, mapper, class_name):
     for param in model.p_const:
         p_enum = mapper.param_enum(param.id)
         qsp_enum = mapper.qsp_enum(param.id)
-        scale = _scaling_expr(param.unit_si_scaling)
+        if annotator:
+            scale = _scaling_expr(annotator.param_conversions.get(param.id, 1.0))
+        else:
+            scale = _scaling_expr(param.unit_si_scaling)
         lines.append(f"    //{param.name}, {param.id}")
         lines.append(f"    _class_parameter[{p_enum}] = PFILE({qsp_enum}){scale};")
 
@@ -168,21 +175,21 @@ void {class_name}::setupVariables(void){{
 # setup_instance_variables
 # ============================================================================
 
-def _gen_setup_instance_variables(model, mapper, class_name):
+def _gen_setup_instance_variables(model, mapper, class_name, annotator=None):
     lines = []
     lines.append(f"void {class_name}::setup_instance_variables(QSPParam& param){{")
 
     for sp in model.sp_var:
         enum = mapper.species_enum(sp.id)
         qsp_enum = mapper.qsp_enum(sp.id)
-        scale = _scaling_expr(sp.unit_si_scaling)
+        scale = "" if annotator else _scaling_expr(sp.unit_si_scaling)
         lines.append(f"    //{mapper.display_name(sp.id)}, {sp.id}")
         lines.append(f"    _species_var[{enum}] = PFILE({qsp_enum}){scale};")
 
     # Non-species variables
     for i, nsp in enumerate(model.nsp_var):
         qsp_enum = mapper.qsp_enum(nsp.id)
-        scale = _scaling_expr(nsp.unit_si_scaling if hasattr(nsp, 'unit_si_scaling') else 1.0)
+        scale = "" if annotator else _scaling_expr(nsp.unit_si_scaling if hasattr(nsp, 'unit_si_scaling') else 1.0)
         lines.append(f"    //{nsp.name}, {nsp.id}")
         lines.append(f"    _nonspecies_var[{i}] = PFILE({qsp_enum}){scale};")
 
@@ -221,7 +228,7 @@ void {class_name}::setup_instance_tolerance(QSPParam& param){{
 # eval_init_assignment
 # ============================================================================
 
-def _gen_eval_init_assignment(model, mapper, class_name):
+def _gen_eval_init_assignment(model, mapper, class_name, annotator=None):
     lines = []
     lines.append(f"void {class_name}::eval_init_assignment(void){{")
 
@@ -305,7 +312,7 @@ def _gen_setup_events(model, mapper, class_name):
 # f() — the ODE right-hand side
 # ============================================================================
 
-def _gen_f_function(model, mapper, class_name):
+def _gen_f_function(model, mapper, class_name, annotator=None):
     trans = ASTTranslator(mapper, context="f")
     lines = []
     lines.append(f"int {class_name}::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){{")
@@ -342,14 +349,20 @@ def _gen_f_function(model, mapper, class_name):
         terms = []
         for rxn_idx, coeff in stoich_entries:
             flux = f"ReactionFlux{rxn_idx + 1}"
-            if coeff == 1.0:
-                terms.append(f"{flux}")
-            elif coeff == -1.0:
-                terms.append(f"-{flux}")
-            elif coeff > 0:
-                terms.append(f"{_fmt(coeff)}*{flux}")
+
+            # In model-unit mode, fold the stoich factor into the coefficient
+            if annotator:
+                sf = annotator.get_stoich_factor(rxn_idx, sp.id)
+                effective_coeff = coeff * sf
             else:
-                terms.append(f"{_fmt(coeff)}*{flux}")
+                effective_coeff = coeff
+
+            if effective_coeff == 1.0:
+                terms.append(f"{flux}")
+            elif effective_coeff == -1.0:
+                terms.append(f"-{flux}")
+            else:
+                terms.append(f"{_fmt(effective_coeff)}*{flux}")
 
         if not terms:
             rhs = "0.0"
@@ -392,7 +405,7 @@ def _gen_f_function(model, mapper, class_name):
 # g() — root finding for events
 # ============================================================================
 
-def _gen_g_function(model, mapper, class_name):
+def _gen_g_function(model, mapper, class_name, annotator=None):
     lines = []
     lines.append(f"int {class_name}::g(realtype t, N_Vector y, realtype *gout, void *user_data){{")
     lines.append("")
@@ -500,11 +513,51 @@ def _trigger_to_root_expression(trigger_ast, trans):
     return trans.translate(trigger_ast)
 
 
+def _trigger_to_root_expression_annotated(trigger_ast, annotator, context):
+    """Like _trigger_to_root_expression but using the annotator for corrected expressions."""
+    import libsbml
+    if trigger_ast is None:
+        return "1"
+
+    ntype = trigger_ast.getType()
+
+    if ntype in (libsbml.AST_RELATIONAL_LT, libsbml.AST_RELATIONAL_LEQ):
+        left = annotator.get_corrected_expr(trigger_ast.getChild(0), context)
+        right = annotator.get_corrected_expr(trigger_ast.getChild(1), context)
+        return f"{right} - ({left})"
+
+    if ntype in (libsbml.AST_RELATIONAL_GT, libsbml.AST_RELATIONAL_GEQ):
+        left = annotator.get_corrected_expr(trigger_ast.getChild(0), context)
+        right = annotator.get_corrected_expr(trigger_ast.getChild(1), context)
+        return f"{left} - ({right})"
+
+    if ntype in (libsbml.AST_RELATIONAL_EQ, libsbml.AST_RELATIONAL_NEQ):
+        left = annotator.get_corrected_expr(trigger_ast.getChild(0), context)
+        right = annotator.get_corrected_expr(trigger_ast.getChild(1), context)
+        return f"{left} - ({right})"
+
+    if ntype == libsbml.AST_LOGICAL_AND:
+        parts = []
+        for i in range(trigger_ast.getNumChildren()):
+            parts.append(_trigger_to_root_expression_annotated(
+                trigger_ast.getChild(i), annotator, context))
+        return f"std::min({', '.join(parts)})"
+
+    if ntype == libsbml.AST_LOGICAL_OR:
+        parts = []
+        for i in range(trigger_ast.getNumChildren()):
+            parts.append(_trigger_to_root_expression_annotated(
+                trigger_ast.getChild(i), annotator, context))
+        return f"std::max({', '.join(parts)})"
+
+    return annotator.get_corrected_expr(trigger_ast, context)
+
+
 # ============================================================================
 # triggerComponentEvaluate
 # ============================================================================
 
-def _gen_trigger_component_evaluate(model, mapper, class_name):
+def _gen_trigger_component_evaluate(model, mapper, class_name, annotator=None):
     lines = []
     lines.append(f"bool {class_name}::triggerComponentEvaluate(int i, realtype t, bool curr) {{")
     lines.append("")
@@ -578,7 +631,7 @@ def _gen_event_evaluate(model, mapper, class_name):
 # eventExecution
 # ============================================================================
 
-def _gen_event_execution(model, mapper, class_name):
+def _gen_event_execution(model, mapper, class_name, annotator=None):
     lines = []
     lines.append(f"bool {class_name}::eventExecution(int i, bool delayed, realtype& dt){{")
     lines.append("")
@@ -612,7 +665,7 @@ def _gen_event_execution(model, mapper, class_name):
 # update_y_other
 # ============================================================================
 
-def _gen_update_y_other(model, mapper, class_name):
+def _gen_update_y_other(model, mapper, class_name, annotator=None):
     lines = []
     lines.append(f"void {class_name}::update_y_other(void){{")
     lines.append("")
@@ -686,7 +739,7 @@ def _gen_get_header(model, mapper, class_name):
 # Unit conversion functions
 # ============================================================================
 
-def _gen_unit_conversion(model, mapper, class_name):
+def _gen_unit_conversion(model, mapper, class_name, annotator=None):
     lines = []
 
     # get_unit_conversion_species
@@ -695,11 +748,12 @@ def _gen_unit_conversion(model, mapper, class_name):
     lines.append("    static std::vector<realtype> scalor = {")
     lines.append("        //sp_var")
     for sp in model.sp_var:
-        # scaling used for tolerance computation: species_abstol = base_abstol * scaling
-        lines.append(f"        {_fmt(sp.unit_si_scaling)},")
+        scaling = 1.0 if annotator else sp.unit_si_scaling
+        lines.append(f"        {_fmt(scaling)},")
     lines.append("        //sp_other")
     for sp in model.sp_other:
-        lines.append(f"        {_fmt(sp.unit_si_scaling)},")
+        scaling = 1.0 if annotator else sp.unit_si_scaling
+        lines.append(f"        {_fmt(scaling)},")
     lines.append("    };")
     lines.append("    return scalor[i];")
     lines.append("}")
@@ -710,7 +764,7 @@ def _gen_unit_conversion(model, mapper, class_name):
     lines.append("")
     lines.append("    static std::vector<realtype> scalor = {")
     for nsp in model.nsp_var:
-        scaling = nsp.unit_si_scaling if hasattr(nsp, 'unit_si_scaling') else 1.0
+        scaling = 1.0 if annotator else (nsp.unit_si_scaling if hasattr(nsp, 'unit_si_scaling') else 1.0)
         lines.append(f"        {_fmt(scaling)},")
     lines.append("    };")
     lines.append("    return scalor[i];")
