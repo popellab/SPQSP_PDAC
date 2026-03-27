@@ -108,16 +108,16 @@ Additionally, per-stoichiometry-term factors handle cross-unit reactions:
 | Metric | SI mode | Model-unit mode |
 |---|---|---|
 | RHS match at t=0 (non-zero species) | 107/162 exact | 68/94 within 1% |
-| Trajectory pass rate (5% tol, 365 days) | 98.5% | **85.3%** |
+| Trajectory pass rate (5% tol, 365 days) | 98.5% | **87.7%** |
 | V_T.ArgI worst drift | 22.3% at day 265 | 28.7% at day 265 |
-| V_T.C1 at t=100 | ratio ~1.01 | ratio **0.9999** |
+| V_T.C1 at t=100 | ratio ~1.01 | ratio **1.000002** |
 | V_T.VEGF at t=100 | ratio ~0.98 | ratio **1.0009** |
+| V_LN.cDC1 at t=365 | not measured | ratio **1.000000** |
 
-Most remaining failures are marginal (5-6% at late timepoints, near the 5% threshold). Dominant failures: V_LN.cDC1/2 (52x at t=365), V_T.CD8_exh (1.37x), V_T.ArgI (29%).
+Key species track MATLAB nearly perfectly (C1, VEGF, cDC1/2, nCD4). The 20 remaining failures are all in the ArgI→Treg→DC cascade at late timepoints (t > 260), with most at 5-6% (near the 5% threshold).
 
 ### Remaining issues
 
-1. **V_LN.cDC1/2**: 52x divergence at t=365 — likely a missing parameter conversion for lymph node dendritic cell reactions
-2. **V_T.ArgI**: Still ~29% drift, same cascade as SI mode (ArgI → Treg → DC)
-3. **24 species fail** the 5% threshold (vs 7 in SI mode), mostly at late timepoints (t > 260)
-4. Some parameters may still need context-dependent conversions not yet discovered by the single-pass algorithm
+1. **V_T.ArgI**: 29% drift at day 265, driven by the ArgI→Treg→DC cascade. Root cause: `k_C_Tcell_eff` assignment rule has implicit scale 1e-3 off due to `v_T_search_volume` (mm³/day) mixing with V_T (mL). The annotator can't fix this automatically because the expression is purely multiplicative (no additive mismatch to trigger conversion). Fixing it manually makes things worse because other species depend on the same parameter.
+2. **20 species fail** the 5% threshold, all in the immune cascade at late timepoints
+3. Some parameters need context-dependent conversions that the single-pass algorithm can't discover (no additive mismatch in the expression, only indirect mismatch through downstream usage)

@@ -122,6 +122,13 @@ class UnitScaleAnnotator:
         # with re-checking after each round of corrections within a rule
         for ar in self.model.assignment_rule_order:
             for _retry in range(5):
+                # Recompute all implicit scales up to this point
+                # (corrections may have changed upstream rule scales)
+                for prev_ar in self.model.assignment_rule_order:
+                    self.implicit_scales[prev_ar.variable_id] = (
+                        self._compute_scale(prev_ar.math_ast))
+                    if prev_ar.variable_id == ar.variable_id:
+                        break
                 corrections = {}
                 self._find_mismatches(ar.math_ast, corrections)
                 if not corrections:
@@ -360,23 +367,86 @@ class UnitScaleAnnotator:
             child = node.getChild(i)
             params = _find_parameters_in(child, self._param_ids)
 
-            if not params:
-                continue  # no parameter to fix — skip (rare)
+            if params:
+                # Convert a parameter in the mismatched child to match ref
+                subtree_correction = scales[i] / ref_scale
+                param_id, param_exp = params[0]
+                if param_id not in corrections and param_exp != 0.0:
+                    corrections[param_id] = subtree_correction ** (1.0 / param_exp)
+            elif child.getType() == libsbml.AST_NAME:
+                # Mismatched child is a bare species/variable (no parameters).
+                # Try to fix a parameter in the REFERENCE child (child 0)
+                # so that the reference matches the species' scale.
+                ref_child = node.getChild(0)
+                ref_params = _find_parameters_in(ref_child, self._param_ids)
+                if ref_params:
+                    # ref must change to match child's scale
+                    ref_correction = ref_scale / scales[i]
+                    param_id, param_exp = ref_params[0]
+                    if param_id not in corrections and param_exp != 0.0:
+                        corrections[param_id] = ref_correction ** (1.0 / param_exp)
+            # else: complex expression with no convertible params — skip.
+            # The stoich factor will handle the overall flux correction.
 
-            # The subtree's MODEL value needs to be multiplied by
-            # (child_scale / ref_scale) to convert to ref's model units.
-            # For a parameter with exponent e, multiplying param by cf
-            # changes the subtree by cf^e. So: cf^e = child_scale/ref_scale
-            subtree_correction = scales[i] / ref_scale
+    def _trace_rule_variable(self, node, ref_scale: float,
+                             child_scale: float, corrections: dict) -> bool:
+        """When a mismatched child has no convertible parameters, check if it
+        references an assignment rule variable. If so, trace into that rule's
+        expression to find a parameter to convert.
 
-            # Pick the first parameter found
-            param_id, param_exp = params[0]
+        Returns True if a correction was found.
+        """
+        if node is None:
+            return False
 
-            if param_id in corrections or param_exp == 0.0:
+        # Collect all assignment rule variables referenced in this subtree
+        rule_var_ids = set()
+        self._collect_rule_vars(node, rule_var_ids)
+
+        if not rule_var_ids:
+            return False
+
+        # For each rule variable, check if converting a parameter inside its
+        # rule expression could fix the scale mismatch
+        subtree_correction = child_scale / ref_scale
+        for var_id in rule_var_ids:
+            # Find the assignment rule for this variable
+            rule_ast = None
+            for ar in self.model.assignment_rules:
+                if ar.variable_id == var_id:
+                    rule_ast = ar.math_ast
+                    break
+            if rule_ast is None:
                 continue
 
-            correction = subtree_correction ** (1.0 / param_exp)
-            corrections[param_id] = correction
+            # Find parameters inside the rule expression.
+            # Exclude dimensionless parameters (scale ~1.0) since they
+            # shouldn't need unit conversion.
+            params = _find_parameters_in(rule_ast, self._param_ids)
+            params = [(pid, exp) for pid, exp in params
+                      if not _scales_match(self.element_scales.get(pid, 1.0), 1.0)
+                      and pid not in corrections]
+            if not params:
+                continue
+
+            param_id, param_exp = params[0]
+            if param_id in corrections or param_exp == 0.0:
+                continue
+            corrections[param_id] = subtree_correction ** (1.0 / param_exp)
+            return True
+
+        return False
+
+    def _collect_rule_vars(self, node, result: set):
+        """Collect assignment rule variable IDs referenced in a subtree."""
+        if node is None:
+            return
+        if node.getType() == libsbml.AST_NAME:
+            name = node.getName()
+            if name in self._rule_targets:
+                result.add(name)
+        for i in range(node.getNumChildren()):
+            self._collect_rule_vars(node.getChild(i), result)
 
     def _check_piecewise_mismatch(self, node, corrections: dict):
         """Check piecewise value branches for scale mismatches."""
