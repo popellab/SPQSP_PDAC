@@ -171,22 +171,19 @@ __device__ __forceinline__ bool has_higher_priority_mdsc(unsigned int id1, int s
     if (sy1 != sy2) return sy1 < sy2;
     return sz1 < sz2;
 }
-// Occupancy Grid
+// Volume occupancy
 FLAMEGPU_AGENT_FUNCTION(mdsc_write_to_occ_grid, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
-    occ[x][y][z][CELL_TYPE_MDSC].exchange(1u);  // Exclusive (MAX_MDSC_PER_VOXEL = 1)
 
-    // Flat arrays for GPU recruitment kernel (MDSC exclusive placement)
     const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int vidx = z * (gx * gy) + y * gx + x;
-    unsigned int* mdsc_occ = reinterpret_cast<unsigned int*>(
-        FLAMEGPU->environment.getProperty<uint64_t>("mdsc_occ_ptr"));
-    atomicAdd(&mdsc_occ[vidx], 1u);
+
+    float my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MDSC");
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    atomicAdd(&vol_used[vidx], my_vol);
 
     return flamegpu::ALIVE;
 }
@@ -248,33 +245,29 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone)
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
     const int tumble = FLAMEGPU->getVariable<int>("tumble");
 
-    // ECM based movement probability: higher ECM → more likely to be blocked
-    {
-        const float* ecm_ptr = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>("ecm_grid_ptr"));
-        float ECM_density = ecm_ptr[z * (grid_x * grid_y) + y * grid_x + x];
-        float ECM_50 = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_MOT_EC50");
-        float ECM_sat = ECM_density / (ECM_density + ECM_50);
-        if (FLAMEGPU->random.uniform<float>() < ECM_sat) return flamegpu::ALIVE;
-    }
+    // ECM porosity: filter target voxels by MDSC porosity threshold
+    const int old_vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
+    const float* ecm_c = ECM_CROSSLINK_PTR(FLAMEGPU);
+    const float density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
+    const float min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_MDSC");
 
     const float move_dir_x = FLAMEGPU->getVariable<float>("move_direction_x");
     const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
     const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
 
-    // Use CCL2 gradient for chemotaxis — read directly from PDE
-    const int nx_mv = FLAMEGPU->environment.getProperty<int>("grid_size_x");
-    const int ny_mv = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    const int voxel_mv = z * ny_mv*nx_mv + y * nx_mv + x;
-    const float grad_x = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_X))[voxel_mv];
-    const float grad_y = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Y))[voxel_mv];
-    const float grad_z = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Z))[voxel_mv];
+    // Volume-based occupancy
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MDSC");
 
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
+    // Use CCL2 gradient for chemotaxis — read directly from PDE
+    const float grad_x = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_X))[old_vidx];
+    const float grad_y = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Y))[old_vidx];
+    const float grad_z = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Z))[old_vidx];
 
     const float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
 
@@ -307,21 +300,20 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone)
         int tz = z + static_cast<int>(std::round(move_dir_z));
 
         if (tx < 0 || tx >= grid_x || ty < 0 || ty >= grid_y || tz < 0 || tz >= grid_z) {
-            // FLAMEGPU->setVariable<int>("tumble", 1);
             return flamegpu::ALIVE;
         }
 
-        if (occ[tx][ty][tz][CELL_TYPE_MDSC].CAS(0u, 1u) == 0u) {
-            occ[x][y][z][CELL_TYPE_MDSC].exchange(0u);
+        int target_vidx = tz * (grid_x * grid_y) + ty * grid_x + tx;
+        if (ecm_porosity(ecm_d, ecm_c, target_vidx, density_cap) >= min_porosity &&
+            volume_try_claim(vol_used, target_vidx, my_vol, capacity)) {
+            volume_release(vol_used, old_vidx, my_vol);
             FLAMEGPU->setVariable<int>("x", tx);
             FLAMEGPU->setVariable<int>("y", ty);
             FLAMEGPU->setVariable<int>("z", tz);
-        } else {
-            // FLAMEGPU->setVariable<int>("tumble", 1);
         }
     }
     // === TUMBLE PHASE (tumble == 1) ===
-    // Collect all free Moore neighbors, shuffle, try each until CAS wins.
+    // Collect candidate neighbors with volume capacity, shuffle, try each.
     else {
         int cand_x[26], cand_y[26], cand_z[26];
         int n_cands = 0;
@@ -329,7 +321,9 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone)
             if (di==0 && dj==0 && dk==0) continue;
             int nx = x+di, ny = y+dj, nz = z+dk;
             if (nx<0||nx>=grid_x||ny<0||ny>=grid_y||nz<0||nz>=grid_z) continue;
-            if (occ[nx][ny][nz][CELL_TYPE_MDSC] != 0u) continue;
+            int nvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
+            if (vol_used[nvidx] + my_vol > capacity) continue;
+            if (ecm_porosity(ecm_d, ecm_c, nvidx, density_cap) < min_porosity) continue;
             cand_x[n_cands] = nx; cand_y[n_cands] = ny; cand_z[n_cands] = nz;
             n_cands++;
         }
@@ -342,8 +336,9 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone)
             int tz=cand_z[i]; cand_z[i]=cand_z[j]; cand_z[j]=tz;
         }
         for (int i = 0; i < n_cands; i++) {
-            if (occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_MDSC].CAS(0u, 1u) == 0u) {
-                occ[x][y][z][CELL_TYPE_MDSC].exchange(0u);
+            int tvidx = cand_z[i] * (grid_x * grid_y) + cand_y[i] * grid_x + cand_x[i];
+            if (volume_try_claim(vol_used, tvidx, my_vol, capacity)) {
+                volume_release(vol_used, old_vidx, my_vol);
                 FLAMEGPU->setVariable<int>("x", cand_x[i]);
                 FLAMEGPU->setVariable<int>("y", cand_y[i]);
                 FLAMEGPU->setVariable<int>("z", cand_z[i]);

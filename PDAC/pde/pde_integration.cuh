@@ -1,6 +1,7 @@
 #ifndef PDE_INTEGRATION_CUH
 #define PDE_INTEGRATION_CUH
 
+#include <cstdint>
 #include "flamegpu/flamegpu.h"
 #include "pde_solver.cuh"
 #include "gpu_param.h"
@@ -48,12 +49,27 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model);
 // Matches HCC behavior: all voxels start at ECM_saturation, not 0/baseline.
 void initialize_ecm_to_saturation(float ecm_saturation);
 
-// Return device pointers for ECM and fibroblast density field (for output)
-float* get_ecm_grid_device_ptr();
+// Return device pointer for voxel type grid (domain initialization labels)
+uint8_t* get_voxel_type_device_ptr();
+
+// Copy host-side voxel type array to device (call after generate_domain_structure)
+void set_voxel_type_from_host(const uint8_t* host_data, int total_voxels);
+
+// Copy host-side ECM arrays to device (call after preseed_ecm_by_voxel_type)
+void set_ecm_density_from_host(const float* host_data, int total_voxels);
+void set_ecm_crosslink_from_host(const float* host_data, int total_voxels);
+
+// Return device pointers for ECM arrays (for output)
+float* get_ecm_density_device_ptr();
+float* get_ecm_crosslink_device_ptr();
 float* get_fib_density_field_device_ptr();
 
 // Return device pointer for vascular tip_id grid (for output/debug)
 unsigned int* get_vas_tip_id_grid_device_ptr();
+
+// Run PDE-only warmup (N substeps, no agent sources — just diffusion+decay)
+// Call after agent init to establish baseline chemical field before first ABM step.
+void run_pde_warmup(int substeps);
 
 // Cleanup PDE solver (call at end)
 void cleanup_pde_solver();

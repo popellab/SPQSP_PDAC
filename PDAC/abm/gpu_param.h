@@ -97,6 +97,25 @@ enum GPUParamFloat {
     PARAM_VAS_BRANCH_PROB,
     PARAM_VAS_MIN_NEIGHBOR,
     //*************************************************************************/
+    // Volume-based occupancy parameters
+    PARAM_VOXEL_CAPACITY,
+    PARAM_VOLUME_CANCER_STEM,
+    PARAM_VOLUME_CANCER_PROG,
+    PARAM_VOLUME_CANCER_SEN,
+    PARAM_VOLUME_TCELL_EFF,
+    PARAM_VOLUME_TCELL_CYT,
+    PARAM_VOLUME_TCELL_SUP,
+    PARAM_VOLUME_TREG_REG,
+    PARAM_VOLUME_TREG_TH,
+    PARAM_VOLUME_MAC_M1,
+    PARAM_VOLUME_MAC_M2,
+    PARAM_VOLUME_FIB_QUIESCENT,
+    PARAM_VOLUME_FIB_MYCAF,
+    PARAM_VOLUME_FIB_ICAF,
+    PARAM_VOLUME_MDSC,
+    PARAM_VOLUME_VAS_PHALANX,
+    PARAM_VOLUME_VAS_TIP,
+    //*************************************************************************/
     // Molecular parameters
     PARAM_IFNG_DIFFUSIVITY,
     PARAM_IL2_DIFFUSIVITY,
@@ -162,6 +181,59 @@ enum GPUParamFloat {
     PARAM_IL1_MOLECULAR_WEIGHT,
     PARAM_IL6_MOLECULAR_WEIGHT,
     PARAM_CXCL13_MOLECULAR_WEIGHT,
+    PARAM_MMP_DIFFUSIVITY,
+    PARAM_MMP_DECAY_RATE,
+    PARAM_MMP_MOLECULAR_WEIGHT,
+    PARAM_CANCER_MMP_RELEASE,            // Cancer cell MMP secretion rate
+    PARAM_MAC_M1_MMP_RELEASE,            // M1 macrophage MMP secretion rate
+    //*************************************************************************/
+    // ECM mechanics parameters
+    PARAM_ECM_DEPOSITION_RATE,           // k_depo: myCAF deposition rate [1/s]
+    PARAM_ECM_DENSITY_CAP,               // Maximum ECM density per voxel
+    PARAM_ECM_MMP_DEGRADE_RATE,          // k_mmp: MMP degradation rate [1/(s*mM)]
+    PARAM_ECM_CROSSLINK_RATE,            // k_lox: LOX crosslink accumulation [1/s]
+    PARAM_ECM_CROSSLINK_RESISTANCE,      // alpha: crosslink MMP resistance factor
+    PARAM_ECM_DECAY_RATE,                // k_decay: baseline ECM decay [1/s]
+    PARAM_ECM_BASELINE,                  // Floor density
+    PARAM_ECM_TGFB_EC50,                // TGF-β EC50 for deposition Hill function
+    PARAM_ECM_POROSITY_CANCER,           // Min porosity for cancer movement
+    PARAM_ECM_POROSITY_TCELL,            // Min porosity for T cell movement
+    PARAM_ECM_POROSITY_TREG,             // Min porosity for TReg movement
+    PARAM_ECM_POROSITY_MDSC,             // Min porosity for MDSC movement
+    PARAM_ECM_POROSITY_MAC,              // Min porosity for macrophage movement
+    PARAM_ECM_POROSITY_FIB,              // Min porosity for fibroblast movement
+    PARAM_ECM_POROSITY_VAS_TIP,          // Min porosity for vascular TIP movement
+    PARAM_VAS_ECM_COMPRESS_K,            // Half-max ECM density for vascular compression
+    //*************************************************************************/
+    // Domain initialization parameters
+    PARAM_DOMAIN_LOBULE_SPACING,         // Voxels between lobule centers (Poisson disk)
+    PARAM_DOMAIN_SEPTUM_THICKNESS,       // Voxels, Voronoi boundary width
+    PARAM_DOMAIN_TUMOR_RADIUS_FRAC,      // Fraction of grid_x for tumor hemisphere radius
+    PARAM_DOMAIN_MARGIN_THICKNESS,       // Voxels around tumor surface → VOXEL_MARGIN
+    PARAM_DOMAIN_ECM_SEPTUM_DENSITY,     // ECM density in septum voxels
+    PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK,   // ECM crosslink in septum voxels
+    PARAM_DOMAIN_ECM_STROMA_DENSITY,     // ECM density in stroma voxels
+    PARAM_DOMAIN_ECM_LOBULE_DENSITY,     // ECM density in lobule voxels
+    PARAM_DOMAIN_ECM_MARGIN_DENSITY,     // ECM density in margin voxels
+    PARAM_DOMAIN_ECM_MARGIN_CROSSLINK,   // ECM crosslink in margin voxels
+    PARAM_DOMAIN_ECM_TUMOR_DENSITY,      // ECM density in tumor voxels
+    PARAM_DOMAIN_FIB_P_SEPTUM,           // Fibroblast placement prob in septum
+    PARAM_DOMAIN_FIB_P_STROMA,           // Fibroblast placement prob in stroma
+    PARAM_DOMAIN_FIB_P_LOBULE,           // Fibroblast placement prob in lobule
+    PARAM_DOMAIN_FIB_P_MARGIN,           // Fibroblast placement prob in margin
+    PARAM_DOMAIN_FIB_P_TUMOR,            // Fibroblast placement prob in tumor
+    PARAM_DOMAIN_FIB_MARGIN_MYCAF_FRAC,  // Fraction of margin fibroblasts pre-activated as myCAF
+    PARAM_DOMAIN_VAS_P_SEPTUM,           // Vascular placement prob in septum
+    PARAM_DOMAIN_VAS_P_STROMA,           // Vascular placement prob in stroma
+    PARAM_DOMAIN_VAS_P_LOBULE,           // Vascular placement prob in lobule
+    PARAM_DOMAIN_VAS_P_MARGIN,           // Vascular placement prob in margin
+    PARAM_DOMAIN_VAS_P_TUMOR,            // Vascular placement prob in tumor
+    PARAM_DOMAIN_VAS_MARGIN_TIP_FRAC,    // Fraction of margin vascular cells as TIP
+    PARAM_DOMAIN_MAC_P_STROMA,           // Macrophage placement prob in stroma
+    PARAM_DOMAIN_MAC_P_MARGIN,           // Macrophage placement prob in margin
+    PARAM_DOMAIN_MAC_P_TUMOR,            // Macrophage placement prob in tumor
+    PARAM_DOMAIN_MAC_MARGIN_M1_FRAC,     // Fraction of margin macrophages as M1
+    PARAM_DOMAIN_TH_P_STROMA,            // TH cell placement prob in stroma
 
     GPU_PARAM_FLOAT_COUNT
 };
@@ -205,6 +277,9 @@ enum GPUParamInt {
     //*************************************************************************/
     // Fibroblast cell parameters
     PARAM_FIB_MOVE_STEPS,
+    //*************************************************************************/
+    // Domain initialization parameters
+    PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS,    // PDE-only substeps before first ABM step
     //*************************************************************************/
     // Molecular parameters
 

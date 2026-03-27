@@ -143,28 +143,31 @@ FLAMEGPU_AGENT_FUNCTION(cancer_count_neighbors, flamegpu::MessageSpatial3D, flam
 // Occupancy Grid Functions
 // ============================================================
 
-// Write this cancer cell's position to the occupancy grid.
-// Called each step after zero_occupancy_grid, before division.
-// Encodes cell_state+1 so downstream code can distinguish state from empty (0).
+// Write this cancer cell's volume to the volume occupancy grid and mark
+// the flat cancer presence array (used by recruitment density checks).
 FLAMEGPU_AGENT_FUNCTION(cancer_write_to_occ_grid, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
-    // Store cell_state+1 so 0 means empty and non-zero means occupied.
-    // Cancer cells are exclusive (1 per voxel) so no atomic needed, but
-    // atomicExchange ensures coherence if any races occur.
-    occ[x][y][z][CELL_TYPE_CANCER].exchange(static_cast<unsigned int>(cell_state) + 1u);
 
-    // Also write to flat cancer occupancy array used by recruitment density checks.
     const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int vidx = z * (gx * gy) + y * gx + x;
+
+    // Flat cancer presence array for recruitment density checks (is_tumor_dense_r3)
     unsigned int* cancer_occ = reinterpret_cast<unsigned int*>(
         FLAMEGPU->environment.getProperty<uint64_t>("cancer_occ_ptr"));
     atomicOr(&cancer_occ[vidx], 1u);
+
+    // Volume-based occupancy
+    float my_vol = (cell_state == CANCER_STEM) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_STEM") :
+        (cell_state == CANCER_PROGENITOR) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_SEN");
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    atomicAdd(&vol_used[vidx], my_vol);
 
     return flamegpu::ALIVE;
 }
@@ -195,10 +198,13 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
     const int size_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int size_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
+    // Volume-based occupancy: daughter volume for candidate pre-filter
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    // Daughter volume depends on division outcome but use progenitor as conservative estimate
+    float daughter_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG");
 
-    // Collect Moore (26-direction) neighbors that appear empty for cancer and MDSC.
+    // Collect Moore (26-direction) neighbors with enough volume capacity
     int cand_x[26], cand_y[26], cand_z[26];
     int n_cands = 0;
     for (int i = 0; i < 26; i++) {
@@ -206,9 +212,8 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
         get_moore_direction(i, dx, dy, dz);
         const int nx = my_x + dx, ny = my_y + dy, nz = my_z + dz;
         if (!is_in_bounds(nx, ny, nz, size_x, size_y, size_z)) continue;
-        // Empty for cancer AND not occupied by MDSC (matching execute_divide logic)
-        if (occ[nx][ny][nz][CELL_TYPE_CANCER] == 0u &&
-            occ[nx][ny][nz][CELL_TYPE_FIB] == 0u) {
+        int nvidx = nz * (size_x * size_y) + ny * size_x + nx;
+        if (vol_used[nvidx] + daughter_vol <= capacity) {
             cand_x[n_cands] = nx;
             cand_y[n_cands] = ny;
             cand_z[n_cands] = nz;
@@ -220,7 +225,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
         return flamegpu::ALIVE;
     }
 
-    // Fisher-Yates partial shuffle: try candidates in random order until CAS wins.
+    // Fisher-Yates partial shuffle: try candidates in random order until volume claim wins.
     const float asymmetric_div_prob = FLAMEGPU->environment.getProperty<float>("PARAM_ASYM_DIV_PROB");
     const int divMax = FLAMEGPU->environment.getProperty<int>("PARAM_PROG_DIV_MAX");
     const unsigned int stem_id = FLAMEGPU->getVariable<unsigned int>("stemID");
@@ -232,9 +237,9 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
         int ty = cand_y[i]; cand_y[i] = cand_y[j]; cand_y[j] = ty;
         int tz = cand_z[i]; cand_z[i] = cand_z[j]; cand_z[j] = tz;
 
-        // Atomically claim this voxel for cancer (0=empty → 1=claimed)
-        const unsigned int prev = occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_CANCER].CAS(0u, 1u);
-        if (prev != 0u) continue;  // Lost to a concurrent thread, try next
+        // Atomically claim volume for daughter cell
+        int tvidx = cand_z[i] * (size_x * size_y) + cand_y[i] * size_x + cand_x[i];
+        if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) continue;
 
         // Won the voxel — execute division
         const int target_x = cand_x[i];
@@ -518,16 +523,19 @@ FLAMEGPU_AGENT_FUNCTION(cancer_compute_chemical_sources, flamegpu::MessageNone, 
     float TGFB_release = 0.0f;
     float VEGFA_release = 0.0f;
     float IL1_release = 0.0f;
+    float MMP_release = 0.0f;
     if (cell_state == CANCER_STEM){
         CCL2_release = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_RELEASE");
         TGFB_release = FLAMEGPU->environment.getProperty<float>("PARAM_STEM_TGFB_RELEASE");
         VEGFA_release = FLAMEGPU->environment.getProperty<float>("PARAM_STEM_VEGFA_RELEASE");
         IL1_release = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_IL1_RELEASE");
+        MMP_release = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_MMP_RELEASE");
     } else if (cell_state == CANCER_PROGENITOR){
         CCL2_release = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_RELEASE");
         TGFB_release = FLAMEGPU->environment.getProperty<float>("PARAM_PROG_TGFB_RELEASE");
         VEGFA_release = FLAMEGPU->environment.getProperty<float>("PARAM_PROG_VEGFA_RELEASE");
         IL1_release = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_IL1_RELEASE");
+        MMP_release = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_MMP_RELEASE");
     }
 
     // Dead cells don't produce or consume
@@ -536,6 +544,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_compute_chemical_sources, flamegpu::MessageNone, 
         TGFB_release = 0.0f;
         VEGFA_release = 0.0f;
         IL1_release = 0.0f;
+        MMP_release = 0.0f;
         O2_uptake = 0.0f;
         IFNg_uptake = 0.0f;
     }
@@ -556,6 +565,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_compute_chemical_sources, flamegpu::MessageNone, 
     PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB, voxel, TGFB_release/voxel_volume);
     PDE_SECRETE(FLAMEGPU, PDE_SRC_VEGFA, voxel, VEGFA_release/voxel_volume);
     PDE_SECRETE(FLAMEGPU, PDE_SRC_IL1, voxel, IL1_release/voxel_volume);
+    PDE_SECRETE(FLAMEGPU, PDE_SRC_MMP, voxel, MMP_release/voxel_volume);
 
     // Uptakes (consumption): atomicAdd to pde_uptake with positive magnitude [1/s]
     PDE_UPTAKE(FLAMEGPU, PDE_UPT_O2, voxel, O2_uptake);
@@ -581,10 +591,9 @@ FLAMEGPU_AGENT_FUNCTION(cancer_reset_moves, flamegpu::MessageNone, flamegpu::Mes
 }
 
 
-// Single-phase cancer cell movement using occupancy grid.
-// Replaces two-phase select_move_target + execute_move.
-// Reads occ_grid to find open Moore neighbors (26 directions), claims atomically with CAS.
-// Cancer cells require target voxel to have no cancer, no MDSC, and no fibroblast.
+// Single-phase cancer cell movement using volume-based occupancy.
+// Finds open Moore neighbors (26 directions) by volume capacity check,
+// then claims atomically with volume_try_claim.
 FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     if (FLAMEGPU->getVariable<int>("dead") == 1) return flamegpu::ALIVE;
 
@@ -603,21 +612,23 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
     const int size_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int size_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    // ECM based movement probability: higher ECM → more likely to be blocked
-    {
-        const float* ecm_ptr = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>("ecm_grid_ptr"));
-        float ECM_density = ecm_ptr[z * (size_x * size_y) + y * size_x + x];
-        float ECM_50 = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_MOT_EC50");
-        float ECM_sat = ECM_density / (ECM_density + ECM_50);
-        if (FLAMEGPU->random.uniform<float>() < ECM_sat) return flamegpu::ALIVE;
-    }
+    // ECM porosity check: filter target voxels by cell-type porosity threshold
+    const int old_vidx = z * (size_x * size_y) + y * size_x + x;
+    const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
+    const float* ecm_c = ECM_CROSSLINK_PTR(FLAMEGPU);
+    const float density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
+    const float min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_CANCER");
 
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
+    // Volume-based occupancy: get my volume and capacity
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float my_vol = (cell_state == CANCER_STEM) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_STEM") :
+        (cell_state == CANCER_PROGENITOR) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_SEN");
 
-    // Moore neighborhood offsets (26 directions)
-    // Build candidate list: neighbors empty of cancer and Fibs and low T numbers
+    // Build candidate list: neighbors with enough volume capacity AND porosity
     int cands[26];
     int n_cands = 0;
     for (int i = 0; i < 26; i++) {
@@ -627,9 +638,10 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
         int ny = y + ddy;
         int nz = z + ddz;
         if (nx < 0 || nx >= size_x || ny < 0 || ny >= size_y || nz < 0 || nz >= size_z) continue;
-        if (occ[nx][ny][nz][CELL_TYPE_CANCER] == 0u && occ[nx][ny][nz][CELL_TYPE_FIB] == 0u) {
-            cands[n_cands++] = i;
-        }
+        int target_vidx = nz * (size_x * size_y) + ny * size_x + nx;
+        if (vol_used[target_vidx] + my_vol > capacity) continue;
+        if (ecm_porosity(ecm_d, ecm_c, target_vidx, density_cap) < min_porosity) continue;
+        cands[n_cands++] = i;
     }
     if (n_cands == 0) return flamegpu::ALIVE;
 
@@ -639,18 +651,17 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
         int tmp = cands[i]; cands[i] = cands[j]; cands[j] = tmp;
     }
 
-    // Try candidates in shuffled order; CAS to atomically claim new voxel
-    const unsigned int claim_val = static_cast<unsigned int>(cell_state) + 1u;
+    // Try candidates in shuffled order; volume_try_claim to atomically claim
     for (int i = 0; i < n_cands; i++) {
         int ddx, ddy, ddz;
         get_moore_direction(cands[i], ddx, ddy, ddz);
         int nx = x + ddx;
         int ny = y + ddy;
         int nz = z + ddz;
-        unsigned int old = occ[nx][ny][nz][CELL_TYPE_CANCER].CAS(0u, claim_val);
-        if (old == 0u) {
-            // Won the voxel — release old and update position
-            occ[x][y][z][CELL_TYPE_CANCER].exchange(0u);
+        int target_vidx = nz * (size_x * size_y) + ny * size_x + nx;
+        if (volume_try_claim(vol_used, target_vidx, my_vol, capacity)) {
+            // Won the voxel — release old volume and update position
+            volume_release(vol_used, old_vidx, my_vol);
             FLAMEGPU->setVariable<int>("x", nx);
             FLAMEGPU->setVariable<int>("y", ny);
             FLAMEGPU->setVariable<int>("z", nz);

@@ -297,9 +297,18 @@ FLAMEGPU_AGENT_FUNCTION(treg_write_to_occ_grid, flamegpu::MessageNone, flamegpu:
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
-    occ[x][y][z][CELL_TYPE_TREG] += 1u;
+
+    const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int vidx = z * (gx * gy) + y * gx + x;
+
+    // Volume-based occupancy
+    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    float my_vol = (cell_state == TCD4_TREG) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    atomicAdd(&vol_used[vidx], my_vol);
 
     return flamegpu::ALIVE;
 }
@@ -327,23 +336,23 @@ FLAMEGPU_AGENT_FUNCTION(treg_divide, flamegpu::MessageNone, flamegpu::MessageNon
     const int size_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int size_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
+    // Volume-based occupancy
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    const int cell_state     = FLAMEGPU->getVariable<int>("cell_state");
+    float daughter_vol = (cell_state == TCD4_TREG) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
 
     int cand_x[26], cand_y[26], cand_z[26];
     int n_cands = 0;
-    unsigned int max_cap[26];
     for (int i = 0; i < 26; i++) {
         int dx, dy, dz;
         get_moore_direction(i, dx, dy, dz);
         const int nx = my_x + dx, ny = my_y + dy, nz = my_z + dz;
         if (!is_in_bounds(nx, ny, nz, size_x, size_y, size_z)) continue;
-
-        bool has_cancer = (occ[nx][ny][nz][CELL_TYPE_CANCER] > 0u);
-        max_cap[n_cands] = static_cast<unsigned int>(has_cancer ? MAX_T_PER_VOXEL_WITH_CANCER : MAX_T_PER_VOXEL);
-
-        // TRegs check T cell count for capacity (HCC: TRegs invisible to T cap)
-        if (occ[nx][ny][nz][CELL_TYPE_T] < max_cap[n_cands]) {
+        int nvidx = nz * (size_x * size_y) + ny * size_x + nx;
+        if (vol_used[nvidx] + daughter_vol <= capacity) {
             cand_x[n_cands] = nx;
             cand_y[n_cands] = ny;
             cand_z[n_cands] = nz;
@@ -353,7 +362,6 @@ FLAMEGPU_AGENT_FUNCTION(treg_divide, flamegpu::MessageNone, flamegpu::MessageNon
 
     if (n_cands == 0) return flamegpu::ALIVE;
 
-    const int cell_state     = FLAMEGPU->getVariable<int>("cell_state");
     const int div_interval   = FLAMEGPU->environment.getProperty<int>("PARAM_TCD4_DIV_INTERNAL");
     const float treg_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
 
@@ -362,15 +370,10 @@ FLAMEGPU_AGENT_FUNCTION(treg_divide, flamegpu::MessageNone, flamegpu::MessageNon
         int tx = cand_x[i]; cand_x[i] = cand_x[j]; cand_x[j] = tx;
         int ty = cand_y[i]; cand_y[i] = cand_y[j]; cand_y[j] = ty;
         int tz = cand_z[i]; cand_z[i] = cand_z[j]; cand_z[j] = tz;
-        unsigned int max_curr = max_cap[i]; max_cap[i] = max_cap[j]; max_cap[j] = max_curr;
 
-        // operator+ performs atomicAdd and returns the OLD value
-        // Claim TREG slot (not T slot) — TRegs are invisible to T cell cap checks
-        const unsigned int old_count = occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_TREG] + 1u;
-        if (old_count >= max_curr) {
-            occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_TREG] -= 1u;  // undo
-            continue;
-        }
+        // Atomically claim volume for daughter
+        int tvidx = cand_z[i] * (size_x * size_y) + cand_y[i] * size_x + cand_x[i];
+        if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) continue;
 
         const float treg_life_sd = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
         float tLifeD = treg_life_mean + FLAMEGPU->random.normal<float>() * treg_life_sd;
@@ -465,7 +468,7 @@ FLAMEGPU_AGENT_FUNCTION(treg_compute_chemical_sources, flamegpu::MessageNone, fl
 
 // Single-phase TReg movement using occupancy grid.
 // Replaces two-phase select_move_target + execute_move.
-// Same capacity rules as T cells (up to MAX_T_PER_VOXEL).
+// TReg movement uses volume-based occupancy (volume_try_claim/volume_release).
 // TReg movement using run-tumble chemotaxis toward IFN-γ
 FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     if (FLAMEGPU->getVariable<int>("dead") == 1) return flamegpu::ALIVE;
@@ -478,41 +481,36 @@ FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone)
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    // ECM based movement probability: higher ECM → more likely to be blocked
-    {
-        const float* ecm_ptr = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>("ecm_grid_ptr"));
-        float ECM_density = ecm_ptr[z * (grid_x * grid_y) + y * grid_x + x];
-        float ECM_50 = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_MOT_EC50");
-        float ECM_sat = ECM_density / (ECM_density + ECM_50);
-        if (FLAMEGPU->random.uniform<float>() < ECM_sat) return flamegpu::ALIVE;
-    }
+    // ECM porosity: filter target voxels by TReg porosity threshold
+    const int old_vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
+    const float* ecm_c = ECM_CROSSLINK_PTR(FLAMEGPU);
+    const float density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
+    const float min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_TREG");
 
     const float move_dir_x = FLAMEGPU->getVariable<float>("move_direction_x");
     const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
     const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
 
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
-
-    int target_x = x;
-    int target_y = y;
-    int target_z = z;
+    // Volume-based occupancy
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    float my_vol = (cell_state == TCD4_TREG) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
 
     const float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
 
     // === RUN PHASE (tumble == 0) ===
     if (tumble == 0) {
         // Use IFN-γ gradient for chemotaxis (TReg primary attractant) — read directly from PDE
-        const int nx_mv = FLAMEGPU->environment.getProperty<int>("grid_size_x");
-        const int ny_mv = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-        const int voxel_mv = z * ny_mv*nx_mv + y * nx_mv + x;
         const float grad_x = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_X))[voxel_mv];
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_X))[old_vidx];
         const float grad_y = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Y))[voxel_mv];
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Y))[old_vidx];
         const float grad_z = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Z))[voxel_mv];
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Z))[old_vidx];
 
         float v_x = move_dir_x / dt;
         float v_y = move_dir_y / dt;
@@ -541,29 +539,20 @@ FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone)
         int tz = z + static_cast<int>(std::round(move_dir_z));
 
         if (tx < 0 || tx >= grid_x || ty < 0 || ty >= grid_y || tz < 0 || tz >= grid_z) {
-            // FLAMEGPU->setVariable<int>("tumble", 1);
             return flamegpu::ALIVE;
         }
 
-        // TRegs check T cell count for capacity but claim TREG slot
-        unsigned int max_t = (occ[tx][ty][tz][CELL_TYPE_CANCER] > 0u)
-            ? static_cast<unsigned int>(MAX_T_PER_VOXEL_WITH_CANCER)
-            : static_cast<unsigned int>(MAX_T_PER_VOXEL);
-
-        // Check T cell count against cap (TReg uses T cell conditions)
-        if (occ[tx][ty][tz][CELL_TYPE_T] >= max_t) {
-            return flamegpu::ALIVE;
+        int target_vidx = tz * (grid_x * grid_y) + ty * grid_x + tx;
+        if (ecm_porosity(ecm_d, ecm_c, target_vidx, density_cap) >= min_porosity &&
+            volume_try_claim(vol_used, target_vidx, my_vol, capacity)) {
+            volume_release(vol_used, old_vidx, my_vol);
+            FLAMEGPU->setVariable<int>("x", tx);
+            FLAMEGPU->setVariable<int>("y", ty);
+            FLAMEGPU->setVariable<int>("z", tz);
         }
-
-        // Claim TREG slot (not T slot) — just for tracking, no cap on TREGs
-        occ[tx][ty][tz][CELL_TYPE_TREG] += 1u;
-        occ[x][y][z][CELL_TYPE_TREG] -= 1u;
-        FLAMEGPU->setVariable<int>("x", tx);
-        FLAMEGPU->setVariable<int>("y", ty);
-        FLAMEGPU->setVariable<int>("z", tz);
     }
     // === TUMBLE PHASE (tumble == 1) ===
-    // Collect candidate neighbors, shuffle, then atomically claim the first available.
+    // Collect candidate neighbors with volume capacity, shuffle, try each.
     else {
         int cand_x[26], cand_y[26], cand_z[26];
         int n_cands = 0;
@@ -571,10 +560,9 @@ FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone)
             if (di==0 && dj==0 && dk==0) continue;
             int nx = x+di, ny = y+dj, nz = z+dk;
             if (nx<0||nx>=grid_x||ny<0||ny>=grid_y||nz<0||nz>=grid_z) continue;
-            unsigned int max_t = (occ[nx][ny][nz][CELL_TYPE_CANCER] > 0u)
-                ? static_cast<unsigned int>(MAX_T_PER_VOXEL_WITH_CANCER)
-                : static_cast<unsigned int>(MAX_T_PER_VOXEL);
-            if (occ[nx][ny][nz][CELL_TYPE_T] >= max_t) continue;
+            int nvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
+            if (vol_used[nvidx] + my_vol > capacity) continue;
+            if (ecm_porosity(ecm_d, ecm_c, nvidx, density_cap) < min_porosity) continue;
             cand_x[n_cands] = nx; cand_y[n_cands] = ny; cand_z[n_cands] = nz;
             n_cands++;
         }
@@ -587,23 +575,18 @@ FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone)
             int tz=cand_z[i]; cand_z[i]=cand_z[j]; cand_z[j]=tz;
         }
         for (int i = 0; i < n_cands; i++) {
-            // Re-check T cell cap (may have changed since pre-filter)
-            unsigned int max_t = (occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_CANCER] > 0u)
-                ? static_cast<unsigned int>(MAX_T_PER_VOXEL_WITH_CANCER)
-                : static_cast<unsigned int>(MAX_T_PER_VOXEL);
-            if (occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_T] >= max_t) continue;
-
-            // Claim TREG slot (not T slot)
-            occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_TREG] += 1u;
-            occ[x][y][z][CELL_TYPE_TREG] -= 1u;
-            FLAMEGPU->setVariable<int>("x", cand_x[i]);
-            FLAMEGPU->setVariable<int>("y", cand_y[i]);
-            FLAMEGPU->setVariable<int>("z", cand_z[i]);
-            FLAMEGPU->setVariable<float>("move_direction_x", static_cast<float>(cand_x[i]-x));
-            FLAMEGPU->setVariable<float>("move_direction_y", static_cast<float>(cand_y[i]-y));
-            FLAMEGPU->setVariable<float>("move_direction_z", static_cast<float>(cand_z[i]-z));
-            FLAMEGPU->setVariable<int>("tumble", 0);
-            break;
+            int tvidx = cand_z[i] * (grid_x * grid_y) + cand_y[i] * grid_x + cand_x[i];
+            if (volume_try_claim(vol_used, tvidx, my_vol, capacity)) {
+                volume_release(vol_used, old_vidx, my_vol);
+                FLAMEGPU->setVariable<int>("x", cand_x[i]);
+                FLAMEGPU->setVariable<int>("y", cand_y[i]);
+                FLAMEGPU->setVariable<int>("z", cand_z[i]);
+                FLAMEGPU->setVariable<float>("move_direction_x", static_cast<float>(cand_x[i]-x));
+                FLAMEGPU->setVariable<float>("move_direction_y", static_cast<float>(cand_y[i]-y));
+                FLAMEGPU->setVariable<float>("move_direction_z", static_cast<float>(cand_z[i]-z));
+                FLAMEGPU->setVariable<int>("tumble", 0);
+                break;
+            }
         }
     }
 

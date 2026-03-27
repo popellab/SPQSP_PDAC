@@ -108,12 +108,50 @@ void initializeVascularCellsTest(
     int grid_x, int grid_y, int grid_z);
 
 // ============================================================================
-// Master Initialization Function
+// Domain Structure Generation (Structured Init, -i 1)
+// ============================================================================
+
+// Generate lobular tissue structure: Poisson disk lobule centers → Voronoi
+// tessellation → septum/lobule labels → tumor hemisphere + margin overlay.
+// Returns host-side voxel type array (uint8_t, total_voxels elements).
+std::vector<uint8_t> generate_domain_structure(
+    int grid_x, int grid_y, int grid_z,
+    float lobule_spacing, float septum_thickness,
+    float tumor_radius_frac, float margin_thickness,
+    unsigned int seed);
+
+// ECM density/crosslink pre-seeding by voxel type.
+// Reads voxel_type array and DomainInit params, writes to d_ecm_density and
+// d_ecm_crosslink device arrays via pde_integration helpers.
+struct ECMInitParams {
+    float septum_density, septum_crosslink;
+    float stroma_density;
+    float lobule_density;
+    float margin_density, margin_crosslink;
+    float tumor_density;
+};
+
+void preseed_ecm_by_voxel_type(
+    const std::vector<uint8_t>& voxel_type,
+    const ECMInitParams& ecm_params,
+    int total_voxels, unsigned int seed);
+
+// ============================================================================
+// Master Initialization Functions
 // ============================================================================
 
 // Initialize agent populations seeded from QSP steady-state (after QSP warmup)
 // Computes cluster_radius and immune cell counts from QSP tumor volume and species
+// Used by -i 0 (simple central cluster for quick testing)
 void initializeToQSP(
+    flamegpu::CUDASimulation& simulation,
+    flamegpu::ModelDescription& model,
+    const SimulationConfig& config,
+    const LymphCentralWrapper& lymph);
+
+// Structured domain initialization with lobular architecture (-i 1)
+// Generates tissue structure, pre-seeds ECM, places cells by region
+void initializeStructuredDomain(
     flamegpu::CUDASimulation& simulation,
     flamegpu::ModelDescription& model,
     const SimulationConfig& config,

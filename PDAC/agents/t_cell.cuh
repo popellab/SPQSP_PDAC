@@ -280,27 +280,31 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
 // Occupancy Grid Functions
 // ============================================================
 
-// Write this T cell's position to the occupancy grid.
+// Write this T cell's volume to the volume occupancy grid.
 FLAMEGPU_AGENT_FUNCTION(tcell_write_to_occ_grid, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
-    occ[x][y][z][CELL_TYPE_T] += 1u;
 
-    // Flat T cell occupancy for GPU recruitment kernel (T + TReg only, matching HCC isOpenToType)
     const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    unsigned int* t_occ = reinterpret_cast<unsigned int*>(
-        FLAMEGPU->environment.getProperty<uint64_t>("t_occ_ptr"));
-    atomicAdd(&t_occ[z * (gx * gy) + y * gx + x], 1u);
+    const int vidx = z * (gx * gy) + y * gx + x;
+
+    // Volume-based occupancy
+    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    float my_vol = (cell_state == T_CELL_EFF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_EFF") :
+        (cell_state == T_CELL_CYT) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_CYT") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_SUP");
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    atomicAdd(&vol_used[vidx], my_vol);
 
     return flamegpu::ALIVE;
 }
 
 // Single-phase T cell division using occupancy grid.
-// T cells can share a voxel up to MAX_T_PER_VOXEL.
+// T cell division uses volume-based occupancy for daughter placement.
 // Uses atomicAdd to claim a slot; reverts with atomicSub if over capacity.
 FLAMEGPU_AGENT_FUNCTION(tcell_divide, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int divide_flag  = FLAMEGPU->getVariable<int>("divide_flag");
@@ -326,23 +330,25 @@ FLAMEGPU_AGENT_FUNCTION(tcell_divide, flamegpu::MessageNone, flamegpu::MessageNo
     const int size_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int size_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
+    // Volume-based occupancy
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float daughter_vol = (cell_state == T_CELL_EFF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_EFF") :
+        (cell_state == T_CELL_CYT) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_CYT") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_SUP");
 
-    // Collect Moore (26-direction) neighbors below T cell capacity
+    // Collect Moore (26-direction) neighbors with volume capacity
     int cand_x[26], cand_y[26], cand_z[26];
     int n_cands = 0;
-    unsigned int max_cap[26];
     for (int i = 0; i < 26; i++) {
         int dx, dy, dz;
         get_moore_direction(i, dx, dy, dz);
         const int nx = my_x + dx, ny = my_y + dy, nz = my_z + dz;
         if (!is_in_bounds(nx, ny, nz, size_x, size_y, size_z)) continue;
-
-        bool has_cancer = (occ[nx][ny][nz][CELL_TYPE_CANCER] > 0u);
-        max_cap[n_cands] = static_cast<unsigned int>(has_cancer ? MAX_T_PER_VOXEL_WITH_CANCER : MAX_T_PER_VOXEL);
-
-        if (occ[nx][ny][nz][CELL_TYPE_T] < max_cap[n_cands]) {
+        int nvidx = nz * (size_x * size_y) + ny * size_x + nx;
+        if (vol_used[nvidx] + daughter_vol <= capacity) {
             cand_x[n_cands] = nx;
             cand_y[n_cands] = ny;
             cand_z[n_cands] = nz;
@@ -363,15 +369,10 @@ FLAMEGPU_AGENT_FUNCTION(tcell_divide, flamegpu::MessageNone, flamegpu::MessageNo
         int tx = cand_x[i]; cand_x[i] = cand_x[j]; cand_x[j] = tx;
         int ty = cand_y[i]; cand_y[i] = cand_y[j]; cand_y[j] = ty;
         int tz = cand_z[i]; cand_z[i] = cand_z[j]; cand_z[j] = tz;
-        unsigned int max_curr = max_cap[i]; max_cap[i] = max_cap[j]; max_cap[j] = max_curr;
 
-        // Atomically increment; undo if this pushed count over capacity
-        // operator+ performs atomicAdd and returns the OLD value
-        const unsigned int old_count = occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_T] + 1u;
-        if (old_count >= max_curr) {
-            occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_T] -= 1u;  // undo
-            continue;  // Voxel was full, try next
-        }
+        // Atomically claim volume for daughter
+        int tvidx = cand_z[i] * (size_x * size_y) + cand_y[i] * size_x + cand_x[i];
+        if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) continue;
 
         // Won a slot — create daughter
         const float tcell_life_sd = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
@@ -471,8 +472,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_compute_chemical_sources, flamegpu::MessageNone, f
 
 // Single-phase T cell movement using occupancy grid.
 // Replaces two-phase select_move_target + execute_move.
-// T cells use atomicAdd+undo to allow up to MAX_T_PER_VOXEL per voxel.
-// Fewer T cells are allowed in voxels occupied by cancer (MAX_T_PER_VOXEL_WITH_CANCER).
+// T cell movement uses volume-based occupancy (volume_try_claim/volume_release).
 // T cell movement using run-tumble chemotaxis toward IFN-γ/CCL2
 FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     if (FLAMEGPU->getVariable<int>("dead") == 1) return flamegpu::ALIVE;
@@ -485,42 +485,39 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    // ECM based movement probability: higher ECM → more likely to be blocked
-    {
-        const float* ecm_ptr = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>("ecm_grid_ptr"));
-        float ECM_density = ecm_ptr[z * (grid_x * grid_y) + y * grid_x + x];
-        float ECM_50 = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_MOT_EC50");
-        float ECM_sat = ECM_density / (ECM_density + ECM_50);
-        if (FLAMEGPU->random.uniform<float>() < ECM_sat) return flamegpu::ALIVE;
-    }
+    // ECM porosity: filter target voxels by T cell porosity threshold
+    const int old_vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
+    const float* ecm_c = ECM_CROSSLINK_PTR(FLAMEGPU);
+    const float density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
+    const float min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_TCELL");
 
     const float move_dir_x = FLAMEGPU->getVariable<float>("move_direction_x");
     const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
     const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
 
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
-
-    int target_x = x;
-    int target_y = y;
-    int target_z = z;
+    // Volume-based occupancy
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    float my_vol = (cell_state == T_CELL_EFF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_EFF") :
+        (cell_state == T_CELL_CYT) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_CYT") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_SUP");
 
     const float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
 
     // === RUN PHASE (tumble == 0) ===
     if (tumble == 0) {
         // Use IFN-γ gradient for chemotaxis (T cell primary attractant) — read directly from PDE
-        const int nx_mv = FLAMEGPU->environment.getProperty<int>("grid_size_x");
-        const int ny_mv = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-        const int voxel_mv = z * ny_mv*nx_mv + y * nx_mv + x;
         const float grad_x = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_X))[voxel_mv];
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_X))[old_vidx];
         const float grad_y = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Y))[voxel_mv];
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Y))[old_vidx];
         const float grad_z = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Z))[voxel_mv];
-        
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Z))[old_vidx];
+
         float v_x = move_dir_x / dt;
         float v_y = move_dir_y / dt;
         float v_z = move_dir_z / dt;
@@ -548,21 +545,13 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
         int tz = z + static_cast<int>(std::round(move_dir_z));
 
         if (tx < 0 || tx >= grid_x || ty < 0 || ty >= grid_y || tz < 0 || tz >= grid_z) {
-            // FLAMEGPU->setVariable<int>("tumble", 1);
             return flamegpu::ALIVE;
         }
 
-        unsigned int max_t = (occ[tx][ty][tz][CELL_TYPE_CANCER] > 0u)
-            ? static_cast<unsigned int>(MAX_T_PER_VOXEL_WITH_CANCER)
-            : static_cast<unsigned int>(MAX_T_PER_VOXEL);
-
-        // AtomicAdd to target: + 1u returns OLD count (pre-add)
-        const unsigned int old_count = occ[tx][ty][tz][CELL_TYPE_T] + 1u;
-        if (old_count >= max_t) {
-            occ[tx][ty][tz][CELL_TYPE_T] -= 1u;  // undo — voxel was full
-            // FLAMEGPU->setVariable<int>("tumble", 1);
-        } else {
-            occ[x][y][z][CELL_TYPE_T] -= 1u;
+        int target_vidx = tz * (grid_x * grid_y) + ty * grid_x + tx;
+        if (ecm_porosity(ecm_d, ecm_c, target_vidx, density_cap) >= min_porosity &&
+            volume_try_claim(vol_used, target_vidx, my_vol, capacity)) {
+            volume_release(vol_used, old_vidx, my_vol);
             FLAMEGPU->setVariable<int>("x", tx);
             FLAMEGPU->setVariable<int>("y", ty);
             FLAMEGPU->setVariable<int>("z", tz);
@@ -577,10 +566,9 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
             if (di==0 && dj==0 && dk==0) continue;
             int nx = x+di, ny = y+dj, nz = z+dk;
             if (nx<0||nx>=grid_x||ny<0||ny>=grid_y||nz<0||nz>=grid_z) continue;
-            unsigned int max_t = (occ[nx][ny][nz][CELL_TYPE_CANCER] > 0u)
-                ? static_cast<unsigned int>(MAX_T_PER_VOXEL_WITH_CANCER)
-                : static_cast<unsigned int>(MAX_T_PER_VOXEL);
-            if (occ[nx][ny][nz][CELL_TYPE_T] >= max_t) continue;
+            int nvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
+            if (vol_used[nvidx] + my_vol > capacity) continue;
+            if (ecm_porosity(ecm_d, ecm_c, nvidx, density_cap) < min_porosity) continue;
             cand_x[n_cands] = nx; cand_y[n_cands] = ny; cand_z[n_cands] = nz;
             n_cands++;
         }
@@ -593,23 +581,18 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
             int tz=cand_z[i]; cand_z[i]=cand_z[j]; cand_z[j]=tz;
         }
         for (int i = 0; i < n_cands; i++) {
-            unsigned int max_t = (occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_CANCER] > 0u)
-                ? static_cast<unsigned int>(MAX_T_PER_VOXEL_WITH_CANCER)
-                : static_cast<unsigned int>(MAX_T_PER_VOXEL);
-            const unsigned int old_count = occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_T] + 1u;
-            if (old_count >= max_t) {
-                occ[cand_x[i]][cand_y[i]][cand_z[i]][CELL_TYPE_T] -= 1u;  // undo — voxel was full
-                continue;
+            int tvidx = cand_z[i] * (grid_x * grid_y) + cand_y[i] * grid_x + cand_x[i];
+            if (volume_try_claim(vol_used, tvidx, my_vol, capacity)) {
+                volume_release(vol_used, old_vidx, my_vol);
+                FLAMEGPU->setVariable<int>("x", cand_x[i]);
+                FLAMEGPU->setVariable<int>("y", cand_y[i]);
+                FLAMEGPU->setVariable<int>("z", cand_z[i]);
+                FLAMEGPU->setVariable<float>("move_direction_x", static_cast<float>(cand_x[i]-x));
+                FLAMEGPU->setVariable<float>("move_direction_y", static_cast<float>(cand_y[i]-y));
+                FLAMEGPU->setVariable<float>("move_direction_z", static_cast<float>(cand_z[i]-z));
+                FLAMEGPU->setVariable<int>("tumble", 0);
+                break;
             }
-            occ[x][y][z][CELL_TYPE_T] -= 1u;
-            FLAMEGPU->setVariable<int>("x", cand_x[i]);
-            FLAMEGPU->setVariable<int>("y", cand_y[i]);
-            FLAMEGPU->setVariable<int>("z", cand_z[i]);
-            FLAMEGPU->setVariable<float>("move_direction_x", static_cast<float>(cand_x[i]-x));
-            FLAMEGPU->setVariable<float>("move_direction_y", static_cast<float>(cand_y[i]-y));
-            FLAMEGPU->setVariable<float>("move_direction_z", static_cast<float>(cand_z[i]-z));
-            FLAMEGPU->setVariable<int>("tumble", 0);
-            break;
         }
     }
 

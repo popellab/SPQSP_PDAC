@@ -91,6 +91,25 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Vas.branch_prob", "", "pr"},  // 
     {"Param.ABM.Vas.min_neighbor", "", "pos"},  // 
     //*************************************************************************/
+    // Volume-based occupancy parameters
+    {"Param.ABM.Occupancy.voxelCapacity", "um3", "pr"},             // PARAM_VOXEL_CAPACITY
+    {"Param.ABM.Occupancy.CancerCell.stemVolume", "um3", "pr"},     // PARAM_VOLUME_CANCER_STEM
+    {"Param.ABM.Occupancy.CancerCell.progenitorVolume", "um3", "pr"}, // PARAM_VOLUME_CANCER_PROG
+    {"Param.ABM.Occupancy.CancerCell.senescentVolume", "um3", "pr"},  // PARAM_VOLUME_CANCER_SEN
+    {"Param.ABM.Occupancy.TCell.effectorVolume", "um3", "pr"},      // PARAM_VOLUME_TCELL_EFF
+    {"Param.ABM.Occupancy.TCell.cytotoxicVolume", "um3", "pr"},     // PARAM_VOLUME_TCELL_CYT
+    {"Param.ABM.Occupancy.TCell.suppressedVolume", "um3", "pr"},    // PARAM_VOLUME_TCELL_SUP
+    {"Param.ABM.Occupancy.TReg.regulatoryVolume", "um3", "pr"},     // PARAM_VOLUME_TREG_REG
+    {"Param.ABM.Occupancy.TReg.helperVolume", "um3", "pr"},         // PARAM_VOLUME_TREG_TH
+    {"Param.ABM.Occupancy.Mac.m1Volume", "um3", "pr"},              // PARAM_VOLUME_MAC_M1
+    {"Param.ABM.Occupancy.Mac.m2Volume", "um3", "pr"},              // PARAM_VOLUME_MAC_M2
+    {"Param.ABM.Occupancy.Fib.quiescentVolume", "um3", "pr"},       // PARAM_VOLUME_FIB_QUIESCENT
+    {"Param.ABM.Occupancy.Fib.myCAFVolume", "um3", "pr"},           // PARAM_VOLUME_FIB_MYCAF
+    {"Param.ABM.Occupancy.Fib.iCAFVolume", "um3", "pr"},            // PARAM_VOLUME_FIB_ICAF
+    {"Param.ABM.Occupancy.MDSC.volume", "um3", "pr"},               // PARAM_VOLUME_MDSC
+    {"Param.ABM.Occupancy.Vas.phalanxVolume", "um3", "pr"},         // PARAM_VOLUME_VAS_PHALANX
+    {"Param.ABM.Occupancy.Vas.tipVolume", "um3", "pr"},             // PARAM_VOLUME_VAS_TIP
+    //*************************************************************************/
     // Molecular parameters
     {"Param.Molecular.biofvm.IFNg.diffusivity", "", "pr"},  // PARAM_IFNG_DIFFUSIVITY
     {"Param.Molecular.biofvm.IL_2.diffusivity", "", "pr"},  // PARAM_IL2_DIFFUSIVITY
@@ -156,7 +175,59 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.IL1.molecularWeight", "", "pr"},     // PARAM_IL1_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.IL6.molecularWeight", "", "pr"},     // PARAM_IL6_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.CXCL13.molecularWeight", "", "pr"},  // PARAM_CXCL13_MOLECULAR_WEIGHT
-
+    {"Param.Molecular.biofvm.MMP.diffusivity", "", "pr"},         // PARAM_MMP_DIFFUSIVITY
+    {"Param.Molecular.biofvm.MMP.decayRate", "", "pr"},           // PARAM_MMP_DECAY_RATE
+    {"Param.Molecular.biofvm.MMP.molecularWeight", "", "pr"},     // PARAM_MMP_MOLECULAR_WEIGHT
+    {"Param.Molecular.biofvm.MMP.release.Cancer", "", "pr"},      // PARAM_CANCER_MMP_RELEASE
+    {"Param.Molecular.biofvm.MMP.release.MacM1", "", "pr"},       // PARAM_MAC_M1_MMP_RELEASE
+    //*************************************************************************/
+    // ECM mechanics parameters
+    {"Param.ABM.ECM.depositionRate", "", "pr"},            // PARAM_ECM_DEPOSITION_RATE
+    {"Param.ABM.ECM.densityCap", "", "pr"},                // PARAM_ECM_DENSITY_CAP
+    {"Param.ABM.ECM.mmpDegradeRate", "", "pr"},            // PARAM_ECM_MMP_DEGRADE_RATE
+    {"Param.ABM.ECM.crosslinkRate", "", "pr"},             // PARAM_ECM_CROSSLINK_RATE
+    {"Param.ABM.ECM.crosslinkResistance", "", "pr"},       // PARAM_ECM_CROSSLINK_RESISTANCE
+    {"Param.ABM.ECM.decayRate", "", "pr"},                 // PARAM_ECM_DECAY_RATE
+    {"Param.ABM.ECM.baseline", "", "pr"},                  // PARAM_ECM_BASELINE
+    {"Param.ABM.ECM.tgfbEC50", "", "pr"},                  // PARAM_ECM_TGFB_EC50
+    {"Param.ABM.ECM.porosityCancer", "", "pr"},            // PARAM_ECM_POROSITY_CANCER
+    {"Param.ABM.ECM.porosityTcell", "", "pr"},             // PARAM_ECM_POROSITY_TCELL
+    {"Param.ABM.ECM.porosityTreg", "", "pr"},              // PARAM_ECM_POROSITY_TREG
+    {"Param.ABM.ECM.porosityMDSC", "", "pr"},              // PARAM_ECM_POROSITY_MDSC
+    {"Param.ABM.ECM.porosityMac", "", "pr"},               // PARAM_ECM_POROSITY_MAC
+    {"Param.ABM.ECM.porosityFib", "", "pr"},               // PARAM_ECM_POROSITY_FIB
+    {"Param.ABM.ECM.porosityVasTip", "", "pr"},            // PARAM_ECM_POROSITY_VAS_TIP
+    {"Param.ABM.ECM.vasCompressK", "", "pr"},              // PARAM_VAS_ECM_COMPRESS_K
+    //*************************************************************************/
+    // Domain initialization parameters
+    {"Param.ABM.DomainInit.lobule_spacing", "voxels", "pr"},              // PARAM_DOMAIN_LOBULE_SPACING
+    {"Param.ABM.DomainInit.septum_thickness", "voxels", "pr"},            // PARAM_DOMAIN_SEPTUM_THICKNESS
+    {"Param.ABM.DomainInit.tumor_radius_fraction", "", "pr"},             // PARAM_DOMAIN_TUMOR_RADIUS_FRAC
+    {"Param.ABM.DomainInit.margin_thickness", "voxels", "pr"},            // PARAM_DOMAIN_MARGIN_THICKNESS
+    {"Param.ABM.DomainInit.ecm_septum_density", "", "pr"},                // PARAM_DOMAIN_ECM_SEPTUM_DENSITY
+    {"Param.ABM.DomainInit.ecm_septum_crosslink", "", "pr"},              // PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK
+    {"Param.ABM.DomainInit.ecm_stroma_density", "", "pr"},                // PARAM_DOMAIN_ECM_STROMA_DENSITY
+    {"Param.ABM.DomainInit.ecm_lobule_density", "", "pr"},                // PARAM_DOMAIN_ECM_LOBULE_DENSITY
+    {"Param.ABM.DomainInit.ecm_margin_density", "", "pr"},                // PARAM_DOMAIN_ECM_MARGIN_DENSITY
+    {"Param.ABM.DomainInit.ecm_margin_crosslink", "", "pr"},              // PARAM_DOMAIN_ECM_MARGIN_CROSSLINK
+    {"Param.ABM.DomainInit.ecm_tumor_density", "", "pr"},                 // PARAM_DOMAIN_ECM_TUMOR_DENSITY
+    {"Param.ABM.DomainInit.Fibroblast.p_septum", "", "pr"},               // PARAM_DOMAIN_FIB_P_SEPTUM
+    {"Param.ABM.DomainInit.Fibroblast.p_stroma", "", "pr"},               // PARAM_DOMAIN_FIB_P_STROMA
+    {"Param.ABM.DomainInit.Fibroblast.p_lobule", "", "pr"},               // PARAM_DOMAIN_FIB_P_LOBULE
+    {"Param.ABM.DomainInit.Fibroblast.p_margin", "", "pr"},               // PARAM_DOMAIN_FIB_P_MARGIN
+    {"Param.ABM.DomainInit.Fibroblast.p_tumor", "", "pr"},                // PARAM_DOMAIN_FIB_P_TUMOR
+    {"Param.ABM.DomainInit.Fibroblast.margin_mycaf_fraction", "", "pr"},  // PARAM_DOMAIN_FIB_MARGIN_MYCAF_FRAC
+    {"Param.ABM.DomainInit.Vascular.p_septum", "", "pr"},                 // PARAM_DOMAIN_VAS_P_SEPTUM
+    {"Param.ABM.DomainInit.Vascular.p_stroma", "", "pr"},                 // PARAM_DOMAIN_VAS_P_STROMA
+    {"Param.ABM.DomainInit.Vascular.p_lobule", "", "pr"},                 // PARAM_DOMAIN_VAS_P_LOBULE
+    {"Param.ABM.DomainInit.Vascular.p_margin", "", "pr"},                 // PARAM_DOMAIN_VAS_P_MARGIN
+    {"Param.ABM.DomainInit.Vascular.p_tumor", "", "pr"},                  // PARAM_DOMAIN_VAS_P_TUMOR
+    {"Param.ABM.DomainInit.Vascular.margin_tip_fraction", "", "pr"},      // PARAM_DOMAIN_VAS_MARGIN_TIP_FRAC
+    {"Param.ABM.DomainInit.Macrophage.p_stroma", "", "pr"},               // PARAM_DOMAIN_MAC_P_STROMA
+    {"Param.ABM.DomainInit.Macrophage.p_margin", "", "pr"},               // PARAM_DOMAIN_MAC_P_MARGIN
+    {"Param.ABM.DomainInit.Macrophage.p_tumor", "", "pr"},                // PARAM_DOMAIN_MAC_P_TUMOR
+    {"Param.ABM.DomainInit.Macrophage.margin_m1_fraction", "", "pr"},     // PARAM_DOMAIN_MAC_MARGIN_M1_FRAC
+    {"Param.ABM.DomainInit.TH.p_stroma", "", "pr"},                       // PARAM_DOMAIN_TH_P_STROMA
 
     ////////////////////////////////////////////////////////////////////////////
     // Integer parameters (must match GPUParamInt enum order)
@@ -198,6 +269,9 @@ const char* _gpu_param_description[][3] = {
     //*************************************************************************/
     // Fibroblast cell parameters
     {"Param.ABM.Fib.moveSteps", "", "pos"},   // PARAM_FIB_MOVE_STEPS
+    //*************************************************************************/
+    // Domain initialization parameters
+    {"Param.ABM.DomainInit.pde_warmup_substeps", "", "pos"},  // PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS
     //*************************************************************************/
     // Molecular parameters
 
@@ -360,6 +434,24 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_VAS_DELTA", getFloat(PARAM_VAS_DELTA));
     env.newProperty<float>("PARAM_VAS_BRANCH_PROB", getFloat(PARAM_VAS_BRANCH_PROB));
     env.newProperty<float>("PARAM_VAS_MIN_NEIGHBOR", getFloat(PARAM_VAS_MIN_NEIGHBOR));
+    //VOLUME OCCUPANCY PARAMETERS
+    env.newProperty<float>("PARAM_VOXEL_CAPACITY", getFloat(PARAM_VOXEL_CAPACITY));
+    env.newProperty<float>("PARAM_VOLUME_CANCER_STEM", getFloat(PARAM_VOLUME_CANCER_STEM));
+    env.newProperty<float>("PARAM_VOLUME_CANCER_PROG", getFloat(PARAM_VOLUME_CANCER_PROG));
+    env.newProperty<float>("PARAM_VOLUME_CANCER_SEN", getFloat(PARAM_VOLUME_CANCER_SEN));
+    env.newProperty<float>("PARAM_VOLUME_TCELL_EFF", getFloat(PARAM_VOLUME_TCELL_EFF));
+    env.newProperty<float>("PARAM_VOLUME_TCELL_CYT", getFloat(PARAM_VOLUME_TCELL_CYT));
+    env.newProperty<float>("PARAM_VOLUME_TCELL_SUP", getFloat(PARAM_VOLUME_TCELL_SUP));
+    env.newProperty<float>("PARAM_VOLUME_TREG_REG", getFloat(PARAM_VOLUME_TREG_REG));
+    env.newProperty<float>("PARAM_VOLUME_TREG_TH", getFloat(PARAM_VOLUME_TREG_TH));
+    env.newProperty<float>("PARAM_VOLUME_MAC_M1", getFloat(PARAM_VOLUME_MAC_M1));
+    env.newProperty<float>("PARAM_VOLUME_MAC_M2", getFloat(PARAM_VOLUME_MAC_M2));
+    env.newProperty<float>("PARAM_VOLUME_FIB_QUIESCENT", getFloat(PARAM_VOLUME_FIB_QUIESCENT));
+    env.newProperty<float>("PARAM_VOLUME_FIB_MYCAF", getFloat(PARAM_VOLUME_FIB_MYCAF));
+    env.newProperty<float>("PARAM_VOLUME_FIB_ICAF", getFloat(PARAM_VOLUME_FIB_ICAF));
+    env.newProperty<float>("PARAM_VOLUME_MDSC", getFloat(PARAM_VOLUME_MDSC));
+    env.newProperty<float>("PARAM_VOLUME_VAS_PHALANX", getFloat(PARAM_VOLUME_VAS_PHALANX));
+    env.newProperty<float>("PARAM_VOLUME_VAS_TIP", getFloat(PARAM_VOLUME_VAS_TIP));
     //MOLECULAR PARAMETERS
     env.newProperty<float>("PARAM_IFNG_DIFFUSIVITY", getFloat(PARAM_IFNG_DIFFUSIVITY));
     env.newProperty<float>("PARAM_IL2_DIFFUSIVITY", getFloat(PARAM_IL2_DIFFUSIVITY));
@@ -425,6 +517,60 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_IL1_MOLECULAR_WEIGHT", getFloat(PARAM_IL1_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_IL6_MOLECULAR_WEIGHT", getFloat(PARAM_IL6_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_CXCL13_MOLECULAR_WEIGHT", getFloat(PARAM_CXCL13_MOLECULAR_WEIGHT));
+    env.newProperty<float>("PARAM_MMP_DIFFUSIVITY", getFloat(PARAM_MMP_DIFFUSIVITY));
+    env.newProperty<float>("PARAM_MMP_DECAY_RATE", getFloat(PARAM_MMP_DECAY_RATE));
+    env.newProperty<float>("PARAM_MMP_MOLECULAR_WEIGHT", getFloat(PARAM_MMP_MOLECULAR_WEIGHT));
+    env.newProperty<float>("PARAM_CANCER_MMP_RELEASE", getFloat(PARAM_CANCER_MMP_RELEASE));
+    env.newProperty<float>("PARAM_MAC_M1_MMP_RELEASE", getFloat(PARAM_MAC_M1_MMP_RELEASE));
+
+    // ECM mechanics
+    env.newProperty<float>("PARAM_ECM_DEPOSITION_RATE", getFloat(PARAM_ECM_DEPOSITION_RATE));
+    env.newProperty<float>("PARAM_ECM_DENSITY_CAP", getFloat(PARAM_ECM_DENSITY_CAP));
+    env.newProperty<float>("PARAM_ECM_MMP_DEGRADE_RATE", getFloat(PARAM_ECM_MMP_DEGRADE_RATE));
+    env.newProperty<float>("PARAM_ECM_CROSSLINK_RATE", getFloat(PARAM_ECM_CROSSLINK_RATE));
+    env.newProperty<float>("PARAM_ECM_CROSSLINK_RESISTANCE", getFloat(PARAM_ECM_CROSSLINK_RESISTANCE));
+    env.newProperty<float>("PARAM_ECM_DECAY_RATE", getFloat(PARAM_ECM_DECAY_RATE));
+    env.newProperty<float>("PARAM_ECM_BASELINE", getFloat(PARAM_ECM_BASELINE));
+    env.newProperty<float>("PARAM_ECM_TGFB_EC50", getFloat(PARAM_ECM_TGFB_EC50));
+    env.newProperty<float>("PARAM_ECM_POROSITY_CANCER", getFloat(PARAM_ECM_POROSITY_CANCER));
+    env.newProperty<float>("PARAM_ECM_POROSITY_TCELL", getFloat(PARAM_ECM_POROSITY_TCELL));
+    env.newProperty<float>("PARAM_ECM_POROSITY_TREG", getFloat(PARAM_ECM_POROSITY_TREG));
+    env.newProperty<float>("PARAM_ECM_POROSITY_MDSC", getFloat(PARAM_ECM_POROSITY_MDSC));
+    env.newProperty<float>("PARAM_ECM_POROSITY_MAC", getFloat(PARAM_ECM_POROSITY_MAC));
+    env.newProperty<float>("PARAM_ECM_POROSITY_FIB", getFloat(PARAM_ECM_POROSITY_FIB));
+    env.newProperty<float>("PARAM_ECM_POROSITY_VAS_TIP", getFloat(PARAM_ECM_POROSITY_VAS_TIP));
+    env.newProperty<float>("PARAM_VAS_ECM_COMPRESS_K", getFloat(PARAM_VAS_ECM_COMPRESS_K));
+
+    //DOMAIN INITIALIZATION PARAMETERS
+    env.newProperty<float>("PARAM_DOMAIN_LOBULE_SPACING", getFloat(PARAM_DOMAIN_LOBULE_SPACING));
+    env.newProperty<float>("PARAM_DOMAIN_SEPTUM_THICKNESS", getFloat(PARAM_DOMAIN_SEPTUM_THICKNESS));
+    env.newProperty<float>("PARAM_DOMAIN_TUMOR_RADIUS_FRAC", getFloat(PARAM_DOMAIN_TUMOR_RADIUS_FRAC));
+    env.newProperty<float>("PARAM_DOMAIN_MARGIN_THICKNESS", getFloat(PARAM_DOMAIN_MARGIN_THICKNESS));
+    env.newProperty<float>("PARAM_DOMAIN_ECM_SEPTUM_DENSITY", getFloat(PARAM_DOMAIN_ECM_SEPTUM_DENSITY));
+    env.newProperty<float>("PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK", getFloat(PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK));
+    env.newProperty<float>("PARAM_DOMAIN_ECM_STROMA_DENSITY", getFloat(PARAM_DOMAIN_ECM_STROMA_DENSITY));
+    env.newProperty<float>("PARAM_DOMAIN_ECM_LOBULE_DENSITY", getFloat(PARAM_DOMAIN_ECM_LOBULE_DENSITY));
+    env.newProperty<float>("PARAM_DOMAIN_ECM_MARGIN_DENSITY", getFloat(PARAM_DOMAIN_ECM_MARGIN_DENSITY));
+    env.newProperty<float>("PARAM_DOMAIN_ECM_MARGIN_CROSSLINK", getFloat(PARAM_DOMAIN_ECM_MARGIN_CROSSLINK));
+    env.newProperty<float>("PARAM_DOMAIN_ECM_TUMOR_DENSITY", getFloat(PARAM_DOMAIN_ECM_TUMOR_DENSITY));
+    env.newProperty<float>("PARAM_DOMAIN_FIB_P_SEPTUM", getFloat(PARAM_DOMAIN_FIB_P_SEPTUM));
+    env.newProperty<float>("PARAM_DOMAIN_FIB_P_STROMA", getFloat(PARAM_DOMAIN_FIB_P_STROMA));
+    env.newProperty<float>("PARAM_DOMAIN_FIB_P_LOBULE", getFloat(PARAM_DOMAIN_FIB_P_LOBULE));
+    env.newProperty<float>("PARAM_DOMAIN_FIB_P_MARGIN", getFloat(PARAM_DOMAIN_FIB_P_MARGIN));
+    env.newProperty<float>("PARAM_DOMAIN_FIB_P_TUMOR", getFloat(PARAM_DOMAIN_FIB_P_TUMOR));
+    env.newProperty<float>("PARAM_DOMAIN_FIB_MARGIN_MYCAF_FRAC", getFloat(PARAM_DOMAIN_FIB_MARGIN_MYCAF_FRAC));
+    env.newProperty<float>("PARAM_DOMAIN_VAS_P_SEPTUM", getFloat(PARAM_DOMAIN_VAS_P_SEPTUM));
+    env.newProperty<float>("PARAM_DOMAIN_VAS_P_STROMA", getFloat(PARAM_DOMAIN_VAS_P_STROMA));
+    env.newProperty<float>("PARAM_DOMAIN_VAS_P_LOBULE", getFloat(PARAM_DOMAIN_VAS_P_LOBULE));
+    env.newProperty<float>("PARAM_DOMAIN_VAS_P_MARGIN", getFloat(PARAM_DOMAIN_VAS_P_MARGIN));
+    env.newProperty<float>("PARAM_DOMAIN_VAS_P_TUMOR", getFloat(PARAM_DOMAIN_VAS_P_TUMOR));
+    env.newProperty<float>("PARAM_DOMAIN_VAS_MARGIN_TIP_FRAC", getFloat(PARAM_DOMAIN_VAS_MARGIN_TIP_FRAC));
+    env.newProperty<float>("PARAM_DOMAIN_MAC_P_STROMA", getFloat(PARAM_DOMAIN_MAC_P_STROMA));
+    env.newProperty<float>("PARAM_DOMAIN_MAC_P_MARGIN", getFloat(PARAM_DOMAIN_MAC_P_MARGIN));
+    env.newProperty<float>("PARAM_DOMAIN_MAC_P_TUMOR", getFloat(PARAM_DOMAIN_MAC_P_TUMOR));
+    env.newProperty<float>("PARAM_DOMAIN_MAC_MARGIN_M1_FRAC", getFloat(PARAM_DOMAIN_MAC_MARGIN_M1_FRAC));
+    env.newProperty<float>("PARAM_DOMAIN_TH_P_STROMA", getFloat(PARAM_DOMAIN_TH_P_STROMA));
+    env.newProperty<int>("PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS", getInt(PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS));
 
     // Internally processed parameters
     // float SEC_PER_DAY = 24.0f * 60.0f * 60.0f;

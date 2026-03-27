@@ -1,6 +1,7 @@
 #include "initialization.cuh"
 #include "../core/common.cuh"
 #include "../abm/gpu_param.h"
+#include "../pde/pde_integration.cuh"
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
@@ -42,8 +43,10 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             ++i;  // already handled before parseCommandLine
         } else if ((arg == "--initialization" || arg == "-i") && i + 1 < argc) {
             int val = std::atoi(argv[++i]);
-            if (val != 0) {
-                std::cerr << "WARNING: Only -i 0 (QSP-seeded) is supported. Ignoring -i " << val << std::endl;
+            if (val == 0 || val == 1) {
+                init_method = val;
+            } else {
+                std::cerr << "WARNING: Only -i 0 (simple) and -i 1 (structured) are supported. Ignoring -i " << val << std::endl;
             }
         } else if ((arg == "--grid-size" || arg == "-g") && i + 1 < argc) {
             int size = std::atoi(argv[++i]);
@@ -93,7 +96,7 @@ void SimulationConfig::print() const {
     std::cout << "Voxel size: " << voxel_size << " µm" << std::endl;
     std::cout << "Steps: " << steps << std::endl;
     std::cout << "Random seed: " << random_seed << std::endl;
-    std::cout << "Init: QSP-seeded" << std::endl;
+    std::cout << "Init: " << (init_method == 1 ? "Structured domain (-i 1)" : "QSP-seeded (-i 0)") << std::endl;
 
     std::cout << "\nPDE Integration:" << std::endl;
     std::cout << "  ABM timestep: " << dt_abm << " s (" << (dt_abm/60.0f) << " min)" << std::endl;
@@ -818,6 +821,218 @@ std::vector<double> get_celltype_cdf(flamegpu::ModelDescription& model){
 // QSP-Seeded Initialization
 // ============================================================================
 
+// ============================================================================
+// Domain Structure Generation (Structured Init, -i 1)
+// ============================================================================
+
+std::vector<uint8_t> generate_domain_structure(
+    int grid_x, int grid_y, int grid_z,
+    float lobule_spacing, float septum_thickness,
+    float tumor_radius_frac, float margin_thickness,
+    unsigned int seed)
+{
+    const int total = grid_x * grid_y * grid_z;
+    std::vector<uint8_t> voxel_type(total, VOXEL_STROMA);
+
+    std::mt19937 rng(seed + 9999);  // offset seed for domain gen
+
+    // -----------------------------------------------------------------------
+    // Step 1: Poisson disk sampling for lobule centers in 3D
+    // -----------------------------------------------------------------------
+    struct Point3 { float x, y, z; };
+    std::vector<Point3> centers;
+    const float min_dist = lobule_spacing;
+    const int max_attempts = 30;
+
+    std::uniform_real_distribution<float> ux(0.0f, static_cast<float>(grid_x));
+    std::uniform_real_distribution<float> uy(0.0f, static_cast<float>(grid_y));
+    std::uniform_real_distribution<float> uz(0.0f, static_cast<float>(grid_z));
+
+    // Seed first point
+    centers.push_back({ux(rng), uy(rng), uz(rng)});
+
+    // Active list for Bridson's algorithm
+    std::vector<int> active;
+    active.push_back(0);
+
+    std::uniform_real_distribution<float> u_phi(0.0f, 2.0f * static_cast<float>(M_PI));
+    std::uniform_real_distribution<float> u_cos(-1.0f, 1.0f);
+    std::uniform_real_distribution<float> u_r(min_dist, 2.0f * min_dist);
+
+    while (!active.empty()) {
+        std::uniform_int_distribution<int> u_idx(0, static_cast<int>(active.size()) - 1);
+        int ai = u_idx(rng);
+        const Point3 p = centers[active[ai]];  // copy, not ref (vector may realloc)
+
+        bool found = false;
+        for (int attempt = 0; attempt < max_attempts; attempt++) {
+            // Random point in spherical shell [min_dist, 2*min_dist]
+            float r = u_r(rng);
+            float cos_theta = u_cos(rng);
+            float sin_theta = std::sqrt(1.0f - cos_theta * cos_theta);
+            float phi = u_phi(rng);
+
+            float nx = p.x + r * sin_theta * std::cos(phi);
+            float ny = p.y + r * sin_theta * std::sin(phi);
+            float nz = p.z + r * cos_theta;
+
+            // Skip if outside grid
+            if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z)
+                continue;
+
+            // Check distance to all existing centers (brute force — ~20 centers)
+            bool too_close = false;
+            for (const auto& c : centers) {
+                float dx = nx - c.x, dy = ny - c.y, dz = nz - c.z;
+                if (dx*dx + dy*dy + dz*dz < min_dist * min_dist) {
+                    too_close = true;
+                    break;
+                }
+            }
+
+            if (!too_close) {
+                int new_idx = static_cast<int>(centers.size());
+                centers.push_back({nx, ny, nz});
+                active.push_back(new_idx);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            active.erase(active.begin() + ai);
+        }
+    }
+
+    std::cout << "  Domain: " << centers.size() << " lobule centers (spacing="
+              << lobule_spacing << " voxels)" << std::endl;
+
+    // -----------------------------------------------------------------------
+    // Step 2: Voronoi tessellation — classify each voxel as LOBULE or SEPTUM
+    //   A voxel is on a Voronoi boundary (septum) when the difference between
+    //   its distance to the nearest and second-nearest center < septum_thickness.
+    // -----------------------------------------------------------------------
+    if (!centers.empty()) {
+        for (int z = 0; z < grid_z; z++) {
+            for (int y = 0; y < grid_y; y++) {
+                for (int x = 0; x < grid_x; x++) {
+                    float vx = x + 0.5f, vy = y + 0.5f, vz = z + 0.5f;
+                    float d1 = 1e30f, d2 = 1e30f;  // nearest, second-nearest
+
+                    for (const auto& c : centers) {
+                        float dx = vx - c.x, dy = vy - c.y, dz = vz - c.z;
+                        float d = std::sqrt(dx*dx + dy*dy + dz*dz);
+                        if (d < d1) {
+                            d2 = d1;
+                            d1 = d;
+                        } else if (d < d2) {
+                            d2 = d;
+                        }
+                    }
+
+                    int idx = x + y * grid_x + z * grid_x * grid_y;
+                    if (d2 - d1 < septum_thickness) {
+                        voxel_type[idx] = VOXEL_SEPTUM;
+                    } else {
+                        voxel_type[idx] = VOXEL_LOBULE;
+                    }
+                }
+            }
+        }
+    }
+    // If no centers were generated (grid too small), everything stays STROMA
+
+    // -----------------------------------------------------------------------
+    // Step 3: Overlay tumor hemisphere on x=0 face
+    //   Center at (0, grid_y/2, grid_z/2). Tumor overwrites lobule/septum.
+    //   Margin is the shell just outside the tumor surface.
+    // -----------------------------------------------------------------------
+    const float tumor_radius = tumor_radius_frac * grid_x;
+    const float cy = grid_y / 2.0f;
+    const float cz = grid_z / 2.0f;
+
+    for (int z = 0; z < grid_z; z++) {
+        for (int y = 0; y < grid_y; y++) {
+            for (int x = 0; x < grid_x; x++) {
+                float dx = x + 0.5f;  // distance from x=0 boundary
+                float dy = (y + 0.5f) - cy;
+                float dz = (z + 0.5f) - cz;
+                float dist = std::sqrt(dx*dx + dy*dy + dz*dz);
+
+                int idx = x + y * grid_x + z * grid_x * grid_y;
+
+                if (dist <= tumor_radius) {
+                    voxel_type[idx] = VOXEL_TUMOR;
+                } else if (dist <= tumor_radius + margin_thickness) {
+                    voxel_type[idx] = VOXEL_MARGIN;
+                }
+            }
+        }
+    }
+
+    // Print summary
+    int counts[5] = {};
+    for (int i = 0; i < total; i++) counts[voxel_type[i]]++;
+    std::cout << "  Voxel types: STROMA=" << counts[0] << " SEPTUM=" << counts[1]
+              << " LOBULE=" << counts[2] << " TUMOR=" << counts[3]
+              << " MARGIN=" << counts[4] << std::endl;
+
+    return voxel_type;
+}
+
+// ============================================================================
+// ECM Pre-Seeding by Voxel Type
+// ============================================================================
+
+void preseed_ecm_by_voxel_type(
+    const std::vector<uint8_t>& voxel_type,
+    const ECMInitParams& ecm,
+    int total_voxels, unsigned int seed)
+{
+    std::mt19937 rng(seed + 7777);  // offset seed for ECM noise
+    std::uniform_real_distribution<float> noise(-0.1f, 0.1f);  // ±10% perturbation
+
+    std::vector<float> density(total_voxels);
+    std::vector<float> crosslink(total_voxels);
+
+    for (int i = 0; i < total_voxels; i++) {
+        float d = 0.0f, c = 0.0f;
+        switch (voxel_type[i]) {
+            case VOXEL_STROMA:
+                d = ecm.stroma_density;
+                break;
+            case VOXEL_SEPTUM:
+                d = ecm.septum_density;
+                c = ecm.septum_crosslink;
+                break;
+            case VOXEL_LOBULE:
+                d = ecm.lobule_density;
+                break;
+            case VOXEL_TUMOR:
+                d = ecm.tumor_density;
+                break;
+            case VOXEL_MARGIN:
+                d = ecm.margin_density;
+                c = ecm.margin_crosslink;
+                break;
+        }
+        // Apply ±10% random perturbation for heterogeneity
+        float pert = 1.0f + noise(rng);
+        density[i]   = std::max(0.0f, d * pert);
+        crosslink[i] = std::clamp(c * pert, 0.0f, 1.0f);
+    }
+
+    // Copy to GPU
+    set_ecm_density_from_host(density.data(), total_voxels);
+    set_ecm_crosslink_from_host(crosslink.data(), total_voxels);
+
+    std::cout << "  ECM pre-seeded by voxel type" << std::endl;
+}
+
+// ============================================================================
+// Master Initialization Function
+// ============================================================================
+
 void initializeToQSP(
     flamegpu::CUDASimulation& simulation,
     flamegpu::ModelDescription& model,
@@ -1026,6 +1241,388 @@ void initializeToQSP(
     }
 
     std::cout << "QSP-based agent initialization complete\n" << std::endl;
+}
+
+// ============================================================================
+// Structured Domain Initialization (-i 1)
+// ============================================================================
+
+void initializeStructuredDomain(
+    flamegpu::CUDASimulation& simulation,
+    flamegpu::ModelDescription& model,
+    const SimulationConfig& config,
+    const LymphCentralWrapper& lymph)
+{
+    std::cout << "\n=== Structured Domain Initialization ===" << std::endl;
+
+    // -----------------------------------------------------------------------
+    // Read DomainInit parameters from model environment
+    // -----------------------------------------------------------------------
+    const float lobule_spacing  = model.Environment().getProperty<float>("PARAM_DOMAIN_LOBULE_SPACING");
+    const float septum_thick    = model.Environment().getProperty<float>("PARAM_DOMAIN_SEPTUM_THICKNESS");
+    const float tumor_rad_frac  = model.Environment().getProperty<float>("PARAM_DOMAIN_TUMOR_RADIUS_FRAC");
+    const float margin_thick    = model.Environment().getProperty<float>("PARAM_DOMAIN_MARGIN_THICKNESS");
+
+    const int gx = config.grid_x, gy = config.grid_y, gz = config.grid_z;
+    const int total_voxels = gx * gy * gz;
+
+    // -----------------------------------------------------------------------
+    // Step 1: Generate lobular structure + tumor hemisphere
+    // -----------------------------------------------------------------------
+    std::cout << "  Generating lobular structure..." << std::endl;
+    std::vector<uint8_t> voxel_type = generate_domain_structure(
+        gx, gy, gz, lobule_spacing, septum_thick,
+        tumor_rad_frac, margin_thick, config.random_seed);
+
+    // Copy to GPU
+    set_voxel_type_from_host(voxel_type.data(), total_voxels);
+
+    // -----------------------------------------------------------------------
+    // Step 2: Pre-seed ECM by voxel type
+    // -----------------------------------------------------------------------
+    ECMInitParams ecm_params;
+    ecm_params.septum_density    = model.Environment().getProperty<float>("PARAM_DOMAIN_ECM_SEPTUM_DENSITY");
+    ecm_params.septum_crosslink  = model.Environment().getProperty<float>("PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK");
+    ecm_params.stroma_density    = model.Environment().getProperty<float>("PARAM_DOMAIN_ECM_STROMA_DENSITY");
+    ecm_params.lobule_density    = model.Environment().getProperty<float>("PARAM_DOMAIN_ECM_LOBULE_DENSITY");
+    ecm_params.margin_density    = model.Environment().getProperty<float>("PARAM_DOMAIN_ECM_MARGIN_DENSITY");
+    ecm_params.margin_crosslink  = model.Environment().getProperty<float>("PARAM_DOMAIN_ECM_MARGIN_CROSSLINK");
+    ecm_params.tumor_density     = model.Environment().getProperty<float>("PARAM_DOMAIN_ECM_TUMOR_DENSITY");
+
+    preseed_ecm_by_voxel_type(voxel_type, ecm_params, total_voxels, config.random_seed);
+
+    // -----------------------------------------------------------------------
+    // Step 3: Read cell-lifecycle parameters
+    // -----------------------------------------------------------------------
+    const float stem_div         = model.Environment().getProperty<float>("PARAM_FLOAT_CANCER_CELL_STEM_DIV_INTERVAL_SLICE");
+    const float prog_div         = model.Environment().getProperty<float>("PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE");
+    const int   prog_max         = model.Environment().getProperty<int>("PARAM_PROG_DIV_MAX");
+    const float cancer_sen_life  = model.Environment().getProperty<float>("PARAM_CANCER_SENESCENT_MEAN_LIFE");
+    const float treg_life        = model.Environment().getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
+    const float treg_life_sd     = model.Environment().getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
+    const int   treg_div_limit   = model.Environment().getProperty<int>("PARAM_TCD4_DIV_LIMIT");
+    const int   treg_div_interval = model.Environment().getProperty<int>("PARAM_TCD4_DIV_INTERNAL");
+    const float mdsc_life        = model.Environment().getProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE");
+    const float mac_life         = model.Environment().getProperty<float>("PARAM_MAC_LIFE_MEAN");
+    const float fib_life         = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
+    const float vas_branch_prob  = model.Environment().getProperty<float>("PARAM_VAS_BRANCH_PROB");
+
+    std::vector<double> celltype_cdf = get_celltype_cdf(model);
+
+    // Read region placement probabilities
+    const float fib_p[5] = {
+        model.Environment().getProperty<float>("PARAM_DOMAIN_FIB_P_STROMA"),   // STROMA
+        model.Environment().getProperty<float>("PARAM_DOMAIN_FIB_P_SEPTUM"),   // SEPTUM
+        model.Environment().getProperty<float>("PARAM_DOMAIN_FIB_P_LOBULE"),   // LOBULE
+        model.Environment().getProperty<float>("PARAM_DOMAIN_FIB_P_TUMOR"),    // TUMOR
+        model.Environment().getProperty<float>("PARAM_DOMAIN_FIB_P_MARGIN"),   // MARGIN
+    };
+    const float fib_margin_mycaf = model.Environment().getProperty<float>("PARAM_DOMAIN_FIB_MARGIN_MYCAF_FRAC");
+
+    const float vas_p[5] = {
+        model.Environment().getProperty<float>("PARAM_DOMAIN_VAS_P_STROMA"),
+        model.Environment().getProperty<float>("PARAM_DOMAIN_VAS_P_SEPTUM"),
+        model.Environment().getProperty<float>("PARAM_DOMAIN_VAS_P_LOBULE"),
+        model.Environment().getProperty<float>("PARAM_DOMAIN_VAS_P_TUMOR"),
+        model.Environment().getProperty<float>("PARAM_DOMAIN_VAS_P_MARGIN"),
+    };
+    const float vas_margin_tip = model.Environment().getProperty<float>("PARAM_DOMAIN_VAS_MARGIN_TIP_FRAC");
+
+    const float mac_p[5] = {
+        model.Environment().getProperty<float>("PARAM_DOMAIN_MAC_P_STROMA"),
+        0.0f,  // SEPTUM: no macrophages
+        0.0f,  // LOBULE: no macrophages
+        model.Environment().getProperty<float>("PARAM_DOMAIN_MAC_P_TUMOR"),
+        model.Environment().getProperty<float>("PARAM_DOMAIN_MAC_P_MARGIN"),
+    };
+    const float mac_margin_m1 = model.Environment().getProperty<float>("PARAM_DOMAIN_MAC_MARGIN_M1_FRAC");
+
+    const float th_p_stroma = model.Environment().getProperty<float>("PARAM_DOMAIN_TH_P_STROMA");
+
+    // Occupancy grid for exclusive cells
+    std::vector<bool> occupied(total_voxels, false);
+
+    // -----------------------------------------------------------------------
+    // Step 4: Place cancer cells in VOXEL_TUMOR voxels
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector cancer_pop(model.Agent(AGENT_CANCER_CELL));
+        int placed = 0;
+
+        for (int z = 0; z < gz; z++) {
+            for (int y = 0; y < gy; y++) {
+                for (int x = 0; x < gx; x++) {
+                    int idx = x + y * gx + z * gx * gy;
+                    if (voxel_type[idx] != VOXEL_TUMOR) continue;
+
+                    // Sample from CDF
+                    double p = static_cast<float>(rand()) / RAND_MAX;
+                    int i = std::lower_bound(celltype_cdf.begin(), celltype_cdf.end(), p) - celltype_cdf.begin();
+                    if (i > prog_max + 1) continue;
+
+                    int cell_state, div_cd = 0, div = 0, divide_flag = 0, is_stem = 0;
+
+                    cancer_pop.push_back();
+                    flamegpu::AgentVector::Agent agent = cancer_pop.back();
+
+                    if (i == 0) {
+                        cell_state = CANCER_STEM;
+                        float rf = static_cast<float>(rand()) / (RAND_MAX + 1.0f);
+                        div_cd = static_cast<int>(stem_div * rf) + 1;
+                        divide_flag = 1;
+                        is_stem = 1;
+                    } else if (i == prog_max + 1) {
+                        cell_state = CANCER_SENESCENT;
+                    } else {
+                        cell_state = CANCER_PROGENITOR;
+                        div = prog_max + 1 - i;
+                        float rf = static_cast<float>(rand()) / (RAND_MAX + 1.0f);
+                        div_cd = static_cast<int>(prog_div * rf) + 1;
+                        divide_flag = 1;
+                    }
+
+                    const int id = agent.getID();
+                    agent.setVariable<int>("x", x);
+                    agent.setVariable<int>("y", y);
+                    agent.setVariable<int>("z", z);
+                    agent.setVariable<int>("cell_state", cell_state);
+                    agent.setVariable<int>("divideCD", div_cd);
+                    agent.setVariable<int>("divideFlag", divide_flag);
+                    agent.setVariable<int>("divideCountRemaining", div);
+                    agent.setVariable<unsigned int>("stemID", is_stem ? id : 0);
+
+                    if (cell_state == CANCER_SENESCENT) {
+                        float r = static_cast<float>(rand()) / (RAND_MAX + 1.0f);
+                        int sen_life = static_cast<int>(-cancer_sen_life * logf(r + 0.0001f) + 0.5f);
+                        agent.setVariable<int>("life", sen_life > 0 ? sen_life : 1);
+                    }
+
+                    occupied[idx] = true;
+                    placed++;
+                }
+            }
+        }
+        simulation.setPopulationData(cancer_pop);
+        std::cout << "  Placed " << placed << " cancer cells (VOXEL_TUMOR)" << std::endl;
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 5: T cells — none at init (recruited by QSP/vascular)
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector tcell_pop(model.Agent(AGENT_TCELL));
+        simulation.setPopulationData(tcell_pop);
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 6: TH cells — stroma only
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector treg_pop(model.Agent(AGENT_TREG));
+        int placed_th = 0;
+
+        for (int z = 0; z < gz; z++) {
+            for (int y = 0; y < gy; y++) {
+                for (int x = 0; x < gx; x++) {
+                    int idx = x + y * gx + z * gx * gy;
+                    uint8_t vt = voxel_type[idx];
+                    // TH in stroma and lobule (normal pancreatic tissue has resident T helpers)
+                    float prob = (vt == VOXEL_STROMA || vt == VOXEL_LOBULE) ? th_p_stroma : 0.0f;
+                    if (prob <= 0.0f) continue;
+
+                    float rnd = static_cast<float>(rand()) / RAND_MAX;
+                    if (rnd >= prob) continue;
+
+                    // Life (normal distribution)
+                    float u1 = static_cast<float>(rand()) / RAND_MAX;
+                    float u2 = static_cast<float>(rand()) / RAND_MAX;
+                    if (u1 < 1e-6f) u1 = 1e-6f;
+                    float z0 = std::sqrt(-2.0f * std::log(u1)) * std::cos(2.0f * 3.14159f * u2);
+                    int life = static_cast<int>(treg_life + z0 * treg_life_sd + 0.5f);
+                    if (life < 1) life = 1;
+
+                    treg_pop.push_back();
+                    flamegpu::AgentVector::Agent agent = treg_pop.back();
+                    agent.setVariable<int>("x", x);
+                    agent.setVariable<int>("y", y);
+                    agent.setVariable<int>("z", z);
+                    agent.setVariable<int>("cell_state", TCD4_TH);
+                    agent.setVariable<int>("divide_flag", 0);
+                    agent.setVariable<int>("divide_cd", treg_div_interval);
+                    agent.setVariable<int>("divide_limit", treg_div_limit);
+                    agent.setVariable<int>("life", life);
+                    agent.setVariable<float>("TGFB_release_remain", 0.0f);
+                    agent.setVariable<float>("PDL1_syn", 0.0f);
+                    agent.setVariable<float>("CTLA4", 0.0f);
+                    agent.setVariable<float>("IL2_exposure", 0.0f);
+                    agent.setVariable<int>("neighbor_Tcell_count", 0);
+                    agent.setVariable<int>("neighbor_Treg_count", 0);
+                    agent.setVariable<int>("neighbor_cancer_count", 0);
+                    agent.setVariable<int>("neighbor_all_count", 0);
+                    agent.setVariable<int>("found_progenitor", 0);
+                    agent.setVariable<unsigned int>("available_neighbors", 0u);
+                    agent.setVariable<int>("dead", 0);
+                    agent.setVariable<int>("intent_action", 0);
+                    agent.setVariable<int>("target_x", -1);
+                    agent.setVariable<int>("target_y", -1);
+                    agent.setVariable<int>("target_z", -1);
+                    placed_th++;
+                }
+            }
+        }
+        simulation.setPopulationData(treg_pop);
+        std::cout << "  Placed " << placed_th << " TH cells (stroma)" << std::endl;
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 7: MDSCs — none at structured init (recruited via CCL2)
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector mdsc_pop(model.Agent(AGENT_MDSC));
+        simulation.setPopulationData(mdsc_pop);
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 8: Macrophages — region-aware with M1/M2 polarization
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector mac_pop(model.Agent(AGENT_MACROPHAGE));
+        int placed = 0;
+
+        for (int z = 0; z < gz; z++) {
+            for (int y = 0; y < gy; y++) {
+                for (int x = 0; x < gx; x++) {
+                    int idx = x + y * gx + z * gx * gy;
+                    uint8_t vt = voxel_type[idx];
+                    float prob = mac_p[vt];
+                    if (prob <= 0.0f) continue;
+
+                    float rnd = static_cast<float>(rand()) / RAND_MAX;
+                    if (rnd >= prob) continue;
+
+                    float life_rnd = static_cast<float>(rand()) / RAND_MAX;
+                    int life = static_cast<int>(mac_life * std::log(1.0f / (life_rnd + 1e-4f)) + 0.5f);
+                    if (life < 1) life = 1;
+
+                    // Polarization: margin has M1 fraction, rest are M2
+                    int state = MAC_M2;
+                    if (vt == VOXEL_MARGIN) {
+                        float pol_rnd = static_cast<float>(rand()) / RAND_MAX;
+                        if (pol_rnd < mac_margin_m1) state = MAC_M1;
+                    }
+
+                    mac_pop.push_back();
+                    flamegpu::AgentVector::Agent agent = mac_pop.back();
+                    agent.setVariable<int>("x", x);
+                    agent.setVariable<int>("y", y);
+                    agent.setVariable<int>("z", z);
+                    agent.setVariable<int>("life", life);
+                    agent.setVariable<int>("cell_state", state);
+                    placed++;
+                }
+            }
+        }
+        simulation.setPopulationData(mac_pop);
+        std::cout << "  Placed " << placed << " macrophages (region-aware)" << std::endl;
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 9: Fibroblasts — region-aware with myCAF pre-activation at margin
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector fib_pop(model.Agent(AGENT_FIBROBLAST));
+        int placed = 0;
+
+        for (int z = 0; z < gz; z++) {
+            for (int y = 0; y < gy; y++) {
+                for (int x = 0; x < gx; x++) {
+                    int idx = x + y * gx + z * gx * gy;
+                    if (occupied[idx]) continue;  // skip cancer-occupied voxels
+
+                    uint8_t vt = voxel_type[idx];
+                    float prob = fib_p[vt];
+                    if (prob <= 0.0f) continue;
+
+                    float rnd = static_cast<float>(rand()) / RAND_MAX;
+                    if (rnd >= prob) continue;
+
+                    occupied[idx] = true;
+
+                    float life_rnd = static_cast<float>(rand()) / RAND_MAX;
+                    int life = static_cast<int>(fib_life * std::log(1.0f / (life_rnd + 1e-4f)) + 0.5f);
+                    if (life < 1) life = 1;
+
+                    // State: margin fibroblasts are pre-activated as myCAF
+                    int state = FIB_QUIESCENT;
+                    if (vt == VOXEL_MARGIN) {
+                        float act_rnd = static_cast<float>(rand()) / RAND_MAX;
+                        if (act_rnd < fib_margin_mycaf) state = FIB_MYCAF;
+                    }
+
+                    fib_pop.push_back();
+                    flamegpu::AgentVector::Agent agent = fib_pop.back();
+                    agent.setVariable<int>("x", x);
+                    agent.setVariable<int>("y", y);
+                    agent.setVariable<int>("z", z);
+                    agent.setVariable<int>("cell_state", state);
+                    agent.setVariable<int>("life", life);
+                    agent.setVariable<int>("divide_cooldown", 0);
+                    agent.setVariable<int>("divide_count", 0);
+                    placed++;
+                }
+            }
+        }
+        simulation.setPopulationData(fib_pop);
+        std::cout << "  Placed " << placed << " fibroblasts (region-aware)" << std::endl;
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 10: Vascular cells — region-aware with TIP fraction at margin
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector vas_pop(model.Agent(AGENT_VASCULAR));
+        int placed = 0;
+        const double p_branch_init = vas_branch_prob / 5.0;
+
+        for (int z = 0; z < gz; z++) {
+            for (int y = 0; y < gy; y++) {
+                for (int x = 0; x < gx; x++) {
+                    int idx = x + y * gx + z * gx * gy;
+                    uint8_t vt = voxel_type[idx];
+                    float prob = vas_p[vt];
+                    if (prob <= 0.0f) continue;
+
+                    float rnd = static_cast<float>(rand()) / RAND_MAX;
+                    if (rnd >= prob) continue;
+
+                    // State: phalanx by default; margin has TIP fraction
+                    int state = VAS_PHALANX;
+                    if (vt == VOXEL_MARGIN) {
+                        float tip_rnd = static_cast<float>(rand()) / RAND_MAX;
+                        if (tip_rnd < vas_margin_tip) state = VAS_TIP;
+                    }
+
+                    int branch_flag = (static_cast<float>(rand()) / RAND_MAX < p_branch_init) ? 1 : 0;
+
+                    vas_pop.push_back();
+                    flamegpu::AgentVector::Agent agent = vas_pop.back();
+                    setVascularCellVariables(agent, x, y, z, state,
+                        1.0f, 0.0f, 0.0f, (state == VAS_TIP) ? static_cast<unsigned int>(placed + 1) : 0u, branch_flag);
+                    placed++;
+                }
+            }
+        }
+        simulation.setPopulationData(vas_pop);
+        std::cout << "  Placed " << placed << " vascular cells (region-aware)" << std::endl;
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 11: PDE warmup — diffusion+decay only (no agent sources)
+    // -----------------------------------------------------------------------
+    const int warmup_substeps = model.Environment().getProperty<int>("PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS");
+    run_pde_warmup(warmup_substeps);
+
+    std::cout << "Structured domain initialization complete\n" << std::endl;
 }
 
 } // namespace PDAC

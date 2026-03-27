@@ -35,32 +35,31 @@ FLAMEGPU_AGENT_FUNCTION(vascular_broadcast_location, flamegpu::MessageNone, flam
     return flamegpu::ALIVE;
 }
 
-// Occupancy Grid
-// STALK and PHALANX cells write to occ_grid (used for voxelIsOpen checks).
-// TIP cells skip occ_grid but still write to vas_tip_id_grid so the
-// nearby-vessel exclusion check (PHALANX sprouting) sees ALL vascular types,
-// matching HCC's for_each_neighbor_ag which includes TIP/STALK/PHALANX.
+// Volume occupancy + vascular tip_id grid.
+// ALL vascular types write to vas_tip_id_grid for nearby-vessel exclusion
+// and sprouting checks (stalk/phalanx presence = nonzero tip_id).
 FLAMEGPU_AGENT_FUNCTION(vascular_write_to_occ_grid, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
 
-    // Only stalk/phalanx count toward occupancy (TIP division checks this).
-    if (cell_state != VAS_TIP) {
-        auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-            OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
-        occ[x][y][z][CELL_TYPE_VASCULAR] += 1u;
-    }
-
-    // ALL vascular types write to tip_id grid for nearby-vessel exclusion.
     const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int vidx = z * ny * nx + y * nx + x;
+
+    // Tip_id grid for nearby-vessel exclusion + stalk/phalanx presence detection.
     unsigned int* vas_tip_id = reinterpret_cast<unsigned int*>(
         FLAMEGPU->environment.getProperty<uint64_t>("vas_tip_id_grid_ptr"));
     const unsigned int my_tip_id = FLAMEGPU->getVariable<unsigned int>("tip_id");
     atomicMax(&vas_tip_id[vidx], my_tip_id);
+
+    // Volume-based occupancy
+    float my_vol = (cell_state == VAS_TIP) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_TIP") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_PHALANX");
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    atomicAdd(&vol_used[vidx], my_vol);
 
     return flamegpu::ALIVE;
 }
@@ -111,11 +110,14 @@ FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone
                                     + (1.0f / lambda) * std::log(1.0f / w)));
             float KvLv = Kv * Lv;  // O2 transport coefficient [cm^3/s]
 
+            // ECM compression: dense stroma compresses vessels → reduced O2 delivery
+            const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
+            float ecm_local = ecm_d[voxel];
+            float K_compress = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_ECM_COMPRESS_K");
+            float compression = ecm_local / (ecm_local + K_compress + 1e-30f);
+            KvLv *= (1.0f - compression);
+
             // Implicit split: stable at large dt, drives C_local toward C_blood from below.
-            // C_new cannot overshoot C_blood because the fixed point of the implicit scheme
-            // is exactly C_blood, and backward Euler converges monotonically.
-            //   source  += KvLv * C_blood / voxel_volume   [conc/s, constant inflow]
-            //   uptake  += KvLv / voxel_volume              [1/s, handled implicitly by solver]
             PDE_SECRETE(FLAMEGPU, PDE_SRC_O2, voxel, KvLv * C_blood / voxel_volume);
             PDE_UPTAKE(FLAMEGPU,  PDE_UPT_O2, voxel, KvLv / voxel_volume);
         }
@@ -200,14 +202,20 @@ FLAMEGPU_AGENT_FUNCTION(vascular_state_step, flamegpu::MessageNone, flamegpu::Me
 
     int divide_action = INTENT_NONE;
 
-    // VAS_TIP: divide only if voxel is open for vascular type.
+    // VAS_TIP: divide only if voxel has no stalk/phalanx cell.
     // HCC Vas.cpp:248: if (_compartment->voxelIsOpen(getCoord(), getType()))
-    // voxelIsOpen checks stalk+phalanx count < PARAM_VAS_MAX_PER_VOXEL (=1).
-    // occ_grid[CELL_TYPE_VASCULAR] only counts stalk/phalanx (TIP skipped in write_to_occ_grid).
+    // Stalk/phalanx cells write nonzero tip_id to vas_tip_id_grid; TIP cells
+    // also write but we only gate on "is there already a vessel body here?"
+    // which is equivalent since TIP is the one asking.
     if (cell_state == VAS_TIP) {
-        auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-            OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
-        if (occ[x][y][z][CELL_TYPE_VASCULAR] == 0u) {
+        const int nx_v = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+        const int ny_v = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int vidx_v = z * ny_v * nx_v + y * nx_v + x;
+        // Check volume capacity instead — if there's room, allow division
+        float* vol_used = VOL_PTR(FLAMEGPU);
+        float phalanx_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_PHALANX");
+        float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+        if (vol_used[vidx_v] + phalanx_vol <= capacity) {
             divide_action = 1;  // INTENT_DIVIDE_TIP
         }
     }
@@ -282,13 +290,17 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
 
     // ── TIP CELL DIVISION ──────────────────────────────────────────────────────
-    // (HCC Vas.cpp agent_state_step lines 248-257 / Tumor.cpp lines 941-958)
+    // TIP creates a PHALANX at current position. Check volume capacity.
     if (cell_state == VAS_TIP) {
-        // Abort if any stalk or phalanx already occupies this voxel.
-        // Tip cells are excluded from the occ_grid (write_to_occ_grid skips VAS_TIP).
-        auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-            OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
-        if (occ[x][y][z][CELL_TYPE_VASCULAR] != 0u) {
+        const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+        const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int vidx = z * (grid_x * grid_y) + y * grid_x + x;
+
+        float* vol_used = VOL_PTR(FLAMEGPU);
+        const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+        float phalanx_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_PHALANX");
+
+        if (!volume_try_claim(vol_used, vidx, phalanx_vol, capacity)) {
             FLAMEGPU->setVariable<int>("intent_action", INTENT_NONE);
             return flamegpu::ALIVE;
         }
@@ -327,9 +339,19 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
         atomicAdd(&evts_tip[EVT_PROLIF_VAS_PHALANX], 1u);
 
     // ── PHALANX SPROUTING ──────────────────────────────────────────────────────
-    // (HCC Vas.cpp lines 266-319 / Tumor.cpp lines 959-990)
     } else if (cell_state == VAS_PHALANX) {
-        // No occupancy check — phalanx always sprouts (HCC ignores voxelIsOpen here).
+        // Claim volume for the new TIP cell at this voxel
+        const int grid_x_s = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+        const int grid_y_s = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int vidx_s = z * (grid_x_s * grid_y_s) + y * grid_x_s + x;
+        float* vol_used_s = VOL_PTR(FLAMEGPU);
+        const float capacity_s = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+        float tip_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_TIP");
+        if (!volume_try_claim(vol_used_s, vidx_s, tip_vol, capacity_s)) {
+            FLAMEGPU->setVariable<int>("intent_action", INTENT_NONE);
+            return flamegpu::ALIVE;
+        }
+
         // New tip gets a unique tip_id so nearby-vessel check works correctly.
         const unsigned int new_tip_id =
             static_cast<unsigned int>(FLAMEGPU->getID()) + 1000000u;
@@ -366,7 +388,7 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
 // Single-phase vascular tip cell movement using run-tumble algorithm.
 // Replaces two-phase vascular_select_move_target + vascular_execute_move.
 // Only VAS_TIP cells move; STALK and PHALANX are stationary.
-// Tip cells are not tracked in occ_grid so no CAS is needed for movement.
+// Uses volume-based occupancy for movement collision detection.
 FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
 
@@ -384,35 +406,34 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    // ECM based movement probability
-    {
-        const float* ecm_ptr = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>("ecm_grid_ptr"));
-        float ECM_density = ecm_ptr[z * (grid_x * grid_y) + y * grid_x + x];
-        double ECM_sat = ECM_density / (ECM_density + FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_MOT_EC50"));
-        if (FLAMEGPU->random.uniform<float>() < ECM_sat) return flamegpu::ALIVE;
-    }
+    // ECM porosity: filter target voxels by vascular TIP porosity threshold
+    const int old_vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
+    const float* ecm_c = ECM_CROSSLINK_PTR(FLAMEGPU);
+    const float density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
+    const float min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_VAS_TIP");
 
     const float move_dir_x = FLAMEGPU->getVariable<float>("move_direction_x");
     const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
     const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
     const float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
 
+    // Volume-based occupancy
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_TIP");
+
     // VEGFA gradient — read directly from PDE
-    const int voxel_mv = z * grid_y*grid_x + y * grid_x + x;
     const float vegfa_grad_x = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_X))[voxel_mv];
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_X))[old_vidx];
     const float vegfa_grad_y = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_Y))[voxel_mv];
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_Y))[old_vidx];
     const float vegfa_grad_z = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_Z))[voxel_mv];
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_Z))[old_vidx];
 
     int target_x = x;
     int target_y = y;
     int target_z = z;
-
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
 
     // === RUN PHASE (tumble == 0) ===
     if (tumble == 0) {
@@ -452,9 +473,10 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
             return flamegpu::ALIVE;
         }
 
-        // Only move if target voxel is not occupied by a stationary vascular cell (HCC: voxelIsOpen)
-        if (occ[target_x][target_y][target_z][CELL_TYPE_VASCULAR] != 0u) {
-            // FLAMEGPU->setVariable<int>("tumble", 1);
+        // Volume + porosity check
+        int target_vidx = target_z * (grid_x * grid_y) + target_y * grid_x + target_x;
+        if (vol_used[target_vidx] + my_vol > capacity ||
+            ecm_porosity(ecm_d, ecm_c, target_vidx, density_cap) < min_porosity) {
             return flamegpu::ALIVE;
         }
     }
@@ -520,7 +542,9 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
             return flamegpu::ALIVE;
         }
 
-        if (occ[target_x][target_y][target_z][CELL_TYPE_VASCULAR] != 0u) {
+        int target_vidx = target_z * (grid_x * grid_y) + target_y * grid_x + target_x;
+        if (vol_used[target_vidx] + my_vol > capacity ||
+            ecm_porosity(ecm_d, ecm_c, target_vidx, density_cap) < min_porosity) {
             FLAMEGPU->setVariable<int>("tumble", 1);
             return flamegpu::ALIVE;
         }
@@ -531,10 +555,14 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
         FLAMEGPU->setVariable<int>("tumble", 0);
     }
 
-    // Apply movement directly (tip cells are not in occ_grid; no conflict resolution needed)
-    FLAMEGPU->setVariable<int>("x", target_x);
-    FLAMEGPU->setVariable<int>("y", target_y);
-    FLAMEGPU->setVariable<int>("z", target_z);
+    // Apply movement with volume claim
+    int target_vidx = target_z * (grid_x * grid_y) + target_y * grid_x + target_x;
+    if (volume_try_claim(vol_used, target_vidx, my_vol, capacity)) {
+        volume_release(vol_used, old_vidx, my_vol);
+        FLAMEGPU->setVariable<int>("x", target_x);
+        FLAMEGPU->setVariable<int>("y", target_y);
+        FLAMEGPU->setVariable<int>("z", target_z);
+    }
     return flamegpu::ALIVE;
 }
 

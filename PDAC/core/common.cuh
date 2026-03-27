@@ -1,6 +1,7 @@
 #ifndef FLAMEGPU_PDAC_COMMON_CUH
 #define FLAMEGPU_PDAC_COMMON_CUH
 
+#include <cstdint>
 #include "flamegpu/flamegpu.h"
 
 namespace PDAC {
@@ -60,6 +61,15 @@ enum VascularCellState : int {
     VAS_PHALANX = 2   // Mature vessel (O2 secreting)
 };
 
+// Voxel tissue type labels (static, set during initialization)
+enum VoxelType : uint8_t {
+    VOXEL_STROMA = 0,  // General stromal tissue (default)
+    VOXEL_SEPTUM = 1,  // Lobular septum (high ECM, fibroblasts, vessels)
+    VOXEL_LOBULE = 2,  // Lobule interior (parenchymal tissue)
+    VOXEL_TUMOR  = 3,  // Initial tumor region
+    VOXEL_MARGIN = 4   // Tumor-stroma boundary (desmoplastic shell)
+};
+
 // Message names
 constexpr const char* MSG_CELL_LOCATION = "cell_location";
 constexpr const char* MSG_INTENT = "intent_message";
@@ -79,13 +89,7 @@ constexpr const char* ENV_GRID_SIZE_Y = "grid_size_y";
 constexpr const char* ENV_GRID_SIZE_Z = "grid_size_z";
 constexpr const char* ENV_VOXEL_SIZE = "voxel_size";
 
-// Voxel capacity from CPU params (param_all.xml: nr_T_voxel, nr_T_voxel_C)
-constexpr int MAX_T_PER_VOXEL = 8;              // Max T cells in empty voxel
-constexpr int MAX_T_PER_VOXEL_WITH_CANCER = 1;  // Max T cells when cancer present
-constexpr int MAX_CANCER_PER_VOXEL = 1;         // Max cancer cells per voxel
-constexpr int MAX_MDSC_PER_VOXEL = 1;           // Max MDSC per voxel (exclusive)
 constexpr int N_DIVIDE_WAVES = 1;               // Wave-interleaved division rounds (cancer/tcell/treg)
-constexpr int MAX_MAC_PER_VOXEL = 1;            // Max macrophage per voxel (exclusive)
 // MAX_FIB_CHAIN_LENGTH removed — fibroblasts are now single-cell agents
 // ── Per-step event counters (device_event_counters[], env prop "event_counters_ptr") ──────────────
 // Reset each step. Written by agent device functions via atomicAdd.
@@ -218,6 +222,7 @@ enum ABMEventCounterIndex : int {
 #define PDE_CONC_IL1   "pde_concentration_ptr_10"
 #define PDE_CONC_IL6   "pde_concentration_ptr_11"
 #define PDE_CONC_CXCL13 "pde_concentration_ptr_12"
+#define PDE_CONC_MMP   "pde_concentration_ptr_13"
 
 // Source pointers (atomicAdd secretion rate / voxel_volume → [conc/s])
 #define PDE_SRC_O2    "pde_source_ptr_0"
@@ -233,6 +238,7 @@ enum ABMEventCounterIndex : int {
 #define PDE_SRC_IL1   "pde_source_ptr_10"
 #define PDE_SRC_IL6   "pde_source_ptr_11"
 #define PDE_SRC_CXCL13 "pde_source_ptr_12"
+#define PDE_SRC_MMP    "pde_source_ptr_13"
 
 // Uptake pointers (atomicAdd first-order decay rate [1/s], no volume scaling)
 #define PDE_UPT_O2    "pde_uptake_ptr_0"
@@ -248,6 +254,7 @@ enum ABMEventCounterIndex : int {
 #define PDE_UPT_IL1   "pde_uptake_ptr_10"
 #define PDE_UPT_IL6   "pde_uptake_ptr_11"
 #define PDE_UPT_CXCL13 "pde_uptake_ptr_12"
+#define PDE_UPT_MMP    "pde_uptake_ptr_13"
 
 // Gradient pointers (read-only, filled by compute_pde_gradients each step)
 #define PDE_GRAD_IFN_X   "pde_grad_IFN_x"
@@ -289,17 +296,8 @@ __device__ __forceinline__ int voxel_index(int x, int y, int z, int size_x, int 
     return x + y * size_x + z * size_x * size_y;
 }
 
-// ============================================================
-// Occupancy Grid Constants
-// ============================================================
-// Max grid dimension for compile-time MacroProperty allocation.
-// Only voxels [0..runtime_grid_size-1] are actually used.
-// Memory: 128^3 * 8 types * 4 bytes = ~67 MB (acceptable for modern GPU).
-constexpr int OCC_GRID_MAX = 320;
-
-// Number of occupancy type slots (matches AgentType enum max index + 1).
-// Index 0 (AGENT_DUMMY) is unused; indices 1-7 map directly to AgentType values.
-constexpr int NUM_OCC_TYPES = 8;
+// Volume-based occupancy replaces the old per-type occ_grid MacroProperty.
+// See volume_try_claim / volume_release helpers below.
 
 // Helper function: Hill equation
 __device__ __forceinline__ float hill_equation(float x, float k50, float n) {
@@ -388,6 +386,47 @@ __device__ __forceinline__ void get_moore_direction(int idx, int& dx, int& dy, i
 // Not using currently but saving for reference
 // Von Neumann mask: only face neighbors (bits 0-5)
 constexpr unsigned int VON_NEUMANN_MASK = 0x3Fu;  // binary: 00111111
+
+// ============================================================
+// Volume-Based Occupancy Helpers
+// ============================================================
+// Environment property name for the volume_used device array pointer
+#define VOL_USED_PTR "volume_used_ptr"
+
+// Read volume_used pointer from FLAMEGPU environment
+#define VOL_PTR(fgpu) \
+    reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>(VOL_USED_PTR))
+
+// Read ECM density and crosslink pointers from FLAMEGPU environment
+#define ECM_DENSITY_PTR(fgpu) \
+    reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>("ecm_density_ptr"))
+#define ECM_CROSSLINK_PTR(fgpu) \
+    reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>("ecm_crosslink_ptr"))
+
+// Compute ECM porosity at a voxel: porosity = max(0, 1 - density/cap * (1 + crosslink))
+__device__ __forceinline__ float ecm_porosity(const float* ecm_density, const float* ecm_crosslink,
+                                               int voxel_idx, float density_cap) {
+    float d = ecm_density[voxel_idx];
+    float c = ecm_crosslink[voxel_idx];
+    return fmaxf(0.0f, 1.0f - (d / density_cap) * (1.0f + c));
+}
+
+// Attempt to claim volume in a target voxel via atomicAdd.
+// Returns true if the claim succeeded (total <= capacity), false otherwise (undo performed).
+__device__ __forceinline__ bool volume_try_claim(float* vol_used, int voxel_idx, float my_volume, float capacity) {
+    float old = atomicAdd(&vol_used[voxel_idx], my_volume);
+    if (old + my_volume <= capacity) {
+        return true;  // Claim succeeded
+    }
+    // Over capacity — undo the claim
+    atomicAdd(&vol_used[voxel_idx], -my_volume);
+    return false;
+}
+
+// Release volume from a voxel (e.g., after movement or death).
+__device__ __forceinline__ void volume_release(float* vol_used, int voxel_idx, float my_volume) {
+    atomicAdd(&vol_used[voxel_idx], -my_volume);
+}
 
 } // namespace PDAC
 

@@ -261,7 +261,7 @@ FLAMEGPU_STEP_FUNCTION(exportPDEData) {
 // LZ4-compressed binary writer for ECM (stroma) Output
 // Writes ECM density and fibroblast density field as a single LZ4 file.
 // Shape: (2, grid_z, grid_y, grid_x), dtype float32, C-order.
-//   channel 0: ECM_density  (d_ecm_grid)
+//   channel 0: ECM_density  (d_ecm_density)
 //   channel 1: Fib_field    (d_fib_density_field)
 //
 // File format (.ecm.lz4):
@@ -319,7 +319,7 @@ static void write_ecm_lz4_buf(const char* path, int grid_x, int grid_y, int grid
 static void collect_ecm_to_buf(std::vector<float>& buf, int grid_x, int grid_y, int grid_z) {
     const int total_voxels = grid_x * grid_y * grid_z;
     buf.resize(static_cast<size_t>(2) * total_voxels);
-    float* d_ecm = PDAC::get_ecm_grid_device_ptr();
+    float* d_ecm = PDAC::get_ecm_density_device_ptr();
     float* d_fib = PDAC::get_fib_density_field_device_ptr();
     if (d_ecm) cudaMemcpy(buf.data(),                  d_ecm, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
     if (d_fib) cudaMemcpy(buf.data() + total_voxels,   d_fib, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
@@ -873,9 +873,14 @@ int main(int argc, const char** argv) {
     simulation.setEnvironmentProperty<unsigned int>("sim_seed", static_cast<unsigned int>(config.random_seed));
     init_lap("cuda_sim_create");
 
-    // ========== INITIALIZE AGENTS (QSP-seeded) ==========
-    std::cout << "Initializing agents from QSP steady-state..." << std::endl;
-    PDAC::initializeToQSP(simulation, *model, config, _lymph);
+    // ========== INITIALIZE AGENTS ==========
+    if (config.init_method == 1) {
+        std::cout << "Initializing structured domain (-i 1)..." << std::endl;
+        PDAC::initializeStructuredDomain(simulation, *model, config, _lymph);
+    } else {
+        std::cout << "Initializing agents from QSP steady-state (-i 0)..." << std::endl;
+        PDAC::initializeToQSP(simulation, *model, config, _lymph);
+    }
     std::cout << "[DEBUG] Agent initialization complete" << std::endl;
     std::cout.flush();
     init_lap("init_agents");
@@ -1001,7 +1006,7 @@ int main(int argc, const char** argv) {
               << "Header (28 bytes): magic='ECM1', grid_x(i32), grid_y(i32), grid_z(i32), n_channels=2(i32), raw_bytes(i32), comp_bytes(i32)\n"
               << "Data: LZ4-compressed float32 array, shape (2, grid_z, grid_y, grid_x)\n"
               << "Channel index -> field:\n"
-              << "  0: ECM_density   (d_ecm_grid, smoothed ECM density [0..1])\n"
+              << "  0: ECM_density   (d_ecm_density, smoothed ECM density [0..1])\n"
               << "  1: Fib_field     (d_fib_density_field, raw Gaussian fib density)\n"
               << "Loading:\n"
               << "  import lz4.block, struct, numpy as np\n"

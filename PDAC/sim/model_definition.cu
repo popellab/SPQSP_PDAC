@@ -107,8 +107,7 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     cancer_cell.newFunction("compute_chemical_sources", cancer_compute_chemical_sources);
     cancer_cell.newFunction("pack_for_export", pack_export_cancer);
 
-    // Movement, state, division, and occupancy grid functions only in main model
-    // (these access occ_grid which is not defined in submodel environments)
+    // Movement, state, division, and volume occupancy functions only in main model
     if (include_state_divide) {
         cancer_cell.newFunction("write_to_occ_grid", cancer_write_to_occ_grid);
         cancer_cell.newFunction("move", cancer_move);
@@ -520,7 +519,7 @@ void defineVascularCellAgent(flamegpu::ModelDescription& model) {
         fn.setAgentOutput(agent);
     }
 
-    // Single-phase movement (tip cells only, run-tumble, no occ_grid interaction)
+    // Single-phase movement (tip cells only, run-tumble, volume-based occupancy)
     agent.newFunction("move", vascular_move);
 }
 
@@ -651,15 +650,13 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     // Wave-interleaved division: current wave index (0..N_DIVIDE_WAVES-1), managed by host fns
     env.newProperty<int>("divide_current_wave", 0);
 
-    // Occupancy grid: stores per-voxel cell counts indexed by AgentType enum value.
-    // Dimensions are compile-time constants; only [0..grid_size-1] are used at runtime.
-    env.newMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
+    // Volume-based occupancy: d_volume_used device array allocated in pde_integration.cu,
+    // pointer registered as env property "volume_used_ptr" by set_pde_pointers_in_environment.
 
-    // ECM grid and fibroblast density field are now plain CUDA device arrays (d_ecm_grid,
-    // d_fib_density_field) allocated in initialize_pde_solver. Their uint64_t pointers
-    // are registered as env properties "ecm_grid_ptr" and "fib_density_field_ptr" by
-    // set_pde_pointers_in_environment. This eliminates MacroProperty D2H/H2D copies.
+    // ECM density, crosslink, and fibroblast density field are plain CUDA device arrays
+    // (d_ecm_density, d_ecm_crosslink, d_fib_density_field) allocated in initialize_pde_solver.
+    // Their uint64_t pointers are registered as env properties "ecm_density_ptr",
+    // "ecm_crosslink_ptr", and "fib_density_field_ptr" by set_pde_pointers_in_environment.
 
     // ABM event counters: atomic increment by agent functions, reset each step.
     // Indices defined in ABMEventCounterIndex enum (common.cuh).
@@ -692,7 +689,7 @@ std::unique_ptr<flamegpu::ModelDescription> buildModel(
 
     // MSG_CELL_LOCATION is still used by broadcast_location and scan_neighbors functions
     // (for state transitions and neighbor detection). MSG_INTENT has been removed;
-    // all movement and division now use the occupancy grid (occ_grid) directly.
+    // all movement and division now use volume-based occupancy (d_volume_used).
     defineCellLocationMessage(*model, voxel_size, grid_max);
 
     // Define agents with all functions

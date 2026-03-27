@@ -53,18 +53,18 @@ static unsigned int* d_vas_tip_id_grid = nullptr;
 // Flat device arrays for ECM (extracellular matrix) and fibroblast density field.
 // Replace MacroProperty-based approach to eliminate D2H/H2D copies every step.
 // Layout: idx = z * (nx * ny) + y * nx + x  (z-major, x-minor; matches PDE convention)
-static float* d_ecm_grid = nullptr;
+static float* d_ecm_density = nullptr;
+static float* d_ecm_crosslink = nullptr;   // Per-voxel crosslink accumulator (LOX-driven)
 static float* d_fib_density_field = nullptr;
 
-// Flat occupancy arrays for GPU recruitment kernel (populated by agent write_to_occ_grid).
-// d_t_occ: T cell + TReg count per voxel (only CELL_TYPE_T and CELL_TYPE_TREG increment).
-//          Used with d_cancer_occ for combined cap check matching HCC isOpenToType logic.
-// d_mac_occ / d_mdsc_occ: per-type counts for exclusive placement checks (atomicCAS).
-// d_recruit_requests: compact output buffer for placement decisions (GPU→host).
-// d_recruit_count: atomic counter for number of valid requests in buffer.
-static unsigned int* d_t_occ = nullptr;
-static unsigned int* d_mac_occ = nullptr;
-static unsigned int* d_mdsc_occ = nullptr;
+// Voxel tissue type labels (static, set once during initialization).
+// uint8_t per voxel: VOXEL_STROMA(0), VOXEL_SEPTUM(1), VOXEL_LOBULE(2), VOXEL_TUMOR(3), VOXEL_MARGIN(4)
+static uint8_t* d_voxel_type = nullptr;
+
+// Volume-based occupancy: single float per voxel tracking total cell volume (µm³).
+// Replaces the old per-type occ_grid MacroProperty + flat arrays (d_t_occ, d_mac_occ, d_mdsc_occ).
+static float* d_volume_used = nullptr;
+
 static RecruitRequest* d_recruit_requests = nullptr;
 static int* d_recruit_count = nullptr;
 
@@ -93,15 +93,18 @@ static RecruitDiag* d_recruit_diag = nullptr;
 
 // ============================================================================
 // CUDA Kernel: ECM Grid Update
-// Applies decay + fibroblast deposition + saturation clamping per voxel in parallel.
+// Applies decay + myCAF deposition + MMP degradation + crosslink accumulation per voxel.
 // Called from update_ecm_grid host function after fib_build_density_field runs.
 // ============================================================================
 __global__ void update_ecm_grid_kernel(
-    float* ecm, const float* fib_field, const float* tgfb_conc,
+    float* ecm_density, float* ecm_crosslink,
+    const float* fib_field, const float* tgfb_conc, const float* mmp_conc,
     int nx, int ny, int nz,
-    float voxel_vol_cm3, float decay_rate, float dt,
-    float ecm_baseline, float ecm_saturation, float release_rate,
-    float tgfb_ec50)
+    float voxel_vol_cm3, float dt,
+    float k_decay, float k_depo, float density_cap,
+    float tgfb_ec50, float ecm_baseline,
+    float k_mmp, float alpha_crosslink,
+    float k_lox)
 {
     const int tx = blockIdx.x * blockDim.x + threadIdx.x;
     const int ty = blockIdx.y * blockDim.y + threadIdx.y;
@@ -110,26 +113,38 @@ __global__ void update_ecm_grid_kernel(
 
     const int idx = tz * (nx * ny) + ty * nx + tx;
 
-    float curr_ecm     = ecm[idx];
-    float curr_ecm_amt = curr_ecm * voxel_vol_cm3;
+    float density   = ecm_density[idx];
+    float crosslink = ecm_crosslink[idx];
+    float fib       = fib_field[idx];
+    float tgfb      = tgfb_conc[idx];
+    float mmp       = mmp_conc[idx];
 
-    // Exponential decay — matches HCC: exp(-SEC_PER_SLICE * decay_rate)
-    float decayed = curr_ecm_amt * expf(-decay_rate * dt);
+    // 1. Exponential baseline decay
+    float density_amt = density * voxel_vol_cm3;
+    density_amt *= expf(-k_decay * dt);
+    density = density_amt / voxel_vol_cm3;
 
-    // Per-voxel TGFB amplification — matches HCC: (1 + H_CAF_TGFB) at target voxel
-    float tgfb    = tgfb_conc[idx];
-    float H_TGFB  = tgfb / (tgfb + tgfb_ec50);
+    // 2. myCAF deposition (TGF-β gated, saturation-limited)
+    float H_TGFB = tgfb / (tgfb + tgfb_ec50 + 1e-30f);
+    float sat_frac = fminf(density / density_cap, 1.0f);
+    float deposition = fib * (1.0f + H_TGFB) * k_depo / 3.0f * (1.0f - sat_frac) * dt;
+    density += deposition / voxel_vol_cm3;
 
-    // Deposition: fib_field * (1 + H_TGFB) * release_rate / 3 * (1 - saturation)
-    float saturation = fminf(curr_ecm / ecm_saturation, 1.0f);
-    float deposition = fib_field[idx] * (1.0f + H_TGFB) * release_rate / 3.0f * (1.0f - saturation);
+    // 3. MMP degradation (crosslink-resistant)
+    float mmp_degrade = k_mmp * mmp * density / (1.0f + alpha_crosslink * crosslink) * dt;
+    density -= mmp_degrade;
 
-    float new_ecm = (decayed + deposition) / voxel_vol_cm3;
+    // 4. Floor to baseline
+    density = fmaxf(density, ecm_baseline);
+    density = fminf(density, density_cap);
+    ecm_density[idx] = density;
 
-    // Floor to baseline only — matches HCC (no upper saturation clamp)
-    new_ecm = fmaxf(new_ecm, ecm_baseline);
-
-    ecm[idx] = new_ecm;
+    // 5. Crosslink accumulation (LOX from myCAFs, saturates at 1.0)
+    float mycaf_present = (fib > 0.0f) ? 1.0f : 0.0f;
+    crosslink += k_lox * (1.0f - crosslink) * mycaf_present * dt;
+    crosslink = fminf(crosslink, 1.0f);
+    crosslink = fmaxf(crosslink, 0.0f);
+    ecm_crosslink[idx] = crosslink;
 }
 
 // ============================================================================
@@ -222,6 +237,7 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     config.diffusion_coeffs[CHEM_IL1]   = gpu_params.getFloat(PARAM_IL1_DIFFUSIVITY);
     config.diffusion_coeffs[CHEM_IL6]   = gpu_params.getFloat(PARAM_IL6_DIFFUSIVITY);
     config.diffusion_coeffs[CHEM_CXCL13]= gpu_params.getFloat(PARAM_CXCL13_DIFFUSIVITY);
+    config.diffusion_coeffs[CHEM_MMP]   = gpu_params.getFloat(PARAM_MMP_DIFFUSIVITY);
 
     // Set decay rates (1/s) from params file
     config.decay_rates[CHEM_O2]    = gpu_params.getFloat(PARAM_O2_DECAY_RATE);
@@ -237,6 +253,7 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     config.decay_rates[CHEM_IL1]   = gpu_params.getFloat(PARAM_IL1_DECAY_RATE);
     config.decay_rates[CHEM_IL6]   = gpu_params.getFloat(PARAM_IL6_DECAY_RATE);
     config.decay_rates[CHEM_CXCL13]= gpu_params.getFloat(PARAM_CXCL13_DECAY_RATE);
+    config.decay_rates[CHEM_MMP]   = gpu_params.getFloat(PARAM_MMP_DECAY_RATE);
 
     g_pde_solver = new PDESolver(config);
     g_pde_solver->initialize();
@@ -256,18 +273,20 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     // Allocate ECM and fibroblast density field device arrays.
     // ECM starts at 0 here; initialize_ecm_to_saturation() is called after QSP init
     // (in set_internal_params) to fill with PARAM_FIB_ECM_SATURATION — matching HCC.
-    CUDA_CHECK(cudaMalloc(&d_ecm_grid, total_voxels * sizeof(float)));
-    CUDA_CHECK(cudaMemset(d_ecm_grid, 0, total_voxels * sizeof(float)));
+    // Allocate voxel type grid (domain initialization labels)
+    CUDA_CHECK(cudaMalloc(&d_voxel_type, total_voxels * sizeof(uint8_t)));
+    CUDA_CHECK(cudaMemset(d_voxel_type, 0, total_voxels * sizeof(uint8_t)));  // Default VOXEL_STROMA=0
+
+    CUDA_CHECK(cudaMalloc(&d_ecm_density, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_density, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_ecm_crosslink, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_crosslink, 0, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMalloc(&d_fib_density_field, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_fib_density_field, 0, total_voxels * sizeof(float)));
 
-    // Allocate flat occupancy arrays for GPU recruitment kernel
-    CUDA_CHECK(cudaMalloc(&d_t_occ, total_voxels * sizeof(unsigned int)));
-    CUDA_CHECK(cudaMemset(d_t_occ, 0, total_voxels * sizeof(unsigned int)));
-    CUDA_CHECK(cudaMalloc(&d_mac_occ, total_voxels * sizeof(unsigned int)));
-    CUDA_CHECK(cudaMemset(d_mac_occ, 0, total_voxels * sizeof(unsigned int)));
-    CUDA_CHECK(cudaMalloc(&d_mdsc_occ, total_voxels * sizeof(unsigned int)));
-    CUDA_CHECK(cudaMemset(d_mdsc_occ, 0, total_voxels * sizeof(unsigned int)));
+    // Allocate volume-based occupancy grid
+    CUDA_CHECK(cudaMalloc(&d_volume_used, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_volume_used, 0, total_voxels * sizeof(float)));
 
     // Allocate GPU recruitment output buffer + atomic counter
     CUDA_CHECK(cudaMalloc(&d_recruit_requests, MAX_RECRUITS_PER_STEP * sizeof(RecruitRequest)));
@@ -332,21 +351,35 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
     model.Environment().newProperty<unsigned long long>("vas_tip_id_grid_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_vas_tip_id_grid)));
 
+    // Store voxel type grid pointer (domain initialization labels)
+    model.Environment().newProperty<unsigned long long>("voxel_type_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_voxel_type)));
+
     // Store ECM and fibroblast density field pointers (replace MacroProperty approach)
-    model.Environment().newProperty<unsigned long long>("ecm_grid_ptr",
-        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_grid)));
+    model.Environment().newProperty<unsigned long long>("ecm_density_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_density)));
+    model.Environment().newProperty<unsigned long long>("ecm_crosslink_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_crosslink)));
     model.Environment().newProperty<unsigned long long>("fib_density_field_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_fib_density_field)));
 
-    // Store flat occupancy array pointers for GPU recruitment kernel
-    model.Environment().newProperty<unsigned long long>("t_occ_ptr",
-        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_t_occ)));
-    model.Environment().newProperty<unsigned long long>("mac_occ_ptr",
-        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_mac_occ)));
-    model.Environment().newProperty<unsigned long long>("mdsc_occ_ptr",
-        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_mdsc_occ)));
+    // Volume-based occupancy grid pointer
+    model.Environment().newProperty<unsigned long long>("volume_used_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_volume_used)));
 
     std::cout << "PDE device pointers stored in FLAME GPU environment" << std::endl;
+}
+
+void run_pde_warmup(int substeps) {
+    if (!g_pde_solver || substeps <= 0) return;
+    std::cout << "  Running PDE warmup (" << substeps << " substeps)..." << std::endl;
+    g_pde_solver->reset_sources();
+    g_pde_solver->reset_uptakes();
+    for (int i = 0; i < substeps; i++) {
+        g_pde_solver->solve_timestep();
+    }
+    g_pde_solver->compute_gradients();
+    std::cout << "  PDE warmup complete" << std::endl;
 }
 
 void cleanup_pde_solver() {
@@ -358,9 +391,17 @@ void cleanup_pde_solver() {
         cudaFree(d_cancer_occ);
         d_cancer_occ = nullptr;
     }
-    if (d_ecm_grid) {
-        cudaFree(d_ecm_grid);
-        d_ecm_grid = nullptr;
+    if (d_voxel_type) {
+        cudaFree(d_voxel_type);
+        d_voxel_type = nullptr;
+    }
+    if (d_ecm_density) {
+        cudaFree(d_ecm_density);
+        d_ecm_density = nullptr;
+    }
+    if (d_ecm_crosslink) {
+        cudaFree(d_ecm_crosslink);
+        d_ecm_crosslink = nullptr;
     }
     if (d_fib_density_field) {
         cudaFree(d_fib_density_field);
@@ -370,25 +411,37 @@ void cleanup_pde_solver() {
         cudaFree(d_vas_tip_id_grid);
         d_vas_tip_id_grid = nullptr;
     }
-    if (d_t_occ) { cudaFree(d_t_occ); d_t_occ = nullptr; }
-    if (d_mac_occ)   { cudaFree(d_mac_occ);   d_mac_occ = nullptr; }
-    if (d_mdsc_occ)  { cudaFree(d_mdsc_occ);  d_mdsc_occ = nullptr; }
+    if (d_volume_used) { cudaFree(d_volume_used); d_volume_used = nullptr; }
     if (d_recruit_requests) { cudaFree(d_recruit_requests); d_recruit_requests = nullptr; }
     if (d_recruit_count)    { cudaFree(d_recruit_count);    d_recruit_count = nullptr; }
     if (d_recruit_diag)     { cudaFree(d_recruit_diag);     d_recruit_diag = nullptr; }
 }
 
 void initialize_ecm_to_saturation(float ecm_saturation) {
-    if (!d_ecm_grid || !g_pde_solver) return;
+    if (!d_ecm_density || !g_pde_solver) return;
     int total_voxels = g_pde_solver->get_total_voxels();
     int block_size = 256;
     int grid_size = (total_voxels + block_size - 1) / block_size;
-    fill_ecm_kernel<<<grid_size, block_size>>>(d_ecm_grid, total_voxels, ecm_saturation);
+    fill_ecm_kernel<<<grid_size, block_size>>>(d_ecm_density, total_voxels, ecm_saturation);
     CUDA_CHECK(cudaDeviceSynchronize());
     std::cout << "[ECM] Initialized ECM grid to saturation value: " << ecm_saturation << std::endl;
 }
 
-float* get_ecm_grid_device_ptr() { return d_ecm_grid; }
+uint8_t* get_voxel_type_device_ptr() { return d_voxel_type; }
+
+void set_voxel_type_from_host(const uint8_t* host_data, int total_voxels) {
+    CUDA_CHECK(cudaMemcpy(d_voxel_type, host_data, total_voxels * sizeof(uint8_t), cudaMemcpyHostToDevice));
+}
+
+void set_ecm_density_from_host(const float* host_data, int total_voxels) {
+    CUDA_CHECK(cudaMemcpy(d_ecm_density, host_data, total_voxels * sizeof(float), cudaMemcpyHostToDevice));
+}
+
+void set_ecm_crosslink_from_host(const float* host_data, int total_voxels) {
+    CUDA_CHECK(cudaMemcpy(d_ecm_crosslink, host_data, total_voxels * sizeof(float), cudaMemcpyHostToDevice));
+}
+float* get_ecm_density_device_ptr() { return d_ecm_density; }
+float* get_ecm_crosslink_device_ptr() { return d_ecm_crosslink; }
 float* get_fib_density_field_device_ptr() { return d_fib_density_field; }
 unsigned int* get_vas_tip_id_grid_device_ptr() { return d_vas_tip_id_grid; }
 
@@ -536,7 +589,7 @@ struct RecruitKernelParams {
     int nx, ny, nz;
     // T cell (CD8) recruitment
     float p_teff, p_treg, p_th;
-    int nr_t_voxel, nr_t_voxel_c;
+    // nr_t_voxel/nr_t_voxel_c removed — volume-based occupancy replaces per-type caps
     float t_life_mean, t_life_sd;
     int t_divide_cd, t_divide_limit;
     float t_IL2_release;
@@ -553,6 +606,10 @@ struct RecruitKernelParams {
     float mac_life_mean;
     // RNG seed
     unsigned int seed;
+    // Volume-based occupancy
+    float voxel_capacity;
+    float vol_teff, vol_treg, vol_th;
+    float vol_mdsc, vol_mac_m1, vol_mac_m2;
 };
 
 // Device helper: xorshift32 RNG (fast, good enough for recruitment)
@@ -585,19 +642,15 @@ __device__ __forceinline__ int sample_exp_life_gpu(float mean, unsigned int& rng
 }
 
 // Device helper: try to place a cell at one of the 26 Moore neighbors of (sx, sy, sz).
-// Uses Fisher-Yates shuffle with thread-local RNG. Claims voxel via atomic ops on
-// d_t_occ + d_cancer_occ (for T/TReg cap, matching HCC isOpenToType) and
-// d_mac_occ/d_mdsc_occ (for exclusive placement).
+// Uses Fisher-Yates shuffle with thread-local RNG. Claims voxel via volume-based
+// occupancy (atomicAdd + capacity check + undo on overflow).
 // Returns true + sets (out_x, out_y, out_z) on success.
 __device__ bool try_find_open_neighbor(
     int sx, int sy, int sz,
-    int cell_type,
     int nx, int ny, int nz,
-    int nr_t_voxel, int nr_t_voxel_c,
-    unsigned int* d_t_occ,
-    const unsigned int* d_cancer_occ,
-    unsigned int* d_mac_occ,
-    unsigned int* d_mdsc_occ,
+    float* d_vol_used,
+    float cell_volume,
+    float voxel_capacity,
     unsigned int& rng,
     int& out_x, int& out_y, int& out_z)
 {
@@ -630,46 +683,18 @@ __device__ bool try_find_open_neighbor(
 
         int vidx = cz * (nx * ny) + cy * nx + cx;
 
-        if (cell_type == CELL_TYPE_T) {
-            // HCC isOpenToType: cap check uses cancer + T count combined.
-            // With nr_t_voxel_c=1 and cancer present, count starts at >=1 → no T cells allowed.
-            // With no cancer, up to nr_t_voxel (8) T cells per voxel.
-            unsigned int cancer_count = d_cancer_occ[vidx];
-            int cap = (cancer_count > 0u) ? nr_t_voxel_c : nr_t_voxel;
+        // Volume-based occupancy check (primary gate)
+        if (d_vol_used[vidx] + cell_volume > voxel_capacity) continue;
 
-            // Atomic claim: increment T count, check combined (cancer + T) against cap
-            unsigned int old_t = atomicAdd(&d_t_occ[vidx], 1u);
-            if ((int)(cancer_count + old_t) >= cap) {
-                atomicSub(&d_t_occ[vidx], 1u);  // Undo
-                continue;
-            }
-            out_x = cx; out_y = cy; out_z = cz;
-            return true;
+        // Atomic volume claim
+        float old_vol = atomicAdd(&d_vol_used[vidx], cell_volume);
+        if (old_vol + cell_volume > voxel_capacity) {
+            atomicAdd(&d_vol_used[vidx], -cell_volume);  // undo
+            continue;
         }
-        else if (cell_type == CELL_TYPE_TREG) {
-            // TRegs check T cell conditions for placement but don't consume T capacity.
-            // HCC: TRegs are invisible to T cell cap — T cells don't count TRegs.
-            unsigned int cancer_count = d_cancer_occ[vidx];
-            int cap = (cancer_count > 0u) ? nr_t_voxel_c : nr_t_voxel;
-            unsigned int t_count = d_t_occ[vidx];  // read-only, don't increment
-            if ((int)(cancer_count + t_count) >= cap) continue;
-            out_x = cx; out_y = cy; out_z = cz;
-            return true;
-        }
-        else if (cell_type == CELL_TYPE_MAC) {
-            // Exclusive: atomicCAS, only place if slot == 0
-            unsigned int old = atomicCAS(&d_mac_occ[vidx], 0u, 1u);
-            if (old != 0u) continue;
-            out_x = cx; out_y = cy; out_z = cz;
-            return true;
-        }
-        else if (cell_type == CELL_TYPE_MDSC) {
-            // Exclusive: atomicCAS, only place if slot == 0
-            unsigned int old = atomicCAS(&d_mdsc_occ[vidx], 0u, 1u);
-            if (old != 0u) continue;
-            out_x = cx; out_y = cy; out_z = cz;
-            return true;
-        }
+
+        out_x = cx; out_y = cy; out_z = cz;
+        return true;
     }
     return false;
 }
@@ -680,10 +705,8 @@ __device__ bool try_find_open_neighbor(
 // ============================================================================
 __global__ void recruit_all_kernel(
     const int* __restrict__ d_recruitment_sources,
-    unsigned int* d_t_occ,
     const unsigned int* __restrict__ d_cancer_occ,
-    unsigned int* d_mac_occ,
-    unsigned int* d_mdsc_occ,
+    float* d_vol_used,
     RecruitRequest* d_requests,
     int* d_request_count,
     RecruitDiag* diag,
@@ -712,9 +735,9 @@ __global__ void recruit_all_kernel(
         // Try Teff
         if (rng_uniform(rng) < p.p_teff) {
             atomicAdd(&diag->teff_roll_pass, 1);
-            if (try_find_open_neighbor(x, y, z, CELL_TYPE_T, p.nx, p.ny, p.nz,
-                    p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
-                    d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                    d_vol_used, p.vol_teff, p.voxel_capacity,
+                    rng, px, py, pz)) {
                 atomicAdd(&diag->teff_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
@@ -738,9 +761,9 @@ __global__ void recruit_all_kernel(
         // Try TReg
         if (rng_uniform(rng) < p.p_treg) {
             atomicAdd(&diag->treg_roll_pass, 1);
-            if (try_find_open_neighbor(x, y, z, CELL_TYPE_TREG, p.nx, p.ny, p.nz,
-                    p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
-                    d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                    d_vol_used, p.vol_treg, p.voxel_capacity,
+                    rng, px, py, pz)) {
                 atomicAdd(&diag->treg_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
@@ -764,9 +787,9 @@ __global__ void recruit_all_kernel(
         // Try TH
         if (rng_uniform(rng) < p.p_th) {
             atomicAdd(&diag->th_roll_pass, 1);
-            if (try_find_open_neighbor(x, y, z, CELL_TYPE_TREG, p.nx, p.ny, p.nz,
-                    p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
-                    d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                    d_vol_used, p.vol_th, p.voxel_capacity,
+                    rng, px, py, pz)) {
                 atomicAdd(&diag->th_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
@@ -793,9 +816,9 @@ __global__ void recruit_all_kernel(
         atomicAdd(&diag->mdsc_sources, 1);
         if (rng_uniform(rng) < p.p_mdsc) {
             atomicAdd(&diag->mdsc_roll_pass, 1);
-            if (try_find_open_neighbor(x, y, z, CELL_TYPE_MDSC, p.nx, p.ny, p.nz,
-                    p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
-                    d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                    d_vol_used, p.vol_mdsc, p.voxel_capacity,
+                    rng, px, py, pz)) {
                 atomicAdd(&diag->mdsc_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
@@ -822,9 +845,9 @@ __global__ void recruit_all_kernel(
         atomicAdd(&diag->mac_sources, 1);
         if (rng_uniform(rng) < p.p_mac) {
             atomicAdd(&diag->mac_roll_pass, 1);
-            if (try_find_open_neighbor(x, y, z, CELL_TYPE_MAC, p.nx, p.ny, p.nz,
-                    p.nr_t_voxel, p.nr_t_voxel_c, d_t_occ, d_cancer_occ,
-                    d_mac_occ, d_mdsc_occ, rng, px, py, pz)) {
+            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                    d_vol_used, p.vol_mac_m1, p.voxel_capacity,
+                    rng, px, py, pz)) {
                 atomicAdd(&diag->mac_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
                 if (slot < MAX_RECRUITS_PER_STEP) {
@@ -876,8 +899,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     p.p_th   = std::min(qsp_th   * FLAMEGPU->environment.getProperty<float>("PARAM_TH_RECRUIT_K"),   1.0f);
 
     // Voxel caps
-    p.nr_t_voxel   = FLAMEGPU->environment.getProperty<int>("PARAM_NR_T_VOXELS");
-    p.nr_t_voxel_c = FLAMEGPU->environment.getProperty<int>("PARAM_NR_T_VOXELS_C");
+    // nr_t_voxel/nr_t_voxel_c removed — replaced by volume capacity
 
     // T cell life/division params
     p.t_life_mean   = FLAMEGPU->environment.getProperty<float>("PARAM_T_CELL_LIFE_MEAN_SLICE");
@@ -906,13 +928,23 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     unsigned int base_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
     p.seed = base_seed ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 2654435761u + 1u);
 
+    // Volume-based occupancy params
+    p.voxel_capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    p.vol_teff   = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_EFF");
+    p.vol_treg   = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG");
+    p.vol_th     = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
+    p.vol_mdsc   = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MDSC");
+    p.vol_mac_m1 = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M1");
+    p.vol_mac_m2 = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M2");
+
     // Launch kernel
     dim3 block(8, 8, 8);
     dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
 
     recruit_all_kernel<<<grid, block>>>(
         g_pde_solver->get_device_recruitment_sources_ptr(),
-        d_t_occ, d_cancer_occ, d_mac_occ, d_mdsc_occ,
+        d_cancer_occ,
+        d_volume_used,
         d_recruit_requests, d_recruit_count, d_recruit_diag, p);
 
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -1102,22 +1134,15 @@ FLAMEGPU_HOST_FUNCTION(mark_mac_sources) {
 }
 
 // ============================================================================
-// Occupancy Grid: Zero the grid at the start of each step's division phase
+// Zero occupancy grids at the start of each step
 // ============================================================================
 FLAMEGPU_HOST_FUNCTION(zero_occupancy_grid) {
     nvtxRangePush("Zero Occ Grid");
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
-    occ.zero();
-
-    // Also reset the flat cancer occupancy, vascular tip_id, and recruitment occ arrays
     if (g_pde_solver) {
         int total_voxels = g_pde_solver->get_total_voxels();
         if (d_cancer_occ)      cudaMemset(d_cancer_occ,      0, total_voxels * sizeof(unsigned int));
         if (d_vas_tip_id_grid) cudaMemset(d_vas_tip_id_grid, 0, total_voxels * sizeof(unsigned int));
-        if (d_t_occ)           cudaMemset(d_t_occ,           0, total_voxels * sizeof(unsigned int));
-        if (d_mac_occ)         cudaMemset(d_mac_occ,         0, total_voxels * sizeof(unsigned int));
-        if (d_mdsc_occ)        cudaMemset(d_mdsc_occ,        0, total_voxels * sizeof(unsigned int));
+        if (d_volume_used)     cudaMemset(d_volume_used,     0, total_voxels * sizeof(float));
     }
     nvtxRangePop();
 }
@@ -1136,9 +1161,8 @@ FLAMEGPU_HOST_FUNCTION(zero_fib_density_field) {
 }
 
 // ============================================================================
-// ECM Grid: Apply decay, deposition from fibroblast density field, and clamp.
-// Replaces the CPU triple-nested loop with a GPU kernel launch.
-// No MacroProperty D2H/H2D — operates entirely on device arrays.
+// ECM Grid: decay + myCAF deposition + MMP degradation + crosslink accumulation.
+// Operates entirely on device arrays — no MacroProperty D2H/H2D.
 // ============================================================================
 FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
     nvtxRangePush("Update ECM Grid");
@@ -1148,28 +1172,34 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
     float voxel_size_cm  = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_SIZE_CM");
-    float decay_rate     = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_DECAY_RATE");
-    float ecm_baseline   = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_BASELINE");
-    float ecm_saturation = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_SATURATION");
-    float release_rate   = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_RELEASE_CAF");
-    float tgfb_ec50      = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_CAF_EC50");
     float dt             = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
-    // dt is in seconds; PARAM_FIB_ECM_DECAY_RATE is in [1/s] (QSP param converted by 1/86400)
-    // HCC formula: exp(-SEC_PER_TIME_SLICE [s] * k_ECM_deg [1/s])  →  exp(-dt * decay_rate)
     float voxel_vol_cm3  = voxel_size_cm * voxel_size_cm * voxel_size_cm;
 
-    // TGFB concentration pointer — read directly from PDE solver to avoid FLAMEGPU type issues
-    // (pde_concentration_ptr_* properties are stored as unsigned long long, not uint64_t)
+    // ECM parameters (new unified system)
+    float k_decay           = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DECAY_RATE");
+    float k_depo            = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DEPOSITION_RATE");
+    float density_cap       = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
+    float tgfb_ec50         = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_TGFB_EC50");
+    float ecm_baseline      = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_BASELINE");
+    float k_mmp             = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_MMP_DEGRADE_RATE");
+    float alpha_crosslink   = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_CROSSLINK_RESISTANCE");
+    float k_lox             = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_CROSSLINK_RATE");
+
+    // PDE concentration pointers
     const float* tgfb_ptr = g_pde_solver->get_device_concentration_ptr(CHEM_TGFB);
+    const float* mmp_ptr  = g_pde_solver->get_device_concentration_ptr(CHEM_MMP);
 
     dim3 block(8, 8, 8);
     dim3 grid((grid_x + 7) / 8, (grid_y + 7) / 8, (grid_z + 7) / 8);
     update_ecm_grid_kernel<<<grid, block>>>(
-        d_ecm_grid, d_fib_density_field, tgfb_ptr,
+        d_ecm_density, d_ecm_crosslink,
+        d_fib_density_field, tgfb_ptr, mmp_ptr,
         grid_x, grid_y, grid_z,
-        voxel_vol_cm3, decay_rate, dt,
-        ecm_baseline, ecm_saturation, release_rate,
-        tgfb_ec50);
+        voxel_vol_cm3, dt,
+        k_decay, k_depo, density_cap,
+        tgfb_ec50, ecm_baseline,
+        k_mmp, alpha_crosslink,
+        k_lox);
     cudaDeviceSynchronize();
 
     nvtxRangePop();

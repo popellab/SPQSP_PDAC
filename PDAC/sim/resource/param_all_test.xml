@@ -113,6 +113,100 @@
       <div_cooldown>50</div_cooldown>                       <!-- Steps between divisions -->
       <div_max>10</div_max>                                 <!-- Max divisions -->
     </Fib>
+    <Occupancy>
+      <voxelCapacity>8000.0</voxelCapacity>             <!-- um3, = voxel_size^3 (20^3) -->
+      <CancerCell>
+        <stemVolume>2500.0</stemVolume>                  <!-- um3, ~16.8 um diameter -->
+        <progenitorVolume>2500.0</progenitorVolume>
+        <senescentVolume>3000.0</senescentVolume>         <!-- enlarged senescent cells -->
+      </CancerCell>
+      <TCell>
+        <effectorVolume>500.0</effectorVolume>            <!-- um3, ~9.8 um diameter -->
+        <cytotoxicVolume>500.0</cytotoxicVolume>
+        <suppressedVolume>400.0</suppressedVolume>
+      </TCell>
+      <TReg>
+        <regulatoryVolume>500.0</regulatoryVolume>
+        <helperVolume>500.0</helperVolume>
+      </TReg>
+      <Mac>
+        <m1Volume>3000.0</m1Volume>                      <!-- um3, ~17.9 um diameter -->
+        <m2Volume>3500.0</m2Volume>
+      </Mac>
+      <Fib>
+        <quiescentVolume>2000.0</quiescentVolume>
+        <myCAFVolume>3500.0</myCAFVolume>
+        <iCAFVolume>2500.0</iCAFVolume>
+      </Fib>
+      <MDSC>
+        <volume>1000.0</volume>                          <!-- um3, ~12.4 um diameter -->
+      </MDSC>
+      <Vas>
+        <phalanxVolume>1500.0</phalanxVolume>
+        <tipVolume>1500.0</tipVolume>
+      </Vas>
+    </Occupancy>
+    <ECM>
+      <depositionRate>1e-4</depositionRate>           <!-- k_depo: myCAF deposition rate [1/s] -->
+      <densityCap>1.0</densityCap>                    <!-- Maximum ECM density per voxel -->
+      <mmpDegradeRate>1e-3</mmpDegradeRate>           <!-- k_mmp: MMP degradation rate [1/(s·mM)] -->
+      <crosslinkRate>1e-6</crosslinkRate>             <!-- k_lox: LOX crosslink accumulation [1/s] -->
+      <crosslinkResistance>5.0</crosslinkResistance>  <!-- alpha: crosslink MMP resistance factor -->
+      <decayRate>1e-6</decayRate>                     <!-- k_decay: baseline ECM decay [1/s] -->
+      <baseline>0.01</baseline>                       <!-- Floor density -->
+      <tgfbEC50>0.01</tgfbEC50>                       <!-- TGF-β EC50 for deposition Hill function -->
+      <porosityCancer>0.1</porosityCancer>            <!-- Min porosity for cancer movement -->
+      <porosityTcell>0.4</porosityTcell>              <!-- Min porosity for T cell movement -->
+      <porosityTreg>0.35</porosityTreg>               <!-- Min porosity for TReg movement -->
+      <porosityMDSC>0.3</porosityMDSC>                <!-- Min porosity for MDSC movement -->
+      <porosityMac>0.3</porosityMac>                  <!-- Min porosity for macrophage movement -->
+      <porosityFib>0.05</porosityFib>                 <!-- Min porosity for fibroblast movement -->
+      <porosityVasTip>0.2</porosityVasTip>            <!-- Min porosity for vascular TIP movement -->
+      <vasCompressK>0.5</vasCompressK>                <!-- Half-max ECM density for vascular compression -->
+    </ECM>
+    <DomainInit>
+      <!-- Lobular structure -->
+      <lobule_spacing>70</lobule_spacing>                     <!-- voxels between lobule centers -->
+      <septum_thickness>4</septum_thickness>                   <!-- voxels, Voronoi boundary width -->
+      <tumor_radius_fraction>0.15</tumor_radius_fraction>     <!-- fraction of grid_x -->
+      <margin_thickness>5</margin_thickness>                   <!-- voxels around tumor surface -->
+      <!-- ECM initialization by region -->
+      <ecm_septum_density>0.7</ecm_septum_density>
+      <ecm_septum_crosslink>0.3</ecm_septum_crosslink>
+      <ecm_stroma_density>0.1</ecm_stroma_density>
+      <ecm_lobule_density>0.05</ecm_lobule_density>
+      <ecm_margin_density>0.5</ecm_margin_density>
+      <ecm_margin_crosslink>0.1</ecm_margin_crosslink>
+      <ecm_tumor_density>0.1</ecm_tumor_density>
+      <!-- Cell placement probabilities by region -->
+      <Fibroblast>
+        <p_septum>0.4</p_septum>
+        <p_stroma>0.08</p_stroma>
+        <p_lobule>0.03</p_lobule>
+        <p_margin>0.3</p_margin>
+        <p_tumor>0.05</p_tumor>
+        <margin_mycaf_fraction>0.7</margin_mycaf_fraction>
+      </Fibroblast>
+      <Vascular>
+        <p_septum>0.18</p_septum>
+        <p_stroma>0.05</p_stroma>
+        <p_lobule>0.03</p_lobule>
+        <p_margin>0.05</p_margin>
+        <p_tumor>0.02</p_tumor>
+        <margin_tip_fraction>0.1</margin_tip_fraction>
+      </Vascular>
+      <Macrophage>
+        <p_stroma>0.01</p_stroma>
+        <p_margin>0.03</p_margin>
+        <p_tumor>0.02</p_tumor>
+        <margin_m1_fraction>0.2</margin_m1_fraction>
+      </Macrophage>
+      <TH>
+        <p_stroma>0.005</p_stroma>
+      </TH>
+      <!-- PDE warmup -->
+      <pde_warmup_substeps>20</pde_warmup_substeps>
+    </DomainInit>
   </ABM>
   <Molecular>
     <stepPerSlice>36</stepPerSlice>  <!-- 36 substeps per ABM step, matching HCC (dt_pde = dt_abm/36 = 600s) -->
@@ -211,6 +305,15 @@
         <decayRate>1e-4</decayRate>
         <molecularWeight>10</molecularWeight>      <!-- CXCL13 ~10 kDa -->
       </CXCL13>
+      <MMP>
+        <diffusivity>1e-7</diffusivity>              <!-- MMP-2/9 diffusivity [cm²/s] -->
+        <decayRate>5e-4</decayRate>                   <!-- Fast turnover (TIMP binding) -->
+        <molecularWeight>54000</molecularWeight>      <!-- MMP-2 ~72 kDa, MMP-9 ~92 kDa, avg -->
+        <release>
+          <Cancer>1e-12</Cancer>                      <!-- All cancer states secrete MMP -->
+          <MacM1>5e-12</MacM1>                        <!-- M1 macrophage MMP secretion -->
+        </release>
+      </MMP>
     </biofvm>
     <allMolecularOff>0</allMolecularOff>
     <diffusionOff>0</diffusionOff>

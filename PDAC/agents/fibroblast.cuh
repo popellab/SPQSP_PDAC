@@ -47,16 +47,24 @@ FLAMEGPU_AGENT_FUNCTION(fib_broadcast_location, flamegpu::MessageNone, flamegpu:
 }
 
 // ============================================================================
-// Fibroblast: Write single voxel to occupancy grid
+// Fibroblast: Write volume to occupancy grid
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(fib_write_to_occ_grid, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
 
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
-    occ[x][y][z][CELL_TYPE_FIB].exchange(1u);
+    const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int vidx = z * (gx * gy) + y * gx + x;
+    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    float my_vol = (cell_state == FIB_QUIESCENT) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_QUIESCENT") :
+        (cell_state == FIB_MYCAF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    atomicAdd(&vol_used[vidx], my_vol);
 
     return flamegpu::ALIVE;
 }
@@ -117,26 +125,32 @@ FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) 
 
     if (FLAMEGPU->random.uniform<float>() >= move_prob) return flamegpu::ALIVE;
 
-    // ECM-gated: higher ECM → less likely to move
-    const float* ecm_ptr = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>("ecm_grid_ptr"));
-    float ECM_density = ecm_ptr[z * (grid_x * grid_y) + y * grid_x + x];
-    float ECM_50 = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_MOT_EC50");
-    float ECM_sat = ECM_density / (ECM_density + ECM_50);
-    if (FLAMEGPU->random.uniform<float>() < ECM_sat) return flamegpu::ALIVE;
+    // ECM porosity: filter target voxels by fibroblast porosity threshold
+    const int old_vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
+    const float* ecm_c = ECM_CROSSLINK_PTR(FLAMEGPU);
+    const float density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
+    const float min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_FIB");
 
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
+    // Volume-based occupancy
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float my_vol = (cs == FIB_QUIESCENT) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_QUIESCENT") :
+        (cs == FIB_MYCAF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
 
-    // Random walk: pick random Moore neighbor
+    // Random walk: pick random Moore neighbor with volume capacity + porosity
     int cand_x[26], cand_y[26], cand_z[26];
     int n_cands = 0;
     for (int di = -1; di <= 1; di++) for (int dj = -1; dj <= 1; dj++) for (int dk = -1; dk <= 1; dk++) {
         if (di == 0 && dj == 0 && dk == 0) continue;
         int nx = x + di, ny = y + dj, nz = z + dk;
         if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z) continue;
-        if (occ[nx][ny][nz][CELL_TYPE_CANCER] != 0u) continue;
-        if (occ[nx][ny][nz][CELL_TYPE_FIB] != 0u) continue;
+        int nvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
+        if (vol_used[nvidx] + my_vol > capacity) continue;
+        if (ecm_porosity(ecm_d, ecm_c, nvidx, density_cap) < min_porosity) continue;
         cand_x[n_cands] = nx; cand_y[n_cands] = ny; cand_z[n_cands] = nz;
         n_cands++;
     }
@@ -147,11 +161,11 @@ FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) 
     if (pick >= n_cands) pick = n_cands - 1;
 
     int nx = cand_x[pick], ny = cand_y[pick], nz = cand_z[pick];
+    int target_vidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
 
-    // CAS claim
-    if (occ[nx][ny][nz][CELL_TYPE_FIB].CAS(0u, 1u) == 0u) {
-        // Release old voxel
-        occ[x][y][z][CELL_TYPE_FIB].exchange(0u);
+    // Volume claim
+    if (volume_try_claim(vol_used, target_vidx, my_vol, capacity)) {
+        volume_release(vol_used, old_vidx, my_vol);
         FLAMEGPU->setVariable<int>("x", nx);
         FLAMEGPU->setVariable<int>("y", ny);
         FLAMEGPU->setVariable<int>("z", nz);
@@ -257,8 +271,12 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide, flamegpu::MessageNone, flamegpu::MessageNone
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    auto occ = FLAMEGPU->environment.getMacroProperty<unsigned int,
-        OCC_GRID_MAX, OCC_GRID_MAX, OCC_GRID_MAX, NUM_OCC_TYPES>("occ_grid");
+    // Volume-based occupancy
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float daughter_vol = (cs == FIB_MYCAF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
 
     // Try Von Neumann neighbors (6 face-adjacent) in random order
     int dx6[6] = {1, -1, 0, 0, 0, 0};
@@ -276,8 +294,8 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide, flamegpu::MessageNone, flamegpu::MessageNone
     for (int d = 0; d < 6; d++) {
         int nx = x + dx6[d], ny = y + dy6[d], nz = z + dz6[d];
         if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z) continue;
-        if (occ[nx][ny][nz][CELL_TYPE_CANCER] != 0u) continue;
-        if (occ[nx][ny][nz][CELL_TYPE_FIB].CAS(0u, 1u) != 0u) continue;
+        int tvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
+        if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) continue;
 
         // Success — create daughter
         const int cd = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN"));

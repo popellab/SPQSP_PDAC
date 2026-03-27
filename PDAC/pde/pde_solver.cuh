@@ -22,6 +22,7 @@ enum ChemicalSubstrate {
     CHEM_IL1,       // IL-1
     CHEM_IL6,       // IL-6
     CHEM_CXCL13,    // CXCL13
+    CHEM_MMP,       // MMP-2/9 (matrix metalloproteinase)
     NUM_SUBSTRATES
 };
 
