@@ -118,6 +118,14 @@ Key species track MATLAB nearly perfectly (C1, VEGF, cDC1/2, nCD4). The 20 remai
 
 ### Remaining issues
 
-1. **V_T.ArgI**: 29% drift at day 265, driven by the ArgI→Treg→DC cascade. Root cause: `k_C_Tcell_eff` assignment rule has implicit scale 1e-3 off due to `v_T_search_volume` (mm³/day) mixing with V_T (mL). The annotator can't fix this automatically because the expression is purely multiplicative (no additive mismatch to trigger conversion). Fixing it manually makes things worse because other species depend on the same parameter.
-2. **20 species fail** the 5% threshold, all in the immune cascade at late timepoints
-3. Some parameters need context-dependent conversions that the single-pass algorithm can't discover (no additive mismatch in the expression, only indirect mismatch through downstream usage)
+1. **V_T.ArgI**: 8% at t=100, 24% peak at t=250, recovers to 8% at t=365. This is genuine solver-path divergence on a numerically sensitive cascade (ArgI → Treg → DC), not a unit conversion error. The RHS at t=0 matches SimBiology to machine precision.
+2. **20 species fail** the 5% threshold, all in the immune cascade at late timepoints (t > 260), mostly at 5-6% (near threshold).
+3. **13 remaining additive mismatches** in expressions (10 from drug binding reactions that are inactive without drug, 3 from the `k_C_Tcell_eff` multiplicative chain). These don't cause trajectory errors because the stoich factors compensate correctly.
+
+### SimBiology species name mapping (critical!)
+
+SimBiology's `sbiosimulate()` outputs bare species names ("Treg", "nCD4") with the same name appearing once per compartment. The column ORDER matches model.Species order (by compartment). **This order is different from `export(model).ValueInfo` order.**
+
+Mixing these two orderings causes silent data corruption — species from one compartment get mapped to another's values. This bug caused a phantom "780 million fold Treg error" that was actually just V_LN.Treg values being read as V_T.Treg.
+
+**Always use `qualify_species_names(model, simdata.DataNames)`** to map bare names to `Compartment_Species` format. See `tools/sbml_converter/tests/qualify_species_names.m`.
