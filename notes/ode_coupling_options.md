@@ -118,9 +118,26 @@ Key species track MATLAB nearly perfectly (C1, VEGF, cDC1/2, nCD4). The 20 remai
 
 ### Remaining issues
 
-1. **V_T.ArgI**: 8% at t=100, 24% peak at t=250, recovers to 8% at t=365. This is genuine solver-path divergence on a numerically sensitive cascade (ArgI → Treg → DC), not a unit conversion error. The RHS at t=0 matches SimBiology to machine precision.
+1. **V_T.ArgI**: 8% at t=100, 24% peak at t=250, recovers to 8% at t=365.
 2. **20 species fail** the 5% threshold, all in the immune cascade at late timepoints (t > 260), mostly at 5-6% (near threshold).
 3. **13 remaining additive mismatches** in expressions (10 from drug binding reactions that are inactive without drug, 3 from the `k_C_Tcell_eff` multiplicative chain). These don't cause trajectory errors because the stoich factors compensate correctly.
+
+### SBML export discrepancies (2026-03-29)
+
+SimBiology's `sbmlexport()` modifies kinetic law expressions inconsistently:
+
+| Reaction | Live model rate | SBML rate | Issue |
+|---|---|---|---|
+| Rxn 209 (ArgI deg) | `k_ArgI_deg * V_T.ArgI` | `k_ArgI_deg * V_T.ArgI * V_T` | Extra `*V_T` |
+| Rxn 211 (ArgI prod) | `k_ArgI_sec * V_T.MDSC` | `k_ArgI_sec * V_T.MDSC` | Matches |
+
+SimBiology multiplies some concentration-species reaction rates by compartment volume (SBML convention: kinetic laws give amount/time, not concentration/time). Our converter then divides by V_T for concentration species (`dydt = 1/V_T * flux`), so the extra `*V_T` cancels in Rxn 209. But this cancellation relies on V_T being computed identically in the kinetic law and the dydt divisor.
+
+**Root cause hypothesis**: The ArgI drift is from SBML export differences, not from our SBML→C++ translation. SimBiology cannot reimport its own SBML:
+- Raw SBML → "complex numbers" crash (`<ci>max</ci>` misinterpreted)
+- Fixed SBML → "undefined function piecewise" crash
+
+**Verification script**: `tools/sbml_converter/tests/compare_sbml_vs_live.m` — compares all reaction rates between the live SimBiology model and the SBML export, resolving SBML IDs to readable names. Run to find all SBML export discrepancies.
 
 ### SimBiology species name mapping (critical!)
 
