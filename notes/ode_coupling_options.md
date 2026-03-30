@@ -164,8 +164,17 @@ Extended trajectory comparison out to 1000 days. Key finding: the ArgI error is 
 **Annotator bug found (not the cause of drift, but should be fixed):**
 The `P0_C1` parameter gets converted ×1e-15 because the retry loop applies ×1e-3 five times. This happens because P0_C1 appears in BOTH children of the additive mismatch `P0_C1*(k_death)*C1 + P0_C1*(k_Tcell_eff)*C1`. Correcting P0_C1 shifts both terms equally, so the mismatch never resolves. The stoich factor compensates (1e18), making the net math correct, but it's wasteful. Fix: skip parameters that appear in both children of an additive node.
 
-**Remaining mystery:**
-The 0.057% error in V_LN.mcDC1/2 at t=1 is the earliest measurable divergence. The equations, parameters, stoich factors, and V_T computation all match SimBiology. The SBML formula for every reaction matches the live model. The error source is still unknown — it may be in how SimBiology's UnitConversion evaluates intermediate expressions differently from our parameter-conversion approach (evaluation order, internal rounding), or a subtle difference in how the SBML encodes a rate law vs the live model.
+**Deeper tracing (collagen as root):**
+Collagen diverges +0.007% by t=10 with perfectly linear growth from t=0 — a constant rate bias from the very first integration step. phi_collagen (computed from collagen/V_T/rho) shows a +0.012% jump at t=1 then decays. All parameter values match exactly between SBML and param_all.xml (no precision loss in the pipeline). The SBML formulas for collagen reactions are identical to the live model.
+
+The collagen error seeds myCAF (+0.010% at t=1) → mcDC (+0.057%) → aTreg (+0.057%) → V_T.Treg (+0.111%) → ArgI (+8%).
+
+**Hypothesis: absolute tolerance floor**
+Many V_T species (collagen, myCAF, qPSC, Treg, CD8, Th, MDSC, Mac_M1/M2, ArgI) start at exactly 0 ICs and grow from zero. With abstol=1e-11 and all tolerance scaling = 1.0 in model-unit mode, the solver treats values below ~1e-11 as "zero enough." Different solvers (or same solver with different tolerance scaling) handle the transition from 0 to the tolerance floor differently, creating a small permanent bias in each species' early growth.
+
+SimBiology's CVODE matched ode15s because both use SimBiology's internal UnitConversion tolerance scaling. Our C++ uses flat 1e-11 for all species. The effective tolerance for near-zero species differs, seeding the ~0.01% bias that the ArgI feedback cascade amplifies to 8-24%.
+
+**Next step to test:** Scale absolute tolerances per-species by a characteristic magnitude (e.g., expected peak value or unit-based scale), matching what SimBiology does internally. If the collagen +0.007% linear drift disappears, this confirms the tolerance floor hypothesis.
 
 ### SimBiology species name mapping (critical!)
 
