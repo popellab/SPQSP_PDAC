@@ -73,25 +73,29 @@ FLAMEGPU_AGENT_FUNCTION(mac_scan_neighbors, flamegpu::MessageSpatial3D, flamegpu
     const float world_z = (z + 0.5f) * voxel_size;
 
     int neighbor_cancer_count = 0;
+    int neighbor_fib_count = 0;
 
     for (auto& msg : FLAMEGPU->message_in(world_x, world_y, world_z)) {
         int agent_type = msg.getVariable<int>("agent_type");
-        if (agent_type == CELL_TYPE_CANCER) {
-            int msg_x = msg.getVariable<int>("voxel_x");
-            int msg_y = msg.getVariable<int>("voxel_y");
-            int msg_z = msg.getVariable<int>("voxel_z");
-            int dx = msg_x - x;
-            int dy = msg_y - y;
-            int dz = msg_z - z;
+        int msg_x = msg.getVariable<int>("voxel_x");
+        int msg_y = msg.getVariable<int>("voxel_y");
+        int msg_z = msg.getVariable<int>("voxel_z");
+        int dx = msg_x - x;
+        int dy = msg_y - y;
+        int dz = msg_z - z;
 
-            // Only count if in Moore neighborhood (26 adjacent voxels)
-            if (std::abs(dx) <= 1 && std::abs(dy) <= 1 && std::abs(dz) <= 1) {
+        // Only count if in Moore neighborhood (26 adjacent voxels)
+        if (std::abs(dx) <= 1 && std::abs(dy) <= 1 && std::abs(dz) <= 1) {
+            if (agent_type == CELL_TYPE_CANCER) {
                 neighbor_cancer_count++;
+            } else if (agent_type == CELL_TYPE_FIB) {
+                neighbor_fib_count++;
             }
         }
     }
 
     FLAMEGPU->setVariable<int>("neighbor_cancer_count", neighbor_cancer_count);
+    FLAMEGPU->setVariable<int>("neighbor_fib_count", neighbor_fib_count);
     return flamegpu::ALIVE;
 }
 
@@ -181,122 +185,80 @@ FLAMEGPU_AGENT_FUNCTION(mac_compute_chemical_sources, flamegpu::MessageNone, fla
 // Macrophage: Single-phase movement using occupancy grid (exclusive per voxel)
 // Uses run-tumble chemotaxis toward CCL2 gradient
 // ============================================================================
+// Macrophage movement via unified movement framework.
+// CCL2 chemotaxis with state-dependent persistence and bias.
 FLAMEGPU_AGENT_FUNCTION(mac_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
-    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
-    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-    const int tumble = FLAMEGPU->getVariable<int>("tumble");
-
-    // ECM porosity: filter target voxels by macrophage porosity threshold
-    const int old_vidx = z * (grid_x * grid_y) + y * grid_x + x;
-    const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
-    const float* ecm_c = ECM_CROSSLINK_PTR(FLAMEGPU);
-    const float density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
-    const float min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_MAC");
-
-    const float move_dir_x = FLAMEGPU->getVariable<float>("move_direction_x");
-    const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
-    const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
-
-    // Volume-based occupancy
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+
     float my_vol = (cell_state == MAC_M1) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M1") :
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M2");
 
-    // Use CCL2 gradient for chemotaxis — read directly from PDE
-    const float grad_x = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_X))[old_vidx];
-    const float grad_y = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Y))[old_vidx];
-    const float grad_z = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Z))[old_vidx];
+    float p_persist = (cell_state == MAC_M1) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_MAC_M1") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_MAC_M2");
 
-    const float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
+    float bias = (cell_state == MAC_M1) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_MAC_M1") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_MAC_M2");
 
-    // === RUN PHASE (tumble == 0) ===
-    if (tumble == 0) {
-        float v_x = move_dir_x / dt;
-        float v_y = move_dir_y / dt;
-        float v_z = move_dir_z / dt;
+    // Read CCL2 gradient at current voxel
+    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    const float gx = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_X))[vidx];
+    const float gy = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Y))[vidx];
+    const float gz = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Z))[vidx];
 
-        float norm_gradient = std::sqrt(grad_x * grad_x + grad_y * grad_y + grad_z * grad_z);
-        float dot_product = v_x * grad_x + v_y * grad_y + v_z * grad_z;
-        float norm_v = std::sqrt(v_x * v_x + v_y * v_y + v_z * v_z);
-        float cos_theta = dot_product / (norm_v * norm_gradient);
-
-        const float EC50_grad = 1.0f;
-        float H_grad = norm_gradient / (norm_gradient + EC50_grad);
-        if (cos_theta < 0) H_grad = -H_grad;
-
-        const float lambda = 0.0000168f;
-        float tumble_rate = (lambda / 2.0f) * (1.0f - cos_theta) * (1.0f - H_grad) * dt;
-        float p_tumble = 1.0f - std::exp(-tumble_rate);
-
-        if (FLAMEGPU->random.uniform<float>() < p_tumble) {
-            FLAMEGPU->setVariable<int>("tumble", 1);
-            return flamegpu::ALIVE;
-        }
-
-        int tx = x + static_cast<int>(std::round(move_dir_x));
-        int ty = y + static_cast<int>(std::round(move_dir_y));
-        int tz = z + static_cast<int>(std::round(move_dir_z));
-
-        if (tx < 0 || tx >= grid_x || ty < 0 || ty >= grid_y || tz < 0 || tz >= grid_z) {
-            return flamegpu::ALIVE;
-        }
-
-        int target_vidx = tz * (grid_x * grid_y) + ty * grid_x + tx;
-        if (ecm_porosity(ecm_d, ecm_c, target_vidx, density_cap) >= min_porosity &&
-            volume_try_claim(vol_used, target_vidx, my_vol, capacity)) {
-            volume_release(vol_used, old_vidx, my_vol);
-            FLAMEGPU->setVariable<int>("x", tx);
-            FLAMEGPU->setVariable<int>("y", ty);
-            FLAMEGPU->setVariable<int>("z", tz);
-        }
+    MoveParams mp;
+    mp.grid_x = grid_x;
+    mp.grid_y = grid_y;
+    mp.grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    mp.vol_used = VOL_PTR(FLAMEGPU);
+    mp.my_vol = my_vol;
+    mp.capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    mp.ecm_density = ECM_DENSITY_PTR(FLAMEGPU);
+    mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
+    mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
+    mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_MAC");
+    // Adhesion: M2 semi-sessile niche retention
+    if (cell_state == MAC_M2) {
+        const int n_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
+        const int n_fib = FLAMEGPU->getVariable<int>("neighbor_fib_count");
+        float local_ecm = mp.ecm_density[vidx];
+        float ecm_th = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_ECM_DENSITY_TH");
+        mp.p_move = compute_adhesion_pmove(
+            FLAMEGPU->environment.getProperty<float>("PARAM_ADH_MAC_M2_CANCER"), n_cancer,
+            FLAMEGPU->environment.getProperty<float>("PARAM_ADH_MAC_M2_FIB"), n_fib,
+            FLAMEGPU->environment.getProperty<float>("PARAM_ADH_MAC_M2_ECM"), local_ecm, ecm_th);
+    } else {
+        mp.p_move = 1.0f;
     }
-    // === TUMBLE PHASE (tumble == 1) ===
-    // Collect candidate neighbors with volume capacity, shuffle, try each.
-    else {
-        int cand_x[26], cand_y[26], cand_z[26];
-        int n_cands = 0;
-        for (int di = -1; di <= 1; di++) for (int dj = -1; dj <= 1; dj++) for (int dk = -1; dk <= 1; dk++) {
-            if (di==0 && dj==0 && dk==0) continue;
-            int nx = x+di, ny = y+dj, nz = z+dk;
-            if (nx<0||nx>=grid_x||ny<0||ny>=grid_y||nz<0||nz>=grid_z) continue;
-            int nvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
-            if (vol_used[nvidx] + my_vol > capacity) continue;
-            if (ecm_porosity(ecm_d, ecm_c, nvidx, density_cap) < min_porosity) continue;
-            cand_x[n_cands] = nx; cand_y[n_cands] = ny; cand_z[n_cands] = nz;
-            n_cands++;
-        }
-        if (n_cands == 0) return flamegpu::ALIVE;
-        for (int i = n_cands-1; i > 0; i--) {
-            int j = static_cast<int>(FLAMEGPU->random.uniform<float>() * (i+1));
-            if (j > i) j = i;
-            int tx=cand_x[i]; cand_x[i]=cand_x[j]; cand_x[j]=tx;
-            int ty=cand_y[i]; cand_y[i]=cand_y[j]; cand_y[j]=ty;
-            int tz=cand_z[i]; cand_z[i]=cand_z[j]; cand_z[j]=tz;
-        }
-        for (int i = 0; i < n_cands; i++) {
-            int tvidx = cand_z[i] * (grid_x * grid_y) + cand_y[i] * grid_x + cand_x[i];
-            if (volume_try_claim(vol_used, tvidx, my_vol, capacity)) {
-                volume_release(vol_used, old_vidx, my_vol);
-                FLAMEGPU->setVariable<int>("x", cand_x[i]);
-                FLAMEGPU->setVariable<int>("y", cand_y[i]);
-                FLAMEGPU->setVariable<int>("z", cand_z[i]);
-                FLAMEGPU->setVariable<float>("move_direction_x", static_cast<float>(cand_x[i]-x));
-                FLAMEGPU->setVariable<float>("move_direction_y", static_cast<float>(cand_y[i]-y));
-                FLAMEGPU->setVariable<float>("move_direction_z", static_cast<float>(cand_z[i]-z));
-                FLAMEGPU->setVariable<int>("tumble", 0);
-                break;
-            }
-        }
+    mp.p_persist = p_persist;
+    mp.bias_strength = bias;
+    mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
+
+    MoveResult r = move_cell(mp, x, y, z,
+        FLAMEGPU->getVariable<int>("persist_dir_x"),
+        FLAMEGPU->getVariable<int>("persist_dir_y"),
+        FLAMEGPU->getVariable<int>("persist_dir_z"),
+        FLAMEGPU->random.uniform<float>(),
+        FLAMEGPU->random.uniform<float>(),
+        FLAMEGPU->random.uniform<float>());
+
+    if (r.moved) {
+        FLAMEGPU->setVariable<int>("x", r.new_x);
+        FLAMEGPU->setVariable<int>("y", r.new_y);
+        FLAMEGPU->setVariable<int>("z", r.new_z);
+        FLAMEGPU->setVariable<int>("persist_dir_x", r.persist_dx);
+        FLAMEGPU->setVariable<int>("persist_dir_y", r.persist_dy);
+        FLAMEGPU->setVariable<int>("persist_dir_z", r.persist_dz);
     }
 
     return flamegpu::ALIVE;
@@ -326,13 +288,27 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
     const int ny_ss = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int voxel_ss = z * ny_ss*nx_ss + y * nx_ss + x;
 
+    // Hypoxic M2 bias: low O2 shifts polarization toward M2
+    // bias_factor < 1 in hypoxia → harder to become/stay M1
+    float local_O2 = PDE_READ(FLAMEGPU, PDE_CONC_O2, voxel_ss);
+    const float mac_hyp_th = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_HYPOXIA_TH");
+    const float m2_bias_str = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M2_BIAS_STRENGTH");
+    float bias_factor = 1.0f;
+    if (local_O2 < mac_hyp_th && mac_hyp_th > 0.0f) {
+        bias_factor = 1.0f - m2_bias_str * (1.0f - local_O2 / mac_hyp_th);
+        bias_factor = fmaxf(bias_factor, 0.01f);  // floor to avoid division by zero
+    }
+
     if (cell_state == MAC_M1) {
         float TGFB = PDE_READ(FLAMEGPU, PDE_CONC_TGFB, voxel_ss);
         float IL10 = PDE_READ(FLAMEGPU, PDE_CONC_IL10, voxel_ss);
 
-        double alpha = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M2_POL") * 
-                            ((TGFB / (TGFB + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_EC50"))) + 
+        double alpha = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M2_POL") *
+                            ((TGFB / (TGFB + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_EC50"))) +
                             (IL10 / (IL10 + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_10_EC50"))));
+
+        // Hypoxia increases M1→M2 transition probability
+        alpha /= static_cast<double>(bias_factor);
 
         double p_M2_polar = 1 - std::exp(-alpha);
 
@@ -345,9 +321,12 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
         float IL12 = PDE_READ(FLAMEGPU, PDE_CONC_IL12, voxel_ss);
         float IFNg = PDE_READ(FLAMEGPU, PDE_CONC_IFN, voxel_ss);
 
-        double alpha = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M1_POL") * 
-                            ((IFNg / (IFNg + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IFN_G_EC50"))) + 
+        double alpha = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M1_POL") *
+                            ((IFNg / (IFNg + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IFN_G_EC50"))) +
                             (IL12 / (IL12 + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_12_EC50"))));
+
+        // Hypoxia decreases M2→M1 reversion probability
+        alpha *= static_cast<double>(bias_factor);
 
         double p_M1_polar = 1 - std::exp(-alpha);
 

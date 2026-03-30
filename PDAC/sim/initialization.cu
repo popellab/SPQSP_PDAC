@@ -118,16 +118,16 @@ inline void setVascularCellVariables(
     float move_dir_y = 0.0f,
     float move_dir_z = 0.0f,
     unsigned int tip_id = 0,
-    int branch = 0)
+    int branch = 0,
+    int initial_maturity = 100)
 {
     agent.setVariable<int>("x", x);
     agent.setVariable<int>("y", y);
     agent.setVariable<int>("z", z);
     agent.setVariable<int>("cell_state", state);
-    agent.setVariable<float>("move_direction_x", move_dir_x);
-    agent.setVariable<float>("move_direction_y", move_dir_y);
-    agent.setVariable<float>("move_direction_z", move_dir_z);
-    agent.setVariable<int>("tumble", 1);  // Start in tumble phase
+    agent.setVariable<int>("persist_dir_x", static_cast<int>(move_dir_x));
+    agent.setVariable<int>("persist_dir_y", static_cast<int>(move_dir_y));
+    agent.setVariable<int>("persist_dir_z", static_cast<int>(move_dir_z));
     agent.setVariable<int>("intent_action", 0);  // INTENT_NONE
     agent.setVariable<int>("target_x", -1);
     agent.setVariable<int>("target_y", -1);
@@ -135,6 +135,10 @@ inline void setVascularCellVariables(
     agent.setVariable<unsigned int>("tip_id", tip_id);
     agent.setVariable<int>("mature_to_phalanx", 0);
     agent.setVariable<int>("branch", branch);
+    agent.setVariable<int>("is_dysfunctional", 0);
+    // Initial vessels get high maturity (pre-existing, stabilized)
+    // TIP cells start at 0 since they're actively sprouting
+    agent.setVariable<int>("maturity", (state == VAS_TIP) ? 0 : initial_maturity);
 }
 
 void initializeVascularCellsRandom(
@@ -1215,12 +1219,16 @@ void initializeToQSP(
         std::cout << "[DEBUG] Initializing Vascular cells..." << std::endl;
         flamegpu::AgentVector vascular_vec(model.Agent(AGENT_VASCULAR));
         if (config.vascular_mode == "random") {
-            // Match HCC: radius = 0.5 * grid_x, 1 segment
+            // Scale segments with grid volume to maintain ~3% vessel density.
+            // Each segment places ~grid_size vessels along a line, so for a grid^3
+            // domain we need 0.03 * grid^2 segments. Clamp to [4, 1000].
             int vas_radius = config.grid_x / 2;
+            int num_seg = std::max(4, std::min(1000,
+                static_cast<int>(0.03f * config.grid_x * config.grid_y)));
             initializeVascularCellsRandom(
                 vascular_vec,
                 config.grid_x, config.grid_y, config.grid_z,
-                vas_radius, /*num_segments=*/1,
+                vas_radius, num_seg,
                 vas_branch_prob,
                 config.random_seed);
             assignInitialVascularTips(

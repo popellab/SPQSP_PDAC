@@ -56,6 +56,9 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
 
     // Movement control
     cancer_cell.newVariable<int>("moves_remaining", 0);
+    cancer_cell.newVariable<int>("persist_dir_x", 0);
+    cancer_cell.newVariable<int>("persist_dir_y", 0);
+    cancer_cell.newVariable<int>("persist_dir_z", 0);
 
     // Division control
     cancer_cell.newVariable<int>("divideCD", 0);
@@ -77,6 +80,7 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     cancer_cell.newVariable<int>("neighbor_cancer_count", 0);
     cancer_cell.newVariable<int>("neighbor_MDSC_count", 0);
     cancer_cell.newVariable<int>("neighbor_Mac1_count", 0);
+    cancer_cell.newVariable<int>("neighbor_fib_count", 0);
 
     // Cached bitmask of available neighbor voxels (no cancer cell, in bounds)
     cancer_cell.newVariable<unsigned int>("available_neighbors", 0u);
@@ -144,11 +148,10 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     tcell.newVariable<int>("divide_limit", 0);
     tcell.newVariable<int>("divide_wave", 0);   // Wave assignment for interleaved division
 
-    // Movement state for run-tumble chemotaxis
-    tcell.newVariable<float>("move_direction_x", 0.0f);
-    tcell.newVariable<float>("move_direction_y", 0.0f);
-    tcell.newVariable<float>("move_direction_z", 0.0f);
-    tcell.newVariable<int>("tumble", 1);  // 0=running, 1=tumbling (default: tumble to pick initial direction)
+    // Movement state (unified movement framework)
+    tcell.newVariable<int>("persist_dir_x", 0);
+    tcell.newVariable<int>("persist_dir_y", 0);
+    tcell.newVariable<int>("persist_dir_z", 0);
 
     // Molecular state (affects behavior)
     tcell.newVariable<float>("PDL1_syn", 0.0f);
@@ -182,6 +185,7 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     tcell.newVariable<unsigned int>("available_neighbors", 0u);
 
     // Lifecycle
+    tcell.newVariable<int>("hypoxia_exposure", 0);  // Cumulative hypoxia counter (graded impairment)
     tcell.newVariable<int>("life", 0);
     tcell.newVariable<int>("dead", 0);
 
@@ -238,11 +242,10 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     treg.newVariable<int>("divide_limit", 0);
     treg.newVariable<int>("divide_wave", 0);   // Wave assignment for interleaved division
 
-    // Movement state for run-tumble chemotaxis
-    treg.newVariable<float>("move_direction_x", 0.0f);
-    treg.newVariable<float>("move_direction_y", 0.0f);
-    treg.newVariable<float>("move_direction_z", 0.0f);
-    treg.newVariable<int>("tumble", 1);  // 0=running, 1=tumbling (default: tumble to pick initial direction)
+    // Movement state (unified movement framework)
+    treg.newVariable<int>("persist_dir_x", 0);
+    treg.newVariable<int>("persist_dir_y", 0);
+    treg.newVariable<int>("persist_dir_z", 0);
 
     treg.newVariable<float>("TGFB_release_remain", 0.0f);
 
@@ -312,11 +315,10 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state) {
     mdsc.newVariable<int>("y");
     mdsc.newVariable<int>("z");
 
-    // Movement state for run-tumble chemotaxis
-    mdsc.newVariable<float>("move_direction_x", 0.0f);
-    mdsc.newVariable<float>("move_direction_y", 0.0f);
-    mdsc.newVariable<float>("move_direction_z", 0.0f);
-    mdsc.newVariable<int>("tumble", 1);  // 0=running, 1=tumbling (default: tumble to pick initial direction)
+    // Movement state (unified movement framework)
+    mdsc.newVariable<int>("persist_dir_x", 0);
+    mdsc.newVariable<int>("persist_dir_y", 0);
+    mdsc.newVariable<int>("persist_dir_z", 0);
 
     // Molecular state (affects behavior)
     mdsc.newVariable<float>("PDL1_syn", 0.0f);
@@ -376,11 +378,10 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
     // Macrophage state (0=M1, 1=M2)
     mac.newVariable<int>("cell_state", 1);  // Default: M2
 
-    // Movement state for run-tumble chemotaxis
-    mac.newVariable<float>("move_direction_x", 0.0f);
-    mac.newVariable<float>("move_direction_y", 0.0f);
-    mac.newVariable<float>("move_direction_z", 0.0f);
-    mac.newVariable<int>("tumble", 1);  // 0=running, 1=tumbling (default: tumble to pick initial direction)
+    // Movement state (unified movement framework)
+    mac.newVariable<int>("persist_dir_x", 0);
+    mac.newVariable<int>("persist_dir_y", 0);
+    mac.newVariable<int>("persist_dir_z", 0);
 
     // Molecular state (affects behavior)
     mac.newVariable<float>("PDL1_syn", 0.0f);
@@ -390,6 +391,7 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
 
     // Neighbor counts (computed via messaging)
     mac.newVariable<int>("neighbor_cancer_count", 0);
+    mac.newVariable<int>("neighbor_fib_count", 0);
 
     mac.newVariable<int>("ifng_active",0);
 
@@ -430,13 +432,14 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
     // Fibroblast state (0=QUIESCENT, 1=MYCAF, 2=ICAF)
     fib.newVariable<int>("cell_state", FIB_QUIESCENT);
 
-    // Movement state for run-tumble
-    fib.newVariable<float>("move_direction_x", 0.0f);
-    fib.newVariable<float>("move_direction_y", 0.0f);
-    fib.newVariable<float>("move_direction_z", 0.0f);
-    fib.newVariable<int>("tumble", 1);
+    // Movement state (unified movement framework)
+    fib.newVariable<int>("persist_dir_x", 0);
+    fib.newVariable<int>("persist_dir_y", 0);
+    fib.newVariable<int>("persist_dir_z", 0);
 
     // Lifecycle
+    fib.newVariable<int>("neighbor_cancer_count", 0);
+    fib.newVariable<int>("neighbor_fib_count", 0);
     fib.newVariable<int>("life", 0);
 
     // Division
@@ -448,6 +451,8 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
     fib.newFunction("broadcast_location", fib_broadcast_location)
         .setMessageOutput(MSG_CELL_LOCATION);
 
+    fib.newFunction("scan_neighbors", fib_scan_neighbors)
+        .setMessageInput(MSG_CELL_LOCATION);
     fib.newFunction("compute_chemical_sources", fib_compute_chemical_sources);
     fib.newFunction("pack_for_export", pack_export_fib);
 
@@ -474,13 +479,10 @@ void defineVascularCellAgent(flamegpu::ModelDescription& model) {
     // State (VAS_TIP, VAS_STALK, VAS_PHALANX)
     agent.newVariable<int>("cell_state", VAS_PHALANX);  // Default: mature vessel
 
-    // Movement direction (for tip cells)
-    agent.newVariable<float>("move_direction_x", 1.0f);
-    agent.newVariable<float>("move_direction_y", 0.0f);
-    agent.newVariable<float>("move_direction_z", 0.0f);
-
-    // Run-tumble state
-    agent.newVariable<int>("tumble", 1);  // Start in tumble phase
+    // Movement state (unified movement framework)
+    agent.newVariable<int>("persist_dir_x", 0);
+    agent.newVariable<int>("persist_dir_y", 0);
+    agent.newVariable<int>("persist_dir_z", 0);
 
     // Tip ID (for tracking vessel lineages)
     agent.newVariable<unsigned int>("tip_id", 0);
@@ -494,6 +496,8 @@ void defineVascularCellAgent(flamegpu::ModelDescription& model) {
     // State transition variables
     agent.newVariable<int>("mature_to_phalanx", 0);  // Anastomosis flag
     agent.newVariable<int>("branch", 0);  // Branch flag for phalanx cells
+    agent.newVariable<int>("maturity", 0);            // Steps since creation (resists compression/regression)
+    agent.newVariable<int>("is_dysfunctional", 0);    // Sprouted into hypoxic tissue (permanent reduced O2)
 
     // Register agent functions
     agent.newFunction("broadcast_location", vascular_broadcast_location)

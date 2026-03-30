@@ -36,6 +36,10 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.CancerCell.asymmetricDivProb", "", "pr"},     // PARAM_ASYM_DIV_PROB
     {"Param.ABM.CancerCell.IFNgUptake", "", "pr"},            // PARAM_CANCER_IFNG_UPTAKE
     {"Param.ABM.CancerCell.hypoxia_th", "", "pr"},            // PARAM_CANCER_HYPOXIA_TH
+    {"Param.ABM.CancerCell.hif_vegf_boost", "", "pr"},       // PARAM_HIF_VEGF_BOOST
+    {"Param.ABM.CancerCell.hif_ccl2_boost", "", "pr"},       // PARAM_HIF_CCL2_BOOST
+    {"Param.ABM.CancerCell.hif_pdl1_boost", "", "pr"},       // PARAM_HIF_PDL1_BOOST
+    {"Param.ABM.CancerCell.hif_mhc_reduction", "", "pr"},    // PARAM_HIF_MHC_REDUCTION
     {"Param.ABM.CancerCell.density_csc", "", "pr"},           // PARAM_DENSITY_STEM
     {"Param.ABM.CancerCell.Tkill_scaler", "", "pos"},         // PARAM_TKILL_SCALAR
     {"Param.ABM.CancerCell.mincc", "", "pos"},                // PARAM_MIN_CC
@@ -47,7 +51,14 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.TCell.IL2_release_time", "", "pos"},  // PARAM_TCELL_IL2_RELEASE_TIME
     {"Param.ABM.TCell.IL2_prolif_th", "", "pos"},     // PARAM_TCELL_IL2_PROLIF_TH
     {"Param.ABM.TCell.IFNg_release_time", "", "pos"}, // PARAM_TCELL_IFNG_RELEASE_TIME
-    {"Param.ABM.TCell.IFNg_recruit_Half", "", "pos"}, 
+    {"Param.ABM.TCell.IFNg_recruit_Half", "", "pos"},
+    {"Param.ABM.TCell.hypoxia_threshold", "", "pr"},     // PARAM_TCELL_HYPOXIA_TH
+    {"Param.ABM.TCell.hypoxia_tier1", "", "pr"},         // PARAM_TCELL_HYPOXIA_TIER1
+    {"Param.ABM.TCell.hypoxia_tier2", "", "pr"},         // PARAM_TCELL_HYPOXIA_TIER2
+    {"Param.ABM.TCell.hypoxia_recovery", "", "pr"},      // PARAM_TCELL_HYPOXIA_RECOVERY
+    {"Param.ABM.TCell.hypoxia_factor1", "", "pr"},       // PARAM_TCELL_HYPOXIA_FACTOR1
+    {"Param.ABM.TCell.hypoxia_factor2", "", "pr"},       // PARAM_TCELL_HYPOXIA_FACTOR2
+    {"Param.ABM.TCell.hypoxia_factor3", "", "pr"},       // PARAM_TCELL_HYPOXIA_FACTOR3
     //*************************************************************************/
     // TCD4 cell parameters
     {"Param.ABM.TCD4.lifespanSD", "", "pos"},  // PARAM_TCD4_LIFESPAN_SD
@@ -55,6 +66,10 @@ const char* _gpu_param_description[][3] = {
     //*************************************************************************/
     // MDSC cell parameters
     {"Param.ABM.MDSC.lifespanSD", "", "pos"},  // PARAM_MDSC_LIFESPAN_SD
+    //*************************************************************************/
+    // Macrophage cell parameters
+    {"Param.ABM.Mac.hypoxia_threshold", "", "pr"},  // PARAM_MAC_HYPOXIA_TH
+    {"Param.ABM.Mac.m2_bias_strength", "", "pr"},   // PARAM_MAC_M2_BIAS_STRENGTH
     //*************************************************************************/
     // Fibroblast cell parameters
     {"Param.ABM.Fib.myCAF_TGFB_EC50", "", "pr"},              // PARAM_FIB_MYCAF_TGFB_EC50
@@ -88,8 +103,18 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Vas.init_density", "", "pr"},  // 
     {"Param.ABM.Vas.tumble", "", "pr"},  // 
     {"Param.ABM.Vas.delta", "", "pr"},  // 
-    {"Param.ABM.Vas.branch_prob", "", "pr"},  // 
-    {"Param.ABM.Vas.min_neighbor", "", "pos"},  // 
+    {"Param.ABM.Vas.branch_prob", "", "pr"},  //
+    {"Param.ABM.Vas.min_neighbor", "", "pos"},  //
+    {"Param.ABM.Vas.maturity_resistance", "", "pr"},      // PARAM_VAS_MATURITY_RESISTANCE
+    {"Param.ABM.Vas.initial_maturity", "", "pr"},          // PARAM_VAS_INITIAL_MATURITY
+    {"Param.ABM.Vas.collapse_threshold", "", "pr"},        // PARAM_VAS_COLLAPSE_THRESHOLD
+    {"Param.ABM.Vas.collapse_ec50", "", "pr"},             // PARAM_VAS_COLLAPSE_EC50
+    {"Param.ABM.Vas.recovery_threshold", "", "pr"},        // PARAM_VAS_RECOVERY_THRESHOLD
+    {"Param.ABM.Vas.recovery_rate", "", "pr"},             // PARAM_VAS_RECOVERY_RATE
+    {"Param.ABM.Vas.regress_rate", "", "pr"},              // PARAM_VAS_REGRESS_RATE
+    {"Param.ABM.Vas.vegfa_survival_ec50", "", "pr"},       // PARAM_VAS_VEGFA_SURVIVAL_EC50
+    {"Param.ABM.Vas.kvl_dysfunctional", "", "pr"},         // PARAM_VAS_KVL_DYSFUNCTIONAL
+    {"Param.ABM.Vas.hypoxia_threshold", "", "pr"},         // PARAM_VAS_HYPOXIA_TH
     //*************************************************************************/
     // Volume-based occupancy parameters
     {"Param.ABM.Occupancy.voxelCapacity", "um3", "pr"},             // PARAM_VOXEL_CAPACITY
@@ -154,7 +179,9 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.VEGFA.release.CancerStem", "", "pr"},       // PARAM_STEM_VEGFA_RELEASE_RATE
     {"Param.Molecular.biofvm.VEGFA.release.CancerProgenitor", "", "pr"}, // PARAM_PROG_VEGFA_RELEASE_RATE
     {"Param.Molecular.biofvm.VEGFA.release.Mac", "", "pr"},
-    {"Param.Molecular.biofvm.IL1.release.Cancer", "", "pr"},  // PARAM_CANCER_IL1_RELEASE
+    {"Param.Molecular.biofvm.IL1.release.CancerStem", "", "pr"},  // PARAM_CANCER_IL1_RELEASE_STEM
+    {"Param.Molecular.biofvm.IL1.release.CancerProg", "", "pr"},  // PARAM_CANCER_IL1_RELEASE_PROG
+    {"Param.Molecular.biofvm.IL1.release.CancerSen", "", "pr"},   // PARAM_CANCER_IL1_RELEASE_SEN
     {"Param.Molecular.biofvm.IL1.release.MacM1", "", "pr"},   // PARAM_MAC_M1_IL1_RELEASE
 
     {"Param.Molecular.biofvm.IL_2.uptake", "", "pr"},    // PARAM_IL2
@@ -198,6 +225,12 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.ECM.porosityFib", "", "pr"},               // PARAM_ECM_POROSITY_FIB
     {"Param.ABM.ECM.porosityVasTip", "", "pr"},            // PARAM_ECM_POROSITY_VAS_TIP
     {"Param.ABM.ECM.vasCompressK", "", "pr"},              // PARAM_VAS_ECM_COMPRESS_K
+    {"Param.ABM.ECM.yapEC50", "", "pr"},                  // PARAM_ECM_YAP_EC50
+    //*************************************************************************/
+    // Fibroblast HIF/hypoxia parameters
+    {"Param.ABM.Fib.hypoxia_th", "mM", "pr"},             // PARAM_FIB_HYPOXIA_TH
+    {"Param.ABM.Fib.hif_tgfb_boost", "", "pr"},           // PARAM_FIB_HIF_TGFB_BOOST
+    {"Param.ABM.Fib.hif_ecm_boost", "", "pr"},             // PARAM_FIB_HIF_ECM_BOOST
     //*************************************************************************/
     // Domain initialization parameters
     {"Param.ABM.DomainInit.lobule_spacing", "voxels", "pr"},              // PARAM_DOMAIN_LOBULE_SPACING
@@ -228,6 +261,46 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.DomainInit.Macrophage.p_tumor", "", "pr"},                // PARAM_DOMAIN_MAC_P_TUMOR
     {"Param.ABM.DomainInit.Macrophage.margin_m1_fraction", "", "pr"},     // PARAM_DOMAIN_MAC_MARGIN_M1_FRAC
     {"Param.ABM.DomainInit.TH.p_stroma", "", "pr"},                       // PARAM_DOMAIN_TH_P_STROMA
+    //*************************************************************************/
+    // Movement framework parameters
+    // Persistence
+    {"Param.ABM.Movement.Persistence.tcell_eff", "", "pr"},      // PARAM_PERSIST_TCELL_EFF
+    {"Param.ABM.Movement.Persistence.tcell_cyt", "", "pr"},      // PARAM_PERSIST_TCELL_CYT
+    {"Param.ABM.Movement.Persistence.tcell_sup", "", "pr"},      // PARAM_PERSIST_TCELL_SUP
+    {"Param.ABM.Movement.Persistence.mac_m1", "", "pr"},         // PARAM_PERSIST_MAC_M1
+    {"Param.ABM.Movement.Persistence.mac_m2", "", "pr"},         // PARAM_PERSIST_MAC_M2
+    {"Param.ABM.Movement.Persistence.fib_mycaf", "", "pr"},      // PARAM_PERSIST_FIB_MYCAF
+    {"Param.ABM.Movement.Persistence.fib_icaf", "", "pr"},       // PARAM_PERSIST_FIB_ICAF
+    {"Param.ABM.Movement.Persistence.vas_tip", "", "pr"},        // PARAM_PERSIST_VAS_TIP
+    {"Param.ABM.Movement.Persistence.treg_reg", "", "pr"},       // PARAM_PERSIST_TREG_REG
+    {"Param.ABM.Movement.Persistence.treg_th", "", "pr"},        // PARAM_PERSIST_TREG_TH
+    {"Param.ABM.Movement.Persistence.mdsc", "", "pr"},           // PARAM_PERSIST_MDSC
+    // Chemotaxis bias
+    {"Param.ABM.Movement.Chemotaxis.cancer_stem_bias", "", "pr"},   // PARAM_CHEMO_BIAS_CANCER_STEM
+    {"Param.ABM.Movement.Chemotaxis.mac_m1_bias", "", "pr"},        // PARAM_CHEMO_BIAS_MAC_M1
+    {"Param.ABM.Movement.Chemotaxis.mac_m2_bias", "", "pr"},        // PARAM_CHEMO_BIAS_MAC_M2
+    {"Param.ABM.Movement.Chemotaxis.fib_mycaf_bias", "", "pr"},     // PARAM_CHEMO_BIAS_FIB_MYCAF
+    {"Param.ABM.Movement.Chemotaxis.vas_tip_bias", "", "pr"},       // PARAM_CHEMO_BIAS_VAS_TIP
+    {"Param.ABM.Movement.Chemotaxis.treg_reg_bias", "", "pr"},      // PARAM_CHEMO_BIAS_TREG_REG
+    {"Param.ABM.Movement.Chemotaxis.mdsc_bias", "", "pr"},          // PARAM_CHEMO_BIAS_MDSC
+    // Adhesion
+    {"Param.ABM.Movement.Adhesion.ecm_density_threshold", "", "pr"},// PARAM_ADH_ECM_DENSITY_TH
+    {"Param.ABM.Movement.Adhesion.cancer_stem_to_cancer", "", "pr"},  // PARAM_ADH_CANCER_STEM_CANCER
+    {"Param.ABM.Movement.Adhesion.cancer_stem_to_fib", "", "pr"},     // PARAM_ADH_CANCER_STEM_FIB
+    {"Param.ABM.Movement.Adhesion.cancer_stem_to_ecm", "", "pr"},     // PARAM_ADH_CANCER_STEM_ECM
+    {"Param.ABM.Movement.Adhesion.cancer_prog_to_cancer", "", "pr"},  // PARAM_ADH_CANCER_PROG_CANCER
+    {"Param.ABM.Movement.Adhesion.cancer_prog_to_fib", "", "pr"},     // PARAM_ADH_CANCER_PROG_FIB
+    {"Param.ABM.Movement.Adhesion.cancer_prog_to_ecm", "", "pr"},     // PARAM_ADH_CANCER_PROG_ECM
+    {"Param.ABM.Movement.Adhesion.tcell_cyt_to_cancer", "", "pr"},    // PARAM_ADH_TCELL_CYT_CANCER
+    {"Param.ABM.Movement.Adhesion.mac_m2_to_cancer", "", "pr"},       // PARAM_ADH_MAC_M2_CANCER
+    {"Param.ABM.Movement.Adhesion.mac_m2_to_fib", "", "pr"},          // PARAM_ADH_MAC_M2_FIB
+    {"Param.ABM.Movement.Adhesion.mac_m2_to_ecm", "", "pr"},          // PARAM_ADH_MAC_M2_ECM
+    {"Param.ABM.Movement.Adhesion.fib_mycaf_to_cancer", "", "pr"},    // PARAM_ADH_FIB_MYCAF_CANCER
+    {"Param.ABM.Movement.Adhesion.fib_mycaf_to_fib", "", "pr"},       // PARAM_ADH_FIB_MYCAF_FIB
+    {"Param.ABM.Movement.Adhesion.fib_mycaf_to_ecm", "", "pr"},       // PARAM_ADH_FIB_MYCAF_ECM
+    {"Param.ABM.Movement.Adhesion.fib_icaf_to_cancer", "", "pr"},     // PARAM_ADH_FIB_ICAF_CANCER
+    {"Param.ABM.Movement.Adhesion.fib_icaf_to_fib", "", "pr"},        // PARAM_ADH_FIB_ICAF_FIB
+    {"Param.ABM.Movement.Adhesion.fib_icaf_to_ecm", "", "pr"},        // PARAM_ADH_FIB_ICAF_ECM
 
     ////////////////////////////////////////////////////////////////////////////
     // Integer parameters (must match GPUParamInt enum order)
@@ -373,6 +446,10 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_ASYM_DIV_PROB", getFloat(PARAM_ASYM_DIV_PROB));
     env.newProperty<float>("PARAM_CANCER_IFNG_UPTAKE", getFloat(PARAM_CANCER_IFNG_UPTAKE));
     env.newProperty<float>("PARAM_CANCER_HYPOXIA_TH", getFloat(PARAM_CANCER_HYPOXIA_TH));
+    env.newProperty<float>("PARAM_HIF_VEGF_BOOST", getFloat(PARAM_HIF_VEGF_BOOST));
+    env.newProperty<float>("PARAM_HIF_CCL2_BOOST", getFloat(PARAM_HIF_CCL2_BOOST));
+    env.newProperty<float>("PARAM_HIF_PDL1_BOOST", getFloat(PARAM_HIF_PDL1_BOOST));
+    env.newProperty<float>("PARAM_HIF_MHC_REDUCTION", getFloat(PARAM_HIF_MHC_REDUCTION));
     env.newProperty<float>("PARAM_DENSITY_STEM", getFloat(PARAM_DENSITY_STEM));
     env.newProperty<int>("PARAM_PROG_DIV_MAX", getInt(PARAM_PROG_DIV_MAX));
     env.newProperty<int>("PARAM_CANCER_MOVE_STEPS", getInt(PARAM_CANCER_MOVE_STEPS));
@@ -390,6 +467,13 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_TCELL_IL2_PROLIF_TH", getFloat(PARAM_TCELL_IL2_PROLIF_TH));
     env.newProperty<float>("PARAM_TCELL_IFNG_RELEASE_TIME", getFloat(PARAM_TCELL_IFNG_RELEASE_TIME));
     env.newProperty<float>("PARAM_TEFF_IFN_EC50", getFloat(PARAM_TEFF_IFN_EC50));
+    env.newProperty<float>("PARAM_TCELL_HYPOXIA_TH", getFloat(PARAM_TCELL_HYPOXIA_TH));
+    env.newProperty<float>("PARAM_TCELL_HYPOXIA_TIER1", getFloat(PARAM_TCELL_HYPOXIA_TIER1));
+    env.newProperty<float>("PARAM_TCELL_HYPOXIA_TIER2", getFloat(PARAM_TCELL_HYPOXIA_TIER2));
+    env.newProperty<float>("PARAM_TCELL_HYPOXIA_RECOVERY", getFloat(PARAM_TCELL_HYPOXIA_RECOVERY));
+    env.newProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR1", getFloat(PARAM_TCELL_HYPOXIA_FACTOR1));
+    env.newProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR2", getFloat(PARAM_TCELL_HYPOXIA_FACTOR2));
+    env.newProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR3", getFloat(PARAM_TCELL_HYPOXIA_FACTOR3));
     //TCD4 CELL PARAMETERS
     env.newProperty<int>("PARAM_TCD4_DIV_INTERNAL", getInt(PARAM_TCD4_DIV_INTERNAL));
     env.newProperty<int>("PARAM_TCD4_DIV_LIMIT", getInt(PARAM_TCD4_DIV_LIMIT));
@@ -400,6 +484,8 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<int>("PARAM_MDSC_MOVE_STEPS", getInt(PARAM_MDSC_MOVE_STEPS));
     //MACROPHAGE CELL PARAMETERS
     env.newProperty<int>("PARAM_MAC_MOVE_STEPS", getInt(PARAM_MAC_MOVE_STEPS));
+    env.newProperty<float>("PARAM_MAC_HYPOXIA_TH", getFloat(PARAM_MAC_HYPOXIA_TH));
+    env.newProperty<float>("PARAM_MAC_M2_BIAS_STRENGTH", getFloat(PARAM_MAC_M2_BIAS_STRENGTH));
     //FIBROBLAST CELL PARAMETERS
     env.newProperty<int>("PARAM_FIB_MOVE_STEPS", getInt(PARAM_FIB_MOVE_STEPS));
     env.newProperty<float>("PARAM_FIB_MYCAF_TGFB_EC50", getFloat(PARAM_FIB_MYCAF_TGFB_EC50));
@@ -434,6 +520,16 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_VAS_DELTA", getFloat(PARAM_VAS_DELTA));
     env.newProperty<float>("PARAM_VAS_BRANCH_PROB", getFloat(PARAM_VAS_BRANCH_PROB));
     env.newProperty<float>("PARAM_VAS_MIN_NEIGHBOR", getFloat(PARAM_VAS_MIN_NEIGHBOR));
+    env.newProperty<float>("PARAM_VAS_MATURITY_RESISTANCE", getFloat(PARAM_VAS_MATURITY_RESISTANCE));
+    env.newProperty<float>("PARAM_VAS_INITIAL_MATURITY", getFloat(PARAM_VAS_INITIAL_MATURITY));
+    env.newProperty<float>("PARAM_VAS_COLLAPSE_THRESHOLD", getFloat(PARAM_VAS_COLLAPSE_THRESHOLD));
+    env.newProperty<float>("PARAM_VAS_COLLAPSE_EC50", getFloat(PARAM_VAS_COLLAPSE_EC50));
+    env.newProperty<float>("PARAM_VAS_RECOVERY_THRESHOLD", getFloat(PARAM_VAS_RECOVERY_THRESHOLD));
+    env.newProperty<float>("PARAM_VAS_RECOVERY_RATE", getFloat(PARAM_VAS_RECOVERY_RATE));
+    env.newProperty<float>("PARAM_VAS_REGRESS_RATE", getFloat(PARAM_VAS_REGRESS_RATE));
+    env.newProperty<float>("PARAM_VAS_VEGFA_SURVIVAL_EC50", getFloat(PARAM_VAS_VEGFA_SURVIVAL_EC50));
+    env.newProperty<float>("PARAM_VAS_KVL_DYSFUNCTIONAL", getFloat(PARAM_VAS_KVL_DYSFUNCTIONAL));
+    env.newProperty<float>("PARAM_VAS_HYPOXIA_TH", getFloat(PARAM_VAS_HYPOXIA_TH));
     //VOLUME OCCUPANCY PARAMETERS
     env.newProperty<float>("PARAM_VOXEL_CAPACITY", getFloat(PARAM_VOXEL_CAPACITY));
     env.newProperty<float>("PARAM_VOLUME_CANCER_STEM", getFloat(PARAM_VOLUME_CANCER_STEM));
@@ -496,7 +592,9 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_STEM_VEGFA_RELEASE", getFloat(PARAM_STEM_VEGFA_RELEASE));  // Stem Cancer
     env.newProperty<float>("PARAM_PROG_VEGFA_RELEASE", getFloat(PARAM_PROG_VEGFA_RELEASE));  // Prog Cancer
     env.newProperty<float>("PARAM_MAC_VEGFA_RELEASE", getFloat(PARAM_MAC_VEGFA_RELEASE));
-    env.newProperty<float>("PARAM_CANCER_IL1_RELEASE", getFloat(PARAM_CANCER_IL1_RELEASE));
+    env.newProperty<float>("PARAM_CANCER_IL1_RELEASE_STEM", getFloat(PARAM_CANCER_IL1_RELEASE_STEM));
+    env.newProperty<float>("PARAM_CANCER_IL1_RELEASE_PROG", getFloat(PARAM_CANCER_IL1_RELEASE_PROG));
+    env.newProperty<float>("PARAM_CANCER_IL1_RELEASE_SEN", getFloat(PARAM_CANCER_IL1_RELEASE_SEN));
     env.newProperty<float>("PARAM_MAC_M1_IL1_RELEASE", getFloat(PARAM_MAC_M1_IL1_RELEASE));
 
     env.newProperty<float>("PARAM_IL2_UPTAKE", getFloat(PARAM_IL2_UPTAKE));      // Cyt TCells
@@ -540,6 +638,12 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_ECM_POROSITY_FIB", getFloat(PARAM_ECM_POROSITY_FIB));
     env.newProperty<float>("PARAM_ECM_POROSITY_VAS_TIP", getFloat(PARAM_ECM_POROSITY_VAS_TIP));
     env.newProperty<float>("PARAM_VAS_ECM_COMPRESS_K", getFloat(PARAM_VAS_ECM_COMPRESS_K));
+    env.newProperty<float>("PARAM_ECM_YAP_EC50", getFloat(PARAM_ECM_YAP_EC50));
+
+    // FIBROBLAST HIF/HYPOXIA PARAMETERS
+    env.newProperty<float>("PARAM_FIB_HYPOXIA_TH", getFloat(PARAM_FIB_HYPOXIA_TH));
+    env.newProperty<float>("PARAM_FIB_HIF_TGFB_BOOST", getFloat(PARAM_FIB_HIF_TGFB_BOOST));
+    env.newProperty<float>("PARAM_FIB_HIF_ECM_BOOST", getFloat(PARAM_FIB_HIF_ECM_BOOST));
 
     //DOMAIN INITIALIZATION PARAMETERS
     env.newProperty<float>("PARAM_DOMAIN_LOBULE_SPACING", getFloat(PARAM_DOMAIN_LOBULE_SPACING));
@@ -571,6 +675,43 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_DOMAIN_MAC_MARGIN_M1_FRAC", getFloat(PARAM_DOMAIN_MAC_MARGIN_M1_FRAC));
     env.newProperty<float>("PARAM_DOMAIN_TH_P_STROMA", getFloat(PARAM_DOMAIN_TH_P_STROMA));
     env.newProperty<int>("PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS", getInt(PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS));
+
+    // Movement framework
+    env.newProperty<float>("PARAM_PERSIST_TCELL_EFF", getFloat(PARAM_PERSIST_TCELL_EFF));
+    env.newProperty<float>("PARAM_PERSIST_TCELL_CYT", getFloat(PARAM_PERSIST_TCELL_CYT));
+    env.newProperty<float>("PARAM_PERSIST_TCELL_SUP", getFloat(PARAM_PERSIST_TCELL_SUP));
+    env.newProperty<float>("PARAM_PERSIST_MAC_M1", getFloat(PARAM_PERSIST_MAC_M1));
+    env.newProperty<float>("PARAM_PERSIST_MAC_M2", getFloat(PARAM_PERSIST_MAC_M2));
+    env.newProperty<float>("PARAM_PERSIST_FIB_MYCAF", getFloat(PARAM_PERSIST_FIB_MYCAF));
+    env.newProperty<float>("PARAM_PERSIST_FIB_ICAF", getFloat(PARAM_PERSIST_FIB_ICAF));
+    env.newProperty<float>("PARAM_PERSIST_VAS_TIP", getFloat(PARAM_PERSIST_VAS_TIP));
+    env.newProperty<float>("PARAM_PERSIST_TREG_REG", getFloat(PARAM_PERSIST_TREG_REG));
+    env.newProperty<float>("PARAM_PERSIST_TREG_TH", getFloat(PARAM_PERSIST_TREG_TH));
+    env.newProperty<float>("PARAM_PERSIST_MDSC", getFloat(PARAM_PERSIST_MDSC));
+    env.newProperty<float>("PARAM_CHEMO_BIAS_CANCER_STEM", getFloat(PARAM_CHEMO_BIAS_CANCER_STEM));
+    env.newProperty<float>("PARAM_CHEMO_BIAS_MAC_M1", getFloat(PARAM_CHEMO_BIAS_MAC_M1));
+    env.newProperty<float>("PARAM_CHEMO_BIAS_MAC_M2", getFloat(PARAM_CHEMO_BIAS_MAC_M2));
+    env.newProperty<float>("PARAM_CHEMO_BIAS_FIB_MYCAF", getFloat(PARAM_CHEMO_BIAS_FIB_MYCAF));
+    env.newProperty<float>("PARAM_CHEMO_BIAS_VAS_TIP", getFloat(PARAM_CHEMO_BIAS_VAS_TIP));
+    env.newProperty<float>("PARAM_CHEMO_BIAS_TREG_REG", getFloat(PARAM_CHEMO_BIAS_TREG_REG));
+    env.newProperty<float>("PARAM_CHEMO_BIAS_MDSC", getFloat(PARAM_CHEMO_BIAS_MDSC));
+    env.newProperty<float>("PARAM_ADH_ECM_DENSITY_TH", getFloat(PARAM_ADH_ECM_DENSITY_TH));
+    env.newProperty<float>("PARAM_ADH_CANCER_STEM_CANCER", getFloat(PARAM_ADH_CANCER_STEM_CANCER));
+    env.newProperty<float>("PARAM_ADH_CANCER_STEM_FIB", getFloat(PARAM_ADH_CANCER_STEM_FIB));
+    env.newProperty<float>("PARAM_ADH_CANCER_STEM_ECM", getFloat(PARAM_ADH_CANCER_STEM_ECM));
+    env.newProperty<float>("PARAM_ADH_CANCER_PROG_CANCER", getFloat(PARAM_ADH_CANCER_PROG_CANCER));
+    env.newProperty<float>("PARAM_ADH_CANCER_PROG_FIB", getFloat(PARAM_ADH_CANCER_PROG_FIB));
+    env.newProperty<float>("PARAM_ADH_CANCER_PROG_ECM", getFloat(PARAM_ADH_CANCER_PROG_ECM));
+    env.newProperty<float>("PARAM_ADH_TCELL_CYT_CANCER", getFloat(PARAM_ADH_TCELL_CYT_CANCER));
+    env.newProperty<float>("PARAM_ADH_MAC_M2_CANCER", getFloat(PARAM_ADH_MAC_M2_CANCER));
+    env.newProperty<float>("PARAM_ADH_MAC_M2_FIB", getFloat(PARAM_ADH_MAC_M2_FIB));
+    env.newProperty<float>("PARAM_ADH_MAC_M2_ECM", getFloat(PARAM_ADH_MAC_M2_ECM));
+    env.newProperty<float>("PARAM_ADH_FIB_MYCAF_CANCER", getFloat(PARAM_ADH_FIB_MYCAF_CANCER));
+    env.newProperty<float>("PARAM_ADH_FIB_MYCAF_FIB", getFloat(PARAM_ADH_FIB_MYCAF_FIB));
+    env.newProperty<float>("PARAM_ADH_FIB_MYCAF_ECM", getFloat(PARAM_ADH_FIB_MYCAF_ECM));
+    env.newProperty<float>("PARAM_ADH_FIB_ICAF_CANCER", getFloat(PARAM_ADH_FIB_ICAF_CANCER));
+    env.newProperty<float>("PARAM_ADH_FIB_ICAF_FIB", getFloat(PARAM_ADH_FIB_ICAF_FIB));
+    env.newProperty<float>("PARAM_ADH_FIB_ICAF_ECM", getFloat(PARAM_ADH_FIB_ICAF_ECM));
 
     // Internally processed parameters
     // float SEC_PER_DAY = 24.0f * 60.0f * 60.0f;

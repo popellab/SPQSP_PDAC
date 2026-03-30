@@ -29,9 +29,9 @@ FLAMEGPU_AGENT_FUNCTION(fib_broadcast_location, flamegpu::MessageNone, flamegpu:
 
     FLAMEGPU->message_out.setVariable<int>("agent_type", CELL_TYPE_FIB);
     FLAMEGPU->message_out.setVariable<unsigned int>("agent_id", FLAMEGPU->getID());
-    FLAMEGPU->message_out.setVariable<int>("x", x);
-    FLAMEGPU->message_out.setVariable<int>("y", y);
-    FLAMEGPU->message_out.setVariable<int>("z", z);
+    FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
+    FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
+    FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
     FLAMEGPU->message_out.setLocation(fx, fy, fz);
 
     // Population count by state
@@ -43,6 +43,38 @@ FLAMEGPU_AGENT_FUNCTION(fib_broadcast_location, flamegpu::MessageNone, flamegpu:
     else                      sc_idx = SC_FIB_ICAF;
     atomicAdd(&sc[sc_idx], 1u);
 
+    return flamegpu::ALIVE;
+}
+
+// ============================================================================
+// Fibroblast: Scan neighbors (for adhesion)
+// ============================================================================
+FLAMEGPU_AGENT_FUNCTION(fib_scan_neighbors, flamegpu::MessageSpatial3D, flamegpu::MessageNone) {
+    const float voxel_size = FLAMEGPU->environment.getProperty<float>("voxel_size");
+    const int x = FLAMEGPU->getVariable<int>("x");
+    const int y = FLAMEGPU->getVariable<int>("y");
+    const int z = FLAMEGPU->getVariable<int>("z");
+    const float wx = (x + 0.5f) * voxel_size;
+    const float wy = (y + 0.5f) * voxel_size;
+    const float wz = (z + 0.5f) * voxel_size;
+
+    int cancer_count = 0;
+    int fib_count = 0;
+
+    for (const auto& msg : FLAMEGPU->message_in(wx, wy, wz)) {
+        const int mx = msg.getVariable<int>("voxel_x");
+        const int my = msg.getVariable<int>("voxel_y");
+        const int mz = msg.getVariable<int>("voxel_z");
+        if (abs(mx - x) <= 1 && abs(my - y) <= 1 && abs(mz - z) <= 1
+            && !(mx == x && my == y && mz == z)) {
+            const int at = msg.getVariable<int>("agent_type");
+            if (at == CELL_TYPE_CANCER) cancer_count++;
+            else if (at == CELL_TYPE_FIB) fib_count++;
+        }
+    }
+
+    FLAMEGPU->setVariable<int>("neighbor_cancer_count", cancer_count);
+    FLAMEGPU->setVariable<int>("neighbor_fib_count", fib_count);
     return flamegpu::ALIVE;
 }
 
@@ -71,7 +103,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_write_to_occ_grid, flamegpu::MessageNone, flamegpu::
 
 // ============================================================================
 // Fibroblast: Compute chemical sources
-// myCAF: TGF-β + CCL2
+// myCAF: TGF-β + CCL2 (HIF-boosted under hypoxia, reduced at severe hypoxia)
 // iCAF:  IL-6 + CXCL13 + CCL2
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
@@ -88,11 +120,28 @@ FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, fla
     const float voxel_size_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1e-4f;
     const float voxel_volume = voxel_size_cm * voxel_size_cm * voxel_size_cm;
 
+    // Hypoxia modulation for myCAF secretion
+    float hif_boost = 1.0f;
+    float metabolic_factor = 1.0f;
+    if (cs == FIB_MYCAF) {
+        const float local_O2 = PDE_READ(FLAMEGPU, PDE_CONC_O2, voxel);
+        const float hyp_th = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_HYPOXIA_TH");
+        if (local_O2 < hyp_th && hyp_th > 0.0f) {
+            hif_boost = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_HIF_TGFB_BOOST");
+            // PSC metabolic decline: at severe hypoxia (<50% of threshold), secretion drops
+            const float severe_th = hyp_th * 0.5f;
+            if (local_O2 < severe_th) {
+                metabolic_factor = fmaxf(local_O2 / severe_th, 0.1f);
+            }
+        }
+    }
+
     if (cs == FIB_MYCAF) {
         const float tgfb_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_TGFB_RELEASE");
         const float ccl2_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_CCL2_RELEASE");
-        PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB, voxel, tgfb_rate / voxel_volume);
-        PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL2, voxel, ccl2_rate / voxel_volume);
+        float eff_boost = hif_boost * metabolic_factor;
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB, voxel, tgfb_rate * eff_boost / voxel_volume);
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL2, voxel, ccl2_rate * eff_boost / voxel_volume);
     } else {  // FIB_ICAF
         const float il6_rate    = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_IL6_RELEASE");
         const float cxcl13_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_CXCL13_RELEASE");
@@ -108,67 +157,93 @@ FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, fla
 // ============================================================================
 // Fibroblast: Movement — single-cell random walk, state-dependent probability
 // ============================================================================
+// Fibroblast movement via unified movement framework.
+// myCAF: TGF-β chemotaxis + persistence. iCAF: random walk + weak persistence.
+// Quiescent: no movement. Activated: adhesion-gated via neighbor counts + ECM.
 FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
-    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
-    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
 
-    // State-dependent movement probability
-    float move_prob;
-    if (cs == FIB_QUIESCENT)  move_prob = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MOVE_PROB_QUIESCENT");
-    else if (cs == FIB_MYCAF) move_prob = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MOVE_PROB_MYCAF");
-    else                      move_prob = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MOVE_PROB_ICAF");
+    // Quiescent fibroblasts don't move (preserve existing behavior)
+    if (cs == FIB_QUIESCENT) return flamegpu::ALIVE;
 
-    if (FLAMEGPU->random.uniform<float>() >= move_prob) return flamegpu::ALIVE;
+    // Adhesion-based movement probability (ECM anchorage + cell-cell)
 
-    // ECM porosity: filter target voxels by fibroblast porosity threshold
-    const int old_vidx = z * (grid_x * grid_y) + y * grid_x + x;
-    const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
-    const float* ecm_c = ECM_CROSSLINK_PTR(FLAMEGPU);
-    const float density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
-    const float min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_FIB");
-
-    // Volume-based occupancy
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    float my_vol = (cs == FIB_QUIESCENT) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_QUIESCENT") :
-        (cs == FIB_MYCAF) ?
+    float my_vol = (cs == FIB_MYCAF) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
 
-    // Random walk: pick random Moore neighbor with volume capacity + porosity
-    int cand_x[26], cand_y[26], cand_z[26];
-    int n_cands = 0;
-    for (int di = -1; di <= 1; di++) for (int dj = -1; dj <= 1; dj++) for (int dk = -1; dk <= 1; dk++) {
-        if (di == 0 && dj == 0 && dk == 0) continue;
-        int nx = x + di, ny = y + dj, nz = z + dk;
-        if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z) continue;
-        int nvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
-        if (vol_used[nvidx] + my_vol > capacity) continue;
-        if (ecm_porosity(ecm_d, ecm_c, nvidx, density_cap) < min_porosity) continue;
-        cand_x[n_cands] = nx; cand_y[n_cands] = ny; cand_z[n_cands] = nz;
-        n_cands++;
+    float p_persist = (cs == FIB_MYCAF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_FIB_MYCAF") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_FIB_ICAF");
+
+    float bias = (cs == FIB_MYCAF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_FIB_MYCAF") : 0.0f;
+
+    // Read TGF-β gradient for myCAF chemotaxis
+    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    float gx = 0.0f, gy = 0.0f, gz = 0.0f;
+    if (cs == FIB_MYCAF) {
+        gx = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_X))[vidx];
+        gy = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Y))[vidx];
+        gz = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Z))[vidx];
     }
-    if (n_cands == 0) return flamegpu::ALIVE;
 
-    // Pick random candidate
-    int pick = static_cast<int>(FLAMEGPU->random.uniform<float>() * n_cands);
-    if (pick >= n_cands) pick = n_cands - 1;
+    MoveParams mp;
+    mp.grid_x = grid_x;
+    mp.grid_y = grid_y;
+    mp.grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    mp.vol_used = VOL_PTR(FLAMEGPU);
+    mp.my_vol = my_vol;
+    mp.capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    mp.ecm_density = ECM_DENSITY_PTR(FLAMEGPU);
+    mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
+    mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
+    mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_FIB");
+    // Adhesion from neighbor counts + ECM
+    {
+        const int n_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
+        const int n_fib = FLAMEGPU->getVariable<int>("neighbor_fib_count");
+        float local_ecm = mp.ecm_density[vidx];
+        float ecm_th = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_ECM_DENSITY_TH");
+        float a_cancer, a_fib, a_ecm;
+        if (cs == FIB_MYCAF) {
+            a_cancer = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_MYCAF_CANCER");
+            a_fib    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_MYCAF_FIB");
+            a_ecm    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_MYCAF_ECM");
+        } else {
+            a_cancer = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_ICAF_CANCER");
+            a_fib    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_ICAF_FIB");
+            a_ecm    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_ICAF_ECM");
+        }
+        mp.p_move = compute_adhesion_pmove(a_cancer, n_cancer, a_fib, n_fib, a_ecm, local_ecm, ecm_th);
+    }
+    mp.p_persist = p_persist;
+    mp.bias_strength = bias;
+    mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
 
-    int nx = cand_x[pick], ny = cand_y[pick], nz = cand_z[pick];
-    int target_vidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
+    MoveResult r = move_cell(mp, x, y, z,
+        FLAMEGPU->getVariable<int>("persist_dir_x"),
+        FLAMEGPU->getVariable<int>("persist_dir_y"),
+        FLAMEGPU->getVariable<int>("persist_dir_z"),
+        FLAMEGPU->random.uniform<float>(),
+        FLAMEGPU->random.uniform<float>(),
+        FLAMEGPU->random.uniform<float>());
 
-    // Volume claim
-    if (volume_try_claim(vol_used, target_vidx, my_vol, capacity)) {
-        volume_release(vol_used, old_vidx, my_vol);
-        FLAMEGPU->setVariable<int>("x", nx);
-        FLAMEGPU->setVariable<int>("y", ny);
-        FLAMEGPU->setVariable<int>("z", nz);
+    if (r.moved) {
+        FLAMEGPU->setVariable<int>("x", r.new_x);
+        FLAMEGPU->setVariable<int>("y", r.new_y);
+        FLAMEGPU->setVariable<int>("z", r.new_z);
+        FLAMEGPU->setVariable<int>("persist_dir_x", r.persist_dx);
+        FLAMEGPU->setVariable<int>("persist_dir_y", r.persist_dy);
+        FLAMEGPU->setVariable<int>("persist_dir_z", r.persist_dz);
     }
 
     return flamegpu::ALIVE;
@@ -314,10 +389,9 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide, flamegpu::MessageNone, flamegpu::MessageNone
         daughter.setVariable<int>("divide_flag", 0);
         daughter.setVariable<int>("divide_cooldown", cd);
         daughter.setVariable<int>("divide_count", 0);
-        daughter.setVariable<float>("move_direction_x", 0.0f);
-        daughter.setVariable<float>("move_direction_y", 0.0f);
-        daughter.setVariable<float>("move_direction_z", 0.0f);
-        daughter.setVariable<int>("tumble", 1);
+        daughter.setVariable<int>("persist_dir_x", 0);
+        daughter.setVariable<int>("persist_dir_y", 0);
+        daughter.setVariable<int>("persist_dir_z", 0);
 
         // Record proliferation event
         auto* ec = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
@@ -332,6 +406,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide, flamegpu::MessageNone, flamegpu::MessageNone
 
 // ============================================================================
 // Fibroblast: Build Gaussian density field for ECM deposition (myCAF only)
+// HIF-boosted under hypoxia, PSC metabolic decline at severe hypoxia.
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(fib_build_density_field, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
@@ -343,12 +418,27 @@ FLAMEGPU_AGENT_FUNCTION(fib_build_density_field, flamegpu::MessageNone, flamegpu
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    const int voxel = z * (grid_x * grid_y) + y * grid_x + x;
 
     const int radius = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_RADIUS"));
     const float variance = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ECM_VARIANCE");
 
+    // HIF ECM boost: hypoxic myCAFs produce more ECM, but severe hypoxia causes
+    // metabolic decline (PSC self-limiting). Net effect = hif_boost * metabolic_factor.
+    float ecm_multiplier = 1.0f;
+    const float local_O2 = PDE_READ(FLAMEGPU, PDE_CONC_O2, voxel);
+    const float hyp_th = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_HYPOXIA_TH");
+    if (local_O2 < hyp_th && hyp_th > 0.0f) {
+        ecm_multiplier = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_HIF_ECM_BOOST");
+        // PSC metabolic decline at severe hypoxia (<50% threshold)
+        const float severe_th = hyp_th * 0.5f;
+        if (local_O2 < severe_th) {
+            ecm_multiplier *= fmaxf(local_O2 / severe_th, 0.1f);
+        }
+    }
+
     // Normalizer for 3D Gaussian: 1 / ((2π σ²)^(3/2))
-    const float normalizer = 1.0f / (powf(2.0f * 3.14159265f * variance, 1.5f));
+    const float normalizer = ecm_multiplier / (powf(2.0f * 3.14159265f * variance, 1.5f));
 
     float* field_ptr = reinterpret_cast<float*>(
         FLAMEGPU->environment.getProperty<uint64_t>("fib_density_field_ptr"));

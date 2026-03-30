@@ -58,7 +58,8 @@ enum FibroblastState : int {
 enum VascularCellState : int {
     VAS_TIP = 0,      // Actively sprouting tip cell
     VAS_STALK = 1,    // Connecting stalk cell
-    VAS_PHALANX = 2   // Mature vessel (O2 secreting)
+    VAS_PHALANX = 2,  // Mature vessel (O2 secreting)
+    VAS_PHALANX_COLLAPSED = 3  // Lumen collapsed by ECM pressure (no O2, recoverable)
 };
 
 // Voxel tissue type labels (static, set during initialization)
@@ -128,6 +129,7 @@ enum EventCounterIdx : int {
     EVT_DEATH_FIB_ICAF,
     EVT_DEATH_VAS_TIP,
     EVT_DEATH_VAS_PHALANX,
+    EVT_DEATH_VAS_COLLAPSED,
     // PDL1 expression numerator (divide by total cancer for PDL1_frac)
     EVT_PDL1_COUNT,
     ABM_EVENT_COUNTER_SIZE    // = 31
@@ -152,7 +154,8 @@ enum StateCounterIdx : int {
     SC_FIB_ICAF,
     SC_VAS_TIP,
     SC_VAS_PHALANX,
-    ABM_STATE_COUNTER_SIZE    // = 15
+    SC_VAS_COLLAPSED,
+    ABM_STATE_COUNTER_SIZE    // = 16
 };
 constexpr int MAX_RECRUITS_PER_STEP = 4096;    // Max recruitment requests per ABM step (GPU buffer size)
 
@@ -426,6 +429,168 @@ __device__ __forceinline__ bool volume_try_claim(float* vol_used, int voxel_idx,
 // Release volume from a voxel (e.g., after movement or death).
 __device__ __forceinline__ void volume_release(float* vol_used, int voxel_idx, float my_volume) {
     atomicAdd(&vol_used[voxel_idx], -my_volume);
+}
+
+// ============================================================
+// Unified Movement Framework
+// ============================================================
+// Replaces per-agent run-tumble and random walk with a composable
+// 3-behavior pipeline: adhesion → persistence → gradient-biased selection.
+
+// Compute adhesion-based move probability:
+//   p_move = max(0, 1 - sum(a_ij * n_j / 26) - a_ecm * ecm_factor)
+// ecm_factor = min(1, ecm_density / ecm_threshold) at current voxel
+__device__ __forceinline__ float compute_adhesion_pmove(
+    float a_cancer, int n_cancer,
+    float a_fib, int n_fib,
+    float a_ecm, float ecm_density, float ecm_threshold)
+{
+    float sum = a_cancer * (static_cast<float>(n_cancer) / 26.0f)
+              + a_fib    * (static_cast<float>(n_fib)    / 26.0f)
+              + a_ecm    * fminf(1.0f, ecm_density / fmaxf(ecm_threshold, 1e-12f));
+    return fmaxf(0.0f, 1.0f - sum);
+}
+
+struct MoveParams {
+    // Grid dimensions
+    int grid_x, grid_y, grid_z;
+    // Volume occupancy
+    float* vol_used;
+    float my_vol;
+    float capacity;
+    // ECM filtering
+    const float* ecm_density;
+    const float* ecm_crosslink;
+    float density_cap;
+    float min_porosity;
+    // Behavior: adhesion (pre-computed move probability, 1.0 = no adhesion)
+    float p_move;
+    // Behavior: persistence (probability of keeping previous direction)
+    float p_persist;
+    // Behavior: chemotaxis (gradient-biased direction selection)
+    float bias_strength;   // 0 = uniform random, >0 = gradient-biased
+    float grad_x, grad_y, grad_z;  // gradient vector at current voxel
+};
+
+struct MoveResult {
+    int new_x, new_y, new_z;
+    int persist_dx, persist_dy, persist_dz;
+    bool moved;
+};
+
+// Unified movement: adhesion check → build candidates → persistence → gradient-biased select → claim.
+// Caller provides 3 pre-rolled uniform [0,1) random floats.
+__device__ __forceinline__ MoveResult move_cell(
+    const MoveParams& p,
+    int x, int y, int z,
+    int persist_dx, int persist_dy, int persist_dz,
+    float r_move,       // for adhesion gate
+    float r_persist,    // for persistence check
+    float r_direction)  // for gradient-weighted CDF sampling
+{
+    MoveResult result;
+    result.new_x = x; result.new_y = y; result.new_z = z;
+    result.persist_dx = persist_dx;
+    result.persist_dy = persist_dy;
+    result.persist_dz = persist_dz;
+    result.moved = false;
+
+    // --- Step 1: Adhesion check ---
+    if (r_move >= p.p_move) return result;
+
+    // --- Step 2: Build candidate list (26 Moore neighbors, volume + porosity filter) ---
+    int cand_dx[26], cand_dy[26], cand_dz[26];
+    int n_cands = 0;
+
+    for (int i = 0; i < 26; i++) {
+        int ddx, ddy, ddz;
+        get_moore_direction(i, ddx, ddy, ddz);
+        int nx = x + ddx, ny = y + ddy, nz = z + ddz;
+        if (nx < 0 || nx >= p.grid_x || ny < 0 || ny >= p.grid_y || nz < 0 || nz >= p.grid_z)
+            continue;
+        int vidx = nz * (p.grid_x * p.grid_y) + ny * p.grid_x + nx;
+        if (p.vol_used[vidx] + p.my_vol > p.capacity) continue;
+        if (ecm_porosity(p.ecm_density, p.ecm_crosslink, vidx, p.density_cap) < p.min_porosity)
+            continue;
+        cand_dx[n_cands] = ddx;
+        cand_dy[n_cands] = ddy;
+        cand_dz[n_cands] = ddz;
+        n_cands++;
+    }
+    if (n_cands == 0) return result;
+
+    // --- Step 3: Persistence check ---
+    int sel_dx = 0, sel_dy = 0, sel_dz = 0;
+    bool selected = false;
+
+    if (r_persist < p.p_persist && (persist_dx != 0 || persist_dy != 0 || persist_dz != 0)) {
+        // Check if previous direction is in candidate list
+        for (int i = 0; i < n_cands; i++) {
+            if (cand_dx[i] == persist_dx && cand_dy[i] == persist_dy && cand_dz[i] == persist_dz) {
+                sel_dx = persist_dx; sel_dy = persist_dy; sel_dz = persist_dz;
+                selected = true;
+                break;
+            }
+        }
+    }
+
+    // --- Step 4: Gradient-biased direction selection (if persistence didn't fire) ---
+    if (!selected) {
+        // Normalize gradient
+        float gmag = sqrtf(p.grad_x * p.grad_x + p.grad_y * p.grad_y + p.grad_z * p.grad_z);
+        float ghat_x = 0.0f, ghat_y = 0.0f, ghat_z = 0.0f;
+        if (gmag > 1e-12f) {
+            float inv_gmag = 1.0f / gmag;
+            ghat_x = p.grad_x * inv_gmag;
+            ghat_y = p.grad_y * inv_gmag;
+            ghat_z = p.grad_z * inv_gmag;
+        }
+
+        // Compute weights: w_i = max(0, 1 + bias * cos_angle)
+        float weights[26];
+        float total_w = 0.0f;
+        for (int i = 0; i < n_cands; i++) {
+            float dx_f = static_cast<float>(cand_dx[i]);
+            float dy_f = static_cast<float>(cand_dy[i]);
+            float dz_f = static_cast<float>(cand_dz[i]);
+            float dir_mag = sqrtf(dx_f * dx_f + dy_f * dy_f + dz_f * dz_f);
+            float cos_angle = (dx_f * ghat_x + dy_f * ghat_y + dz_f * ghat_z) / dir_mag;
+            float w = fmaxf(0.0f, 1.0f + p.bias_strength * cos_angle);
+            weights[i] = w;
+            total_w += w;
+        }
+
+        // Sample from weighted CDF
+        if (total_w <= 0.0f) {
+            // All weights zero (shouldn't happen with bias <= 1.0) — uniform fallback
+            int pick = static_cast<int>(r_direction * n_cands);
+            if (pick >= n_cands) pick = n_cands - 1;
+            sel_dx = cand_dx[pick]; sel_dy = cand_dy[pick]; sel_dz = cand_dz[pick];
+        } else {
+            float r = r_direction * total_w;
+            float cumsum = 0.0f;
+            int pick = n_cands - 1;  // fallback to last
+            for (int i = 0; i < n_cands; i++) {
+                cumsum += weights[i];
+                if (r < cumsum) { pick = i; break; }
+            }
+            sel_dx = cand_dx[pick]; sel_dy = cand_dy[pick]; sel_dz = cand_dz[pick];
+        }
+    }
+
+    // --- Step 5: Attempt atomic volume claim ---
+    int nx = x + sel_dx, ny = y + sel_dy, nz = z + sel_dz;
+    int target_vidx = nz * (p.grid_x * p.grid_y) + ny * p.grid_x + nx;
+    int old_vidx = z * (p.grid_x * p.grid_y) + y * p.grid_x + x;
+
+    if (volume_try_claim(p.vol_used, target_vidx, p.my_vol, p.capacity)) {
+        volume_release(p.vol_used, old_vidx, p.my_vol);
+        result.new_x = nx; result.new_y = ny; result.new_z = nz;
+        result.persist_dx = sel_dx; result.persist_dy = sel_dy; result.persist_dz = sel_dz;
+        result.moved = true;
+    }
+
+    return result;
 }
 
 } // namespace PDAC

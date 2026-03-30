@@ -218,6 +218,7 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_TREG,        "scan_neighbors");
         layer.addAgentFunction(AGENT_MDSC,        "scan_neighbors");
         layer.addAgentFunction(AGENT_MACROPHAGE,  "scan_neighbors");
+        layer.addAgentFunction(AGENT_FIBROBLAST,  "scan_neighbors");
     }
 
     // ── Timing checkpoint: after neighbor scan ──

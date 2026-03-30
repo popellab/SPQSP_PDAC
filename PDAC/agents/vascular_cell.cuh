@@ -30,7 +30,9 @@ FLAMEGPU_AGENT_FUNCTION(vascular_broadcast_location, flamegpu::MessageNone, flam
 
     // Count this agent into per-state population snapshot
     auto* sc_vas = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("state_counters_ptr"));
-    atomicAdd(&sc_vas[vas_cs == VAS_TIP ? SC_VAS_TIP : SC_VAS_PHALANX], 1u);
+    const int sc_slot_vas = (vas_cs == VAS_TIP) ? SC_VAS_TIP :
+                            (vas_cs == VAS_PHALANX_COLLAPSED) ? SC_VAS_COLLAPSED : SC_VAS_PHALANX;
+    atomicAdd(&sc_vas[sc_slot_vas], 1u);
 
     return flamegpu::ALIVE;
 }
@@ -86,11 +88,8 @@ FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone
     const float voxel_volume = vs_cm * vs_cm * vs_cm;
 
     // === O2 SECRETION via Krogh cylinder model (PHALANX ONLY) ===
-    // Formula identical to HCC Tumor.cpp lines 326-336 (Sharan et al.)
-    // HCC uses: O2_transport = max(0, Kv*Lv*(C_blood - C_local))  — vessels only source.
-    // We match this by applying the implicit split (stable at large dt) only when
-    // C_local < C_blood.  When C_local >= C_blood the block is skipped entirely,
-    // so vessels never act as O2 sinks — identical clamping behaviour to HCC.
+    // Collapsed vessels produce no O2. Dysfunctional sprouts produce reduced O2.
+    // Maturity modulates ECM compression resistance.
     if (cell_state == VAS_PHALANX) {
         const float pi = 3.1415926f;
         const float sigma = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_SIGMA");
@@ -111,11 +110,20 @@ FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone
             float KvLv = Kv * Lv;  // O2 transport coefficient [cm^3/s]
 
             // ECM compression: dense stroma compresses vessels → reduced O2 delivery
-            const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
-            float ecm_local = ecm_d[voxel];
+            // Mature vessels resist compression better than new sprouts
+            const float* ecm_d_o2 = ECM_DENSITY_PTR(FLAMEGPU);
+            float ecm_local_o2 = ecm_d_o2[voxel];
             float K_compress = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_ECM_COMPRESS_K");
-            float compression = ecm_local / (ecm_local + K_compress + 1e-30f);
+            const float mat_res = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_MATURITY_RESISTANCE");
+            const int mat_val = FLAMEGPU->getVariable<int>("maturity");
+            float eff_compress_k = K_compress * (1.0f + mat_res * static_cast<float>(mat_val));
+            float compression = ecm_local_o2 / (ecm_local_o2 + eff_compress_k + 1e-30f);
             KvLv *= (1.0f - compression);
+
+            // Dysfunctional sprouts: permanently reduced O2 delivery
+            if (FLAMEGPU->getVariable<int>("is_dysfunctional") == 1) {
+                KvLv *= FLAMEGPU->environment.getProperty<float>("PARAM_VAS_KVL_DYSFUNCTIONAL");
+            }
 
             // Implicit split: stable at large dt, drives C_local toward C_blood from below.
             PDE_SECRETE(FLAMEGPU, PDE_SRC_O2, voxel, KvLv * C_blood / voxel_volume);
@@ -134,6 +142,7 @@ FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone
 // Mark T cell recruitment sources (phalanx cells based on IFN-γ)
 FLAMEGPU_AGENT_FUNCTION(vascular_mark_t_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    // Only functional PHALANX cells mark recruitment sources (collapsed vessels excluded)
     if (cell_state != VAS_PHALANX) {
         return flamegpu::ALIVE;
     }
@@ -193,12 +202,68 @@ FLAMEGPU_AGENT_FUNCTION(vascular_state_step, flamegpu::MessageNone, flamegpu::Me
         return flamegpu::ALIVE;
     }
 
-    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    int cell_state = FLAMEGPU->getVariable<int>("cell_state");
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
     const unsigned int my_tip_id = FLAMEGPU->getVariable<unsigned int>("tip_id");
     const float voxel_size = FLAMEGPU->environment.getProperty<float>("voxel_size");
+
+    // --- Maturity: increment each step ---
+    int maturity = FLAMEGPU->getVariable<int>("maturity");
+    maturity++;
+    FLAMEGPU->setVariable<int>("maturity", maturity);
+
+    // --- Voxel index for ECM/PDE reads ---
+    const int nx_v2 = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny_v2 = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int vidx_v2 = z * ny_v2 * nx_v2 + y * nx_v2 + x;
+    const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
+    const float ecm_local = ecm_d[vidx_v2];
+    const float mat_resist = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_MATURITY_RESISTANCE");
+
+    // --- Vessel collapse: PHALANX → PHALANX_COLLAPSED ---
+    if (cell_state == VAS_PHALANX) {
+        const float collapse_th = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_COLLAPSE_THRESHOLD");
+        if (ecm_local > collapse_th) {
+            const float collapse_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_COLLAPSE_EC50");
+            float p_collapse = (ecm_local / (ecm_local + collapse_ec50))
+                             / (1.0f + mat_resist * static_cast<float>(maturity));
+            if (FLAMEGPU->random.uniform<float>() < p_collapse) {
+                cell_state = VAS_PHALANX_COLLAPSED;
+                FLAMEGPU->setVariable<int>("cell_state", VAS_PHALANX_COLLAPSED);
+            }
+        }
+    }
+
+    // --- Vessel recovery: PHALANX_COLLAPSED → PHALANX ---
+    if (cell_state == VAS_PHALANX_COLLAPSED) {
+        const float recovery_th = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_RECOVERY_THRESHOLD");
+        if (ecm_local < recovery_th) {
+            const float recovery_rate = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_RECOVERY_RATE");
+            if (FLAMEGPU->random.uniform<float>() < recovery_rate) {
+                cell_state = VAS_PHALANX;
+                FLAMEGPU->setVariable<int>("cell_state", VAS_PHALANX);
+            }
+        }
+    }
+
+    // --- Vessel regression: low VEGF-A → death (PHALANX or COLLAPSED) ---
+    if (cell_state == VAS_PHALANX || cell_state == VAS_PHALANX_COLLAPSED) {
+        const float regress_rate = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_REGRESS_RATE");
+        const float vegfa_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_VEGFA_SURVIVAL_EC50");
+        const float local_VEGFA_r = PDE_READ(FLAMEGPU, PDE_CONC_VEGFA, vidx_v2);
+        // p_regress high when VEGF-A is low, reduced by maturity
+        float p_regress = regress_rate * (1.0f - local_VEGFA_r / (local_VEGFA_r + vegfa_ec50))
+                        / (1.0f + mat_resist * static_cast<float>(maturity));
+        if (FLAMEGPU->random.uniform<float>() < p_regress) {
+            auto* evts_reg = reinterpret_cast<unsigned int*>(
+                FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+            const int ds = (cell_state == VAS_PHALANX_COLLAPSED) ? EVT_DEATH_VAS_COLLAPSED : EVT_DEATH_VAS_PHALANX;
+            atomicAdd(&evts_reg[ds], 1u);
+            return flamegpu::DEAD;
+        }
+    }
 
     int divide_action = INTENT_NONE;
 
@@ -324,17 +389,22 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
         FLAMEGPU->agent_out.setVariable<int>("z", z);
         FLAMEGPU->agent_out.setVariable<int>("cell_state", VAS_PHALANX);
         FLAMEGPU->agent_out.setVariable<unsigned int>("tip_id", tip_id);
-        // Inherit TIP's move_direction so it can be passed to future sprouted TIPs (HCC copy-ctor).
-        FLAMEGPU->agent_out.setVariable<float>("move_direction_x", FLAMEGPU->getVariable<float>("move_direction_x"));
-        FLAMEGPU->agent_out.setVariable<float>("move_direction_y", FLAMEGPU->getVariable<float>("move_direction_y"));
-        FLAMEGPU->agent_out.setVariable<float>("move_direction_z", FLAMEGPU->getVariable<float>("move_direction_z"));
-        FLAMEGPU->agent_out.setVariable<int>("tumble", 0);
+        // Inherit TIP's persist_dir so it can be passed to future sprouted TIPs.
+        FLAMEGPU->agent_out.setVariable<int>("persist_dir_x", FLAMEGPU->getVariable<int>("persist_dir_x"));
+        FLAMEGPU->agent_out.setVariable<int>("persist_dir_y", FLAMEGPU->getVariable<int>("persist_dir_y"));
+        FLAMEGPU->agent_out.setVariable<int>("persist_dir_z", FLAMEGPU->getVariable<int>("persist_dir_z"));
         FLAMEGPU->agent_out.setVariable<int>("branch", new_branch);
         FLAMEGPU->agent_out.setVariable<int>("intent_action", INTENT_NONE);
         FLAMEGPU->agent_out.setVariable<int>("target_x", -1);
         FLAMEGPU->agent_out.setVariable<int>("target_y", -1);
         FLAMEGPU->agent_out.setVariable<int>("target_z", -1);
         FLAMEGPU->agent_out.setVariable<int>("mature_to_phalanx", 0);
+        FLAMEGPU->agent_out.setVariable<int>("maturity", 0);
+        // Dysfunctional if sprouting into hypoxic tissue
+        const float local_O2_div = PDE_READ(FLAMEGPU, PDE_CONC_O2, voxel_d);
+        const float vas_hyp_th = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_HYPOXIA_TH");
+        FLAMEGPU->agent_out.setVariable<int>("is_dysfunctional",
+            (local_O2_div < vas_hyp_th) ? 1 : 0);
         auto* evts_tip = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
         atomicAdd(&evts_tip[EVT_PROLIF_VAS_PHALANX], 1u);
 
@@ -356,24 +426,24 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
         const unsigned int new_tip_id =
             static_cast<unsigned int>(FLAMEGPU->getID()) + 1000000u;
 
-        // Inherit phalanx's stored move_direction (HCC copy-ctor: _moveDirection = parent._moveDirection).
-        // Phalanx carries the direction from the TIP that created it; new TIP inherits that direction
-        // and starts in tumble mode so it immediately picks a biased direction on first move step.
+        // Inherit phalanx's stored persist_dir. New TIP starts with zero persist_dir
+        // so it picks a gradient-biased direction on first move step.
         FLAMEGPU->agent_out.setVariable<int>("x", x);
         FLAMEGPU->agent_out.setVariable<int>("y", y);
         FLAMEGPU->agent_out.setVariable<int>("z", z);
         FLAMEGPU->agent_out.setVariable<int>("cell_state", VAS_TIP);
         FLAMEGPU->agent_out.setVariable<unsigned int>("tip_id", new_tip_id);
-        FLAMEGPU->agent_out.setVariable<float>("move_direction_x", FLAMEGPU->getVariable<float>("move_direction_x"));
-        FLAMEGPU->agent_out.setVariable<float>("move_direction_y", FLAMEGPU->getVariable<float>("move_direction_y"));
-        FLAMEGPU->agent_out.setVariable<float>("move_direction_z", FLAMEGPU->getVariable<float>("move_direction_z"));
-        FLAMEGPU->agent_out.setVariable<int>("tumble", 1);
+        FLAMEGPU->agent_out.setVariable<int>("persist_dir_x", 0);
+        FLAMEGPU->agent_out.setVariable<int>("persist_dir_y", 0);
+        FLAMEGPU->agent_out.setVariable<int>("persist_dir_z", 0);
         FLAMEGPU->agent_out.setVariable<int>("branch", 0);
         FLAMEGPU->agent_out.setVariable<int>("intent_action", INTENT_NONE);
         FLAMEGPU->agent_out.setVariable<int>("target_x", -1);
         FLAMEGPU->agent_out.setVariable<int>("target_y", -1);
         FLAMEGPU->agent_out.setVariable<int>("target_z", -1);
         FLAMEGPU->agent_out.setVariable<int>("mature_to_phalanx", 0);
+        FLAMEGPU->agent_out.setVariable<int>("maturity", 0);
+        FLAMEGPU->agent_out.setVariable<int>("is_dysfunctional", 0);
 
         // Parent phalanx stays phalanx; clear branch flag and count new TIP
         FLAMEGPU->setVariable<int>("branch", 0);
@@ -389,180 +459,60 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
 // Replaces two-phase vascular_select_move_target + vascular_execute_move.
 // Only VAS_TIP cells move; STALK and PHALANX are stationary.
 // Uses volume-based occupancy for movement collision detection.
+// Vascular TIP cell movement via unified movement framework.
+// Strong VEGF-A chemotaxis with high persistence. PHALANX cells don't move.
 FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-
-    // Only tip cells move
-    if (cell_state != VAS_TIP) {
-        return flamegpu::ALIVE;
-    }
+    if (cell_state != VAS_TIP) return flamegpu::ALIVE;
 
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
-    const int tumble = FLAMEGPU->getVariable<int>("tumble");
 
+    // Read VEGF-A gradient
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    const int vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    const float gx = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_X))[vidx];
+    const float gy = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_Y))[vidx];
+    const float gz = reinterpret_cast<const float*>(
+        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_Z))[vidx];
 
-    // ECM porosity: filter target voxels by vascular TIP porosity threshold
-    const int old_vidx = z * (grid_x * grid_y) + y * grid_x + x;
-    const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
-    const float* ecm_c = ECM_CROSSLINK_PTR(FLAMEGPU);
-    const float density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
-    const float min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_VAS_TIP");
+    MoveParams mp;
+    mp.grid_x = grid_x;
+    mp.grid_y = grid_y;
+    mp.grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    mp.vol_used = VOL_PTR(FLAMEGPU);
+    mp.my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_TIP");
+    mp.capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    mp.ecm_density = ECM_DENSITY_PTR(FLAMEGPU);
+    mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
+    mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
+    mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_VAS_TIP");
+    mp.p_move = 1.0f;
+    mp.p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_VAS_TIP");
+    mp.bias_strength = FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_VAS_TIP");
+    mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
 
-    const float move_dir_x = FLAMEGPU->getVariable<float>("move_direction_x");
-    const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
-    const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
-    const float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
+    MoveResult r = move_cell(mp, x, y, z,
+        FLAMEGPU->getVariable<int>("persist_dir_x"),
+        FLAMEGPU->getVariable<int>("persist_dir_y"),
+        FLAMEGPU->getVariable<int>("persist_dir_z"),
+        FLAMEGPU->random.uniform<float>(),
+        FLAMEGPU->random.uniform<float>(),
+        FLAMEGPU->random.uniform<float>());
 
-    // Volume-based occupancy
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    float my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_TIP");
-
-    // VEGFA gradient — read directly from PDE
-    const float vegfa_grad_x = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_X))[old_vidx];
-    const float vegfa_grad_y = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_Y))[old_vidx];
-    const float vegfa_grad_z = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_VEGFA_Z))[old_vidx];
-
-    int target_x = x;
-    int target_y = y;
-    int target_z = z;
-
-    // === RUN PHASE (tumble == 0) ===
-    if (tumble == 0) {
-        float v_x = move_dir_x / dt;
-        float v_y = move_dir_y / dt;
-        float v_z = move_dir_z / dt;
-
-        float norm_gradient = std::sqrt(vegfa_grad_x * vegfa_grad_x +
-                                        vegfa_grad_y * vegfa_grad_y +
-                                        vegfa_grad_z * vegfa_grad_z);
-
-        float dot_product = v_x * vegfa_grad_x + v_y * vegfa_grad_y + v_z * vegfa_grad_z;
-        float norm_v = std::sqrt(v_x * v_x + v_y * v_y + v_z * v_z);
-        float cos_theta = dot_product / (norm_v * norm_gradient);
-
-        const float EC50_grad = 1.0f;
-        float H_grad = norm_gradient / (norm_gradient + EC50_grad);
-        if (cos_theta < 0) H_grad = -H_grad;
-
-        const float lambda = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_TUMBLE");
-        const float delta = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_DELTA");
-        float tumble_rate = (lambda / 2.0f) * (1.0f - cos_theta) * (1.0f - H_grad) * dt + delta;
-        float p_tumble = 1.0f - std::exp(-tumble_rate);
-
-        if (FLAMEGPU->random.uniform<float>() < p_tumble) {
-            FLAMEGPU->setVariable<int>("tumble", 1);
-            return flamegpu::ALIVE;
-        }
-
-        target_x = x + static_cast<int>(std::round(move_dir_x));
-        target_y = y + static_cast<int>(std::round(move_dir_y));
-        target_z = z + static_cast<int>(std::round(move_dir_z));
-
-        if (target_x < 0 || target_x >= grid_x ||
-            target_y < 0 || target_y >= grid_y ||
-            target_z < 0 || target_z >= grid_z) {
-            return flamegpu::ALIVE;
-        }
-
-        // Volume + porosity check
-        int target_vidx = target_z * (grid_x * grid_y) + target_y * grid_x + target_x;
-        if (vol_used[target_vidx] + my_vol > capacity ||
-            ecm_porosity(ecm_d, ecm_c, target_vidx, density_cap) < min_porosity) {
-            return flamegpu::ALIVE;
-        }
-    }
-    // === TUMBLE PHASE (tumble == 1) ===
-    else {
-        float prob_sum = 0.0f;
-        float probs[26];
-        int dirs[26][3];
-        int n_dirs = 0;
-
-        float norm_movedir = std::sqrt(move_dir_x * move_dir_x +
-                                       move_dir_y * move_dir_y +
-                                       move_dir_z * move_dir_z);
-        if (norm_movedir < 1e-6f) norm_movedir = 1.0f;
-
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                for (int k = -1; k <= 1; k++) {
-                    if (i == 0 && j == 0 && k == 0) continue;
-                    float dot_product = i * move_dir_x + j * move_dir_y + k * move_dir_z;
-                    float norm_dir = std::sqrt(static_cast<float>(i*i + j*j + k*k));
-                    float cos_theta = dot_product / (norm_dir * norm_movedir);
-                    if (cos_theta > 0) {
-                        // HCC formula: exp(cos_theta/sigma*sigma) / exp(1/sigma*sigma)
-                    // Due to C++ left-to-right precedence this simplifies to exp(cos_theta - 1)
-                    float rho = std::exp(cos_theta - 1.0f);
-                        prob_sum += rho;
-                        probs[n_dirs] = prob_sum;
-                        dirs[n_dirs][0] = i;
-                        dirs[n_dirs][1] = j;
-                        dirs[n_dirs][2] = k;
-                        n_dirs++;
-                    }
-                }
-            }
-        }
-
-        if (n_dirs == 0) {
-            FLAMEGPU->setVariable<int>("tumble", 0);
-            return flamegpu::ALIVE;
-        }
-
-        for (int i = 0; i < n_dirs; i++) probs[i] /= prob_sum;
-
-        float r = FLAMEGPU->random.uniform<float>();
-        int selected_idx = 0;
-        for (int i = 0; i < n_dirs; i++) {
-            if (r < probs[i]) { selected_idx = i; break; }
-        }
-
-        int dx = dirs[selected_idx][0];
-        int dy = dirs[selected_idx][1];
-        int dz = dirs[selected_idx][2];
-
-        target_x = x + dx;
-        target_y = y + dy;
-        target_z = z + dz;
-
-        if (target_x < 0 || target_x >= grid_x ||
-            target_y < 0 || target_y >= grid_y ||
-            target_z < 0 || target_z >= grid_z) {
-            FLAMEGPU->setVariable<int>("tumble", 1);
-            return flamegpu::ALIVE;
-        }
-
-        int target_vidx = target_z * (grid_x * grid_y) + target_y * grid_x + target_x;
-        if (vol_used[target_vidx] + my_vol > capacity ||
-            ecm_porosity(ecm_d, ecm_c, target_vidx, density_cap) < min_porosity) {
-            FLAMEGPU->setVariable<int>("tumble", 1);
-            return flamegpu::ALIVE;
-        }
-
-        FLAMEGPU->setVariable<float>("move_direction_x", static_cast<float>(dx));
-        FLAMEGPU->setVariable<float>("move_direction_y", static_cast<float>(dy));
-        FLAMEGPU->setVariable<float>("move_direction_z", static_cast<float>(dz));
-        FLAMEGPU->setVariable<int>("tumble", 0);
+    if (r.moved) {
+        FLAMEGPU->setVariable<int>("x", r.new_x);
+        FLAMEGPU->setVariable<int>("y", r.new_y);
+        FLAMEGPU->setVariable<int>("z", r.new_z);
+        FLAMEGPU->setVariable<int>("persist_dir_x", r.persist_dx);
+        FLAMEGPU->setVariable<int>("persist_dir_y", r.persist_dy);
+        FLAMEGPU->setVariable<int>("persist_dir_z", r.persist_dz);
     }
 
-    // Apply movement with volume claim
-    int target_vidx = target_z * (grid_x * grid_y) + target_y * grid_x + target_x;
-    if (volume_try_claim(vol_used, target_vidx, my_vol, capacity)) {
-        volume_release(vol_used, old_vidx, my_vol);
-        FLAMEGPU->setVariable<int>("x", target_x);
-        FLAMEGPU->setVariable<int>("y", target_y);
-        FLAMEGPU->setVariable<int>("z", target_z);
-    }
     return flamegpu::ALIVE;
 }
 

@@ -104,7 +104,7 @@ __global__ void update_ecm_grid_kernel(
     float k_decay, float k_depo, float density_cap,
     float tgfb_ec50, float ecm_baseline,
     float k_mmp, float alpha_crosslink,
-    float k_lox)
+    float k_lox, float yap_ec50)
 {
     const int tx = blockIdx.x * blockDim.x + threadIdx.x;
     const int ty = blockIdx.y * blockDim.y + threadIdx.y;
@@ -124,10 +124,14 @@ __global__ void update_ecm_grid_kernel(
     density_amt *= expf(-k_decay * dt);
     density = density_amt / voxel_vol_cm3;
 
-    // 2. myCAF deposition (TGF-β gated, saturation-limited)
+    // 2. myCAF deposition (TGF-β gated, saturation-limited, YAP/TAZ Hill ceiling)
     float H_TGFB = tgfb / (tgfb + tgfb_ec50 + 1e-30f);
     float sat_frac = fminf(density / density_cap, 1.0f);
-    float deposition = fib * (1.0f + H_TGFB) * k_depo / 3.0f * (1.0f - sat_frac) * dt;
+    // YAP/TAZ ceiling: stiff ECM (high density × crosslink) → feedback limits further deposition
+    // Hill function: yap_factor = 1 / (1 + (stiffness/yap_ec50)^2)
+    float stiffness = density * (1.0f + crosslink);
+    float yap_factor = 1.0f / (1.0f + (stiffness * stiffness) / (yap_ec50 * yap_ec50 + 1e-30f));
+    float deposition = fib * (1.0f + H_TGFB) * k_depo / 3.0f * (1.0f - sat_frac) * yap_factor * dt;
     density += deposition / voxel_vol_cm3;
 
     // 3. MMP degradation (crosslink-resistant)
@@ -258,8 +262,10 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     g_pde_solver = new PDESolver(config);
     g_pde_solver->initialize();
 
-    // Set initial O2 concentration, all others start at 0.0
-    g_pde_solver->set_initial_concentration(CHEM_O2, 0.673);  // Oxygen starts at 0.673 (amount/mL)
+    // Set initial O2 = 0 so vessels actively source from step 1.
+    // Old value 0.673 > C_blood (0.51) caused vessels to be silent initially,
+    // crashing O2 to near-zero under cancer uptake before vessels could respond.
+    g_pde_solver->set_initial_concentration(CHEM_O2, 0.0f);
 
     // Allocate flat cancer occupancy array for recruitment density checks
     int total_voxels = g_pde_solver->get_total_voxels();
@@ -1043,7 +1049,10 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("divide_cd", r.divide_cd);
             a.setVariable<int>("divide_limit", r.divide_limit);
             a.setVariable<float>("IL2_release_remain", r.IL2_release_remain);
-            a.setVariable<int>("tumble", 1);
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<int>("hypoxia_exposure", 0);
             teff_recruited++;
         }
         else if (r.cell_type == CELL_TYPE_TREG) {
@@ -1057,7 +1066,9 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("divide_limit", r.divide_limit);
             a.setVariable<float>("TGFB_release_remain", r.TGFB_release_remain);
             a.setVariable<float>("CTLA4", r.CTLA4);
-            a.setVariable<int>("tumble", 1);
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
             if (r.cell_state == TCD4_TREG) treg_recruited++;
             else th_recruited++;
         }
@@ -1067,7 +1078,9 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("y", r.y);
             a.setVariable<int>("z", r.z);
             a.setVariable<int>("life", r.life);
-            a.setVariable<int>("tumble", 1);
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
             mdsc_recruited++;
         }
         else if (r.cell_type == CELL_TYPE_MAC) {
@@ -1077,7 +1090,9 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("z", r.z);
             a.setVariable<int>("cell_state", r.cell_state);
             a.setVariable<int>("life", r.life);
-            a.setVariable<int>("tumble", 1);
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
             mac_recruited++;
             if (r.cell_state == MAC_M1) mac_m1_recruited++;
             else                        mac_m2_recruited++;
@@ -1184,6 +1199,7 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
     float k_mmp             = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_MMP_DEGRADE_RATE");
     float alpha_crosslink   = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_CROSSLINK_RESISTANCE");
     float k_lox             = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_CROSSLINK_RATE");
+    float yap_ec50          = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_YAP_EC50");
 
     // PDE concentration pointers
     const float* tgfb_ptr = g_pde_solver->get_device_concentration_ptr(CHEM_TGFB);
@@ -1199,7 +1215,7 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
         k_decay, k_depo, density_cap,
         tgfb_ec50, ecm_baseline,
         k_mmp, alpha_crosslink,
-        k_lox);
+        k_lox, yap_ec50);
     cudaDeviceSynchronize();
 
     nvtxRangePop();

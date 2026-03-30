@@ -1081,6 +1081,7 @@ int main(int argc, const char** argv) {
             for (unsigned i = 0; i < p.size(); ++i) {
                 int s = p[i].getVariable<int>("cell_state");
                 if (s == PDAC::VAS_TIP) init_states[PDAC::SC_VAS_TIP]++;
+                else if (s == PDAC::VAS_PHALANX_COLLAPSED) init_states[PDAC::SC_VAS_COLLAPSED]++;
                 else                    init_states[PDAC::SC_VAS_PHALANX]++;
             }
         }
@@ -1097,7 +1098,7 @@ int main(int argc, const char** argv) {
             << "agentCount.MDSC.default,"
             << "agentCount.MAC.M1,agentCount.MAC.M2,"
             << "agentCount.FIB.quiescent,agentCount.FIB.myCAF,agentCount.FIB.iCAF,"
-            << "agentCount.VAS.tip,agentCount.VAS.default,"
+            << "agentCount.VAS.tip,agentCount.VAS.default,agentCount.VAS.collapsed,"
             // Recruitment
             << "recruit.CD8.effector,recruit.Th.default,recruit.Treg.default,"
             << "recruit.MDSC.default,recruit.MAC.M1,recruit.MAC.M2,"
@@ -1117,7 +1118,7 @@ int main(int argc, const char** argv) {
             << "death.cancer.stem,death.cancer.prog,death.cancer.sen,"
             << "death.MAC.M1,death.MAC.M2,"
             << "death.FIB.quiescent,death.FIB.myCAF,death.FIB.iCAF,"
-            << "death.VAS.tip,death.VAS.phalanx,"
+            << "death.VAS.tip,death.VAS.phalanx,death.VAS.collapsed,"
             // PDL1 fraction
             << "PDL1_frac\n";
         // Step 0: real initial state counts, all event columns zero
@@ -1128,11 +1129,11 @@ int main(int argc, const char** argv) {
             << init_states[PDAC::SC_MDSC]        << ","
             << init_states[PDAC::SC_MAC_M1]      << "," << init_states[PDAC::SC_MAC_M2]       << ","
             << init_states[PDAC::SC_FIB_QUIESCENT] << "," << init_states[PDAC::SC_FIB_MYCAF] << "," << init_states[PDAC::SC_FIB_ICAF] << ","
-            << init_states[PDAC::SC_VAS_TIP]     << "," << init_states[PDAC::SC_VAS_PHALANX]  << ","
+            << init_states[PDAC::SC_VAS_TIP]     << "," << init_states[PDAC::SC_VAS_PHALANX] << "," << init_states[PDAC::SC_VAS_COLLAPSED] << ","
             // All event columns (recruit/prolif/death/PDL1) are zero at step 0
             << "0,0,0,0,0,0,0,0,0," // recruit (6) + sources (3)
             << "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0," // prolif (16)
-            << "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0," // death (16)
+            << "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0," // death (17: +vas_collapsed)
             << "0.0000\n";    // PDL1_frac
         stats_file.flush();
     }
@@ -1210,7 +1211,7 @@ int main(int argc, const char** argv) {
                 << host_states[PDAC::SC_MDSC] << ","
                 << host_states[PDAC::SC_MAC_M1] << "," << host_states[PDAC::SC_MAC_M2] << ","
                 << host_states[PDAC::SC_FIB_QUIESCENT] << "," << host_states[PDAC::SC_FIB_MYCAF] << "," << host_states[PDAC::SC_FIB_ICAF] << ","
-                << host_states[PDAC::SC_VAS_TIP] << "," << host_states[PDAC::SC_VAS_PHALANX] << ","
+                << host_states[PDAC::SC_VAS_TIP] << "," << host_states[PDAC::SC_VAS_PHALANX] << "," << host_states[PDAC::SC_VAS_COLLAPSED] << ","
                 // recruit (6 cols)
                 << rs.teff_rec << "," << rs.th_rec << "," << rs.treg_rec << ","
                 << rs.mdsc_rec << "," << rs.mac_m1_rec << "," << rs.mac_m2_rec << ","
@@ -1230,7 +1231,7 @@ int main(int argc, const char** argv) {
                 << host_events[PDAC::EVT_DEATH_CANCER_STEM] << "," << host_events[PDAC::EVT_DEATH_CANCER_PROG] << "," << host_events[PDAC::EVT_DEATH_CANCER_SEN] << ","
                 << host_events[PDAC::EVT_DEATH_MAC_M1] << "," << host_events[PDAC::EVT_DEATH_MAC_M2] << ","
                 << host_events[PDAC::EVT_DEATH_FIB_QUIESCENT] << "," << host_events[PDAC::EVT_DEATH_FIB_MYCAF] << "," << host_events[PDAC::EVT_DEATH_FIB_ICAF] << ","
-                << host_events[PDAC::EVT_DEATH_VAS_TIP] << "," << host_events[PDAC::EVT_DEATH_VAS_PHALANX] << ","
+                << host_events[PDAC::EVT_DEATH_VAS_TIP] << "," << host_events[PDAC::EVT_DEATH_VAS_PHALANX] << "," << host_events[PDAC::EVT_DEATH_VAS_COLLAPSED] << ","
                 // PDL1 fraction
                 << std::fixed << std::setprecision(4) << pdl1_frac << "\n";
             stats_file.flush();

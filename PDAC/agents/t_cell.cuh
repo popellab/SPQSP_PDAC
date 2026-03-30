@@ -181,13 +181,48 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
     const int az_t = FLAMEGPU->getVariable<int>("z");
     const int voxel_t = az_t * ny_t*nx_t + ay_t * nx_t + ax_t;
 
+    // --- Hypoxia exposure counter (hysteresis: accrues fast, recovers slow) ---
+    float local_O2 = PDE_READ(FLAMEGPU, PDE_CONC_O2, voxel_t);
+    int hypoxia_exposure = FLAMEGPU->getVariable<int>("hypoxia_exposure");
+    const float hypoxia_th = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_TH");
+    if (local_O2 < hypoxia_th) {
+        hypoxia_exposure += 1;
+    } else {
+        const int recovery = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_RECOVERY"));
+        hypoxia_exposure = max(0, hypoxia_exposure - recovery);
+    }
+    FLAMEGPU->setVariable<int>("hypoxia_exposure", hypoxia_exposure);
+
+    // Compute hypoxia impairment factor (graded: 3 tiers)
+    const int tier1 = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_TIER1"));
+    const int tier2 = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_TIER2"));
+    float hypoxia_factor = 1.0f;
+    if (hypoxia_exposure >= tier2) {
+        hypoxia_factor = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR3");
+    } else if (hypoxia_exposure >= tier1) {
+        hypoxia_factor = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR2");
+    } else if (hypoxia_exposure > 0) {
+        hypoxia_factor = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR1");
+    }
+
+    // High chronic hypoxia → forced SUPPRESSED (terminal hypoxic exhaustion)
+    if (hypoxia_exposure >= tier2 * 2 && cell_state != T_CELL_SUPP) {
+        cell_state = T_CELL_SUPP;
+        FLAMEGPU->setVariable<int>("cell_state", T_CELL_SUPP);
+        FLAMEGPU->setVariable<int>("divide_flag", 0);
+        FLAMEGPU->setVariable<int>("divide_limit", 0);
+    }
+
     float IL2 = PDE_READ(FLAMEGPU, PDE_CONC_IL2, voxel_t);
     float IL2_exposure = FLAMEGPU->getVariable<float>("IL2_exposure");
     IL2_exposure += IL2 * sec_per_slice;
 
-    // Effector cells proliferate on IL2 exposure
+    // Effector cells proliferate on IL2 exposure (hypoxia impairs division)
     if (IL2_exposure > FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_IL2_PROLIF_TH")) {
-        FLAMEGPU->setVariable<int>("divide_flag", 1);
+        // Hypoxia may block division: roll against impairment factor
+        if (hypoxia_factor >= 1.0f || FLAMEGPU->random.uniform<float>() < hypoxia_factor) {
+            FLAMEGPU->setVariable<int>("divide_flag", 1);
+        }
         FLAMEGPU->setVariable<float>("IL2_exposure", 0.0f);
     } else {
         FLAMEGPU->setVariable<float>("IL2_exposure",IL2_exposure);
@@ -390,7 +425,10 @@ FLAMEGPU_AGENT_FUNCTION(tcell_divide, flamegpu::MessageNone, flamegpu::MessageNo
         FLAMEGPU->agent_out.setVariable<float>("IL2_exposure", IL2_exposure);
         FLAMEGPU->agent_out.setVariable<float>("IL2_release_remain", IL2_release_time);
         FLAMEGPU->agent_out.setVariable<int>("life", daughter_life > 0 ? daughter_life : 1);
-        FLAMEGPU->agent_out.setVariable<int>("tumble", 1);
+        FLAMEGPU->agent_out.setVariable<int>("persist_dir_x", 0);
+        FLAMEGPU->agent_out.setVariable<int>("persist_dir_y", 0);
+        FLAMEGPU->agent_out.setVariable<int>("persist_dir_z", 0);
+        FLAMEGPU->agent_out.setVariable<int>("hypoxia_exposure", 0);
 
         // Update parent
         FLAMEGPU->setVariable<int>("divide_limit", divide_limit - 1);
@@ -445,6 +483,23 @@ FLAMEGPU_AGENT_FUNCTION(tcell_compute_chemical_sources, flamegpu::MessageNone, f
                 IL2_release_rate = FLAMEGPU->environment.getProperty<float>("PARAM_IL2_RELEASE");
             }
         }
+
+        // Hypoxia impairment on cytokine secretion
+        const int hypoxia_exposure = FLAMEGPU->getVariable<int>("hypoxia_exposure");
+        if (hypoxia_exposure > 0) {
+            const int t1 = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_TIER1"));
+            const int t2 = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_TIER2"));
+            float hf = 1.0f;
+            if (hypoxia_exposure >= t2) {
+                hf = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR3");
+            } else if (hypoxia_exposure >= t1) {
+                hf = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR2");
+            } else {
+                hf = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR1");
+            }
+            IFNg_release_rate *= hf;
+            IL2_release_rate  *= hf;
+        }
     }
 
     // Compute voxel index
@@ -474,126 +529,66 @@ FLAMEGPU_AGENT_FUNCTION(tcell_compute_chemical_sources, flamegpu::MessageNone, f
 // Replaces two-phase select_move_target + execute_move.
 // T cell movement uses volume-based occupancy (volume_try_claim/volume_release).
 // T cell movement using run-tumble chemotaxis toward IFN-γ/CCL2
+// T cell movement via unified movement framework.
+// Persistent random walk (no chemotaxis currently; bias=0 for all states).
 FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     if (FLAMEGPU->getVariable<int>("dead") == 1) return flamegpu::ALIVE;
 
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
-    const int tumble = FLAMEGPU->getVariable<int>("tumble");
-    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
-    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-
-    // ECM porosity: filter target voxels by T cell porosity threshold
-    const int old_vidx = z * (grid_x * grid_y) + y * grid_x + x;
-    const float* ecm_d = ECM_DENSITY_PTR(FLAMEGPU);
-    const float* ecm_c = ECM_CROSSLINK_PTR(FLAMEGPU);
-    const float density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
-    const float min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_TCELL");
-
-    const float move_dir_x = FLAMEGPU->getVariable<float>("move_direction_x");
-    const float move_dir_y = FLAMEGPU->getVariable<float>("move_direction_y");
-    const float move_dir_z = FLAMEGPU->getVariable<float>("move_direction_z");
-
-    // Volume-based occupancy
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+
     float my_vol = (cell_state == T_CELL_EFF) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_EFF") :
         (cell_state == T_CELL_CYT) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_CYT") :
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_SUP");
 
-    const float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
+    float p_persist = (cell_state == T_CELL_EFF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_TCELL_EFF") :
+        (cell_state == T_CELL_CYT) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_TCELL_CYT") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_TCELL_SUP");
 
-    // === RUN PHASE (tumble == 0) ===
-    if (tumble == 0) {
-        // Use IFN-γ gradient for chemotaxis (T cell primary attractant) — read directly from PDE
-        const float grad_x = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_X))[old_vidx];
-        const float grad_y = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Y))[old_vidx];
-        const float grad_z = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IFN_Z))[old_vidx];
-
-        float v_x = move_dir_x / dt;
-        float v_y = move_dir_y / dt;
-        float v_z = move_dir_z / dt;
-
-        float norm_gradient = std::sqrt(grad_x * grad_x + grad_y * grad_y + grad_z * grad_z);
-        float dot_product = v_x * grad_x + v_y * grad_y + v_z * grad_z;
-        float norm_v = std::sqrt(v_x * v_x + v_y * v_y + v_z * v_z);
-        float cos_theta = dot_product / (norm_v * norm_gradient);
-
-        const float EC50_grad = 1.0f;
-        float H_grad = norm_gradient / (norm_gradient + EC50_grad);
-        if (cos_theta < 0) H_grad = -H_grad;
-
-        const float lambda = 0.0000168;
-        float tumble_rate = (lambda / 2.0f) * (1.0f - cos_theta) * (1.0f - H_grad) * dt;
-        float p_tumble = 1.0f - std::exp(-tumble_rate);
-
-        if (FLAMEGPU->random.uniform<float>() < p_tumble) {
-            FLAMEGPU->setVariable<int>("tumble", 1);
-            return flamegpu::ALIVE;
-        }
-
-        int tx = x + static_cast<int>(std::round(move_dir_x));
-        int ty = y + static_cast<int>(std::round(move_dir_y));
-        int tz = z + static_cast<int>(std::round(move_dir_z));
-
-        if (tx < 0 || tx >= grid_x || ty < 0 || ty >= grid_y || tz < 0 || tz >= grid_z) {
-            return flamegpu::ALIVE;
-        }
-
-        int target_vidx = tz * (grid_x * grid_y) + ty * grid_x + tx;
-        if (ecm_porosity(ecm_d, ecm_c, target_vidx, density_cap) >= min_porosity &&
-            volume_try_claim(vol_used, target_vidx, my_vol, capacity)) {
-            volume_release(vol_used, old_vidx, my_vol);
-            FLAMEGPU->setVariable<int>("x", tx);
-            FLAMEGPU->setVariable<int>("y", ty);
-            FLAMEGPU->setVariable<int>("z", tz);
-        }
+    MoveParams mp;
+    mp.grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    mp.grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    mp.grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    mp.vol_used = VOL_PTR(FLAMEGPU);
+    mp.my_vol = my_vol;
+    mp.capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    mp.ecm_density = ECM_DENSITY_PTR(FLAMEGPU);
+    mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
+    mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
+    mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_TCELL");
+    // Adhesion: cytotoxic T cells form LFA-1/ICAM-1 synapse with cancer
+    if (cell_state == T_CELL_CYT) {
+        const int n_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
+        float a_cancer = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_TCELL_CYT_CANCER");
+        mp.p_move = fmaxf(0.0f, 1.0f - a_cancer * (static_cast<float>(n_cancer) / 26.0f));
+    } else {
+        mp.p_move = 1.0f;
     }
-    // === TUMBLE PHASE (tumble == 1) ===
-    // Collect candidate neighbors, shuffle, then atomically claim the first available.
-    else {
-        int cand_x[26], cand_y[26], cand_z[26];
-        int n_cands = 0;
-        for (int di = -1; di <= 1; di++) for (int dj = -1; dj <= 1; dj++) for (int dk = -1; dk <= 1; dk++) {
-            if (di==0 && dj==0 && dk==0) continue;
-            int nx = x+di, ny = y+dj, nz = z+dk;
-            if (nx<0||nx>=grid_x||ny<0||ny>=grid_y||nz<0||nz>=grid_z) continue;
-            int nvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
-            if (vol_used[nvidx] + my_vol > capacity) continue;
-            if (ecm_porosity(ecm_d, ecm_c, nvidx, density_cap) < min_porosity) continue;
-            cand_x[n_cands] = nx; cand_y[n_cands] = ny; cand_z[n_cands] = nz;
-            n_cands++;
-        }
-        if (n_cands == 0) return flamegpu::ALIVE;
-        for (int i = n_cands-1; i > 0; i--) {
-            int j = static_cast<int>(FLAMEGPU->random.uniform<float>() * (i+1));
-            if (j > i) j = i;
-            int tx=cand_x[i]; cand_x[i]=cand_x[j]; cand_x[j]=tx;
-            int ty=cand_y[i]; cand_y[i]=cand_y[j]; cand_y[j]=ty;
-            int tz=cand_z[i]; cand_z[i]=cand_z[j]; cand_z[j]=tz;
-        }
-        for (int i = 0; i < n_cands; i++) {
-            int tvidx = cand_z[i] * (grid_x * grid_y) + cand_y[i] * grid_x + cand_x[i];
-            if (volume_try_claim(vol_used, tvidx, my_vol, capacity)) {
-                volume_release(vol_used, old_vidx, my_vol);
-                FLAMEGPU->setVariable<int>("x", cand_x[i]);
-                FLAMEGPU->setVariable<int>("y", cand_y[i]);
-                FLAMEGPU->setVariable<int>("z", cand_z[i]);
-                FLAMEGPU->setVariable<float>("move_direction_x", static_cast<float>(cand_x[i]-x));
-                FLAMEGPU->setVariable<float>("move_direction_y", static_cast<float>(cand_y[i]-y));
-                FLAMEGPU->setVariable<float>("move_direction_z", static_cast<float>(cand_z[i]-z));
-                FLAMEGPU->setVariable<int>("tumble", 0);
-                break;
-            }
-        }
+    mp.p_persist = p_persist;
+    mp.bias_strength = 0.0f; // T cells: no chemotaxis (TBD)
+    mp.grad_x = 0.0f; mp.grad_y = 0.0f; mp.grad_z = 0.0f;
+
+    MoveResult r = move_cell(mp, x, y, z,
+        FLAMEGPU->getVariable<int>("persist_dir_x"),
+        FLAMEGPU->getVariable<int>("persist_dir_y"),
+        FLAMEGPU->getVariable<int>("persist_dir_z"),
+        FLAMEGPU->random.uniform<float>(),
+        FLAMEGPU->random.uniform<float>(),
+        FLAMEGPU->random.uniform<float>());
+
+    if (r.moved) {
+        FLAMEGPU->setVariable<int>("x", r.new_x);
+        FLAMEGPU->setVariable<int>("y", r.new_y);
+        FLAMEGPU->setVariable<int>("z", r.new_z);
+        FLAMEGPU->setVariable<int>("persist_dir_x", r.persist_dx);
+        FLAMEGPU->setVariable<int>("persist_dir_y", r.persist_dy);
+        FLAMEGPU->setVariable<int>("persist_dir_z", r.persist_dz);
     }
 
     return flamegpu::ALIVE;

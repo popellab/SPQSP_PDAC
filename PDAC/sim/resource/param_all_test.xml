@@ -43,6 +43,13 @@
       <IL2_prolif_th>63460</IL2_prolif_th>
       <IFNg_release_time>21600</IFNg_release_time>
       <IFNg_recruit_Half>0.0725</IFNg_recruit_Half>
+      <hypoxia_threshold>0.01</hypoxia_threshold>   <!-- O2 mM below which hypoxia counter increments -->
+      <hypoxia_tier1>10</hypoxia_tier1>             <!-- Exposure steps for low impairment onset -->
+      <hypoxia_tier2>30</hypoxia_tier2>             <!-- Exposure steps for medium impairment onset -->
+      <hypoxia_recovery>1</hypoxia_recovery>        <!-- Recovery decrement per normoxic step (int) -->
+      <hypoxia_factor1>0.7</hypoxia_factor1>        <!-- Multiplier: low tier -->
+      <hypoxia_factor2>0.4</hypoxia_factor2>        <!-- Multiplier: medium tier -->
+      <hypoxia_factor3>0.1</hypoxia_factor3>        <!-- Multiplier: high tier -->
     </TCell>
     <TCD4>
       <lifespanSD>10</lifespanSD>
@@ -57,6 +64,8 @@
     <Mac>
       <lifespanSD>1</lifespanSD>
       <moveSteps>6</moveSteps>
+      <hypoxia_threshold>0.01</hypoxia_threshold>  <!-- O2 mM below which M2 bias activates -->
+      <m2_bias_strength>0.6</m2_bias_strength>     <!-- Max reduction factor on M2→M1 reversion (0-1) -->
     </Mac>
     <CancerCell>
       <progGrowthRate>.5</progGrowthRate>
@@ -69,7 +78,11 @@
       <mincc>1000</mincc>
       <C1_CD47>400</C1_CD47>
       <IFNgUptake>1e-3</IFNgUptake>
-      <hypoxia_th>0.1</hypoxia_th>
+      <hypoxia_th>0.01</hypoxia_th>            <!-- ~1% O2 for HIF-1α activation [mM] -->
+      <hif_vegf_boost>5.0</hif_vegf_boost>      <!-- VEGF-A secretion multiplier under HIF -->
+      <hif_ccl2_boost>3.0</hif_ccl2_boost>      <!-- CCL2 secretion multiplier under HIF -->
+      <hif_pdl1_boost>0.3</hif_pdl1_boost>      <!-- Additive PDL1 increase under HIF (capped at 1.0) -->
+      <hif_mhc_reduction>0.5</hif_mhc_reduction> <!-- Kill probability multiplier for HIF-active targets -->
       <density_csc>0.1</density_csc>
     </CancerCell>
     <Vas>
@@ -84,6 +97,16 @@
       <delta>0.2</delta>
       <branch_prob>0.1</branch_prob>
       <min_neighbor>15</min_neighbor>
+      <maturity_resistance>0.02</maturity_resistance>      <!-- How much maturity reduces compression/regression -->
+      <initial_maturity>100</initial_maturity>             <!-- Maturity steps for pre-existing vessels -->
+      <collapse_threshold>0.7</collapse_threshold>         <!-- ECM density above which collapse possible -->
+      <collapse_ec50>0.85</collapse_ec50>                  <!-- Hill EC50 for collapse probability -->
+      <recovery_threshold>0.4</recovery_threshold>         <!-- ECM density below which recovery possible -->
+      <recovery_rate>0.05</recovery_rate>                  <!-- Per-step recovery probability -->
+      <regress_rate>0.005</regress_rate>                   <!-- Per-step regression base rate at zero VEGF -->
+      <vegfa_survival_ec50>0.01</vegfa_survival_ec50>      <!-- VEGF-A mM for 50% vessel survival -->
+      <kvl_dysfunctional>0.4</kvl_dysfunctional>           <!-- Fraction of K_vl for dysfunctional sprouts -->
+      <hypoxia_threshold>0.01</hypoxia_threshold>          <!-- O2 mM below which sprouts are dysfunctional -->
     </Vas>
     <Fib>
       <moveSteps>16</moveSteps>
@@ -112,6 +135,10 @@
       <div_prob>0.01</div_prob>                             <!-- Division probability per step (activated) -->
       <div_cooldown>50</div_cooldown>                       <!-- Steps between divisions -->
       <div_max>10</div_max>                                 <!-- Max divisions -->
+      <!-- Hypoxia/HIF response (myCAF) -->
+      <hypoxia_th>0.01</hypoxia_th>                         <!-- O2 threshold for HIF activation [mM] -->
+      <hif_tgfb_boost>3.0</hif_tgfb_boost>                  <!-- TGF-β secretion multiplier under hypoxia -->
+      <hif_ecm_boost>2.0</hif_ecm_boost>                    <!-- ECM deposition multiplier under hypoxia -->
     </Fib>
     <Occupancy>
       <voxelCapacity>8000.0</voxelCapacity>             <!-- um3, = voxel_size^3 (20^3) -->
@@ -163,6 +190,7 @@
       <porosityFib>0.05</porosityFib>                 <!-- Min porosity for fibroblast movement -->
       <porosityVasTip>0.2</porosityVasTip>            <!-- Min porosity for vascular TIP movement -->
       <vasCompressK>0.5</vasCompressK>                <!-- Half-max ECM density for vascular compression -->
+      <yapEC50>0.8</yapEC50>                          <!-- YAP/TAZ Hill ceiling: stiffness EC50 (density*(1+crosslink)) -->
     </ECM>
     <DomainInit>
       <!-- Lobular structure -->
@@ -207,6 +235,61 @@
       <!-- PDE warmup -->
       <pde_warmup_substeps>20</pde_warmup_substeps>
     </DomainInit>
+    <!-- Unified movement framework: persistence, chemotaxis bias, adhesion -->
+    <Movement>
+      <Persistence>
+        <!-- Probability of continuing previous direction each substep -->
+        <tcell_eff>0.4</tcell_eff>
+        <tcell_cyt>0.1</tcell_cyt>
+        <tcell_sup>0.1</tcell_sup>
+        <mac_m1>0.3</mac_m1>
+        <mac_m2>0.1</mac_m2>
+        <fib_mycaf>0.2</fib_mycaf>
+        <fib_icaf>0.1</fib_icaf>
+        <vas_tip>0.5</vas_tip>
+        <treg_reg>0.3</treg_reg>
+        <treg_th>0.4</treg_th>
+        <mdsc>0.3</mdsc>
+      </Persistence>
+      <Chemotaxis>
+        <!-- Gradient-biased direction selection strength (0=uniform random) -->
+        <!-- Signals: cancer_stem=O2(deferred), mac=CCL2, fib_mycaf=TGFB, vas_tip=VEGFA, treg=TGFB, mdsc=CCL2 -->
+        <cancer_stem_bias>0.0</cancer_stem_bias>  <!-- O2 gradient not computed yet, defer -->
+        <mac_m1_bias>0.6</mac_m1_bias>
+        <mac_m2_bias>0.2</mac_m2_bias>
+        <fib_mycaf_bias>0.5</fib_mycaf_bias>
+        <vas_tip_bias>0.8</vas_tip_bias>
+        <treg_reg_bias>0.4</treg_reg_bias>
+        <mdsc_bias>0.5</mdsc_bias>
+      </Chemotaxis>
+      <Adhesion>
+        <!-- ECM density above this threshold counts as pseudo-neighbor for adhesion -->
+        <ecm_density_threshold>0.3</ecm_density_threshold>
+        <!-- p_move = max(0, 1 - sum(a_ij * n_j / 26) - a_ecm * ecm_factor) -->
+        <!-- Cancer Stem (EMT, reduced E-cadherin) -->
+        <cancer_stem_to_cancer>0.2</cancer_stem_to_cancer>
+        <cancer_stem_to_fib>0.05</cancer_stem_to_fib>
+        <cancer_stem_to_ecm>0.1</cancer_stem_to_ecm>
+        <!-- Cancer Progenitor (high E-cadherin, tumor cohesion) -->
+        <cancer_prog_to_cancer>0.6</cancer_prog_to_cancer>
+        <cancer_prog_to_fib>0.1</cancer_prog_to_fib>
+        <cancer_prog_to_ecm>0.2</cancer_prog_to_ecm>
+        <!-- T cell Cytotoxic (LFA-1/ICAM-1 synapse, stays near cancer) -->
+        <tcell_cyt_to_cancer>0.4</tcell_cyt_to_cancer>
+        <!-- MAC M2 (semi-sessile niche retention) -->
+        <mac_m2_to_cancer>0.1</mac_m2_to_cancer>
+        <mac_m2_to_fib>0.1</mac_m2_to_fib>
+        <mac_m2_to_ecm>0.1</mac_m2_to_ecm>
+        <!-- Fibroblast myCAF (strong ECM anchorage, N-cadherin) -->
+        <fib_mycaf_to_cancer>0.1</fib_mycaf_to_cancer>
+        <fib_mycaf_to_fib>0.2</fib_mycaf_to_fib>
+        <fib_mycaf_to_ecm>0.5</fib_mycaf_to_ecm>
+        <!-- Fibroblast iCAF (secretory, less anchored) -->
+        <fib_icaf_to_cancer>0.05</fib_icaf_to_cancer>
+        <fib_icaf_to_fib>0.1</fib_icaf_to_fib>
+        <fib_icaf_to_ecm>0.1</fib_icaf_to_ecm>
+      </Adhesion>
+    </Movement>
   </ABM>
   <Molecular>
     <stepPerSlice>36</stepPerSlice>  <!-- 36 substeps per ABM step, matching HCC (dt_pde = dt_abm/36 = 600s) -->
@@ -289,7 +372,9 @@
       <IL1>
         <diffusivity>1e-7</diffusivity>            <!-- Similar to IFN-γ (small cytokine) -->
         <release>
-          <Cancer>1e-11</Cancer>                   <!-- Order-of-magnitude estimate -->
+          <CancerStem>1e-11</CancerStem>             <!-- Stem: highest IL-1 (drives iCAF activation) -->
+          <CancerProg>5e-12</CancerProg>             <!-- Progenitor: moderate IL-1 -->
+          <CancerSen>2e-12</CancerSen>               <!-- Senescent: low IL-1 (SASP) -->
           <MacM1>5e-12</MacM1>                     <!-- M1 macrophage IL-1 secretion -->
         </release>
         <decayRate>1e-4</decayRate>                <!-- Similar to TGF-β range -->

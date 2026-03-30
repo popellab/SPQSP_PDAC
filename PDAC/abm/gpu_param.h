@@ -39,6 +39,10 @@ enum GPUParamFloat {
     PARAM_ASYM_DIV_PROB,
     PARAM_CANCER_IFNG_UPTAKE,
     PARAM_CANCER_HYPOXIA_TH,
+    PARAM_HIF_VEGF_BOOST,             // HIF VEGF-A secretion multiplier (e.g., 5×)
+    PARAM_HIF_CCL2_BOOST,             // HIF CCL2 secretion multiplier (e.g., 3×)
+    PARAM_HIF_PDL1_BOOST,             // HIF additive PDL1 boost (e.g., 0.3)
+    PARAM_HIF_MHC_REDUCTION,          // Kill prob multiplier for HIF-active targets (e.g., 0.5)
     PARAM_DENSITY_STEM,
     PARAM_TKILL_SCALAR,
     PARAM_MIN_CC,
@@ -51,6 +55,13 @@ enum GPUParamFloat {
     PARAM_TCELL_IL2_PROLIF_TH,
     PARAM_TCELL_IFNG_RELEASE_TIME,
     PARAM_TEFF_IFN_EC50,
+    PARAM_TCELL_HYPOXIA_TH,           // O2 threshold for T cell hypoxia [mM]
+    PARAM_TCELL_HYPOXIA_TIER1,        // Exposure steps for low impairment onset
+    PARAM_TCELL_HYPOXIA_TIER2,        // Exposure steps for medium impairment onset
+    PARAM_TCELL_HYPOXIA_RECOVERY,     // Recovery decrement per normoxic step
+    PARAM_TCELL_HYPOXIA_FACTOR1,      // Kill/secretion multiplier: low tier
+    PARAM_TCELL_HYPOXIA_FACTOR2,      // All multiplier: medium tier
+    PARAM_TCELL_HYPOXIA_FACTOR3,      // All multiplier: high tier (near exhaustion)
     //*************************************************************************/
     // TCD4 cell parameters
     PARAM_TCD4_LIFESPAN_SD,
@@ -60,7 +71,8 @@ enum GPUParamFloat {
     PARAM_MDSC_LIFESPAN_SD,
     //*************************************************************************/
     // Macrophage cell parameters
-
+    PARAM_MAC_HYPOXIA_TH,             // O2 threshold for hypoxic M2 bias [mM]
+    PARAM_MAC_M2_BIAS_STRENGTH,       // Strength of hypoxic M2 polarization shift (0-1)
     //*************************************************************************/
     // Fibroblast cell parameters
     PARAM_FIB_MYCAF_TGFB_EC50,        // TGF-β EC50 for quiescent→myCAF activation
@@ -96,6 +108,16 @@ enum GPUParamFloat {
     PARAM_VAS_DELTA,
     PARAM_VAS_BRANCH_PROB,
     PARAM_VAS_MIN_NEIGHBOR,
+    PARAM_VAS_MATURITY_RESISTANCE,    // How much maturity reduces compression/regression
+    PARAM_VAS_INITIAL_MATURITY,       // Maturity value for pre-existing vessels
+    PARAM_VAS_COLLAPSE_THRESHOLD,     // ECM density above which collapse is possible
+    PARAM_VAS_COLLAPSE_EC50,          // Hill EC50 for collapse probability
+    PARAM_VAS_RECOVERY_THRESHOLD,     // ECM density below which recovery is possible
+    PARAM_VAS_RECOVERY_RATE,          // Per-step recovery probability
+    PARAM_VAS_REGRESS_RATE,           // Per-step regression base rate at zero VEGF
+    PARAM_VAS_VEGFA_SURVIVAL_EC50,    // VEGF-A for 50% vessel survival
+    PARAM_VAS_KVL_DYSFUNCTIONAL,      // Fraction of K_vl for dysfunctional sprouts (0-1)
+    PARAM_VAS_HYPOXIA_TH,            // O2 threshold for dysfunctional sprout flag
     //*************************************************************************/
     // Volume-based occupancy parameters
     PARAM_VOXEL_CAPACITY,
@@ -160,7 +182,9 @@ enum GPUParamFloat {
     PARAM_STEM_VEGFA_RELEASE,
     PARAM_PROG_VEGFA_RELEASE,
     PARAM_MAC_VEGFA_RELEASE,
-    PARAM_CANCER_IL1_RELEASE,         // Cancer cell IL-1 secretion (drives iCAF activation)
+    PARAM_CANCER_IL1_RELEASE_STEM,    // Stem IL-1 secretion (highest, drives iCAF activation)
+    PARAM_CANCER_IL1_RELEASE_PROG,    // Progenitor IL-1 secretion
+    PARAM_CANCER_IL1_RELEASE_SEN,     // Senescent IL-1 secretion (SASP)
     PARAM_MAC_M1_IL1_RELEASE,         // M1 macrophage IL-1 secretion
 
     PARAM_IL2_UPTAKE,
@@ -204,6 +228,12 @@ enum GPUParamFloat {
     PARAM_ECM_POROSITY_FIB,              // Min porosity for fibroblast movement
     PARAM_ECM_POROSITY_VAS_TIP,          // Min porosity for vascular TIP movement
     PARAM_VAS_ECM_COMPRESS_K,            // Half-max ECM density for vascular compression
+    PARAM_ECM_YAP_EC50,                  // YAP/TAZ Hill ceiling: stiffness EC50 for deposition feedback
+    //*************************************************************************/
+    // Fibroblast HIF/hypoxia parameters
+    PARAM_FIB_HYPOXIA_TH,               // O2 threshold for HIF activation in myCAFs
+    PARAM_FIB_HIF_TGFB_BOOST,           // TGF-β secretion multiplier under hypoxia
+    PARAM_FIB_HIF_ECM_BOOST,            // ECM deposition multiplier under hypoxia
     //*************************************************************************/
     // Domain initialization parameters
     PARAM_DOMAIN_LOBULE_SPACING,         // Voxels between lobule centers (Poisson disk)
@@ -234,6 +264,47 @@ enum GPUParamFloat {
     PARAM_DOMAIN_MAC_P_TUMOR,            // Macrophage placement prob in tumor
     PARAM_DOMAIN_MAC_MARGIN_M1_FRAC,     // Fraction of margin macrophages as M1
     PARAM_DOMAIN_TH_P_STROMA,            // TH cell placement prob in stroma
+    //*************************************************************************/
+    // Movement framework parameters (persistence, chemotaxis bias)
+    // Persistence: probability of continuing previous direction each substep
+    PARAM_PERSIST_TCELL_EFF,
+    PARAM_PERSIST_TCELL_CYT,
+    PARAM_PERSIST_TCELL_SUP,
+    PARAM_PERSIST_MAC_M1,
+    PARAM_PERSIST_MAC_M2,
+    PARAM_PERSIST_FIB_MYCAF,
+    PARAM_PERSIST_FIB_ICAF,
+    PARAM_PERSIST_VAS_TIP,
+    PARAM_PERSIST_TREG_REG,
+    PARAM_PERSIST_TREG_TH,
+    PARAM_PERSIST_MDSC,
+    // Chemotaxis bias: gradient-weighted direction selection strength (0=uniform)
+    PARAM_CHEMO_BIAS_CANCER_STEM,        // O2 (weak, defer until O2 gradient added)
+    PARAM_CHEMO_BIAS_MAC_M1,             // CCL2
+    PARAM_CHEMO_BIAS_MAC_M2,             // CCL2
+    PARAM_CHEMO_BIAS_FIB_MYCAF,          // TGF-β
+    PARAM_CHEMO_BIAS_VAS_TIP,            // VEGF-A
+    PARAM_CHEMO_BIAS_TREG_REG,           // TGF-β
+    PARAM_CHEMO_BIAS_MDSC,               // CCL2
+    // Adhesion: ECM density threshold for pseudo-neighbor count
+    PARAM_ADH_ECM_DENSITY_TH,
+    // Adhesion coefficients (non-zero entries only)
+    PARAM_ADH_CANCER_STEM_CANCER,
+    PARAM_ADH_CANCER_STEM_FIB,
+    PARAM_ADH_CANCER_STEM_ECM,
+    PARAM_ADH_CANCER_PROG_CANCER,
+    PARAM_ADH_CANCER_PROG_FIB,
+    PARAM_ADH_CANCER_PROG_ECM,
+    PARAM_ADH_TCELL_CYT_CANCER,
+    PARAM_ADH_MAC_M2_CANCER,
+    PARAM_ADH_MAC_M2_FIB,
+    PARAM_ADH_MAC_M2_ECM,
+    PARAM_ADH_FIB_MYCAF_CANCER,
+    PARAM_ADH_FIB_MYCAF_FIB,
+    PARAM_ADH_FIB_MYCAF_ECM,
+    PARAM_ADH_FIB_ICAF_CANCER,
+    PARAM_ADH_FIB_ICAF_FIB,
+    PARAM_ADH_FIB_ICAF_ECM,
 
     GPU_PARAM_FLOAT_COUNT
 };
