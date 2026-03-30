@@ -139,6 +139,34 @@ SimBiology multiplies some concentration-species reaction rates by compartment v
 
 **Verification script**: `tools/sbml_converter/tests/compare_sbml_vs_live.m` — compares all reaction rates between the live SimBiology model and the SBML export, resolving SBML IDs to readable names. Run to find all SBML export discrepancies.
 
+### Error tracing (2026-03-29)
+
+Extended trajectory comparison out to 1000 days. Key finding: the ArgI error is a **persistent divergence** (not a phase shift), stabilizing at ~10% from t=100 onward (see `tools/sbml_converter/tests/trajectory_relerr.png`).
+
+**Error propagation chain** (traced via relative error at very early timepoints):
+
+| t=1 | Error | Source |
+|-----|-------|--------|
+| V_LN.mcDC1/2 | +0.057% | Earliest measurable error. Mature DCs in lymph node. |
+| V_LN.aTreg | +0.057% | Inherits from mcDC via H_APC_Treg (activation rate) |
+| V_C/V_P.Treg | +0.050% | Receives from V_LN via migration |
+| V_T.Treg | +0.111% | **2x amplification** entering tumor (migration stoich factor 1440) |
+| V_T.P0/P1 | +0.031% | Antigen presentation species |
+| A_s.M1p0 | +0.026% | Synapse antigen species (feeds back to mcDC) |
+| V_T.ArgI | +0.078% | Accumulates from Treg/MDSC via H_ArgI Hill functions |
+
+**Not the cause:**
+- nCD4: 0.0000% in all compartments at t=1 (naive cells are perfect)
+- C1, VEGF, Mac_M1, MDSC, qPSC, fibroblasts, collagen: all <0.05%
+- V_T (tumor volume): matches SimBiology to 0.00016% when computed with correct parameters
+- Floating-point precision of large stoich factors: verified 1e-15 × 1e18 path produces identical results to 1e3 path (difference < 1 ULP)
+
+**Annotator bug found (not the cause of drift, but should be fixed):**
+The `P0_C1` parameter gets converted ×1e-15 because the retry loop applies ×1e-3 five times. This happens because P0_C1 appears in BOTH children of the additive mismatch `P0_C1*(k_death)*C1 + P0_C1*(k_Tcell_eff)*C1`. Correcting P0_C1 shifts both terms equally, so the mismatch never resolves. The stoich factor compensates (1e18), making the net math correct, but it's wasteful. Fix: skip parameters that appear in both children of an additive node.
+
+**Remaining mystery:**
+The 0.057% error in V_LN.mcDC1/2 at t=1 is the earliest measurable divergence. The equations, parameters, stoich factors, and V_T computation all match SimBiology. The SBML formula for every reaction matches the live model. The error source is still unknown — it may be in how SimBiology's UnitConversion evaluates intermediate expressions differently from our parameter-conversion approach (evaluation order, internal rounding), or a subtle difference in how the SBML encodes a rate law vs the live model.
+
 ### SimBiology species name mapping (critical!)
 
 SimBiology's `sbiosimulate()` outputs bare species names ("Treg", "nCD4") with the same name appearing once per compartment. The column ORDER matches model.Species order (by compartment). **This order is different from `export(model).ValueInfo` order.**
