@@ -40,57 +40,6 @@ FLAMEGPU_HOST_FUNCTION(update_agent_counts) {
     nvtxRangePop();
 }
 
-FLAMEGPU_HOST_FUNCTION(check_cancer_count_before_movement) {
-    unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
-    int cancer_count = FLAMEGPU->agent(AGENT_CANCER_CELL).count();
-
-    std::cout << "Step " << step << " - Cancer cells before movement: " << cancer_count << std::endl;
-
-}
-
-FLAMEGPU_HOST_FUNCTION(reset_division_counters) {
-    FLAMEGPU->environment.setProperty<unsigned int>("cancer_divide_attempts", 0u);
-    FLAMEGPU->environment.setProperty<unsigned int>("cancer_divide_successes", 0u);
-    FLAMEGPU->environment.setProperty<unsigned int>("tcell_divide_attempts", 0u);
-    FLAMEGPU->environment.setProperty<unsigned int>("tcell_divide_successes", 0u);
-    FLAMEGPU->environment.setProperty<unsigned int>("treg_divide_attempts", 0u);
-    FLAMEGPU->environment.setProperty<unsigned int>("treg_divide_successes", 0u);
-}
-
-FLAMEGPU_HOST_FUNCTION(report_division_statistics) {
-    unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
-    unsigned int cancer_attempts = FLAMEGPU->environment.getProperty<unsigned int>("cancer_divide_attempts");
-    unsigned int cancer_successes = FLAMEGPU->environment.getProperty<unsigned int>("cancer_divide_successes");
-    unsigned int tcell_attempts = FLAMEGPU->environment.getProperty<unsigned int>("tcell_divide_attempts");
-    unsigned int tcell_successes = FLAMEGPU->environment.getProperty<unsigned int>("tcell_divide_successes");
-    unsigned int treg_attempts = FLAMEGPU->environment.getProperty<unsigned int>("treg_divide_attempts");
-    unsigned int treg_successes = FLAMEGPU->environment.getProperty<unsigned int>("treg_divide_successes");
-
-    std::cout << "Step " << step << " - Division Stats:"
-              << " Cancer(A:" << cancer_attempts << " S:" << cancer_successes << ")"
-              << " TCell(A:" << tcell_attempts << " S:" << tcell_successes << ")"
-              << " TReg(A:" << treg_attempts << " S:" << treg_successes << ")"
-              << std::endl;
-}
-
-FLAMEGPU_HOST_FUNCTION(check_cancer_count_after_movement) {
-    unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
-    int cancer_count = FLAMEGPU->agent(AGENT_CANCER_CELL).count();
-
-    std::cout << "Step " << step << " - Cancer cells after movement: " << cancer_count << std::endl;
-
-}
-
-FLAMEGPU_HOST_FUNCTION(check_voxel_occupancy) {
-    unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
-    int cancer_count = FLAMEGPU->agent(AGENT_CANCER_CELL).count();
-    std::cout << "Step " << step << " - Cancer cell count (before division): " << cancer_count << std::endl;
-}
-
-FLAMEGPU_HOST_FUNCTION(check_voxel_packing_after_movement) {
-    // Placeholder - the real issue is in execute_move and execute_divide
-    // Both need to check MSG_CELL_LOCATION to verify target voxel is physically empty
-}
 
 }
 

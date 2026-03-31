@@ -75,7 +75,7 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     cancer_cell.newVariable<float>("cabo_effect", 0.0f);       // VEGF inhibition level [0-1]
 
     // Neighbor counts (computed each step)
-    cancer_cell.newVariable<int>("neighbor_Teff_count", 0);
+    cancer_cell.newVariable<float>("neighbor_Teff_count", 0.0f);  // Weighted by T cell hypoxia_kill_factor
     cancer_cell.newVariable<int>("neighbor_Treg_count", 0);
     cancer_cell.newVariable<int>("neighbor_cancer_count", 0);
     cancer_cell.newVariable<int>("neighbor_MDSC_count", 0);
@@ -185,7 +185,8 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     tcell.newVariable<unsigned int>("available_neighbors", 0u);
 
     // Lifecycle
-    tcell.newVariable<int>("hypoxia_exposure", 0);  // Cumulative hypoxia counter (graded impairment)
+    tcell.newVariable<int>("hypoxia_exposure", 0);        // Cumulative hypoxia counter (graded impairment)
+    tcell.newVariable<float>("hypoxia_kill_factor", 1.0f); // Current kill ability [0,1], broadcast to cancer
     tcell.newVariable<int>("life", 0);
     tcell.newVariable<int>("dead", 0);
 
@@ -547,6 +548,7 @@ void defineCellLocationMessage(flamegpu::ModelDescription& model, float voxel_si
     message.newVariable<int>("voxel_y");
     message.newVariable<int>("voxel_z");
     message.newVariable<unsigned int>("tip_id");  // For vascular cells
+    message.newVariable<float>("kill_factor");    // T cell functional impairment [0,1]; other agents leave at 0 (unused)
 }
 
 // Define the spatial message type for intent broadcasting (two-phase conflict resolution)
@@ -677,6 +679,7 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<uint64_t>("abm_export_buf_ptr", 0u);
     env.newProperty<uint64_t>("abm_export_counter_ptr", 0u);
     env.newProperty<int>("do_abm_export", 0);
+    env.newProperty<unsigned int>("abm_export_max_agents", 0u);
 
     // Populate ALL other parameters from XML
     params.populateFlameGPUEnvironment(env);

@@ -18,6 +18,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_broadcast_location, flamegpu::MessageNone, flamegp
     const int tcell_cs = FLAMEGPU->getVariable<int>("cell_state");
     FLAMEGPU->message_out.setVariable<int>("cell_state", tcell_cs);
     FLAMEGPU->message_out.setVariable<float>("PDL1", 0.0f);  // T cells don't have PDL1
+    FLAMEGPU->message_out.setVariable<float>("kill_factor", FLAMEGPU->getVariable<float>("hypoxia_kill_factor"));
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
@@ -204,6 +205,8 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
     } else if (hypoxia_exposure > 0) {
         hypoxia_factor = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR1");
     }
+    // Store for broadcast — cancer cell reads this to weight effective Teff count
+    FLAMEGPU->setVariable<float>("hypoxia_kill_factor", hypoxia_factor);
 
     // High chronic hypoxia → forced SUPPRESSED (terminal hypoxic exhaustion)
     if (hypoxia_exposure >= tier2 * 2 && cell_state != T_CELL_SUPP) {
@@ -323,6 +326,10 @@ FLAMEGPU_AGENT_FUNCTION(tcell_write_to_occ_grid, flamegpu::MessageNone, flamegpu
 
     const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int gz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    if (x < 0 || x >= gx || y < 0 || y >= gy || z < 0 || z >= gz) {
+        return flamegpu::ALIVE;
+    }
     const int vidx = z * (gx * gy) + y * gx + x;
 
     // Volume-based occupancy
@@ -429,6 +436,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_divide, flamegpu::MessageNone, flamegpu::MessageNo
         FLAMEGPU->agent_out.setVariable<int>("persist_dir_y", 0);
         FLAMEGPU->agent_out.setVariable<int>("persist_dir_z", 0);
         FLAMEGPU->agent_out.setVariable<int>("hypoxia_exposure", 0);
+        FLAMEGPU->agent_out.setVariable<float>("hypoxia_kill_factor", 1.0f);
 
         // Update parent
         FLAMEGPU->setVariable<int>("divide_limit", divide_limit - 1);

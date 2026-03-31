@@ -17,6 +17,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_broadcast_location, flamegpu::MessageNone, flameg
     FLAMEGPU->message_out.setVariable<int>("agent_id", FLAMEGPU->getID());
     FLAMEGPU->message_out.setVariable<int>("cell_state", FLAMEGPU->getVariable<int>("cell_state"));
     FLAMEGPU->message_out.setVariable<float>("PDL1", FLAMEGPU->getVariable<float>("PDL1_syn"));
+    FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f);  // N/A for cancer
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
@@ -54,7 +55,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_count_neighbors, flamegpu::MessageSpatial3D, flam
     const float my_pos_z = (my_z + 0.5f) * voxel_size;
     const unsigned int my_id = FLAMEGPU->getID();
 
-    int tcyt_count = 0;    // Cytotoxic T cells (can kill)
+    float tcyt_effective = 0.0f;  // Cytotoxic T cells weighted by hypoxia_kill_factor
     int treg_count = 0;    // Regulatory T cells
     int cancer_count = 0;  // Other cancer cells in neighborhood
     int mdsc_count = 0;    // MDSCs (suppress T cell killing)
@@ -93,7 +94,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_count_neighbors, flamegpu::MessageSpatial3D, flam
 
             if (agent_type == CELL_TYPE_T) {
                 if (agent_cell_state == T_CELL_CYT || agent_cell_state == T_CELL_EFF) {
-                    tcyt_count++;
+                    tcyt_effective += msg.getVariable<float>("kill_factor");
                 }
                 neighbor_tcells[dir_idx]++;
             } else if (agent_type == CELL_TYPE_TREG) {
@@ -133,7 +134,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_count_neighbors, flamegpu::MessageSpatial3D, flam
     //     }
     // }
 
-    FLAMEGPU->setVariable<int>("neighbor_Teff_count", tcyt_count);
+    FLAMEGPU->setVariable<float>("neighbor_Teff_count", tcyt_effective);
     FLAMEGPU->setVariable<int>("neighbor_Treg_count", treg_count);
     FLAMEGPU->setVariable<int>("neighbor_cancer_count", cancer_count);
     FLAMEGPU->setVariable<int>("neighbor_MDSC_count", mdsc_count);
@@ -157,6 +158,10 @@ FLAMEGPU_AGENT_FUNCTION(cancer_write_to_occ_grid, flamegpu::MessageNone, flamegp
 
     const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int gz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    if (x < 0 || x >= gx || y < 0 || y >= gy || z < 0 || z >= gz) {
+        return flamegpu::ALIVE;
+    }
     const int vidx = z * (gx * gy) + y * gx + x;
 
     // Flat cancer presence array for recruitment density checks (is_tumor_dense_r3)
@@ -378,7 +383,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
     }
 
     // === T CELL KILLING ===
-    int neighbor_Teff = FLAMEGPU->getVariable<int>("neighbor_Teff_count");
+    float neighbor_Teff = FLAMEGPU->getVariable<float>("neighbor_Teff_count");  // Weighted by hypoxia_kill_factor
     if (neighbor_Teff > 0) {
         const int neighbor_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
         const float PDL1 = FLAMEGPU->getVariable<float>("PDL1_syn");

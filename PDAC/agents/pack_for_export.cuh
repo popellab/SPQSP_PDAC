@@ -24,7 +24,9 @@ __device__ __forceinline__ void pack_row(
     unsigned int* counter = reinterpret_cast<unsigned int*>(
         FLAMEGPU->environment.getProperty<uint64_t>("abm_export_counter_ptr"));
 
+    unsigned int max_agents = FLAMEGPU->environment.getProperty<unsigned int>("abm_export_max_agents");
     unsigned int row = atomicAdd(counter, 1u);
+    if (row >= max_agents) return;  // buffer overflow guard — drop agent rather than crash
     unsigned int off = row * ABM_EXPORT_NCOLS;
 
     buf[off + 0] = type_id;

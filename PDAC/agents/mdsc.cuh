@@ -17,6 +17,7 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_broadcast_location, flamegpu::MessageNone, flamegpu
     FLAMEGPU->message_out.setVariable<int>("agent_id", FLAMEGPU->getID());
     FLAMEGPU->message_out.setVariable<int>("cell_state", 0);  // MDSCs have single state
     FLAMEGPU->message_out.setVariable<float>("PDL1", FLAMEGPU->getVariable<float>("PDL1_syn"));
+    FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f);  // N/A for MDSC
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
@@ -179,6 +180,10 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_write_to_occ_grid, flamegpu::MessageNone, flamegpu:
 
     const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int gz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    if (x < 0 || x >= gx || y < 0 || y >= gy || z < 0 || z >= gz) {
+        return flamegpu::ALIVE;
+    }
     const int vidx = z * (gx * gy) + y * gx + x;
 
     float my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MDSC");

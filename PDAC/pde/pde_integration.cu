@@ -313,7 +313,7 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
         return;
     }
 
-    std::cout << "[DEBUG] Storing PDE device pointers in environment..." << std::endl;
+
 
     // Store device pointers as unsigned long long (can be cast back to float*)
     for (int sub = 0; sub < NUM_SUBSTRATES; sub++) {
@@ -430,7 +430,7 @@ void initialize_ecm_to_saturation(float ecm_saturation) {
     int grid_size = (total_voxels + block_size - 1) / block_size;
     fill_ecm_kernel<<<grid_size, block_size>>>(d_ecm_density, total_voxels, ecm_saturation);
     CUDA_CHECK(cudaDeviceSynchronize());
-    std::cout << "[ECM] Initialized ECM grid to saturation value: " << ecm_saturation << std::endl;
+
 }
 
 uint8_t* get_voxel_type_device_ptr() { return d_voxel_type; }
@@ -970,29 +970,6 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     g_recruit_stats.mdsc_sources = diag_host.mdsc_sources;
     g_recruit_stats.mac_sources = diag_host.mac_sources;
 
-    // Print recruitment diagnostics
-    int step = FLAMEGPU->getStepCounter();
-    std::cout << "[Recruit Diag step=" << step << "] "
-              << "T_src=" << diag_host.t_sources
-              << " | Teff: roll=" << diag_host.teff_roll_pass
-              << " ok=" << diag_host.teff_place_ok
-              << " fail=" << diag_host.teff_place_fail
-              << " | TReg: roll=" << diag_host.treg_roll_pass
-              << " ok=" << diag_host.treg_place_ok
-              << " fail=" << diag_host.treg_place_fail
-              << " | TH: roll=" << diag_host.th_roll_pass
-              << " ok=" << diag_host.th_place_ok
-              << " fail=" << diag_host.th_place_fail
-              << " | MDSC: roll=" << diag_host.mdsc_roll_pass
-              << " ok=" << diag_host.mdsc_place_ok
-              << " fail=" << diag_host.mdsc_place_fail
-              << " | MAC: roll=" << diag_host.mac_roll_pass
-              << " ok=" << diag_host.mac_place_ok
-              << " fail=" << diag_host.mac_place_fail
-              << " | p_teff=" << p.p_teff
-              << " p_treg=" << p.p_treg
-              << " p_th=" << p.p_th
-              << std::endl;
 
     nvtxRangePop();
 }
@@ -1053,6 +1030,7 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("persist_dir_y", 0);
             a.setVariable<int>("persist_dir_z", 0);
             a.setVariable<int>("hypoxia_exposure", 0);
+            a.setVariable<float>("hypoxia_kill_factor", 1.0f);
             teff_recruited++;
         }
         else if (r.cell_type == CELL_TYPE_TREG) {

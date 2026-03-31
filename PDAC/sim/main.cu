@@ -601,26 +601,6 @@ void exportABMData_step0(flamegpu::CUDASimulation& sim, flamegpu::ModelDescripti
     g_abm_buf_idx = 1 - bi;
 }
 
-// Diagnostic: dump cancer cell initial distributions to CSV for comparison with HCC.
-// Writes: cell_state, divideCD, divideCountRemaining, life (senescent cells only)
-static void write_cancer_init_diagnostic(flamegpu::CUDASimulation& sim,
-                                          flamegpu::ModelDescription& model) {
-    flamegpu::AgentVector p(model.Agent(PDAC::AGENT_CANCER_CELL));
-    sim.getPopulationData(p);
-
-    FILE* fp = fopen("outputs/abm/cancer_init_diagnostic.csv", "w");
-    if (!fp) { std::cerr << "[WARN] Cannot open cancer_init_diagnostic.csv\n"; return; }
-    fprintf(fp, "cell_state,divideCD,divideCountRemaining,life\n");
-    for (unsigned i = 0; i < p.size(); ++i) {
-        const int state = p[i].getVariable<int>("cell_state");
-        const int dcd   = p[i].getVariable<int>("divideCD");
-        const int dcr   = p[i].getVariable<int>("divideCountRemaining");
-        const int life  = p[i].getVariable<int>("life");
-        fprintf(fp, "%d,%d,%d,%d\n", state, dcd, dcr, life);
-    }
-    fclose(fp);
-    std::cout << "[DIAG] Wrote cancer_init_diagnostic.csv (" << p.size() << " cells)\n";
-}
 
 FLAMEGPU_STEP_FUNCTION(exportABMData) {
     if (PDAC::is_presim_mode_active()) return;
@@ -839,12 +819,18 @@ int main(int argc, const char** argv) {
     // ========== ALLOCATE GPU BUFFER FOR ABM EXPORT ==========
     // Always allocate (pack_for_export layer runs unconditionally; agents check do_abm_export flag)
     {
-        size_t max_agents = static_cast<size_t>(config.grid_x) * config.grid_y * config.grid_z * 2;
+        // Use grid³×10 to accommodate multiple agents per voxel (MDSC+MAC can saturate every voxel).
+        // Cap at 4M to avoid excessive GPU memory on large grids.
+        size_t max_agents = std::min(
+            static_cast<size_t>(config.grid_x) * config.grid_y * config.grid_z * 10,
+            static_cast<size_t>(4000000));
         init_abm_io(max_agents);
         model->Environment().setProperty<uint64_t>("abm_export_buf_ptr",
             reinterpret_cast<uint64_t>(g_abm_device_buf));
         model->Environment().setProperty<uint64_t>("abm_export_counter_ptr",
             reinterpret_cast<uint64_t>(g_abm_device_counter));
+        model->Environment().setProperty<unsigned int>("abm_export_max_agents",
+            static_cast<unsigned int>(max_agents));
     }
 
     // ========== ALLOCATE GPU MEMORY FOR EVENT/STATE COUNTERS ==========
@@ -881,7 +867,6 @@ int main(int argc, const char** argv) {
         std::cout << "Initializing agents from QSP steady-state (-i 0)..." << std::endl;
         PDAC::initializeToQSP(simulation, *model, config, _lymph);
     }
-    std::cout << "[DEBUG] Agent initialization complete" << std::endl;
     std::cout.flush();
     init_lap("init_agents");
 
@@ -941,7 +926,7 @@ int main(int argc, const char** argv) {
     if (config.grid_out & 2) exportPDEData_step0(config.grid_x, config.grid_y, config.grid_z);
     if (config.grid_out & 2) exportECMData_step0(config.grid_x, config.grid_y, config.grid_z);
     if (config.grid_out & 1) exportABMData_step0(simulation, *model);
-    write_cancer_init_diagnostic(simulation, *model);
+
     PDAC::exportQSPData_step0();
 
     // ========== RUN SIMULATION ==========

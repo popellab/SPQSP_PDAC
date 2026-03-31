@@ -21,6 +21,7 @@ FLAMEGPU_AGENT_FUNCTION(vascular_broadcast_location, flamegpu::MessageNone, flam
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
     FLAMEGPU->message_out.setVariable<unsigned int>("tip_id", FLAMEGPU->getVariable<unsigned int>("tip_id"));
+    FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f);  // N/A for vascular
 
     FLAMEGPU->message_out.setLocation(
         static_cast<float>(x) * voxel_size,
@@ -48,6 +49,10 @@ FLAMEGPU_AGENT_FUNCTION(vascular_write_to_occ_grid, flamegpu::MessageNone, flame
 
     const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    if (x < 0 || x >= nx || y < 0 || y >= ny || z < 0 || z >= nz) {
+        return flamegpu::ALIVE;
+    }
     const int vidx = z * ny * nx + y * nx + x;
 
     // Tip_id grid for nearby-vessel exclusion + stalk/phalanx presence detection.

@@ -25,6 +25,7 @@ FLAMEGPU_AGENT_FUNCTION(mac_broadcast_location, flamegpu::MessageNone, flamegpu:
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
     const int mac_cs = FLAMEGPU->getVariable<int>("cell_state");
     FLAMEGPU->message_out.setVariable<int>("cell_state", mac_cs);
+    FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f);  // N/A for macrophage
     FLAMEGPU->message_out.setLocation(
         (x + 0.5f) * voxel_size,
         (y + 0.5f) * voxel_size,
@@ -46,6 +47,10 @@ FLAMEGPU_AGENT_FUNCTION(mac_write_to_occ_grid, flamegpu::MessageNone, flamegpu::
 
     const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int gz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    if (x < 0 || x >= gx || y < 0 || y >= gy || z < 0 || z >= gz) {
+        return flamegpu::ALIVE;
+    }
     const int vidx = z * (gx * gy) + y * gx + x;
 
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");

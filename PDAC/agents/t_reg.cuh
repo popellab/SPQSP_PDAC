@@ -17,7 +17,8 @@ FLAMEGPU_AGENT_FUNCTION(treg_broadcast_location, flamegpu::MessageNone, flamegpu
     FLAMEGPU->message_out.setVariable<int>("agent_id", FLAMEGPU->getID());
     const int treg_cs = FLAMEGPU->getVariable<int>("cell_state");
     FLAMEGPU->message_out.setVariable<int>("cell_state", treg_cs);
-    FLAMEGPU->message_out.setVariable<float>("PDL1", 0.0f); // TCD4 cells don't express PDL1
+    FLAMEGPU->message_out.setVariable<float>("PDL1", 0.0f);       // TCD4 cells don't express PDL1
+    FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f); // N/A for TReg
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
@@ -208,8 +209,6 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
 
     // Bounds check before PDE access
     if (ax_ts < 0 || ax_ts >= nx_ts || ay_ts < 0 || ay_ts >= ny_ts || az_ts < 0 || az_ts >= nz_ts) {
-        printf("[TREG BOUNDS] id=%u bad coords (%d,%d,%d) grid=(%d,%d,%d) state=%d\n",
-               FLAMEGPU->getID(), ax_ts, ay_ts, az_ts, nx_ts, ny_ts, nz_ts, cell_state);
         return flamegpu::ALIVE;
     }
 
@@ -300,6 +299,10 @@ FLAMEGPU_AGENT_FUNCTION(treg_write_to_occ_grid, flamegpu::MessageNone, flamegpu:
 
     const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int gz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    if (x < 0 || x >= gx || y < 0 || y >= gy || z < 0 || z >= gz) {
+        return flamegpu::ALIVE;
+    }
     const int vidx = z * (gx * gy) + y * gx + x;
 
     // Volume-based occupancy

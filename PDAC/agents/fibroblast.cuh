@@ -32,6 +32,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_broadcast_location, flamegpu::MessageNone, flamegpu:
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
+    FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f);  // N/A for fibroblast
     FLAMEGPU->message_out.setLocation(fx, fy, fz);
 
     // Population count by state
@@ -88,6 +89,10 @@ FLAMEGPU_AGENT_FUNCTION(fib_write_to_occ_grid, flamegpu::MessageNone, flamegpu::
 
     const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int gz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    if (x < 0 || x >= gx || y < 0 || y >= gy || z < 0 || z >= gz) {
+        return flamegpu::ALIVE;
+    }
     const int vidx = z * (gx * gy) + y * gx + x;
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
     float my_vol = (cell_state == FIB_QUIESCENT) ?
