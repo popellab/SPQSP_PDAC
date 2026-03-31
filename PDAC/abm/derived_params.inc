@@ -72,7 +72,7 @@
 
     // PD1 per synapse on T cell
     env.newProperty<float>("PARAM_PD1_SYN", 
-                    QP(CancerVCT::P_T_PD1_total));
+                    QP(CancerVCT::P_CD8_PD1_total));
 
     // PD1 per synapse on macrophage
     env.newProperty<float>("PARAM_MAC_PD1_SYN", 
@@ -138,27 +138,27 @@
 
     // IC50 AXL
     env.newProperty<float>("PARAM_IC50_AXL", 
-                    QP(CancerVCT::P_IC50_AXL));
+                    0.0f);
 
     // IC50 VEGFR2
     env.newProperty<float>("PARAM_IC50_VEGFR2", 
-                    QP(CancerVCT::P_IC50_VEGFR2));
+                    0.0f);
 
     // IC50 MET
     env.newProperty<float>("PARAM_IC50_MET", 
-                    QP(CancerVCT::P_IC50_MET));
+                    0.0f);
 
     // IC50 RET
     env.newProperty<float>("PARAM_IC50_RET", 
-                    QP(CancerVCT::P_IC50_RET));
+                    0.0f);
 
     // cabo therapeutic effect rate
     env.newProperty<float>("PARAM_LAMBDA_C_CABO", 
-                    QP(CancerVCT::P_k_K_cabo));
+                    0.0f);
 
     // T cell kill cancer escape prob
     env.newProperty<float>("PARAM_ESCAPE_BASE", 
-                    std::exp(-t_step_sec * QP(CancerVCT::P_k_C_T1)));
+                    std::exp(-t_step_sec * QP(CancerVCT::P_k_C_Tcell_eff)));
 
     // M1 mac kill cancer escape prob
     env.newProperty<float>("PARAM_ESCAPE_MAC_BASE", 
@@ -166,7 +166,7 @@
 
     // T cell exhaustion from PDL1
     env.newProperty<float>("PARAM_EXHUAST_BASE_PDL1", 
-                    std::exp(-t_step_sec * QP(CancerVCT::P_k_T1)));
+                    std::exp(-t_step_sec * QP(CancerVCT::P_k_CD8_basal_exh)));
 
     // T cell exhaustion from Treg
     env.newProperty<float>("PARAM_EXHUAST_BASE_TREG", 
@@ -230,15 +230,15 @@
 
     // fibroblast ECM secretion rate
     env.newProperty<float>("PARAM_FIB_ECM_RELEASE_FIB", 
-                    QP(CancerVCT::P_k_ECM_fib_sec) / 6970071747.68519);
+                    QP(CancerVCT::P_k_col_myCAF_sec) / 6970071747.68519);
 
     // CAF ECM secretion rate
     env.newProperty<float>("PARAM_FIB_ECM_RELEASE_CAF", 
-                    QP(CancerVCT::P_k_ECM_CAF_sec) / 6970071747.68519);
+                    QP(CancerVCT::P_k_col_myCAF_sec) / 6970071747.68519);
 
     // CAF activation rate per timestep
     env.newProperty<float>("PARAM_FIB_CAF_ACTIVATION", 
-                    QP(CancerVCT::P_k_caf_tran) * t_step_sec);
+                    QP(CancerVCT::P_k_psc_activation_myCAF) * t_step_sec);
 
     // TGFb EC50 for CAF activation [ng/ml]
     env.newProperty<float>("PARAM_FIB_CAF_EC50", 
@@ -250,26 +250,26 @@
 
     // ECM degradation rate
     env.newProperty<float>("PARAM_FIB_ECM_DECAY_RATE", 
-                    QP(CancerVCT::P_k_ECM_deg));
+                    QP(CancerVCT::P_k_col_deg));
 
     // ECM baseline [nmole/ml]
     env.newProperty<float>("PARAM_FIB_ECM_BASELINE", 
-                    QP(CancerVCT::P_ECM_base) * 1e3);
+                    0.1f * 1e3);
 
     // ECM saturation [nmole/ml]
     env.newProperty<float>("PARAM_FIB_ECM_SATURATION", 
-                    QP(CancerVCT::P_ECM_max) * 1e3);
+                    1.0f * 1e3);
 
     // ECM EC50 for T cell motility
     env.newProperty<float>("PARAM_FIB_ECM_MOT_EC50", 
-                    QP(CancerVCT::P_ECM_50_T_mot) * 5e3);
+                    QP(CancerVCT::P_phi_col_50_Kmax) * 5e3);
 
-    // Init ECM grid to saturation (matches HCC)
-    PDAC::initialize_ecm_to_saturation(static_cast<float>(QP(CancerVCT::P_ECM_max) * 1e3));
+    // Init ECM grid to saturation
+    PDAC::initialize_ecm_to_saturation(static_cast<float>(1.0f * 1e3));
 
     // mean fibroblast lifespan in timesteps
     env.newProperty<float>("PARAM_FIB_LIFE_MEAN", 
-                    1.0f / ((QP(CancerVCT::P_k_fib_death) + QP(CancerVCT::P_k_CAF_death)) / 2.0) / t_step_sec);
+                    1.0f / ((QP(CancerVCT::P_k_iCAF_death) + QP(CancerVCT::P_k_myCAF_death)) / 2.0) / t_step_sec);
 
     double site_per_voxel = env.getProperty<float>("PARAM_ADH_SITE_DENSITY") * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE"), 3);
 
@@ -281,15 +281,15 @@
 
     // T effector recruitment rate constant
     env.newProperty<float>("PARAM_TEFF_RECRUIT_K", 
-                    QP(CancerVCT::P_q_T1_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT"));
+                    QP(CancerVCT::P_q_CD8_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT"));
 
     // Treg recruitment rate constant
     env.newProperty<float>("PARAM_TREG_RECRUIT_K", 
-                    QP(CancerVCT::P_q_T0_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT"));
+                    QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT"));
 
     // Th recruitment rate constant
     env.newProperty<float>("PARAM_TH_RECRUIT_K", 
-                    QP(CancerVCT::P_q_T0_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT"));
+                    QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT"));
 
     // MDSC recruitment rate constant
     env.newProperty<float>("PARAM_MDSC_RECRUIT_K", 
@@ -305,7 +305,7 @@
 
     // APC density in tumour
     env.newProperty<float>("PARAM_APC0_T", 
-                    QP(CancerVCT::P_APC0_T));
+                    QP(CancerVCT::P_APC0_cDC1_T));
 
     // APC transmigration rate
     env.newProperty<float>("PARAM_APC_TRANSMIG", 
@@ -313,11 +313,11 @@
 
     // T0 clonality
     env.newProperty<float>("PARAM_T0_CLONE", 
-                    QP(CancerVCT::P_n_T0_clones));
+                    QP(CancerVCT::P_n_CD4_clones));
 
     // T1 clonality
     env.newProperty<float>("PARAM_T1_CLONE", 
-                    QP(CancerVCT::P_n_T1_clones));
+                    QP(CancerVCT::P_n_CD8_clones));
 
     // antigen per cancer cell
     env.newProperty<float>("PARAM_ANTIGEN_PER_CELL", 
@@ -333,11 +333,11 @@
 
     // mean T cell lifespan in timesteps
     env.newProperty<float>("PARAM_T_CELL_LIFE_MEAN_SLICE", 
-                    1 / QP(CancerVCT::P_k_T1_death) / t_step_sec / 5);
+                    1 / QP(CancerVCT::P_k_CD8_death) / t_step_sec / 5);
 
     // mean TCD4 lifespan in timesteps
     env.newProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE", 
-                    1 / QP(CancerVCT::P_k_T0_death) / t_step_sec / 5);
+                    1 / QP(CancerVCT::P_k_Treg_death) / t_step_sec / 5);
 
     // mean MDSC lifespan in timesteps
     env.newProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE", 
@@ -353,7 +353,7 @@
 
     // max APC maturation rate
     env.newProperty<float>("PARAM_K_APC_MAT", 
-                    QP(CancerVCT::P_k_APC_mat));
+                    QP(CancerVCT::P_k_APC_mat_cDC1));
 
     // stem cell division rate [s^-1]
     double rs = QP(CancerVCT::P_k_C1_growth) / (1 - env.getProperty<float>("PARAM_ASYM_DIV_PROB"));

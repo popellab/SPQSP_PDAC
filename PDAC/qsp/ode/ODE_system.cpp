@@ -869,7 +869,16 @@ realtype ODE_system::get_unit_conversion_species(int) const { return 1.0; }
 realtype ODE_system::get_unit_conversion_nspvar(int) const { return 1.0; }
 
 void ODE_system::setup_instance_tolerance(QSPParam&){
-    _abstol = 1e-12; _reltol = 1e-6;
+    // Tolerances not in SBML — use hardcoded values matching original model
+    realtype reltol = 1e-6;
+    realtype abstol_base = 1e-12;
+    N_Vector abstol = N_VNew_Serial(_neq, _sunctx);
+    for (int i = 0; i < _neq; i++) {
+        NV_DATA_S(abstol)[i] = abstol_base * get_unit_conversion_species(i);
+    }
+    int flag = CVodeSVtolerances(_cvode_mem, reltol, abstol);
+    check_flag(&flag, "CVodeSVtolerances", 1);
+    N_VDestroy(abstol);
 }
 
 void ODE_system::setup_instance_variables(QSPParam& param){
