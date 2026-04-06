@@ -22,8 +22,9 @@ double get_last_pde_ms();
 struct RecruitStats {
     int teff_rec = 0, treg_rec = 0, th_rec = 0;
     int mdsc_rec = 0, mac_rec = 0, mac_m1_rec = 0, mac_m2_rec = 0;
+    int bcell_rec = 0, dc_rec = 0;
     float p_teff = 0.f, p_treg = 0.f, p_th = 0.f;
-    int t_sources = 0, mdsc_sources = 0, mac_sources = 0;
+    int t_sources = 0, mdsc_sources = 0, mac_sources = 0, bcell_sources = 0, dc_sources = 0;
     float qsp_teff = 0.f, qsp_treg = 0.f, qsp_th = 0.f;
 };
 RecruitStats get_last_recruit_stats();
@@ -40,7 +41,8 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER compute_pde_gradients;
 // Initialize PDE solver (call once at start)
 void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
                            float voxel_size, float dt_abm, int molecular_steps,
-                            const PDAC::GPUParam& gpu_params);
+                            const PDAC::GPUParam& gpu_params,
+                            flamegpu::ModelDescription& model);
 
 // Set PDE solver pointers in FLAME GPU environment properties
 void set_pde_pointers_in_environment(flamegpu::ModelDescription& model);
@@ -75,10 +77,8 @@ void run_pde_warmup(int substeps);
 void cleanup_pde_solver();
 
 // Recruitment host functions (declared and implemented in pde_integration.cu)
-
-// Mark recruitment sources based on chemical concentrations
-extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER mark_mdsc_sources;
-extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER mark_mac_sources;
+// NOTE: Source marking for all immune types now done by vascular_mark_sources
+// agent function (vascular_cell.cuh) — no separate host marking kernels needed.
 
 // GPU recruitment: kernel decides placement, host fn creates agents
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER recruit_gpu;
@@ -95,6 +95,18 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_occupancy_grid;
 
 // ECM grid: decay ECM each step after fibroblasts have deposited
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_grid;
+
+// Antigen grid: exponential decay of persistent antigen from dying cancer cells
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER decay_antigen_grid;
+
+// ECM fiber anisotropy: stress field decay + orientation update
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER decay_stress_field;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_orientation;
+
+// Return device pointers for ECM fiber orientation arrays (for output)
+float* get_ecm_orient_x_device_ptr();
+float* get_ecm_orient_y_device_ptr();
+float* get_ecm_orient_z_device_ptr();
 
 // ============================================================================
 // Timing Checkpoint Host Functions (inserted at phase boundaries)

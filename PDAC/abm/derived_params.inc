@@ -34,21 +34,21 @@
     env.newProperty<float>("PARAM_INIT_TUM_DIAM", 
                     QP(CancerVCT::P_initial_tumour_diameter));
 
-    // MDSC EC50 CCL2 recruitment [ng/ml]
+    // MDSC EC50 CCL2 recruitment [nM]
     env.newProperty<float>("PARAM_MDSC_EC50_CCL2_REC", 
-                    QP(CancerVCT::P_CCL2_50) * env.getProperty<float>("PARAM_CCL2_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_CCL2_50) * 1e6);
 
-    // MDSC IC50 NO on T cell cytotoxicity [ng/ml]
+    // MDSC IC50 NO on T cell cytotoxicity [nM]
     env.newProperty<float>("PARAM_MDSC_IC50_NO_CTL", 
-                    QP(CancerVCT::P_NO_50_Teff) * env.getProperty<float>("PARAM_NO_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_NO_50_Teff) * 1e6);
 
-    // MDSC IC50 ArgI on T cell cytotoxicity [ng/ml]
+    // MDSC IC50 ArgI on T cell cytotoxicity [nM]
     env.newProperty<float>("PARAM_MDSC_IC50_ArgI_CTL", 
-                    QP(CancerVCT::P_ArgI_50_Teff) * env.getProperty<float>("PARAM_ARGI_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_ArgI_50_Teff) * 1e6);
 
-    // MDSC EC50 ArgI on Treg expansion [ng/ml]
+    // MDSC EC50 ArgI on Treg expansion [nM]
     env.newProperty<float>("PARAM_MDSC_EC50_ArgI_Treg", 
-                    QP(CancerVCT::P_ArgI_50_Treg) * env.getProperty<float>("PARAM_ARGI_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_ArgI_50_Treg) * 1e6);
 
     // synapse area
     env.newProperty<float>("PARAM_A_SYN", 
@@ -86,13 +86,25 @@
     env.newProperty<float>("PARAM_MAC_SIRPa_SYN", 
                     QP(CancerVCT::P_M_SIRPa));
 
-    // PDL1 per synapse max
+    // PDL1 per synapse max (base * IFNg fold-increase)
     env.newProperty<float>("PARAM_PDL1_SYN_MAX", 
-                    QP(CancerVCT::P_C1_PDL1_base));
+                    QP(CancerVCT::P_C1_PDL1_base) * QP(CancerVCT::P_r_PDL1_IFNg));
 
-    // total PDL1 per cancer cell
+    // total PDL1 per cancer cell (base, no IFNg)
     env.newProperty<float>("PARAM_PDL1_CELL", 
                     QP(CancerVCT::P_C1_PDL1_base));
+
+    // PDL1 internalization rate [1/s] from QSP k_in_PDL1
+    env.newProperty<float>("PARAM_PDL1_INTERNALIZATION_RATE", 
+                    QP(CancerVCT::P_k_in_PDL1));
+
+    // IFNg EC50 for PDL1 induction [nM] from QSP IFNg_50_ind
+    env.newProperty<float>("PARAM_IFNG_PDL1_HALF", 
+                    QP(CancerVCT::P_IFNg_50_ind) * 1e6);
+
+    // IFNg-PDL1 Hill coefficient (ODE uses n=1)
+    env.newProperty<float>("PARAM_IFNG_PDL1_N", 
+                    1.0);
 
     // k1 = kon_PD1_PDL1 / (koff * A_CELL)
     env.newProperty<float>("PARAM_PDL1_K1", 
@@ -164,13 +176,29 @@
     env.newProperty<float>("PARAM_ESCAPE_MAC_BASE", 
                     std::exp(-t_step_sec * QP(CancerVCT::P_k_M1_phago)));
 
-    // T cell exhaustion from PDL1
-    env.newProperty<float>("PARAM_EXHUAST_BASE_PDL1", 
+    // Basal/antigen exhaustion (RF57: k_CD8_basal_exh)
+    env.newProperty<float>("PARAM_EXHAUST_BASE_BASAL", 
                     std::exp(-t_step_sec * QP(CancerVCT::P_k_CD8_basal_exh)));
 
-    // T cell exhaustion from Treg
-    env.newProperty<float>("PARAM_EXHUAST_BASE_TREG", 
+    // PD1-driven exhaustion (RF60: k_CD8)
+    env.newProperty<float>("PARAM_EXHAUST_BASE_PD1", 
+                    std::exp(-t_step_sec * QP(CancerVCT::P_k_CD8)));
+
+    // Treg-mediated exhaustion (RF59: k_Treg)
+    env.newProperty<float>("PARAM_EXHAUST_BASE_TREG", 
                     std::exp(-t_step_sec * QP(CancerVCT::P_k_Treg)));
+
+    // Cancer half-max for basal exhaustion (K_C_exh in cells)
+    env.newProperty<float>("PARAM_K_C_EXH", 
+                    QP(CancerVCT::P_K_C_exh) * AVOGADROS);
+
+    // IL-10 EC50 for Treg exhaustion modulation [nM]
+    env.newProperty<float>("PARAM_EXHAUST_IL10_EC50", 
+                    QP(CancerVCT::P_IL10_50) * 1e6);
+
+    // Treg competitive suppression weight (ODE: 1/R50_Treg ≈ 3.23)
+    env.newProperty<float>("PARAM_K_T_TREG", 
+                    1.0 / QP(CancerVCT::P_R50_Treg));
 
     // Th to Treg rate per timestep
     env.newProperty<float>("PARAM_K_TH_TREG", 
@@ -184,33 +212,37 @@
     env.newProperty<float>("PARAM_MAC_M1_POL", 
                     t_step_sec * QP(CancerVCT::P_k_M1_pol));
 
-    // MAC EC50 CCL2 recruitment [ng/ml]
+    // MAC EC50 CCL2 recruitment [nM]
     env.newProperty<float>("PARAM_MAC_EC50_CCL2_REC", 
-                    QP(CancerVCT::P_CCL2_50) * env.getProperty<float>("PARAM_CCL2_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_CCL2_50) * 1e6);
 
-    // TGFb half-max for polarization [ng/ml]
+    // TGFb half-max for polarization [nM]
     env.newProperty<float>("PARAM_MAC_TGFB_EC50", 
-                    QP(CancerVCT::P_TGFb_50) * env.getProperty<float>("PARAM_TGFB_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_TGFb_50) * 1e6);
 
-    // TGFb EC50 for Teff suppression [ng/ml]
+    // TGFb EC50 for Teff suppression [nM]
     env.newProperty<float>("PARAM_TEFF_TGFB_EC50", 
-                    QP(CancerVCT::P_TGFb_50_Teff) * env.getProperty<float>("PARAM_TGFB_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_TGFb_50_Teff) * 1e6);
 
-    // IL-10 EC50 for macrophage [ng/ml]
+    // IL-10 EC50 for macrophage [nM]
     env.newProperty<float>("PARAM_MAC_IL_10_EC50", 
-                    QP(CancerVCT::P_IL10_50) * env.getProperty<float>("PARAM_IL10_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_IL10_50) * 1e6);
 
-    // IL-10 half-max for phagocytosis [ng/ml]
+    // IL-10 half-max for phagocytosis [nM]
     env.newProperty<float>("PARAM_MAC_IL_10_HALF_PHAGO", 
-                    QP(CancerVCT::P_IL10_50_phago) * env.getProperty<float>("PARAM_IL10_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_IL10_50_phago) * 1e6);
 
-    // IFNg EC50 for macrophage [ng/ml]
+    // IFNg EC50 for macrophage [nM]
     env.newProperty<float>("PARAM_MAC_IFN_G_EC50", 
-                    QP(CancerVCT::P_IFNg_50) * env.getProperty<float>("PARAM_IFNG_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_IFNg_50) * 1e6);
 
-    // IL-12 EC50 for macrophage [ng/ml]
+    // IL-12 EC50 for macrophage [nM]
     env.newProperty<float>("PARAM_MAC_IL_12_EC50", 
-                    QP(CancerVCT::P_IL12_50) * env.getProperty<float>("PARAM_IL12_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_IL12_50) * 1e6);
+
+    // IL-6 EC50 for M1→M2 polarization [nM]
+    env.newProperty<float>("PARAM_MAC_IL6_M2_EC50", 
+                    QP(CancerVCT::P_IL6_50_M2) * 1e6);
 
     // SIRPa half-max
     env.newProperty<float>("PARAM_MAC_SIRPa_HALF", 
@@ -228,21 +260,65 @@
     env.newProperty<float>("PARAM_N_SIRPa_CD47", 
                     QP(CancerVCT::P_n_SIRPa));
 
-    // fibroblast ECM secretion rate
+    // fibroblast ECM secretion rate [nmol/(cell*day)] — currently unused
     env.newProperty<float>("PARAM_FIB_ECM_RELEASE_FIB", 
-                    QP(CancerVCT::P_k_col_myCAF_sec) / 6970071747.68519);
+                    QP(CancerVCT::P_k_col_myCAF_sec) / (AVOGADROS * 1e-9) * SEC_PER_DAY);
 
-    // CAF ECM secretion rate
+    // CAF ECM secretion rate [nmol/(cell*day)] — currently unused
     env.newProperty<float>("PARAM_FIB_ECM_RELEASE_CAF", 
-                    QP(CancerVCT::P_k_col_myCAF_sec) / 6970071747.68519);
+                    QP(CancerVCT::P_k_col_myCAF_sec) / (AVOGADROS * 1e-9) * SEC_PER_DAY);
 
-    // CAF activation rate per timestep
-    env.newProperty<float>("PARAM_FIB_CAF_ACTIVATION", 
+    // qPSC→myCAF activation rate per timestep
+    env.newProperty<float>("PARAM_FIB_MYCAF_ACTIVATION", 
                     QP(CancerVCT::P_k_psc_activation_myCAF) * t_step_sec);
 
-    // TGFb EC50 for CAF activation [ng/ml]
+    // qPSC→iCAF activation rate per timestep
+    env.newProperty<float>("PARAM_FIB_ICAF_ACTIVATION", 
+                    QP(CancerVCT::P_k_psc_activation_iCAF) * t_step_sec);
+
+    // TGFb EC50 for CAF activation + interconversion [nM] (TGFb_50_CAF_act)
     env.newProperty<float>("PARAM_FIB_CAF_EC50", 
-                    QP(CancerVCT::P_TGFb_50) * env.getProperty<float>("PARAM_TGFB_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6);
+                    QP(CancerVCT::P_TGFb_50_CAF_act) * 1e6);
+
+    // iCAF→myCAF rate per timestep (H_TGFb gated)
+    env.newProperty<float>("PARAM_FIB_ICAF_TO_MYCAF", 
+                    QP(CancerVCT::P_k_iCAF_to_myCAF) * t_step_sec);
+
+    // myCAF→iCAF rate per timestep (H_IL1 gated)
+    env.newProperty<float>("PARAM_FIB_MYCAF_TO_ICAF", 
+                    QP(CancerVCT::P_k_myCAF_to_iCAF) * t_step_sec);
+
+    // f_IL6_iCAF: IL-6 amplification weight for iCAF
+    env.newProperty<float>("PARAM_FIB_IL6_ICAF_FACTOR", 
+                    QP(CancerVCT::P_f_IL6_iCAF));
+
+    // IL-6 EC50 for iCAF amplification [nM]
+    env.newProperty<float>("PARAM_FIB_IL6_ICAF_EC50", 
+                    QP(CancerVCT::P_IL6_50_iCAF) * 1e6);
+
+    // IL-1 EC50 for iCAF activation [nM] (P_IL1_50)
+    env.newProperty<float>("PARAM_FIB_ICAF_IL1_EC50", 
+                    QP(CancerVCT::P_IL1_50) * 1e6);
+
+    // IL-1 Hill coefficient for iCAF (P_n_IL1)
+    env.newProperty<float>("PARAM_FIB_ICAF_IL1_HILL_N", 
+                    QP(CancerVCT::P_n_IL1));
+
+    // TGF-β EC50 suppressing IL-1R1 on iCAF [nM] (P_TGFb_50_IL1R1)
+    env.newProperty<float>("PARAM_FIB_ICAF_TGFB_SUPPRESS_EC50", 
+                    QP(CancerVCT::P_TGFb_50_IL1R1) * 1e6);
+
+    // TGF-β suppression Hill coeff (ODE uses Hill=1)
+    env.newProperty<float>("PARAM_FIB_ICAF_TGFB_SUPPRESS_N", 
+                    1.0);
+
+    // myCAF division cooldown [timesteps] from k_myCAF_prolif
+    env.newProperty<float>("PARAM_FIB_DIV_COOLDOWN_MYCAF", 
+                    1.0 / (QP(CancerVCT::P_k_myCAF_prolif) * t_step_sec));
+
+    // iCAF division cooldown [timesteps] from k_iCAF_prolif
+    env.newProperty<float>("PARAM_FIB_DIV_COOLDOWN_ICAF", 
+                    1.0 / (QP(CancerVCT::P_k_iCAF_prolif) * t_step_sec));
 
     // ECM TGFb factor
     env.newProperty<float>("PARAM_FIB_ECM_TGFB_FACTOR", 
@@ -299,13 +375,13 @@
     env.newProperty<float>("PARAM_MAC_RECRUIT_K", 
                     QP(CancerVCT::P_k_Mac_rec) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
 
-    // APC recruitment rate (not yet implemented)
-    env.newProperty<float>("PARAM_APC_RECRUIT_K", 
-                    0);
+    // cDC1 recruitment rate per voxel per step
+    env.newProperty<float>("PARAM_DC_RECRUIT_K_CDC1", 
+                    QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_APC0_cDC1_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
 
-    // APC density in tumour
-    env.newProperty<float>("PARAM_APC0_T", 
-                    QP(CancerVCT::P_APC0_cDC1_T));
+    // cDC2 recruitment rate per voxel per step
+    env.newProperty<float>("PARAM_DC_RECRUIT_K_CDC2", 
+                    QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_APC0_cDC2_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
 
     // APC transmigration rate
     env.newProperty<float>("PARAM_APC_TRANSMIG", 
@@ -319,13 +395,33 @@
     env.newProperty<float>("PARAM_T1_CLONE", 
                     QP(CancerVCT::P_n_CD8_clones));
 
-    // antigen per cancer cell
+    // antigen per cancer cell [molecules/cell]
     env.newProperty<float>("PARAM_ANTIGEN_PER_CELL", 
                     QP(CancerVCT::P_P1_C1));
 
     // antigen uptake by mAPC
     env.newProperty<float>("PARAM_ANTIGEN_UP", 
                     QP(CancerVCT::P_k_P0_up));
+
+    // antigen deposited per cancer death [molecules/cell] = P1_C1
+    env.newProperty<float>("PARAM_ANTIGEN_DEPOSIT", 
+                    QP(CancerVCT::P_P1_C1));
+
+    // antigen decay rate [1/s] from k_P1_deg
+    env.newProperty<float>("PARAM_ANTIGEN_DECAY_RATE", 
+                    QP(CancerVCT::P_k_P1_deg));
+
+    // min antigen for B cell capture [molecules] = 0.1 * P1_C1
+    env.newProperty<float>("PARAM_ANTIGEN_CAPTURE_THRESHOLD", 
+                    0.1 * QP(CancerVCT::P_P1_C1));
+
+    // Immature DC lifespan [timesteps] from k_APC_death
+    env.newProperty<float>("PARAM_DC_LIFE_IMMATURE_MEAN", 
+                    1.0 / (QP(CancerVCT::P_k_APC_death) * t_step_sec));
+
+    // Mature DC lifespan [timesteps] from k_mAPC_death
+    env.newProperty<float>("PARAM_DC_LIFE_MATURE_MEAN", 
+                    1.0 / (QP(CancerVCT::P_k_mAPC_death) * t_step_sec));
 
     // antigen degradation in tumor
     env.newProperty<float>("PARAM_K_xP_DEG", 
@@ -351,9 +447,41 @@
     env.newProperty<float>("PARAM_APC_LIFE_MEAN", 
                     1 / QP(CancerVCT::P_k_APC_death) / t_step_sec);
 
-    // max APC maturation rate
-    env.newProperty<float>("PARAM_K_APC_MAT", 
-                    QP(CancerVCT::P_k_APC_mat_cDC1));
+    // cDC1 maturation rate [prob/step] from k_APC_mat_cDC1
+    env.newProperty<float>("PARAM_DC_K_MAT_CDC1", 
+                    QP(CancerVCT::P_k_APC_mat_cDC1) * t_step_sec);
+
+    // cDC2 maturation rate [prob/step] from k_APC_mat_cDC2
+    env.newProperty<float>("PARAM_DC_K_MAT_CDC2", 
+                    QP(CancerVCT::P_k_APC_mat_cDC2) * t_step_sec);
+
+    // antigen EC50 for maturation [molecules/voxel] = P1_C1 (1 death equiv)
+    env.newProperty<float>("PARAM_DC_ANTIGEN_50", 
+                    QP(CancerVCT::P_P1_C1));
+
+    // IL-12 EC50 for maturation boost [nM]
+    env.newProperty<float>("PARAM_DC_IL12_50", 
+                    QP(CancerVCT::P_IL12_50) * 1e6);
+
+    // IL-10 EC50 for maturation suppression [nM]
+    env.newProperty<float>("PARAM_DC_IL10_50", 
+                    QP(CancerVCT::P_IL10_50) * 1e6);
+
+    // TGF-b EC50 for maturation suppression [nM]
+    env.newProperty<float>("PARAM_DC_TGFB_50", 
+                    QP(CancerVCT::P_TGFb_50_APC) * 1e6);
+
+    // VEGF EC50 for sprouting [nM] from VEGF_50
+    env.newProperty<float>("PARAM_VAS_50", 
+                    QP(CancerVCT::P_VEGF_50) * 1e6);
+
+    // vessel regression base rate [prob/step] from k_K_d
+    env.newProperty<float>("PARAM_VAS_REGRESS_RATE", 
+                    QP(CancerVCT::P_k_K_d) * t_step_sec);
+
+    // VEGF EC50 for vessel survival [nM] from VEGF_50
+    env.newProperty<float>("PARAM_VAS_VEGFA_SURVIVAL_EC50", 
+                    QP(CancerVCT::P_VEGF_50) * 1e6);
 
     // stem cell division rate [s^-1]
     double rs = QP(CancerVCT::P_k_C1_growth) / (1 - env.getProperty<float>("PARAM_ASYM_DIV_PROB"));
@@ -373,3 +501,170 @@
     // progenitor division interval in slices
     env.newProperty<float>("PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE", 
                     std::log(2)/ env.getProperty<float>("PARAM_PROG_GROWTH_RATE") * SEC_PER_DAY / env.getProperty<float>("PARAM_SEC_PER_SLICE") + .5);
+
+    // IFNg decay [1/s]
+    env.newProperty<float>("PARAM_IFNG_DECAY_RATE", 
+                    QP(CancerVCT::P_k_IFNg_deg));
+
+    // IL-2 decay [1/s]
+    env.newProperty<float>("PARAM_IL2_DECAY_RATE", 
+                    QP(CancerVCT::P_k_IL2_deg));
+
+    // IL-10 decay [1/s]
+    env.newProperty<float>("PARAM_IL10_DECAY_RATE", 
+                    QP(CancerVCT::P_k_IL10_deg));
+
+    // TGFb decay [1/s]
+    env.newProperty<float>("PARAM_TGFB_DECAY_RATE", 
+                    QP(CancerVCT::P_k_TGFb_deg));
+
+    // CCL2 decay [1/s]
+    env.newProperty<float>("PARAM_CCL2_DECAY_RATE", 
+                    QP(CancerVCT::P_k_CCL2_deg));
+
+    // ArgI decay [1/s]
+    env.newProperty<float>("PARAM_ARGI_DECAY_RATE", 
+                    QP(CancerVCT::P_k_ArgI_deg));
+
+    // NO decay [1/s]
+    env.newProperty<float>("PARAM_NO_DECAY_RATE", 
+                    QP(CancerVCT::P_k_NO_deg));
+
+    // IL-12 decay [1/s]
+    env.newProperty<float>("PARAM_IL12_DECAY_RATE", 
+                    QP(CancerVCT::P_k_IL12_deg));
+
+    // IL-1 decay [1/s]
+    env.newProperty<float>("PARAM_IL1_DECAY_RATE", 
+                    QP(CancerVCT::P_k_IL1_deg));
+
+    // IL-6 decay [1/s]
+    env.newProperty<float>("PARAM_IL6_DECAY_RATE", 
+                    QP(CancerVCT::P_k_IL6_deg));
+
+    // CXCL12 decay [1/s]
+    env.newProperty<float>("PARAM_CXCL12_DECAY_RATE", 
+                    QP(CancerVCT::P_k_CXCL12_deg));
+
+    // CCL5 decay [1/s]
+    env.newProperty<float>("PARAM_CCL5_DECAY_RATE", 
+                    QP(CancerVCT::P_k_CCL5_deg));
+
+    // molecules/(cell*s) → pmol/(cell*s); /voxel_vol → nM/s
+    double qp_sec_to_abm = 1.0 / (AVOGADROS * 1e-12);
+
+    // CCL2 cancer secretion [pmol/(cell*s)] from QSP k_CCL2_sec
+    env.newProperty<float>("PARAM_CCL2_RELEASE", 
+                    QP(CancerVCT::P_k_CCL2_sec) * qp_sec_to_abm);
+
+    // VEGFA stem secretion [pmol/(cell*s)] from QSP k_vas_Csec
+    env.newProperty<float>("PARAM_STEM_VEGFA_RELEASE", 
+                    QP(CancerVCT::P_k_vas_Csec) * qp_sec_to_abm);
+
+    // VEGFA progenitor secretion [pmol/(cell*s)] — same base rate as stem
+    env.newProperty<float>("PARAM_PROG_VEGFA_RELEASE", 
+                    QP(CancerVCT::P_k_vas_Csec) * qp_sec_to_abm);
+
+    // IL-1 stem secretion [pmol/(cell*s)] from QSP k_IL1_sec
+    env.newProperty<float>("PARAM_CANCER_IL1_RELEASE_STEM", 
+                    QP(CancerVCT::P_k_IL1_sec) * qp_sec_to_abm);
+
+    // IL-1 progenitor secretion [pmol/(cell*s)] — 0.5x stem
+    env.newProperty<float>("PARAM_CANCER_IL1_RELEASE_PROG", 
+                    QP(CancerVCT::P_k_IL1_sec) * qp_sec_to_abm * 0.5);
+
+    // IL-1 senescent secretion [pmol/(cell*s)] — 0.2x stem (SASP)
+    env.newProperty<float>("PARAM_CANCER_IL1_RELEASE_SEN", 
+                    QP(CancerVCT::P_k_IL1_sec) * qp_sec_to_abm * 0.2);
+
+    // IFN-γ per-cell secretion [pmol/(cell*s)] from QSP k_IFNg_Tsec
+    env.newProperty<float>("PARAM_IFNG_RELEASE", 
+                    QP(CancerVCT::P_k_IFNg_Tsec) * qp_sec_to_abm);
+
+    // IL-2 per-cell secretion [pmol/(cell*s)] from QSP k_IL2_sec
+    env.newProperty<float>("PARAM_IL2_RELEASE", 
+                    QP(CancerVCT::P_k_IL2_sec) * qp_sec_to_abm);
+
+    // CXCL12 cancer secretion [pmol/(cell*s)]
+    env.newProperty<float>("PARAM_CXCL12_CANCER_RELEASE", 
+                    QP(CancerVCT::P_k_CXCL12_sec_cancer) * qp_sec_to_abm);
+
+    // CXCL12 iCAF secretion [pmol/(cell*s)]
+    env.newProperty<float>("PARAM_CXCL12_ICAF_RELEASE", 
+                    QP(CancerVCT::P_k_CXCL12_sec_iCAF) * qp_sec_to_abm);
+
+    // CXCL12 EC50 T exclusion [nM]
+    env.newProperty<float>("PARAM_CXCL12_EC50_TEXCL", 
+                    QP(CancerVCT::P_CXCL12_50_Texcl) * 1e6);
+
+    // CCL5 cancer secretion [pmol/(cell*s)]
+    env.newProperty<float>("PARAM_CCL5_CANCER_RELEASE", 
+                    QP(CancerVCT::P_k_CCL5_sec) * qp_sec_to_abm);
+
+    // CCL5 iCAF secretion [pmol/(cell*s)]
+    env.newProperty<float>("PARAM_CCL5_ICAF_RELEASE", 
+                    QP(CancerVCT::P_k_CCL5_sec_iCAF) * qp_sec_to_abm);
+
+    // CCL5 EC50 Treg recruitment [nM]
+    env.newProperty<float>("PARAM_CCL5_EC50_TREG", 
+                    QP(CancerVCT::P_CCL5_50_Treg) * 1e6);
+
+    // CCL5/CCR5 recruitment rate relative to base (k_CCR5_Treg_rec / q_Treg_T_in)
+    env.newProperty<float>("PARAM_CCL5_TREG_RATIO", 
+                    QP(CancerVCT::P_k_CCR5_Treg_rec) / QP(CancerVCT::P_q_Treg_T_in));
+
+    // Treg TGF-β secretion [pmol/(cell*s)] from QSP k_TGFb_Tsec
+    env.newProperty<float>("PARAM_TREG_TGFB_RELEASE", 
+                    QP(CancerVCT::P_k_TGFb_Tsec) * qp_sec_to_abm);
+
+    // M2 MAC TGF-β secretion [pmol/(cell*s)] from QSP k_TGFb_Msec
+    env.newProperty<float>("PARAM_MAC_TGFB_RELEASE", 
+                    QP(CancerVCT::P_k_TGFb_Msec) * qp_sec_to_abm);
+
+    // M2 MAC IL-10 secretion [pmol/(cell*s)] from QSP k_IL10_sec
+    env.newProperty<float>("PARAM_MAC_IL10_RELEASE", 
+                    QP(CancerVCT::P_k_IL10_sec) * qp_sec_to_abm);
+
+    // M1 MAC IL-12 secretion [pmol/(cell*s)] from QSP k_IL12_Msec
+    env.newProperty<float>("PARAM_IL12_RELEASE", 
+                    QP(CancerVCT::P_k_IL12_Msec) * qp_sec_to_abm);
+
+    // Mature DC IL-12 secretion [pmol/(cell*s)] from QSP k_IL12_sec (mcDC1)
+    env.newProperty<float>("PARAM_DC_IL12_RELEASE", 
+                    QP(CancerVCT::P_k_IL12_sec) * qp_sec_to_abm);
+
+    // M2 MAC VEGF-A secretion [pmol/(cell*s)] from QSP k_vas_Msec
+    env.newProperty<float>("PARAM_MAC_VEGFA_RELEASE", 
+                    QP(CancerVCT::P_k_vas_Msec) * qp_sec_to_abm);
+
+    // myCAF TGF-β secretion [pmol/(cell*s)] from QSP k_TGFb_sec_myCAF
+    env.newProperty<float>("PARAM_FIB_MYCAF_TGFB_RELEASE", 
+                    QP(CancerVCT::P_k_TGFb_sec_myCAF) * qp_sec_to_abm);
+
+    // iCAF IL-6 secretion [pmol/(cell*s)] from QSP k_IL6_sec_iCAF
+    env.newProperty<float>("PARAM_FIB_ICAF_IL6_RELEASE", 
+                    QP(CancerVCT::P_k_IL6_sec_iCAF) * qp_sec_to_abm);
+
+    // myCAF VEGF-A secretion [pmol/(cell*s)] from QSP k_vas_myCAF_sec
+    env.newProperty<float>("PARAM_FIB_MYCAF_VEGFA_RELEASE", 
+                    QP(CancerVCT::P_k_vas_myCAF_sec) * qp_sec_to_abm);
+
+    // MDSC NO secretion [pmol/(cell*s)] from QSP k_NO_sec
+    env.newProperty<float>("PARAM_NO_RELEASE", 
+                    QP(CancerVCT::P_k_NO_sec) * qp_sec_to_abm);
+
+    // MDSC ArgI secretion [pmol/(cell*s)] from QSP k_ArgI_sec
+    env.newProperty<float>("PARAM_ARGI_RELEASE", 
+                    QP(CancerVCT::P_k_ArgI_sec) * qp_sec_to_abm);
+
+    // IL-6 EC50 for MDSC recruitment boost [nM]
+    env.newProperty<float>("PARAM_MDSC_EC50_IL6_REC", 
+                    QP(CancerVCT::P_IL6_50_MDSC) * 1e6);
+
+    // Treg division cooldown [steps] from k_Treg_pro_tumor
+    env.newProperty<int>("PARAM_TREG_DIV_INTERVAL", 
+                    static_cast<int>(std::round(1.0 / (QP(CancerVCT::P_k_Treg_pro_tumor) * t_step_sec))));
+
+    // Th/Tfh division cooldown [steps] from k_Th_pro_tumor
+    env.newProperty<int>("PARAM_TH_DIV_INTERVAL", 
+                    static_cast<int>(std::round(1.0 / (QP(CancerVCT::P_k_Th_pro_tumor) * t_step_sec))));

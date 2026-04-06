@@ -48,6 +48,7 @@ protected:
     bool eventExecution(int i, bool delay, realtype& dt);
     realtype get_unit_conversion_species(int i) const;
     realtype get_unit_conversion_nspvar(int i) const;
+    double getVarOriginalUnit(int i) const override;
     bool allow_negative(int i)const{ return false; };
 private:
     friend class boost::serialization::access;

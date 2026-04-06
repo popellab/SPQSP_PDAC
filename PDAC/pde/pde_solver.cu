@@ -204,10 +204,10 @@ __global__ void compute_gradients_kernel(
 
     int voxel = iz * ny*nx + iy * nx + ix;
 
-    // Gradient substrates: {CHEM_IFN=1, CHEM_TGFB=4, CHEM_CCL2=5, CHEM_VEGFA=9}
-    const int grad_chems[4] = {1, 4, 5, 9};
+    // Gradient substrates: {CHEM_IFN=1, CHEM_TGFB=4, CHEM_CCL2=5, CHEM_VEGFA=9, CHEM_CXCL13=12}
+    const int grad_chems[6] = {1, 4, 5, 9, 12, 15};
 
-    for (int g = 0; g < 4; g++) {
+    for (int g = 0; g < 6; g++) {
         const float* C = d_conc + grad_chems[g] * V;
         float* Gx = d_grad + (g*3 + 0) * V;
         float* Gy = d_grad + (g*3 + 1) * V;

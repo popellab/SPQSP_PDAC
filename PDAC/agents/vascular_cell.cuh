@@ -22,6 +22,7 @@ FLAMEGPU_AGENT_FUNCTION(vascular_broadcast_location, flamegpu::MessageNone, flam
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
     FLAMEGPU->message_out.setVariable<unsigned int>("tip_id", FLAMEGPU->getVariable<unsigned int>("tip_id"));
     FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f);  // N/A for vascular
+    FLAMEGPU->message_out.setVariable<int>("dead", 0);
 
     FLAMEGPU->message_out.setLocation(
         static_cast<float>(x) * voxel_size,
@@ -32,7 +33,8 @@ FLAMEGPU_AGENT_FUNCTION(vascular_broadcast_location, flamegpu::MessageNone, flam
     // Count this agent into per-state population snapshot
     auto* sc_vas = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("state_counters_ptr"));
     const int sc_slot_vas = (vas_cs == VAS_TIP) ? SC_VAS_TIP :
-                            (vas_cs == VAS_PHALANX_COLLAPSED) ? SC_VAS_COLLAPSED : SC_VAS_PHALANX;
+                            (vas_cs == VAS_PHALANX_COLLAPSED) ? SC_VAS_COLLAPSED :
+                            (vas_cs == VAS_HEV) ? SC_VAS_HEV : SC_VAS_PHALANX;
     atomicAdd(&sc_vas[sc_slot_vas], 1u);
 
     return flamegpu::ALIVE;
@@ -92,10 +94,10 @@ FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone
     const float vs_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
     const float voxel_volume = vs_cm * vs_cm * vs_cm;
 
-    // === O2 SECRETION via Krogh cylinder model (PHALANX ONLY) ===
+    // === O2 SECRETION via Krogh cylinder model (PHALANX + HEV) ===
     // Collapsed vessels produce no O2. Dysfunctional sprouts produce reduced O2.
     // Maturity modulates ECM compression resistance.
-    if (cell_state == VAS_PHALANX) {
+    if (cell_state == VAS_PHALANX || cell_state == VAS_HEV) {
         const float pi = 3.1415926f;
         const float sigma = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_SIGMA");
         const float RC    = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_RC");
@@ -144,11 +146,14 @@ FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone
     return flamegpu::ALIVE;
 }
 
-// Mark T cell recruitment sources (phalanx cells based on IFN-γ)
-FLAMEGPU_AGENT_FUNCTION(vascular_mark_t_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
+// Mark ALL immune recruitment sources at vascular locations.
+// All immune cells extravasate from vasculature — T cells gated by IFN-γ,
+// MAC/MDSC by CCL2, B cells by CXCL13, DCs by CCL2.
+// Bits: T=1, MDSC=2, MAC=4, B=8, DC=16
+FLAMEGPU_AGENT_FUNCTION(vascular_mark_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-    // Only functional PHALANX cells mark recruitment sources (collapsed vessels excluded)
-    if (cell_state != VAS_PHALANX) {
+    // Only functional PHALANX and HEV cells mark recruitment sources (collapsed vessels excluded)
+    if (cell_state != VAS_PHALANX && cell_state != VAS_HEV) {
         return flamegpu::ALIVE;
     }
 
@@ -159,12 +164,9 @@ FLAMEGPU_AGENT_FUNCTION(vascular_mark_t_sources, flamegpu::MessageNone, flamegpu
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    const int voxel_ts = z * (grid_x * grid_y) + y * grid_x + x;
-    const float local_IFNg = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_CONC_IFN))[voxel_ts];
+    const int voxel_idx = z * (grid_x * grid_y) + y * grid_x + x;
 
     // Check radius-3 BOX (7x7x7): skip marking if completely filled with cancer.
-    // Matches HCC: 7x7x7 window_counts_inplace with local_cancer_ratio < 1 gate.
     const unsigned int* cancer_occ = reinterpret_cast<const unsigned int*>(
         FLAMEGPU->environment.getProperty<uint64_t>("cancer_occ_ptr"));
     int box_total = 0, box_cancer = 0;
@@ -180,20 +182,59 @@ FLAMEGPU_AGENT_FUNCTION(vascular_mark_t_sources, flamegpu::MessageNone, flamegpu
     }
     if (box_total > 0 && box_cancer >= box_total) return flamegpu::ALIVE;
 
-    const float ec50_ifng = FLAMEGPU->environment.getProperty<float>("PARAM_TEFF_IFN_EC50");
-    const float H_IFNg = local_IFNg / (local_IFNg + ec50_ifng);
+    unsigned long long ptr_val = FLAMEGPU->environment.getProperty<unsigned long long>("pde_recruitment_sources_ptr");
+    int* d_recruitment_sources = reinterpret_cast<int*>(static_cast<uintptr_t>(ptr_val));
 
+    // Scalers shared by all recruitment types
     double max_cancer = grid_x * grid_y * grid_z;
     double tumor_scaler = std::sqrt(1e5 * max_cancer / (FLAMEGPU->environment.getProperty<float>("qsp_cc_tumor") * FLAMEGPU->environment.getProperty<float>("AVOGADROS")));
     const int n_vas = FLAMEGPU->environment.getProperty<int>("n_vasculature_total");
     double vas_scaler = 100.0 / static_cast<double>(n_vas);
-    const float p_entry = H_IFNg * tumor_scaler * vas_scaler;
 
-    if (FLAMEGPU->random.uniform<float>() < p_entry) {
-        unsigned long long ptr_val = FLAMEGPU->environment.getProperty<unsigned long long>("pde_recruitment_sources_ptr");
-        int* d_recruitment_sources = reinterpret_cast<int*>(static_cast<uintptr_t>(ptr_val));
-        int idx = z * (grid_x * grid_y) + y * grid_x + x;
-        atomicOr(&d_recruitment_sources[idx], 1);  // Set T cell bit
+    float hev_boost = 1.0f;
+    if (cell_state == VAS_HEV) {
+        hev_boost = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_HEV_RECRUIT_BOOST");
+    }
+
+    int bits = 0;
+
+    // --- T cells (bit 0): IFN-γ gated ---
+    const float local_IFNg = PDE_READ(FLAMEGPU, PDE_CONC_IFN, voxel_idx);
+    const float ec50_ifng = FLAMEGPU->environment.getProperty<float>("PARAM_TEFF_IFN_EC50");
+    const float H_IFNg = local_IFNg / (local_IFNg + ec50_ifng);
+    float p_t = H_IFNg * tumor_scaler * vas_scaler * hev_boost;
+    if (FLAMEGPU->random.uniform<float>() < p_t) {
+        bits |= 1;
+    }
+
+    // --- CCL2-dependent: MDSC (bit 1), MAC (bit 2), DC (bit 4) ---
+    const float local_CCL2 = PDE_READ(FLAMEGPU, PDE_CONC_CCL2, voxel_idx);
+    const float ec50_ccl2_mdsc = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_EC50_CCL2_REC");
+    const float H_CCL2_mdsc = local_CCL2 / (local_CCL2 + ec50_ccl2_mdsc);
+    if (FLAMEGPU->random.uniform<float>() < H_CCL2_mdsc) {
+        bits |= 2;  // MDSC
+    }
+
+    const float ec50_ccl2_mac = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_EC50_CCL2_REC");
+    const float H_CCL2_mac = local_CCL2 / (local_CCL2 + ec50_ccl2_mac);
+    if (FLAMEGPU->random.uniform<float>() < H_CCL2_mac) {
+        bits |= 4;  // MAC
+    }
+
+    // DC sources: homeostatic (ODE: k_APC_death * APC0 * V_T, not CCL2-gated)
+    // Always mark; probability rolled at placement via PARAM_DC_RECRUIT_K_CDC1/CDC2
+    bits |= 16;  // DC
+
+    // --- B cells (bit 3): CXCL13 gated ---
+    const float local_CXCL13 = PDE_READ(FLAMEGPU, PDE_CONC_CXCL13, voxel_idx);
+    const float ec50_cxcl13 = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_EC50_CXCL13_REC");
+    const float H_CXCL13 = local_CXCL13 / (local_CXCL13 + ec50_cxcl13);
+    if (FLAMEGPU->random.uniform<float>() < H_CXCL13) {
+        bits |= 8;  // B cell
+    }
+
+    if (bits != 0) {
+        atomicOr(&d_recruitment_sources[voxel_idx], bits);
     }
 
     return flamegpu::ALIVE;
@@ -227,8 +268,8 @@ FLAMEGPU_AGENT_FUNCTION(vascular_state_step, flamegpu::MessageNone, flamegpu::Me
     const float ecm_local = ecm_d[vidx_v2];
     const float mat_resist = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_MATURITY_RESISTANCE");
 
-    // --- Vessel collapse: PHALANX → PHALANX_COLLAPSED ---
-    if (cell_state == VAS_PHALANX) {
+    // --- Vessel collapse: PHALANX/HEV → PHALANX_COLLAPSED ---
+    if (cell_state == VAS_PHALANX || cell_state == VAS_HEV) {
         const float collapse_th = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_COLLAPSE_THRESHOLD");
         if (ecm_local > collapse_th) {
             const float collapse_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_COLLAPSE_EC50");
@@ -253,8 +294,35 @@ FLAMEGPU_AGENT_FUNCTION(vascular_state_step, flamegpu::MessageNone, flamegpu::Me
         }
     }
 
-    // --- Vessel regression: low VEGF-A → death (PHALANX or COLLAPSED) ---
-    if (cell_state == VAS_PHALANX || cell_state == VAS_PHALANX_COLLAPSED) {
+    // --- HEV differentiation: PHALANX → HEV when CCL21 + immune density high ---
+    if (cell_state == VAS_PHALANX) {
+        const float local_CCL21 = PDE_READ(FLAMEGPU, PDE_CONC_CCL21, vidx_v2);
+        const float hev_ccl21_th = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_HEV_CCL21_TH");
+        if (local_CCL21 > hev_ccl21_th) {
+            // Check local immune cell volume as proxy for lymphocyte density
+            const float* vol_used = reinterpret_cast<const float*>(
+                FLAMEGPU->environment.getProperty<uint64_t>(VOL_USED_PTR));
+            const float local_vol = vol_used[vidx_v2];
+            const float lymph_th = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_HEV_LYMPH_DENSITY_TH");
+            if (local_vol > lymph_th) {
+                cell_state = VAS_HEV;
+                FLAMEGPU->setVariable<int>("cell_state", VAS_HEV);
+            }
+        }
+    }
+
+    // --- HEV reversion: HEV → PHALANX when CCL21 drops ---
+    if (cell_state == VAS_HEV) {
+        const float local_CCL21 = PDE_READ(FLAMEGPU, PDE_CONC_CCL21, vidx_v2);
+        const float revert_th = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_HEV_REVERT_CCL21_TH");
+        if (local_CCL21 < revert_th) {
+            cell_state = VAS_PHALANX;
+            FLAMEGPU->setVariable<int>("cell_state", VAS_PHALANX);
+        }
+    }
+
+    // --- Vessel regression: low VEGF-A → death (PHALANX, HEV, or COLLAPSED) ---
+    if (cell_state == VAS_PHALANX || cell_state == VAS_PHALANX_COLLAPSED || cell_state == VAS_HEV) {
         const float regress_rate = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_REGRESS_RATE");
         const float vegfa_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_VEGFA_SURVIVAL_EC50");
         const float local_VEGFA_r = PDE_READ(FLAMEGPU, PDE_CONC_VEGFA, vidx_v2);
@@ -264,7 +332,8 @@ FLAMEGPU_AGENT_FUNCTION(vascular_state_step, flamegpu::MessageNone, flamegpu::Me
         if (FLAMEGPU->random.uniform<float>() < p_regress) {
             auto* evts_reg = reinterpret_cast<unsigned int*>(
                 FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
-            const int ds = (cell_state == VAS_PHALANX_COLLAPSED) ? EVT_DEATH_VAS_COLLAPSED : EVT_DEATH_VAS_PHALANX;
+            const int ds = (cell_state == VAS_PHALANX_COLLAPSED) ? EVT_DEATH_VAS_COLLAPSED :
+                           (cell_state == VAS_HEV) ? EVT_DEATH_VAS_HEV : EVT_DEATH_VAS_PHALANX;
             atomicAdd(&evts_reg[ds], 1u);
             return flamegpu::DEAD;
         }

@@ -15,7 +15,9 @@ enum AgentType : int {
     CELL_TYPE_MDSC = 4,
     CELL_TYPE_MAC = 5,
     CELL_TYPE_FIB = 6,
-    CELL_TYPE_VASCULAR = 7
+    CELL_TYPE_VASCULAR = 7,
+    CELL_TYPE_BCELL = 8,
+    CELL_TYPE_DC = 9
 };
 
 // Cancer cell state enumeration (matches CPU AgentStateEnum)
@@ -38,6 +40,7 @@ enum TCellState : int {
 enum TCD4State : int {
     TCD4_TH = 0,
     TCD4_TREG = 1,
+    TCD4_TFH = 2,
 };
 
 // Macrophage state enumeration (M1/M2 polarization)
@@ -59,7 +62,26 @@ enum VascularCellState : int {
     VAS_TIP = 0,      // Actively sprouting tip cell
     VAS_STALK = 1,    // Connecting stalk cell
     VAS_PHALANX = 2,  // Mature vessel (O2 secreting)
-    VAS_PHALANX_COLLAPSED = 3  // Lumen collapsed by ECM pressure (no O2, recoverable)
+    VAS_PHALANX_COLLAPSED = 3, // Lumen collapsed by ECM pressure (no O2, recoverable)
+    VAS_HEV = 4               // High endothelial venule (boosted immune recruitment, O2 delivery)
+};
+
+// B cell state enumeration
+enum BCellState : int {
+    BCELL_NAIVE = 0,      // Circulating/tissue-resident, searching for antigen
+    BCELL_ACTIVATED = 1,  // Antigen-loaded, proliferating, forming GC clusters
+    BCELL_PLASMA = 2      // Terminal differentiation, antibody/IL-10 factory
+};
+
+// Dendritic cell state enumeration
+enum DCState : int {
+    DC_IMMATURE = 0,  // Tissue-resident, antigen sampling
+    DC_MATURE = 1     // Antigen-loaded, presenting, secreting IL-12/CCL21
+};
+// Dendritic cell subtype (stored as agent variable "dc_subtype")
+enum DCSubtype : int {
+    DC_CDC1 = 0,   // cDC1: cross-presents to CD8 T cells, secretes IL-12
+    DC_CDC2 = 1    // cDC2: MHC-II presents to CD4/Th/Treg
 };
 
 // Voxel tissue type labels (static, set during initialization)
@@ -83,6 +105,8 @@ constexpr const char* AGENT_MDSC = "MDSC";
 constexpr const char* AGENT_MACROPHAGE = "Macrophage";
 constexpr const char* AGENT_FIBROBLAST = "Fibroblast";
 constexpr const char* AGENT_VASCULAR = "VascularCell";
+constexpr const char* AGENT_BCELL = "BCell";
+constexpr const char* AGENT_DC = "DC";
 
 // Environment property names for grid dimensions
 constexpr const char* ENV_GRID_SIZE_X = "grid_size_x";
@@ -101,6 +125,7 @@ enum EventCounterIdx : int {
     EVT_PROLIF_CD8_SUP,
     EVT_PROLIF_TH,
     EVT_PROLIF_TREG,
+    EVT_PROLIF_TFH,
     EVT_PROLIF_MDSC,          // 0 — division not implemented
     EVT_PROLIF_CANCER_STEM,
     EVT_PROLIF_CANCER_PROG,
@@ -112,12 +137,16 @@ enum EventCounterIdx : int {
     EVT_PROLIF_FIB_ICAF,
     EVT_PROLIF_VAS_TIP,
     EVT_PROLIF_VAS_PHALANX,   // 0
+    EVT_PROLIF_BCELL_NAIVE,
+    EVT_PROLIF_BCELL_ACT,
+    EVT_PROLIF_BCELL_PLASMA,  // 0 — plasma cells don't divide
     // Deaths (all causes combined, by cell type/state)
     EVT_DEATH_CD8_EFF,
     EVT_DEATH_CD8_CYT,
     EVT_DEATH_CD8_SUP,
     EVT_DEATH_TH,
     EVT_DEATH_TREG,
+    EVT_DEATH_TFH,
     EVT_DEATH_MDSC,
     EVT_DEATH_CANCER_STEM,
     EVT_DEATH_CANCER_PROG,
@@ -130,6 +159,14 @@ enum EventCounterIdx : int {
     EVT_DEATH_VAS_TIP,
     EVT_DEATH_VAS_PHALANX,
     EVT_DEATH_VAS_COLLAPSED,
+    EVT_DEATH_VAS_HEV,
+    EVT_DEATH_BCELL_NAIVE,
+    EVT_DEATH_BCELL_ACT,
+    EVT_DEATH_BCELL_PLASMA,
+    EVT_DEATH_DC_CDC1_IMMATURE,
+    EVT_DEATH_DC_CDC1_MATURE,
+    EVT_DEATH_DC_CDC2_IMMATURE,
+    EVT_DEATH_DC_CDC2_MATURE,
     // PDL1 expression numerator (divide by total cancer for PDL1_frac)
     EVT_PDL1_COUNT,
     ABM_EVENT_COUNTER_SIZE    // = 31
@@ -146,6 +183,7 @@ enum StateCounterIdx : int {
     SC_CD8_SUP,
     SC_TH,
     SC_TREG,
+    SC_TFH,
     SC_MDSC,
     SC_MAC_M1,
     SC_MAC_M2,
@@ -155,6 +193,14 @@ enum StateCounterIdx : int {
     SC_VAS_TIP,
     SC_VAS_PHALANX,
     SC_VAS_COLLAPSED,
+    SC_VAS_HEV,
+    SC_BCELL_NAIVE,
+    SC_BCELL_ACT,
+    SC_BCELL_PLASMA,
+    SC_DC_CDC1_IMMATURE,
+    SC_DC_CDC1_MATURE,
+    SC_DC_CDC2_IMMATURE,
+    SC_DC_CDC2_MATURE,
     ABM_STATE_COUNTER_SIZE    // = 16
 };
 constexpr int MAX_RECRUITS_PER_STEP = 4096;    // Max recruitment requests per ABM step (GPU buffer size)
@@ -162,7 +208,7 @@ constexpr int MAX_RECRUITS_PER_STEP = 4096;    // Max recruitment requests per A
 // GPU recruitment request: filled by recruit_all_kernel, consumed by place_recruited_agents host fn.
 struct RecruitRequest {
     int x, y, z;            // Placement voxel coordinates
-    int cell_type;          // CELL_TYPE_T, CELL_TYPE_TREG, CELL_TYPE_MAC, CELL_TYPE_MDSC
+    int cell_type;          // CELL_TYPE_T, CELL_TYPE_TREG, CELL_TYPE_MAC, CELL_TYPE_MDSC, CELL_TYPE_DC
     int cell_state;         // Sub-state within type (e.g., T_CELL_EFF, TCD4_TREG, MAC_M1)
     int life;               // Pre-sampled lifespan (normal or exponential)
     int divide_cd;          // Division cooldown (T/TReg only)
@@ -170,6 +216,7 @@ struct RecruitRequest {
     float IL2_release_remain;   // T cells only
     float TGFB_release_remain;  // TReg/TH only
     float CTLA4;                // TReg only
+    int subtype;            // DC subtype: DC_CDC1=0, DC_CDC2=1 (DC only)
 };
 
 // Action types for intent messages
@@ -196,7 +243,9 @@ enum ABMEventCounterIndex : int {
     ABM_COUNT_CC_SENESCENCE = 11,     // Progenitors that transitioned to senescent this step
     ABM_COUNT_CC_T_KILL_EVAL = 12,    // Cancer cells evaluated for T kill (had T neighbors)
     ABM_COUNT_CC_P_KILL_SUM_INT = 13, // Sum of p_kill * 10000 (integer encoding for atomicAdd)
-    ABM_COUNT_CC_MAC_KILL_EVAL = 14   // Cancer cells evaluated for MAC kill (had M1 neighbors)
+    ABM_COUNT_CC_MAC_KILL_EVAL = 14,  // Cancer cells evaluated for MAC kill (had M1 neighbors)
+    ABM_COUNT_BCELL_REC = 15,         // B cells recruited to tumor
+    ABM_COUNT_DC_REC = 16             // DCs recruited to tumor
 };
 
 // ============================================================
@@ -226,6 +275,10 @@ enum ABMEventCounterIndex : int {
 #define PDE_CONC_IL6   "pde_concentration_ptr_11"
 #define PDE_CONC_CXCL13 "pde_concentration_ptr_12"
 #define PDE_CONC_MMP   "pde_concentration_ptr_13"
+#define PDE_CONC_ANTIBODY "pde_concentration_ptr_14"
+#define PDE_CONC_CCL21 "pde_concentration_ptr_15"
+#define PDE_CONC_CXCL12 "pde_concentration_ptr_16"
+#define PDE_CONC_CCL5  "pde_concentration_ptr_17"
 
 // Source pointers (atomicAdd secretion rate / voxel_volume → [conc/s])
 #define PDE_SRC_O2    "pde_source_ptr_0"
@@ -242,6 +295,10 @@ enum ABMEventCounterIndex : int {
 #define PDE_SRC_IL6   "pde_source_ptr_11"
 #define PDE_SRC_CXCL13 "pde_source_ptr_12"
 #define PDE_SRC_MMP    "pde_source_ptr_13"
+#define PDE_SRC_ANTIBODY "pde_source_ptr_14"
+#define PDE_SRC_CCL21 "pde_source_ptr_15"
+#define PDE_SRC_CXCL12 "pde_source_ptr_16"
+#define PDE_SRC_CCL5  "pde_source_ptr_17"
 
 // Uptake pointers (atomicAdd first-order decay rate [1/s], no volume scaling)
 #define PDE_UPT_O2    "pde_uptake_ptr_0"
@@ -258,6 +315,10 @@ enum ABMEventCounterIndex : int {
 #define PDE_UPT_IL6   "pde_uptake_ptr_11"
 #define PDE_UPT_CXCL13 "pde_uptake_ptr_12"
 #define PDE_UPT_MMP    "pde_uptake_ptr_13"
+#define PDE_UPT_ANTIBODY "pde_uptake_ptr_14"
+#define PDE_UPT_CCL21 "pde_uptake_ptr_15"
+#define PDE_UPT_CXCL12 "pde_uptake_ptr_16"
+#define PDE_UPT_CCL5  "pde_uptake_ptr_17"
 
 // Gradient pointers (read-only, filled by compute_pde_gradients each step)
 #define PDE_GRAD_IFN_X   "pde_grad_IFN_x"
@@ -272,6 +333,12 @@ enum ABMEventCounterIndex : int {
 #define PDE_GRAD_VEGFA_X "pde_grad_VEGFA_x"
 #define PDE_GRAD_VEGFA_Y "pde_grad_VEGFA_y"
 #define PDE_GRAD_VEGFA_Z "pde_grad_VEGFA_z"
+#define PDE_GRAD_CXCL13_X "pde_grad_CXCL13_x"
+#define PDE_GRAD_CXCL13_Y "pde_grad_CXCL13_y"
+#define PDE_GRAD_CXCL13_Z "pde_grad_CXCL13_z"
+#define PDE_GRAD_CCL21_X "pde_grad_CCL21_x"
+#define PDE_GRAD_CCL21_Y "pde_grad_CCL21_y"
+#define PDE_GRAD_CCL21_Z "pde_grad_CCL21_z"
 
 // ============================================================
 // PDE Access Helper Macros
@@ -310,15 +377,18 @@ __device__ __forceinline__ float hill_equation(float x, float k50, float n) {
     return xn / (kn + xn);
 }
 
-__device__ __forceinline__ float update_PDL1(float local_IFNg, float IFNg_PDL1_EC50, float IFNg_PDL1_hill, float PDL1_syn_max, float PDL1_current) {
+__device__ __forceinline__ float update_PDL1(float local_IFNg, float IFNg_PDL1_EC50, float IFNg_PDL1_hill,
+                                             float PDL1_syn_max, float PDL1_current,
+                                             float k_internalization, float dt) {
+    // Target PDL1 level: IFN-γ driven Hill equilibrium
     float H_IFNg = hill_equation(local_IFNg, IFNg_PDL1_EC50, IFNg_PDL1_hill);
-    float minPDL1 = PDL1_syn_max * H_IFNg;
+    float target = PDL1_syn_max * H_IFNg;
 
-    if (PDL1_current < minPDL1) {
-        return minPDL1;
-    } else {
-        return PDL1_current;
-    }
+    // Exponential approach toward target (both up and down)
+    // Models ODE externalization (k_out_PDL1 * H_IFNg) / internalization (k_in_PDL1)
+    // Using k_internalization as the relaxation rate
+    float decay = expf(-k_internalization * dt);
+    return target + (PDL1_current - target) * decay;
 }
 
 __device__ __forceinline__ float get_PD1_PDL1(float PDL1, float Nivo,
@@ -406,6 +476,26 @@ constexpr unsigned int VON_NEUMANN_MASK = 0x3Fu;  // binary: 00111111
 #define ECM_CROSSLINK_PTR(fgpu) \
     reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>("ecm_crosslink_ptr"))
 
+// Read antigen grid pointer (persistent antigen deposited by dying cancer cells)
+#define ANTIGEN_GRID_PTR(fgpu) \
+    reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>("antigen_grid_ptr"))
+
+// ECM fiber orientation pointers (per-voxel axis vector, magnitude = alignment strength)
+#define ECM_ORIENT_X_PTR(fgpu) \
+    reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>("ecm_orient_x_ptr"))
+#define ECM_ORIENT_Y_PTR(fgpu) \
+    reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>("ecm_orient_y_ptr"))
+#define ECM_ORIENT_Z_PTR(fgpu) \
+    reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>("ecm_orient_z_ptr"))
+
+// Mechanical stress field pointers (transient per-voxel stress from cancer movement)
+#define STRESS_X_PTR(fgpu) \
+    reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>("stress_x_ptr"))
+#define STRESS_Y_PTR(fgpu) \
+    reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>("stress_y_ptr"))
+#define STRESS_Z_PTR(fgpu) \
+    reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>("stress_z_ptr"))
+
 // Compute ECM porosity at a voxel: porosity = max(0, 1 - density/cap * (1 + crosslink))
 __device__ __forceinline__ float ecm_porosity(const float* ecm_density, const float* ecm_crosslink,
                                                int voxel_idx, float density_cap) {
@@ -429,6 +519,74 @@ __device__ __forceinline__ bool volume_try_claim(float* vol_used, int voxel_idx,
 // Release volume from a voxel (e.g., after movement or death).
 __device__ __forceinline__ void volume_release(float* vol_used, int voxel_idx, float my_volume) {
     atomicAdd(&vol_used[voxel_idx], -my_volume);
+}
+
+// ============================================================
+// Contact Guidance Helper
+// ============================================================
+// Blends a chemotaxis gradient with local fiber orientation.
+// Amplifies the gradient component parallel to fibers, suppresses perpendicular.
+// Uses nematic (bidirectional) decomposition: fibers have no preferred sign.
+// w_contact: contact guidance strength (0 = no guidance, 1 = full channeling)
+// orient_x/y/z: fiber axis vector at voxel (magnitude = alignment strength, 0 = isotropic)
+// grad_x/y/z: chemotaxis gradient (modified in-place)
+__device__ __forceinline__ void apply_contact_guidance(
+    float& grad_x, float& grad_y, float& grad_z,
+    float orient_x, float orient_y, float orient_z,
+    float w_contact)
+{
+    float fiber_mag = sqrtf(orient_x * orient_x + orient_y * orient_y + orient_z * orient_z);
+    if (fiber_mag < 0.01f || w_contact < 1e-6f) return;  // isotropic or no guidance
+
+    float inv_mag = 1.0f / fiber_mag;
+    float fhat_x = orient_x * inv_mag;
+    float fhat_y = orient_y * inv_mag;
+    float fhat_z = orient_z * inv_mag;
+
+    // Decompose gradient into fiber-parallel and fiber-perpendicular
+    float dot_cf = grad_x * fhat_x + grad_y * fhat_y + grad_z * fhat_z;
+    float para_x = dot_cf * fhat_x;
+    float para_y = dot_cf * fhat_y;
+    float para_z = dot_cf * fhat_z;
+    float perp_x = grad_x - para_x;
+    float perp_y = grad_y - para_y;
+    float perp_z = grad_z - para_z;
+
+    // Amplify parallel, suppress perpendicular (scaled by alignment strength)
+    float boost = 1.0f + w_contact * fiber_mag;
+    float suppress = fmaxf(0.0f, 1.0f - w_contact * fiber_mag);
+
+    grad_x = para_x * boost + perp_x * suppress;
+    grad_y = para_y * boost + perp_y * suppress;
+    grad_z = para_z * boost + perp_z * suppress;
+}
+
+// Apply contact guidance to persistence direction for cells with no chemotaxis.
+// Projects persistence direction onto fiber axis to create an effective gradient.
+__device__ __forceinline__ void apply_contact_guidance_persist(
+    float& grad_x, float& grad_y, float& grad_z,
+    float& bias_strength,
+    float orient_x, float orient_y, float orient_z,
+    float w_contact,
+    int persist_dx, int persist_dy, int persist_dz)
+{
+    float fiber_mag = sqrtf(orient_x * orient_x + orient_y * orient_y + orient_z * orient_z);
+    if (fiber_mag < 0.01f || w_contact < 1e-6f) return;
+
+    float inv_mag = 1.0f / fiber_mag;
+    float fhat_x = orient_x * inv_mag;
+    float fhat_y = orient_y * inv_mag;
+    float fhat_z = orient_z * inv_mag;
+
+    float pdot = static_cast<float>(persist_dx) * fhat_x
+               + static_cast<float>(persist_dy) * fhat_y
+               + static_cast<float>(persist_dz) * fhat_z;
+    float sign = (pdot >= 0.0f) ? 1.0f : -1.0f;
+
+    grad_x = sign * orient_x * w_contact;
+    grad_y = sign * orient_y * w_contact;
+    grad_z = sign * orient_z * w_contact;
+    bias_strength = fiber_mag;
 }
 
 // ============================================================

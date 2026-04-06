@@ -65,6 +65,23 @@ static uint8_t* d_voxel_type = nullptr;
 // Replaces the old per-type occ_grid MacroProperty + flat arrays (d_t_occ, d_mac_occ, d_mdsc_occ).
 static float* d_volume_used = nullptr;
 
+// Antigen grid: persistent per-voxel antigen signal deposited by dying cancer cells.
+// DCs and B cells read this to capture antigen (replaces dead-neighbor scanning).
+// Decays exponentially each ABM step via decay_antigen_grid host function.
+static float* d_antigen_grid = nullptr;
+
+// ECM fiber orientation: per-voxel axis vector (magnitude = alignment strength).
+// 0 = isotropic, 1 = fully aligned. Updated by orient update kernel each step.
+static float* d_ecm_orient_x = nullptr;
+static float* d_ecm_orient_y = nullptr;
+static float* d_ecm_orient_z = nullptr;
+
+// Mechanical stress field: transient per-voxel stress from cancer cell movement.
+// Accumulated via atomicAdd during cancer_move, decayed each step.
+static float* d_mech_stress_x = nullptr;
+static float* d_mech_stress_y = nullptr;
+static float* d_mech_stress_z = nullptr;
+
 static RecruitRequest* d_recruit_requests = nullptr;
 static int* d_recruit_count = nullptr;
 
@@ -88,6 +105,14 @@ struct RecruitDiag {
     int mac_roll_pass;
     int mac_place_ok;
     int mac_place_fail;
+    int bcell_sources;
+    int bcell_roll_pass;
+    int bcell_place_ok;
+    int bcell_place_fail;
+    int dc_sources;
+    int dc_roll_pass;
+    int dc_place_ok;
+    int dc_place_fail;
 };
 static RecruitDiag* d_recruit_diag = nullptr;
 
@@ -161,6 +186,112 @@ __global__ void fill_ecm_kernel(float* ecm, int total_voxels, float value)
 }
 
 // ============================================================================
+// CUDA Kernel: Decay antigen grid (exponential decay each ABM step)
+// ============================================================================
+__global__ void decay_antigen_kernel(float* antigen, int total_voxels, float decay_factor)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < total_voxels) {
+        antigen[idx] *= decay_factor;
+    }
+}
+
+// ============================================================================
+// CUDA Kernel: Decay mechanical stress field (exponential decay each ABM step)
+// ============================================================================
+__global__ void decay_stress_kernel(float* stress_x, float* stress_y, float* stress_z,
+                                     int total_voxels, float decay_factor)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < total_voxels) {
+        stress_x[idx] *= decay_factor;
+        stress_y[idx] *= decay_factor;
+        stress_z[idx] *= decay_factor;
+    }
+}
+
+// ============================================================================
+// CUDA Kernel: Update ECM fiber orientation
+// Two competing forces: myCAF traction (TACS-2) and mechanical stress (TACS-3).
+// Crosslinked ECM resists reorientation.
+// ============================================================================
+__global__ void update_ecm_orient_kernel(
+    float* orient_x, float* orient_y, float* orient_z,
+    const float* stress_x, const float* stress_y, const float* stress_z,
+    const float* fib_field, const float* ecm_crosslink,
+    const float* tgfb_grad_x, const float* tgfb_grad_y, const float* tgfb_grad_z,
+    int nx, int ny, int nz,
+    float dt, float base_rate,
+    float w_traction, float w_stress, float alpha_crosslink)
+{
+    const int tx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int ty = blockIdx.y * blockDim.y + threadIdx.y;
+    const int tz = blockIdx.z * blockDim.z + threadIdx.z;
+    if (tx >= nx || ty >= ny || tz >= nz) return;
+
+    const int idx = tz * (nx * ny) + ty * nx + tx;
+
+    float ox = orient_x[idx];
+    float oy = orient_y[idx];
+    float oz = orient_z[idx];
+
+    // Effective rate: crosslinked ECM resists reorientation
+    float crosslink = ecm_crosslink[idx];
+    float effective_rate = base_rate / (1.0f + alpha_crosslink * crosslink);
+
+    // Force 1: myCAF traction (TACS-2) — align fibers perpendicular to TGF-β gradient
+    float fib = fib_field[idx];
+    float fx_trac = 0.0f, fy_trac = 0.0f, fz_trac = 0.0f;
+    if (fib > 0.0f) {
+        float tg_x = tgfb_grad_x[idx];
+        float tg_y = tgfb_grad_y[idx];
+        float tg_z = tgfb_grad_z[idx];
+        float tg_mag = sqrtf(tg_x * tg_x + tg_y * tg_y + tg_z * tg_z);
+        if (tg_mag > 1e-12f) {
+            float inv_tg = 1.0f / tg_mag;
+            float th_x = tg_x * inv_tg;
+            float th_y = tg_y * inv_tg;
+            float th_z = tg_z * inv_tg;
+            // Remove component of orientation parallel to TGF-β gradient
+            float dot_ot = ox * th_x + oy * th_y + oz * th_z;
+            float perp_x = ox - dot_ot * th_x;
+            float perp_y = oy - dot_ot * th_y;
+            float perp_z = oz - dot_ot * th_z;
+            // Force toward perpendicular plane
+            fx_trac = w_traction * fib * (perp_x - ox);
+            fy_trac = w_traction * fib * (perp_y - oy);
+            fz_trac = w_traction * fib * (perp_z - oz);
+        }
+    }
+
+    // Force 2: Mechanical stress (TACS-3) — align fibers with stress direction
+    float sx = stress_x[idx];
+    float sy = stress_y[idx];
+    float sz = stress_z[idx];
+    float fx_stress = w_stress * sx;
+    float fy_stress = w_stress * sy;
+    float fz_stress = w_stress * sz;
+
+    // Combined update
+    ox += effective_rate * dt * (fx_trac + fx_stress);
+    oy += effective_rate * dt * (fy_trac + fy_stress);
+    oz += effective_rate * dt * (fz_trac + fz_stress);
+
+    // Clamp magnitude to [0, 1]
+    float mag = sqrtf(ox * ox + oy * oy + oz * oz);
+    if (mag > 1.0f) {
+        float inv_mag = 1.0f / mag;
+        ox *= inv_mag;
+        oy *= inv_mag;
+        oz *= inv_mag;
+    }
+
+    orient_x[idx] = ox;
+    orient_y[idx] = oy;
+    orient_z[idx] = oz;
+}
+
+// ============================================================================
 // Host Function: Reset PDE Buffers (call before compute_chemical_sources)
 // ============================================================================
 
@@ -215,7 +346,8 @@ FLAMEGPU_HOST_FUNCTION(compute_pde_gradients) {
 
 void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
                            float voxel_size, float dt_abm, int molecular_steps,
-                            const PDAC::GPUParam& gpu_params) {
+                            const PDAC::GPUParam& gpu_params,
+                            flamegpu::ModelDescription& model) {
     PDEConfig config;
     config.nx = grid_x;
     config.ny = grid_y;
@@ -242,22 +374,31 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     config.diffusion_coeffs[CHEM_IL6]   = gpu_params.getFloat(PARAM_IL6_DIFFUSIVITY);
     config.diffusion_coeffs[CHEM_CXCL13]= gpu_params.getFloat(PARAM_CXCL13_DIFFUSIVITY);
     config.diffusion_coeffs[CHEM_MMP]   = gpu_params.getFloat(PARAM_MMP_DIFFUSIVITY);
+    config.diffusion_coeffs[CHEM_ANTIBODY] = gpu_params.getFloat(PARAM_ANTIBODY_DIFFUSIVITY);
+    config.diffusion_coeffs[CHEM_CCL21]    = gpu_params.getFloat(PARAM_CCL21_DIFFUSIVITY);
+    config.diffusion_coeffs[CHEM_CXCL12]   = gpu_params.getFloat(PARAM_CXCL12_DIFFUSIVITY);
+    config.diffusion_coeffs[CHEM_CCL5]     = gpu_params.getFloat(PARAM_CCL5_DIFFUSIVITY);
 
-    // Set decay rates (1/s) from params file
-    config.decay_rates[CHEM_O2]    = gpu_params.getFloat(PARAM_O2_DECAY_RATE);
-    config.decay_rates[CHEM_IFN]   = gpu_params.getFloat(PARAM_IFNG_DECAY_RATE);
-    config.decay_rates[CHEM_IL2]   = gpu_params.getFloat(PARAM_IL2_DECAY_RATE);
-    config.decay_rates[CHEM_IL10]  = gpu_params.getFloat(PARAM_IL10_DECAY_RATE);
-    config.decay_rates[CHEM_TGFB]  = gpu_params.getFloat(PARAM_TGFB_DECAY_RATE);
-    config.decay_rates[CHEM_CCL2]  = gpu_params.getFloat(PARAM_CCL2_DECAY_RATE);
-    config.decay_rates[CHEM_ARGI]  = gpu_params.getFloat(PARAM_ARGI_DECAY_RATE);
-    config.decay_rates[CHEM_NO]    = gpu_params.getFloat(PARAM_NO_DECAY_RATE);
-    config.decay_rates[CHEM_IL12]  = gpu_params.getFloat(PARAM_IL12_DECAY_RATE);
-    config.decay_rates[CHEM_VEGFA] = gpu_params.getFloat(PARAM_VEGFA_DECAY_RATE);
-    config.decay_rates[CHEM_IL1]   = gpu_params.getFloat(PARAM_IL1_DECAY_RATE);
-    config.decay_rates[CHEM_IL6]   = gpu_params.getFloat(PARAM_IL6_DECAY_RATE);
-    config.decay_rates[CHEM_CXCL13]= gpu_params.getFloat(PARAM_CXCL13_DECAY_RATE);
-    config.decay_rates[CHEM_MMP]   = gpu_params.getFloat(PARAM_MMP_DECAY_RATE);
+    // Set decay rates (1/s) — QSP-derived read from model env, ABM-only from gpu_params
+    const auto env = model.Environment();
+    config.decay_rates[CHEM_O2]       = gpu_params.getFloat(PARAM_O2_DECAY_RATE);     // ABM-only (no QSP equivalent)
+    config.decay_rates[CHEM_IFN]      = env.getProperty<float>("PARAM_IFNG_DECAY_RATE");
+    config.decay_rates[CHEM_IL2]      = env.getProperty<float>("PARAM_IL2_DECAY_RATE");
+    config.decay_rates[CHEM_IL10]     = env.getProperty<float>("PARAM_IL10_DECAY_RATE");
+    config.decay_rates[CHEM_TGFB]     = env.getProperty<float>("PARAM_TGFB_DECAY_RATE");
+    config.decay_rates[CHEM_CCL2]     = env.getProperty<float>("PARAM_CCL2_DECAY_RATE");
+    config.decay_rates[CHEM_ARGI]     = env.getProperty<float>("PARAM_ARGI_DECAY_RATE");
+    config.decay_rates[CHEM_NO]       = env.getProperty<float>("PARAM_NO_DECAY_RATE");
+    config.decay_rates[CHEM_IL12]     = env.getProperty<float>("PARAM_IL12_DECAY_RATE");
+    config.decay_rates[CHEM_VEGFA]    = gpu_params.getFloat(PARAM_VEGFA_DECAY_RATE);  // ABM-only
+    config.decay_rates[CHEM_IL1]      = env.getProperty<float>("PARAM_IL1_DECAY_RATE");
+    config.decay_rates[CHEM_IL6]      = env.getProperty<float>("PARAM_IL6_DECAY_RATE");
+    config.decay_rates[CHEM_CXCL13]   = gpu_params.getFloat(PARAM_CXCL13_DECAY_RATE); // ABM-only
+    config.decay_rates[CHEM_MMP]      = gpu_params.getFloat(PARAM_MMP_DECAY_RATE);     // ABM-only
+    config.decay_rates[CHEM_ANTIBODY] = gpu_params.getFloat(PARAM_ANTIBODY_DECAY_RATE);// ABM-only
+    config.decay_rates[CHEM_CCL21]    = gpu_params.getFloat(PARAM_CCL21_DECAY_RATE);   // ABM-only
+    config.decay_rates[CHEM_CXCL12]   = env.getProperty<float>("PARAM_CXCL12_DECAY_RATE");
+    config.decay_rates[CHEM_CCL5]     = env.getProperty<float>("PARAM_CCL5_DECAY_RATE");
 
     g_pde_solver = new PDESolver(config);
     g_pde_solver->initialize();
@@ -293,6 +434,26 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     // Allocate volume-based occupancy grid
     CUDA_CHECK(cudaMalloc(&d_volume_used, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_volume_used, 0, total_voxels * sizeof(float)));
+
+    // Allocate antigen grid (persistent per-voxel antigen from dying cancer)
+    CUDA_CHECK(cudaMalloc(&d_antigen_grid, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_antigen_grid, 0, total_voxels * sizeof(float)));
+
+    // Allocate ECM fiber orientation arrays (per-voxel axis vector, init isotropic = 0)
+    CUDA_CHECK(cudaMalloc(&d_ecm_orient_x, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_orient_x, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_ecm_orient_y, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_orient_y, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_ecm_orient_z, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_orient_z, 0, total_voxels * sizeof(float)));
+
+    // Allocate mechanical stress field arrays (transient, init = 0)
+    CUDA_CHECK(cudaMalloc(&d_mech_stress_x, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_mech_stress_x, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_mech_stress_y, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_mech_stress_y, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_mech_stress_z, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_mech_stress_z, 0, total_voxels * sizeof(float)));
 
     // Allocate GPU recruitment output buffer + atomic counter
     CUDA_CHECK(cudaMalloc(&d_recruit_requests, MAX_RECRUITS_PER_STEP * sizeof(RecruitRequest)));
@@ -332,7 +493,7 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
 
     // Store gradient pointers for chemotaxis substrates (IFN=0, TGFB=1, CCL2=2, VEGFA=3)
     // Naming: pde_grad_IFN_x, pde_grad_IFN_y, pde_grad_IFN_z, pde_grad_TGFB_x, ...
-    static const char* grad_names[NUM_GRAD_SUBSTRATES] = {"IFN", "TGFB", "CCL2", "VEGFA"};
+    static const char* grad_names[NUM_GRAD_SUBSTRATES] = {"IFN", "TGFB", "CCL2", "VEGFA", "CXCL13", "CCL21"};
     for (int g = 0; g < NUM_GRAD_SUBSTRATES; g++) {
         model.Environment().newProperty<unsigned long long>(
             std::string("pde_grad_") + grad_names[g] + "_x",
@@ -372,6 +533,26 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
     // Volume-based occupancy grid pointer
     model.Environment().newProperty<unsigned long long>("volume_used_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_volume_used)));
+
+    // Antigen grid pointer (persistent antigen from dying cancer cells)
+    model.Environment().newProperty<unsigned long long>("antigen_grid_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_antigen_grid)));
+
+    // ECM fiber orientation pointers
+    model.Environment().newProperty<unsigned long long>("ecm_orient_x_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_orient_x)));
+    model.Environment().newProperty<unsigned long long>("ecm_orient_y_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_orient_y)));
+    model.Environment().newProperty<unsigned long long>("ecm_orient_z_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_orient_z)));
+
+    // Mechanical stress field pointers
+    model.Environment().newProperty<unsigned long long>("stress_x_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_mech_stress_x)));
+    model.Environment().newProperty<unsigned long long>("stress_y_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_mech_stress_y)));
+    model.Environment().newProperty<unsigned long long>("stress_z_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_mech_stress_z)));
 
     std::cout << "PDE device pointers stored in FLAME GPU environment" << std::endl;
 }
@@ -418,6 +599,13 @@ void cleanup_pde_solver() {
         d_vas_tip_id_grid = nullptr;
     }
     if (d_volume_used) { cudaFree(d_volume_used); d_volume_used = nullptr; }
+    if (d_antigen_grid) { cudaFree(d_antigen_grid); d_antigen_grid = nullptr; }
+    if (d_ecm_orient_x) { cudaFree(d_ecm_orient_x); d_ecm_orient_x = nullptr; }
+    if (d_ecm_orient_y) { cudaFree(d_ecm_orient_y); d_ecm_orient_y = nullptr; }
+    if (d_ecm_orient_z) { cudaFree(d_ecm_orient_z); d_ecm_orient_z = nullptr; }
+    if (d_mech_stress_x) { cudaFree(d_mech_stress_x); d_mech_stress_x = nullptr; }
+    if (d_mech_stress_y) { cudaFree(d_mech_stress_y); d_mech_stress_y = nullptr; }
+    if (d_mech_stress_z) { cudaFree(d_mech_stress_z); d_mech_stress_z = nullptr; }
     if (d_recruit_requests) { cudaFree(d_recruit_requests); d_recruit_requests = nullptr; }
     if (d_recruit_count)    { cudaFree(d_recruit_count);    d_recruit_count = nullptr; }
     if (d_recruit_diag)     { cudaFree(d_recruit_diag);     d_recruit_diag = nullptr; }
@@ -450,6 +638,9 @@ float* get_ecm_density_device_ptr() { return d_ecm_density; }
 float* get_ecm_crosslink_device_ptr() { return d_ecm_crosslink; }
 float* get_fib_density_field_device_ptr() { return d_fib_density_field; }
 unsigned int* get_vas_tip_id_grid_device_ptr() { return d_vas_tip_id_grid; }
+float* get_ecm_orient_x_device_ptr() { return d_ecm_orient_x; }
+float* get_ecm_orient_y_device_ptr() { return d_ecm_orient_y; }
+float* get_ecm_orient_z_device_ptr() { return d_ecm_orient_z; }
 
 // ============================================================================
 // Recruitment System Implementation
@@ -477,73 +668,10 @@ __device__ bool is_tumor_dense_r3(
     return (box_total > 0 && box_cancer >= box_total);
 }
 
-// CUDA kernel to mark MDSC recruitment sources based on CCL2
-__global__ void mark_mdsc_sources_kernel(
-    int* d_recruitment_sources,
-    const float* d_ccl2,
-    const unsigned int* d_cancer_occ,
-    int nx, int ny, int nz,
-    float ec50_ccl2,
-    unsigned int seed)
-{
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-    int z = blockIdx.z * blockDim.z + threadIdx.z;
+// Source marking for MDSC, MAC, B cell, DC now handled by vascular_mark_sources
+// agent function (vascular_cell.cuh) — all immune cells extravasate from vasculature.
 
-    if (x >= nx || y >= ny || z >= nz) return;
-
-    // Skip voxels where radius-3 sphere is completely filled with cancer
-    if (is_tumor_dense_r3(d_cancer_occ, x, y, z, nx, ny, nz)) return;
-
-    int idx = z * (nx * ny) + y * nx + x;
-
-    float ccl2 = d_ccl2[idx];
-    float H_CCL2 = ccl2 / (ccl2 + ec50_ccl2);
-
-    // Simple random number generation (thread-local)
-    unsigned int rng_state = seed + idx;
-    rng_state = rng_state * 1103515245u + 12345u;
-    float rand_val = (rng_state & 0x7FFFFFFF) / float(0x7FFFFFFF);
-
-    if (rand_val < H_CCL2) {
-        atomicOr(&d_recruitment_sources[idx], 2);  // Set MDSC bit (bit 1)
-    }
-}
-
-// CUDA kernel to mark macrophage recruitment sources based on CCL2
-__global__ void mark_mac_sources_kernel(
-    int* d_recruitment_sources,
-    const float* d_ccl2,
-    const unsigned int* d_cancer_occ,
-    int nx, int ny, int nz,
-    float ec50_ccl2,
-    unsigned int seed)
-{
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-    int z = blockIdx.z * blockDim.z + threadIdx.z;
-
-    if (x >= nx || y >= ny || z >= nz) return;
-
-    // Skip voxels where radius-3 sphere is completely filled with cancer
-    if (is_tumor_dense_r3(d_cancer_occ, x, y, z, nx, ny, nz)) return;
-
-    int idx = z * (nx * ny) + y * nx + x;
-
-    float ccl2 = d_ccl2[idx];
-    float H_CCL2 = ccl2 / (ccl2 + ec50_ccl2);
-
-    // Simple random number generation (thread-local)
-    unsigned int rng_state = seed + idx;
-    rng_state = rng_state * 1103515245u + 12345u;
-    float rand_val = (rng_state & 0x7FFFFFFF) / float(0x7FFFFFFF);
-
-    if (rand_val < H_CCL2) {
-        atomicOr(&d_recruitment_sources[idx], 4);  // Set macrophage bit (bit 2)
-    }
-}
-
-// Update vasculature count env property (used by vascular_mark_t_sources device function)
+// Update vasculature count env property (used by vascular_mark_sources device function)
 FLAMEGPU_HOST_FUNCTION(update_vasculature_count) {
     nvtxRangePush("Update Vas Count");
     int n_vas = static_cast<int>(FLAMEGPU->agent(AGENT_VASCULAR).count());
@@ -559,34 +687,6 @@ FLAMEGPU_HOST_FUNCTION(reset_recruitment_sources) {
     nvtxRangePop();
 }
 
-// Mark MDSC sources based on CCL2 concentration
-FLAMEGPU_HOST_FUNCTION(mark_mdsc_sources) {
-    nvtxRangePush("Mark MDSC Sources");
-    if (!g_pde_solver) { nvtxRangePop(); return; }
-
-    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
-    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-
-    int* d_recruitment_sources = g_pde_solver->get_device_recruitment_sources_ptr();
-    const float* d_ccl2 = g_pde_solver->get_device_concentration_ptr(CHEM_CCL2);
-
-    // Get parameter
-    float ec50_ccl2 = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_EC50_CCL2_REC");
-
-    // Seed: combine environment seed with step counter (salt=0x9E3779B9 for MDSC)
-    unsigned int base_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
-    unsigned int seed = base_seed ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 2654435761u + 0x9E3779B9u);
-
-    dim3 block(8, 8, 8);
-    dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
-
-    mark_mdsc_sources_kernel<<<grid, block>>>(
-        d_recruitment_sources, d_ccl2, d_cancer_occ, nx, ny, nz, ec50_ccl2, seed);
-
-    cudaDeviceSynchronize();
-    nvtxRangePop();
-}
 
 // ============================================================================
 // GPU Recruitment Kernel: Packed parameters struct
@@ -607,15 +707,33 @@ struct RecruitKernelParams {
     // MDSC recruitment
     float p_mdsc;
     float mdsc_life_mean;
+    const float* il6_conc;    // IL-6 PDE concentration (for MDSC recruitment boost)
+    float il6_ec50_mdsc;      // IL-6 EC50 for MDSC recruitment [nM]
     // MAC recruitment
     float p_mac;
     float mac_life_mean;
+    // B cell recruitment
+    float p_bcell;
+    float bcell_life_mean, bcell_life_sd;
+    // DC recruitment (per-subtype, homeostatic)
+    float p_dc_cdc1;
+    float p_dc_cdc2;
+    float dc_life_immature_mean, dc_life_immature_sd;
+    float dc_life_mature_mean, dc_life_mature_sd;
+    float vol_dc;
     // RNG seed
     unsigned int seed;
+    // CXCL12 T cell exclusion + CCL5 Treg recruitment
+    const float* cxcl12_conc;
+    float cxcl12_ec50;
+    const float* ccl5_conc;
+    float ccl5_ec50;
+    float ccl5_ratio;  // k_CCR5_Treg_rec / q_Treg_T_in — scales CCL5 boost relative to base
     // Volume-based occupancy
     float voxel_capacity;
     float vol_teff, vol_treg, vol_th;
     float vol_mdsc, vol_mac_m1, vol_mac_m2;
+    float vol_bcell;
 };
 
 // Device helper: xorshift32 RNG (fast, good enough for recruitment)
@@ -738,8 +856,15 @@ __global__ void recruit_all_kernel(
     if (flags & 1) {
         atomicAdd(&diag->t_sources, 1);
 
-        // Try Teff
-        if (rng_uniform(rng) < p.p_teff) {
+        // Local CXCL12 exclusion: reduces Teff and TH recruitment
+        float cxcl12_local = (p.cxcl12_conc && p.cxcl12_ec50 > 0.0f) ? p.cxcl12_conc[idx] : 0.0f;
+        float cxcl12_inhib = (p.cxcl12_ec50 > 0.0f) ? cxcl12_local / (cxcl12_local + p.cxcl12_ec50) : 0.0f;
+        // Local CCL5 boost: enhances Treg CCR5 recruitment
+        float ccl5_local = (p.ccl5_conc && p.ccl5_ec50 > 0.0f) ? p.ccl5_conc[idx] : 0.0f;
+        float ccl5_boost = (p.ccl5_ec50 > 0.0f) ? ccl5_local / (ccl5_local + p.ccl5_ec50) : 0.0f;
+
+        // Try Teff (reduced by CXCL12)
+        if (rng_uniform(rng) < p.p_teff * (1.0f - cxcl12_inhib)) {
             atomicAdd(&diag->teff_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_teff, p.voxel_capacity,
@@ -764,8 +889,8 @@ __global__ void recruit_all_kernel(
             }
         }
 
-        // Try TReg
-        if (rng_uniform(rng) < p.p_treg) {
+        // Try TReg (boosted by CCL5 via CCR5, ratio = k_CCR5/q_Treg)
+        if (rng_uniform(rng) < fminf(p.p_treg * (1.0f + p.ccl5_ratio * ccl5_boost), 1.0f)) {
             atomicAdd(&diag->treg_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_treg, p.voxel_capacity,
@@ -790,8 +915,8 @@ __global__ void recruit_all_kernel(
             }
         }
 
-        // Try TH
-        if (rng_uniform(rng) < p.p_th) {
+        // Try TH (reduced by CXCL12, same as Teff)
+        if (rng_uniform(rng) < p.p_th * (1.0f - cxcl12_inhib)) {
             atomicAdd(&diag->th_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_th, p.voxel_capacity,
@@ -820,7 +945,15 @@ __global__ void recruit_all_kernel(
     // ── MDSC source (bit 1) ──
     if (flags & 2) {
         atomicAdd(&diag->mdsc_sources, 1);
-        if (rng_uniform(rng) < p.p_mdsc) {
+        // ODE: k_MDSC_rec * V_T * H_CCL2 * (1 + H_IL6_MDSC)
+        // CCL2 gating already done in vascular_mark_sources; apply IL-6 boost here
+        float p_mdsc_eff = p.p_mdsc;
+        if (p.il6_conc) {
+            float il6 = p.il6_conc[idx];
+            float H_IL6 = il6 / (il6 + p.il6_ec50_mdsc + 1e-30f);
+            p_mdsc_eff *= (1.0f + H_IL6);
+        }
+        if (rng_uniform(rng) < p_mdsc_eff) {
             atomicAdd(&diag->mdsc_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_mdsc, p.voxel_capacity,
@@ -860,8 +993,8 @@ __global__ void recruit_all_kernel(
                     RecruitRequest req;
                     req.x = px; req.y = py; req.z = pz;
                     req.cell_type = CELL_TYPE_MAC;
-                    // 30% chance M2, else M1
-                    req.cell_state = (rng_uniform(rng) < 0.3f) ? MAC_M2 : MAC_M1;
+                    // ODE recruits all macrophages as M1; polarization handled by M1↔M2 transitions
+                    req.cell_state = MAC_M1;
                     req.life = sample_exp_life_gpu(p.mac_life_mean, rng);
                     req.divide_cd = 0;
                     req.divide_limit = 0;
@@ -872,6 +1005,88 @@ __global__ void recruit_all_kernel(
                 }
             } else {
                 atomicAdd(&diag->mac_place_fail, 1);
+            }
+        }
+    }
+
+    // ── BCell source (bit 3) ──
+    if (flags & 8) {
+        atomicAdd(&diag->bcell_sources, 1);
+        if (rng_uniform(rng) < p.p_bcell) {
+            atomicAdd(&diag->bcell_roll_pass, 1);
+            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                    d_vol_used, p.vol_bcell, p.voxel_capacity,
+                    rng, px, py, pz)) {
+                atomicAdd(&diag->bcell_place_ok, 1);
+                int slot = atomicAdd(d_request_count, 1);
+                if (slot < MAX_RECRUITS_PER_STEP) {
+                    RecruitRequest req;
+                    req.x = px; req.y = py; req.z = pz;
+                    req.cell_type = CELL_TYPE_BCELL;
+                    req.cell_state = BCELL_NAIVE;
+                    req.life = sample_normal_life_gpu(p.bcell_life_mean, p.bcell_life_sd, rng);
+                    req.divide_cd = 0;
+                    req.divide_limit = 0;
+                    req.IL2_release_remain = 0.0f;
+                    req.TGFB_release_remain = 0.0f;
+                    req.CTLA4 = 0.0f;
+                    d_requests[slot] = req;
+                }
+            } else {
+                atomicAdd(&diag->bcell_place_fail, 1);
+            }
+        }
+    }
+
+    // ── DC source (bit 4) — homeostatic, per-subtype ──
+    if (flags & 16) {
+        atomicAdd(&diag->dc_sources, 1);
+        // Try cDC1 recruitment
+        if (rng_uniform(rng) < p.p_dc_cdc1) {
+            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                    d_vol_used, p.vol_dc, p.voxel_capacity,
+                    rng, px, py, pz)) {
+                atomicAdd(&diag->dc_roll_pass, 1);
+                atomicAdd(&diag->dc_place_ok, 1);
+                int slot = atomicAdd(d_request_count, 1);
+                if (slot < MAX_RECRUITS_PER_STEP) {
+                    RecruitRequest req;
+                    req.x = px; req.y = py; req.z = pz;
+                    req.cell_type = CELL_TYPE_DC;
+                    req.cell_state = DC_IMMATURE;
+                    req.subtype = DC_CDC1;
+                    req.life = sample_normal_life_gpu(p.dc_life_immature_mean, p.dc_life_immature_sd, rng);
+                    req.divide_cd = 0;
+                    req.divide_limit = 0;
+                    req.IL2_release_remain = 0.0f;
+                    req.TGFB_release_remain = 0.0f;
+                    req.CTLA4 = 0.0f;
+                    d_requests[slot] = req;
+                }
+            }
+        }
+        // Try cDC2 recruitment
+        if (rng_uniform(rng) < p.p_dc_cdc2) {
+            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                    d_vol_used, p.vol_dc, p.voxel_capacity,
+                    rng, px, py, pz)) {
+                atomicAdd(&diag->dc_roll_pass, 1);
+                atomicAdd(&diag->dc_place_ok, 1);
+                int slot = atomicAdd(d_request_count, 1);
+                if (slot < MAX_RECRUITS_PER_STEP) {
+                    RecruitRequest req;
+                    req.x = px; req.y = py; req.z = pz;
+                    req.cell_type = CELL_TYPE_DC;
+                    req.cell_state = DC_IMMATURE;
+                    req.subtype = DC_CDC2;
+                    req.life = sample_normal_life_gpu(p.dc_life_immature_mean, p.dc_life_immature_sd, rng);
+                    req.divide_cd = 0;
+                    req.divide_limit = 0;
+                    req.IL2_release_remain = 0.0f;
+                    req.TGFB_release_remain = 0.0f;
+                    req.CTLA4 = 0.0f;
+                    d_requests[slot] = req;
+                }
             }
         }
     }
@@ -917,7 +1132,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     // TCD4 life/division params
     p.tcd4_life_mean   = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
     p.tcd4_life_sd     = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFESPAN_SD");
-    p.tcd4_divide_cd   = FLAMEGPU->environment.getProperty<int>("PARAM_TCD4_DIV_INTERNAL");
+    p.tcd4_divide_cd   = FLAMEGPU->environment.getProperty<int>("PARAM_TREG_DIV_INTERVAL");
     p.tcd4_divide_limit = FLAMEGPU->environment.getProperty<int>("PARAM_TCD4_DIV_LIMIT");
     p.tcd4_TGFB_release = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_TGFB_RELEASE_TIME");
     p.ctla4_treg = FLAMEGPU->environment.getProperty<float>("PARAM_CTLA4_TREG");
@@ -925,14 +1140,40 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     // MDSC params
     p.p_mdsc = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_RECRUIT_K");
     p.mdsc_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE");
+    p.il6_conc = g_pde_solver ? reinterpret_cast<const float*>(
+        g_pde_solver->get_device_concentration_ptr(CHEM_IL6)) : nullptr;
+    p.il6_ec50_mdsc = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_EC50_IL6_REC");
 
     // MAC params
     p.p_mac = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_RECRUIT_K");
     p.mac_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_LIFE_MEAN");
 
+    // B cell params
+    p.p_bcell = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_RECRUIT_K");
+    p.bcell_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_LIFE_MEAN");
+    p.bcell_life_sd   = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_LIFE_SD");
+
+    // DC params
+    p.p_dc_cdc1 = FLAMEGPU->environment.getProperty<float>("PARAM_DC_RECRUIT_K_CDC1");
+    p.p_dc_cdc2 = FLAMEGPU->environment.getProperty<float>("PARAM_DC_RECRUIT_K_CDC2");
+    p.dc_life_immature_mean = FLAMEGPU->environment.getProperty<float>("PARAM_DC_LIFE_IMMATURE_MEAN");
+    p.dc_life_immature_sd   = FLAMEGPU->environment.getProperty<float>("PARAM_DC_LIFE_IMMATURE_SD");
+    p.dc_life_mature_mean   = FLAMEGPU->environment.getProperty<float>("PARAM_DC_LIFE_MATURE_MEAN");
+    p.dc_life_mature_sd     = FLAMEGPU->environment.getProperty<float>("PARAM_DC_LIFE_MATURE_SD");
+    p.vol_dc = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_DC_IMMATURE");
+
     // RNG seed: combine environment seed with step counter (salt=0x1 for recruitment)
     unsigned int base_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
     p.seed = base_seed ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 2654435761u + 1u);
+
+    // CXCL12 T cell exclusion + CCL5 Treg recruitment pointers
+    p.cxcl12_conc = g_pde_solver ? reinterpret_cast<const float*>(
+        g_pde_solver->get_device_concentration_ptr(CHEM_CXCL12)) : nullptr;
+    p.cxcl12_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_CXCL12_EC50_TEXCL");
+    p.ccl5_conc = g_pde_solver ? reinterpret_cast<const float*>(
+        g_pde_solver->get_device_concentration_ptr(CHEM_CCL5)) : nullptr;
+    p.ccl5_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_CCL5_EC50_TREG");
+    p.ccl5_ratio = FLAMEGPU->environment.getProperty<float>("PARAM_CCL5_TREG_RATIO");
 
     // Volume-based occupancy params
     p.voxel_capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
@@ -942,6 +1183,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     p.vol_mdsc   = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MDSC");
     p.vol_mac_m1 = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M1");
     p.vol_mac_m2 = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M2");
+    p.vol_bcell  = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_NAIVE");
 
     // Launch kernel
     dim3 block(8, 8, 8);
@@ -969,7 +1211,8 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     g_recruit_stats.t_sources = diag_host.t_sources;
     g_recruit_stats.mdsc_sources = diag_host.mdsc_sources;
     g_recruit_stats.mac_sources = diag_host.mac_sources;
-
+    g_recruit_stats.bcell_sources = diag_host.bcell_sources;
+    g_recruit_stats.dc_sources = diag_host.dc_sources;
 
     nvtxRangePop();
 }
@@ -995,6 +1238,8 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
         g_recruit_stats.mac_rec    = 0;
         g_recruit_stats.mac_m1_rec = 0;
         g_recruit_stats.mac_m2_rec = 0;
+        g_recruit_stats.bcell_rec  = 0;
+        g_recruit_stats.dc_rec     = 0;
         nvtxRangePop();
         return;
     }
@@ -1009,9 +1254,12 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
     auto treg_api  = FLAMEGPU->agent(AGENT_TREG);
     auto mdsc_api  = FLAMEGPU->agent(AGENT_MDSC);
     auto mac_api   = FLAMEGPU->agent(AGENT_MACROPHAGE);
+    auto bcell_api = FLAMEGPU->agent(AGENT_BCELL);
+    auto dc_api    = FLAMEGPU->agent(AGENT_DC);
 
     int teff_recruited = 0, treg_recruited = 0, th_recruited = 0;
     int mdsc_recruited = 0, mac_recruited = 0, mac_m1_recruited = 0, mac_m2_recruited = 0;
+    int bcell_recruited = 0, dc_recruited = 0;
 
     for (int i = 0; i < count; i++) {
         const auto& r = requests[i];
@@ -1075,6 +1323,47 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             if (r.cell_state == MAC_M1) mac_m1_recruited++;
             else                        mac_m2_recruited++;
         }
+        else if (r.cell_type == CELL_TYPE_BCELL) {
+            auto a = bcell_api.newAgent();
+            a.setVariable<int>("x", r.x);
+            a.setVariable<int>("y", r.y);
+            a.setVariable<int>("z", r.z);
+            a.setVariable<int>("cell_state", BCELL_NAIVE);
+            a.setVariable<int>("life", r.life);
+            a.setVariable<int>("dead", 0);
+            a.setVariable<int>("has_antigen", 0);
+            a.setVariable<int>("is_breg", 0);
+            a.setVariable<int>("activation_timer", 0);
+            a.setVariable<int>("divide_flag", 0);
+            a.setVariable<int>("divide_cd", 0);
+            a.setVariable<int>("divide_limit", 0);
+            a.setVariable<int>("divide_wave", 0);
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<int>("neighbor_cancer_count", 0);
+            a.setVariable<int>("neighbor_th_count", 0);
+            a.setVariable<int>("neighbor_bcell_count", 0);
+            a.setVariable<int>("neighbor_fib_count", 0);
+            bcell_recruited++;
+        }
+        else if (r.cell_type == CELL_TYPE_DC) {
+            auto a = dc_api.newAgent();
+            a.setVariable<int>("x", r.x);
+            a.setVariable<int>("y", r.y);
+            a.setVariable<int>("z", r.z);
+            a.setVariable<int>("cell_state", DC_IMMATURE);
+            a.setVariable<int>("dc_subtype", r.subtype);
+            a.setVariable<int>("life", r.life);
+            a.setVariable<int>("dead", 0);
+            a.setVariable<int>("presentation_capacity", 0);
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<int>("neighbor_tcell_count", 0);
+            a.setVariable<int>("neighbor_bcell_count", 0);
+            dc_recruited++;
+        }
     }
 
     // Update stats
@@ -1085,6 +1374,8 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
     g_recruit_stats.mac_rec    = mac_recruited;
     g_recruit_stats.mac_m1_rec = mac_m1_recruited;
     g_recruit_stats.mac_m2_rec = mac_m2_recruited;
+    g_recruit_stats.bcell_rec  = bcell_recruited;
+    g_recruit_stats.dc_rec     = dc_recruited;
 
     // Update QSP MacroProperty counters (used by QSP coupling, separate from stats)
     auto counters = FLAMEGPU->environment.getMacroProperty<int, ABM_EVENT_COUNTER_SIZE>("abm_event_counters");
@@ -1093,36 +1384,9 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
     counters[ABM_COUNT_TREG_REC] += treg_recruited;
     counters[ABM_COUNT_MDSC_REC] += mdsc_recruited;
     counters[ABM_COUNT_MAC_REC]  += mac_recruited;
+    counters[ABM_COUNT_BCELL_REC] += bcell_recruited;
+    counters[ABM_COUNT_DC_REC] += dc_recruited;
 
-    nvtxRangePop();
-}
-
-// Mark macrophage sources based on CCL2 concentration
-FLAMEGPU_HOST_FUNCTION(mark_mac_sources) {
-    nvtxRangePush("Mark MAC Sources");
-    if (!g_pde_solver) { nvtxRangePop(); return; }
-
-    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
-    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-
-    int* d_recruitment_sources = g_pde_solver->get_device_recruitment_sources_ptr();
-    const float* d_ccl2 = g_pde_solver->get_device_concentration_ptr(CHEM_CCL2);
-
-    // Get parameter
-    float ec50_ccl2 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_EC50_CCL2_REC");
-
-    // Seed: combine environment seed with step counter (salt=0x517CC1B7 for MAC)
-    unsigned int base_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
-    unsigned int seed = base_seed ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 2654435761u + 0x517CC1B7u);
-
-    dim3 block(8, 8, 8);
-    dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
-
-    mark_mac_sources_kernel<<<grid, block>>>(
-        d_recruitment_sources, d_ccl2, d_cancer_occ, nx, ny, nz, ec50_ccl2, seed);
-
-    cudaDeviceSynchronize();
     nvtxRangePop();
 }
 
@@ -1196,6 +1460,85 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
         k_lox, yap_ec50);
     cudaDeviceSynchronize();
 
+    nvtxRangePop();
+}
+
+// ============================================================================
+// Antigen Grid Decay: exponential decay of persistent antigen signal.
+// Called once per ABM step, before agents read the grid.
+// decay_factor = exp(-decay_rate * dt)
+// ============================================================================
+FLAMEGPU_HOST_FUNCTION(decay_antigen_grid) {
+    nvtxRangePush("Decay Antigen Grid");
+    if (d_antigen_grid && g_pde_solver) {
+        int total_voxels = g_pde_solver->get_total_voxels();
+        float decay_rate = FLAMEGPU->environment.getProperty<float>("PARAM_ANTIGEN_DECAY_RATE");
+        float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
+        float decay_factor = expf(-decay_rate * dt);
+
+        int block_size = 256;
+        int grid_size = (total_voxels + block_size - 1) / block_size;
+        decay_antigen_kernel<<<grid_size, block_size>>>(d_antigen_grid, total_voxels, decay_factor);
+        cudaDeviceSynchronize();
+    }
+    nvtxRangePop();
+}
+
+// ============================================================================
+// Stress Field Decay: exponential decay of mechanical stress from cancer movement.
+// Called once per ABM step, early in the step (before agents move and deposit new stress).
+// ============================================================================
+FLAMEGPU_HOST_FUNCTION(decay_stress_field) {
+    nvtxRangePush("Decay Stress Field");
+    if (d_mech_stress_x && g_pde_solver) {
+        int total_voxels = g_pde_solver->get_total_voxels();
+        float decay_rate = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_STRESS_DECAY");
+        float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
+        float decay_factor = expf(-decay_rate * dt);
+
+        int block_size = 256;
+        int grid_size = (total_voxels + block_size - 1) / block_size;
+        decay_stress_kernel<<<grid_size, block_size>>>(
+            d_mech_stress_x, d_mech_stress_y, d_mech_stress_z,
+            total_voxels, decay_factor);
+        cudaDeviceSynchronize();
+    }
+    nvtxRangePop();
+}
+
+// ============================================================================
+// ECM Fiber Orientation Update: reorient fibers based on myCAF traction + stress.
+// Called once per ABM step, after update_ecm_grid (needs current fib_field + crosslink).
+// ============================================================================
+FLAMEGPU_HOST_FUNCTION(update_ecm_orientation) {
+    nvtxRangePush("Update ECM Orientation");
+    if (d_ecm_orient_x && g_pde_solver) {
+        const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+        const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+        float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
+
+        float base_rate = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_ORIENT_RATE");
+        float w_traction = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_ORIENT_TRACTION_W");
+        float w_stress = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_ORIENT_STRESS_W");
+        float alpha_crosslink = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_ORIENT_CROSSLINK_RESIST");
+
+        // TGF-β gradient pointers (already computed by compute_pde_gradients last step)
+        const float* tgfb_gx = g_pde_solver->get_device_gradx_ptr(1);  // TGFB = grad substrate index 1
+        const float* tgfb_gy = g_pde_solver->get_device_grady_ptr(1);
+        const float* tgfb_gz = g_pde_solver->get_device_gradz_ptr(1);
+
+        dim3 block(8, 8, 8);
+        dim3 grid((grid_x + 7) / 8, (grid_y + 7) / 8, (grid_z + 7) / 8);
+        update_ecm_orient_kernel<<<grid, block>>>(
+            d_ecm_orient_x, d_ecm_orient_y, d_ecm_orient_z,
+            d_mech_stress_x, d_mech_stress_y, d_mech_stress_z,
+            d_fib_density_field, d_ecm_crosslink,
+            tgfb_gx, tgfb_gy, tgfb_gz,
+            grid_x, grid_y, grid_z,
+            dt, base_rate, w_traction, w_stress, alpha_crosslink);
+        cudaDeviceSynchronize();
+    }
     nvtxRangePop();
 }
 

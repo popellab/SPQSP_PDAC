@@ -17,32 +17,31 @@
       </Tumor>
     </Environment>
     <Pharmacokinetics>
-      <nivoOn name="PARAM_NIVO_ON" type="bool">1</nivoOn>
+      <nivoOn name="PARAM_NIVO_ON" type="bool">0</nivoOn>
       <nivoDoseIntervalTime name="PARAM_NIVO_DOSE_INTERVAL_TIME" type="float" val="pr">14</nivoDoseIntervalTime>
       <nivoDose name="PARAM_NIVO_DOSE" type="float" val="pr">2.79e-4</nivoDose>
       <ipiOn name="PARAM_IPI_ON" type="bool">0</ipiOn>
       <ipiDoseIntervalTime name="PARAM_IPI_DOSE_INTERVAL_TIME" type="float" val="pr">14</ipiDoseIntervalTime>
       <ipiDose name="PARAM_IPI_DOSE" type="float" val="pr">0.93e-4</ipiDose>
-      <caboOn name="PARAM_CABO_ON" type="bool">1</caboOn>
+      <caboOn name="PARAM_CABO_ON" type="bool">0</caboOn>
       <caboDoseIntervalTime name="PARAM_CABO_DOSE_INTERVAL_TIME" type="float" val="pr">1</caboDoseIntervalTime>
       <caboDose name="PARAM_CABO_DOSE" type="float" val="pr">9.44e-5</caboDose>
       <entOn name="PARAM_ENT_ON" type="bool">0</entOn>
     </Pharmacokinetics>
-    <cell>
+    <!-- Not used in this model anywhere, leftover from earlier models -->
+    <!-- <cell>
       <PDL1_th name="PARAM_PDL1_TH" type="float" val="pr">.1</PDL1_th>
-      <IFNg_PDL1_half name="PARAM_IFNG_PDL1_HALF" type="float" val="pr">.11</IFNg_PDL1_half>
-      <IFNg_PDL1_n name="PARAM_IFNG_PDL1_N" type="float" val="pr">1.26</IFNg_PDL1_n>
       <PDL1_halflife name="PARAM_PDL1_HALF" type="float" val="pr">.1</PDL1_halflife>
-    </cell>
+    </cell> -->
     <TCell>
       <lifespanSD name="PARAM_TCELL_LIFESPAN_SD" type="float" val="pos">10</lifespanSD>
       <div_interval name="PARAM_TCELL_DIV_INTERNAL" type="int" val="pos">10</div_interval>
       <div_limit name="PARAM_TCELL_DIV_LIMIT" type="int" val="pos">4</div_limit>
       <moveSteps name="PARAM_TCELL_MOVE_STEPS" type="int" val="pos">53</moveSteps>
       <IL2_release_time name="PARAM_TCELL_IL2_RELEASE_TIME" type="float" val="pos">86400</IL2_release_time>
-      <IL2_prolif_th name="PARAM_TCELL_IL2_PROLIF_TH" type="float" val="pos">63460</IL2_prolif_th>
+      <IL2_prolif_th name="PARAM_TCELL_IL2_PROLIF_TH" type="float" val="pos">63460000</IL2_prolif_th> <!-- nM*s threshold -->
       <IFNg_release_time name="PARAM_TCELL_IFNG_RELEASE_TIME" type="float" val="pos">21600</IFNg_release_time>
-      <IFNg_recruit_Half name="PARAM_TEFF_IFN_EC50" type="float" val="pos">0.0725</IFNg_recruit_Half>
+      <IFNg_recruit_Half name="PARAM_TEFF_IFN_EC50" type="float" val="pos">72.5</IFNg_recruit_Half> <!-- nM -->
       <hypoxia_threshold name="PARAM_TCELL_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>   <!-- O2 mM below which hypoxia counter increments -->
       <hypoxia_tier1 name="PARAM_TCELL_HYPOXIA_TIER1" type="float" val="pr">10</hypoxia_tier1>             <!-- Exposure steps for low impairment onset -->
       <hypoxia_tier2 name="PARAM_TCELL_HYPOXIA_TIER2" type="float" val="pr">30</hypoxia_tier2>             <!-- Exposure steps for medium impairment onset -->
@@ -53,14 +52,44 @@
     </TCell>
     <TCD4>
       <lifespanSD name="PARAM_TCD4_LIFESPAN_SD" type="float" val="pos">10</lifespanSD>
-      <div_interval name="PARAM_TCD4_DIV_INTERNAL" type="int" val="pos">10</div_interval>
       <TGFB_release_time name="PARAM_TCD4_TGFB_RELEASE_TIME" type="float" val="pos">43200</TGFB_release_time>
       <div_limit name="PARAM_TCD4_DIV_LIMIT" type="int" val="pos">4</div_limit>
+      <!-- Tfh differentiation: TH → Tfh requires mature DC contact + IL-6 -->
+      <tfh_diff_k name="PARAM_TFH_DIFF_K" type="float" val="pr">0.001</tfh_diff_k>
+      <tfh_ec50_il6 name="PARAM_TFH_EC50_IL6" type="float" val="pr">1.0</tfh_ec50_il6> <!-- nM -->
     </TCD4>
     <MDSC>
       <lifespanSD name="PARAM_MDSC_LIFESPAN_SD" type="float" val="pos">1</lifespanSD>
       <moveSteps name="PARAM_MDSC_MOVE_STEPS" type="int" val="pos">6</moveSteps>
     </MDSC>
+    <BCell>
+      <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           <!-- ABM steps (~15 days) -->
+      <lifespanSD name="PARAM_BCELL_LIFE_SD" type="float" val="pos">10</lifespanSD>
+      <moveSteps name="PARAM_BCELL_MOVE_STEPS" type="int" val="pos">10</moveSteps>
+      <recruit_k name="PARAM_BCELL_RECRUIT_K" type="float" val="pr">0.05</recruit_k>               <!-- Recruitment probability scalar -->
+      <ec50_cxcl13_rec name="PARAM_BCELL_EC50_CXCL13_REC" type="float" val="pr">5.0</ec50_cxcl13_rec> <!-- CXCL13 EC50 for source marking [nM] -->
+      <div_interval name="PARAM_BCELL_DIV_CD" type="int" val="pos">4</div_interval>                <!-- ~1 day GC cycling -->
+      <div_limit name="PARAM_BCELL_DIV_LIMIT" type="int" val="pos">6</div_limit>                   <!-- Max clonal expansion rounds -->
+      <activation_timer_base name="PARAM_BCELL_ACTIVATION_TIMER" type="int" val="pos">20</activation_timer_base>  <!-- Steps before plasma differentiation -->
+      <tls_speedup name="PARAM_BCELL_TLS_SPEEDUP" type="float" val="pr">0.5</tls_speedup>           <!-- Timer multiplier in TLS clusters -->
+      <tls_threshold name="PARAM_BCELL_TLS_THRESHOLD" type="int" val="pos">3</tls_threshold>         <!-- Neighbor B cell count for TLS effect -->
+      <breg_fraction name="PARAM_BCELL_BREG_FRACTION" type="float" val="pr">0.1</breg_fraction>       <!-- Probability of Breg at activation -->
+      <antibody_release name="PARAM_BCELL_ANTIBODY_RELEASE" type="float" val="pr">1e-11</antibody_release>  <!-- Plasma cell antibody secretion [mol/s] -->
+      <il10_release name="PARAM_BCELL_IL10_RELEASE" type="float" val="pr">6.25e-10</il10_release>      <!-- Breg IL-10 secretion [pmol/(cell*s)] -->
+      <il6_release name="PARAM_BCELL_IL6_RELEASE" type="float" val="pr">5e-9</il6_release>          <!-- Activated B cell IL-6 secretion [pmol/(cell*s)] -->
+      <antigen_capture_prob name="PARAM_BCELL_ANTIGEN_CAPTURE_PROB" type="float" val="pr">0.3</antigen_capture_prob>  <!-- Per dying cancer neighbor per step -->
+      <plasma_move_prob name="PARAM_BCELL_PLASMA_MOVE_PROB" type="float" val="pr">0.05</plasma_move_prob>  <!-- Near-sessile plasma cells -->
+      <!-- ADCC: Antibody-dependent cellular cytotoxicity -->
+      <adcc_ab_ec50 name="PARAM_ADCC_AB_EC50" type="float" val="pr">0.001</adcc_ab_ec50>            <!-- Antibody EC50 for ADCC [mM] -->
+      <adcc_ab_hill_n name="PARAM_ADCC_AB_HILL_N" type="float" val="pr">2.0</adcc_ab_hill_n>          <!-- Hill coefficient -->
+      <adcc_boost_max name="PARAM_ADCC_BOOST_MAX" type="float" val="pr">2.0</adcc_boost_max>          <!-- Max fold-increase in MAC kill prob -->
+    </BCell>
+    <DC>
+      <lifeImmatureSD name="PARAM_DC_LIFE_IMMATURE_SD" type="float" val="pos">40</lifeImmatureSD>
+      <lifeMatureSD name="PARAM_DC_LIFE_MATURE_SD" type="float" val="pos">4</lifeMatureSD>
+      <moveSteps name="PARAM_DC_MOVE_STEPS" type="int" val="pos">10</moveSteps>
+      <presentation_capacity name="PARAM_DC_PRESENTATION_CAPACITY" type="int" val="pos">5</presentation_capacity>  <!-- Max T/B cell activations before exhaustion -->
+    </DC>
     <Mac>
       <lifespanSD>1</lifespanSD>
       <moveSteps name="PARAM_MAC_MOVE_STEPS" type="int" val="pos">6</moveSteps>
@@ -76,8 +105,6 @@
       <moveSteps_csc name="PARAM_CANCER_MOVE_STEPS_STEM" type="int" val="pos">5</moveSteps_csc>
       <Tkill_scaler name="PARAM_TKILL_SCALAR" type="float" val="pos">3</Tkill_scaler>
       <mincc name="PARAM_MIN_CC" type="float" val="pos">1000</mincc>
-      <C1_CD47 name="PARAM_C1_CD47" type="float" val="pos">400</C1_CD47>
-      <IFNgUptake name="PARAM_CANCER_IFNG_UPTAKE" type="float" val="pr">1e-3</IFNgUptake>
       <hypoxia_th name="PARAM_CANCER_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_th>            <!-- ~1% O2 for HIF-1α activation [mM] -->
       <hif_vegf_boost name="PARAM_HIF_VEGF_BOOST" type="float" val="pr">5.0</hif_vegf_boost>      <!-- VEGF-A secretion multiplier under HIF -->
       <hif_ccl2_boost name="PARAM_HIF_CCL2_BOOST" type="float" val="pr">3.0</hif_ccl2_boost>      <!-- CCL2 secretion multiplier under HIF -->
@@ -87,7 +114,6 @@
     </CancerCell>
     <Vas>
       <maxPerVoxel name="PARAM_VAS_MAXPERVOXEL" type="float" val="pos">1</maxPerVoxel>
-      <vas_50 name="PARAM_VAS_50" type="float" val="pr">0.839</vas_50>
       <O2_conc name="PARAM_VAS_O2_CONC" type="float" val="pr">0.51</O2_conc>
       <Rc name="PARAM_VAS_RC" type="float" val="pr">4e-4</Rc>
       <sigma name="PARAM_VAS_SIGMA" type="float" val="pr">0.84</sigma>
@@ -103,38 +129,21 @@
       <collapse_ec50 name="PARAM_VAS_COLLAPSE_EC50" type="float" val="pr">0.85</collapse_ec50>                  <!-- Hill EC50 for collapse probability -->
       <recovery_threshold name="PARAM_VAS_RECOVERY_THRESHOLD" type="float" val="pr">0.4</recovery_threshold>         <!-- ECM density below which recovery possible -->
       <recovery_rate name="PARAM_VAS_RECOVERY_RATE" type="float" val="pr">0.05</recovery_rate>                  <!-- Per-step recovery probability -->
-      <regress_rate name="PARAM_VAS_REGRESS_RATE" type="float" val="pr">0.005</regress_rate>                   <!-- Per-step regression base rate at zero VEGF -->
-      <vegfa_survival_ec50 name="PARAM_VAS_VEGFA_SURVIVAL_EC50" type="float" val="pr">0.01</vegfa_survival_ec50>      <!-- VEGF-A mM for 50% vessel survival -->
       <kvl_dysfunctional name="PARAM_VAS_KVL_DYSFUNCTIONAL" type="float" val="pr">0.4</kvl_dysfunctional>           <!-- Fraction of K_vl for dysfunctional sprouts -->
       <hypoxia_threshold name="PARAM_VAS_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>          <!-- O2 mM below which sprouts are dysfunctional -->
+      <!-- HEV (High Endothelial Venule) differentiation -->
+      <hev_ccl21_threshold name="PARAM_VAS_HEV_CCL21_TH" type="float" val="pr">1.0</hev_ccl21_threshold>         <!-- CCL21 nM threshold for HEV differentiation -->
+      <hev_lymph_density_th name="PARAM_VAS_HEV_LYMPH_DENSITY_TH" type="float" val="pr">500.0</hev_lymph_density_th> <!-- Volume (um3) of immune cells in Moore neighborhood for HEV -->
+      <hev_recruit_boost name="PARAM_VAS_HEV_RECRUIT_BOOST" type="float" val="pr">5.0</hev_recruit_boost>           <!-- Recruitment probability multiplier for HEV vs PHALANX -->
+      <hev_revert_ccl21_th name="PARAM_VAS_HEV_REVERT_CCL21_TH" type="float" val="pr">0.5</hev_revert_ccl21_th> <!-- CCL21 nM below this → HEV reverts to PHALANX -->
     </Vas>
     <Fib>
       <moveSteps name="PARAM_FIB_MOVE_STEPS" type="int" val="pos">16</moveSteps>
-      <!-- Activation thresholds -->
-      <myCAF_TGFB_EC50 name="PARAM_FIB_MYCAF_TGFB_EC50" type="float" val="pr">0.01</myCAF_TGFB_EC50>          <!-- TGF-β EC50 for quiescent→myCAF [mM] -->
-      <myCAF_TGFB_hill_n name="PARAM_FIB_MYCAF_TGFB_HILL_N" type="float" val="pr">2.0</myCAF_TGFB_hill_n>       <!-- Hill coefficient -->
-      <iCAF_IL1_EC50 name="PARAM_FIB_ICAF_IL1_EC50" type="float" val="pr">0.005</iCAF_IL1_EC50>              <!-- IL-1 EC50 for quiescent→iCAF [mM] -->
-      <iCAF_IL1_hill_n name="PARAM_FIB_ICAF_IL1_HILL_N" type="float" val="pr">2.0</iCAF_IL1_hill_n>            <!-- Hill coefficient -->
-      <iCAF_TGFB_suppress_EC50 name="PARAM_FIB_ICAF_TGFB_SUPPRESS_EC50" type="float" val="pr">0.005</iCAF_TGFB_suppress_EC50>  <!-- TGF-β EC50 that suppresses iCAF -->
-      <iCAF_TGFB_suppress_n name="PARAM_FIB_ICAF_TGFB_SUPPRESS_N" type="float" val="pr">2.0</iCAF_TGFB_suppress_n>
-      <activation_rate name="PARAM_FIB_ACTIVATION_RATE" type="float" val="pr">0.1</activation_rate>            <!-- Base activation probability per step -->
-      <!-- Movement probabilities per step -->
-      <move_prob_quiescent name="PARAM_FIB_MOVE_PROB_QUIESCENT" type="float" val="pr">0.05</move_prob_quiescent>
-      <move_prob_myCAF name="PARAM_FIB_MOVE_PROB_MYCAF" type="float" val="pr">0.15</move_prob_myCAF>
-      <move_prob_iCAF name="PARAM_FIB_MOVE_PROB_ICAF" type="float" val="pr">0.2</move_prob_iCAF>
-      <!-- Secretion rates -->
-      <myCAF_TGFB_release name="PARAM_FIB_MYCAF_TGFB_RELEASE" type="float" val="pr">1.06e-10</myCAF_TGFB_release>    <!-- Same order as cancer stem TGF-β -->
-      <myCAF_CCL2_release name="PARAM_FIB_MYCAF_CCL2_RELEASE" type="float" val="pr">2.56e-13</myCAF_CCL2_release>     <!-- Same order as cancer CCL2 -->
-      <iCAF_IL6_release name="PARAM_FIB_ICAF_IL6_RELEASE" type="float" val="pr">1e-11</iCAF_IL6_release>            <!-- Order-of-magnitude estimate -->
-      <iCAF_CXCL13_release name="PARAM_FIB_ICAF_CXCL13_RELEASE" type="float" val="pr">1e-11</iCAF_CXCL13_release>      <!-- Order-of-magnitude estimate -->
-      <iCAF_CCL2_release name="PARAM_FIB_ICAF_CCL2_RELEASE" type="float" val="pr">2.56e-13</iCAF_CCL2_release>       <!-- Same as cancer CCL2 -->
       <!-- ECM deposition (myCAF only) -->
       <ECM_radius name="PARAM_FIB_ECM_RADIUS" type="float" val="pr">3</ECM_radius>                            <!-- Gaussian kernel radius [voxels] -->
       <ECM_variance name="PARAM_FIB_ECM_VARIANCE" type="float" val="pr">2.0</ECM_variance>                      <!-- Gaussian σ² -->
-      <!-- Division -->
-      <div_prob name="PARAM_FIB_DIV_PROB" type="float" val="pr">0.01</div_prob>                             <!-- Division probability per step (activated) -->
-      <div_cooldown name="PARAM_FIB_DIV_COOLDOWN" type="float" val="pr">50</div_cooldown>                       <!-- Steps between divisions -->
-      <div_max name="PARAM_FIB_DIV_MAX" type="float" val="pr">10</div_max>                                 <!-- Max divisions -->
+      <!-- Division: cooldowns QSP-derived from k_myCAF_prolif / k_iCAF_prolif -->
+      <div_max name="PARAM_FIB_DIV_MAX" type="float" val="pr">10</div_max>                                 <!-- Max divisions (ABM safeguard, no ODE counterpart) -->
       <!-- Hypoxia/HIF response (myCAF) -->
       <hypoxia_th name="PARAM_FIB_HYPOXIA_TH" type="float" val="pr" units="mM">0.01</hypoxia_th>                         <!-- O2 threshold for HIF activation [mM] -->
       <hif_tgfb_boost name="PARAM_FIB_HIF_TGFB_BOOST" type="float" val="pr">3.0</hif_tgfb_boost>                  <!-- TGF-β secretion multiplier under hypoxia -->
@@ -155,6 +164,7 @@
       <TReg>
         <regulatoryVolume name="PARAM_VOLUME_TREG_REG" type="float" val="pr" units="um3">500.0</regulatoryVolume>
         <helperVolume name="PARAM_VOLUME_TREG_TH" type="float" val="pr" units="um3">500.0</helperVolume>
+        <tfhVolume name="PARAM_VOLUME_TREG_TFH" type="float" val="pr" units="um3">500.0</tfhVolume>
       </TReg>
       <Mac>
         <m1Volume name="PARAM_VOLUME_MAC_M1" type="float" val="pr" units="um3">3000.0</m1Volume>                      <!-- um3, ~17.9 um diameter -->
@@ -168,6 +178,13 @@
       <MDSC>
         <volume name="PARAM_VOLUME_MDSC" type="float" val="pr" units="um3">1000.0</volume>                          <!-- um3, ~12.4 um diameter -->
       </MDSC>
+      <BCell>
+        <naiveVolume name="PARAM_VOLUME_BCELL_NAIVE" type="float" val="pr" units="um3">500.0</naiveVolume>
+        <activatedVolume name="PARAM_VOLUME_BCELL_ACT" type="float" val="pr" units="um3">700.0</activatedVolume>      <!-- Blasts are larger -->
+        <plasmaVolume name="PARAM_VOLUME_BCELL_PLASMA" type="float" val="pr" units="um3">800.0</plasmaVolume>
+        <dcImmatureVolume name="PARAM_VOLUME_DC_IMMATURE" type="float" val="pr" units="um3">600.0</dcImmatureVolume>
+        <dcMatureVolume name="PARAM_VOLUME_DC_MATURE" type="float" val="pr" units="um3">800.0</dcMatureVolume>
+      </BCell>
       <Vas>
         <phalanxVolume name="PARAM_VOLUME_VAS_PHALANX" type="float" val="pr" units="um3">1500.0</phalanxVolume>
         <tipVolume name="PARAM_VOLUME_VAS_TIP" type="float" val="pr" units="um3">1500.0</tipVolume>
@@ -181,17 +198,33 @@
       <crosslinkResistance name="PARAM_ECM_CROSSLINK_RESISTANCE" type="float" val="pr">5.0</crosslinkResistance>  <!-- alpha: crosslink MMP resistance factor -->
       <decayRate name="PARAM_ECM_DECAY_RATE" type="float" val="pr">1e-6</decayRate>                     <!-- k_decay: baseline ECM decay [1/s] -->
       <baseline name="PARAM_ECM_BASELINE" type="float" val="pr">0.01</baseline>                       <!-- Floor density -->
-      <tgfbEC50 name="PARAM_ECM_TGFB_EC50" type="float" val="pr">0.01</tgfbEC50>                       <!-- TGF-β EC50 for deposition Hill function -->
+      <tgfbEC50 name="PARAM_ECM_TGFB_EC50" type="float" val="pr">10.0</tgfbEC50>                       <!-- TGF-β EC50 for deposition Hill function [nM] -->
       <porosityCancer name="PARAM_ECM_POROSITY_CANCER" type="float" val="pr">0.1</porosityCancer>            <!-- Min porosity for cancer movement -->
       <porosityTcell name="PARAM_ECM_POROSITY_TCELL" type="float" val="pr">0.4</porosityTcell>              <!-- Min porosity for T cell movement -->
       <porosityTreg name="PARAM_ECM_POROSITY_TREG" type="float" val="pr">0.35</porosityTreg>               <!-- Min porosity for TReg movement -->
+      <porosityTfh name="PARAM_ECM_POROSITY_TFH" type="float" val="pr">0.35</porosityTfh>                 <!-- Min porosity for Tfh movement -->
       <porosityMDSC name="PARAM_ECM_POROSITY_MDSC" type="float" val="pr">0.3</porosityMDSC>                <!-- Min porosity for MDSC movement -->
       <porosityMac name="PARAM_ECM_POROSITY_MAC" type="float" val="pr">0.3</porosityMac>                  <!-- Min porosity for macrophage movement -->
       <porosityFib name="PARAM_ECM_POROSITY_FIB" type="float" val="pr">0.05</porosityFib>                 <!-- Min porosity for fibroblast movement -->
+      <porosityBcell name="PARAM_ECM_POROSITY_BCELL" type="float" val="pr">0.35</porosityBcell>               <!-- Min porosity for B cell movement -->
+      <porosityDC name="PARAM_ECM_POROSITY_DC" type="float" val="pr">0.3</porosityDC>                       <!-- Min porosity for DC movement -->
       <porosityVasTip name="PARAM_ECM_POROSITY_VAS_TIP" type="float" val="pr">0.2</porosityVasTip>            <!-- Min porosity for vascular TIP movement -->
       <vasCompressK name="PARAM_VAS_ECM_COMPRESS_K" type="float" val="pr">0.5</vasCompressK>                <!-- Half-max ECM density for vascular compression -->
       <yapEC50 name="PARAM_ECM_YAP_EC50" type="float" val="pr">0.8</yapEC50>                          <!-- YAP/TAZ Hill ceiling: stiffness EC50 (density*(1+crosslink)) -->
+      <!-- Fiber orientation (anisotropy) -->
+      <stressDeposit name="PARAM_ECM_STRESS_DEPOSIT" type="float" val="pr">1.0</stressDeposit>          <!-- Stress magnitude deposited per cancer move event -->
+      <stressDecayRate name="PARAM_ECM_STRESS_DECAY" type="float" val="pr" units="1/s">5e-4</stressDecayRate>  <!-- Stress field exponential decay rate -->
+      <orientUpdateRate name="PARAM_ECM_ORIENT_RATE" type="float" val="pr">0.001</orientUpdateRate>      <!-- Base fiber reorientation rate -->
+      <orientTractionWeight name="PARAM_ECM_ORIENT_TRACTION_W" type="float" val="pr">0.5</orientTractionWeight>  <!-- myCAF traction force weight (TACS-2 driver) -->
+      <orientStressWeight name="PARAM_ECM_ORIENT_STRESS_W" type="float" val="pr">0.3</orientStressWeight>    <!-- Mechanical stress force weight (TACS-3 driver) -->
+      <orientCrosslinkResist name="PARAM_ECM_ORIENT_CROSSLINK_RESIST" type="float" val="pr">2.0</orientCrosslinkResist>  <!-- Crosslinked ECM resists reorientation -->
     </ECM>
+    <Antigen>
+      <!-- Persistent antigen grid: deposited by dying cancer, read by DCs and B cells -->
+      <!-- PARAM_ANTIGEN_DEPOSIT, PARAM_ANTIGEN_DECAY_RATE now QSP-derived from P_P1_C1, P_k_P1_deg -->
+      <!-- PARAM_ANTIGEN_CAPTURE_THRESHOLD now QSP-derived (0.1 * P1_C1) -->
+      <!-- PARAM_DC_ANTIGEN_50 QSP-derived (P1_C1, 1 death = EC50) -->
+    </Antigen>
     <DomainInit>
       <!-- Lobular structure -->
       <lobule_spacing name="PARAM_DOMAIN_LOBULE_SPACING" type="float" val="pr" units="voxels">70</lobule_spacing>                     <!-- voxels between lobule centers -->
@@ -249,7 +282,12 @@
         <vas_tip name="PARAM_PERSIST_VAS_TIP" type="float" val="pr">0.5</vas_tip>
         <treg_reg name="PARAM_PERSIST_TREG_REG" type="float" val="pr">0.3</treg_reg>
         <treg_th name="PARAM_PERSIST_TREG_TH" type="float" val="pr">0.4</treg_th>
+        <treg_tfh name="PARAM_PERSIST_TREG_TFH" type="float" val="pr">0.4</treg_tfh>
         <mdsc name="PARAM_PERSIST_MDSC" type="float" val="pr">0.3</mdsc>
+        <bcell_naive name="PARAM_PERSIST_BCELL_NAIVE" type="float" val="pr">0.3</bcell_naive>
+        <bcell_act name="PARAM_PERSIST_BCELL_ACT" type="float" val="pr">0.2</bcell_act>
+        <dc_immature name="PARAM_PERSIST_DC_IMMATURE" type="float" val="pr">0.3</dc_immature>
+        <dc_mature name="PARAM_PERSIST_DC_MATURE" type="float" val="pr">0.4</dc_mature>
       </Persistence>
       <Chemotaxis>
         <!-- Gradient-biased direction selection strength (0=uniform random) -->
@@ -260,7 +298,12 @@
         <fib_mycaf_bias name="PARAM_CHEMO_BIAS_FIB_MYCAF" type="float" val="pr">0.5</fib_mycaf_bias>
         <vas_tip_bias name="PARAM_CHEMO_BIAS_VAS_TIP" type="float" val="pr">0.8</vas_tip_bias>
         <treg_reg_bias name="PARAM_CHEMO_BIAS_TREG_REG" type="float" val="pr">0.4</treg_reg_bias>
+        <treg_tfh_bias name="PARAM_CHEMO_BIAS_TREG_TFH" type="float" val="pr">0.6</treg_tfh_bias>  <!-- CXCL13 chemotaxis -->
         <mdsc_bias name="PARAM_CHEMO_BIAS_MDSC" type="float" val="pr">0.5</mdsc_bias>
+        <bcell_naive_bias name="PARAM_CHEMO_BIAS_BCELL_NAIVE" type="float" val="pr">0.6</bcell_naive_bias>   <!-- CXCL13 chemotaxis -->
+        <bcell_act_bias name="PARAM_CHEMO_BIAS_BCELL_ACT" type="float" val="pr">0.3</bcell_act_bias>       <!-- Reduced movement in clusters -->
+        <dc_immature_bias name="PARAM_CHEMO_BIAS_DC_IMMATURE" type="float" val="pr">0.5</dc_immature_bias>  <!-- CCL2 chemotaxis -->
+        <dc_mature_bias name="PARAM_CHEMO_BIAS_DC_MATURE" type="float" val="pr">0.7</dc_mature_bias>      <!-- CCL21 chemotaxis toward TLS -->
       </Chemotaxis>
       <Adhesion>
         <!-- ECM density above this threshold counts as pseudo-neighbor for adhesion -->
@@ -288,7 +331,20 @@
         <fib_icaf_to_cancer name="PARAM_ADH_FIB_ICAF_CANCER" type="float" val="pr">0.05</fib_icaf_to_cancer>
         <fib_icaf_to_fib name="PARAM_ADH_FIB_ICAF_FIB" type="float" val="pr">0.1</fib_icaf_to_fib>
         <fib_icaf_to_ecm name="PARAM_ADH_FIB_ICAF_ECM" type="float" val="pr">0.1</fib_icaf_to_ecm>
+        <!-- B cell Activated (homotypic adhesion in TLS) -->
+        <bcell_act_to_bcell name="PARAM_ADH_BCELL_ACT_BCELL" type="float" val="pr">0.3</bcell_act_to_bcell>
+        <bcell_act_to_ecm name="PARAM_ADH_BCELL_ACT_ECM" type="float" val="pr">0.1</bcell_act_to_ecm>
       </Adhesion>
+      <ContactGuidance>
+        <!-- Per-type contact guidance strength: amplifies movement along fiber axis, suppresses perpendicular -->
+        <cancer_stem name="PARAM_CONTACT_GUIDANCE_CANCER_STEM" type="float" val="pr">0.5</cancer_stem>
+        <cancer_prog name="PARAM_CONTACT_GUIDANCE_CANCER_PROG" type="float" val="pr">0.6</cancer_prog>
+        <tcell name="PARAM_CONTACT_GUIDANCE_TCELL" type="float" val="pr">0.2</tcell>
+        <treg name="PARAM_CONTACT_GUIDANCE_TREG" type="float" val="pr">0.2</treg>
+        <mac name="PARAM_CONTACT_GUIDANCE_MAC" type="float" val="pr">0.15</mac>
+        <fib_mycaf name="PARAM_CONTACT_GUIDANCE_FIB_MYCAF" type="float" val="pr">0.4</fib_mycaf>
+        <fib_icaf name="PARAM_CONTACT_GUIDANCE_FIB_ICAF" type="float" val="pr">0.1</fib_icaf>
+      </ContactGuidance>
     </Movement>
   </ABM>
   <Molecular>
@@ -296,69 +352,47 @@
     <biofvm>
       <IFNg>
         <diffusivity name="PARAM_IFNG_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>
-        <release name="PARAM_IFNG_RELEASE" type="float" val="pr">1.73e-11</release>
-        <decayRate name="PARAM_IFNG_DECAY_RATE" type="float" val="pr">6.5e-5</decayRate>
         <molecularWeight name="PARAM_IFNG_MOLECULAR_WEIGHT" type="float" val="pr">25</molecularWeight>
+        <uptake name="PARAM_CANCER_IFNG_UPTAKE" type="float" val="pr">1e-7</uptake>
       </IFNg>
       <IL_2>
         <diffusivity name="PARAM_IL2_DIFFUSIVITY" type="float" val="pr">4e-8</diffusivity>
-        <release name="PARAM_IL2_RELEASE" type="float" val="pr">1.43e-11</release>
-        <uptake name="PARAM_IL2_UPTAKE" type="float" val="pr">0</uptake>
-        <decayRate name="PARAM_IL2_DECAY_RATE" type="float" val="pr">2.78e-5</decayRate>
         <molecularWeight name="PARAM_IL2_MOLECULAR_WEIGHT" type="float" val="pr">16</molecularWeight>
       </IL_2>
       <CCL2>
         <diffusivity name="PARAM_CCL2_DIFFUSIVITY" type="float" val="pr">1.31e-8</diffusivity>
-        <release name="PARAM_CCL2_RELEASE" type="float" val="pr">2.56e-13</release>
-        <uptake name="PARAM_CCL2_UPTAKE" type="float" val="pr">1e-3</uptake>
-        <decayRate name="PARAM_CCL2_DECAY_RATE" type="float" val="pr">1.67e-5</decayRate>
+        <uptake name="PARAM_CCL2_UPTAKE" type="float" val="pr">1e-7</uptake>  <!-- Reduced from 1e-3: old value tuned to inflated HCC secretion rates -->
         <molecularWeight name="PARAM_CCL2_MOLECULAR_WEIGHT" type="float" val="pr">14</molecularWeight>
       </CCL2>
       <ArgI>
         <diffusivity name="PARAM_ARGI_DIFFUSIVITY" type="float" val="pr">1e-6</diffusivity>
-        <release name="PARAM_ARGI_RELEASE" type="float" val="pr">1.62e-10</release>
-        <decayRate name="PARAM_ARGI_DECAY_RATE" type="float" val="pr">2e-6</decayRate>
         <molecularWeight name="PARAM_ARGI_MOLECULAR_WEIGHT" type="float" val="pr">41</molecularWeight>
       </ArgI>
       <NO>
         <diffusivity name="PARAM_NO_DIFFUSIVITY" type="float" val="pr">3.8e-5</diffusivity>
-        <release name="PARAM_NO_RELEASE" type="float" val="pr">1.67e-10</release>
-        <decayRate name="PARAM_NO_DECAY_RATE" type="float" val="pr">1.56e-3</decayRate>
         <molecularWeight name="PARAM_NO_MOLECULAR_WEIGHT" type="float" val="pr">0.03</molecularWeight>
       </NO>
       <TGFB>
         <diffusivity name="PARAM_TGFB_DIFFUSIVITY" type="float" val="pr">2.6e-7</diffusivity>
         <release>
-          <Treg name="PARAM_TREG_TGFB_RELEASE" type="float" val="pr">6.1e-11</Treg>
-          <Mac name="PARAM_MAC_TGFB_RELEASE" type="float" val="pr">1.04e-11</Mac>
-          <CancerStem name="PARAM_STEM_TGFB_RELEASE" type="float" val="pr">1.06e-10</CancerStem>
+          <CancerStem name="PARAM_STEM_TGFB_RELEASE" type="float" val="pr">1.06e-7</CancerStem> <!-- [pmol/(cell*s)] -->
           <CancerProgenitor name="PARAM_PROG_TGFB_RELEASE" type="float" val="pr">0</CancerProgenitor>
         </release>
-        <decayRate name="PARAM_TGFB_DECAY_RATE" type="float" val="pr">0.000165</decayRate>
         <molecularWeight name="PARAM_TGFB_MOLECULAR_WEIGHT" type="float" val="pr">44</molecularWeight>
       </TGFB>
       <IL10>
         <diffusivity name="PARAM_IL10_DIFFUSIVITY" type="float" val="pr">1.4e-8</diffusivity>
         <release>
           <Treg name="PARAM_TREG_IL10_RELEASE" type="float" val="pr">0</Treg>
-          <Mac name="PARAM_MAC_IL10_RELEASE" type="float" val="pr">6.25e-13</Mac>
         </release>
-        <decayRate name="PARAM_IL10_DECAY_RATE" type="float" val="pr">4.6e-5</decayRate>
         <molecularWeight name="PARAM_IL10_MOLECULAR_WEIGHT" type="float" val="pr">18</molecularWeight>
       </IL10>
       <IL12>
         <diffusivity name="PARAM_IL12_DIFFUSIVITY" type="float" val="pr">2.4e-8</diffusivity>
-        <release name="PARAM_IL12_RELEASE" type="float" val="pr">6.88e-12</release>
-        <decayRate name="PARAM_IL12_DECAY_RATE" type="float" val="pr">6.4e-5</decayRate>
         <molecularWeight name="PARAM_IL12_MOLECULAR_WEIGHT" type="float" val="pr">70</molecularWeight>
       </IL12>
       <VEGFA>
         <diffusivity name="PARAM_VEGFA_DIFFUSIVITY" type="float" val="pr">2.9e-7</diffusivity>
-        <release>
-          <Mac name="PARAM_MAC_VEGFA_RELEASE" type="float" val="pr">1.97e-13</Mac>
-          <CancerStem name="PARAM_STEM_VEGFA_RELEASE" type="float" val="pr">1.27e-12</CancerStem>
-          <CancerProgenitor name="PARAM_PROG_VEGFA_RELEASE" type="float" val="pr">1.27e-12</CancerProgenitor>
-        </release>
         <uptake name="PARAM_VEGFA_UPTAKE" type="float" val="pr">5e-5</uptake>
         <decayRate name="PARAM_VEGFA_DECAY_RATE" type="float" val="pr">0.0001921</decayRate>
         <molecularWeight name="PARAM_VEGFA_MOLECULAR_WEIGHT" type="float" val="pr">45</molecularWeight>
@@ -372,22 +406,21 @@
       <IL1>
         <diffusivity name="PARAM_IL1_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>            <!-- Similar to IFN-γ (small cytokine) -->
         <release>
-          <CancerStem name="PARAM_CANCER_IL1_RELEASE_STEM" type="float" val="pr">1e-11</CancerStem>             <!-- Stem: highest IL-1 (drives iCAF activation) -->
-          <CancerProg name="PARAM_CANCER_IL1_RELEASE_PROG" type="float" val="pr">5e-12</CancerProg>             <!-- Progenitor: moderate IL-1 -->
-          <CancerSen name="PARAM_CANCER_IL1_RELEASE_SEN" type="float" val="pr">2e-12</CancerSen>               <!-- Senescent: low IL-1 (SASP) -->
-          <MacM1 name="PARAM_MAC_M1_IL1_RELEASE" type="float" val="pr">5e-12</MacM1>                     <!-- M1 macrophage IL-1 secretion -->
+          <!-- Per-state scaling: stem=1.0x, prog=0.5x, sen=0.2x (SASP) -->
+          <MacM1 name="PARAM_MAC_M1_IL1_RELEASE" type="float" val="pr">5e-9</MacM1>                     <!-- M1 macrophage IL-1 secretion [pmol/(cell*s)] -->
         </release>
-        <decayRate name="PARAM_IL1_DECAY_RATE" type="float" val="pr">1e-4</decayRate>                <!-- Similar to TGF-β range -->
         <molecularWeight name="PARAM_IL1_MOLECULAR_WEIGHT" type="float" val="pr">17</molecularWeight>      <!-- IL-1β ~17 kDa -->
       </IL1>
       <IL6>
         <diffusivity name="PARAM_IL6_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>            <!-- Similar to IFN-γ -->
-        <decayRate name="PARAM_IL6_DECAY_RATE" type="float" val="pr">1e-4</decayRate>
         <molecularWeight name="PARAM_IL6_MOLECULAR_WEIGHT" type="float" val="pr">21</molecularWeight>      <!-- IL-6 ~21 kDa -->
       </IL6>
       <CXCL13>
         <diffusivity name="PARAM_CXCL13_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>            <!-- Small chemokine -->
         <decayRate name="PARAM_CXCL13_DECAY_RATE" type="float" val="pr">1e-4</decayRate>
+        <release>
+          <iCAF name="PARAM_FIB_ICAF_CXCL13_RELEASE" type="float" val="pr">1e-8</iCAF>     <!-- iCAF CXCL13 secretion [pmol/(cell*s)], ABM-only (no ODE counterpart) -->
+        </release>
         <molecularWeight name="PARAM_CXCL13_MOLECULAR_WEIGHT" type="float" val="pr">10</molecularWeight>      <!-- CXCL13 ~10 kDa -->
       </CXCL13>
       <MMP>
@@ -399,6 +432,25 @@
           <MacM1 name="PARAM_MAC_M1_MMP_RELEASE" type="float" val="pr">5e-12</MacM1>                        <!-- M1 macrophage MMP secretion -->
         </release>
       </MMP>
+      <Antibody>
+        <diffusivity name="PARAM_ANTIBODY_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>        <!-- IgG ~150kDa, slow diffusion [cm²/s] -->
+        <decayRate name="PARAM_ANTIBODY_DECAY_RATE" type="float" val="pr">1e-5</decayRate>             <!-- Long tissue half-life (~hours) [1/s] -->
+        <molecularWeight name="PARAM_ANTIBODY_MOLECULAR_WEIGHT" type="float" val="pr">150</molecularWeight>  <!-- IgG ~150 kDa -->
+      </Antibody>
+      <CCL21>
+        <diffusivity name="PARAM_CCL21_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>            <!-- Small chemokine ~12 kDa [cm²/s] -->
+        <decayRate name="PARAM_CCL21_DECAY_RATE" type="float" val="pr">1e-5</decayRate>                 <!-- Moderate tissue half-life [1/s] -->
+        <molecularWeight name="PARAM_CCL21_MOLECULAR_WEIGHT" type="float" val="pr">12</molecularWeight>  <!-- CCL21 ~12 kDa -->
+        <release name="PARAM_DC_CCL21_RELEASE" type="float" val="pr">5e-9</release>           <!-- Mature DC CCL21 secretion [pmol/(cell*s)], no ODE counterpart -->
+      </CCL21>
+      <CXCL12>
+        <diffusivity name="PARAM_CXCL12_DIFFUSIVITY" type="float" val="pr">1.5e-7</diffusivity>         <!-- SDF-1 ~8 kDa, small chemokine [cm²/s] -->
+        <molecularWeight name="PARAM_CXCL12_MOLECULAR_WEIGHT" type="float" val="pr">8</molecularWeight>  <!-- CXCL12/SDF-1 ~8 kDa -->
+      </CXCL12>
+      <CCL5>
+        <diffusivity name="PARAM_CCL5_DIFFUSIVITY" type="float" val="pr">1.5e-7</diffusivity>           <!-- RANTES ~8 kDa, similar to CXCL12 [cm²/s] -->
+        <molecularWeight name="PARAM_CCL5_MOLECULAR_WEIGHT" type="float" val="pr">8</molecularWeight>    <!-- CCL5/RANTES ~8 kDa -->
+      </CCL5>
     </biofvm>
     <allMolecularOff>0</allMolecularOff>
     <diffusionOff>0</diffusionOff>
@@ -1046,11 +1098,11 @@
     <D name="PARAM_INIT_TUM_VOL" type="float" comment="initial tumor volume from diameter"><![CDATA[(PI * std::pow(QP(CancerVCT::P_initial_tumour_diameter), 3)) / 6]]></D>
     <D name="PARAM_INIT_TUM_DIAM" type="float" comment="initial tumor diameter"><![CDATA[QP(CancerVCT::P_initial_tumour_diameter)]]></D>
 
-    <!-- MDSC EC50 values: nanomolarity -> ng/ml conversion -->
-    <D name="PARAM_MDSC_EC50_CCL2_REC" type="float" comment="MDSC EC50 CCL2 recruitment [ng/ml]"><![CDATA[QP(CancerVCT::P_CCL2_50) * env.getProperty<float>("PARAM_CCL2_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
-    <D name="PARAM_MDSC_IC50_NO_CTL" type="float" comment="MDSC IC50 NO on T cell cytotoxicity [ng/ml]"><![CDATA[QP(CancerVCT::P_NO_50_Teff) * env.getProperty<float>("PARAM_NO_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
-    <D name="PARAM_MDSC_IC50_ArgI_CTL" type="float" comment="MDSC IC50 ArgI on T cell cytotoxicity [ng/ml]"><![CDATA[QP(CancerVCT::P_ArgI_50_Teff) * env.getProperty<float>("PARAM_ARGI_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
-    <D name="PARAM_MDSC_EC50_ArgI_Treg" type="float" comment="MDSC EC50 ArgI on Treg expansion [ng/ml]"><![CDATA[QP(CancerVCT::P_ArgI_50_Treg) * env.getProperty<float>("PARAM_ARGI_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
+    <!-- MDSC EC50 values: QP() returns mol/m³ → * 1e6 = nM (PDE units) -->
+    <D name="PARAM_MDSC_EC50_CCL2_REC" type="float" comment="MDSC EC50 CCL2 recruitment [nM]"><![CDATA[QP(CancerVCT::P_CCL2_50) * 1e6]]></D>
+    <D name="PARAM_MDSC_IC50_NO_CTL" type="float" comment="MDSC IC50 NO on T cell cytotoxicity [nM]"><![CDATA[QP(CancerVCT::P_NO_50_Teff) * 1e6]]></D>
+    <D name="PARAM_MDSC_IC50_ArgI_CTL" type="float" comment="MDSC IC50 ArgI on T cell cytotoxicity [nM]"><![CDATA[QP(CancerVCT::P_ArgI_50_Teff) * 1e6]]></D>
+    <D name="PARAM_MDSC_EC50_ArgI_Treg" type="float" comment="MDSC EC50 ArgI on Treg expansion [nM]"><![CDATA[QP(CancerVCT::P_ArgI_50_Treg) * 1e6]]></D>
 
     <!-- Cell surface areas from QSP -->
     <D name="PARAM_A_SYN" type="float" comment="synapse area"><![CDATA[QP(CancerVCT::P_A_syn)]]></D>
@@ -1064,8 +1116,11 @@
     <D name="PARAM_MAC_PD1_SYN" type="float" comment="PD1 per synapse on macrophage"><![CDATA[QP(CancerVCT::P_M_PD1_total)]]></D>
     <D name="PARAM_C1_CD47_SYN" type="float" comment="CD47 density on cancer cell"><![CDATA[QP(CancerVCT::P_C_CD47)]]></D>
     <D name="PARAM_MAC_SIRPa_SYN" type="float" comment="SIRPa density on macrophage"><![CDATA[QP(CancerVCT::P_M_SIRPa)]]></D>
-    <D name="PARAM_PDL1_SYN_MAX" type="float" comment="PDL1 per synapse max"><![CDATA[QP(CancerVCT::P_C1_PDL1_base)]]></D>
-    <D name="PARAM_PDL1_CELL" type="float" comment="total PDL1 per cancer cell"><![CDATA[QP(CancerVCT::P_C1_PDL1_base)]]></D>
+    <D name="PARAM_PDL1_SYN_MAX" type="float" comment="PDL1 per synapse max (base * IFNg fold-increase)"><![CDATA[QP(CancerVCT::P_C1_PDL1_base) * QP(CancerVCT::P_r_PDL1_IFNg)]]></D>
+    <D name="PARAM_PDL1_CELL" type="float" comment="total PDL1 per cancer cell (base, no IFNg)"><![CDATA[QP(CancerVCT::P_C1_PDL1_base)]]></D>
+    <D name="PARAM_PDL1_INTERNALIZATION_RATE" type="float" comment="PDL1 internalization rate [1/s] from QSP k_in_PDL1"><![CDATA[QP(CancerVCT::P_k_in_PDL1)]]></D>
+    <D name="PARAM_IFNG_PDL1_HALF" type="float" comment="IFNg EC50 for PDL1 induction [nM] from QSP IFNg_50_ind"><![CDATA[QP(CancerVCT::P_IFNg_50_ind) * 1e6]]></D>
+    <D name="PARAM_IFNG_PDL1_N" type="float" comment="IFNg-PDL1 Hill coefficient (ODE uses n=1)"><![CDATA[1.0]]></D>
 
     <!-- PDL1-PD1 kinetic constants -->
     <D name="PARAM_PDL1_K1" type="float" comment="k1 = kon_PD1_PDL1 / (koff * A_CELL)"><![CDATA[QP(CancerVCT::P_kon_PD1_PDL1) / (QP(CancerVCT::P_koff_PD1_PDL1) * env.getProperty<float>("PARAM_A_CELL"))]]></D>
@@ -1094,22 +1149,29 @@
     <!-- Killing/exhaustion base probabilities (Poisson: exp(-rate * dt)) -->
     <D name="PARAM_ESCAPE_BASE" type="float" comment="T cell kill cancer escape prob"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_C_Tcell_eff))]]></D>
     <D name="PARAM_ESCAPE_MAC_BASE" type="float" comment="M1 mac kill cancer escape prob"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_M1_phago))]]></D>
-    <D name="PARAM_EXHUAST_BASE_PDL1" type="float" comment="T cell exhaustion from PDL1"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_CD8_basal_exh))]]></D>
-    <D name="PARAM_EXHUAST_BASE_TREG" type="float" comment="T cell exhaustion from Treg"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_Treg))]]></D>
+    <!-- CD8 exhaustion: 3 independent pathways matching ODE (RF57/59/60) -->
+    <!-- RF61 (stiffness) omitted — ABM handles via spatial ECM porosity, movement restriction, hypoxia -->
+    <D name="PARAM_EXHAUST_BASE_BASAL" type="float" comment="Basal/antigen exhaustion (RF57: k_CD8_basal_exh)"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_CD8_basal_exh))]]></D>
+    <D name="PARAM_EXHAUST_BASE_PD1" type="float" comment="PD1-driven exhaustion (RF60: k_CD8)"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_CD8))]]></D>
+    <D name="PARAM_EXHAUST_BASE_TREG" type="float" comment="Treg-mediated exhaustion (RF59: k_Treg)"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_Treg))]]></D>
+    <D name="PARAM_K_C_EXH" type="float" comment="Cancer half-max for basal exhaustion (K_C_exh in cells)"><![CDATA[QP(CancerVCT::P_K_C_exh) * AVOGADROS]]></D>
+    <D name="PARAM_EXHAUST_IL10_EC50" type="float" comment="IL-10 EC50 for Treg exhaustion modulation [nM]"><![CDATA[QP(CancerVCT::P_IL10_50) * 1e6]]></D>
+    <D name="PARAM_K_T_TREG" type="float" comment="Treg competitive suppression weight (ODE: 1/R50_Treg ≈ 3.23)"><![CDATA[1.0 / QP(CancerVCT::P_R50_Treg)]]></D>
 
     <!-- State transition rates (QSP rate * timestep) -->
     <D name="PARAM_K_TH_TREG" type="float" comment="Th to Treg rate per timestep"><![CDATA[t_step_sec * QP(CancerVCT::P_k_Th_Treg)]]></D>
     <D name="PARAM_MAC_M2_POL" type="float" comment="M1 to M2 polarization rate per timestep"><![CDATA[t_step_sec * QP(CancerVCT::P_k_M2_pol)]]></D>
     <D name="PARAM_MAC_M1_POL" type="float" comment="M2 to M1 polarization rate per timestep"><![CDATA[t_step_sec * QP(CancerVCT::P_k_M1_pol)]]></D>
 
-    <!-- Macrophage EC50 values: nanomolarity -> ng/ml -->
-    <D name="PARAM_MAC_EC50_CCL2_REC" type="float" comment="MAC EC50 CCL2 recruitment [ng/ml]"><![CDATA[QP(CancerVCT::P_CCL2_50) * env.getProperty<float>("PARAM_CCL2_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
-    <D name="PARAM_MAC_TGFB_EC50" type="float" comment="TGFb half-max for polarization [ng/ml]"><![CDATA[QP(CancerVCT::P_TGFb_50) * env.getProperty<float>("PARAM_TGFB_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
-    <D name="PARAM_TEFF_TGFB_EC50" type="float" comment="TGFb EC50 for Teff suppression [ng/ml]"><![CDATA[QP(CancerVCT::P_TGFb_50_Teff) * env.getProperty<float>("PARAM_TGFB_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
-    <D name="PARAM_MAC_IL_10_EC50" type="float" comment="IL-10 EC50 for macrophage [ng/ml]"><![CDATA[QP(CancerVCT::P_IL10_50) * env.getProperty<float>("PARAM_IL10_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
-    <D name="PARAM_MAC_IL_10_HALF_PHAGO" type="float" comment="IL-10 half-max for phagocytosis [ng/ml]"><![CDATA[QP(CancerVCT::P_IL10_50_phago) * env.getProperty<float>("PARAM_IL10_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
-    <D name="PARAM_MAC_IFN_G_EC50" type="float" comment="IFNg EC50 for macrophage [ng/ml]"><![CDATA[QP(CancerVCT::P_IFNg_50) * env.getProperty<float>("PARAM_IFNG_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
-    <D name="PARAM_MAC_IL_12_EC50" type="float" comment="IL-12 EC50 for macrophage [ng/ml]"><![CDATA[QP(CancerVCT::P_IL12_50) * env.getProperty<float>("PARAM_IL12_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
+    <!-- Macrophage EC50 values: QP() returns mol/m³ → * 1e6 = nM (PDE units) -->
+    <D name="PARAM_MAC_EC50_CCL2_REC" type="float" comment="MAC EC50 CCL2 recruitment [nM]"><![CDATA[QP(CancerVCT::P_CCL2_50) * 1e6]]></D>
+    <D name="PARAM_MAC_TGFB_EC50" type="float" comment="TGFb half-max for polarization [nM]"><![CDATA[QP(CancerVCT::P_TGFb_50) * 1e6]]></D>
+    <D name="PARAM_TEFF_TGFB_EC50" type="float" comment="TGFb EC50 for Teff suppression [nM]"><![CDATA[QP(CancerVCT::P_TGFb_50_Teff) * 1e6]]></D>
+    <D name="PARAM_MAC_IL_10_EC50" type="float" comment="IL-10 EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_IL10_50) * 1e6]]></D>
+    <D name="PARAM_MAC_IL_10_HALF_PHAGO" type="float" comment="IL-10 half-max for phagocytosis [nM]"><![CDATA[QP(CancerVCT::P_IL10_50_phago) * 1e6]]></D>
+    <D name="PARAM_MAC_IFN_G_EC50" type="float" comment="IFNg EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_IFNg_50) * 1e6]]></D>
+    <D name="PARAM_MAC_IL_12_EC50" type="float" comment="IL-12 EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_IL12_50) * 1e6]]></D>
+    <D name="PARAM_MAC_IL6_M2_EC50" type="float" comment="IL-6 EC50 for M1→M2 polarization [nM]"><![CDATA[QP(CancerVCT::P_IL6_50_M2) * 1e6]]></D>
 
     <!-- SIRPa/CD47 pathway -->
     <D name="PARAM_MAC_SIRPa_HALF" type="float" comment="SIRPa half-max"><![CDATA[QP(CancerVCT::P_SIRPa_50)]]></D>
@@ -1118,10 +1180,27 @@
     <D name="PARAM_N_SIRPa_CD47" type="float" comment="SIRPa Hill coefficient"><![CDATA[QP(CancerVCT::P_n_SIRPa)]]></D>
 
     <!-- Fibroblast/ECM QSP-derived params -->
-    <D name="PARAM_FIB_ECM_RELEASE_FIB" type="float" comment="fibroblast ECM secretion rate"><![CDATA[QP(CancerVCT::P_k_col_myCAF_sec) / 6970071747.68519]]></D>
-    <D name="PARAM_FIB_ECM_RELEASE_CAF" type="float" comment="CAF ECM secretion rate"><![CDATA[QP(CancerVCT::P_k_col_myCAF_sec) / 6970071747.68519]]></D>
-    <D name="PARAM_FIB_CAF_ACTIVATION" type="float" comment="CAF activation rate per timestep"><![CDATA[QP(CancerVCT::P_k_psc_activation_myCAF) * t_step_sec]]></D>
-    <D name="PARAM_FIB_CAF_EC50" type="float" comment="TGFb EC50 for CAF activation [ng/ml]"><![CDATA[QP(CancerVCT::P_TGFb_50) * env.getProperty<float>("PARAM_TGFB_MOLECULAR_WEIGHT") * 1e3 * 1e9 / 1e6]]></D>
+    <D name="PARAM_FIB_ECM_RELEASE_FIB" type="float" comment="fibroblast ECM secretion rate [nmol/(cell*day)] — currently unused"><![CDATA[QP(CancerVCT::P_k_col_myCAF_sec) / (AVOGADROS * 1e-9) * SEC_PER_DAY]]></D>
+    <D name="PARAM_FIB_ECM_RELEASE_CAF" type="float" comment="CAF ECM secretion rate [nmol/(cell*day)] — currently unused"><![CDATA[QP(CancerVCT::P_k_col_myCAF_sec) / (AVOGADROS * 1e-9) * SEC_PER_DAY]]></D>
+    <!-- Fibroblast activation: separate rates for myCAF (TGF-β) vs iCAF (IL-1) -->
+    <D name="PARAM_FIB_MYCAF_ACTIVATION" type="float" comment="qPSC→myCAF activation rate per timestep"><![CDATA[QP(CancerVCT::P_k_psc_activation_myCAF) * t_step_sec]]></D>
+    <D name="PARAM_FIB_ICAF_ACTIVATION" type="float" comment="qPSC→iCAF activation rate per timestep"><![CDATA[QP(CancerVCT::P_k_psc_activation_iCAF) * t_step_sec]]></D>
+    <D name="PARAM_FIB_CAF_EC50" type="float" comment="TGFb EC50 for CAF activation + interconversion [nM] (TGFb_50_CAF_act)"><![CDATA[QP(CancerVCT::P_TGFb_50_CAF_act) * 1e6]]></D>
+    <!-- iCAF ↔ myCAF interconversion rates from ODE (RF245, RF246) -->
+    <D name="PARAM_FIB_ICAF_TO_MYCAF" type="float" comment="iCAF→myCAF rate per timestep (H_TGFb gated)"><![CDATA[QP(CancerVCT::P_k_iCAF_to_myCAF) * t_step_sec]]></D>
+    <D name="PARAM_FIB_MYCAF_TO_ICAF" type="float" comment="myCAF→iCAF rate per timestep (H_IL1 gated)"><![CDATA[QP(CancerVCT::P_k_myCAF_to_iCAF) * t_step_sec]]></D>
+    <!-- iCAF IL-6 amplification factor (ODE RF243, RF246) -->
+    <D name="PARAM_FIB_IL6_ICAF_FACTOR" type="float" comment="f_IL6_iCAF: IL-6 amplification weight for iCAF"><![CDATA[QP(CancerVCT::P_f_IL6_iCAF)]]></D>
+    <D name="PARAM_FIB_IL6_ICAF_EC50" type="float" comment="IL-6 EC50 for iCAF amplification [nM]"><![CDATA[QP(CancerVCT::P_IL6_50_iCAF) * 1e6]]></D>
+    <!-- iCAF IL-1 activation EC50/Hill from ODE H_IL1_eff formula -->
+    <D name="PARAM_FIB_ICAF_IL1_EC50" type="float" comment="IL-1 EC50 for iCAF activation [nM] (P_IL1_50)"><![CDATA[QP(CancerVCT::P_IL1_50) * 1e6]]></D>
+    <D name="PARAM_FIB_ICAF_IL1_HILL_N" type="float" comment="IL-1 Hill coefficient for iCAF (P_n_IL1)"><![CDATA[QP(CancerVCT::P_n_IL1)]]></D>
+    <!-- TGF-β suppression of IL-1R1: ODE uses IL1_ratio = IL1/(IL1_50 * (1 + TGFb/TGFb_50_IL1R1)) -->
+    <D name="PARAM_FIB_ICAF_TGFB_SUPPRESS_EC50" type="float" comment="TGF-β EC50 suppressing IL-1R1 on iCAF [nM] (P_TGFb_50_IL1R1)"><![CDATA[QP(CancerVCT::P_TGFb_50_IL1R1) * 1e6]]></D>
+    <D name="PARAM_FIB_ICAF_TGFB_SUPPRESS_N" type="float" comment="TGF-β suppression Hill coeff (ODE uses Hill=1)"><![CDATA[1.0]]></D>
+    <!-- Fibroblast division cooldowns: 1/(k_prolif * t_step_sec) timesteps -->
+    <D name="PARAM_FIB_DIV_COOLDOWN_MYCAF" type="float" comment="myCAF division cooldown [timesteps] from k_myCAF_prolif"><![CDATA[1.0 / (QP(CancerVCT::P_k_myCAF_prolif) * t_step_sec)]]></D>
+    <D name="PARAM_FIB_DIV_COOLDOWN_ICAF" type="float" comment="iCAF division cooldown [timesteps] from k_iCAF_prolif"><![CDATA[1.0 / (QP(CancerVCT::P_k_iCAF_prolif) * t_step_sec)]]></D>
     <D name="PARAM_FIB_ECM_TGFB_FACTOR" type="float" comment="ECM TGFb factor"><![CDATA[2]]></D>
     <D name="PARAM_FIB_ECM_DECAY_RATE" type="float" comment="ECM degradation rate"><![CDATA[QP(CancerVCT::P_k_col_deg)]]></D>
     <D name="PARAM_FIB_ECM_BASELINE" type="float" comment="ECM baseline [nmole/ml]"><![CDATA[0.1f * 1e3]]></D>
@@ -1146,14 +1225,23 @@
     <D name="PARAM_MDSC_RECRUIT_K" type="float" comment="MDSC recruitment rate constant"><![CDATA[QP(CancerVCT::P_k_MDSC_rec) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
     <D name="PARAM_MAC_RECRUIT_K" type="float" comment="macrophage recruitment rate constant"><![CDATA[QP(CancerVCT::P_k_Mac_rec) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
 
-    <!-- APC-related -->
-    <D name="PARAM_APC_RECRUIT_K" type="float" comment="APC recruitment rate (not yet implemented)"><![CDATA[0]]></D>
-    <D name="PARAM_APC0_T" type="float" comment="APC density in tumour"><![CDATA[QP(CancerVCT::P_APC0_cDC1_T)]]></D>
+    <!-- DC recruitment: homeostatic rate = k_APC_death * APC0 * voxel_vol * Na * dt -->
+    <D name="PARAM_DC_RECRUIT_K_CDC1" type="float" comment="cDC1 recruitment rate per voxel per step"><![CDATA[QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_APC0_cDC1_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
+    <D name="PARAM_DC_RECRUIT_K_CDC2" type="float" comment="cDC2 recruitment rate per voxel per step"><![CDATA[QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_APC0_cDC2_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
     <D name="PARAM_APC_TRANSMIG" type="float" comment="APC transmigration rate"><![CDATA[QP(CancerVCT::P_k_APC_mig)]]></D>
     <D name="PARAM_T0_CLONE" type="float" comment="T0 clonality"><![CDATA[QP(CancerVCT::P_n_CD4_clones)]]></D>
     <D name="PARAM_T1_CLONE" type="float" comment="T1 clonality"><![CDATA[QP(CancerVCT::P_n_CD8_clones)]]></D>
-    <D name="PARAM_ANTIGEN_PER_CELL" type="float" comment="antigen per cancer cell"><![CDATA[QP(CancerVCT::P_P1_C1)]]></D>
+    <D name="PARAM_ANTIGEN_PER_CELL" type="float" comment="antigen per cancer cell [molecules/cell]"><![CDATA[QP(CancerVCT::P_P1_C1)]]></D>
     <D name="PARAM_ANTIGEN_UP" type="float" comment="antigen uptake by mAPC"><![CDATA[QP(CancerVCT::P_k_P0_up)]]></D>
+
+    <!-- Antigen grid: physical units from QSP (P1_C1 deposit, k_P1_deg decay) -->
+    <D name="PARAM_ANTIGEN_DEPOSIT" type="float" comment="antigen deposited per cancer death [molecules/cell] = P1_C1"><![CDATA[QP(CancerVCT::P_P1_C1)]]></D>
+    <D name="PARAM_ANTIGEN_DECAY_RATE" type="float" comment="antigen decay rate [1/s] from k_P1_deg"><![CDATA[QP(CancerVCT::P_k_P1_deg)]]></D>
+    <D name="PARAM_ANTIGEN_CAPTURE_THRESHOLD" type="float" comment="min antigen for B cell capture [molecules] = 0.1 * P1_C1"><![CDATA[0.1 * QP(CancerVCT::P_P1_C1)]]></D>
+
+    <!-- DC lifespans from ODE turnover rates -->
+    <D name="PARAM_DC_LIFE_IMMATURE_MEAN" type="float" comment="Immature DC lifespan [timesteps] from k_APC_death"><![CDATA[1.0 / (QP(CancerVCT::P_k_APC_death) * t_step_sec)]]></D>
+    <D name="PARAM_DC_LIFE_MATURE_MEAN" type="float" comment="Mature DC lifespan [timesteps] from k_mAPC_death"><![CDATA[1.0 / (QP(CancerVCT::P_k_mAPC_death) * t_step_sec)]]></D>
     <D name="PARAM_K_xP_DEG" type="float" comment="antigen degradation in tumor"><![CDATA[QP(CancerVCT::P_k_xP0_deg)]]></D>
 
     <!-- Cell lifespans in timesteps -->
@@ -1163,8 +1251,22 @@
     <D name="PARAM_MAC_LIFE_MEAN" type="float" comment="mean MAC lifespan in timesteps"><![CDATA[1 / QP(CancerVCT::P_k_Mac_death) / t_step_sec]]></D>
     <D name="PARAM_APC_LIFE_MEAN" type="float" comment="mean APC lifespan in timesteps"><![CDATA[1 / QP(CancerVCT::P_k_APC_death) / t_step_sec]]></D>
 
-    <!-- APC maturation -->
-    <D name="PARAM_K_APC_MAT" type="float" comment="max APC maturation rate"><![CDATA[QP(CancerVCT::P_k_APC_mat_cDC1)]]></D>
+    <!-- DC maturation: per-subtype rates and suppression EC50s from QSP ODE -->
+    <!-- ODE: k_APC_mat * cDC * [1-(1-H_DAMP)*(1-H_IL12)] * (1-H_IL10) * (1-H_TGFb_APC) -->
+    <D name="PARAM_DC_K_MAT_CDC1" type="float" comment="cDC1 maturation rate [prob/step] from k_APC_mat_cDC1"><![CDATA[QP(CancerVCT::P_k_APC_mat_cDC1) * t_step_sec]]></D>
+    <D name="PARAM_DC_K_MAT_CDC2" type="float" comment="cDC2 maturation rate [prob/step] from k_APC_mat_cDC2"><![CDATA[QP(CancerVCT::P_k_APC_mat_cDC2) * t_step_sec]]></D>
+    <D name="PARAM_DC_ANTIGEN_50" type="float" comment="antigen EC50 for maturation [molecules/voxel] = P1_C1 (1 death equiv)"><![CDATA[QP(CancerVCT::P_P1_C1)]]></D>
+    <D name="PARAM_DC_IL12_50" type="float" comment="IL-12 EC50 for maturation boost [nM]"><![CDATA[QP(CancerVCT::P_IL12_50) * 1e6]]></D>
+    <D name="PARAM_DC_IL10_50" type="float" comment="IL-10 EC50 for maturation suppression [nM]"><![CDATA[QP(CancerVCT::P_IL10_50) * 1e6]]></D>
+    <D name="PARAM_DC_TGFB_50" type="float" comment="TGF-b EC50 for maturation suppression [nM]"><![CDATA[QP(CancerVCT::P_TGFb_50_APC) * 1e6]]></D>
+
+    <!-- Vascular parameters from QSP ODE -->
+    <!-- VAS_50: VEGF EC50 for sprouting. ODE: VEGF_50 [pg/mL] → internal mol/m³ → nM -->
+    <D name="PARAM_VAS_50" type="float" comment="VEGF EC50 for sprouting [nM] from VEGF_50"><![CDATA[QP(CancerVCT::P_VEGF_50) * 1e6]]></D>
+    <!-- Regression rate: ODE k_K_d [1/day → 1/s], converted to per-step probability -->
+    <D name="PARAM_VAS_REGRESS_RATE" type="float" comment="vessel regression base rate [prob/step] from k_K_d"><![CDATA[QP(CancerVCT::P_k_K_d) * t_step_sec]]></D>
+    <!-- Survival EC50: same as sprouting EC50 (vessels need VEGF to survive) -->
+    <D name="PARAM_VAS_VEGFA_SURVIVAL_EC50" type="float" comment="VEGF EC50 for vessel survival [nM] from VEGF_50"><![CDATA[QP(CancerVCT::P_VEGF_50) * 1e6]]></D>
 
     <!-- Cancer stem cell division rate from QSP -->
     <Local var="rs" type="double" comment="stem cell division rate [s^-1]"><![CDATA[QP(CancerVCT::P_k_C1_growth) / (1 - env.getProperty<float>("PARAM_ASYM_DIV_PROB"))]]></Local>
@@ -1176,6 +1278,76 @@
 
     <!-- Progenitor division interval -->
     <D name="PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE" type="float" comment="progenitor division interval in slices"><![CDATA[std::log(2)/ env.getProperty<float>("PARAM_PROG_GROWTH_RATE") * SEC_PER_DAY / env.getProperty<float>("PARAM_SEC_PER_SLICE") + .5]]></D>
+
+    <!-- ================================================================== -->
+    <!-- QSP-derived PDE decay rates [1/s] — QP() already returns 1/s     -->
+    <!-- (ODE_system.cpp applies unit conversion from SBML native units)  -->
+    <!-- O2, VEGFA, CXCL13, MMP, Antibody, CCL21 have no QSP decay — stay in biofvm -->
+    <!-- ================================================================== -->
+    <D name="PARAM_IFNG_DECAY_RATE" type="float" comment="IFNg decay [1/s]"><![CDATA[QP(CancerVCT::P_k_IFNg_deg)]]></D>
+    <D name="PARAM_IL2_DECAY_RATE" type="float" comment="IL-2 decay [1/s]"><![CDATA[QP(CancerVCT::P_k_IL2_deg)]]></D>
+    <D name="PARAM_IL10_DECAY_RATE" type="float" comment="IL-10 decay [1/s]"><![CDATA[QP(CancerVCT::P_k_IL10_deg)]]></D>
+    <D name="PARAM_TGFB_DECAY_RATE" type="float" comment="TGFb decay [1/s]"><![CDATA[QP(CancerVCT::P_k_TGFb_deg)]]></D>
+    <D name="PARAM_CCL2_DECAY_RATE" type="float" comment="CCL2 decay [1/s]"><![CDATA[QP(CancerVCT::P_k_CCL2_deg)]]></D>
+    <D name="PARAM_ARGI_DECAY_RATE" type="float" comment="ArgI decay [1/s]"><![CDATA[QP(CancerVCT::P_k_ArgI_deg)]]></D>
+    <D name="PARAM_NO_DECAY_RATE" type="float" comment="NO decay [1/s]"><![CDATA[QP(CancerVCT::P_k_NO_deg)]]></D>
+    <D name="PARAM_IL12_DECAY_RATE" type="float" comment="IL-12 decay [1/s]"><![CDATA[QP(CancerVCT::P_k_IL12_deg)]]></D>
+    <D name="PARAM_IL1_DECAY_RATE" type="float" comment="IL-1 decay [1/s]"><![CDATA[QP(CancerVCT::P_k_IL1_deg)]]></D>
+    <D name="PARAM_IL6_DECAY_RATE" type="float" comment="IL-6 decay [1/s]"><![CDATA[QP(CancerVCT::P_k_IL6_deg)]]></D>
+    <D name="PARAM_CXCL12_DECAY_RATE" type="float" comment="CXCL12 decay [1/s]"><![CDATA[QP(CancerVCT::P_k_CXCL12_deg)]]></D>
+    <D name="PARAM_CCL5_DECAY_RATE" type="float" comment="CCL5 decay [1/s]"><![CDATA[QP(CancerVCT::P_k_CCL5_deg)]]></D>
+
+    <!-- ================================================================== -->
+    <!-- QSP-derived secretion rates [pmol/(cell*s)]                       -->
+    <!-- QP() returns molecules/(cell*s); divide by AVOGADROS*1e-12 to get -->
+    <!-- pmol/(cell*s); /voxel_vol → pmol/cm³/s = nM/s (PDE units = nM).  -->
+    <!-- ================================================================== -->
+    <Local var="qp_sec_to_abm" type="double" comment="molecules/(cell*s) → pmol/(cell*s); /voxel_vol → nM/s"><![CDATA[1.0 / (AVOGADROS * 1e-12)]]></Local>
+
+    <!-- Cancer cell secretion (base rates from QSP, per-state scaling from ABM) -->
+    <D name="PARAM_CCL2_RELEASE" type="float" comment="CCL2 cancer secretion [pmol/(cell*s)] from QSP k_CCL2_sec"><![CDATA[QP(CancerVCT::P_k_CCL2_sec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_STEM_VEGFA_RELEASE" type="float" comment="VEGFA stem secretion [pmol/(cell*s)] from QSP k_vas_Csec"><![CDATA[QP(CancerVCT::P_k_vas_Csec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_PROG_VEGFA_RELEASE" type="float" comment="VEGFA progenitor secretion [pmol/(cell*s)] — same base rate as stem"><![CDATA[QP(CancerVCT::P_k_vas_Csec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_CANCER_IL1_RELEASE_STEM" type="float" comment="IL-1 stem secretion [pmol/(cell*s)] from QSP k_IL1_sec"><![CDATA[QP(CancerVCT::P_k_IL1_sec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_CANCER_IL1_RELEASE_PROG" type="float" comment="IL-1 progenitor secretion [pmol/(cell*s)] — 0.5x stem"><![CDATA[QP(CancerVCT::P_k_IL1_sec) * qp_sec_to_abm * 0.5]]></D>
+    <D name="PARAM_CANCER_IL1_RELEASE_SEN" type="float" comment="IL-1 senescent secretion [pmol/(cell*s)] — 0.2x stem (SASP)"><![CDATA[QP(CancerVCT::P_k_IL1_sec) * qp_sec_to_abm * 0.2]]></D>
+
+    <!-- CD8/Th IFN-γ and IL-2 secretion from QSP ODE -->
+    <D name="PARAM_IFNG_RELEASE" type="float" comment="IFN-γ per-cell secretion [pmol/(cell*s)] from QSP k_IFNg_Tsec"><![CDATA[QP(CancerVCT::P_k_IFNg_Tsec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_IL2_RELEASE" type="float" comment="IL-2 per-cell secretion [pmol/(cell*s)] from QSP k_IL2_sec"><![CDATA[QP(CancerVCT::P_k_IL2_sec) * qp_sec_to_abm]]></D>
+
+    <!-- CXCL12 (SDF-1): secretion + EC50 from QSP ODE -->
+    <D name="PARAM_CXCL12_CANCER_RELEASE" type="float" comment="CXCL12 cancer secretion [pmol/(cell*s)]"><![CDATA[QP(CancerVCT::P_k_CXCL12_sec_cancer) * qp_sec_to_abm]]></D>
+    <D name="PARAM_CXCL12_ICAF_RELEASE" type="float" comment="CXCL12 iCAF secretion [pmol/(cell*s)]"><![CDATA[QP(CancerVCT::P_k_CXCL12_sec_iCAF) * qp_sec_to_abm]]></D>
+    <D name="PARAM_CXCL12_EC50_TEXCL" type="float" comment="CXCL12 EC50 T exclusion [nM]"><![CDATA[QP(CancerVCT::P_CXCL12_50_Texcl) * 1e6]]></D>
+
+    <!-- CCL5 (RANTES): secretion + EC50 from QSP ODE -->
+    <D name="PARAM_CCL5_CANCER_RELEASE" type="float" comment="CCL5 cancer secretion [pmol/(cell*s)]"><![CDATA[QP(CancerVCT::P_k_CCL5_sec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_CCL5_ICAF_RELEASE" type="float" comment="CCL5 iCAF secretion [pmol/(cell*s)]"><![CDATA[QP(CancerVCT::P_k_CCL5_sec_iCAF) * qp_sec_to_abm]]></D>
+    <D name="PARAM_CCL5_EC50_TREG" type="float" comment="CCL5 EC50 Treg recruitment [nM]"><![CDATA[QP(CancerVCT::P_CCL5_50_Treg) * 1e6]]></D>
+    <D name="PARAM_CCL5_TREG_RATIO" type="float" comment="CCL5/CCR5 recruitment rate relative to base (k_CCR5_Treg_rec / q_Treg_T_in)"><![CDATA[QP(CancerVCT::P_k_CCR5_Treg_rec) / QP(CancerVCT::P_q_Treg_T_in)]]></D>
+
+    <!-- TGF-β secretion — QSP-derived for Treg, M2 MAC, myCAF -->
+    <D name="PARAM_TREG_TGFB_RELEASE" type="float" comment="Treg TGF-β secretion [pmol/(cell*s)] from QSP k_TGFb_Tsec"><![CDATA[QP(CancerVCT::P_k_TGFb_Tsec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_MAC_TGFB_RELEASE" type="float" comment="M2 MAC TGF-β secretion [pmol/(cell*s)] from QSP k_TGFb_Msec"><![CDATA[QP(CancerVCT::P_k_TGFb_Msec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_MAC_IL10_RELEASE" type="float" comment="M2 MAC IL-10 secretion [pmol/(cell*s)] from QSP k_IL10_sec"><![CDATA[QP(CancerVCT::P_k_IL10_sec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_IL12_RELEASE" type="float" comment="M1 MAC IL-12 secretion [pmol/(cell*s)] from QSP k_IL12_Msec"><![CDATA[QP(CancerVCT::P_k_IL12_Msec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_DC_IL12_RELEASE" type="float" comment="Mature DC IL-12 secretion [pmol/(cell*s)] from QSP k_IL12_sec (mcDC1)"><![CDATA[QP(CancerVCT::P_k_IL12_sec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_MAC_VEGFA_RELEASE" type="float" comment="M2 MAC VEGF-A secretion [pmol/(cell*s)] from QSP k_vas_Msec"><![CDATA[QP(CancerVCT::P_k_vas_Msec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_FIB_MYCAF_TGFB_RELEASE" type="float" comment="myCAF TGF-β secretion [pmol/(cell*s)] from QSP k_TGFb_sec_myCAF"><![CDATA[QP(CancerVCT::P_k_TGFb_sec_myCAF) * qp_sec_to_abm]]></D>
+    <D name="PARAM_FIB_ICAF_IL6_RELEASE" type="float" comment="iCAF IL-6 secretion [pmol/(cell*s)] from QSP k_IL6_sec_iCAF"><![CDATA[QP(CancerVCT::P_k_IL6_sec_iCAF) * qp_sec_to_abm]]></D>
+    <D name="PARAM_FIB_MYCAF_VEGFA_RELEASE" type="float" comment="myCAF VEGF-A secretion [pmol/(cell*s)] from QSP k_vas_myCAF_sec"><![CDATA[QP(CancerVCT::P_k_vas_myCAF_sec) * qp_sec_to_abm]]></D>
+
+    <!-- MDSC NO/ArgI secretion — QSP-derived (k_NO_sec, k_ArgI_sec) -->
+    <D name="PARAM_NO_RELEASE" type="float" comment="MDSC NO secretion [pmol/(cell*s)] from QSP k_NO_sec"><![CDATA[QP(CancerVCT::P_k_NO_sec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_ARGI_RELEASE" type="float" comment="MDSC ArgI secretion [pmol/(cell*s)] from QSP k_ArgI_sec"><![CDATA[QP(CancerVCT::P_k_ArgI_sec) * qp_sec_to_abm]]></D>
+
+    <!-- MDSC IL-6 recruitment boost EC50 — QSP-derived -->
+    <D name="PARAM_MDSC_EC50_IL6_REC" type="float" comment="IL-6 EC50 for MDSC recruitment boost [nM]"><![CDATA[QP(CancerVCT::P_IL6_50_MDSC) * 1e6]]></D>
+
+    <!-- Division intervals — QSP-derived from tumor proliferation rates -->
+    <D name="PARAM_TREG_DIV_INTERVAL" type="int" comment="Treg division cooldown [steps] from k_Treg_pro_tumor"><![CDATA[static_cast<int>(std::round(1.0 / (QP(CancerVCT::P_k_Treg_pro_tumor) * t_step_sec)))]]></D>
+    <D name="PARAM_TH_DIV_INTERVAL" type="int" comment="Th/Tfh division cooldown [steps] from k_Th_pro_tumor"><![CDATA[static_cast<int>(std::round(1.0 / (QP(CancerVCT::P_k_Th_pro_tumor) * t_step_sec)))]]></D>
 
     <!-- Computed ABM-only params (emitted in populateFlameGPUEnvironment) -->
     <Computed name="PARAM_GRID_SIZE" type="float" comment="total voxel count"><![CDATA[static_cast<float>(getInt(PARAM_X_SIZE) * getInt(PARAM_Y_SIZE) * getInt(PARAM_Z_SIZE))]]></Computed>

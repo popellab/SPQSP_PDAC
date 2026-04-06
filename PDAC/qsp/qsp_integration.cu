@@ -45,7 +45,7 @@ void exportQSPData_step0() {
     if (!g_qsp_csv.is_open()) {
         std::filesystem::create_directories("outputs");
         g_qsp_csv.open(g_qsp_output_path);
-        g_qsp_csv << "step" << CancerVCT::ODE_system::getHeader() << "\n";
+        g_qsp_csv << "step," << CancerVCT::ODE_system::getHeader() << "\n";
     }
     g_qsp_csv << 0 << *ode << "\n";
     g_qsp_csv.flush();
@@ -176,7 +176,7 @@ FLAMEGPU_STEP_FUNCTION(exportQSPData) {
     if (!g_qsp_csv.is_open()) {
         std::filesystem::create_directories("outputs");
         g_qsp_csv.open(g_qsp_output_path);
-        g_qsp_csv << "step" << CancerVCT::ODE_system::getHeader() << "\n";
+        g_qsp_csv << "step," << CancerVCT::ODE_system::getHeader() << "\n";
     }
 
     // Write step index followed by all ODE species (CVODEBase::operator<<)

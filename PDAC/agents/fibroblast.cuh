@@ -33,6 +33,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_broadcast_location, flamegpu::MessageNone, flamegpu:
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
     FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f);  // N/A for fibroblast
+    FLAMEGPU->message_out.setVariable<int>("dead", 0);
     FLAMEGPU->message_out.setLocation(fx, fy, fz);
 
     // Population count by state
@@ -142,18 +143,24 @@ FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, fla
     }
 
     if (cs == FIB_MYCAF) {
-        const float tgfb_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_TGFB_RELEASE");
-        const float ccl2_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_CCL2_RELEASE");
+        const float tgfb_rate  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_TGFB_RELEASE");
+        const float ccl2_rate  = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_RELEASE");
+        const float vegfa_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_VEGFA_RELEASE");
         float eff_boost = hif_boost * metabolic_factor;
-        PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB, voxel, tgfb_rate * eff_boost / voxel_volume);
-        PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL2, voxel, ccl2_rate * eff_boost / voxel_volume);
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB,  voxel, tgfb_rate  * eff_boost / voxel_volume);
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL2,  voxel, ccl2_rate  * eff_boost / voxel_volume);
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_VEGFA, voxel, vegfa_rate * eff_boost / voxel_volume);
     } else {  // FIB_ICAF
         const float il6_rate    = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_IL6_RELEASE");
         const float cxcl13_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_CXCL13_RELEASE");
-        const float ccl2_rate   = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_CCL2_RELEASE");
+        const float ccl2_rate   = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_RELEASE");
+        const float cxcl12_rate = FLAMEGPU->environment.getProperty<float>("PARAM_CXCL12_ICAF_RELEASE");
+        const float ccl5_rate   = FLAMEGPU->environment.getProperty<float>("PARAM_CCL5_ICAF_RELEASE");
         PDE_SECRETE(FLAMEGPU, PDE_SRC_IL6,    voxel, il6_rate / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL13, voxel, cxcl13_rate / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL2,   voxel, ccl2_rate / voxel_volume);
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL12, voxel, cxcl12_rate / voxel_volume);
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL5,   voxel, ccl5_rate / voxel_volume);
     }
 
     return flamegpu::ALIVE;
@@ -234,6 +241,25 @@ FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) 
     mp.bias_strength = bias;
     mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
 
+    // Contact guidance
+    {
+        float w_cg = (cs == FIB_MYCAF) ?
+            FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_FIB_MYCAF") :
+            FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_FIB_ICAF");
+        float ox = ECM_ORIENT_X_PTR(FLAMEGPU)[vidx];
+        float oy = ECM_ORIENT_Y_PTR(FLAMEGPU)[vidx];
+        float oz = ECM_ORIENT_Z_PTR(FLAMEGPU)[vidx];
+        if (bias > 0.0f) {
+            apply_contact_guidance(mp.grad_x, mp.grad_y, mp.grad_z, ox, oy, oz, w_cg);
+        } else {
+            apply_contact_guidance_persist(mp.grad_x, mp.grad_y, mp.grad_z, mp.bias_strength,
+                ox, oy, oz, w_cg,
+                FLAMEGPU->getVariable<int>("persist_dir_x"),
+                FLAMEGPU->getVariable<int>("persist_dir_y"),
+                FLAMEGPU->getVariable<int>("persist_dir_z"));
+        }
+    }
+
     MoveResult r = move_cell(mp, x, y, z,
         FLAMEGPU->getVariable<int>("persist_dir_x"),
         FLAMEGPU->getVariable<int>("persist_dir_y"),
@@ -274,7 +300,6 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
         return flamegpu::DEAD;
     }
 
-    // Read local concentrations for activation
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int ax = FLAMEGPU->getVariable<int>("x");
@@ -282,33 +307,62 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
     const int az = FLAMEGPU->getVariable<int>("z");
     const int voxel = az * grid_y * grid_x + ay * grid_x + ax;
 
+    // Read local concentrations for activation and interconversion
+    const float TGFB = PDE_READ(FLAMEGPU, PDE_CONC_TGFB, voxel);
+    const float IL1  = PDE_READ(FLAMEGPU, PDE_CONC_IL1, voxel);
+    const float IL6  = PDE_READ(FLAMEGPU, PDE_CONC_IL6, voxel);
+    const float caf_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_CAF_EC50");
+    const float H_TGFb = TGFB / (TGFB + caf_ec50 + 1e-30f);  // shared TGFb_50_CAF_act
+
+    // IL-6 amplification for iCAF pathways: (1 + f_IL6 * H_IL6_iCAF)
+    const float f_IL6  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_IL6_ICAF_FACTOR");
+    const float il6_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_IL6_ICAF_EC50");
+    const float H_IL6 = IL6 / (IL6 + il6_ec50 + 1e-30f);
+    const float il6_boost = 1.0f + f_IL6 * H_IL6;
+
     // Activation: only quiescent fibroblasts can activate
     if (cs == FIB_QUIESCENT) {
-        const float TGFB = PDE_READ(FLAMEGPU, PDE_CONC_TGFB, voxel);
-        const float IL1  = PDE_READ(FLAMEGPU, PDE_CONC_IL1, voxel);
-        const float k_act = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ACTIVATION_RATE");
-
-        // myCAF activation: TGF-β Hill function
-        const float mycaf_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_TGFB_EC50");
-        const float mycaf_n    = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_TGFB_HILL_N");
-        const float p_mycaf = k_act * hill_equation(TGFB, mycaf_ec50, mycaf_n);
+        // myCAF activation (ODE RF242): k_myCAF * H_TGFb(TGFb_50_CAF_act)
+        const float k_mycaf = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_ACTIVATION");
+        const float p_mycaf = k_mycaf * H_TGFb;
 
         if (FLAMEGPU->random.uniform<float>() < p_mycaf) {
             FLAMEGPU->setVariable<int>("cell_state", FIB_MYCAF);
             return flamegpu::ALIVE;
         }
 
-        // iCAF activation: IL-1 Hill * (1 - TGF-β suppression Hill)
+        // iCAF activation (ODE RF243): k_iCAF * H_IL1_eff * (1 + f_IL6 * H_IL6_iCAF)
+        // ABM: IL-1 Hill * (1 - TGF-β suppression) * IL-6 boost
+        const float k_icaf   = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_ACTIVATION");
         const float icaf_ec50  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_IL1_EC50");
         const float icaf_n     = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_IL1_HILL_N");
         const float supp_ec50  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_TGFB_SUPPRESS_EC50");
         const float supp_n     = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_TGFB_SUPPRESS_N");
-        const float p_icaf = k_act * hill_equation(IL1, icaf_ec50, icaf_n)
-                            * (1.0f - hill_equation(TGFB, supp_ec50, supp_n));
+        const float p_icaf = k_icaf * hill_equation(IL1, icaf_ec50, icaf_n)
+                            * (1.0f - hill_equation(TGFB, supp_ec50, supp_n))
+                            * il6_boost;
 
         if (FLAMEGPU->random.uniform<float>() < p_icaf) {
             FLAMEGPU->setVariable<int>("cell_state", FIB_ICAF);
             return flamegpu::ALIVE;
+        }
+    }
+
+    // iCAF ↔ myCAF interconversion (ODE RF245, RF246)
+    if (cs == FIB_ICAF) {
+        // iCAF → myCAF: k_iCAF_to_myCAF * H_TGFb(TGFb_50_CAF_act)
+        const float k_i2m = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_TO_MYCAF");
+        if (FLAMEGPU->random.uniform<float>() < k_i2m * H_TGFb) {
+            FLAMEGPU->setVariable<int>("cell_state", FIB_MYCAF);
+        }
+    } else if (cs == FIB_MYCAF) {
+        // myCAF → iCAF: k_myCAF_to_iCAF * H_IL1_eff * (1 + f_IL6 * H_IL6_iCAF)
+        const float k_m2i = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_TO_ICAF");
+        const float icaf_ec50  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_IL1_EC50");
+        const float icaf_n     = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_IL1_HILL_N");
+        float H_IL1 = hill_equation(IL1, icaf_ec50, icaf_n);
+        if (FLAMEGPU->random.uniform<float>() < k_m2i * H_IL1 * il6_boost) {
+            FLAMEGPU->setVariable<int>("cell_state", FIB_ICAF);
         }
     }
 
@@ -319,14 +373,12 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
     }
 
     // Division check: only activated fibroblasts, off cooldown, under max count
+    // Cooldown derived from QSP k_prolif rates (per-subtype)
     if (cs != FIB_QUIESCENT && cooldown <= 0) {
         const int div_count = FLAMEGPU->getVariable<int>("divide_count");
         const int div_max = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_MAX"));
         if (div_count < div_max) {
-            const float div_prob = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_PROB");
-            if (FLAMEGPU->random.uniform<float>() < div_prob) {
-                FLAMEGPU->setVariable<int>("divide_flag", 1);
-            }
+            FLAMEGPU->setVariable<int>("divide_flag", 1);
         }
     }
 
@@ -377,8 +429,10 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide, flamegpu::MessageNone, flamegpu::MessageNone
         int tvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
         if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) continue;
 
-        // Success — create daughter
-        const int cd = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN"));
+        // Success — create daughter (per-subtype cooldown from QSP k_prolif)
+        const int cd = static_cast<int>((cs == FIB_MYCAF) ?
+            FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN_MYCAF") :
+            FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN_ICAF"));
 
         // Update parent
         FLAMEGPU->setVariable<int>("divide_cooldown", cd);

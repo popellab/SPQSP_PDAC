@@ -259,17 +259,20 @@ FLAMEGPU_STEP_FUNCTION(exportPDEData) {
 
 // ============================================================================
 // LZ4-compressed binary writer for ECM (stroma) Output
-// Writes ECM density and fibroblast density field as a single LZ4 file.
-// Shape: (2, grid_z, grid_y, grid_x), dtype float32, C-order.
+// Writes ECM density, fibroblast density, and fiber orientation as a single LZ4 file.
+// Shape: (5, grid_z, grid_y, grid_x), dtype float32, C-order.
 //   channel 0: ECM_density  (d_ecm_density)
 //   channel 1: Fib_field    (d_fib_density_field)
+//   channel 2: orient_x     (d_ecm_orient_x)
+//   channel 3: orient_y     (d_ecm_orient_y)
+//   channel 4: orient_z     (d_ecm_orient_z)
 //
 // File format (.ecm.lz4):
 //   Bytes 0-3:   magic "ECM1"
 //   Bytes 4-7:   grid_x (int32)
 //   Bytes 8-11:  grid_y (int32)
 //   Bytes 12-15: grid_z (int32)
-//   Bytes 16-19: num_channels=2 (int32)
+//   Bytes 16-19: num_channels=5 (int32)
 //   Bytes 20-23: uncompressed_size (int32, bytes)
 //   Bytes 24-27: compressed_size (int32, bytes)
 //   Bytes 28+:   LZ4-compressed float32 data
@@ -284,7 +287,7 @@ FLAMEGPU_STEP_FUNCTION(exportPDEData) {
 // ============================================================================
 static void write_ecm_lz4_buf(const char* path, int grid_x, int grid_y, int grid_z,
                                const std::vector<float>& buf) {
-    const int n_channels = 2;
+    const int n_channels = 5;
     const int raw_bytes = static_cast<int>(buf.size() * sizeof(float));
     const int max_comp = LZ4_compressBound(raw_bytes);
 
@@ -314,15 +317,21 @@ static void write_ecm_lz4_buf(const char* path, int grid_x, int grid_y, int grid
     fclose(fp);
 }
 
-// Collect ECM + fib density from device into a host buffer.
-// buf layout: [ecm_grid (total_voxels floats), fib_field (total_voxels floats)]
+// Collect ECM + fib density + fiber orientation from device into a host buffer.
+// buf layout: [ecm_density, fib_field, orient_x, orient_y, orient_z] (5 channels × total_voxels floats)
 static void collect_ecm_to_buf(std::vector<float>& buf, int grid_x, int grid_y, int grid_z) {
     const int total_voxels = grid_x * grid_y * grid_z;
-    buf.resize(static_cast<size_t>(2) * total_voxels);
+    buf.resize(static_cast<size_t>(5) * total_voxels);
     float* d_ecm = PDAC::get_ecm_density_device_ptr();
     float* d_fib = PDAC::get_fib_density_field_device_ptr();
-    if (d_ecm) cudaMemcpy(buf.data(),                  d_ecm, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
-    if (d_fib) cudaMemcpy(buf.data() + total_voxels,   d_fib, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    float* d_ox  = PDAC::get_ecm_orient_x_device_ptr();
+    float* d_oy  = PDAC::get_ecm_orient_y_device_ptr();
+    float* d_oz  = PDAC::get_ecm_orient_z_device_ptr();
+    if (d_ecm) cudaMemcpy(buf.data(),                      d_ecm, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    if (d_fib) cudaMemcpy(buf.data() + total_voxels,       d_fib, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    if (d_ox)  cudaMemcpy(buf.data() + 2 * total_voxels,   d_ox, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    if (d_oy)  cudaMemcpy(buf.data() + 3 * total_voxels,   d_oy, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    if (d_oz)  cudaMemcpy(buf.data() + 4 * total_voxels,   d_oz, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
 }
 
 void exportECMData_step0(int grid_x, int grid_y, int grid_z) {
@@ -773,12 +782,28 @@ int main(int argc, const char** argv) {
     model->Environment().newProperty<int>("interval_out", config.interval_out);
     init_lap("build_model");
 
+    // ========== INITIALIZE QSP SOLVER ==========
+    // QSP must init before PDE so derived params (decay rates, EC50s) are available
+    PDAC::LymphCentralWrapper _lymph;
+    {
+        // Set presim output path before initialize() so Phase 2 warmup writes per-step QSP CSV
+        char presim_qsp_path[256];
+        snprintf(presim_qsp_path, sizeof(presim_qsp_path),
+                 "outputs/qsp_presim_%u.csv", config.random_seed);
+        _lymph.set_presim_output_path(presim_qsp_path);
+    }
+    _lymph.initialize(param_file);
+    PDAC::set_internal_params(*model, _lymph);
+    PDAC::set_lymph_pointer(&_lymph);  // Set global pointer for QSP host functions
+    init_lap("init_qsp");
+
     // ========== INITIALIZE PDE SOLVER ==========
+    // Reads both gpu_params (ABM-specific) and model env (QSP-derived) for config
     std::cout << "Initializing PDE solver..." << std::endl;
     PDAC::initialize_pde_solver(
         config.grid_x, config.grid_y, config.grid_z,
         config.voxel_size, config.dt_abm, config.molecular_steps,
-         gpu_params);
+         gpu_params, *model);
 
     // Store PDE device pointers in model environment
     PDAC::set_pde_pointers_in_environment(*model);
@@ -795,14 +820,6 @@ int main(int argc, const char** argv) {
     size_t used_mem_1 = total_mem_1 - free_mem_1;
     std::cout << "[MEM] After PDE init: " << (used_mem_1 / (1024*1024)) << " MB used / "
               << (total_mem_1 / (1024*1024)) << " MB total" << std::endl;
-
-    // Process internal parameters from env params and new QSP params
-    // ========== INITIALIZE QSP SOLVER ==========
-    PDAC::LymphCentralWrapper _lymph;
-    _lymph.initialize(param_file);
-    PDAC::set_internal_params(*model, _lymph);
-    PDAC::set_lymph_pointer(&_lymph);  // Set global pointer for QSP host functions
-    init_lap("init_qsp");
 
     // ========== ADD STEP FUNCTIONS ==========
     if (config.grid_out & 2) {
@@ -892,6 +909,11 @@ int main(int argc, const char** argv) {
     const unsigned int max_presim_steps = 100000;
     unsigned int presim_step = 0;
 
+    // Pre-create presim output dirs if needed (grid_out > 0 means we'll write files)
+    if (config.grid_out != 0) {
+        ensureOutputDirectories();
+    }
+
     while (cur_vol < full_target_vol && presim_step < max_presim_steps) {
         bool ok = simulation.step();
         if (!ok) {
@@ -900,6 +922,51 @@ int main(int argc, const char** argv) {
         }
         cur_vol = _lymph.get_tumor_volume();
         presim_step++;
+
+        // Export per-step presim snapshots if -G flag is set
+        if (config.grid_out != 0) {
+            const int gx = config.grid_x, gy = config.grid_y, gz = config.grid_z;
+
+            if (config.grid_out & 2) {
+                // PDE snapshot
+                if (g_pde_io_thread.joinable()) g_pde_io_thread.join();
+                char pde_path[256];
+                snprintf(pde_path, sizeof(pde_path),
+                         "outputs/pde/pde_presim_%06u.pde.lz4", presim_step);
+                export_pde_async_no_join(gx, gy, gz, std::string(pde_path));
+
+                // ECM snapshot
+                if (g_ecm_io_thread.joinable()) g_ecm_io_thread.join();
+                int ecm_bi = g_ecm_buf_idx;
+                collect_ecm_to_buf(g_ecm_bufs[ecm_bi], gx, gy, gz);
+                std::string ecm_path = [&]() {
+                    char buf[256];
+                    snprintf(buf, sizeof(buf), "outputs/ecm/ecm_presim_%06u.ecm.lz4", presim_step);
+                    return std::string(buf);
+                }();
+                g_ecm_io_thread = std::thread([ecm_bi, ecm_path, gx, gy, gz]() {
+                    write_ecm_lz4_buf(ecm_path.c_str(), gx, gy, gz, g_ecm_bufs[ecm_bi]);
+                });
+                g_ecm_buf_idx = 1 - ecm_bi;
+            }
+
+            if (config.grid_out & 1) {
+                // ABM snapshot
+                if (g_abm_io_thread.joinable()) g_abm_io_thread.join();
+                int abm_bi = g_abm_buf_idx;
+                collect_abm_step0(simulation, *model, g_abm_bufs[abm_bi]);
+                std::string abm_path = [&]() {
+                    char buf[256];
+                    snprintf(buf, sizeof(buf),
+                             "outputs/abm/agents_presim_%06u.abm.lz4", presim_step);
+                    return std::string(buf);
+                }();
+                g_abm_io_thread = std::thread([abm_bi, abm_path]() {
+                    write_abm_lz4(abm_path.c_str(), g_abm_bufs[abm_bi]);
+                });
+                g_abm_buf_idx = 1 - abm_bi;
+            }
+        }
 
         if (presim_step % 50 == 0) {
             std::cout << "  Presim step " << presim_step
@@ -991,7 +1058,10 @@ int main(int argc, const char** argv) {
               << "Header (28 bytes): magic='ECM1', grid_x(i32), grid_y(i32), grid_z(i32), n_channels=2(i32), raw_bytes(i32), comp_bytes(i32)\n"
               << "Data: LZ4-compressed float32 array, shape (2, grid_z, grid_y, grid_x)\n"
               << "Channel index -> field:\n"
-              << "  0: ECM_density   (d_ecm_density, smoothed ECM density [0..1])\n"
+              << "  0: ECM_density   (d_ecm_density, smoothed ECM density [0..cap])\n"
+              << "  2: orient_x      (d_ecm_orient_x, fiber axis x-component)\n"
+              << "  3: orient_y      (d_ecm_orient_y, fiber axis y-component)\n"
+              << "  4: orient_z      (d_ecm_orient_z, fiber axis z-component)\n"
               << "  1: Fib_field     (d_fib_density_field, raw Gaussian fib density)\n"
               << "Loading:\n"
               << "  import lz4.block, struct, numpy as np\n"
@@ -1067,6 +1137,7 @@ int main(int argc, const char** argv) {
                 int s = p[i].getVariable<int>("cell_state");
                 if (s == PDAC::VAS_TIP) init_states[PDAC::SC_VAS_TIP]++;
                 else if (s == PDAC::VAS_PHALANX_COLLAPSED) init_states[PDAC::SC_VAS_COLLAPSED]++;
+                else if (s == PDAC::VAS_HEV) init_states[PDAC::SC_VAS_HEV]++;
                 else                    init_states[PDAC::SC_VAS_PHALANX]++;
             }
         }
@@ -1079,46 +1150,54 @@ int main(int argc, const char** argv) {
             // Agent counts by state
             << "agentCount.cancer.stem,agentCount.cancer.prog,agentCount.cancer.sen,"
             << "agentCount.CD8.effector,agentCount.CD8.cytotoxic,agentCount.CD8.suppressed,"
-            << "agentCount.Th.default,agentCount.Treg.default,"
+            << "agentCount.Th.default,agentCount.Treg.default,agentCount.Tfh.default,"
             << "agentCount.MDSC.default,"
             << "agentCount.MAC.M1,agentCount.MAC.M2,"
             << "agentCount.FIB.quiescent,agentCount.FIB.myCAF,agentCount.FIB.iCAF,"
-            << "agentCount.VAS.tip,agentCount.VAS.default,agentCount.VAS.collapsed,"
+            << "agentCount.VAS.tip,agentCount.VAS.default,agentCount.VAS.collapsed,agentCount.VAS.hev,"
+            << "agentCount.BCell.naive,agentCount.BCell.activated,agentCount.BCell.plasma,"
+            << "agentCount.DC.cDC1_immature,agentCount.DC.cDC1_mature,agentCount.DC.cDC2_immature,agentCount.DC.cDC2_mature,"
             // Recruitment
             << "recruit.CD8.effector,recruit.Th.default,recruit.Treg.default,"
             << "recruit.MDSC.default,recruit.MAC.M1,recruit.MAC.M2,"
-            << "recruit.t_sources,recruit.mdsc_sources,recruit.mac_sources,"
+            << "recruit.BCell.naive,recruit.DC.immature,"
+            << "recruit.t_sources,recruit.mdsc_sources,recruit.mac_sources,recruit.bcell_sources,recruit.dc_sources,"
             // Proliferation by state
             << "prolif.CD8.effector,prolif.CD8.cytotoxic,prolif.CD8.suppressed,"
-            << "prolif.Th.default,prolif.Treg.default,"
+            << "prolif.Th.default,prolif.Treg.default,prolif.Tfh.default,"
             << "prolif.MDSC.default,"
             << "prolif.cancer.stem,prolif.cancer.prog,prolif.cancer.sen,"
             << "prolif.MAC.M1,prolif.MAC.M2,"
             << "prolif.FIB.quiescent,prolif.FIB.myCAF,prolif.FIB.iCAF,"
             << "prolif.VAS.tip,prolif.VAS.phalanx,"
+            << "prolif.BCell.naive,prolif.BCell.activated,prolif.BCell.plasma,"
             // Death by state
             << "death.CD8.effector,death.CD8.cytotoxic,death.CD8.suppressed,"
-            << "death.Th.default,death.Treg.default,"
+            << "death.Th.default,death.Treg.default,death.Tfh.default,"
             << "death.MDSC.default,"
             << "death.cancer.stem,death.cancer.prog,death.cancer.sen,"
             << "death.MAC.M1,death.MAC.M2,"
             << "death.FIB.quiescent,death.FIB.myCAF,death.FIB.iCAF,"
-            << "death.VAS.tip,death.VAS.phalanx,death.VAS.collapsed,"
+            << "death.VAS.tip,death.VAS.phalanx,death.VAS.collapsed,death.VAS.hev,"
+            << "death.BCell.naive,death.BCell.activated,death.BCell.plasma,"
+            << "death.DC.cDC1_immature,death.DC.cDC1_mature,death.DC.cDC2_immature,death.DC.cDC2_mature,"
             // PDL1 fraction
             << "PDL1_frac\n";
         // Step 0: real initial state counts, all event columns zero
         stats_file << "0,"
             << init_states[PDAC::SC_CANCER_STEM] << "," << init_states[PDAC::SC_CANCER_PROG] << "," << init_states[PDAC::SC_CANCER_SEN] << ","
             << init_states[PDAC::SC_CD8_EFF]     << "," << init_states[PDAC::SC_CD8_CYT]     << "," << init_states[PDAC::SC_CD8_SUP]   << ","
-            << init_states[PDAC::SC_TH]          << "," << init_states[PDAC::SC_TREG]         << ","
+            << init_states[PDAC::SC_TH]          << "," << init_states[PDAC::SC_TREG] << "," << init_states[PDAC::SC_TFH] << ","
             << init_states[PDAC::SC_MDSC]        << ","
             << init_states[PDAC::SC_MAC_M1]      << "," << init_states[PDAC::SC_MAC_M2]       << ","
             << init_states[PDAC::SC_FIB_QUIESCENT] << "," << init_states[PDAC::SC_FIB_MYCAF] << "," << init_states[PDAC::SC_FIB_ICAF] << ","
-            << init_states[PDAC::SC_VAS_TIP]     << "," << init_states[PDAC::SC_VAS_PHALANX] << "," << init_states[PDAC::SC_VAS_COLLAPSED] << ","
+            << init_states[PDAC::SC_VAS_TIP]     << "," << init_states[PDAC::SC_VAS_PHALANX] << "," << init_states[PDAC::SC_VAS_COLLAPSED] << "," << init_states[PDAC::SC_VAS_HEV] << ","
+            << init_states[PDAC::SC_BCELL_NAIVE]  << "," << init_states[PDAC::SC_BCELL_ACT] << "," << init_states[PDAC::SC_BCELL_PLASMA] << ","
+            << init_states[PDAC::SC_DC_CDC1_IMMATURE] << "," << init_states[PDAC::SC_DC_CDC1_MATURE] << "," << init_states[PDAC::SC_DC_CDC2_IMMATURE] << "," << init_states[PDAC::SC_DC_CDC2_MATURE] << ","
             // All event columns (recruit/prolif/death/PDL1) are zero at step 0
-            << "0,0,0,0,0,0,0,0,0," // recruit (6) + sources (3)
-            << "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0," // prolif (16)
-            << "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0," // death (17: +vas_collapsed)
+            << "0,0,0,0,0,0,0,0,0,0,0,0,0," // recruit (8) + sources (5)
+            << "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0," // prolif (20)
+            << "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0," // death (26: DC split cDC1/cDC2)
             << "0.0000\n";    // PDL1_frac
         stats_file.flush();
     }
@@ -1192,31 +1271,37 @@ int main(int argc, const char** argv) {
                 // agentCount (15 states, from broadcast at start of this step)
                 << host_states[PDAC::SC_CANCER_STEM] << "," << host_states[PDAC::SC_CANCER_PROG] << "," << host_states[PDAC::SC_CANCER_SEN] << ","
                 << host_states[PDAC::SC_CD8_EFF] << "," << host_states[PDAC::SC_CD8_CYT] << "," << host_states[PDAC::SC_CD8_SUP] << ","
-                << host_states[PDAC::SC_TH] << "," << host_states[PDAC::SC_TREG] << ","
+                << host_states[PDAC::SC_TH] << "," << host_states[PDAC::SC_TREG] << "," << host_states[PDAC::SC_TFH] << ","
                 << host_states[PDAC::SC_MDSC] << ","
                 << host_states[PDAC::SC_MAC_M1] << "," << host_states[PDAC::SC_MAC_M2] << ","
                 << host_states[PDAC::SC_FIB_QUIESCENT] << "," << host_states[PDAC::SC_FIB_MYCAF] << "," << host_states[PDAC::SC_FIB_ICAF] << ","
-                << host_states[PDAC::SC_VAS_TIP] << "," << host_states[PDAC::SC_VAS_PHALANX] << "," << host_states[PDAC::SC_VAS_COLLAPSED] << ","
-                // recruit (6 cols)
+                << host_states[PDAC::SC_VAS_TIP] << "," << host_states[PDAC::SC_VAS_PHALANX] << "," << host_states[PDAC::SC_VAS_COLLAPSED] << "," << host_states[PDAC::SC_VAS_HEV] << ","
+                << host_states[PDAC::SC_BCELL_NAIVE] << "," << host_states[PDAC::SC_BCELL_ACT] << "," << host_states[PDAC::SC_BCELL_PLASMA] << ","
+                << host_states[PDAC::SC_DC_CDC1_IMMATURE] << "," << host_states[PDAC::SC_DC_CDC1_MATURE] << "," << host_states[PDAC::SC_DC_CDC2_IMMATURE] << "," << host_states[PDAC::SC_DC_CDC2_MATURE] << ","
+                // recruit (8 cols)
                 << rs.teff_rec << "," << rs.th_rec << "," << rs.treg_rec << ","
                 << rs.mdsc_rec << "," << rs.mac_m1_rec << "," << rs.mac_m2_rec << ","
-                << rs.t_sources << "," << rs.mdsc_sources << "," << rs.mac_sources << ","
+                << rs.bcell_rec << "," << rs.dc_rec << ","
+                << rs.t_sources << "," << rs.mdsc_sources << "," << rs.mac_sources << "," << rs.bcell_sources << "," << rs.dc_sources << ","
                 // prolif by state (15 cols)
                 << host_events[PDAC::EVT_PROLIF_CD8_EFF] << "," << host_events[PDAC::EVT_PROLIF_CD8_CYT] << "," << host_events[PDAC::EVT_PROLIF_CD8_SUP] << ","
-                << host_events[PDAC::EVT_PROLIF_TH] << "," << host_events[PDAC::EVT_PROLIF_TREG] << ","
+                << host_events[PDAC::EVT_PROLIF_TH] << "," << host_events[PDAC::EVT_PROLIF_TREG] << "," << host_events[PDAC::EVT_PROLIF_TFH] << ","
                 << host_events[PDAC::EVT_PROLIF_MDSC] << ","
                 << host_events[PDAC::EVT_PROLIF_CANCER_STEM] << "," << host_events[PDAC::EVT_PROLIF_CANCER_PROG] << "," << host_events[PDAC::EVT_PROLIF_CANCER_SEN] << ","
                 << host_events[PDAC::EVT_PROLIF_MAC_M1] << "," << host_events[PDAC::EVT_PROLIF_MAC_M2] << ","
                 << host_events[PDAC::EVT_PROLIF_FIB_QUIESCENT] << "," << host_events[PDAC::EVT_PROLIF_FIB_MYCAF] << "," << host_events[PDAC::EVT_PROLIF_FIB_ICAF] << ","
                 << host_events[PDAC::EVT_PROLIF_VAS_TIP] << "," << host_events[PDAC::EVT_PROLIF_VAS_PHALANX] << ","
-                // death by state (15 cols)
+                << host_events[PDAC::EVT_PROLIF_BCELL_NAIVE] << "," << host_events[PDAC::EVT_PROLIF_BCELL_ACT] << "," << host_events[PDAC::EVT_PROLIF_BCELL_PLASMA] << ","
+                // death by state
                 << host_events[PDAC::EVT_DEATH_CD8_EFF] << "," << host_events[PDAC::EVT_DEATH_CD8_CYT] << "," << host_events[PDAC::EVT_DEATH_CD8_SUP] << ","
-                << host_events[PDAC::EVT_DEATH_TH] << "," << host_events[PDAC::EVT_DEATH_TREG] << ","
+                << host_events[PDAC::EVT_DEATH_TH] << "," << host_events[PDAC::EVT_DEATH_TREG] << "," << host_events[PDAC::EVT_DEATH_TFH] << ","
                 << host_events[PDAC::EVT_DEATH_MDSC] << ","
                 << host_events[PDAC::EVT_DEATH_CANCER_STEM] << "," << host_events[PDAC::EVT_DEATH_CANCER_PROG] << "," << host_events[PDAC::EVT_DEATH_CANCER_SEN] << ","
                 << host_events[PDAC::EVT_DEATH_MAC_M1] << "," << host_events[PDAC::EVT_DEATH_MAC_M2] << ","
                 << host_events[PDAC::EVT_DEATH_FIB_QUIESCENT] << "," << host_events[PDAC::EVT_DEATH_FIB_MYCAF] << "," << host_events[PDAC::EVT_DEATH_FIB_ICAF] << ","
-                << host_events[PDAC::EVT_DEATH_VAS_TIP] << "," << host_events[PDAC::EVT_DEATH_VAS_PHALANX] << "," << host_events[PDAC::EVT_DEATH_VAS_COLLAPSED] << ","
+                << host_events[PDAC::EVT_DEATH_VAS_TIP] << "," << host_events[PDAC::EVT_DEATH_VAS_PHALANX] << "," << host_events[PDAC::EVT_DEATH_VAS_COLLAPSED] << "," << host_events[PDAC::EVT_DEATH_VAS_HEV] << ","
+                << host_events[PDAC::EVT_DEATH_BCELL_NAIVE] << "," << host_events[PDAC::EVT_DEATH_BCELL_ACT] << "," << host_events[PDAC::EVT_DEATH_BCELL_PLASMA] << ","
+                << host_events[PDAC::EVT_DEATH_DC_CDC1_IMMATURE] << "," << host_events[PDAC::EVT_DEATH_DC_CDC1_MATURE] << "," << host_events[PDAC::EVT_DEATH_DC_CDC2_IMMATURE] << "," << host_events[PDAC::EVT_DEATH_DC_CDC2_MATURE] << ","
                 // PDL1 fraction
                 << std::fixed << std::setprecision(4) << pdl1_frac << "\n";
             stats_file.flush();
@@ -1256,6 +1341,8 @@ int main(int argc, const char** argv) {
     flamegpu::AgentVector final_mdscs(model->Agent(PDAC::AGENT_MDSC));
     flamegpu::AgentVector final_macs(model->Agent(PDAC::AGENT_MACROPHAGE));
     flamegpu::AgentVector final_fibs(model->Agent(PDAC::AGENT_FIBROBLAST));
+    flamegpu::AgentVector final_bcells(model->Agent(PDAC::AGENT_BCELL));
+    flamegpu::AgentVector final_dcs(model->Agent(PDAC::AGENT_DC));
 
     simulation.getPopulationData(final_cancer);
     simulation.getPopulationData(final_tcells);
@@ -1263,6 +1350,8 @@ int main(int argc, const char** argv) {
     simulation.getPopulationData(final_mdscs);
     simulation.getPopulationData(final_macs);
     simulation.getPopulationData(final_fibs);
+    simulation.getPopulationData(final_bcells);
+    simulation.getPopulationData(final_dcs);
 
     std::cout << "\nFinal Population Counts:" << std::endl;
     std::cout << "  Cancer cells: " << final_cancer.size() << std::endl;
@@ -1271,6 +1360,8 @@ int main(int argc, const char** argv) {
     std::cout << "  MDSCs: " << final_mdscs.size() << std::endl;
     std::cout << "  Macrophages: " << final_macs.size() << std::endl;
     std::cout << "  Fibroblasts: " << final_fibs.size() << std::endl;
+    std::cout << "  B cells: " << final_bcells.size() << std::endl;
+    std::cout << "  DCs: " << final_dcs.size() << std::endl;
 
     // Count T cell states
     if (final_tcells.size() > 0) {

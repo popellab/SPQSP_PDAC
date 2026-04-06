@@ -104,7 +104,7 @@ protected:
 	//! execute one event
 	virtual bool eventExecution(int i, bool delay, realtype& dt) = 0;
 	//! get variable value with original unit
-	double getVarOriginalUnit(int i) const;
+	virtual double getVarOriginalUnit(int i) const;
 	//! get unit conversion scalor
 	virtual realtype get_unit_conversion_species(int i) const = 0;
 	//! get unit conversion scalor

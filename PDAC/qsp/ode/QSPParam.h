@@ -18,12 +18,12 @@ public:
         _readParameters(inFileName);
         return true;
     }
+    void setupParam() override {}
+    void processInternalParams() override {}
 private:
     std::vector<double> _param;
     void _readParameters(const std::string& filename);
     static const char* _xml_paths[];
-    void setupParam() override {}
-    void processInternalParams() override {}
 };
 
 }  // namespace CancerVCT

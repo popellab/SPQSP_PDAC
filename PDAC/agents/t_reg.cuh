@@ -19,6 +19,7 @@ FLAMEGPU_AGENT_FUNCTION(treg_broadcast_location, flamegpu::MessageNone, flamegpu
     FLAMEGPU->message_out.setVariable<int>("cell_state", treg_cs);
     FLAMEGPU->message_out.setVariable<float>("PDL1", 0.0f);       // TCD4 cells don't express PDL1
     FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f); // N/A for TReg
+    FLAMEGPU->message_out.setVariable<int>("dead", 0);
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
@@ -31,7 +32,8 @@ FLAMEGPU_AGENT_FUNCTION(treg_broadcast_location, flamegpu::MessageNone, flamegpu
 
     // Count this agent into per-state population snapshot
     auto* sc_treg = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("state_counters_ptr"));
-    atomicAdd(&sc_treg[treg_cs == TCD4_TH ? SC_TH : SC_TREG], 1u);
+    const int sc_slot = (treg_cs == TCD4_TH) ? SC_TH : (treg_cs == TCD4_TREG) ? SC_TREG : SC_TFH;
+    atomicAdd(&sc_treg[sc_slot], 1u);
 
     return flamegpu::ALIVE;
 }
@@ -56,6 +58,8 @@ FLAMEGPU_AGENT_FUNCTION(treg_scan_neighbors, flamegpu::MessageSpatial3D, flamegp
     int cancer_count = 0;
     int all_count = 0;
     int found_progenitor = 0;
+    int dc_mature_count = 0;
+    int bcell_count = 0;
 
     // Per-neighbor counts: [direction][0=cancer, 1=tcell, 2=treg]
     int neighbor_counts[26][3] = {{0}};
@@ -99,6 +103,12 @@ FLAMEGPU_AGENT_FUNCTION(treg_scan_neighbors, flamegpu::MessageSpatial3D, flamegp
                     if (agent_state == CANCER_PROGENITOR) {
                         found_progenitor = 1;
                     }
+                } else if (agent_type == CELL_TYPE_DC) {
+                    if (agent_state == DC_MATURE) {
+                        dc_mature_count++;
+                    }
+                } else if (agent_type == CELL_TYPE_BCELL) {
+                    bcell_count++;
                 }
             }
         }
@@ -132,6 +142,8 @@ FLAMEGPU_AGENT_FUNCTION(treg_scan_neighbors, flamegpu::MessageSpatial3D, flamegp
     FLAMEGPU->setVariable<int>("neighbor_all_count", all_count);
     // FLAMEGPU->setVariable<unsigned int>("available_neighbors", available_neighbors);
     FLAMEGPU->setVariable<int>("found_progenitor", found_progenitor);
+    FLAMEGPU->setVariable<int>("neighbor_dc_mature_count", dc_mature_count);
+    FLAMEGPU->setVariable<int>("neighbor_bcell_count", bcell_count);
 
     return flamegpu::ALIVE;
 }
@@ -185,7 +197,8 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
         FLAMEGPU->setVariable<int>("dead", 1);
         auto* evts_tr = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
         const int cs_tr = FLAMEGPU->getVariable<int>("cell_state");
-        atomicAdd(&evts_tr[cs_tr == TCD4_TH ? EVT_DEATH_TH : EVT_DEATH_TREG], 1u);
+        const int death_slot = (cs_tr == TCD4_TH) ? EVT_DEATH_TH : (cs_tr == TCD4_TREG) ? EVT_DEATH_TREG : EVT_DEATH_TFH;
+        atomicAdd(&evts_tr[death_slot], 1u);
         return flamegpu::DEAD;
     }
     FLAMEGPU->setVariable<int>("life", life);
@@ -216,24 +229,50 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
     float TGFB = PDE_READ(FLAMEGPU, PDE_CONC_TGFB, voxel_ts);
     float K_TH_TREG = FLAMEGPU->environment.getProperty<float>("PARAM_K_TH_TREG");
     float MAC_TGFB_EC50 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_EC50");
-    int TCD4_DIV_INTERNAL = FLAMEGPU->environment.getProperty<int>("PARAM_TCD4_DIV_INTERNAL");
     float CTLA4 = FLAMEGPU->environment.getProperty<float>("PARAM_CTLA4_TREG");
 
     float TGFB_release_remain = FLAMEGPU->getVariable<float>("TGFB_release_remain");
     float sec_per_slice = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
     int divide_flag = 0;  // initialize to prevent UB for TH cells that don't convert
     if (cell_state == TCD4_TH) {
-        float denominator = TGFB + MAC_TGFB_EC50;
-        float alpha = (denominator > 1e-12f) ? K_TH_TREG * (1 + TGFB / denominator) : K_TH_TREG;  // Prevent division by zero
-        float p_th_treg = 1 - std::exp(-alpha);
+        // ODE RF182: k_Th_Treg * Th * H_TGFb * H_ArgI_Treg
+        float H_TGFb = TGFB / (TGFB + MAC_TGFB_EC50);
+        float ArgI = PDE_READ(FLAMEGPU, PDE_CONC_ARGI, voxel_ts);
+        float H_ArgI_Treg = ArgI / (ArgI + FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_EC50_ArgI_Treg"));
+        float alpha = K_TH_TREG * H_TGFb * H_ArgI_Treg;
+        float p_th_treg = 1.0f - std::exp(-alpha);
         //convert TH to TREG
         if (FLAMEGPU->random.uniform<float>() < p_th_treg) {
-            FLAMEGPU->setVariable<int>("cell_state", TCD4_TREG);  // was T_CELL_CYT (wrong enum value)
-            FLAMEGPU->setVariable<int>("divide_cd", TCD4_DIV_INTERNAL);  // was setVariable<float> (type mismatch)
+            FLAMEGPU->setVariable<int>("cell_state", TCD4_TREG);
+            FLAMEGPU->setVariable<int>("divide_cd", FLAMEGPU->environment.getProperty<int>("PARAM_TREG_DIV_INTERVAL"));
             FLAMEGPU->setVariable<float>("CTLA4", CTLA4);
             return flamegpu::ALIVE;
         }
+
+        // TH → Tfh: requires mature DC contact + IL-6 signal
+        int dc_mature = FLAMEGPU->getVariable<int>("neighbor_dc_mature_count");
+        if (dc_mature > 0) {
+            float IL6 = PDE_READ(FLAMEGPU, PDE_CONC_IL6, voxel_ts);
+            float ec50_il6 = FLAMEGPU->environment.getProperty<float>("PARAM_TFH_EC50_IL6");
+            float k_tfh = FLAMEGPU->environment.getProperty<float>("PARAM_TFH_DIFF_K");
+            float H_IL6 = IL6 / (IL6 + ec50_il6);
+            float p_tfh = 1.0f - expf(-k_tfh * H_IL6);
+            if (FLAMEGPU->random.uniform<float>() < p_tfh) {
+                FLAMEGPU->setVariable<int>("cell_state", TCD4_TFH);
+                return flamegpu::ALIVE;
+            }
+        }
+
         // TH cells can divide when cooldown is ready
+        int divide_limit = FLAMEGPU->getVariable<int>("divide_limit");
+        if (divide_limit > 0 && divide_cd <= 0) {
+            divide_flag = 1;
+        } else {
+            divide_flag = 0;
+        }
+
+    } else if (cell_state == TCD4_TFH) {
+        // Tfh division: same cooldown logic as TH
         int divide_limit = FLAMEGPU->getVariable<int>("divide_limit");
         if (divide_limit > 0 && divide_cd <= 0) {
             divide_flag = 1;
@@ -261,14 +300,9 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
         //                                     chi_CTLA4, a_Tcell, n_CTLA4_TCD4, TREG_CTLA4_50, K_ADCC);
         // if (FLAMEGPU->random.uniform<float>() < p_ADCC_death) { return flamegpu::DEAD; }
 
-        float MDSC_EC50_ArgI_Treg = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_EC50_ArgI_Treg");
-        float ArgI = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_CONC_ARGI))[voxel_ts];
-        float H_ArgI = ArgI / (ArgI + MDSC_EC50_ArgI_Treg);
+        // Treg division: cooldown-based, rate from QSP k_Treg_pro_tumor
+        // ArgI gating removed — ArgI modulates Th→Treg conversion (RF182), not Treg proliferation
         int divide_limit = FLAMEGPU->getVariable<int>("divide_limit");
-        if (FLAMEGPU->random.uniform<float>() < H_ArgI && divide_limit > 0){
-            divide_cd = 0;
-        }
         if (divide_limit > 0 && divide_cd <= 0) {
             divide_flag = 1;
         } else {
@@ -307,9 +341,9 @@ FLAMEGPU_AGENT_FUNCTION(treg_write_to_occ_grid, flamegpu::MessageNone, flamegpu:
 
     // Volume-based occupancy
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-    float my_vol = (cell_state == TCD4_TREG) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
+    float my_vol = (cell_state == TCD4_TREG) ? FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG") :
+                   (cell_state == TCD4_TFH)  ? FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TFH") :
+                                                FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
     float* vol_used = VOL_PTR(FLAMEGPU);
     atomicAdd(&vol_used[vidx], my_vol);
 
@@ -343,9 +377,9 @@ FLAMEGPU_AGENT_FUNCTION(treg_divide, flamegpu::MessageNone, flamegpu::MessageNon
     float* vol_used = VOL_PTR(FLAMEGPU);
     const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
     const int cell_state     = FLAMEGPU->getVariable<int>("cell_state");
-    float daughter_vol = (cell_state == TCD4_TREG) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
+    float daughter_vol = (cell_state == TCD4_TREG) ? FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG") :
+                         (cell_state == TCD4_TFH)  ? FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TFH") :
+                                                      FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
 
     int cand_x[26], cand_y[26], cand_z[26];
     int n_cands = 0;
@@ -365,7 +399,9 @@ FLAMEGPU_AGENT_FUNCTION(treg_divide, flamegpu::MessageNone, flamegpu::MessageNon
 
     if (n_cands == 0) return flamegpu::ALIVE;
 
-    const int div_interval   = FLAMEGPU->environment.getProperty<int>("PARAM_TCD4_DIV_INTERNAL");
+    const int div_interval   = (cell_state == TCD4_TREG)
+        ? FLAMEGPU->environment.getProperty<int>("PARAM_TREG_DIV_INTERVAL")
+        : FLAMEGPU->environment.getProperty<int>("PARAM_TH_DIV_INTERVAL");
     const float treg_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
 
     for (int i = 0; i < n_cands; i++) {
@@ -400,10 +436,11 @@ FLAMEGPU_AGENT_FUNCTION(treg_divide, flamegpu::MessageNone, flamegpu::MessageNon
         FLAMEGPU->setVariable<int>("divide_limit", divide_limit - 1);
         FLAMEGPU->setVariable<int>("divide_cd", div_interval);
 
-        // Track TH or TReg proliferation event
+        // Track TH/TReg/Tfh proliferation event
         {
             auto* evts_div = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
-            atomicAdd(&evts_div[cell_state == TCD4_TH ? EVT_PROLIF_TH : EVT_PROLIF_TREG], 1u);
+            const int prolif_slot = (cell_state == TCD4_TH) ? EVT_PROLIF_TH : (cell_state == TCD4_TREG) ? EVT_PROLIF_TREG : EVT_PROLIF_TFH;
+            atomicAdd(&evts_div[prolif_slot], 1u);
         }
 
         break;
@@ -485,18 +522,22 @@ FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone)
     const int z = FLAMEGPU->getVariable<int>("z");
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
 
-    float my_vol = (cell_state == TCD4_TREG) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
+    float my_vol, p_persist, bias;
+    if (cell_state == TCD4_TREG) {
+        my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG");
+        p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_TREG_REG");
+        bias = FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_TREG_REG");
+    } else if (cell_state == TCD4_TFH) {
+        my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TFH");
+        p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_TREG_TFH");
+        bias = FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_TREG_TFH");
+    } else {
+        my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
+        p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_TREG_TH");
+        bias = 0.0f;
+    }
 
-    float p_persist = (cell_state == TCD4_TREG) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_TREG_REG") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_TREG_TH");
-
-    float bias = (cell_state == TCD4_TREG) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_TREG_REG") : 0.0f;
-
-    // Read TGF-β gradient for TReg chemotaxis
+    // Read gradient: TReg→TGF-β, Tfh→CXCL13, TH→none
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int vidx = z * (grid_x * grid_y) + y * grid_x + x;
@@ -508,6 +549,13 @@ FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone)
             FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Y))[vidx];
         gz = reinterpret_cast<const float*>(
             FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Z))[vidx];
+    } else if (cell_state == TCD4_TFH) {
+        gx = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CXCL13_X))[vidx];
+        gy = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CXCL13_Y))[vidx];
+        gz = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CXCL13_Z))[vidx];
     }
 
     MoveParams mp;
@@ -520,11 +568,30 @@ FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone)
     mp.ecm_density = ECM_DENSITY_PTR(FLAMEGPU);
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
-    mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_TREG");
+    mp.min_porosity = (cell_state == TCD4_TFH)
+        ? FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_TFH")
+        : FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_TREG");
     mp.p_move = 1.0f;
     mp.p_persist = p_persist;
     mp.bias_strength = bias;
     mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
+
+    // Contact guidance
+    {
+        float w_cg = FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_TREG");
+        float ox = ECM_ORIENT_X_PTR(FLAMEGPU)[vidx];
+        float oy = ECM_ORIENT_Y_PTR(FLAMEGPU)[vidx];
+        float oz = ECM_ORIENT_Z_PTR(FLAMEGPU)[vidx];
+        if (bias > 0.0f) {
+            apply_contact_guidance(mp.grad_x, mp.grad_y, mp.grad_z, ox, oy, oz, w_cg);
+        } else {
+            apply_contact_guidance_persist(mp.grad_x, mp.grad_y, mp.grad_z, mp.bias_strength,
+                ox, oy, oz, w_cg,
+                FLAMEGPU->getVariable<int>("persist_dir_x"),
+                FLAMEGPU->getVariable<int>("persist_dir_y"),
+                FLAMEGPU->getVariable<int>("persist_dir_z"));
+        }
+    }
 
     MoveResult r = move_cell(mp, x, y, z,
         FLAMEGPU->getVariable<int>("persist_dir_x"),

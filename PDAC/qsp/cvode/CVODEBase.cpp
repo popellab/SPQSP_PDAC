@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 
-const int mxstep = 10000;
+const int mxstep = 500000;
 
 CVODEBase::CVODEBase()
 : _species_var()
@@ -233,6 +233,20 @@ void CVODEBase::setupCVODE(){
 
 		flag = CVodeSetMaxNumSteps(_cvode_mem, mxstep);
 
+		/* Enforce non-negativity: all species are biological quantities
+		 * (concentrations, cell counts, synapse complexes) that cannot
+		 * be negative.  Without this, CVODE can transiently drive species
+		 * negative during Newton iteration, producing NaN in expressions
+		 * like pow(phi_collagen, 1.8) and collapsing h to machine zero. */
+		{
+			N_Vector constraints = N_VNew_Serial(_neq, _sunctx);
+			for (int i = 0; i < _neq; i++) {
+				NV_DATA_S(constraints)[i] = 1.0;  // y[i] >= 0
+			}
+			flag = CVodeSetConstraints(_cvode_mem, constraints);
+			N_VDestroy(constraints);
+		}
+
 		/* Passing the pointer of this system to the solver, so that
 		* the parameters etc. can be accessed from the static function f and g.
 		* Function f () and g (root finding) need to access object
@@ -374,8 +388,8 @@ void CVODEBase::resetTransient() {
 	}
 }
 /*!
-* Get and print some final statistics
-*/
+ * Get and print some final statistics
+ */
 void CVODEBase::PrintFinalStats(void *cvode_mem)
 {
 	long int nst, nfe, nsetups, nje, nfeLS, nni, ncfn, netf, nge;

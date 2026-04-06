@@ -61,6 +61,18 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         flamegpu::LayerDescription layer = model.newLayer("update_ecm");
         layer.addHostFunction(update_ecm_grid);
     }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("decay_antigen");
+        layer.addHostFunction(decay_antigen_grid);
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("update_ecm_orientation");
+        layer.addHostFunction(update_ecm_orientation);
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("decay_stress_field");
+        layer.addHostFunction(decay_stress_field);
+    }
 
     // ── Timing checkpoint: after ECM ──
     {
@@ -89,16 +101,10 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     // 3. Mark recruitment sources.
     //    Matches HCC update_vas() which marks T/MDSC/MAC source voxels before recruitment.
     {
-        flamegpu::LayerDescription layer = model.newLayer("mark_vascular_t_sources");
-        layer.addAgentFunction(AGENT_VASCULAR, "mark_t_sources");
-    }
-    {
-        flamegpu::LayerDescription layer = model.newLayer("mark_mdsc_sources");
-        layer.addHostFunction(mark_mdsc_sources);
-    }
-    {
-        flamegpu::LayerDescription layer = model.newLayer("mark_mac_sources");
-        layer.addHostFunction(mark_mac_sources);
+        // All immune recruitment sources marked at vascular locations (PHALANX/HEV).
+        // T cells: IFN-γ gated. MAC/MDSC/DC: CCL2 gated. B cells: CXCL13 gated.
+        flamegpu::LayerDescription layer = model.newLayer("mark_vascular_sources");
+        layer.addAgentFunction(AGENT_VASCULAR, "mark_sources");
     }
 
     // 4. Recruitment: GPU kernel decides placement, thin host fn creates agents.
@@ -134,6 +140,8 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_MACROPHAGE,  "write_to_occ_grid");
         layer.addAgentFunction(AGENT_FIBROBLAST,  "write_to_occ_grid");
         layer.addAgentFunction(AGENT_VASCULAR,    "write_to_occ_grid");
+        layer.addAgentFunction(AGENT_BCELL,       "write_to_occ_grid");
+        layer.addAgentFunction(AGENT_DC,          "write_to_occ_grid");
     }
     {
         flamegpu::LayerDescription layer = model.newLayer("reset_moves_cancer");
@@ -146,19 +154,23 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         const int mdsc_steps   = model.Environment().getProperty<int>("PARAM_MDSC_MOVE_STEPS");
         const int mac_steps    = model.Environment().getProperty<int>("PARAM_MAC_MOVE_STEPS");
         const int fib_steps    = model.Environment().getProperty<int>("PARAM_FIB_MOVE_STEPS");
+        const int bcell_steps  = model.Environment().getProperty<int>("PARAM_BCELL_MOVE_STEPS");
+        const int dc_steps     = model.Environment().getProperty<int>("PARAM_DC_MOVE_STEPS");
 
         // Interleaved movement: all mobile agent types compete for voxels in the
         // same layer each substep. Each type's moves are spread evenly across the
         // full substep range so slower types (cancer, MDSC, MAC) aren't front-loaded.
         // Cancer uses moves_remaining (stem=5, progenitor=1) and returns early when
         // exhausted; immune agents run for their full step count.
-        const int max_steps = std::max({cancer_steps, tcell_steps, treg_steps, mdsc_steps, mac_steps, fib_steps});
+        const int max_steps = std::max({cancer_steps, tcell_steps, treg_steps, mdsc_steps, mac_steps, fib_steps, bcell_steps, dc_steps});
         const auto cancer_on = spread_steps(cancer_steps, max_steps);
         const auto tcell_on  = spread_steps(tcell_steps,  max_steps);
         const auto treg_on   = spread_steps(treg_steps,   max_steps);
         const auto mdsc_on   = spread_steps(mdsc_steps,   max_steps);
         const auto mac_on    = spread_steps(mac_steps,     max_steps);
         const auto fib_on    = spread_steps(fib_steps,     max_steps);
+        const auto bcell_on  = spread_steps(bcell_steps,   max_steps);
+        const auto dc_on     = spread_steps(dc_steps,      max_steps);
         for (int i = 0; i < max_steps; i++) {
             flamegpu::LayerDescription layer = model.newLayer("move_interleaved_" + std::to_string(i));
             if (cancer_on.count(i)) layer.addAgentFunction(AGENT_CANCER_CELL, "move");
@@ -167,6 +179,8 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
             if (mdsc_on.count(i))   layer.addAgentFunction(AGENT_MDSC, "move");
             if (mac_on.count(i))    layer.addAgentFunction(AGENT_MACROPHAGE, "move");
             if (fib_on.count(i))    layer.addAgentFunction(AGENT_FIBROBLAST, "move");
+            if (bcell_on.count(i))  layer.addAgentFunction(AGENT_BCELL, "move");
+            if (dc_on.count(i))     layer.addAgentFunction(AGENT_DC, "move");
         }
         {
             flamegpu::LayerDescription layer = model.newLayer("move_vascular");
@@ -212,6 +226,14 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_FIBROBLAST, "broadcast_location");
     }
     {
+        flamegpu::LayerDescription layer = model.newLayer("final_broadcast_bcell");
+        layer.addAgentFunction(AGENT_BCELL, "broadcast_location");
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("final_broadcast_dc");
+        layer.addAgentFunction(AGENT_DC, "broadcast_location");
+    }
+    {
         flamegpu::LayerDescription layer = model.newLayer("final_scan_neighbors");
         layer.addAgentFunction(AGENT_CANCER_CELL, "count_neighbors");
         layer.addAgentFunction(AGENT_TCELL,       "scan_neighbors");
@@ -219,6 +241,8 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_MDSC,        "scan_neighbors");
         layer.addAgentFunction(AGENT_MACROPHAGE,  "scan_neighbors");
         layer.addAgentFunction(AGENT_FIBROBLAST,  "scan_neighbors");
+        layer.addAgentFunction(AGENT_BCELL,       "scan_neighbors");
+        layer.addAgentFunction(AGENT_DC,          "scan_neighbors");
     }
 
     // ── Timing checkpoint: after neighbor scan ──
@@ -244,6 +268,8 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_MACROPHAGE,  "state_step");
         layer.addAgentFunction(AGENT_FIBROBLAST,  "state_step");
         layer.addAgentFunction(AGENT_VASCULAR,    "state_step");
+        layer.addAgentFunction(AGENT_BCELL,       "state_step");
+        layer.addAgentFunction(AGENT_DC,          "state_step");
     }
     {
         flamegpu::LayerDescription layer = model.newLayer("compute_chemical_sources");
@@ -254,6 +280,8 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_MACROPHAGE,  "compute_chemical_sources");
         layer.addAgentFunction(AGENT_FIBROBLAST,  "compute_chemical_sources");
         layer.addAgentFunction(AGENT_VASCULAR,    "compute_chemical_sources");
+        layer.addAgentFunction(AGENT_BCELL,       "compute_chemical_sources");
+        layer.addAgentFunction(AGENT_DC,          "compute_chemical_sources");
     }
 
     // ── Timing checkpoint: after state transitions + chemical sources ──
@@ -278,6 +306,8 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_MACROPHAGE, "pack_for_export");
         layer.addAgentFunction(AGENT_FIBROBLAST, "pack_for_export");
         layer.addAgentFunction(AGENT_VASCULAR, "pack_for_export");
+        layer.addAgentFunction(AGENT_BCELL, "pack_for_export");
+        layer.addAgentFunction(AGENT_DC, "pack_for_export");
     }
 
     // 8. Wave-interleaved division (N_DIVIDE_WAVES rounds, cancer/tcell/treg interleaved).
@@ -300,6 +330,10 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         {
             flamegpu::LayerDescription layer = model.newLayer("divide_treg_w" + ws);
             layer.addAgentFunction(AGENT_TREG, "divide");
+        }
+        {
+            flamegpu::LayerDescription layer = model.newLayer("divide_bcell_w" + ws);
+            layer.addAgentFunction(AGENT_BCELL, "divide");
         }
         {
             flamegpu::LayerDescription layer = model.newLayer("increment_divide_wave_" + ws);

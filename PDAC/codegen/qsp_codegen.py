@@ -74,7 +74,13 @@ class SBMLModel:
     # --- Units -----------------------------------------------------------
 
     def _parse_units(self):
-        """Parse <listOfUnitDefinitions> → SI conversion factor per unit ID."""
+        """Parse <listOfUnitDefinitions> → SI conversion factor per unit ID.
+
+        Converts all quantities to SI base units (mole, metre, second, kg).
+        This matches MATLAB SimBiology's internal unit resolution.
+        The SBML model defines cell = 1.66e-24 moles (1/NA multiplier),
+        so cells are stored as moles internally — same as MATLAB.
+        """
         for ud in self.model.findall(f".//{SBML_NS}unitDefinition"):
             uid = ud.get("id")
             factor = 1.0
@@ -83,10 +89,6 @@ class SBMLModel:
                 exp = float(u.get("exponent", "1"))
                 scale = int(u.get("scale", "0"))
                 mult = float(u.get("multiplier", "1"))
-                # SI base factor for this unit component:
-                #   value_SI = value_model * (mult * 10^scale * base_SI)^exp
-                # For SBML L2: base_SI for 'metre'=1, 'second'=1, 'mole'=1,
-                #   'gram'=1e-3 (kg), 'dimensionless'=1
                 base_si = {"metre": 1.0, "second": 1.0, "mole": 1.0,
                            "kilogram": 1.0, "gram": 1e-3,
                            "dimensionless": 1.0, "item": 1.0 / 6.02214076e23,
@@ -170,13 +172,24 @@ class SBMLModel:
             self.id_to_comp[sid] = comp_name
             self.name_to_id[full_name] = sid
 
-            init = sp.get("initialAmount", sp.get("initialConcentration", "0"))
+            init_amount = sp.get("initialAmount")
+            init_conc = sp.get("initialConcentration")
+            if init_amount is not None:
+                init = float(init_amount)
+                is_concentration = False
+            elif init_conc is not None:
+                init = float(init_conc)
+                is_concentration = True
+            else:
+                init = 0.0
+                is_concentration = False
             self.species.append({
                 "id": sid,
                 "name": full_name,
                 "base_name": name,
                 "compartment": comp_name,
-                "initial_value": float(init),
+                "initial_value": init,
+                "is_initial_concentration": is_concentration,
                 "units": sp.get("substanceUnits", ""),
                 "has_only_substance_units":
                     sp.get("hasOnlySubstanceUnits", "false") == "true",
@@ -438,18 +451,31 @@ def classify_identifiers(sbml: SBMLModel) -> dict:
     """Build identifier → C++ macro mapping.
 
     Returns dict: human_name → "SPVAR(SP_xxx)" | "PARAM(P_xxx)" | "AUX_VAR_xxx"
+
+    SBML convention: species with hasOnlySubstanceUnits=false appear as
+    CONCENTRATION in kinetic law expressions (not amount). CVODE tracks
+    amounts. So concentration-based species are mapped to SPVAR/V_comp,
+    giving concentration when substituted into rate law formulas.
     """
     mapping = {}
 
-    species_names = {sp["name"] for sp in sbml.species}
-    param_names = {p["name"] for p in sbml.parameters}
     rule_vars = {r["variable_name"] for r in sbml.assignment_rules}
-    comp_names = {c["name"] for c in sbml.compartments}
 
     for sp in sbml.species:
-        mapping[sp["name"]] = f'SPVAR(SP_{_sanitize(sp["name"])})'
-        # Also map base_name if unambiguous
-        # (skip for now — base names can be ambiguous across compartments)
+        san = _sanitize(sp["name"])
+        if sp.get("has_only_substance_units", False):
+            # Amount-based species: SPVAR stores amount → use directly
+            mapping[sp["name"]] = f'SPVAR(SP_{san})'
+        else:
+            # Concentration-based species: SPVAR stores amount, but kinetic
+            # laws expect concentration → divide by compartment volume/area.
+            comp_name = sp["compartment"]
+            comp_san = _sanitize(comp_name)
+            if comp_name in rule_vars:
+                vol_expr = f'AUX_VAR_{comp_san}'
+            else:
+                vol_expr = f'PARAM(P_{comp_san})'
+            mapping[sp["name"]] = f'(SPVAR(SP_{san}) / {vol_expr})'
 
     for r in sbml.assignment_rules:
         vn = r["variable_name"]
@@ -496,21 +522,55 @@ def wrap_expression(expr: str, mapping: dict) -> str:
 # Rule dependency ordering
 # =========================================================================
 
-def order_rules(rules: List[dict], all_rule_names: Set[str]) -> List[dict]:
-    """Topologically sort assignment rules so dependencies come first."""
+def order_rules(rules: List[dict], all_rule_names: Set[str],
+                sbml: "SBMLModel" = None) -> List[dict]:
+    """Topologically sort assignment rules so dependencies come first.
+
+    Also accounts for implicit dependencies introduced by concentration-based
+    species: when a species X in compartment C is used in a rule expression,
+    and X is concentration-based (hasOnlySubstanceUnits=False), the codegen
+    emits (SPVAR(SP_X) / AUX_VAR_C). So the rule implicitly depends on the
+    compartment rule C. We only add this dependency when C is itself a rule
+    AND the species with that compartment is concentration-based.
+    """
     name_to_rule = {r["variable_name"]: r for r in rules}
+
+    # Build mapping: compartment_name → set of concentration-based species names
+    # that are prefixed "compartment_name.species_short" in SBML expressions.
+    # We only add a compartment dependency if at least one concentration-based
+    # species in that compartment appears in the rule expression.
+    conc_species_by_comp: dict = {}  # comp_name → set of full species names
+    if sbml is not None:
+        for sp in sbml.species:
+            if not sp.get("has_only_substance_units", False):
+                comp = sp["compartment"]
+                conc_species_by_comp.setdefault(comp, set()).add(sp["name"])
 
     deps = {}
     for r in rules:
         vn = r["variable_name"]
         deps[vn] = set()
+        expr = r["expression"]
         for other_vn in all_rule_names:
             if other_vn == vn:
                 continue
             pattern = re.escape(other_vn)
+            # Standard dependency: other_vn appears as a standalone token
             if re.search(r'(?<![a-zA-Z0-9_\.])' + pattern + r'(?![a-zA-Z0-9_\.])',
-                         r["expression"]):
+                         expr):
                 deps[vn].add(other_vn)
+            # Compartment-prefix dependency: other_vn is a compartment that is
+            # also a rule, and at least one concentration-based species in that
+            # compartment appears in this expression (as "other_vn.speciesName").
+            # The codegen will emit (SPVAR / AUX_VAR_other_vn) for those species,
+            # so other_vn must be defined before this rule.
+            elif other_vn in name_to_rule and other_vn in conc_species_by_comp:
+                for sp_name in conc_species_by_comp[other_vn]:
+                    sp_pat = re.escape(sp_name)
+                    if re.search(r'(?<![a-zA-Z0-9_\.])' + sp_pat + r'(?![a-zA-Z0-9_\.])',
+                                 expr):
+                        deps[vn].add(other_vn)
+                        break
 
     # Kahn's algorithm
     in_degree = {vn: len(deps[vn]) for vn in name_to_rule}
@@ -543,43 +603,12 @@ def order_rules(rules: List[dict], all_rule_names: Set[str]) -> List[dict]:
 def needs_volume_scaling(species: dict, sbml: SBMLModel) -> Optional[str]:
     """Check if a species' ydot needs 1/V_compartment scaling.
 
-    Amount-based species: no scaling (ydot in moles/s).
-    Concentration-based: ydot = flux_sum / V_compartment.
+    Since we track AMOUNTS for all species (concentration * V for conc species),
+    and rate laws substitute concentration = SPVAR/V, the resulting fluxes are
+    in substance/time. ydot = sum(fluxes) with no volume scaling needed.
 
-    Returns compartment name if scaling needed, None otherwise.
+    Returns None (no scaling) for all species.
     """
-    # hasOnlySubstanceUnits=true → amount, no scaling
-    if species.get("has_only_substance_units"):
-        return None
-
-    # Check unit: cell, nanomole, milligram → amount
-    unit_id = species.get("units", "")
-    si_factor = sbml.get_si_factor(unit_id)
-
-    # Heuristic: if the unit involves only moles (or moles*other without m^-3),
-    # it's amount-based. If it involves m^-3 (concentration) or m^-2 (surface
-    # density), it needs scaling.
-    # Use the unit definition structure directly.
-    ud = None
-    for u in sbml.model.findall(f".//{SBML_NS}unitDefinition"):
-        if u.get("id") == unit_id:
-            ud = u
-            break
-
-    if ud is None:
-        return None
-
-    has_inverse_volume = False
-    for u in ud.findall(f".//{SBML_NS}unit"):
-        kind = u.get("kind", "dimensionless")
-        exp = float(u.get("exponent", "1"))
-        if kind == "metre" and exp < 0:
-            has_inverse_volume = True
-        if kind in ("litre", "liter") and exp < 0:
-            has_inverse_volume = True
-
-    if has_inverse_volume:
-        return species["compartment"]
     return None
 
 
@@ -636,7 +665,7 @@ def gen_enum_h(sbml: SBMLModel) -> str:
     lines.append("")
     lines.append("enum QSPNonSpeciesEnum { QSP_NON_SPECIES_COUNT = 0 };")
     lines.append("")
-    lines.append("// QSP Parameter Enum (class parameters with SI conversion)")
+    lines.append("// QSP Parameter Enum (class parameters, SBML-native units)")
     lines.append("enum QSPParamEnum")
     lines.append("{")
     for p in sbml.parameters:
@@ -721,6 +750,7 @@ protected:
     bool eventExecution(int i, bool delay, realtype& dt);
     realtype get_unit_conversion_species(int i) const;
     realtype get_unit_conversion_nspvar(int i) const;
+    double getVarOriginalUnit(int i) const override;
     bool allow_negative(int i)const{ return false; };
 private:
     friend class boost::serialization::access;
@@ -793,7 +823,9 @@ def gen_ode_cpp(sbml: SBMLModel, mapping: dict) -> str:
     lines.append(f'state_type ODE_system::_class_parameter = state_type({total_params}, 0);')
     lines.append('')
 
-    # setup_class_parameters
+    # setup_class_parameters — convert to SI for dimensional consistency
+    # SBML parameters use mixed time units (1/day, 1/s, 1/min, 1/hr)
+    # SI factors ensure all parameters are in a single consistent system
     lines.append('void ODE_system::setup_class_parameters(QSPParam& param){')
     for i, p in enumerate(sbml.parameters):
         factor = sbml.get_si_factor(p["units"])
@@ -824,20 +856,203 @@ def gen_ode_cpp(sbml: SBMLModel, mapping: dict) -> str:
     lines.append('bool ODE_system::triggerComponentEvaluate(int, realtype, bool){ return false; }')
     lines.append('bool ODE_system::eventEvaluate(int){ return false; }')
     lines.append('bool ODE_system::eventExecution(int, bool, realtype&){ return false; }')
-    lines.append('realtype ODE_system::get_unit_conversion_species(int) const { return 1.0; }')
+    # get_unit_conversion_species — return SI factor per species
+    # Used for: (1) tolerance scaling, (2) CSV output in SBML native units
+    lines.append('realtype ODE_system::get_unit_conversion_species(int i) const {')
+    lines.append('    static const realtype factors[] = {')
+    for sp in sbml.species:
+        factor = sbml.get_si_factor(sp["units"])
+        lines.append(f'        {factor:.15g}, // {sp["name"]}')
+    lines.append('    };')
+    lines.append('    return factors[i];')
+    lines.append('}')
     lines.append('realtype ODE_system::get_unit_conversion_nspvar(int) const { return 1.0; }')
     lines.append('')
 
-    lines.append('void ODE_system::setup_instance_tolerance(QSPParam&){')
-    lines.append('    _abstol = 1e-12; _reltol = 1e-6;')
+    # getVarOriginalUnit — override to output SBML-native units
+    # Amount species: _species_var / substance_factor → amount in SBML substance units
+    # Concentration species: additionally divide by compartment volume to get concentration
+    # in SBML concentration units (= substance / volume), matching SimBiology output.
+    rule_vars_for_output = {r["variable_name"] for r in sbml.assignment_rules}
+    comp_by_name_out = {c["name"]: c for c in sbml.compartments}
+
+    # Identify dynamic compartments (those defined by assignment rules)
+    dynamic_comps = set()
+    for c in sbml.compartments:
+        if c["name"] in rule_vars_for_output:
+            dynamic_comps.add(c["name"])
+
+    # Check if any concentration species are in dynamic compartments
+    need_dynamic_vol = any(
+        not sp.get("has_only_substance_units", False) and sp["compartment"] in dynamic_comps
+        for sp in sbml.species
+    )
+
+    lines.append('double ODE_system::getVarOriginalUnit(int i) const {')
+    lines.append('    // Base: amount in SI moles → SBML substance units')
+    lines.append('    realtype v = (i < _neq) ? _species_var[i] : _species_other[i - _neq];')
+    lines.append('    realtype sub_factor = get_unit_conversion_species(i);')
+    lines.append('')
+
+    # Identify assignment-rule species (their _species_var is stale; compute on-the-fly)
+    sp_names_set = {sp["name"] for sp in sbml.species}
+    ar_species_names = {r["variable_name"] for r in sbml.assignment_rules
+                        if r["variable_name"] in sp_names_set}
+
+    # Collect all assignment rules needed for output:
+    # 1) Dynamic compartment volume rules (needed for concentration species)
+    # 2) Assignment rules targeting species (needed to compute their values)
+    # 3) All transitive dependencies of the above
+    rules_by_name = {r["variable_name"]: r for r in sbml.assignment_rules}
+    needed_rules = set()
+
+    def collect_deps(vn):
+        if vn in needed_rules:
+            return
+        needed_rules.add(vn)
+        if vn in rules_by_name:
+            expr = rules_by_name[vn]["expression"]
+            for other_vn in rules_by_name:
+                if other_vn == vn:
+                    continue
+                pattern = re.escape(other_vn)
+                if re.search(r'(?<![a-zA-Z0-9_\.])' + pattern + r'(?![a-zA-Z0-9_\.])', expr):
+                    collect_deps(other_vn)
+
+    if need_dynamic_vol:
+        for dc in dynamic_comps:
+            collect_deps(dc)
+    for ar_sp in ar_species_names:
+        collect_deps(ar_sp)
+
+    if needed_rules:
+        # Build a mapping that uses _species_var[] instead of SPVAR()/NV_DATA_S(y)[]
+        # since getVarOriginalUnit is a const member function (no y parameter)
+        output_mapping = {}
+        for sp in sbml.species:
+            san = _sanitize(sp["name"])
+            if sp.get("has_only_substance_units", False):
+                output_mapping[sp["name"]] = f'_species_var[SP_{san}]'
+            else:
+                comp_name = sp["compartment"]
+                comp_san = _sanitize(comp_name)
+                if comp_name in rule_vars_for_output:
+                    vol_expr = f'AUX_VAR_{comp_san}'
+                else:
+                    vol_expr = f'_class_parameter[P_{comp_san}]'
+                output_mapping[sp["name"]] = f'(_species_var[SP_{san}] / {vol_expr})'
+        for r in sbml.assignment_rules:
+            vn = r["variable_name"]
+            output_mapping[vn] = f'AUX_VAR_{_sanitize(vn)}'
+        for p in sbml.parameters:
+            if p["name"] not in rule_vars_for_output:
+                output_mapping[p["name"]] = f'_class_parameter[P_{_sanitize(p["name"])}]'
+        for c in sbml.compartments:
+            if c["name"] in rule_vars_for_output:
+                pass  # handled by assignment rules above
+            elif c["name"] not in output_mapping:
+                output_mapping[c["name"]] = f'_class_parameter[P_{_sanitize(c["name"])}]'
+
+        # Order needed rules topologically
+        needed_rule_list = [r for r in sbml.assignment_rules if r["variable_name"] in needed_rules]
+        ordered_needed = order_rules(needed_rule_list,
+                                     {r["variable_name"] for r in needed_rule_list},
+                                     sbml=sbml)
+
+        lines.append('    // Compute assignment rules from current state')
+        for r in ordered_needed:
+            vn = r["variable_name"]
+            san = _sanitize(vn)
+            cpp_expr = wrap_expression(r["expression"], output_mapping)
+            lines.append(f'    realtype AUX_VAR_{san} = {cpp_expr};')
+        lines.append('')
+
+    # Generate switch for concentration species
+    has_conc_species = any(not sp.get("has_only_substance_units", False) for sp in sbml.species)
+
+    if has_conc_species:
+        lines.append('    // For concentration species: divide by compartment volume')
+        lines.append('    // Assignment-rule species: return computed AUX_VAR directly')
+        lines.append('    switch (i) {')
+        for idx, sp in enumerate(sbml.species):
+            if sp.get("has_only_substance_units", False):
+                # Check if this amount species is an assignment-rule target
+                if sp["name"] in ar_species_names:
+                    san = _sanitize(sp["name"])
+                    # AUX_VAR is in SI moles, convert to SBML substance units
+                    lines.append(f'    case {idx}: // {sp["name"]} (amount, assignment rule)')
+                    lines.append(f'        return AUX_VAR_{san} / sub_factor;')
+                continue
+            comp_name = sp["compartment"]
+            comp = comp_by_name_out[comp_name]
+            comp_vol_factor = sbml.get_si_factor(comp["units"])
+            comp_san = _sanitize(comp_name)
+
+            if sp["name"] in ar_species_names:
+                # Assignment-rule species: AUX_VAR is in SI concentration (mol/m² or mol/L)
+                # Convert to SBML units: multiply by comp_vol_factor / sub_factor
+                lines.append(f'    case {idx}: // {sp["name"]} (conc, assignment rule)')
+                lines.append(f'        return AUX_VAR_{_sanitize(sp["name"])} * {comp_vol_factor:.15g} / sub_factor;')
+            elif comp_name in dynamic_comps:
+                # Dynamic compartment: volume is AUX_VAR computed above (in SI)
+                lines.append(f'    case {idx}: // {sp["name"]} (conc, dynamic {comp_name})')
+                lines.append(f'        return v * {comp_vol_factor:.15g} / (sub_factor * AUX_VAR_{comp_san});')
+            else:
+                # Fixed compartment: V_comp_SI = PARAM(P_comp)
+                lines.append(f'    case {idx}: // {sp["name"]} (conc, fixed {comp_name})')
+                lines.append(f'        return v * {comp_vol_factor:.15g} / (sub_factor * PARAM(P_{comp_san}));')
+        lines.append('    default:')
+        lines.append('        break;')
+        lines.append('    }')
+        lines.append('')
+
+    lines.append('    // Amount species: just divide by substance factor')
+    lines.append('    return v / sub_factor;')
     lines.append('}')
     lines.append('')
+
+    lines.append('void ODE_system::setup_instance_tolerance(QSPParam&){')
+    lines.append('    // Per-species absolute tolerance: abstol_base × SI_factor')
+    lines.append('    // This ensures tolerance is meaningful in each species\' native scale.')
+    lines.append('    // E.g., 1e-12 cells × (1/NA) = 1.66e-36 mol → controls to ~1e-12 cells.')
+    lines.append('    realtype reltol = 1e-6;')
+    lines.append('    realtype abstol_base = 1e-12;')
+    lines.append('    N_Vector abstol = N_VNew_Serial(_neq, _sunctx);')
+    lines.append('    for (int i = 0; i < _neq; i++) {')
+    lines.append('        NV_DATA_S(abstol)[i] = abstol_base * get_unit_conversion_species(i);')
+    lines.append('    }')
+    lines.append('    int flag = CVodeSVtolerances(_cvode_mem, reltol, abstol);')
+    lines.append('    check_flag(&flag, "CVodeSVtolerances", 1);')
+    lines.append('    N_VDestroy(abstol);')
+    lines.append('}')
+    lines.append('')
+    # Build compartment lookup: name → compartment dict
+    comp_by_name = {c["name"]: c for c in sbml.compartments}
+
+    # setup_instance_variables — convert to SI amounts
+    # For AMOUNT species (hasOnlySubstanceUnits=true):
+    #   PFILE = initialAmount in SBML units → × factor → SI moles
+    # For CONCENTRATION species (hasOnlySubstanceUnits=false, initialConcentration):
+    #   PFILE = initialConcentration → need amount = conc × comp_size
+    #   → PFILE × PFILE(comp) × factor → SI moles
+    # Note: species with initialAssignment rules get overridden by eval_init_assignment().
     lines.append('void ODE_system::setup_instance_variables(QSPParam& param){')
     for i, sp in enumerate(sbml.species):
         factor = sbml.get_si_factor(sp["units"])
         san = _sanitize(sp["name"])
+        is_conc = sp.get("is_initial_concentration", False)
+        hosu = sp.get("has_only_substance_units", False)
         lines.append(f'    //{sp["name"]}, index: {i}, units: {sp["units"]}')
-        lines.append(f'    _species_var[SP_{san}] = PFILE(QSP_{san}) * {factor:.15g};')
+        if is_conc and not hosu:
+            # Concentration species: amount = concentration × compartment_size
+            # PFILE(species) is initialConcentration in native units (e.g. nM)
+            # PFILE(comp) is compartment size in native units (e.g. mm³)
+            # Their product = amount in substance units (e.g. nM·mm³ = nmol)
+            # factor converts substance units → SI (e.g. nmol → mol)
+            comp_san = _sanitize(sp["compartment"])
+            lines.append(f'    _species_var[SP_{san}] = PFILE(QSP_{san}) * PFILE(QSP_{comp_san}) * {factor:.15g};')
+        else:
+            lines.append(f'    _species_var[SP_{san}] = PFILE(QSP_{san}) * {factor:.15g};')
     lines.append('}')
     lines.append('')
 
@@ -851,16 +1066,118 @@ def gen_ode_cpp(sbml: SBMLModel, mapping: dict) -> str:
     lines.append('int ODE_system::g(realtype, N_Vector, realtype*, void*){ return 0; }')
     lines.append('')
 
-    # eval_init_assignment
+    # Build species lookup: name → species dict (for eval_init_assignment)
+    sp_by_name = {sp["name"]: sp for sp in sbml.species}
+
+    # eval_init_assignment — write to _species_var (not _y) so values persist
+    # The caller should call restore_y() after this to sync to CVODE's _y.
+    # Expression references to species use SPVAR() which reads NV_DATA_S(y),
+    # so we first restore_y() to sync _species_var → _y, then write results
+    # back to _species_var.
     lines.append('void ODE_system::eval_init_assignment(void){')
+    lines.append('    // Sync _species_var → _y so SPVAR() reads see current values')
+    lines.append('    restore_y();')
+    lines.append('')
     for ia in sbml.initial_assignments:
         vn = ia["variable_name"]
         san = _sanitize(vn)
         cpp_expr = wrap_expression(ia["expression"], mapping)
-        # For init, SPVAR reads from _y directly
-        cpp_init = cpp_expr.replace("SPVAR(", "NV_DATA_S(_y)[")
-        lines.append(f'    // {vn} = {ia["expression"][:80]}')
-        lines.append(f'    NV_DATA_S(_y)[SP_{san}] = {cpp_init};')
+        # For init, concentration-based species appearing in the expression
+        # are already mapped to (SPVAR/V_comp) by classify_identifiers.
+        # The expression evaluates to CONCENTRATION in SI (mol/m² or mol/m³).
+        # To store AMOUNT: multiply by compartment volume/area.
+        sp_info = sp_by_name.get(vn)
+        if sp_info is not None and not sp_info.get("has_only_substance_units", False):
+            comp = comp_by_name.get(sp_info["compartment"], {})
+            comp_san = _sanitize(sp_info["compartment"])
+            comp_name_str = sp_info["compartment"]
+            rule_names_local = {r["variable_name"] for r in sbml.assignment_rules}
+            if comp_name_str in rule_names_local:
+                vol_str = f'AUX_VAR_{comp_san}'
+            else:
+                vol_str = f'PARAM(P_{comp_san})'
+            lines.append(f'    // {vn} = ({ia["expression"][:60]}) * {comp_name_str}')
+            lines.append(f'    _species_var[SP_{san}] = ({cpp_expr}) * {vol_str};')
+            lines.append(f'    NV_DATA_S(_y)[SP_{san}] = _species_var[SP_{san}];')
+        else:
+            lines.append(f'    // {vn} = {ia["expression"][:80]}')
+            lines.append(f'    _species_var[SP_{san}] = {cpp_expr};')
+            lines.append(f'    NV_DATA_S(_y)[SP_{san}] = _species_var[SP_{san}];')
+    # Evaluate assignment rules that target species, so _species_var is correct
+    # before any CSV output at step 0.
+    ar_species = [(r, sp_by_name[r["variable_name"]])
+                  for r in sbml.assignment_rules
+                  if r["variable_name"] in sp_by_name]
+    if ar_species:
+        # Build mapping using _species_var[] instead of SPVAR() (no y in scope)
+        ar_mapping = {}
+        rule_names_ar = {r["variable_name"] for r in sbml.assignment_rules}
+        for sp in sbml.species:
+            san = _sanitize(sp["name"])
+            if sp.get("has_only_substance_units", False):
+                ar_mapping[sp["name"]] = f'_species_var[SP_{san}]'
+            else:
+                comp_name = sp["compartment"]
+                comp_san = _sanitize(comp_name)
+                if comp_name in rule_names_ar:
+                    vol_expr = f'AUX_VAR_{comp_san}'
+                else:
+                    vol_expr = f'_class_parameter[P_{comp_san}]'
+                ar_mapping[sp["name"]] = f'(_species_var[SP_{san}] / {vol_expr})'
+        for r in sbml.assignment_rules:
+            vn = r["variable_name"]
+            ar_mapping[vn] = f'AUX_VAR_{_sanitize(vn)}'
+        for p in sbml.parameters:
+            if p["name"] not in rule_names_ar:
+                ar_mapping[p["name"]] = f'_class_parameter[P_{_sanitize(p["name"])}]'
+        for c in sbml.compartments:
+            if c["name"] in rule_names_ar:
+                pass
+            elif c["name"] not in ar_mapping:
+                ar_mapping[c["name"]] = f'_class_parameter[P_{_sanitize(c["name"])}]'
+
+        # Topologically order all rules needed by the species assignment rules
+        needed_rules = set()
+        rules_by_name = {r["variable_name"]: r for r in sbml.assignment_rules}
+        def collect_ar_deps(vn):
+            if vn in needed_rules:
+                return
+            needed_rules.add(vn)
+            if vn in rules_by_name:
+                expr = rules_by_name[vn]["expression"]
+                for other_vn in rules_by_name:
+                    if other_vn == vn:
+                        continue
+                    pattern = re.escape(other_vn)
+                    if re.search(r'(?<![a-zA-Z0-9_\.])' + pattern + r'(?![a-zA-Z0-9_\.])', expr):
+                        collect_ar_deps(other_vn)
+        for r, sp in ar_species:
+            collect_ar_deps(r["variable_name"])
+        needed_list = [r for r in sbml.assignment_rules if r["variable_name"] in needed_rules]
+        ordered_needed = order_rules(needed_list, needed_rules, sbml=sbml)
+
+        lines.append('')
+        lines.append('    // Evaluate assignment-rule species so _species_var is correct at step 0')
+        for r in ordered_needed:
+            vn = r["variable_name"]
+            san = _sanitize(vn)
+            cpp_expr = wrap_expression(r["expression"], ar_mapping)
+            lines.append(f'    realtype AUX_VAR_{san} = {cpp_expr};')
+            # Write back to _species_var if this rule targets a species
+            if vn in sp_by_name:
+                sp = sp_by_name[vn]
+                if sp.get("has_only_substance_units", False):
+                    lines.append(f'    _species_var[SP_{san}] = AUX_VAR_{san};')
+                else:
+                    comp_name = sp["compartment"]
+                    comp_san = _sanitize(comp_name)
+                    if comp_name in rule_names_ar:
+                        vol_expr = f'AUX_VAR_{comp_san}'
+                    else:
+                        vol_expr = f'_class_parameter[P_{comp_san}]'
+                    lines.append(f'    _species_var[SP_{san}] = AUX_VAR_{san} * {vol_expr};')
+                lines.append(f'    NV_DATA_S(_y)[SP_{san}] = _species_var[SP_{san}];')
+
     lines.append('}')
     lines.append('')
 
@@ -876,12 +1193,31 @@ def gen_ode_cpp(sbml: SBMLModel, mapping: dict) -> str:
     lines.append('    //Assignment rules:')
     lines.append('')
     rule_names = {r["variable_name"] for r in sbml.assignment_rules}
-    ordered = order_rules(sbml.assignment_rules, rule_names)
+    ordered = order_rules(sbml.assignment_rules, rule_names, sbml=sbml)
+    # Identify which assignment rules target species (need writeback to _species_var)
+    sp_names_set = {sp["name"] for sp in sbml.species}
+    sp_by_name = {sp["name"]: sp for sp in sbml.species}
     for r in ordered:
         vn = r["variable_name"]
         san = _sanitize(vn)
         cpp_expr = wrap_expression(r["expression"], mapping)
         lines.append(f'    realtype AUX_VAR_{san} = {cpp_expr};')
+        # Write assignment-rule value back to _species_var so CSV output is correct
+        if vn in sp_names_set:
+            sp = sp_by_name[vn]
+            if sp.get("has_only_substance_units", False):
+                # Amount species: AUX_VAR is already in SI moles
+                lines.append(f'    ptrOde->_species_var[SP_{san}] = AUX_VAR_{san};')
+            else:
+                # Concentration species: AUX_VAR is SI_moles/comp_vol,
+                # multiply by compartment volume to get SI moles
+                comp_name = sp["compartment"]
+                comp_san = _sanitize(comp_name)
+                if comp_name in rule_names:
+                    vol_expr = f'AUX_VAR_{comp_san}'
+                else:
+                    vol_expr = f'PARAM(P_{comp_san})'
+                lines.append(f'    ptrOde->_species_var[SP_{san}] = AUX_VAR_{san} * {vol_expr};')
         lines.append('')
 
     # 2) Reaction fluxes
@@ -951,6 +1287,12 @@ public:
     ~QSPParam(){};
     double getVal(int n) const;
     void printParam(void) const;
+    bool readParamsFromXml(std::string inFileName) override {
+        _readParameters(inFileName);
+        return true;
+    }
+    void setupParam() override {}
+    void processInternalParams() override {}
 private:
     std::vector<double> _param;
     void _readParameters(const std::string& filename);

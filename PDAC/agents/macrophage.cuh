@@ -26,6 +26,7 @@ FLAMEGPU_AGENT_FUNCTION(mac_broadcast_location, flamegpu::MessageNone, flamegpu:
     const int mac_cs = FLAMEGPU->getVariable<int>("cell_state");
     FLAMEGPU->message_out.setVariable<int>("cell_state", mac_cs);
     FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f);  // N/A for macrophage
+    FLAMEGPU->message_out.setVariable<int>("dead", 0);
     FLAMEGPU->message_out.setLocation(
         (x + 0.5f) * voxel_size,
         (y + 0.5f) * voxel_size,
@@ -249,6 +250,15 @@ FLAMEGPU_AGENT_FUNCTION(mac_move, flamegpu::MessageNone, flamegpu::MessageNone) 
     mp.bias_strength = bias;
     mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
 
+    // Contact guidance: blend chemotaxis with fiber orientation
+    {
+        float w_cg = FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_MAC");
+        float ox = ECM_ORIENT_X_PTR(FLAMEGPU)[vidx];
+        float oy = ECM_ORIENT_Y_PTR(FLAMEGPU)[vidx];
+        float oz = ECM_ORIENT_Z_PTR(FLAMEGPU)[vidx];
+        apply_contact_guidance(mp.grad_x, mp.grad_y, mp.grad_z, ox, oy, oz, w_cg);
+    }
+
     MoveResult r = move_cell(mp, x, y, z,
         FLAMEGPU->getVariable<int>("persist_dir_x"),
         FLAMEGPU->getVariable<int>("persist_dir_y"),
@@ -307,10 +317,14 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
     if (cell_state == MAC_M1) {
         float TGFB = PDE_READ(FLAMEGPU, PDE_CONC_TGFB, voxel_ss);
         float IL10 = PDE_READ(FLAMEGPU, PDE_CONC_IL10, voxel_ss);
+        float IL6  = PDE_READ(FLAMEGPU, PDE_CONC_IL6, voxel_ss);
+
+        float H_TGFb = TGFB / (TGFB + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_EC50"));
+        float H_IL10 = IL10 / (IL10 + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_10_EC50"));
+        float H_IL6  = IL6  / (IL6  + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL6_M2_EC50"));
 
         double alpha = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M2_POL") *
-                            ((TGFB / (TGFB + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_EC50"))) +
-                            (IL10 / (IL10 + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_10_EC50"))));
+                            (H_TGFb + H_IL10 + H_IL6);
 
         // Hypoxia increases M1→M2 transition probability
         alpha /= static_cast<double>(bias_factor);
@@ -354,7 +368,9 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
          FLAMEGPU->environment.getProperty<float>("PARAM_IFNG_PDL1_HALF"),
          FLAMEGPU->environment.getProperty<float>("PARAM_IFNG_PDL1_N"),
          FLAMEGPU->environment.getProperty<float>("PARAM_PDL1_SYN_MAX"),
-         FLAMEGPU->getVariable<float>("PDL1_syn"));
+         FLAMEGPU->getVariable<float>("PDL1_syn"),
+         FLAMEGPU->environment.getProperty<float>("PARAM_PDL1_INTERNALIZATION_RATE"),
+         FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE"));
 
     FLAMEGPU->setVariable<float>("PDL1_syn", PDL1);
 

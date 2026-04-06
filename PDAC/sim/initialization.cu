@@ -1120,7 +1120,7 @@ void initializeToQSP(
     const float treg_life        = model.Environment().getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
     const float treg_life_sd     = model.Environment().getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
     const int   treg_div_limit   = model.Environment().getProperty<int>("PARAM_TCD4_DIV_LIMIT");
-    const int   treg_div_interval = model.Environment().getProperty<int>("PARAM_TCD4_DIV_INTERNAL");
+    const int   treg_div_interval = model.Environment().getProperty<int>("PARAM_TREG_DIV_INTERVAL");
     const float mdsc_life        = model.Environment().getProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE");
     const float mac_life        = model.Environment().getProperty<float>("PARAM_MAC_LIFE_MEAN");
     const float fib_life        = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
@@ -1239,6 +1239,18 @@ void initializeToQSP(
         simulation.setPopulationData(vascular_vec);
     }
 
+    // B cells — none at init (recruited via CXCL13)
+    {
+        flamegpu::AgentVector bcell_pop(model.Agent(AGENT_BCELL));
+        simulation.setPopulationData(bcell_pop);
+    }
+
+    // DCs — none at init (recruited via CCL2)
+    {
+        flamegpu::AgentVector dc_pop(model.Agent(AGENT_DC));
+        simulation.setPopulationData(dc_pop);
+    }
+
     std::cout << "QSP-based agent initialization complete\n" << std::endl;
 }
 
@@ -1300,7 +1312,7 @@ void initializeStructuredDomain(
     const float treg_life        = model.Environment().getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
     const float treg_life_sd     = model.Environment().getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
     const int   treg_div_limit   = model.Environment().getProperty<int>("PARAM_TCD4_DIV_LIMIT");
-    const int   treg_div_interval = model.Environment().getProperty<int>("PARAM_TCD4_DIV_INTERNAL");
+    const int   treg_div_interval = model.Environment().getProperty<int>("PARAM_TREG_DIV_INTERVAL");
     const float mdsc_life        = model.Environment().getProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE");
     const float mac_life         = model.Environment().getProperty<float>("PARAM_MAC_LIFE_MEAN");
     const float fib_life         = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
@@ -1616,7 +1628,23 @@ void initializeStructuredDomain(
     }
 
     // -----------------------------------------------------------------------
-    // Step 11: PDE warmup — diffusion+decay only (no agent sources)
+    // Step 11: B cells — none at init (recruited via CXCL13)
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector bcell_pop(model.Agent(AGENT_BCELL));
+        simulation.setPopulationData(bcell_pop);
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 11b: DCs — none at init (recruited via CCL2)
+    // -----------------------------------------------------------------------
+    {
+        flamegpu::AgentVector dc_pop(model.Agent(AGENT_DC));
+        simulation.setPopulationData(dc_pop);
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 12: PDE warmup — diffusion+decay only (no agent sources)
     // -----------------------------------------------------------------------
     const int warmup_substeps = model.Environment().getProperty<int>("PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS");
     run_pde_warmup(warmup_substeps);

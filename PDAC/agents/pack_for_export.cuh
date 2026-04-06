@@ -108,4 +108,24 @@ FLAMEGPU_AGENT_FUNCTION(pack_export_vas, flamegpu::MessageNone, flamegpu::Messag
     return flamegpu::ALIVE;
 }
 
+// type_id=7: has cell_state, life, extra=is_breg
+FLAMEGPU_AGENT_FUNCTION(pack_export_bcell, flamegpu::MessageNone, flamegpu::MessageNone) {
+    if (!FLAMEGPU->environment.getProperty<int>("do_abm_export")) return flamegpu::ALIVE;
+    pack_row(FLAMEGPU, 7,
+        FLAMEGPU->getVariable<int>("cell_state"),
+        FLAMEGPU->getVariable<int>("life"),
+        FLAMEGPU->getVariable<int>("is_breg"));
+    return flamegpu::ALIVE;
+}
+
+// type_id=8: has cell_state, life, extra=dc_subtype
+FLAMEGPU_AGENT_FUNCTION(pack_export_dc, flamegpu::MessageNone, flamegpu::MessageNone) {
+    if (!FLAMEGPU->environment.getProperty<int>("do_abm_export")) return flamegpu::ALIVE;
+    pack_row(FLAMEGPU, 8,
+        FLAMEGPU->getVariable<int>("cell_state"),
+        FLAMEGPU->getVariable<int>("life"),
+        FLAMEGPU->getVariable<int>("dc_subtype"));
+    return flamegpu::ALIVE;
+}
+
 #endif // PACK_FOR_EXPORT_CUH

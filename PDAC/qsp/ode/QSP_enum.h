@@ -178,7 +178,7 @@ QSP_SPECIES_COUNT  // = 164
 
 enum QSPNonSpeciesEnum { QSP_NON_SPECIES_COUNT = 0 };
 
-// QSP Parameter Enum (class parameters with SI conversion)
+// QSP Parameter Enum (class parameters, SBML-native units)
 enum QSPParamEnum
 {
 P_k_cell_clear,

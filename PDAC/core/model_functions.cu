@@ -29,14 +29,18 @@ FLAMEGPU_HOST_FUNCTION(update_agent_counts) {
     int tcell_count = FLAMEGPU->agent(AGENT_TCELL).count();
     int treg_count = FLAMEGPU->agent(AGENT_TREG).count();
     int mdsc_count = FLAMEGPU->agent(AGENT_MDSC).count();
+    int bcell_count = FLAMEGPU->agent(AGENT_BCELL).count();
+    int dc_count = FLAMEGPU->agent(AGENT_DC).count();
 
     // Update environment properties
     FLAMEGPU->environment.setProperty<unsigned int>("total_cancer_cells", cancer_count);
     FLAMEGPU->environment.setProperty<unsigned int>("total_tcells", tcell_count);
     FLAMEGPU->environment.setProperty<unsigned int>("total_tregs", treg_count);
     FLAMEGPU->environment.setProperty<unsigned int>("total_mdscs", mdsc_count);
+    FLAMEGPU->environment.setProperty<unsigned int>("total_bcells", bcell_count);
+    FLAMEGPU->environment.setProperty<unsigned int>("total_dcs", dc_count);
     FLAMEGPU->environment.setProperty<unsigned int>("total_agents",
-    cancer_count + tcell_count + treg_count + mdsc_count);
+    cancer_count + tcell_count + treg_count + mdsc_count + bcell_count + dc_count);
     nvtxRangePop();
 }
 

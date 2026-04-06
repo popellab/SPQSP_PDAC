@@ -1,5 +1,7 @@
 #include "LymphCentral_wrapper.h"
 #include <iostream>
+#include <fstream>
+#include <filesystem>
 #include <cmath>
 #include <stdexcept>
 #include <boost/property_tree/ptree.hpp>
@@ -107,12 +109,29 @@ bool LymphCentralWrapper::initialize(const std::string& param_filename) {
         const double max_time = 5000.0 * 86400.0;  // 5000-day safety limit
         unsigned int step_count = 0;
 
+        // Open per-step presim QSP CSV if a path was provided
+        std::ofstream presim_csv;
+        if (!_presim_output_path.empty()) {
+            std::filesystem::create_directories(
+                std::filesystem::path(_presim_output_path).parent_path().empty()
+                    ? "." : std::filesystem::path(_presim_output_path).parent_path().string());
+            presim_csv.open(_presim_output_path);
+            if (presim_csv.is_open()) {
+                presim_csv << "step," << CancerVCT::ODE_system::getHeader() << "\n";
+                presim_csv << 0 << *ss_model.getSystem() << "\n";  // step 0 = initial condition
+            }
+        }
+
         while (tt < max_time) {
             ss_model.solve(tt, dt);
             tt += dt;
             step_count++;
 
             tum_vol = _compute_tumor_volume(ss_model.getSystem());
+
+            if (presim_csv.is_open()) {
+                presim_csv << step_count << *ss_model.getSystem() << "\n";
+            }
 
             if (step_count % 500 == 0) {
                 std::cout << "  t=" << tt / 86400.0 << " d  tum_vol=" << tum_vol
@@ -214,7 +233,6 @@ bool LymphCentralWrapper::time_step(double t, double dt) {
         _apply_abm_feedback();
 
         // Advance ODE system by dt
-        // MolecularModelCVode::solve calls ODE_system::simOdeStep internally
         bool success = _qsp_model->solve(t, dt);
 
         if (success) {
@@ -451,12 +469,13 @@ void LymphCentralWrapper::_apply_drug_doses(double t, double dt) {
 // Apply ABM feedback to ODE system (called at start of each time_step()).
 //
 // Converts discrete ABM event counts to ODE species changes:
-//   species_change = discrete_count × abm_scaler / AVOGADROS  (moles)
+//   species_change = discrete_count × abm_scaler / AVOGADROS  (SI moles)
 //
 // Events applied:
-//   1. Cancer deaths  → reduce V_T_C1  (cancer cells in tumor compartment)
-//   2. Teff recruited → reduce V_C_T1  (effector T cells in central compartment)
-//   3. TReg recruited → reduce V_C_T0  (regulatory T cells in central compartment)
+//   1. Cancer deaths  → increase antigen P0/P1 in tumor compartment
+//   2. Teff recruited → reduce V_C_CD8 (effector T cells in central compartment)
+//   3. TReg recruited → reduce V_C_Treg (regulatory T cells in central compartment)
+//   4. Th recruited   → reduce V_C_Th (helper T cells in central compartment)
 void LymphCentralWrapper::_apply_abm_feedback() {
     if (!_is_initialized || !_qsp_model) return;
     if (_abm_signals.abm_scaler <= 0.0) return;

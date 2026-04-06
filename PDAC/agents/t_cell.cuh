@@ -19,6 +19,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_broadcast_location, flamegpu::MessageNone, flamegp
     FLAMEGPU->message_out.setVariable<int>("cell_state", tcell_cs);
     FLAMEGPU->message_out.setVariable<float>("PDL1", 0.0f);  // T cells don't have PDL1
     FLAMEGPU->message_out.setVariable<float>("kill_factor", FLAMEGPU->getVariable<float>("hypoxia_kill_factor"));
+    FLAMEGPU->message_out.setVariable<int>("dead", 0);
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
@@ -249,48 +250,58 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
             FLAMEGPU->setVariable<float>("IL2_release_remain", IL2_release_remain);
         }
 
-        // Check for exhaustion
+        // Check for exhaustion — 4 independent pathways (matching ODE RF57/59/60/61)
+        // Each pathway computes survival prob; combined as product
         const int neighbor_Treg = FLAMEGPU->getVariable<int>("neighbor_Treg_count");
         const int neighbor_all = FLAMEGPU->getVariable<int>("neighbor_all_count");
+        const int neighbor_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
         const float max_PDL1 = FLAMEGPU->getVariable<float>("max_neighbor_PDL1");
+        const float param_cell = FLAMEGPU->environment.getProperty<float>("PARAM_CELL");
 
-        bool exhausted = false;
-        if (neighbor_Treg > 0){
-            const float param_cell = FLAMEGPU->environment.getProperty<float>("PARAM_CELL");
-            const float exhaust_base_Treg = FLAMEGPU->environment.getProperty<float>("PARAM_EXHUAST_BASE_TREG");
+        float p_survive = 1.0f;
 
-            float denominator = neighbor_all + param_cell;
-            const float q_exh = static_cast<float>(neighbor_Treg) / denominator;
-            const float p_exhaust_treg = 1.0f - powf(exhaust_base_Treg, q_exh);
-
-            if (FLAMEGPU->random.uniform<float>() < p_exhaust_treg){
-                exhausted = true;
-            }
+        // RF57 — Basal/antigen exhaustion: k_basal * C/(C+K_C_exh+cell)
+        if (neighbor_cancer > 0) {
+            const float K_C_exh = FLAMEGPU->environment.getProperty<float>("PARAM_K_C_EXH");
+            float q_basal = static_cast<float>(neighbor_cancer)
+                / (neighbor_cancer + K_C_exh + param_cell);
+            p_survive *= powf(FLAMEGPU->environment.getProperty<float>("PARAM_EXHAUST_BASE_BASAL"), q_basal);
         }
-        else if (neighbor_all > 0){
+
+        // RF60 — PD1-driven exhaustion: k_CD8 * C/(C+CD8+cell) * H_PD1
+        if (neighbor_cancer > 0 && neighbor_all > 0) {
             float bond = get_PD1_PDL1(max_PDL1, nivo,
                         FLAMEGPU->environment.getProperty<float>("PARAM_PD1_SYN"),
                         FLAMEGPU->environment.getProperty<float>("PARAM_PDL1_K1"),
                         FLAMEGPU->environment.getProperty<float>("PARAM_PDL1_K2"),
                         FLAMEGPU->environment.getProperty<float>("PARAM_PDL1_K3"));
-
-            const float PD1_PDL1_half = FLAMEGPU->environment.getProperty<float>("PARAM_PD1_PDL1_HALF");
-            const float n_PD1_PDL1 = FLAMEGPU->environment.getProperty<float>("PARAM_N_PD1_PDL1");
-            float supp = hill_equation(bond, PD1_PDL1_half, n_PD1_PDL1);
-
-            const float exhaust_base_PDL1 = FLAMEGPU->environment.getProperty<float>("PARAM_EXHUAST_BASE_PDL1");
-            float p_exhaust_pdl1 = 1 - powf(exhaust_base_PDL1, supp);
-
-            if (FLAMEGPU->random.uniform<float>() < p_exhaust_pdl1){
-                exhausted = true;
-            }
+            float H_PD1 = hill_equation(bond,
+                        FLAMEGPU->environment.getProperty<float>("PARAM_PD1_PDL1_HALF"),
+                        FLAMEGPU->environment.getProperty<float>("PARAM_N_PD1_PDL1"));
+            float q_pd1 = static_cast<float>(neighbor_cancer)
+                / (neighbor_cancer + neighbor_all + param_cell) * H_PD1;
+            p_survive *= powf(FLAMEGPU->environment.getProperty<float>("PARAM_EXHAUST_BASE_PD1"), q_pd1);
         }
 
-        if (exhausted) {
-                // Transition to suppressed
-                FLAMEGPU->setVariable<int>("cell_state", T_CELL_SUPP);
-                FLAMEGPU->setVariable<int>("divide_flag", 0);
-                FLAMEGPU->setVariable<int>("divide_limit", 0);
+        // RF59 — Treg exhaustion: k_Treg * Tregs/(CD8+Tregs+cell) * H_IL10
+        if (neighbor_Treg > 0) {
+            float IL10 = PDE_READ(FLAMEGPU, PDE_CONC_IL10, voxel_t);
+            float IL10_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_EXHAUST_IL10_EC50");
+            float H_IL10 = IL10 / (IL10 + IL10_ec50);
+            float q_treg = static_cast<float>(neighbor_Treg)
+                / (neighbor_all + param_cell) * H_IL10;
+            p_survive *= powf(FLAMEGPU->environment.getProperty<float>("PARAM_EXHAUST_BASE_TREG"), q_treg);
+        }
+
+        // RF61 — Stiffness exhaustion: OMITTED — ABM handles spatially via ECM porosity
+        // gating on movement, density-based speed reduction, and hypoxia from poor perfusion
+
+        // Combined: roll against total exhaustion probability
+        float p_exhaust = 1.0f - p_survive;
+        if (p_exhaust > 0.0f && FLAMEGPU->random.uniform<float>() < p_exhaust) {
+            FLAMEGPU->setVariable<int>("cell_state", T_CELL_SUPP);
+            FLAMEGPU->setVariable<int>("divide_flag", 0);
+            FLAMEGPU->setVariable<int>("divide_limit", 0);
         }
     }
 
@@ -581,6 +592,20 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
     mp.p_persist = p_persist;
     mp.bias_strength = 0.0f; // T cells: no chemotaxis (TBD)
     mp.grad_x = 0.0f; mp.grad_y = 0.0f; mp.grad_z = 0.0f;
+
+    // Contact guidance: fiber + persistence for directional movement along ECM
+    {
+        const int vidx = z * (mp.grid_x * mp.grid_y) + y * mp.grid_x + x;
+        float w_cg = FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_TCELL");
+        float ox = ECM_ORIENT_X_PTR(FLAMEGPU)[vidx];
+        float oy = ECM_ORIENT_Y_PTR(FLAMEGPU)[vidx];
+        float oz = ECM_ORIENT_Z_PTR(FLAMEGPU)[vidx];
+        apply_contact_guidance_persist(mp.grad_x, mp.grad_y, mp.grad_z, mp.bias_strength,
+            ox, oy, oz, w_cg,
+            FLAMEGPU->getVariable<int>("persist_dir_x"),
+            FLAMEGPU->getVariable<int>("persist_dir_y"),
+            FLAMEGPU->getVariable<int>("persist_dir_z"));
+    }
 
     MoveResult r = move_cell(mp, x, y, z,
         FLAMEGPU->getVariable<int>("persist_dir_x"),

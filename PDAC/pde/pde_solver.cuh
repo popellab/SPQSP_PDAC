@@ -8,21 +8,30 @@
 namespace PDAC {
 
 // Chemical substrate indices
+// Units: cytokines/chemokines in nM, O2/MMP/Antibody in µM
+// Sources: pmol/(cell*s) for nM substrates, nmol/(cell*s) for µM substrates
+// EC50s: nM for nM substrates, µM for µM substrates
+// Decay/uptake rates: 1/s (unit-independent)
+// Diffusivities: cm²/s (unit-independent)
 enum ChemicalSubstrate {
-    CHEM_O2 = 0,
-    CHEM_IFN,       // IFN-gamma
-    CHEM_IL2,       // IL-2
-    CHEM_IL10,      // IL-10
-    CHEM_TGFB,      // TGF-beta
-    CHEM_CCL2,      // CCL2
-    CHEM_ARGI,      // Arginase I
-    CHEM_NO,        // Nitric Oxide
-    CHEM_IL12,      // IL-12
-    CHEM_VEGFA,     // VEGF-A
-    CHEM_IL1,       // IL-1
-    CHEM_IL6,       // IL-6
-    CHEM_CXCL13,    // CXCL13
-    CHEM_MMP,       // MMP-2/9 (matrix metalloproteinase)
+    CHEM_O2 = 0,    // [µM] — oxygen, vascular PHALANX source
+    CHEM_IFN,       // [nM] — IFN-gamma
+    CHEM_IL2,       // [nM] — IL-2
+    CHEM_IL10,      // [nM] — IL-10
+    CHEM_TGFB,      // [nM] — TGF-beta
+    CHEM_CCL2,      // [nM] — CCL2/MCP-1
+    CHEM_ARGI,      // [nM] — Arginase I
+    CHEM_NO,        // [nM] — Nitric Oxide
+    CHEM_IL12,      // [nM] — IL-12
+    CHEM_VEGFA,     // [nM] — VEGF-A
+    CHEM_IL1,       // [nM] — IL-1beta
+    CHEM_IL6,       // [nM] — IL-6
+    CHEM_CXCL13,    // [nM] — CXCL13 (B cell/TLS chemokine)
+    CHEM_MMP,       // [µM] — MMP-2/9 (matrix metalloproteinase)
+    CHEM_ANTIBODY,  // [µM] — IgG antibody (B cell plasma secretion, ADCC)
+    CHEM_CCL21,     // [nM] — CCL21 (mature DC secretion, TLS T-zone homing)
+    CHEM_CXCL12,    // [nM] — CXCL12/SDF-1 (iCAF + cancer, T cell exclusion)
+    CHEM_CCL5,      // [nM] — CCL5/RANTES (cancer + iCAF, Treg CCR5 recruitment)
     NUM_SUBSTRATES
 };
 
@@ -33,6 +42,8 @@ enum GradientSubstrate {
     GRAD_TGFB,
     GRAD_CCL2,
     GRAD_VEGFA,
+    GRAD_CXCL13,
+    GRAD_CCL21,
     NUM_GRAD_SUBSTRATES
 };
 

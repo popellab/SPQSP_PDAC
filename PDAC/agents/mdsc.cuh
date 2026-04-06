@@ -18,6 +18,7 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_broadcast_location, flamegpu::MessageNone, flamegpu
     FLAMEGPU->message_out.setVariable<int>("cell_state", 0);  // MDSCs have single state
     FLAMEGPU->message_out.setVariable<float>("PDL1", FLAMEGPU->getVariable<float>("PDL1_syn"));
     FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f);  // N/A for MDSC
+    FLAMEGPU->message_out.setVariable<int>("dead", 0);
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
     FLAMEGPU->message_out.setVariable<int>("voxel_z", z);
@@ -157,7 +158,9 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_state_step, flamegpu::MessageNone, flamegpu::Messag
          FLAMEGPU->environment.getProperty<float>("PARAM_IFNG_PDL1_HALF"),
          FLAMEGPU->environment.getProperty<float>("PARAM_IFNG_PDL1_N"),
          FLAMEGPU->environment.getProperty<float>("PARAM_PDL1_SYN_MAX"),
-         FLAMEGPU->getVariable<float>("PDL1_syn"));
+         FLAMEGPU->getVariable<float>("PDL1_syn"),
+         FLAMEGPU->environment.getProperty<float>("PARAM_PDL1_INTERNALIZATION_RATE"),
+         FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE"));
 
     FLAMEGPU->setVariable<float>("PDL1_syn", PDL1);
 

@@ -10,6 +10,8 @@
 #include "../agents/macrophage.cuh"
 #include "../agents/fibroblast.cuh"
 #include "../agents/vascular_cell.cuh"
+#include "../agents/b_cell.cuh"
+#include "../agents/dendritic_cell.cuh"
 #include "../agents/pack_for_export.cuh"
 
 #include "../pde/pde_integration.cuh"
@@ -35,6 +37,8 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state);
 void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state);
 void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state);
 void defineVascularCellAgent(flamegpu::ModelDescription& model);
+void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divide);
+void defineDCAgent(flamegpu::ModelDescription& model, bool include_state);
 
 // Forward declaration (implemented in model_layers.cu)
 void defineMainModelLayers(flamegpu::ModelDescription& model);
@@ -263,6 +267,8 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     treg.newVariable<int>("neighbor_cancer_count", 0);
     treg.newVariable<int>("neighbor_all_count", 0);
     treg.newVariable<int>("found_progenitor", 0);
+    treg.newVariable<int>("neighbor_dc_mature_count", 0);
+    treg.newVariable<int>("neighbor_bcell_count", 0);
 
     // Cached bitmask of available neighbor voxels
     treg.newVariable<unsigned int>("available_neighbors", 0u);
@@ -513,7 +519,7 @@ void defineVascularCellAgent(flamegpu::ModelDescription& model) {
     agent.newFunction("write_to_occ_grid", vascular_write_to_occ_grid);
 
     // Recruitment source marking
-    agent.newFunction("mark_t_sources", vascular_mark_t_sources);
+    agent.newFunction("mark_sources", vascular_mark_sources);
 
     // State transitions and division
     agent.newFunction("state_step", vascular_state_step);
@@ -526,6 +532,118 @@ void defineVascularCellAgent(flamegpu::ModelDescription& model) {
 
     // Single-phase movement (tip cells only, run-tumble, volume-based occupancy)
     agent.newFunction("move", vascular_move);
+}
+
+// Define the BCell agent (Naive/Activated/Plasma states, CXCL13 chemotaxis, ADCC)
+void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divide) {
+    flamegpu::AgentDescription bcell = model.newAgent(AGENT_BCELL);
+
+    // Position
+    bcell.newVariable<int>("x");
+    bcell.newVariable<int>("y");
+    bcell.newVariable<int>("z");
+
+    // State: BCELL_NAIVE=0, BCELL_ACTIVATED=1, BCELL_PLASMA=2
+    bcell.newVariable<int>("cell_state", BCELL_NAIVE);
+
+    // Movement state (unified movement framework)
+    bcell.newVariable<int>("persist_dir_x", 0);
+    bcell.newVariable<int>("persist_dir_y", 0);
+    bcell.newVariable<int>("persist_dir_z", 0);
+
+    // Antigen and regulatory fate
+    bcell.newVariable<int>("has_antigen", 0);   // Captured antigen from dying cancer cell
+    bcell.newVariable<int>("is_breg", 0);       // Regulatory B cell fate (rolled at activation)
+    bcell.newVariable<int>("activation_timer", 0);  // Steps in ACTIVATED before PLASMA differentiation
+
+    // Division control (Activated state only)
+    bcell.newVariable<int>("divide_flag", 0);
+    bcell.newVariable<int>("divide_cd", 0);
+    bcell.newVariable<int>("divide_limit", 0);
+    bcell.newVariable<int>("divide_wave", 0);
+
+    // Neighbor counts (computed via messaging)
+    bcell.newVariable<int>("neighbor_cancer_count", 0);
+    bcell.newVariable<int>("neighbor_th_count", 0);
+    bcell.newVariable<int>("neighbor_bcell_count", 0);
+    bcell.newVariable<int>("neighbor_fib_count", 0);
+
+    // Lifecycle
+    bcell.newVariable<int>("life", 0);
+    bcell.newVariable<int>("dead", 0);
+
+    // Agent functions
+    bcell.newFunction("broadcast_location", bcell_broadcast_location)
+        .setMessageOutput(MSG_CELL_LOCATION);
+
+    bcell.newFunction("scan_neighbors", bcell_scan_neighbors)
+        .setMessageInput(MSG_CELL_LOCATION);
+
+    bcell.newFunction("compute_chemical_sources", bcell_compute_chemical_sources);
+    bcell.newFunction("pack_for_export", pack_export_bcell);
+
+    if (include_state_divide) {
+        bcell.newFunction("write_to_occ_grid", bcell_write_to_occ_grid);
+        bcell.newFunction("move", bcell_move);
+
+        bcell.newFunction("state_step", bcell_state_step)
+            .setAllowAgentDeath(true);
+
+        {
+            flamegpu::AgentFunctionDescription fn = bcell.newFunction("divide", bcell_divide);
+            fn.setAgentOutput(bcell);
+        }
+    }
+}
+
+// Define the DC agent and its variables
+void defineDCAgent(flamegpu::ModelDescription& model, bool include_state) {
+    flamegpu::AgentDescription dc = model.newAgent(AGENT_DC);
+
+    // Spatial position
+    dc.newVariable<int>("x");
+    dc.newVariable<int>("y");
+    dc.newVariable<int>("z");
+
+    // State: DC_IMMATURE=0, DC_MATURE=1
+    dc.newVariable<int>("cell_state", DC_IMMATURE);
+    // Subtype: DC_CDC1=0 (cross-present→CD8, IL-12), DC_CDC2=1 (MHC-II→CD4/Treg)
+    dc.newVariable<int>("dc_subtype", DC_CDC1);
+
+    // Movement state (unified movement framework)
+    dc.newVariable<int>("persist_dir_x", 0);
+    dc.newVariable<int>("persist_dir_y", 0);
+    dc.newVariable<int>("persist_dir_z", 0);
+
+    // Presentation (maturation now probabilistic per step, no has_antigen flag)
+    dc.newVariable<int>("presentation_capacity", 0); // T/B cell activations remaining (mature only)
+
+    // Neighbor counts (computed via messaging)
+    dc.newVariable<int>("neighbor_tcell_count", 0);
+    dc.newVariable<int>("neighbor_bcell_count", 0);
+
+    // Lifecycle
+    dc.newVariable<int>("life", 0);
+    dc.newVariable<int>("dead", 0);
+
+    // Agent functions
+    dc.newFunction("broadcast_location", dc_broadcast_location)
+        .setMessageOutput(MSG_CELL_LOCATION);
+
+    dc.newFunction("scan_neighbors", dc_scan_neighbors)
+        .setMessageInput(MSG_CELL_LOCATION);
+
+    dc.newFunction("compute_chemical_sources", dc_compute_chemical_sources);
+    dc.newFunction("pack_for_export", pack_export_dc);
+
+    if (include_state) {
+        dc.newFunction("write_to_occ_grid", dc_write_to_occ_grid);
+        dc.newFunction("move", dc_move);
+
+        dc.newFunction("state_step", dc_state_step)
+            .setAllowAgentDeath(true);
+    }
+    // No divide function — DCs don't divide
 }
 
 // Define the spatial message type for cell location broadcasting
@@ -549,6 +667,7 @@ void defineCellLocationMessage(flamegpu::ModelDescription& model, float voxel_si
     message.newVariable<int>("voxel_z");
     message.newVariable<unsigned int>("tip_id");  // For vascular cells
     message.newVariable<float>("kill_factor");    // T cell functional impairment [0,1]; other agents leave at 0 (unused)
+    message.newVariable<int>("dead");             // 1 if agent just died this step (cancer: antigen source for B cells/DCs)
 }
 
 // Define the spatial message type for intent broadcasting (two-phase conflict resolution)
@@ -602,6 +721,8 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<unsigned int>("total_tcells", 0u);
     env.newProperty<unsigned int>("total_tregs", 0u);
     env.newProperty<unsigned int>("total_mdscs", 0u);
+    env.newProperty<unsigned int>("total_bcells", 0u);
+    env.newProperty<unsigned int>("total_dcs", 0u);
     env.newProperty<unsigned int>("total_agents", 0u);  // Sum of all agents
 
     // Division tracking (for diagnostics)
@@ -707,6 +828,8 @@ std::unique_ptr<flamegpu::ModelDescription> buildModel(
     defineMacrophageAgent(*model, true);
     defineFibroblastAgent(*model, true);
     defineVascularCellAgent(*model);
+    defineBCellAgent(*model, true);
+    defineDCAgent(*model, true);
 
     // Define environment with GPU parameters loaded from XML
     defineEnvironment(*model, grid_x, grid_y, grid_z, voxel_size, gpu_params);
