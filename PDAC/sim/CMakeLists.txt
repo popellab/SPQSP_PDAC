@@ -311,6 +311,77 @@ target_compile_options(pde_test PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=1301>
 )
 
+# ============================================================================
+# Test Harness (full FLAMEGPU + PDE, scenario-driven)
+# ============================================================================
+# Shares all agent/PDE/QSP/param code with pdac but has its own main + harness.
+# model_definition.cu is linked for agent definitions; model_layers.cu is NOT
+# linked — the test harness builds its own layer subsets.
+add_executable(pdac_test
+    ../test/test_main.cu
+    ../test/test_harness.cu
+    model_definition.cu
+    model_layers.cu
+    initialization.cu
+    ../pde/pde_integration.cu
+    ../pde/pde_solver.cu
+    ../qsp/LymphCentral_wrapper.cpp
+    ../qsp/cvode/CVODEBase.cpp
+    ../qsp/ode/ODE_system.cpp
+    ../qsp/ode/QSPParam.cpp
+    ../qsp/qsp_integration.cu
+    ../core/ParamBase.cpp
+    ../core/model_functions.cu
+    ../abm/gpu_param.cu
+)
+
+target_link_libraries(pdac_test PRIVATE flamegpu)
+target_compile_definitions(pdac_test PRIVATE FLAMEGPU_SEATBELTS=0)
+
+if(_SUNDIALS_READY)
+    target_link_libraries(pdac_test PRIVATE ${SUNDIALS_LIBRARIES})
+    if(SUNDIALS_INCLUDE_DIR)
+        target_include_directories(pdac_test PRIVATE ${SUNDIALS_INCLUDE_DIR})
+    endif()
+    target_compile_definitions(pdac_test PRIVATE QSP_CVODE_ENABLED=1)
+endif()
+
+if(_BOOST_READY)
+    if(TARGET Boost::serialization)
+        target_link_libraries(pdac_test PRIVATE Boost::serialization)
+        if(TARGET Boost::property_tree)
+            target_link_libraries(pdac_test PRIVATE Boost::property_tree)
+        endif()
+    else()
+        target_link_libraries(pdac_test PRIVATE ${Boost_LIBRARIES})
+        target_include_directories(pdac_test SYSTEM PRIVATE ${Boost_INCLUDE_DIR})
+    endif()
+endif()
+
+target_include_directories(pdac_test PRIVATE
+    ${MY_PARENT_DIR}/core
+    ${MY_PARENT_DIR}/pde
+    ${MY_PARENT_DIR}/agents
+    ${MY_PARENT_DIR}/qsp
+    ${MY_PARENT_DIR}/abm
+    ${MY_PARENT_DIR}/test
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+set_target_properties(pdac_test PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+target_compile_options(pdac_test PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=1301>
+)
+
+target_compile_definitions(pdac_test PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:BOOST_DISABLE_CURRENT_LOCATION>
+)
+
 # Print configuration summary
 message(STATUS "")
 message(STATUS "=== PDAC GPU Configuration ===")
