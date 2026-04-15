@@ -28,9 +28,13 @@ immune_oncology_model_PDAC;
 cfg = getconfigset(model);
 cfg.SolverOptions.RelativeTolerance = 1e-5;
 cfg.SolverOptions.AbsoluteTolerance = 1e-9;
-% Make sure we output at the same grid C++ uses (0..365 days, dt=0.1)
-cfg.StopTime = 365;
-cfg.SolverOptions.OutputTimes = (0:0.1:365)';
+% Output grid. Defaults match the baseline 365-day run; set `stop_time`
+% before calling to use a shorter scenario (e.g. event-fire tests).
+if ~exist('stop_time', 'var') || isempty(stop_time)
+    stop_time = 365;
+end
+cfg.StopTime = stop_time;
+cfg.SolverOptions.OutputTimes = (0:0.1:stop_time)';
 
 % Optional: override model values with those from a param_all XML so MATLAB
 % simulates with the exact same ICs / parameters as the C++ run.

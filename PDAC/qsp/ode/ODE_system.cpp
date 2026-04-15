@@ -861,12 +861,52 @@ void ODE_system::setupVariables(void){
     _species_other = std::vector<realtype>(0, 0);
 }
 
-void ODE_system::setupEvents(void){ _nevent = 0; _nroot = 0; }
 void ODE_system::update_y_other(void){ }
 void ODE_system::adjust_hybrid_variables(void){ }
-bool ODE_system::triggerComponentEvaluate(int, realtype, bool){ return false; }
-bool ODE_system::eventEvaluate(int){ return false; }
-bool ODE_system::eventExecution(int, bool, realtype&){ return false; }
+void ODE_system::setupEvents(void){
+    _nevent = 2;
+    _nroot = 2;
+    _trigger_element_satisfied = std::vector<bool>(2, false);
+    _trigger_element_type = std::vector<EVENT_TRIGGER_ELEM_TYPE>(2, TRIGGER_NON_INSTANT);
+    _event_triggered = std::vector<bool>{true, true};
+}
+
+int ODE_system::g(realtype t, N_Vector y, realtype* gout, void* user_data){
+    realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + SPVAR(SP_V_T_C1);
+    // Event 0: Event_1 — trigger C_total lt 0.5 * cell
+    gout[0] = (0.5 * PARAM(P_cell)) - (AUX_VAR_C_total);
+    // Event 1: Event_2 — trigger V_T.C1 lt 0.5 * cell
+    gout[1] = (0.5 * PARAM(P_cell)) - (SPVAR(SP_V_T_C1));
+    return 0;
+}
+
+bool ODE_system::triggerComponentEvaluate(int i, realtype, bool){
+    realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + NV_DATA_S(_y)[SP_V_T_C1];
+    switch (i) {
+    case 0: return (AUX_VAR_C_total) < (0.5 * PARAM(P_cell));
+    case 1: return (NV_DATA_S(_y)[SP_V_T_C1]) < (0.5 * PARAM(P_cell));
+    }
+    return false;
+}
+
+bool ODE_system::eventEvaluate(int i){
+    return (i >= 0 && i < _nroot) ? _trigger_element_satisfied[i] : false;
+}
+
+bool ODE_system::eventExecution(int i, bool, realtype&){
+    switch (i) {
+    case 0:  // Event_1
+        _species_var[SP_V_T_K] = 0.01 * PARAM(P_cell);
+        NV_DATA_S(_y)[SP_V_T_K] = _species_var[SP_V_T_K];
+        break;
+    case 1:  // Event_2
+        _species_var[SP_V_T_C1] = 0.01 * PARAM(P_cell);
+        NV_DATA_S(_y)[SP_V_T_C1] = _species_var[SP_V_T_C1];
+        break;
+    }
+    return false;  // no delay
+}
+
 realtype ODE_system::get_unit_conversion_species(int i) const {
     static const realtype factors[] = {
         1.66053872801495e-24, // V_C.nCD4
@@ -1643,8 +1683,6 @@ void ODE_system::setup_instance_variables(QSPParam& param){
 std::string ODE_system::getHeader(){
     return "V_C.nCD4,V_C.Treg,V_C.nCD8,V_C.CD8,V_C.aPD1,V_C.aPDL1,V_C.aCTLA4,V_C.Th,V_C.Cy,V_P.nCD4,V_P.Treg,V_P.nCD8,V_P.CD8,V_P.aPD1,V_P.aPDL1,V_P.aCTLA4,V_P.Th,V_T.C_x,V_T.CD8_exh,V_T.Th_exh,V_T.C1,V_T.K,V_T.VEGF,V_T.Treg,V_T.CCL5,V_T.CD8,V_T.cDC1,V_T.cDC2,V_T.mcDC1,V_T.mcDC2,V_T.P0,V_T.P1,V_T.aPD1,V_T.aPDL1,V_T.aCTLA4,V_T.Th,V_T.IFNg,V_T.TGFb,V_T.MDSC,V_T.NO,V_T.ArgI,V_T.CCL2,V_T.Mac_M1,V_T.Mac_M2,V_T.IL12,V_T.IL10,V_T.qPSC,V_T.iCAF,V_T.myCAF,V_T.apCAF,V_T.collagen,V_T.CXCL12,V_T.IL6,V_T.IL1,V_LN.nCD4,V_LN.aTreg,V_LN.Treg,V_LN.nCD8,V_LN.aCD8,V_LN.CD8,V_LN.cDC1,V_LN.cDC2,V_LN.mcDC1,V_LN.mcDC2,V_LN.aPD1,V_LN.aPDL1,V_LN.aCTLA4,V_LN.aTh,V_LN.Th,V_LN.IL2,V_e.P0,V_e.p0,V_e.P1,V_e.p1,A_e.M1,A_e.M1p0,A_e.M1p1,A_s.M1,A_s.M1p0,A_s.M1p1,syn_CD8_C1.PD1_PDL1,syn_CD8_C1.PD1_PDL2,syn_CD8_C1.PD1,syn_CD8_C1.PDL1,syn_CD8_C1.PDL2,syn_CD8_C1.PD1_aPD1,syn_CD8_C1.PD1_aPD1_PD1,syn_CD8_C1.PDL1_aPDL1,syn_CD8_C1.PDL1_aPDL1_PDL1,syn_CD8_C1.TPDL1,syn_CD8_C1.TPDL1_aPDL1,syn_CD8_C1.TPDL1_aPDL1_TPDL1,syn_CD8_C1.CD28_CD80,syn_CD8_C1.CD28_CD80_CD28,syn_CD8_C1.CD28_CD86,syn_CD8_C1.CD80_CTLA4,syn_CD8_C1.CD80_CTLA4_CD80,syn_CD8_C1.CTLA4_CD80_CTLA4,syn_CD8_C1.CD80_CTLA4_CD80_CTLA4,syn_CD8_C1.CD86_CTLA4,syn_CD8_C1.CD86_CTLA4_CD86,syn_CD8_C1.PDL1_CD80,syn_CD8_C1.PDL1_CD80_CD28,syn_CD8_C1.PDL1_CD80_CTLA4,syn_CD8_C1.CD28,syn_CD8_C1.CTLA4,syn_CD8_C1.CD80,syn_CD8_C1.CD80m,syn_CD8_C1.CD86,syn_CD8_C1.CTLA4_aCTLA4,syn_CD8_C1.CTLA4_aCTLA4_CTLA4,syn_CD8_APC.PD1_PDL1,syn_CD8_APC.PD1_PDL2,syn_CD8_APC.PD1,syn_CD8_APC.PDL1,syn_CD8_APC.PDL2,syn_CD8_APC.PD1_aPD1,syn_CD8_APC.PD1_aPD1_PD1,syn_CD8_APC.PDL1_aPDL1,syn_CD8_APC.PDL1_aPDL1_PDL1,syn_CD8_APC.TPDL1,syn_CD8_APC.TPDL1_aPDL1,syn_CD8_APC.TPDL1_aPDL1_TPDL1,syn_CD8_APC.CD28_CD80,syn_CD8_APC.CD28_CD80_CD28,syn_CD8_APC.CD28_CD86,syn_CD8_APC.CD80_CTLA4,syn_CD8_APC.CD80_CTLA4_CD80,syn_CD8_APC.CTLA4_CD80_CTLA4,syn_CD8_APC.CD80_CTLA4_CD80_CTLA4,syn_CD8_APC.CD86_CTLA4,syn_CD8_APC.CD86_CTLA4_CD86,syn_CD8_APC.PDL1_CD80,syn_CD8_APC.PDL1_CD80_CD28,syn_CD8_APC.PDL1_CD80_CTLA4,syn_CD8_APC.CD28,syn_CD8_APC.CTLA4,syn_CD8_APC.CD80,syn_CD8_APC.CD80m,syn_CD8_APC.CD86,syn_CD8_APC.CTLA4_aCTLA4,syn_CD8_APC.CTLA4_aCTLA4_CTLA4,syn_M_C.CD47,syn_M_C.SIRPa,syn_M_C.CD47_SIRPa,syn_M_C.PDL1_total,syn_M_C.PDL2_total,syn_M_C.PD1_PDL1,syn_M_C.PD1_PDL2,syn_M_C.PD1,syn_M_C.PDL1,syn_M_C.PDL2,syn_M_C.PD1_aPD1,syn_M_C.PD1_aPD1_PD1,syn_M_C.PDL1_aPDL1,syn_M_C.PDL1_aPDL1_PDL1,syn_M_C.PDL1_CD80,syn_M_C.CD80,syn_M_C.CD80m,V_ID.GVAX_cells,V_ID.APC,V_ID.mAPC,V_ID.GMCSF,V_ID.P1_GVAX";
 }
-
-int ODE_system::g(realtype, N_Vector, realtype*, void*){ return 0; }
 
 void ODE_system::eval_init_assignment(void){
     // Sync _species_var → _y so SPVAR() reads see current values

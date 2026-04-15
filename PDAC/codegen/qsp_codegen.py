@@ -61,6 +61,7 @@ class SBMLModel:
         self.reactions: List[dict] = []
         self.assignment_rules: List[dict] = []    # repeatedAssignment
         self.initial_assignments: List[dict] = []
+        self.events: List[dict] = []
         self.unit_defs: Dict[str, float] = {}     # unit_id → SI factor
 
         self._parse_units()
@@ -70,6 +71,7 @@ class SBMLModel:
         self._parse_reactions()
         self._parse_rules()
         self._parse_initial_assignments()
+        self._parse_events()
 
     # --- Units -----------------------------------------------------------
 
@@ -236,6 +238,81 @@ class SBMLModel:
                 "variable_id": var_id,
                 "variable_name": var_name,
                 "expression": expr,
+            })
+
+    # Supported comparison ops → (C++ op, root convention).
+    # For `lt(a, b)` (a < b), the root function `b - a` crosses 0 upward
+    # when a drops past b → rootsFound=+1 (matches "trigger went false→true").
+    _CMP_OPS = {
+        "lt":  ("<",  ("right", "left")),   # gout = right - left
+        "leq": ("<=", ("right", "left")),
+        "gt":  (">",  ("left", "right")),
+        "geq": (">=", ("left", "right")),
+    }
+
+    def _parse_events(self):
+        """Parse <listOfEvents>.
+
+        Only supports single-comparison triggers (lt/leq/gt/geq) with no
+        <delay>. Complex triggers (and/or of multiple conditions) would
+        require multiple root functions per event; unsupported for now.
+        """
+        for ev in self.model.findall(f".//{SBML_NS}event"):
+            name = ev.get("name") or ev.get("id")
+            trig_el = ev.find(f"{SBML_NS}trigger")
+            if trig_el is None:
+                continue
+            if ev.find(f"{SBML_NS}delay") is not None:
+                raise NotImplementedError(
+                    f"Event '{name}' has a <delay>; not supported by codegen."
+                )
+            math = trig_el.find(f"{MATH_NS}math")
+            if math is None or len(list(math)) == 0:
+                continue
+            apply_node = list(math)[0]
+            if apply_node.tag.replace(MATH_NS, "") != "apply":
+                raise NotImplementedError(
+                    f"Event '{name}' trigger must be a single comparison."
+                )
+            kids = list(apply_node)
+            op = kids[0].tag.replace(MATH_NS, "")
+            if op not in self._CMP_OPS:
+                raise NotImplementedError(
+                    f"Event '{name}' uses unsupported trigger op '{op}'. "
+                    f"Supported: {sorted(self._CMP_OPS)}."
+                )
+            if len(kids) != 3:
+                raise NotImplementedError(
+                    f"Event '{name}' trigger must have exactly two arguments."
+                )
+            left = self._mathml_to_infix(kids[1])
+            right = self._mathml_to_infix(kids[2])
+
+            # SBML L2V4 default: initialValue="true" means the trigger is
+            # considered already satisfied at t=0⁻. Events only fire on
+            # subsequent false→true transitions. If initialValue="false"
+            # and the trigger evaluates true at t=0⁺, it fires immediately.
+            initial_value = trig_el.get("initialValue", "true") == "true"
+
+            assignments = []
+            for ea in ev.findall(f".//{SBML_NS}eventAssignment"):
+                vid = ea.get("variable")
+                vname = self.id_to_name.get(vid, vid)
+                mr = ea.find(f"{MATH_NS}math")
+                expr = self._mathml_to_infix(mr) if mr is not None else "0"
+                assignments.append({
+                    "variable_id": vid,
+                    "variable_name": vname,
+                    "expression": expr,
+                })
+
+            self.events.append({
+                "name": name,
+                "trigger_op": op,
+                "trigger_left": left,
+                "trigger_right": right,
+                "trigger_initial_value": initial_value,
+                "assignments": assignments,
             })
 
     def _parse_initial_assignments(self):
@@ -445,6 +522,167 @@ class SBMLModel:
 def _sanitize(name: str) -> str:
     """V_T.C1 → V_T_C1"""
     return name.replace(".", "_")
+
+
+def _collect_rule_deps(
+    exprs: List[str],
+    rules_by_name: Dict[str, dict],
+    sbml: "SBMLModel" = None,
+) -> List[dict]:
+    """Return the assignment rules transitively referenced by `exprs`, in
+    topological order (dependencies first). Rules not referenced are omitted.
+    """
+    needed: Set[str] = set()
+
+    def walk(vn: str):
+        if vn in needed:
+            return
+        needed.add(vn)
+        if vn in rules_by_name:
+            rhs = rules_by_name[vn]["expression"]
+            for other in rules_by_name:
+                if other == vn:
+                    continue
+                pat = re.escape(other)
+                if re.search(r"(?<![a-zA-Z0-9_.])" + pat + r"(?![a-zA-Z0-9_.])", rhs):
+                    walk(other)
+
+    for expr in exprs:
+        for vn in rules_by_name:
+            pat = re.escape(vn)
+            if re.search(r"(?<![a-zA-Z0-9_.])" + pat + r"(?![a-zA-Z0-9_.])", expr):
+                walk(vn)
+
+    needed_list = [r for r in rules_by_name.values() if r["variable_name"] in needed]
+    return order_rules(needed_list, needed, sbml=sbml)
+
+
+def _emit_event_code(lines: List[str], sbml: "SBMLModel") -> None:
+    """Emit g(), triggerComponentEvaluate(), eventEvaluate(), eventExecution()."""
+    if not sbml.events:
+        lines.append('bool ODE_system::triggerComponentEvaluate(int, realtype, bool){ return false; }')
+        lines.append('bool ODE_system::eventEvaluate(int){ return false; }')
+        lines.append('bool ODE_system::eventExecution(int, bool, realtype&){ return false; }')
+        lines.append('')
+        return
+
+    # Two mappings: (1) RHS mapping for g() where `y` is in scope → SPVAR;
+    # (2) `_y`-reading mapping for member funcs (no y param) where species
+    # references become NV_DATA_S(_y)[SP_xxx] (same pattern as eval_init_assignment).
+    rhs_mapping = classify_identifiers(sbml)
+    rule_vars = {r["variable_name"] for r in sbml.assignment_rules}
+    mem_mapping = {}
+    for sp in sbml.species:
+        san = _sanitize(sp["name"])
+        if sp.get("has_only_substance_units", False):
+            mem_mapping[sp["name"]] = f'NV_DATA_S(_y)[SP_{san}]'
+        else:
+            comp_name = sp["compartment"]
+            comp_san = _sanitize(comp_name)
+            vol_expr = (f'AUX_VAR_{comp_san}' if comp_name in rule_vars
+                        else f'PARAM(P_{comp_san})')
+            mem_mapping[sp["name"]] = f'(NV_DATA_S(_y)[SP_{san}] / {vol_expr})'
+    for r in sbml.assignment_rules:
+        mem_mapping[r["variable_name"]] = f'AUX_VAR_{_sanitize(r["variable_name"])}'
+    for p in sbml.parameters:
+        if p["name"] not in rule_vars:
+            mem_mapping[p["name"]] = f'PARAM(P_{_sanitize(p["name"])})'
+    for c in sbml.compartments:
+        if c["name"] in rule_vars:
+            pass
+        elif c["name"] not in mem_mapping:
+            mem_mapping[c["name"]] = f'PARAM(P_{_sanitize(c["name"])})'
+
+    rules_by_name = {r["variable_name"]: r for r in sbml.assignment_rules}
+
+    def emit_aux_vars(exprs: List[str], mapping: dict) -> List[str]:
+        """Emit the AUX_VAR computations needed to evaluate `exprs`."""
+        ordered = _collect_rule_deps(exprs, rules_by_name, sbml=sbml)
+        out = []
+        for r in ordered:
+            vn = r["variable_name"]
+            san = _sanitize(vn)
+            cpp_expr = wrap_expression(r["expression"], mapping)
+            out.append(f'    realtype AUX_VAR_{san} = {cpp_expr};')
+        return out
+
+    # --- g() ----------------------------------------------------------
+    lines.append('int ODE_system::g(realtype t, N_Vector y, realtype* gout, void* user_data){')
+    trigger_exprs = []
+    for ev in sbml.events:
+        trigger_exprs.extend([ev["trigger_left"], ev["trigger_right"]])
+    lines.extend(emit_aux_vars(trigger_exprs, rhs_mapping))
+    for i, ev in enumerate(sbml.events):
+        _, (minus_side, plus_side) = SBMLModel._CMP_OPS[ev["trigger_op"]]
+        # gout = <minus_side> - <plus_side> so it increases when trigger becomes true
+        expr_minus = wrap_expression(ev[f"trigger_{minus_side}"], rhs_mapping)
+        expr_plus = wrap_expression(ev[f"trigger_{plus_side}"], rhs_mapping)
+        lines.append(f'    // Event {i}: {ev["name"]} — trigger {ev["trigger_left"]} '
+                     f'{ev["trigger_op"]} {ev["trigger_right"]}')
+        lines.append(f'    gout[{i}] = ({expr_minus}) - ({expr_plus});')
+    lines.append('    return 0;')
+    lines.append('}')
+    lines.append('')
+
+    # --- triggerComponentEvaluate() ----------------------------------
+    lines.append('bool ODE_system::triggerComponentEvaluate(int i, realtype, bool){')
+    lines.extend(emit_aux_vars(trigger_exprs, mem_mapping))
+    lines.append('    switch (i) {')
+    for i, ev in enumerate(sbml.events):
+        cpp_op, _ = SBMLModel._CMP_OPS[ev["trigger_op"]]
+        left = wrap_expression(ev["trigger_left"], mem_mapping)
+        right = wrap_expression(ev["trigger_right"], mem_mapping)
+        lines.append(f'    case {i}: return ({left}) {cpp_op} ({right});')
+    lines.append('    }')
+    lines.append('    return false;')
+    lines.append('}')
+    lines.append('')
+
+    # --- eventEvaluate() ---------------------------------------------
+    # Single-component-per-event: 1:1 with _trigger_element_satisfied.
+    lines.append('bool ODE_system::eventEvaluate(int i){')
+    lines.append('    return (i >= 0 && i < _nroot) ? _trigger_element_satisfied[i] : false;')
+    lines.append('}')
+    lines.append('')
+
+    # --- eventExecution() --------------------------------------------
+    # Apply assignments. For amount species (hasOnlySubstanceUnits=true),
+    # the RHS evaluates directly to SI amount (because PARAMs are stored
+    # in SI). For concentration species, multiply by compartment to get
+    # amount. Writes both _species_var and _y so post-event RHS reads see
+    # the new value.
+    lines.append('bool ODE_system::eventExecution(int i, bool, realtype&){')
+    # Collect all assignment RHS expressions for dep-emission
+    assign_exprs = [a["expression"] for ev in sbml.events for a in ev["assignments"]]
+    lines.extend(emit_aux_vars(assign_exprs, mem_mapping))
+    lines.append('    switch (i) {')
+    sp_by_name = {sp["name"]: sp for sp in sbml.species}
+    for i, ev in enumerate(sbml.events):
+        lines.append(f'    case {i}:  // {ev["name"]}')
+        for a in ev["assignments"]:
+            vn = a["variable_name"]
+            sp = sp_by_name.get(vn)
+            if sp is None:
+                raise NotImplementedError(
+                    f"Event '{ev['name']}' assigns to non-species '{vn}'; not supported."
+                )
+            san = _sanitize(vn)
+            cpp_expr = wrap_expression(a["expression"], mem_mapping)
+            if sp.get("has_only_substance_units", False):
+                rhs = cpp_expr
+            else:
+                comp_name = sp["compartment"]
+                comp_san = _sanitize(comp_name)
+                vol = (f'AUX_VAR_{comp_san}' if comp_name in rule_vars
+                       else f'PARAM(P_{comp_san})')
+                rhs = f'({cpp_expr}) * {vol}'
+            lines.append(f'        _species_var[SP_{san}] = {rhs};')
+            lines.append(f'        NV_DATA_S(_y)[SP_{san}] = _species_var[SP_{san}];')
+        lines.append('        break;')
+    lines.append('    }')
+    lines.append('    return false;  // no delay')
+    lines.append('}')
+    lines.append('')
 
 
 def classify_identifiers(sbml: SBMLModel) -> dict:
@@ -1223,13 +1461,33 @@ def gen_ode_cpp(sbml: SBMLModel, mapping: dict) -> str:
     lines.append('}')
     lines.append('')
 
-    # Stubs
-    lines.append('void ODE_system::setupEvents(void){ _nevent = 0; _nroot = 0; }')
+    # Stubs (non-event)
     lines.append('void ODE_system::update_y_other(void){ }')
     lines.append('void ODE_system::adjust_hybrid_variables(void){ }')
-    lines.append('bool ODE_system::triggerComponentEvaluate(int, realtype, bool){ return false; }')
-    lines.append('bool ODE_system::eventEvaluate(int){ return false; }')
-    lines.append('bool ODE_system::eventExecution(int, bool, realtype&){ return false; }')
+
+    # --- Events --------------------------------------------------------
+    # One root per event (single-comparison triggers only — see _parse_events).
+    # Index i in _trigger_element_satisfied corresponds to event i.
+    n_events = len(sbml.events)
+    lines.append('void ODE_system::setupEvents(void){')
+    lines.append(f'    _nevent = {n_events};')
+    lines.append(f'    _nroot = {n_events};')
+    lines.append(f'    _trigger_element_satisfied = std::vector<bool>({n_events}, false);')
+    # TRIGGER_NON_INSTANT = standard root-finding event (triggers on sign
+    # change of g()). Transient EQ/NEQ types are not currently emitted.
+    lines.append(f'    _trigger_element_type = std::vector<EVENT_TRIGGER_ELEM_TYPE>('
+                 f'{n_events}, TRIGGER_NON_INSTANT);')
+    # Per-event initial trigger state from SBML trigger.initialValue (default
+    # true). initialValue=true means the trigger is considered already
+    # satisfied at t=0⁻, so events only fire on subsequent false→true
+    # transitions. initialValue=false gives "fire at t=0 if condition holds".
+    iv_list = ", ".join("true" if ev["trigger_initial_value"] else "false"
+                        for ev in sbml.events)
+    lines.append(f'    _event_triggered = std::vector<bool>{{{iv_list}}};')
+    lines.append('}')
+    lines.append('')
+
+    _emit_event_code(lines, sbml)
     # get_unit_conversion_species — return SI factor per species
     # Used for: (1) tolerance scaling, (2) CSV output in SBML native units
     lines.append('realtype ODE_system::get_unit_conversion_species(int i) const {')
@@ -1437,8 +1695,11 @@ def gen_ode_cpp(sbml: SBMLModel, mapping: dict) -> str:
     lines.append('}')
     lines.append('')
 
-    lines.append('int ODE_system::g(realtype, N_Vector, realtype*, void*){ return 0; }')
-    lines.append('')
+    # g() is emitted by _emit_event_code above; stub it only if there
+    # are no events (keeps setupCVODE's CVodeRootInit(_nroot=0) happy).
+    if not sbml.events:
+        lines.append('int ODE_system::g(realtype, N_Vector, realtype*, void*){ return 0; }')
+        lines.append('')
 
     # Build species lookup: name → species dict (for eval_init_assignment)
     sp_by_name = {sp["name"]: sp for sp in sbml.species}
