@@ -14,6 +14,8 @@ end
 
 cd(pdac_build_dir);
 run('startup.m');
+% Add this test dir to path so yaml_read.m is callable.
+addpath(fileparts(mfilename('fullpath')));
 
 % Use the live .m model script. sbmlimport(sbml_path) would be the
 % source-of-truth loader (same SBML the C++ codegen reads), but SimBiology's
@@ -26,7 +28,10 @@ immune_oncology_model_PDAC;
 % (reltol=1e-6, abstol=1e-12). SimBiology defaults (1e-3 / 1e-6) are
 % too loose to compare against C++ at day-100+ timescales.
 cfg = getconfigset(model);
-cfg.SolverOptions.RelativeTolerance = 1e-5;
+% sundials is what pdac-build uses in production; the default (ode15s) chokes
+% on the stiff bolus transient in some scenarios.
+set(cfg, 'SolverType', 'sundials');
+cfg.SolverOptions.RelativeTolerance = 1e-6;
 cfg.SolverOptions.AbsoluteTolerance = 1e-9;
 % Output grid. Defaults match the baseline 365-day run; set `stop_time`
 % before calling to use a shorter scenario (e.g. event-fire tests).
@@ -95,7 +100,67 @@ if exist('param_xml', 'var') && ~isempty(param_xml)
         n_set.comp, n_set.sp, n_set.par, n_set.miss);
 end
 
-simdata = sbiosimulate(model);
+% Optional: dosing scenario. If scenario_yaml is set, build a SimBiology
+% dose_schedule via schedule_dosing.m using the scenario's drug list +
+% overrides, and pass it to sbiosimulate. drugs/dose/schedule/patient
+% values are in the same format schedule_dosing.m expects.
+dose_schedule = [];
+if exist('scenario_yaml', 'var') && ~isempty(scenario_yaml)
+    fprintf('Loading dosing scenario from %s\n', scenario_yaml);
+    scenario = yaml_read(scenario_yaml);
+    if isfield(scenario, 'dosing') && isfield(scenario.dosing, 'drugs') ...
+            && ~isempty(scenario.dosing.drugs)
+        dosing_args = {};
+        patient_weight = 70;
+        patient_bsa = 1.9;
+        if isfield(scenario.dosing, 'patientWeight')
+            patient_weight = scenario.dosing.patientWeight;
+        end
+        if isfield(scenario.dosing, 'patientBSA')
+            patient_bsa = scenario.dosing.patientBSA;
+        end
+        drug_list = scenario.dosing.drugs;
+        if ~iscell(drug_list); drug_list = {drug_list}; end
+
+        % Pass through each <drug>_dose and <drug>_schedule pair.
+        % Schedule arrays in YAML are [start, interval, num_doses];
+        % schedule_dosing.m wants [start, interval, RepeatCount] where
+        % RepeatCount = num_doses - 1.
+        dose_fields = fieldnames(scenario.dosing);
+        for ii = 1:numel(dose_fields)
+            f = dose_fields{ii};
+            if any(strcmp(f, {'drugs', 'patientWeight', 'patientBSA'})); continue; end
+            val = scenario.dosing.(f);
+            if endsWith(f, '_schedule')
+                % Unpack cell → numeric triple.
+                if iscell(val)
+                    sched = cellfun(@(x) x, val);
+                else
+                    sched = val;
+                end
+                if numel(sched) ~= 3
+                    error('%s must be [start, interval, num_doses]', f);
+                end
+                sched(3) = max(0, sched(3) - 1);  % num_doses → RepeatCount
+                val = sched;
+            end
+            dosing_args{end+1} = f;
+            dosing_args{end+1} = val;
+        end
+        dosing_args{end+1} = 'patientWeight';
+        dosing_args{end+1} = patient_weight;
+        dosing_args{end+1} = 'patientBSA';
+        dosing_args{end+1} = patient_bsa;
+        dose_schedule = schedule_dosing(drug_list, dosing_args{:});
+        fprintf('  %d dose object(s) scheduled\n', numel(dose_schedule));
+    end
+end
+
+if isempty(dose_schedule)
+    simdata = sbiosimulate(model);
+else
+    simdata = sbiosimulate(model, dose_schedule);
+end
 
 t = simdata.Time;
 data = simdata.Data;

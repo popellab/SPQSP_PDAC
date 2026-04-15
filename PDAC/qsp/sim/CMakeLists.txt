@@ -104,6 +104,21 @@ endif()
 # --- Boost ---
 find_package(Boost 1.70 REQUIRED COMPONENTS serialization)
 
+# --- yaml-cpp (for scenario + drug metadata parsing) ---
+find_package(yaml-cpp QUIET)
+if(NOT yaml-cpp_FOUND)
+    message(STATUS "Fetching yaml-cpp 0.8.0...")
+    FetchContent_Declare(yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG 0.8.0
+        GIT_SHALLOW ON
+    )
+    set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(yaml-cpp)
+endif()
+
 # --- QSP standalone simulator ---
 # Runs the PDAC QSP ODE system from a parameter XML and writes trajectories
 # as CSV (for SimBiology comparison) or raw binary (for param-sweep callers).
@@ -119,6 +134,7 @@ target_include_directories(qsp_sim PRIVATE ${PDAC_ROOT})
 target_link_libraries(qsp_sim PRIVATE
     ${SUNDIALS_LIBRARIES}
     Boost::serialization
+    yaml-cpp::yaml-cpp
 )
 if(USE_KLU)
     target_compile_definitions(qsp_sim PRIVATE USE_KLU)

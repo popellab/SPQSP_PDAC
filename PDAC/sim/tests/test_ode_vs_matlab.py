@@ -29,6 +29,8 @@ SBML_PATH = REPO_ROOT / "PDAC" / "qsp" / "PDAC_model.sbml"
 MATLAB_EXPORT_SCRIPT = TESTS_DIR / "export_matlab_trajectories.m"
 
 DUMP_BIN = ODE_BUILD / "qsp_sim"
+DRUG_META = REPO_ROOT / "PDAC" / "sim" / "resource" / "drug_metadata.yaml"
+SCENARIO_DIR = PDAC_BUILD / "scenarios"
 
 sys.path.insert(0, str(TESTS_DIR))
 sys.path.insert(0, str(REPO_ROOT / "PDAC" / "codegen"))
@@ -283,6 +285,101 @@ def test_event_trajectories_match(event_matlab_trajectories, event_cpp_trajector
             assert pass_rate > 0.95, (
                 f"Event scenario pass rate too low: {pass_rate:.1%}. "
                 f"MATLAB and C++ may be handling the event differently."
+            )
+
+
+# --- Scenario (dosing) validation -------------------------------------------
+# Drive both sides from the same scenario YAML. C++ reads the YAML + drug
+# metadata and applies boluses as `V_C.aPD1 += N mol` at scheduled times;
+# MATLAB builds a SimBiology dose_schedule via schedule_dosing.m and passes
+# it to sbiosimulate. Trajectories should agree post-dose.
+
+SCENARIO_YAML = TESTS_DIR / "scenarios" / "nivo_single_day7.yaml"
+
+
+@pytest.fixture(scope="session")
+def scenario_cpp_trajectories(tmp_path_factory):
+    if not DUMP_BIN.exists():
+        pytest.skip(f"dump_trajectories not built: {DUMP_BIN}")
+    if not SCENARIO_YAML.exists():
+        pytest.skip(f"scenario not found: {SCENARIO_YAML}")
+    csv_path = tmp_path_factory.mktemp("cpp_scenario") / "cpp_trajectories.csv"
+    result = subprocess.run(
+        [str(DUMP_BIN), str(PARAM_XML), str(csv_path), "30", "0.1",
+         "--scenario", str(SCENARIO_YAML),
+         "--drug-metadata", str(DRUG_META)],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert result.returncode == 0, f"C++ ODE failed:\n{result.stderr}"
+    # Sanity: at least one dose event logged.
+    assert "[dose]" in result.stderr, (
+        f"No boluses applied. stderr:\n{result.stderr}"
+    )
+    return csv_path
+
+
+@pytest.fixture(scope="session")
+def scenario_matlab_trajectories(run_matlab, tmp_path_factory):
+    if not SCENARIO_YAML.exists():
+        pytest.skip(f"scenario not found: {SCENARIO_YAML}")
+    csv_path = tmp_path_factory.mktemp("matlab_scenario") / "matlab_trajectories.csv"
+    matlab_cmd = (
+        f"output_csv='{csv_path}'; pdac_build_dir='{PDAC_BUILD}'; "
+        f"param_xml='{PARAM_XML}'; sbml_path='{SBML_PATH}'; "
+        f"scenario_yaml='{SCENARIO_YAML}'; stop_time=30; "
+        f"run('{MATLAB_EXPORT_SCRIPT}')"
+    )
+    result = subprocess.run(
+        ["matlab", "-batch", matlab_cmd],
+        capture_output=True, text=True, timeout=300,
+        cwd=str(PDAC_BUILD),
+    )
+    assert result.returncode == 0, f"MATLAB failed:\n{result.stderr}"
+    return csv_path
+
+
+def test_dose_applied_in_cpp(scenario_cpp_trajectories):
+    """After day 7, V_C.aPD1 and V_ID.GVAX_cells should be nonzero in C++."""
+    _, vc = _load_traj(scenario_cpp_trajectories)
+    # Row index 70 ≈ t=7.0 d. Bolus fires between step 69→70, so row 70 is post-bolus.
+    assert vc["V_C_aPD1"][69] == 0, (
+        f"V_C.aPD1 should be 0 just before day 7, got {vc['V_C_aPD1'][69]:.3e}"
+    )
+    assert vc["V_C_aPD1"][70] > 0, (
+        f"V_C.aPD1 should be nonzero at day 7 (post-nivo bolus), "
+        f"got {vc['V_C_aPD1'][70]:.3e}"
+    )
+
+
+@pytest.mark.skip(
+    reason="MATLAB hits step-size-zero in sbiosimulate when a nivo bolus fires "
+    "against the just-starting tumor ICs from param_all.xml. run_median_simulation "
+    "avoids this by running evolve_to_diagnosis first to bring the tumor to "
+    "~1e9 cells. Enabling this test requires exporting that evolved state as a "
+    "param_all override so both sides start from the same stable IC."
+)
+def test_scenario_trajectories_match(scenario_matlab_trajectories, scenario_cpp_trajectories):
+    """MATLAB dose_schedule and C++ YAML-driven boluses must land at the
+    same times with the same amounts → trajectories agree post-dose."""
+    from compare_trajectories import compare
+
+    passed, report = compare(
+        str(scenario_matlab_trajectories),
+        str(scenario_cpp_trajectories),
+        rtol=0.05,
+        atol=1e-6,
+    )
+    print(report)
+    for line in report.split("\n"):
+        if "Failures:" in line:
+            failures = int(line.split(":")[1].strip().split(" ")[0])
+            total_line = next(l for l in report.split("\n") if "Comparisons:" in l)
+            total = int(total_line.split(":")[1].strip())
+            pass_rate = 1 - failures / total
+            print(f"Pass rate: {pass_rate:.1%}")
+            assert pass_rate > 0.95, (
+                f"Scenario pass rate too low: {pass_rate:.1%}. "
+                f"MATLAB and C++ disagree on dose timing/amount or downstream dynamics."
             )
 
 

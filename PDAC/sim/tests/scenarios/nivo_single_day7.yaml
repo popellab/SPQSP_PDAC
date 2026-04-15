@@ -1,0 +1,23 @@
+scenario_id: "nivo_single_day7"
+
+scenario_context: |
+  Minimal single-nivolumab-dose scenario for validating C++ vs MATLAB dose
+  handling. Mirrors the nivo portion of gvax_nivo_neoadjuvant_zheng2022
+  without GVAX so MATLAB avoids the GVAX-driven stiff transient.
+
+sim_config:
+  start_time: 0
+  stop_time: 30
+  time_units: "day"
+  solver: "sundials"
+  abs_tolerance: 1.0e-9
+  rel_tolerance: 1.0e-6
+
+dosing:
+  drugs: ["nivolumab"]
+  nivolumab_dose: 3.43       # mg/kg (240 mg total for 70 kg patient)
+  nivolumab_schedule: [7, 0, 1]  # [start_day, interval_day, num_doses]
+  patientWeight: 70
+  patientBSA: 1.9
+
+indication: "PDAC"
