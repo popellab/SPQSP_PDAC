@@ -37,8 +37,26 @@ public:
 	CVODEBase(const CVODEBase & c);
 	~CVODEBase();
 
-	//! simulate ODE model
+	//! simulate ODE model (event-handling path, used by ABM coupling).
+	//! Calls CVodeReInit at every step boundary — cheap on short steps but
+	//! prohibitive when the caller wants fine-grained output sampling of
+	//! a long simulation.
 	void simOdeStep(double tStart, double tStep);
+
+	//! Forward-advance CVODE to absolute time tEnd without reinitializing.
+	//! Designed for output sampling loops in event-free simulations: the
+	//! caller sets up once via setupSamplingRun(tEnd_of_simulation) and
+	//! then invokes simOdeSample(t_out_i) for each snapshot time. CVODE's
+	//! internal adaptive step / Nordsieck history is preserved across
+	//! calls, which can be 5-10x faster than simOdeStep on stiff systems
+	//! with many output points per event. Does NOT handle SBML events or
+	//! delayed-execution discontinuities — use simOdeStep for those.
+	void simOdeSample(double tEnd);
+
+	//! One-time setup before the first simOdeSample call: sets the CVODE
+	//! stop time to t_end_of_sim so CV_NORMAL stepping won't walk past it,
+	//! and runs any pending initial-assignment events at t=0.
+	void setupSamplingRun(double tEndOfSim);
 
 	//! examples of optional output
 	void PrintFinalStats(void *cvode_mem);

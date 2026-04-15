@@ -204,14 +204,22 @@ int main(int argc, char* argv[]) {
         }
     };
 
+    // Sampling-run mode: CVODE keeps its internal history across output
+    // points (via simOdeSample) so fine output cadence doesn't force
+    // the solver to repeatedly restart from a tiny step-size. This is
+    // event-free — adequate for baseline scenarios; dosing scenarios
+    // with explicit SBML events will need a step-based path.
+    ode.setupSamplingRun(t_end);
+
     write_state(0.0);
     uint64_t n_times = 1;
 
     double t = 0.0;
     int step = 0;
     while (t < t_end) {
-        ode.simOdeStep(t, dt);
         t += dt;
+        if (t > t_end) t = t_end;  // clamp last step to exact boundary
+        ode.simOdeSample(t);
         step++;
         write_state(t);
         n_times++;
