@@ -28,7 +28,7 @@ void ODE_system::initSolver(realtype t){
     check_flag(&flag, "CVodeRootInit", 1);
 }
 
-state_type ODE_system::_class_parameter = state_type(410, 0);
+state_type ODE_system::_class_parameter = state_type(411, 0);
 
 void ODE_system::setup_class_parameters(QSPParam& param){
     //k_cell_clear, index: 0, units: MWDERIVEDUNIT_1__day
@@ -81,12 +81,12 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_k_C1_therapy] = PFILE(QSP_k_C1_therapy) * 1.15740740740741e-05;
     //initial_tumour_diameter, index: 24, units: MWBUILTINPREFIX_centi_MWBUILTINUNIT_meter
     _class_parameter[P_initial_tumour_diameter] = PFILE(QSP_initial_tumour_diameter) * 0.01;
-    //K0, index: 25, units: MWUSERUNIT_cell
-    _class_parameter[P_K0] = PFILE(QSP_K0) * 1.66053872801495e-24;
-    //k_K_g, index: 26, units: MWDERIVEDUNIT_1__day
-    _class_parameter[P_k_K_g] = PFILE(QSP_k_K_g) * 1.15740740740741e-05;
-    //k_K_d, index: 27, units: MWDERIVEDUNIT_1__day
-    _class_parameter[P_k_K_d] = PFILE(QSP_k_K_d) * 1.15740740740741e-05;
+    //K_initial, index: 25, units: MWUSERUNIT_cell
+    _class_parameter[P_K_initial] = PFILE(QSP_K_initial) * 1.66053872801495e-24;
+    //k_vas_growth, index: 26, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_k_vas_growth] = PFILE(QSP_k_vas_growth) * 1.15740740740741e-05;
+    //k_vas_decay, index: 27, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_k_vas_decay] = PFILE(QSP_k_vas_decay) * 1.15740740740741e-05;
     //k_vas_Csec, index: 28, units: MWDERIVEDUNIT_picogram__cell__day
     _class_parameter[P_k_vas_Csec] = PFILE(QSP_k_vas_Csec) * 6970.07174768519;
     //k_vas_deg, index: 29, units: MWDERIVEDUNIT_1__day
@@ -133,8 +133,8 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_k_nTreg_death] = PFILE(QSP_k_nTreg_death) * 1.15740740740741e-05;
     //f_nTreg, index: 50, units: dimensionless
     _class_parameter[P_f_nTreg] = PFILE(QSP_f_nTreg) * 1;
-    //k_Treg, index: 51, units: MWDERIVEDUNIT_1__day
-    _class_parameter[P_k_Treg] = PFILE(QSP_k_Treg) * 1.15740740740741e-05;
+    //k_Treg_CD8_exh, index: 51, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_k_Treg_CD8_exh] = PFILE(QSP_k_Treg_CD8_exh) * 1.15740740740741e-05;
     //H_P0, index: 52, units: dimensionless
     _class_parameter[P_H_P0] = PFILE(QSP_H_P0) * 1;
     //k_CCL5_sec, index: 53, units: MWDERIVEDUNIT_nanomole__cell__day
@@ -185,12 +185,12 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_K_nCD8_pro] = PFILE(QSP_K_nCD8_pro) * 1.66053872801495e-24;
     //k_nCD8_death, index: 76, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_nCD8_death] = PFILE(QSP_k_nCD8_death) * 1.15740740740741e-05;
-    //k_CD8, index: 77, units: MWDERIVEDUNIT_1__day
-    _class_parameter[P_k_CD8] = PFILE(QSP_k_CD8) * 1.15740740740741e-05;
+    //k_C_CD8_exh, index: 77, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_k_C_CD8_exh] = PFILE(QSP_k_C_CD8_exh) * 1.15740740740741e-05;
     //k_C_CD8, index: 78, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_C_CD8] = PFILE(QSP_k_C_CD8) * 1.15740740740741e-05;
-    //k_Tcell_col, index: 79, units: MWDERIVEDUNIT_1__day
-    _class_parameter[P_k_Tcell_col] = PFILE(QSP_k_Tcell_col) * 1.15740740740741e-05;
+    //k_stiff_CD8_exh, index: 79, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_k_stiff_CD8_exh] = PFILE(QSP_k_stiff_CD8_exh) * 1.15740740740741e-05;
     //k_CD8_basal_exh, index: 80, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_CD8_basal_exh] = PFILE(QSP_k_CD8_basal_exh) * 1.15740740740741e-05;
     //K_C_exh, index: 81, units: MWUSERUNIT_cell
@@ -475,14 +475,14 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_syn_CD8_APC_PDL2_total] = PFILE(QSP_syn_CD8_APC_PDL2_total) * 1.66053872801495e-12;
     //k_Th_act, index: 221, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_Th_act] = PFILE(QSP_k_Th_act) * 1.15740740740741e-05;
-    //k_Th_Treg, index: 222, units: MWDERIVEDUNIT_1__day
-    _class_parameter[P_k_Th_Treg] = PFILE(QSP_k_Th_Treg) * 1.15740740740741e-05;
+    //k_Th_to_Treg, index: 222, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_k_Th_to_Treg] = PFILE(QSP_k_Th_to_Treg) * 1.15740740740741e-05;
     //k_CD4_pro, index: 223, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_CD4_pro] = PFILE(QSP_k_CD4_pro) * 1.15740740740741e-05;
     //k_CD4_death, index: 224, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_CD4_death] = PFILE(QSP_k_CD4_death) * 1.15740740740741e-05;
-    //Kc_rec, index: 225, units: MWDERIVEDUNIT_cell___2
-    _class_parameter[P_Kc_rec] = PFILE(QSP_Kc_rec) * 2.7573888672375e-48;
+    //K_C2_recruit, index: 225, units: MWDERIVEDUNIT_cell___2
+    _class_parameter[P_K_C2_recruit] = PFILE(QSP_K_C2_recruit) * 2.7573888672375e-48;
     //k_Th_pro_tumor, index: 226, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_Th_pro_tumor] = PFILE(QSP_k_Th_pro_tumor) * 1.15740740740741e-05;
     //rho_Th_max, index: 227, units: MWDERIVEDUNIT_cell__milliliter
@@ -501,10 +501,10 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_w_IL2_CD8] = PFILE(QSP_w_IL2_CD8) * 1;
     //w_IL2_Treg, index: 234, units: dimensionless
     _class_parameter[P_w_IL2_Treg] = PFILE(QSP_w_IL2_Treg) * 1;
-    //N0, index: 235, units: dimensionless
-    _class_parameter[P_N0] = PFILE(QSP_N0) * 1;
-    //N_costim, index: 236, units: dimensionless
-    _class_parameter[P_N_costim] = PFILE(QSP_N_costim) * 1;
+    //N_div_base, index: 235, units: dimensionless
+    _class_parameter[P_N_div_base] = PFILE(QSP_N_div_base) * 1;
+    //N_div_costim, index: 236, units: dimensionless
+    _class_parameter[P_N_div_costim] = PFILE(QSP_N_div_costim) * 1;
     //N_IL2_CD8, index: 237, units: dimensionless
     _class_parameter[P_N_IL2_CD8] = PFILE(QSP_N_IL2_CD8) * 1;
     //N_IL2_CD4, index: 238, units: dimensionless
@@ -521,8 +521,8 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_k_TGFb_Tsec] = PFILE(QSP_k_TGFb_Tsec) * 6970071747.68519;
     //k_TGFb_deg, index: 244, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_TGFb_deg] = PFILE(QSP_k_TGFb_deg) * 1.15740740740741e-05;
-    //TGFbase, index: 245, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
-    _class_parameter[P_TGFbase] = PFILE(QSP_TGFbase) * 1e-06;
+    //TGFb_baseline, index: 245, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
+    _class_parameter[P_TGFb_baseline] = PFILE(QSP_TGFb_baseline) * 1e-06;
     //TGFb_50, index: 246, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
     _class_parameter[P_TGFb_50] = PFILE(QSP_TGFb_50) * 1e-06;
     //TGFb_50_Teff, index: 247, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
@@ -627,8 +627,8 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_A_Mcell] = PFILE(QSP_A_Mcell) * 1e-12;
     //IL10_50_phago, index: 297, units: MWBUILTINPREFIX_pico_MWBUILTINUNIT_molarity
     _class_parameter[P_IL10_50_phago] = PFILE(QSP_IL10_50_phago) * 1e-09;
-    //K_Mac_C, index: 298, units: dimensionless
-    _class_parameter[P_K_Mac_C] = PFILE(QSP_K_Mac_C) * 1;
+    //K_M1_phago, index: 298, units: dimensionless
+    _class_parameter[P_K_M1_phago] = PFILE(QSP_K_M1_phago) * 1;
     //M_total, index: 299, units: MWUSERUNIT_cell
     _class_parameter[P_M_total] = PFILE(QSP_M_total) * 1.66053872801495e-24;
     //H_IL10, index: 300, units: dimensionless
@@ -639,16 +639,16 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_H_IL12] = PFILE(QSP_H_IL12) * 1;
     //H_IL6_M2, index: 303, units: dimensionless
     _class_parameter[P_H_IL6_M2] = PFILE(QSP_H_IL6_M2) * 1;
-    //k_psc_encounter, index: 304, units: MWDERIVEDUNIT_cell__milliliter_day
-    _class_parameter[P_k_psc_encounter] = PFILE(QSP_k_psc_encounter) * 1.92191982409137e-23;
-    //k_psc_const, index: 305, units: MWDERIVEDUNIT_cell__milliliter
-    _class_parameter[P_k_psc_const] = PFILE(QSP_k_psc_const) * 1.66053872801495e-18;
-    //k_psc_activation_myCAF, index: 306, units: MWDERIVEDUNIT_1__day
-    _class_parameter[P_k_psc_activation_myCAF] = PFILE(QSP_k_psc_activation_myCAF) * 1.15740740740741e-05;
-    //k_psc_activation_iCAF, index: 307, units: MWDERIVEDUNIT_1__day
-    _class_parameter[P_k_psc_activation_iCAF] = PFILE(QSP_k_psc_activation_iCAF) * 1.15740740740741e-05;
-    //k_psc_activation_apCAF, index: 308, units: MWDERIVEDUNIT_1__day
-    _class_parameter[P_k_psc_activation_apCAF] = PFILE(QSP_k_psc_activation_apCAF) * 1.15740740740741e-05;
+    //k_CAF_encounter, index: 304, units: MWDERIVEDUNIT_cell__milliliter_day
+    _class_parameter[P_k_CAF_encounter] = PFILE(QSP_k_CAF_encounter) * 1.92191982409137e-23;
+    //k_CAF_const, index: 305, units: MWDERIVEDUNIT_cell__milliliter
+    _class_parameter[P_k_CAF_const] = PFILE(QSP_k_CAF_const) * 1.66053872801495e-18;
+    //k_PSC_to_myCAF, index: 306, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_k_PSC_to_myCAF] = PFILE(QSP_k_PSC_to_myCAF) * 1.15740740740741e-05;
+    //k_PSC_to_iCAF, index: 307, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_k_PSC_to_iCAF] = PFILE(QSP_k_PSC_to_iCAF) * 1.15740740740741e-05;
+    //k_PSC_to_apCAF, index: 308, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_k_PSC_to_apCAF] = PFILE(QSP_k_PSC_to_apCAF) * 1.15740740740741e-05;
     //k_iCAF_to_myCAF, index: 309, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_iCAF_to_myCAF] = PFILE(QSP_k_iCAF_to_myCAF) * 1.15740740740741e-05;
     //k_myCAF_to_iCAF, index: 310, units: MWDERIVEDUNIT_1__day
@@ -671,8 +671,8 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_TGFb_50_col_sec] = PFILE(QSP_TGFb_50_col_sec) * 1e-06;
     //k_col_deg, index: 319, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_col_deg] = PFILE(QSP_k_col_deg) * 1.15740740740741e-05;
-    //k_MMP_M1, index: 320, units: MWDERIVEDUNIT_milliliter__cell_day
-    _class_parameter[P_k_MMP_M1] = PFILE(QSP_k_MMP_M1) * 6970071747685.19;
+    //k_MMP_M2, index: 320, units: MWDERIVEDUNIT_milliliter__cell_day
+    _class_parameter[P_k_MMP_M2] = PFILE(QSP_k_MMP_M2) * 6970071747685.19;
     //rho_collagen, index: 321, units: MWDERIVEDUNIT_gram__milliliter
     _class_parameter[P_rho_collagen] = PFILE(QSP_rho_collagen) * 1000;
     //phi_collagen, index: 322, units: dimensionless
@@ -763,93 +763,95 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_n_IL1] = PFILE(QSP_n_IL1) * 1;
     //TGFb_50_IL1R1, index: 365, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
     _class_parameter[P_TGFb_50_IL1R1] = PFILE(QSP_TGFb_50_IL1R1) * 1e-06;
-    //IL1_ratio, index: 366, units: dimensionless
+    //Emax_IL1R1, index: 366, units: dimensionless
+    _class_parameter[P_Emax_IL1R1] = PFILE(QSP_Emax_IL1R1) * 1;
+    //IL1_ratio, index: 367, units: dimensionless
     _class_parameter[P_IL1_ratio] = PFILE(QSP_IL1_ratio) * 1;
-    //H_IL1_eff, index: 367, units: dimensionless
+    //H_IL1_eff, index: 368, units: dimensionless
     _class_parameter[P_H_IL1_eff] = PFILE(QSP_H_IL1_eff) * 1;
-    //k_vas_myCAF_sec, index: 368, units: MWDERIVEDUNIT_picogram__cell_day
+    //k_vas_myCAF_sec, index: 369, units: MWDERIVEDUNIT_picogram__cell_day
     _class_parameter[P_k_vas_myCAF_sec] = PFILE(QSP_k_vas_myCAF_sec) * 6970.07174768519;
-    //k_P1_up_apCAF, index: 369, units: MWDERIVEDUNIT_1__cell_day
+    //k_P1_up_apCAF, index: 370, units: MWDERIVEDUNIT_1__cell_day
     _class_parameter[P_k_P1_up_apCAF] = PFILE(QSP_k_P1_up_apCAF) * 6.97007174768519e+18;
-    //k_apCAF_Treg, index: 370, units: MWDERIVEDUNIT_1__day
+    //k_apCAF_Treg, index: 371, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_apCAF_Treg] = PFILE(QSP_k_apCAF_Treg) * 1.15740740740741e-05;
-    //K_apCAF_Treg, index: 371, units: MWUSERUNIT_cell
+    //K_apCAF_Treg, index: 372, units: MWUSERUNIT_cell
     _class_parameter[P_K_apCAF_Treg] = PFILE(QSP_K_apCAF_Treg) * 1.66053872801495e-24;
-    //P1_50_apCAF, index: 372, units: MWBUILTINUNIT_molarity
+    //P1_50_apCAF, index: 373, units: MWBUILTINUNIT_molarity
     _class_parameter[P_P1_50_apCAF] = PFILE(QSP_P1_50_apCAF) * 1000;
-    //aPSC_total, index: 373, units: MWUSERUNIT_cell
+    //aPSC_total, index: 374, units: MWUSERUNIT_cell
     _class_parameter[P_aPSC_total] = PFILE(QSP_aPSC_total) * 1.66053872801495e-24;
-    //k_TGFb_sec_myCAF, index: 374, units: MWDERIVEDUNIT_nanomolarity_liter__cell_day
+    //k_TGFb_sec_myCAF, index: 375, units: MWDERIVEDUNIT_nanomolarity_liter__cell_day
     _class_parameter[P_k_TGFb_sec_myCAF] = PFILE(QSP_k_TGFb_sec_myCAF) * 6970071747.68519;
-    //k_CXCL12_sec_cancer, index: 375, units: MWDERIVEDUNIT_nanomolarity_liter__cell_day
+    //k_CXCL12_sec_cancer, index: 376, units: MWDERIVEDUNIT_nanomolarity_liter__cell_day
     _class_parameter[P_k_CXCL12_sec_cancer] = PFILE(QSP_k_CXCL12_sec_cancer) * 6970071747.68519;
-    //k_CCL5_sec_iCAF, index: 376, units: MWDERIVEDUNIT_nanomole__cell__day
+    //k_CCL5_sec_iCAF, index: 377, units: MWDERIVEDUNIT_nanomole__cell__day
     _class_parameter[P_k_CCL5_sec_iCAF] = PFILE(QSP_k_CCL5_sec_iCAF) * 6970071747.68519;
-    //H_P1_apCAF, index: 377, units: dimensionless
+    //H_P1_apCAF, index: 378, units: dimensionless
     _class_parameter[P_H_P1_apCAF] = PFILE(QSP_H_P1_apCAF) * 1;
-    //k_GVAX_clearance, index: 378, units: MWDERIVEDUNIT_1__day
+    //k_GVAX_clearance, index: 379, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_GVAX_clearance] = PFILE(QSP_k_GVAX_clearance) * 1.15740740740741e-05;
-    //V_ID_volume, index: 379, units: MWBUILTINUNIT_liter
+    //V_ID_volume, index: 380, units: MWBUILTINUNIT_liter
     _class_parameter[P_V_ID_volume] = PFILE(QSP_V_ID_volume) * 0.001;
-    //k_GMCSF_prod, index: 380, units: MWDERIVEDUNIT_nanomolarity__cell__day
+    //k_GMCSF_prod, index: 381, units: MWDERIVEDUNIT_nanomolarity__cell__day
     _class_parameter[P_k_GMCSF_prod] = PFILE(QSP_k_GMCSF_prod) * 6970071747685.19;
-    //k_GMCSF_deg, index: 381, units: MWDERIVEDUNIT_1__day
+    //k_GMCSF_deg, index: 382, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_GMCSF_deg] = PFILE(QSP_k_GMCSF_deg) * 1.15740740740741e-05;
-    //k_APC_recruit_ID, index: 382, units: MWDERIVEDUNIT_cell__day
+    //k_APC_recruit_ID, index: 383, units: MWDERIVEDUNIT_cell__day
     _class_parameter[P_k_APC_recruit_ID] = PFILE(QSP_k_APC_recruit_ID) * 1.92191982409137e-29;
-    //EC50_GMCSF, index: 383, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
+    //EC50_GMCSF, index: 384, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
     _class_parameter[P_EC50_GMCSF] = PFILE(QSP_EC50_GMCSF) * 1e-06;
-    //k_APC_mature_ID, index: 384, units: MWDERIVEDUNIT_1__day
+    //k_APC_mature_ID, index: 385, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_APC_mature_ID] = PFILE(QSP_k_APC_mature_ID) * 1.15740740740741e-05;
-    //k_APC_mig_ID_LN, index: 385, units: MWDERIVEDUNIT_1__day
+    //k_APC_mig_ID_LN, index: 386, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_APC_mig_ID_LN] = PFILE(QSP_k_APC_mig_ID_LN) * 1.15740740740741e-05;
-    //k_APC_death_ID, index: 386, units: MWDERIVEDUNIT_1__day
+    //k_APC_death_ID, index: 387, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_APC_death_ID] = PFILE(QSP_k_APC_death_ID) * 1.15740740740741e-05;
-    //sigma_P1_per_mAPC, index: 387, units: MWDERIVEDUNIT_nanomole__cell
+    //sigma_P1_per_mAPC, index: 388, units: MWDERIVEDUNIT_nanomole__cell
     _class_parameter[P_sigma_P1_per_mAPC] = PFILE(QSP_sigma_P1_per_mAPC) * 602214199000000;
-    //EC50_P1_mature, index: 388, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
+    //EC50_P1_mature, index: 389, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
     _class_parameter[P_EC50_P1_mature] = PFILE(QSP_EC50_P1_mature) * 1e-06;
-    //K_APC_ID, index: 389, units: MWUSERUNIT_cell
+    //K_APC_ID, index: 390, units: MWUSERUNIT_cell
     _class_parameter[P_K_APC_ID] = PFILE(QSP_K_APC_ID) * 1.66053872801495e-24;
-    //k_APC_recruit0, index: 390, units: MWDERIVEDUNIT_cell__day
+    //k_APC_recruit0, index: 391, units: MWDERIVEDUNIT_cell__day
     _class_parameter[P_k_APC_recruit0] = PFILE(QSP_k_APC_recruit0) * 1.92191982409137e-29;
-    //k_mAPC_death_ID, index: 391, units: MWDERIVEDUNIT_1__day
+    //k_mAPC_death_ID, index: 392, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_mAPC_death_ID] = PFILE(QSP_k_mAPC_death_ID) * 1.15740740740741e-05;
-    //y_Ag_per_cell, index: 392, units: MWDERIVEDUNIT_nanomole__cell
+    //y_Ag_per_cell, index: 393, units: MWDERIVEDUNIT_nanomole__cell
     _class_parameter[P_y_Ag_per_cell] = PFILE(QSP_y_Ag_per_cell) * 602214199000000;
-    //k_P1_deg_ID, index: 393, units: MWDERIVEDUNIT_1__day
+    //k_P1_deg_ID, index: 394, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_P1_deg_ID] = PFILE(QSP_k_P1_deg_ID) * 1.15740740740741e-05;
-    //K_mig, index: 394, units: MWUSERUNIT_cell
-    _class_parameter[P_K_mig] = PFILE(QSP_K_mig) * 1.66053872801495e-24;
-    //H_GMCSF_ID, index: 395, units: dimensionless
+    //K_APC_mig, index: 395, units: MWUSERUNIT_cell
+    _class_parameter[P_K_APC_mig] = PFILE(QSP_K_APC_mig) * 1.66053872801495e-24;
+    //H_GMCSF_ID, index: 396, units: dimensionless
     _class_parameter[P_H_GMCSF_ID] = PFILE(QSP_H_GMCSF_ID) * 1;
-    //J_mature_ID, index: 396, units: MWDERIVEDUNIT_cell__day
+    //J_mature_ID, index: 397, units: MWDERIVEDUNIT_cell__day
     _class_parameter[P_J_mature_ID] = PFILE(QSP_J_mature_ID) * 1.92191982409137e-29;
-    //k_Cy_clear, index: 397, units: MWDERIVEDUNIT_1__day
+    //k_Cy_clear, index: 398, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_Cy_clear] = PFILE(QSP_k_Cy_clear) * 1.15740740740741e-05;
-    //k_Cy_Treg_deplete, index: 398, units: MWDERIVEDUNIT_1__day
+    //k_Cy_Treg_deplete, index: 399, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_Cy_Treg_deplete] = PFILE(QSP_k_Cy_Treg_deplete) * 1.15740740740741e-05;
-    //Cy_50_Treg, index: 399, units: MWBUILTINPREFIX_milli_MWBUILTINUNIT_gram
+    //Cy_50_Treg, index: 400, units: MWBUILTINPREFIX_milli_MWBUILTINUNIT_gram
     _class_parameter[P_Cy_50_Treg] = PFILE(QSP_Cy_50_Treg) * 1e-06;
-    //V_C (compartment), index: 400, units: MWBUILTINUNIT_liter
+    //V_C (compartment), index: 401, units: MWBUILTINUNIT_liter
     _class_parameter[P_V_C] = PFILE(QSP_V_C) * 0.001;
-    //V_P (compartment), index: 401, units: MWBUILTINUNIT_liter
+    //V_P (compartment), index: 402, units: MWBUILTINUNIT_liter
     _class_parameter[P_V_P] = PFILE(QSP_V_P) * 0.001;
-    //V_LN (compartment), index: 402, units: MWDERIVEDUNIT_millimeter___3
+    //V_LN (compartment), index: 403, units: MWDERIVEDUNIT_millimeter___3
     _class_parameter[P_V_LN] = PFILE(QSP_V_LN) * 1e-09;
-    //V_e (compartment), index: 403, units: litre
+    //V_e (compartment), index: 404, units: litre
     _class_parameter[P_V_e] = PFILE(QSP_V_e) * 0.001;
-    //A_e (compartment), index: 404, units: MWDERIVEDUNIT_micrometer___2
+    //A_e (compartment), index: 405, units: MWDERIVEDUNIT_micrometer___2
     _class_parameter[P_A_e] = PFILE(QSP_A_e) * 1e-12;
-    //A_s (compartment), index: 405, units: MWDERIVEDUNIT_micrometer___2
+    //A_s (compartment), index: 406, units: MWDERIVEDUNIT_micrometer___2
     _class_parameter[P_A_s] = PFILE(QSP_A_s) * 1e-12;
-    //syn_CD8_C1 (compartment), index: 406, units: MWDERIVEDUNIT_micrometer___2
+    //syn_CD8_C1 (compartment), index: 407, units: MWDERIVEDUNIT_micrometer___2
     _class_parameter[P_syn_CD8_C1] = PFILE(QSP_syn_CD8_C1) * 1e-12;
-    //syn_CD8_APC (compartment), index: 407, units: MWDERIVEDUNIT_micrometer___2
+    //syn_CD8_APC (compartment), index: 408, units: MWDERIVEDUNIT_micrometer___2
     _class_parameter[P_syn_CD8_APC] = PFILE(QSP_syn_CD8_APC) * 1e-12;
-    //syn_M_C (compartment), index: 408, units: MWDERIVEDUNIT_micrometer___2
+    //syn_M_C (compartment), index: 409, units: MWDERIVEDUNIT_micrometer___2
     _class_parameter[P_syn_M_C] = PFILE(QSP_syn_M_C) * 1e-12;
-    //V_ID (compartment), index: 409, units: MWBUILTINUNIT_liter
+    //V_ID (compartment), index: 410, units: MWBUILTINUNIT_liter
     _class_parameter[P_V_ID] = PFILE(QSP_V_ID) * 0.001;
 }
 
@@ -1762,11 +1764,11 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype AUX_VAR_M_total = SPVAR(SP_V_T_Mac_M1) + SPVAR(SP_V_T_Mac_M2);
 
-    realtype AUX_VAR_N_aT = PARAM(P_N0) + PARAM(P_N_costim) * AUX_VAR_H_CD28_APC + (PARAM(P_N_IL2_CD8) * (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN)) / (PARAM(P_IL2_50) + (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN))));
+    realtype AUX_VAR_N_aT = PARAM(P_N_div_base) + PARAM(P_N_div_costim) * AUX_VAR_H_CD28_APC + (PARAM(P_N_IL2_CD8) * (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN)) / (PARAM(P_IL2_50) + (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN))));
 
-    realtype AUX_VAR_N_aT0 = PARAM(P_N0) + PARAM(P_N_costim) * AUX_VAR_H_CD28_APC + (PARAM(P_N_IL2_CD4) * (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN)) / (PARAM(P_IL2_50) + (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN))));
+    realtype AUX_VAR_N_aT0 = PARAM(P_N_div_base) + PARAM(P_N_div_costim) * AUX_VAR_H_CD28_APC + (PARAM(P_N_IL2_CD4) * (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN)) / (PARAM(P_IL2_50) + (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN))));
 
-    realtype AUX_VAR_N_aTh = PARAM(P_N0) + PARAM(P_N_costim) * AUX_VAR_H_CD28_APC + (PARAM(P_N_IL2_CD4) * (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN)) / (PARAM(P_IL2_50) + (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN))));
+    realtype AUX_VAR_N_aTh = PARAM(P_N_div_base) + PARAM(P_N_div_costim) * AUX_VAR_H_CD28_APC + (PARAM(P_N_IL2_CD4) * (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN)) / (PARAM(P_IL2_50) + (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN))));
 
     realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + SPVAR(SP_V_T_Treg) + SPVAR(SP_V_T_CD8) + SPVAR(SP_V_T_Th);
 
@@ -1808,7 +1810,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype AUX_VAR_H_TGFb_Teff = (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) + PARAM(P_TGFb_50_Teff));
 
-    realtype AUX_VAR_IL1_ratio = (SPVAR(SP_V_T_IL1) / AUX_VAR_V_T) / (PARAM(P_IL1_50) * (1.0 + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) / PARAM(P_TGFb_50_IL1R1)));
+    realtype AUX_VAR_IL1_ratio = (SPVAR(SP_V_T_IL1) / AUX_VAR_V_T) / (PARAM(P_IL1_50) * (1.0 + (PARAM(P_Emax_IL1R1) * (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) / (PARAM(P_TGFb_50_IL1R1) + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T)))));
 
     realtype AUX_VAR_H_IL1_eff = std::pow(AUX_VAR_IL1_ratio, PARAM(P_n_IL1)) / (1.0 + std::pow(AUX_VAR_IL1_ratio, PARAM(P_n_IL1)));
 
@@ -1840,7 +1842,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype AUX_VAR_k_C_Tcell_eff = ((PARAM(P_p_T_kill_per_contact) * PARAM(P_v_T_search_volume) * SPVAR(SP_V_T_CD8) / AUX_VAR_V_T / PARAM(P_cell) * ((1.0 - AUX_VAR_H_pore_T)) * SPVAR(SP_V_T_CD8)) / (SPVAR(SP_V_T_CD8) + AUX_VAR_K_T_Treg * AUX_VAR_Tregs_ + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_PD1_C1)) * ((1.0 - AUX_VAR_H_TGFb_Teff));
 
-    realtype AUX_VAR_R_Tcell = 0.0 * PARAM(P_cell) / PARAM(P_day) + ((PARAM(P_k_C1_death) + AUX_VAR_k_C1_therapy) * SPVAR(SP_V_T_C1)) + AUX_VAR_k_C_Tcell_eff * SPVAR(SP_V_T_C1) + ((PARAM(P_k_M1_phago) * SPVAR(SP_V_T_C1) * SPVAR(SP_V_T_Mac_M1) / (SPVAR(SP_V_T_Mac_M1) + PARAM(P_K_Mac_C) * AUX_VAR_C_total + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_Mac_C)) * ((1.0 - AUX_VAR_H_IL10_phago)));
+    realtype AUX_VAR_R_Tcell = 0.0 * PARAM(P_cell) / PARAM(P_day) + ((PARAM(P_k_C1_death) + AUX_VAR_k_C1_therapy) * SPVAR(SP_V_T_C1)) + AUX_VAR_k_C_Tcell_eff * SPVAR(SP_V_T_C1) + ((PARAM(P_k_M1_phago) * SPVAR(SP_V_T_C1) * SPVAR(SP_V_T_Mac_M1) / (SPVAR(SP_V_T_Mac_M1) + PARAM(P_K_M1_phago) * AUX_VAR_C_total + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_Mac_C)) * ((1.0 - AUX_VAR_H_IL10_phago)));
 
     realtype AUX_VAR_H_DAMP = AUX_VAR_R_Tcell / (AUX_VAR_R_Tcell + PARAM(P_DAMP_50));
 
@@ -1880,9 +1882,9 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux7 = PARAM(P_k_vas_deg) * (SPVAR(SP_V_T_VEGF) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux8 = PARAM(P_k_K_g) * AUX_VAR_C_total * (SPVAR(SP_V_T_VEGF) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_VEGF) / AUX_VAR_V_T) + PARAM(P_VEGF_50));
+    realtype ReactionFlux8 = PARAM(P_k_vas_growth) * AUX_VAR_C_total * (SPVAR(SP_V_T_VEGF) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_VEGF) / AUX_VAR_V_T) + PARAM(P_VEGF_50));
 
-    realtype ReactionFlux9 = PARAM(P_k_K_d) * SPVAR(SP_V_T_K) * std::pow(std::max(AUX_VAR_C_total, 0.0) / PARAM(P_cell) * 2.57e-6, 2.0 / 3.0);
+    realtype ReactionFlux9 = PARAM(P_k_vas_decay) * SPVAR(SP_V_T_K) * std::pow(std::max(AUX_VAR_C_total, 0.0) / PARAM(P_cell) * 2.57e-6, 2.0 / 3.0);
 
     realtype ReactionFlux10 = PARAM(P_Q_nCD4_thym) / PARAM(P_div_Treg);
 
@@ -1924,7 +1926,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux29 = PARAM(P_k_Treg_death) * SPVAR(SP_V_T_Treg);
 
-    realtype ReactionFlux30 = ((1.0 - PARAM(P_f_nTreg))) * PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Treg) * (PARAM(P_Kc_rec) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec)));
+    realtype ReactionFlux30 = ((1.0 - PARAM(P_f_nTreg))) * PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Treg) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
     realtype ReactionFlux31 = PARAM(P_k_Treg_pro_tumor) * SPVAR(SP_V_T_Treg) * ((1.0 - SPVAR(SP_V_T_Treg) / (PARAM(P_rho_Treg_max) * AUX_VAR_V_T + PARAM(P_cell))));
 
@@ -1932,7 +1934,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux33 = PARAM(P_q_Treg_P_out) * SPVAR(SP_V_P_Treg);
 
-    realtype ReactionFlux34 = PARAM(P_q_Treg_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_Treg) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec)));
+    realtype ReactionFlux34 = PARAM(P_q_Treg_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_Treg) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
     realtype ReactionFlux35 = PARAM(P_q_Treg_LN_out) * SPVAR(SP_V_LN_Treg);
 
@@ -1980,13 +1982,13 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux57 = PARAM(P_k_CD8_basal_exh) * SPVAR(SP_V_T_CD8) * AUX_VAR_C_total / (AUX_VAR_C_total + PARAM(P_K_C_exh) + PARAM(P_cell));
 
-    realtype ReactionFlux58 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_CD8) * (PARAM(P_Kc_rec) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec)));
+    realtype ReactionFlux58 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_CD8) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
-    realtype ReactionFlux59 = (PARAM(P_k_Treg) * SPVAR(SP_V_T_CD8) * AUX_VAR_Tregs_ / (SPVAR(SP_V_T_CD8) + AUX_VAR_Tregs_ + PARAM(P_cell))) * AUX_VAR_H_IL10;
+    realtype ReactionFlux59 = (PARAM(P_k_Treg_CD8_exh) * SPVAR(SP_V_T_CD8) * AUX_VAR_Tregs_ / (SPVAR(SP_V_T_CD8) + AUX_VAR_Tregs_ + PARAM(P_cell))) * AUX_VAR_H_IL10;
 
-    realtype ReactionFlux60 = (PARAM(P_k_CD8) * SPVAR(SP_V_T_CD8) * AUX_VAR_C_total / (AUX_VAR_C_total + SPVAR(SP_V_T_CD8) + PARAM(P_cell))) * AUX_VAR_H_PD1_C1;
+    realtype ReactionFlux60 = (PARAM(P_k_C_CD8_exh) * SPVAR(SP_V_T_CD8) * AUX_VAR_C_total / (AUX_VAR_C_total + SPVAR(SP_V_T_CD8) + PARAM(P_cell))) * AUX_VAR_H_PD1_C1;
 
-    realtype ReactionFlux61 = PARAM(P_k_Tcell_col) * SPVAR(SP_V_T_CD8) * AUX_VAR_H_stiff_Texh;
+    realtype ReactionFlux61 = PARAM(P_k_stiff_CD8_exh) * SPVAR(SP_V_T_CD8) * AUX_VAR_H_stiff_Texh;
 
     realtype ReactionFlux62 = PARAM(P_k_CD8_exh_death) * SPVAR(SP_V_T_CD8_exh);
 
@@ -1994,7 +1996,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux64 = PARAM(P_q_CD8_P_out) * SPVAR(SP_V_P_CD8);
 
-    realtype ReactionFlux65 = PARAM(P_q_CD8_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_CD8) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec))) * ((1.0 - AUX_VAR_H_CXCL12_Texcl));
+    realtype ReactionFlux65 = PARAM(P_q_CD8_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_CD8) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_CXCL12_Texcl));
 
     realtype ReactionFlux66 = PARAM(P_q_CD8_LN_out) * SPVAR(SP_V_LN_CD8);
 
@@ -2228,7 +2230,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux181 = PARAM(P_k_CD4_pro) / AUX_VAR_N_aTh * std::pow(2.0, AUX_VAR_N_aTh) * SPVAR(SP_V_LN_aTh);
 
-    realtype ReactionFlux182 = PARAM(P_k_Th_Treg) * SPVAR(SP_V_T_Th) * AUX_VAR_H_TGFb * AUX_VAR_H_ArgI_Treg;
+    realtype ReactionFlux182 = PARAM(P_k_Th_to_Treg) * SPVAR(SP_V_T_Th) * AUX_VAR_H_TGFb * AUX_VAR_H_ArgI_Treg;
 
     realtype ReactionFlux183 = PARAM(P_k_CD4_death) * SPVAR(SP_V_C_Th);
 
@@ -2238,13 +2240,13 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux186 = PARAM(P_k_CD4_death) * SPVAR(SP_V_T_Th);
 
-    realtype ReactionFlux187 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Th) * (PARAM(P_Kc_rec) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec)));
+    realtype ReactionFlux187 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Th) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
     realtype ReactionFlux188 = PARAM(P_q_Treg_P_in) * SPVAR(SP_V_C_Th);
 
     realtype ReactionFlux189 = PARAM(P_q_Treg_P_out) * SPVAR(SP_V_P_Th);
 
-    realtype ReactionFlux190 = PARAM(P_q_Treg_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_Th) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec))) * ((1.0 - AUX_VAR_H_CXCL12_Texcl));
+    realtype ReactionFlux190 = PARAM(P_q_Treg_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_Th) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_CXCL12_Texcl));
 
     realtype ReactionFlux191 = PARAM(P_q_Treg_LN_out) * SPVAR(SP_V_LN_Th);
 
@@ -2266,7 +2268,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux200 = PARAM(P_k_IFNg_deg) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux201 = PARAM(P_k_TGFb_deg) * ((PARAM(P_TGFbase) - (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T))) * AUX_VAR_V_T;
+    realtype ReactionFlux201 = PARAM(P_k_TGFb_deg) * ((PARAM(P_TGFb_baseline) - (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T))) * AUX_VAR_V_T;
 
     realtype ReactionFlux202 = PARAM(P_k_TGFb_Tsec) * SPVAR(SP_V_T_Treg);
 
@@ -2278,7 +2280,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux206 = PARAM(P_k_MDSC_death) * SPVAR(SP_V_T_MDSC);
 
-    realtype ReactionFlux207 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_MDSC) * (PARAM(P_Kc_rec) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec)));
+    realtype ReactionFlux207 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_MDSC) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
     realtype ReactionFlux208 = PARAM(P_k_NO_deg) * (SPVAR(SP_V_T_NO) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
@@ -2292,9 +2294,9 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux213 = PARAM(P_k_Mac_rec) * AUX_VAR_V_T * ((SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) + PARAM(P_CCL2_50)));
 
-    realtype ReactionFlux214 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Mac_M1) * (PARAM(P_Kc_rec) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec)));
+    realtype ReactionFlux214 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Mac_M1) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
-    realtype ReactionFlux215 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Mac_M2) * (PARAM(P_Kc_rec) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec)));
+    realtype ReactionFlux215 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Mac_M2) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
     realtype ReactionFlux216 = PARAM(P_k_Mac_death) * SPVAR(SP_V_T_Mac_M1);
 
@@ -2342,17 +2344,17 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux238 = ((PARAM(P_kon_CD80_PDL1) * (SPVAR(SP_syn_M_C_CD80m) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_PDL1) / PARAM(P_syn_M_C)) - PARAM(P_koff_CD80_PDL1) * (SPVAR(SP_syn_M_C_PDL1_CD80) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
 
-    realtype ReactionFlux239 = (PARAM(P_k_M1_phago) * SPVAR(SP_V_T_C1) * SPVAR(SP_V_T_Mac_M1) / (SPVAR(SP_V_T_Mac_M1) + PARAM(P_K_Mac_C) * AUX_VAR_C_total + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_Mac_C)) * ((1.0 - AUX_VAR_H_IL10_phago));
+    realtype ReactionFlux239 = (PARAM(P_k_M1_phago) * SPVAR(SP_V_T_C1) * SPVAR(SP_V_T_Mac_M1) / (SPVAR(SP_V_T_Mac_M1) + PARAM(P_K_M1_phago) * AUX_VAR_C_total + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_Mac_C)) * ((1.0 - AUX_VAR_H_IL10_phago));
 
     realtype ReactionFlux240 = PARAM(P_k_TGFb_sec_myCAF) * SPVAR(SP_V_T_myCAF);
 
-    realtype ReactionFlux241 = PARAM(P_k_psc_encounter) * AUX_VAR_V_T * (((PARAM(P_k_psc_const) - SPVAR(SP_V_T_qPSC) / AUX_VAR_V_T)) / PARAM(P_k_psc_const));
+    realtype ReactionFlux241 = PARAM(P_k_CAF_encounter) * AUX_VAR_V_T * (((PARAM(P_k_CAF_const) - SPVAR(SP_V_T_qPSC) / AUX_VAR_V_T)) / PARAM(P_k_CAF_const));
 
-    realtype ReactionFlux242 = PARAM(P_k_psc_activation_myCAF) * SPVAR(SP_V_T_qPSC) * ((SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) / (PARAM(P_TGFb_50_CAF_act) + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T)));
+    realtype ReactionFlux242 = PARAM(P_k_PSC_to_myCAF) * SPVAR(SP_V_T_qPSC) * ((SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) / (PARAM(P_TGFb_50_CAF_act) + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T)));
 
-    realtype ReactionFlux243 = PARAM(P_k_psc_activation_iCAF) * SPVAR(SP_V_T_qPSC) * AUX_VAR_H_IL1_eff * (1.0 + PARAM(P_f_IL6_iCAF) * AUX_VAR_H_IL6_iCAF);
+    realtype ReactionFlux243 = PARAM(P_k_PSC_to_iCAF) * SPVAR(SP_V_T_qPSC) * AUX_VAR_H_IL1_eff * (1.0 + PARAM(P_f_IL6_iCAF) * AUX_VAR_H_IL6_iCAF);
 
-    realtype ReactionFlux244 = PARAM(P_k_psc_activation_apCAF) * SPVAR(SP_V_T_qPSC);
+    realtype ReactionFlux244 = PARAM(P_k_PSC_to_apCAF) * SPVAR(SP_V_T_qPSC);
 
     realtype ReactionFlux245 = PARAM(P_k_iCAF_to_myCAF) * SPVAR(SP_V_T_iCAF) * ((SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) / (PARAM(P_TGFb_50_CAF_act) + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T)));
 
@@ -2364,13 +2366,13 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux249 = PARAM(P_k_apCAF_prolif) * SPVAR(SP_V_T_apCAF) * ((1.0 - AUX_VAR_aPSC_total / (PARAM(P_f_stroma_max) * AUX_VAR_C_total + PARAM(P_K_stiff_niche) * AUX_VAR_H_stiff_fib + PARAM(P_cell))));
 
-    realtype ReactionFlux250 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_qPSC) * (PARAM(P_Kc_rec) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec)));
+    realtype ReactionFlux250 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_qPSC) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
-    realtype ReactionFlux251 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_iCAF) * (PARAM(P_Kc_rec) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec))) * ((1.0 - AUX_VAR_H_stiff_fib));
+    realtype ReactionFlux251 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_iCAF) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_stiff_fib));
 
-    realtype ReactionFlux252 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_myCAF) * (PARAM(P_Kc_rec) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec))) * ((1.0 - AUX_VAR_H_stiff_fib));
+    realtype ReactionFlux252 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_myCAF) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_stiff_fib));
 
-    realtype ReactionFlux253 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_apCAF) * (PARAM(P_Kc_rec) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_Kc_rec))) * ((1.0 - AUX_VAR_H_stiff_fib));
+    realtype ReactionFlux253 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_apCAF) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_stiff_fib));
 
     realtype ReactionFlux254 = PARAM(P_k_qpsc_death) * SPVAR(SP_V_T_qPSC);
 
@@ -2382,7 +2384,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux258 = PARAM(P_k_col_myCAF_sec) * ((1.0 - AUX_VAR_phi_collagen)) * SPVAR(SP_V_T_myCAF) * (PARAM(P_f_col_basal) + ((((1.0 - PARAM(P_f_col_basal))) * (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T)) / (PARAM(P_TGFb_50_col_sec) + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T))));
 
-    realtype ReactionFlux259 = (PARAM(P_k_col_deg) + PARAM(P_k_MMP_M1) * SPVAR(SP_V_T_Mac_M1) / AUX_VAR_V_T) * SPVAR(SP_V_T_collagen);
+    realtype ReactionFlux259 = (PARAM(P_k_col_deg) + PARAM(P_k_MMP_M2) * SPVAR(SP_V_T_Mac_M2) / AUX_VAR_V_T) * SPVAR(SP_V_T_collagen);
 
     realtype ReactionFlux260 = PARAM(P_k_CXCL12_sec_iCAF) * SPVAR(SP_V_T_iCAF);
 
@@ -2426,7 +2428,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux280 = PARAM(P_k_mAPC_death_ID) * SPVAR(SP_V_ID_mAPC);
 
-    realtype ReactionFlux281 = PARAM(P_k_APC_mig_ID_LN) * SPVAR(SP_V_ID_mAPC) / (1.0 + SPVAR(SP_V_LN_mcDC2) / PARAM(P_K_mig));
+    realtype ReactionFlux281 = PARAM(P_k_APC_mig_ID_LN) * SPVAR(SP_V_ID_mAPC) / (1.0 + SPVAR(SP_V_LN_mcDC2) / PARAM(P_K_APC_mig));
 
     realtype ReactionFlux282 = PARAM(P_k_Cy_clear) * SPVAR(SP_V_C_Cy);
 

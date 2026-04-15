@@ -15,7 +15,82 @@ end
 cd(pdac_build_dir);
 run('startup.m');
 
+% Use the live .m model script. sbmlimport(sbml_path) would be the
+% source-of-truth loader (same SBML the C++ codegen reads), but SimBiology's
+% sbmlexport strips the max(x, 0) guards from sqrt/pow kinetic laws in the
+% p0_MHC_tot / p1_MHC_tot TCR expressions — reimported models produce
+% complex-valued RHS and fail to integrate. Live .m it is.
 immune_oncology_model_PDAC;
+
+% Tighten solver tolerances to roughly match the C++ CVODE settings
+% (reltol=1e-6, abstol=1e-12). SimBiology defaults (1e-3 / 1e-6) are
+% too loose to compare against C++ at day-100+ timescales.
+cfg = getconfigset(model);
+cfg.SolverOptions.RelativeTolerance = 1e-5;
+cfg.SolverOptions.AbsoluteTolerance = 1e-9;
+% Make sure we output at the same grid C++ uses (0..365 days, dt=0.1)
+cfg.StopTime = 365;
+cfg.SolverOptions.OutputTimes = (0:0.1:365)';
+
+% Optional: override model values with those from a param_all XML so MATLAB
+% simulates with the exact same ICs / parameters as the C++ run.
+if exist('param_xml', 'var') && ~isempty(param_xml)
+    fprintf('Applying param overrides from %s\n', param_xml);
+    doc = xmlread(param_xml);
+    iv = doc.getElementsByTagName('init_value').item(0);
+    if isempty(iv)
+        error('No <init_value> element found in %s', param_xml);
+    end
+
+    % Index model objects by the names we expect in the XML
+    comp_map = containers.Map();
+    for i = 1:length(model.Compartments)
+        comp_map(model.Compartments(i).Name) = model.Compartments(i);
+    end
+    sp_map = containers.Map();
+    for i = 1:length(model.Species)
+        s = model.Species(i);
+        sp_map([s.Parent.Name '_' s.Name]) = s;
+    end
+    par_map = containers.Map();
+    for i = 1:length(model.Parameters)
+        par_map(model.Parameters(i).Name) = model.Parameters(i);
+    end
+
+    n_set = struct('comp', 0, 'sp', 0, 'par', 0, 'miss', 0);
+    for section_name = {'Compartment', 'Species', 'Parameter'}
+        sec = iv.getElementsByTagName(section_name{1}).item(0);
+        if isempty(sec); continue; end
+        children = sec.getChildNodes();
+        for k = 0:children.getLength()-1
+            node = children.item(k);
+            if node.getNodeType() ~= node.ELEMENT_NODE; continue; end
+            name = char(node.getNodeName());
+            val = str2double(char(node.getTextContent()));
+            if isnan(val); continue; end
+            switch section_name{1}
+                case 'Compartment'
+                    if comp_map.isKey(name)
+                        c = comp_map(name); c.Capacity = val;
+                        n_set.comp = n_set.comp + 1;
+                    else; n_set.miss = n_set.miss + 1; end
+                case 'Species'
+                    if sp_map.isKey(name)
+                        s = sp_map(name); s.InitialAmount = val;
+                        n_set.sp = n_set.sp + 1;
+                    else; n_set.miss = n_set.miss + 1; end
+                case 'Parameter'
+                    if par_map.isKey(name)
+                        p = par_map(name); p.Value = val;
+                        n_set.par = n_set.par + 1;
+                    else; n_set.miss = n_set.miss + 1; end
+            end
+        end
+    end
+    fprintf('  Overrode: %d compartments, %d species, %d parameters (%d names not in model)\n', ...
+        n_set.comp, n_set.sp, n_set.par, n_set.miss);
+end
+
 simdata = sbiosimulate(model);
 
 t = simdata.Time;

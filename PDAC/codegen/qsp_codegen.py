@@ -3,7 +3,7 @@
 qsp_codegen.py — Generate C++ CVODE ODE code from SBML.
 
 Reads:
-  PDAC_QSP/PDAC_model.sbml — SimBiology SBML Level 2 v4 export
+  PDAC/qsp/PDAC_model.sbml — SimBiology SBML Level 2 v4 export
 
 Generates (into PDAC/qsp/ode/):
   QSP_enum.h     — species enum, parameter enum, QSP file param enum
@@ -15,7 +15,7 @@ Generates (into PDAC/qsp/ode/):
 Usage:
   python3 PDAC/codegen/qsp_codegen.py [path/to/model.sbml]
 
-Default SBML path: PDAC_QSP/PDAC_model.sbml
+Default SBML path: PDAC/qsp/PDAC_model.sbml
 Run only when QSP model structure changes, not for parameter value tweaks.
 """
 
@@ -29,7 +29,7 @@ from typing import Dict, List, Optional, Set, Tuple
 # Paths
 # ---------------------------------------------------------------------------
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-DEFAULT_SBML = os.path.join(REPO_ROOT, "PDAC_QSP", "PDAC_model.sbml")
+DEFAULT_SBML = os.path.join(REPO_ROOT, "PDAC", "qsp", "PDAC_model.sbml")
 OUTPUT_DIR = os.path.join(REPO_ROOT, "PDAC", "qsp", "ode")
 
 SBML_NS = "{http://www.sbml.org/sbml/level2/version4}"
