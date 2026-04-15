@@ -331,6 +331,9 @@
     // Init ECM grid to saturation
     PDAC::initialize_ecm_to_saturation(static_cast<float>(1.0f * 1e3));
 
+    // Init ECM floor to baseline (overridden per-voxel by -i 1 structured init)
+    PDAC::initialize_ecm_floor_uniform(env.getProperty<float>("PARAM_ECM_BASELINE"));
+
     // mean fibroblast lifespan in timesteps
     env.newProperty<float>("PARAM_FIB_LIFE_MEAN", 
                     1.0f / ((QP(CancerVCT::P_k_iCAF_death) + QP(CancerVCT::P_k_myCAF_death)) / 2.0) / t_step_sec);

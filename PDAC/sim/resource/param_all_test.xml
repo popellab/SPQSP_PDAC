@@ -223,41 +223,19 @@
       <lobule_spacing name="PARAM_DOMAIN_LOBULE_SPACING" type="float" val="pr" units="voxels">70</lobule_spacing>                     <!-- voxels between lobule centers -->
       <septum_thickness name="PARAM_DOMAIN_SEPTUM_THICKNESS" type="float" val="pr" units="voxels">4</septum_thickness>                   <!-- voxels, Voronoi boundary width -->
       <tumor_radius_fraction name="PARAM_DOMAIN_TUMOR_RADIUS_FRAC" type="float" val="pr">0.15</tumor_radius_fraction>     <!-- fraction of grid_x -->
-      <margin_thickness name="PARAM_DOMAIN_MARGIN_THICKNESS" type="float" val="pr" units="voxels">5</margin_thickness>                   <!-- voxels around tumor surface -->
-      <!-- ECM initialization by region -->
+      <!-- ECM initialization by region (septa are ECM-only, no persistent voxel types) -->
       <ecm_septum_density name="PARAM_DOMAIN_ECM_SEPTUM_DENSITY" type="float" val="pr" units="nmol/mL">700.0</ecm_septum_density>
       <ecm_septum_crosslink name="PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK" type="float" val="pr">0.3</ecm_septum_crosslink>
-      <ecm_stroma_density name="PARAM_DOMAIN_ECM_STROMA_DENSITY" type="float" val="pr" units="nmol/mL">100.0</ecm_stroma_density>
       <ecm_lobule_density name="PARAM_DOMAIN_ECM_LOBULE_DENSITY" type="float" val="pr" units="nmol/mL">50.0</ecm_lobule_density>
-      <ecm_margin_density name="PARAM_DOMAIN_ECM_MARGIN_DENSITY" type="float" val="pr" units="nmol/mL">500.0</ecm_margin_density>
-      <ecm_margin_crosslink name="PARAM_DOMAIN_ECM_MARGIN_CROSSLINK" type="float" val="pr">0.1</ecm_margin_crosslink>
       <ecm_tumor_density name="PARAM_DOMAIN_ECM_TUMOR_DENSITY" type="float" val="pr" units="nmol/mL">100.0</ecm_tumor_density>
-      <!-- Cell placement probabilities by region -->
-      <Fibroblast>
-        <p_septum name="PARAM_DOMAIN_FIB_P_SEPTUM" type="float" val="pr">0.4</p_septum>
-        <p_stroma name="PARAM_DOMAIN_FIB_P_STROMA" type="float" val="pr">0.08</p_stroma>
-        <p_lobule name="PARAM_DOMAIN_FIB_P_LOBULE" type="float" val="pr">0.03</p_lobule>
-        <p_margin name="PARAM_DOMAIN_FIB_P_MARGIN" type="float" val="pr">0.3</p_margin>
-        <p_tumor name="PARAM_DOMAIN_FIB_P_TUMOR" type="float" val="pr">0.05</p_tumor>
-        <margin_mycaf_fraction name="PARAM_DOMAIN_FIB_MARGIN_MYCAF_FRAC" type="float" val="pr">0.7</margin_mycaf_fraction>
-      </Fibroblast>
-      <Vascular>
-        <p_septum name="PARAM_DOMAIN_VAS_P_SEPTUM" type="float" val="pr">0.18</p_septum>
-        <p_stroma name="PARAM_DOMAIN_VAS_P_STROMA" type="float" val="pr">0.05</p_stroma>
-        <p_lobule name="PARAM_DOMAIN_VAS_P_LOBULE" type="float" val="pr">0.03</p_lobule>
-        <p_margin name="PARAM_DOMAIN_VAS_P_MARGIN" type="float" val="pr">0.05</p_margin>
-        <p_tumor name="PARAM_DOMAIN_VAS_P_TUMOR" type="float" val="pr">0.02</p_tumor>
-        <margin_tip_fraction name="PARAM_DOMAIN_VAS_MARGIN_TIP_FRAC" type="float" val="pr">0.1</margin_tip_fraction>
-      </Vascular>
-      <Macrophage>
-        <p_stroma name="PARAM_DOMAIN_MAC_P_STROMA" type="float" val="pr">0.01</p_stroma>
-        <p_margin name="PARAM_DOMAIN_MAC_P_MARGIN" type="float" val="pr">0.03</p_margin>
-        <p_tumor name="PARAM_DOMAIN_MAC_P_TUMOR" type="float" val="pr">0.02</p_tumor>
-        <margin_m1_fraction name="PARAM_DOMAIN_MAC_MARGIN_M1_FRAC" type="float" val="pr">0.2</margin_m1_fraction>
-      </Macrophage>
-      <TH>
-        <p_stroma name="PARAM_DOMAIN_TH_P_STROMA" type="float" val="pr">0.005</p_stroma>
-      </TH>
+      <!-- Cell densities from healthy pancreas IMC (cells/mm³, median of lognormal) -->
+      <fibroblast_density name="PARAM_DOMAIN_FIB_DENSITY" type="float" val="pr" units="cells/mm3">16018</fibroblast_density>
+      <vascular_density name="PARAM_DOMAIN_VAS_DENSITY" type="float" val="pr" units="cells/mm3">9661</vascular_density>
+      <macrophage_density name="PARAM_DOMAIN_MAC_DENSITY" type="float" val="pr" units="cells/mm3">2846</macrophage_density>
+      <cd8_density name="PARAM_DOMAIN_CD8_DENSITY" type="float" val="pr" units="cells/mm3">1958</cd8_density>
+      <cd4_density name="PARAM_DOMAIN_CD4_DENSITY" type="float" val="pr" units="cells/mm3">580</cd4_density>
+      <dc_density name="PARAM_DOMAIN_DC_DENSITY" type="float" val="pr" units="cells/mm3">2568</dc_density>
+      <bcell_density name="PARAM_DOMAIN_BCELL_DENSITY" type="float" val="pr" units="cells/mm3">800</bcell_density>
       <!-- PDE warmup -->
       <pde_warmup_substeps name="PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS" type="int" val="pos">20</pde_warmup_substeps>
     </DomainInit>
@@ -1270,8 +1248,9 @@
     <D name="PARAM_FIB_DIV_COOLDOWN_MYCAF" type="float" comment="myCAF division cooldown [timesteps] from k_myCAF_prolif"><![CDATA[1.0 / (QP(CancerVCT::P_k_myCAF_prolif) * t_step_sec)]]></D>
     <D name="PARAM_FIB_DIV_COOLDOWN_ICAF" type="float" comment="iCAF division cooldown [timesteps] from k_iCAF_prolif"><![CDATA[1.0 / (QP(CancerVCT::P_k_iCAF_prolif) * t_step_sec)]]></D>
 
-    <!-- Side-effect: initialize ECM grid to saturation [nmol/mL] -->
+    <!-- Side-effect: initialize ECM grid to saturation [nmol/mL] + uniform floor -->
     <Call comment="Init ECM grid to saturation"><![CDATA[PDAC::initialize_ecm_to_saturation(static_cast<float>(1.0f * 1e3))]]></Call>
+    <Call comment="Init ECM floor to baseline (overridden per-voxel by -i 1 structured init)"><![CDATA[PDAC::initialize_ecm_floor_uniform(env.getProperty<float>("PARAM_ECM_BASELINE"))]]></Call>
 
     <!-- Fibroblast lifespan -->
     <D name="PARAM_FIB_LIFE_MEAN" type="float" comment="mean fibroblast lifespan in timesteps"><![CDATA[1.0f / ((QP(CancerVCT::P_k_iCAF_death) + QP(CancerVCT::P_k_myCAF_death)) / 2.0) / t_step_sec]]></D>

@@ -87,15 +87,6 @@ enum DCSubtype : int {
     DC_CDC2 = 1    // cDC2: MHC-II presents to CD4/Th/Treg
 };
 
-// Voxel tissue type labels (static, set during initialization)
-enum VoxelType : uint8_t {
-    VOXEL_STROMA = 0,  // General stromal tissue (default)
-    VOXEL_SEPTUM = 1,  // Lobular septum (high ECM, fibroblasts, vessels)
-    VOXEL_LOBULE = 2,  // Lobule interior (parenchymal tissue)
-    VOXEL_TUMOR  = 3,  // Initial tumor region
-    VOXEL_MARGIN = 4   // Tumor-stroma boundary (desmoplastic shell)
-};
-
 // Message names
 constexpr const char* MSG_CELL_LOCATION = "cell_location";
 constexpr const char* MSG_INTENT = "intent_message";
