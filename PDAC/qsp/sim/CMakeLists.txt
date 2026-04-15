@@ -61,3 +61,17 @@ target_link_libraries(qsp_sim PRIVATE
     ${SUNDIALS_LIBRARIES}
     Boost::serialization
 )
+
+# --- Jacobian sparsity profiler (one-off diagnostic) ---
+add_executable(profile_jacobian
+    profile_jacobian.cpp
+    ${PDAC_ROOT}/qsp/ode/ODE_system.cpp
+    ${PDAC_ROOT}/qsp/ode/QSPParam.cpp
+    ${PDAC_ROOT}/qsp/cvode/CVODEBase.cpp
+    ${PDAC_ROOT}/core/ParamBase.cpp
+)
+target_include_directories(profile_jacobian PRIVATE ${PDAC_ROOT})
+target_link_libraries(profile_jacobian PRIVATE
+    ${SUNDIALS_LIBRARIES}
+    Boost::serialization
+)
