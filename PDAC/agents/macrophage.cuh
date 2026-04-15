@@ -81,8 +81,13 @@ FLAMEGPU_AGENT_FUNCTION(mac_scan_neighbors, flamegpu::MessageSpatial3D, flamegpu
     int neighbor_cancer_count = 0;
     int neighbor_fib_count = 0;
 
+    // Adhesion: count all type+state neighbors
+    int adh_counts[ABM_STATE_COUNTER_SIZE] = {0};
+
     for (auto& msg : FLAMEGPU->message_in(world_x, world_y, world_z)) {
         int agent_type = msg.getVariable<int>("agent_type");
+        int agent_state = msg.getVariable<int>("cell_state");
+        float kill_factor = msg.getVariable<float>("kill_factor");
         int msg_x = msg.getVariable<int>("voxel_x");
         int msg_y = msg.getVariable<int>("voxel_y");
         int msg_z = msg.getVariable<int>("voxel_z");
@@ -92,6 +97,9 @@ FLAMEGPU_AGENT_FUNCTION(mac_scan_neighbors, flamegpu::MessageSpatial3D, flamegpu
 
         // Only count if in Moore neighborhood (26 adjacent voxels)
         if (std::abs(dx) <= 1 && std::abs(dy) <= 1 && std::abs(dz) <= 1) {
+            // Adhesion: accumulate into type+state count vector
+            adh_counts[msg_to_sc_idx(agent_type, agent_state, kill_factor)]++;
+
             if (agent_type == CELL_TYPE_CANCER) {
                 neighbor_cancer_count++;
             } else if (agent_type == CELL_TYPE_FIB) {
@@ -100,8 +108,13 @@ FLAMEGPU_AGENT_FUNCTION(mac_scan_neighbors, flamegpu::MessageSpatial3D, flamegpu
         }
     }
 
+    // Compute adhesion p_move from matrix
+    const int my_sc = self_sc_idx(CELL_TYPE_MAC, FLAMEGPU->getVariable<int>("cell_state"));
+    const float adh_pmove = compute_adhesion_pmove(my_sc, adh_counts, ADH_MATRIX_PTR(FLAMEGPU));
+
     FLAMEGPU->setVariable<int>("neighbor_cancer_count", neighbor_cancer_count);
     FLAMEGPU->setVariable<int>("neighbor_fib_count", neighbor_fib_count);
+    FLAMEGPU->setVariable<float>("adh_p_move", adh_pmove);
     return flamegpu::ALIVE;
 }
 
@@ -208,8 +221,8 @@ FLAMEGPU_AGENT_FUNCTION(mac_move, flamegpu::MessageNone, flamegpu::MessageNone) 
         FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_MAC_M2");
 
     float bias = (cell_state == MAC_M1) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_MAC_M1") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_MAC_M2");
+        ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_MAC_M1")) :
+        ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_MAC_M2"));
 
     // Read CCL2 gradient at current voxel
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
@@ -233,22 +246,15 @@ FLAMEGPU_AGENT_FUNCTION(mac_move, flamegpu::MessageNone, flamegpu::MessageNone) 
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
     mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_MAC");
-    // Adhesion: M2 semi-sessile niche retention
-    if (cell_state == MAC_M2) {
-        const int n_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
-        const int n_fib = FLAMEGPU->getVariable<int>("neighbor_fib_count");
-        float local_ecm = mp.ecm_density[vidx];
-        float ecm_th = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_ECM_DENSITY_TH");
-        mp.p_move = compute_adhesion_pmove(
-            FLAMEGPU->environment.getProperty<float>("PARAM_ADH_MAC_M2_CANCER"), n_cancer,
-            FLAMEGPU->environment.getProperty<float>("PARAM_ADH_MAC_M2_FIB"), n_fib,
-            FLAMEGPU->environment.getProperty<float>("PARAM_ADH_MAC_M2_ECM"), local_ecm, ecm_th);
-    } else {
-        mp.p_move = 1.0f;
-    }
+    // Adhesion: pre-computed from matrix in scan_neighbors
+    mp.p_move = FLAMEGPU->getVariable<float>("adh_p_move");
     mp.p_persist = p_persist;
     mp.bias_strength = bias;
     mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
+    mp.orient_x = ECM_ORIENT_X_PTR(FLAMEGPU);
+    mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
+    mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
+    mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_MAC");
 
     // Contact guidance: blend chemotaxis with fiber orientation
     {

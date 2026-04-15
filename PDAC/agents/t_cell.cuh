@@ -18,7 +18,9 @@ FLAMEGPU_AGENT_FUNCTION(tcell_broadcast_location, flamegpu::MessageNone, flamegp
     const int tcell_cs = FLAMEGPU->getVariable<int>("cell_state");
     FLAMEGPU->message_out.setVariable<int>("cell_state", tcell_cs);
     FLAMEGPU->message_out.setVariable<float>("PDL1", 0.0f);  // T cells don't have PDL1
-    FLAMEGPU->message_out.setVariable<float>("kill_factor", FLAMEGPU->getVariable<float>("hypoxia_kill_factor"));
+    // Naive cells have no killing ability — broadcast kill_factor=0
+    const float kf = (tcell_cs == T_CELL_NAIVE) ? 0.0f : FLAMEGPU->getVariable<float>("hypoxia_kill_factor");
+    FLAMEGPU->message_out.setVariable<float>("kill_factor", kf);
     FLAMEGPU->message_out.setVariable<int>("dead", 0);
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
@@ -32,8 +34,9 @@ FLAMEGPU_AGENT_FUNCTION(tcell_broadcast_location, flamegpu::MessageNone, flamegp
 
     // Count this agent into per-state population snapshot
     auto* sc = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("state_counters_ptr"));
-    const int sc_slot = (tcell_cs == T_CELL_EFF) ? SC_CD8_EFF :
-                        (tcell_cs == T_CELL_CYT)  ? SC_CD8_CYT : SC_CD8_SUP;
+    const int sc_slot = (tcell_cs == T_CELL_EFF)   ? SC_CD8_EFF :
+                        (tcell_cs == T_CELL_CYT)    ? SC_CD8_CYT :
+                        (tcell_cs == T_CELL_NAIVE)  ? SC_CD8_NAIVE : SC_CD8_SUP;
     atomicAdd(&sc[sc_slot], 1u);
 
     return flamegpu::ALIVE;
@@ -60,9 +63,10 @@ FLAMEGPU_AGENT_FUNCTION(tcell_scan_neighbors, flamegpu::MessageSpatial3D, flameg
     int all_count = 0;
     float max_PDL1 = 0.0f;
     int found_progenitor = 0;
+    int dc_cdc1_mature_count = 0;
 
-    // Per-neighbor counts: [direction][0=cancer, 1=tcell, 2=treg]
-    int neighbor_counts[26][3] = {{0}};
+    // Adhesion: count all type+state neighbors
+    int adh_counts[ABM_STATE_COUNTER_SIZE] = {0};
 
     for (const auto& msg : FLAMEGPU->message_in(my_pos_x, my_pos_y, my_pos_z)) {
         const int msg_x = msg.getVariable<int>("voxel_x");
@@ -79,69 +83,45 @@ FLAMEGPU_AGENT_FUNCTION(tcell_scan_neighbors, flamegpu::MessageSpatial3D, flameg
             const int agent_type = msg.getVariable<int>("agent_type");
             const int agent_state = msg.getVariable<int>("cell_state");
             const float PDL1 = msg.getVariable<float>("PDL1");
+            const float kill_factor = msg.getVariable<float>("kill_factor");
+
+            // Adhesion: accumulate into type+state count vector
+            adh_counts[msg_to_sc_idx(agent_type, agent_state, kill_factor)]++;
 
             if (PDL1 > max_PDL1) {
                 max_PDL1 = PDL1;
             }
 
-            // Find direction index
-            int dir_idx = -1;
-            for (int i = 0; i < 26; i++) {
-                int ddx, ddy, ddz;
-                get_moore_direction(i, ddx, ddy, ddz);
-                if (ddx == dx && ddy == dy && ddz == dz) {
-                    dir_idx = i;
-                    break;
+            // Agent-specific interaction counts
+            if (agent_type == CELL_TYPE_CANCER) {
+                cancer_count++;
+                if (agent_state == CANCER_PROGENITOR) {
+                    found_progenitor = 1;
                 }
-            }
-
-            if (dir_idx >= 0) {
-                if (agent_type == CELL_TYPE_CANCER) {
-                    cancer_count++;
-                    neighbor_counts[dir_idx][0]++;
-                    if (agent_state == CANCER_PROGENITOR) {
-                        found_progenitor = 1;
-                    }
-                } else if (agent_type == CELL_TYPE_T) {
-                    neighbor_counts[dir_idx][1]++;
-                } else if (agent_type == CELL_TYPE_TREG) {
-                    if (agent_state == TCD4_TREG) {
-                        treg_count++;
-                    }
-                    neighbor_counts[dir_idx][2]++;
+            } else if (agent_type == CELL_TYPE_TREG) {
+                if (agent_state == TCD4_TREG) {
+                    treg_count++;
+                }
+            } else if (agent_type == CELL_TYPE_DC) {
+                // Detect mature cDC1 for naive CD8 priming
+                if (agent_state == DC_MATURE) {
+                    if (kill_factor < 0.5f) dc_cdc1_mature_count++;  // cDC1
                 }
             }
         }
     }
 
-    // Build available_neighbors mask (voxels with room for T cells)
-    // Only scan Von Neumann neighbors for availability, can just skip other directions
-    // Counts for interactions already calculated
-    // unsigned int available_neighbors = 0;
-    // for (int i = 0; i < 6; i++) {
-    //     int dx, dy, dz;
-    //     get_moore_direction(i, dx, dy, dz);
-    //     int nx = my_x + dx;
-    //     int ny = my_y + dy;
-    //     int nz = my_z + dz;
-
-    //     if (is_in_bounds(nx, ny, nz, size_x, size_y, size_z)) {
-    //         bool has_cancer = (neighbor_counts[i][0] > 0);
-    //         int t_count = neighbor_counts[i][1] + neighbor_counts[i][2];
-    //         int max_cap = has_cancer ? MAX_T_PER_VOXEL_WITH_CANCER : MAX_T_PER_VOXEL;
-
-    //         if ((t_count < max_cap)) {
-    //             available_neighbors |= (1u << i);
-    //         }
-    //     }
-    // }
+    // Compute adhesion p_move from matrix
+    const int my_sc = self_sc_idx(CELL_TYPE_T, FLAMEGPU->getVariable<int>("cell_state"));
+    const float adh_pmove = compute_adhesion_pmove(my_sc, adh_counts, ADH_MATRIX_PTR(FLAMEGPU));
 
     FLAMEGPU->setVariable<int>("neighbor_cancer_count", cancer_count);
     FLAMEGPU->setVariable<int>("neighbor_Treg_count", treg_count);
     FLAMEGPU->setVariable<int>("neighbor_all_count", all_count);
     FLAMEGPU->setVariable<float>("max_neighbor_PDL1", max_PDL1);
     FLAMEGPU->setVariable<int>("found_progenitor", found_progenitor);
-    // FLAMEGPU->setVariable<unsigned int>("available_neighbors", available_neighbors);
+    FLAMEGPU->setVariable<int>("neighbor_dc_cdc1_mature_count", dc_cdc1_mature_count);
+    FLAMEGPU->setVariable<float>("adh_p_move", adh_pmove);
 
     return flamegpu::ALIVE;
 }
@@ -163,12 +143,47 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
     if (life <= 0) {
         FLAMEGPU->setVariable<int>("dead", 1);
         auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
-        const int ds = (cell_state == T_CELL_EFF) ? EVT_DEATH_CD8_EFF :
-                       (cell_state == T_CELL_CYT)  ? EVT_DEATH_CD8_CYT : EVT_DEATH_CD8_SUP;
+        const int ds = (cell_state == T_CELL_EFF)   ? EVT_DEATH_CD8_EFF :
+                       (cell_state == T_CELL_CYT)    ? EVT_DEATH_CD8_CYT :
+                       (cell_state == T_CELL_NAIVE)  ? EVT_DEATH_CD8_NAIVE : EVT_DEATH_CD8_SUP;
         atomicAdd(&evts[ds], 1u);
         return flamegpu::DEAD;
     }
     FLAMEGPU->setVariable<int>("life", life);
+
+    // ── NAIVE state: DC priming only, skip all other logic ──
+    if (cell_state == T_CELL_NAIVE) {
+        const int dc_cdc1 = FLAMEGPU->getVariable<int>("neighbor_dc_cdc1_mature_count");
+        if (dc_cdc1 > 0) {
+            const float sec_per_slice = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
+            const float n_sites = FLAMEGPU->environment.getProperty<float>("PARAM_DC_N_SITES");
+            const int n_local = FLAMEGPU->getVariable<int>("neighbor_all_count");
+            const float cell_p = FLAMEGPU->environment.getProperty<float>("PARAM_CELL");
+            const float H = n_sites * dc_cdc1 / (n_sites * dc_cdc1 + n_local + cell_p);
+            const float k = FLAMEGPU->environment.getProperty<float>("PARAM_DC_PRIME_K_CD8");
+            const float p = 1.0f - expf(-k * H * sec_per_slice);
+            if (FLAMEGPU->random.uniform<float>() < p) {
+                FLAMEGPU->setVariable<int>("cell_state", T_CELL_CYT);
+                const int N_prime = FLAMEGPU->environment.getProperty<int>("PARAM_PRIME_DIV_BURST");
+                FLAMEGPU->setVariable<int>("divide_limit",
+                    FLAMEGPU->getVariable<int>("divide_limit") + N_prime);
+                FLAMEGPU->setVariable<int>("divide_cd", 0);
+                FLAMEGPU->setVariable<int>("divide_flag", 1);
+                // Reset IL2 release timer for newly primed cell
+                FLAMEGPU->setVariable<float>("IL2_release_remain",
+                    FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_IL2_RELEASE_TIME"));
+                // Extend lifespan: naive→CYT gets a fresh effector lifespan
+                const float life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_T_CELL_LIFE_MEAN_SLICE");
+                const float life_sd = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
+                int new_life = static_cast<int>(life_mean + FLAMEGPU->random.normal<float>() * life_sd + 0.5f);
+                FLAMEGPU->setVariable<int>("life", new_life > 1 ? new_life : 1);
+                auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+                atomicAdd(&evts[EVT_PRIME_CD8], 1u);
+            }
+        }
+        // NAIVE cells do nothing else — no killing, no exhaustion, no division, no chemokines
+        return flamegpu::ALIVE;
+    }
 
     //Get cell specific parameters
     const int found_progenitor = FLAMEGPU->getVariable<int>("found_progenitor");
@@ -343,9 +358,9 @@ FLAMEGPU_AGENT_FUNCTION(tcell_write_to_occ_grid, flamegpu::MessageNone, flamegpu
     }
     const int vidx = z * (gx * gy) + y * gx + x;
 
-    // Volume-based occupancy
+    // Volume-based occupancy — naive cells use EFF volume
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-    float my_vol = (cell_state == T_CELL_EFF) ?
+    float my_vol = (cell_state == T_CELL_EFF || cell_state == T_CELL_NAIVE) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_EFF") :
         (cell_state == T_CELL_CYT) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_CYT") :
@@ -486,7 +501,8 @@ FLAMEGPU_AGENT_FUNCTION(tcell_compute_chemical_sources, flamegpu::MessageNone, f
 
     float IFNg_release_rate = 0.0f;
     float IL2_release_rate = 0.0f;
-    float IL2_uptake_rate = 0.0f;
+    // Naive cells don't secrete any chemicals
+    if (cell_state == T_CELL_NAIVE) return flamegpu::ALIVE;
     if (dead == 0){
         int found_progenitor = FLAMEGPU->getVariable<int>("found_progenitor");
         // EFF cells secrete IFN-γ only when in contact with cancer (matching HCC)
@@ -497,7 +513,6 @@ FLAMEGPU_AGENT_FUNCTION(tcell_compute_chemical_sources, flamegpu::MessageNone, f
             if (found_progenitor == 1){
                 IFNg_release_rate = FLAMEGPU->environment.getProperty<float>("PARAM_IFNG_RELEASE");
             }
-            IL2_uptake_rate = FLAMEGPU->environment.getProperty<float>("PARAM_IL2_UPTAKE");
             if (FLAMEGPU->getVariable<float>("IL2_release_remain") > 0){
                 IL2_release_rate = FLAMEGPU->environment.getProperty<float>("PARAM_IL2_RELEASE");
             }
@@ -536,10 +551,9 @@ FLAMEGPU_AGENT_FUNCTION(tcell_compute_chemical_sources, flamegpu::MessageNone, f
     PDE_SECRETE(FLAMEGPU, PDE_SRC_IFN, voxel, IFNg_release_rate / voxel_volume);
 
     // IL-2 secretion → src ptr 2 (IL2), divide by voxel_volume
+    // No per-cell IL-2 uptake: PDE decay (k_IL2_deg) handles clearance;
+    // ODE k_IL2_cons is LN-compartment consumption, not tumor tissue.
     PDE_SECRETE(FLAMEGPU, PDE_SRC_IL2, voxel, IL2_release_rate / voxel_volume);
-
-    // IL-2 uptake → upt ptr 2 (IL2), positive [1/s], no volume scaling
-    PDE_UPTAKE(FLAMEGPU, PDE_UPT_IL2, voxel, IL2_uptake_rate);
 
     return flamegpu::ALIVE;
 }
@@ -547,9 +561,8 @@ FLAMEGPU_AGENT_FUNCTION(tcell_compute_chemical_sources, flamegpu::MessageNone, f
 // Single-phase T cell movement using occupancy grid.
 // Replaces two-phase select_move_target + execute_move.
 // T cell movement uses volume-based occupancy (volume_try_claim/volume_release).
-// T cell movement using run-tumble chemotaxis toward IFN-γ/CCL2
 // T cell movement via unified movement framework.
-// Persistent random walk (no chemotaxis currently; bias=0 for all states).
+// CCL5 chemotaxis toward tumor/iCAF regions (CCR5-mediated).
 FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     if (FLAMEGPU->getVariable<int>("dead") == 1) return flamegpu::ALIVE;
 
@@ -581,30 +594,50 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move, flamegpu::MessageNone, flamegpu::MessageNone
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
     mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_TCELL");
-    // Adhesion: cytotoxic T cells form LFA-1/ICAM-1 synapse with cancer
-    if (cell_state == T_CELL_CYT) {
-        const int n_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
-        float a_cancer = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_TCELL_CYT_CANCER");
-        mp.p_move = fmaxf(0.0f, 1.0f - a_cancer * (static_cast<float>(n_cancer) / 26.0f));
-    } else {
-        mp.p_move = 1.0f;
-    }
+    // Adhesion: pre-computed from matrix in scan_neighbors
+    mp.p_move = FLAMEGPU->getVariable<float>("adh_p_move");
     mp.p_persist = p_persist;
-    mp.bias_strength = 0.0f; // T cells: no chemotaxis (TBD)
-    mp.grad_x = 0.0f; mp.grad_y = 0.0f; mp.grad_z = 0.0f;
 
-    // Contact guidance: fiber + persistence for directional movement along ECM
+    // CCL5 chemotaxis: CD8+ T cells express CCR5, follow CCL5 toward tumor/iCAF
+    float bias = ci_to_bias((cell_state == T_CELL_EFF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_TCELL_EFF") :
+        (cell_state == T_CELL_CYT) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_TCELL_CYT") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_TCELL_SUP"));
+    mp.bias_strength = bias;
+
+    // Read CCL5 gradient
+    const int vidx = z * (mp.grid_x * mp.grid_y) + y * mp.grid_x + x;
+    float gx = 0.0f, gy = 0.0f, gz = 0.0f;
+    if (bias > 0.0f) {
+        gx = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL5_X))[vidx];
+        gy = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL5_Y))[vidx];
+        gz = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL5_Z))[vidx];
+    }
+    mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
+    mp.orient_x = ECM_ORIENT_X_PTR(FLAMEGPU);
+    mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
+    mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
+    mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_TCELL");
+
+    // Contact guidance
     {
-        const int vidx = z * (mp.grid_x * mp.grid_y) + y * mp.grid_x + x;
         float w_cg = FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_TCELL");
         float ox = ECM_ORIENT_X_PTR(FLAMEGPU)[vidx];
         float oy = ECM_ORIENT_Y_PTR(FLAMEGPU)[vidx];
         float oz = ECM_ORIENT_Z_PTR(FLAMEGPU)[vidx];
-        apply_contact_guidance_persist(mp.grad_x, mp.grad_y, mp.grad_z, mp.bias_strength,
-            ox, oy, oz, w_cg,
-            FLAMEGPU->getVariable<int>("persist_dir_x"),
-            FLAMEGPU->getVariable<int>("persist_dir_y"),
-            FLAMEGPU->getVariable<int>("persist_dir_z"));
+        if (bias > 0.0f) {
+            apply_contact_guidance(mp.grad_x, mp.grad_y, mp.grad_z, ox, oy, oz, w_cg);
+        } else {
+            apply_contact_guidance_persist(mp.grad_x, mp.grad_y, mp.grad_z, mp.bias_strength,
+                ox, oy, oz, w_cg,
+                FLAMEGPU->getVariable<int>("persist_dir_x"),
+                FLAMEGPU->getVariable<int>("persist_dir_y"),
+                FLAMEGPU->getVariable<int>("persist_dir_z"));
+        }
     }
 
     MoveResult r = move_cell(mp, x, y, z,

@@ -419,7 +419,7 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
 
     // Allocate ECM and fibroblast density field device arrays.
     // ECM starts at 0 here; initialize_ecm_to_saturation() is called after QSP init
-    // (in set_internal_params) to fill with PARAM_FIB_ECM_SATURATION — matching HCC.
+    // (in set_internal_params) to fill to 1000 nmol/mL (QSP saturation).
     // Allocate voxel type grid (domain initialization labels)
     CUDA_CHECK(cudaMalloc(&d_voxel_type, total_voxels * sizeof(uint8_t)));
     CUDA_CHECK(cudaMemset(d_voxel_type, 0, total_voxels * sizeof(uint8_t)));  // Default VOXEL_STROMA=0
@@ -491,9 +491,9 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
         model.Environment().newProperty<unsigned long long>(uptake_key,        static_cast<unsigned long long>(upt_ptr));
     }
 
-    // Store gradient pointers for chemotaxis substrates (IFN=0, TGFB=1, CCL2=2, VEGFA=3)
+    // Store gradient pointers for chemotaxis substrates
     // Naming: pde_grad_IFN_x, pde_grad_IFN_y, pde_grad_IFN_z, pde_grad_TGFB_x, ...
-    static const char* grad_names[NUM_GRAD_SUBSTRATES] = {"IFN", "TGFB", "CCL2", "VEGFA", "CXCL13", "CCL21"};
+    static const char* grad_names[NUM_GRAD_SUBSTRATES] = {"IFN", "TGFB", "CCL2", "VEGFA", "CXCL13", "CCL21", "CXCL12", "CCL5"};
     for (int g = 0; g < NUM_GRAD_SUBSTRATES; g++) {
         model.Environment().newProperty<unsigned long long>(
             std::string("pde_grad_") + grad_names[g] + "_x",
@@ -715,6 +715,8 @@ struct RecruitKernelParams {
     // B cell recruitment
     float p_bcell;
     float bcell_life_mean, bcell_life_sd;
+    const float* cxcl13_conc;  // CXCL13 PDE concentration (B cell recruitment boost)
+    float cxcl13_ec50_bcell;   // CXCL13 EC50 for B cell recruitment boost
     // DC recruitment (per-subtype, homeostatic)
     float p_dc_cdc1;
     float p_dc_cdc2;
@@ -734,6 +736,10 @@ struct RecruitKernelParams {
     float vol_teff, vol_treg, vol_th;
     float vol_mdsc, vol_mac_m1, vol_mac_m2;
     float vol_bcell;
+    // Naive T cell recruitment (DC priming pathway)
+    float naive_cd8_frac;     // Fraction of Teff events that also spawn a naive CD8
+    float naive_cd4_frac;     // Fraction of TH events that also spawn a naive CD4
+    int naive_lifespan;       // Lifespan in ABM steps for naive cells
 };
 
 // Device helper: xorshift32 RNG (fast, good enough for recruitment)
@@ -884,6 +890,29 @@ __global__ void recruit_all_kernel(
                     req.CTLA4 = 0.0f;
                     d_requests[slot] = req;
                 }
+
+                // Also try to recruit a naive CD8 alongside (TLS priming pathway)
+                if (p.naive_cd8_frac > 0.0f && rng_uniform(rng) < p.naive_cd8_frac) {
+                    int npx, npy, npz;
+                    if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                            d_vol_used, p.vol_teff, p.voxel_capacity,
+                            rng, npx, npy, npz)) {
+                        int nslot = atomicAdd(d_request_count, 1);
+                        if (nslot < MAX_RECRUITS_PER_STEP) {
+                            RecruitRequest nreq;
+                            nreq.x = npx; nreq.y = npy; nreq.z = npz;
+                            nreq.cell_type = CELL_TYPE_T;
+                            nreq.cell_state = T_CELL_NAIVE;
+                            nreq.life = p.naive_lifespan;
+                            nreq.divide_cd = 0;
+                            nreq.divide_limit = 0;  // No division until primed
+                            nreq.IL2_release_remain = 0.0f;
+                            nreq.TGFB_release_remain = 0.0f;
+                            nreq.CTLA4 = 0.0f;
+                            d_requests[nslot] = nreq;
+                        }
+                    }
+                }
             } else {
                 atomicAdd(&diag->teff_place_fail, 1);
             }
@@ -935,6 +964,29 @@ __global__ void recruit_all_kernel(
                     req.TGFB_release_remain = p.tcd4_TGFB_release;
                     req.CTLA4 = 0.0f;
                     d_requests[slot] = req;
+                }
+
+                // Also try to recruit a naive CD4 alongside (TLS priming pathway)
+                if (p.naive_cd4_frac > 0.0f && rng_uniform(rng) < p.naive_cd4_frac) {
+                    int npx, npy, npz;
+                    if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                            d_vol_used, p.vol_th, p.voxel_capacity,
+                            rng, npx, npy, npz)) {
+                        int nslot = atomicAdd(d_request_count, 1);
+                        if (nslot < MAX_RECRUITS_PER_STEP) {
+                            RecruitRequest nreq;
+                            nreq.x = npx; nreq.y = npy; nreq.z = npz;
+                            nreq.cell_type = CELL_TYPE_TREG;  // Naive CD4 uses TReg agent type
+                            nreq.cell_state = TCD4_NAIVE;
+                            nreq.life = p.naive_lifespan;
+                            nreq.divide_cd = 0;
+                            nreq.divide_limit = 0;  // No division until primed
+                            nreq.IL2_release_remain = 0.0f;
+                            nreq.TGFB_release_remain = 0.0f;
+                            nreq.CTLA4 = 0.0f;
+                            d_requests[nslot] = nreq;
+                        }
+                    }
                 }
             } else {
                 atomicAdd(&diag->th_place_fail, 1);
@@ -1009,10 +1061,17 @@ __global__ void recruit_all_kernel(
         }
     }
 
-    // ── BCell source (bit 3) ──
+    // ── BCell source (bit 3) — baseline + CXCL13 boost ──
     if (flags & 8) {
         atomicAdd(&diag->bcell_sources, 1);
-        if (rng_uniform(rng) < p.p_bcell) {
+        // CXCL13 from TFH/B cells amplifies recruitment locally (not a gate)
+        float p_bcell_eff = p.p_bcell;
+        if (p.cxcl13_conc) {
+            float cxcl13 = p.cxcl13_conc[idx];
+            float H_cxcl13 = cxcl13 / (cxcl13 + p.cxcl13_ec50_bcell + 1e-30f);
+            p_bcell_eff *= (1.0f + H_cxcl13);
+        }
+        if (rng_uniform(rng) < p_bcell_eff) {
             atomicAdd(&diag->bcell_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_bcell, p.voxel_capacity,
@@ -1152,6 +1211,9 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     p.p_bcell = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_RECRUIT_K");
     p.bcell_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_LIFE_MEAN");
     p.bcell_life_sd   = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_LIFE_SD");
+    p.cxcl13_conc = g_pde_solver ? reinterpret_cast<const float*>(
+        g_pde_solver->get_device_concentration_ptr(CHEM_CXCL13)) : nullptr;
+    p.cxcl13_ec50_bcell = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_EC50_CXCL13_REC");
 
     // DC params
     p.p_dc_cdc1 = FLAMEGPU->environment.getProperty<float>("PARAM_DC_RECRUIT_K_CDC1");
@@ -1184,6 +1246,11 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     p.vol_mac_m1 = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M1");
     p.vol_mac_m2 = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M2");
     p.vol_bcell  = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_NAIVE");
+
+    // Naive T cell recruitment params
+    p.naive_cd8_frac = FLAMEGPU->environment.getProperty<float>("PARAM_NAIVE_CD8_RECRUIT_FRAC");
+    p.naive_cd4_frac = FLAMEGPU->environment.getProperty<float>("PARAM_NAIVE_CD4_RECRUIT_FRAC");
+    p.naive_lifespan = FLAMEGPU->environment.getProperty<int>("PARAM_NAIVE_LIFESPAN_STEPS");
 
     // Launch kernel
     dim3 block(8, 8, 8);

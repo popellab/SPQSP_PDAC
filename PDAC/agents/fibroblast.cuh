@@ -4,7 +4,7 @@
 //
 // Activation: Quiescent → myCAF (TGF-β driven), Quiescent → iCAF (IL-1 driven, TGF-β suppressed)
 // ECM deposition: myCAF only (Gaussian kernel, radius from XML)
-// Chemical sources: myCAF → TGF-β + CCL2; iCAF → IL-6 + CXCL13 + CCL2
+// Chemical sources: myCAF → TGF-β + CCL2; iCAF → IL-6 + CCL2 + CXCL12 + CCL5
 // Division: activated fibroblasts can divide locally (cancer-neighbor PDGF proxy)
 
 #ifndef FIBROBLAST_CUH
@@ -42,7 +42,8 @@ FLAMEGPU_AGENT_FUNCTION(fib_broadcast_location, flamegpu::MessageNone, flamegpu:
     int sc_idx;
     if (cs == FIB_QUIESCENT)  sc_idx = SC_FIB_QUIESCENT;
     else if (cs == FIB_MYCAF) sc_idx = SC_FIB_MYCAF;
-    else                      sc_idx = SC_FIB_ICAF;
+    else if (cs == FIB_ICAF)  sc_idx = SC_FIB_ICAF;
+    else                       sc_idx = SC_FIB_FRC;
     atomicAdd(&sc[sc_idx], 1u);
 
     return flamegpu::ALIVE;
@@ -62,6 +63,10 @@ FLAMEGPU_AGENT_FUNCTION(fib_scan_neighbors, flamegpu::MessageSpatial3D, flamegpu
 
     int cancer_count = 0;
     int fib_count = 0;
+    int ltb_lymph_count = 0;  // LTβ-competent lymphocytes (drives iCAF→FRC)
+
+    // Adhesion: count all type+state neighbors
+    int adh_counts[ABM_STATE_COUNTER_SIZE] = {0};
 
     for (const auto& msg : FLAMEGPU->message_in(wx, wy, wz)) {
         const int mx = msg.getVariable<int>("voxel_x");
@@ -70,13 +75,36 @@ FLAMEGPU_AGENT_FUNCTION(fib_scan_neighbors, flamegpu::MessageSpatial3D, flamegpu
         if (abs(mx - x) <= 1 && abs(my - y) <= 1 && abs(mz - z) <= 1
             && !(mx == x && my == y && mz == z)) {
             const int at = msg.getVariable<int>("agent_type");
-            if (at == CELL_TYPE_CANCER) cancer_count++;
-            else if (at == CELL_TYPE_FIB) fib_count++;
+            const int ms = msg.getVariable<int>("cell_state");
+            const float kf = msg.getVariable<float>("kill_factor");
+
+            // Adhesion: accumulate into type+state count vector
+            adh_counts[msg_to_sc_idx(at, ms, kf)]++;
+
+            if (at == CELL_TYPE_CANCER) { cancer_count++; continue; }
+            if (at == CELL_TYPE_FIB) { fib_count++; continue; }
+            // LTβ-competent lymphocyte filter (state-gated)
+            // Ansel2000/Fütterer1998: naive+activated B cells express surface LTα1β2; plasma downregulates (Mebius2003)
+            // Luther2002/Scheu2002: TCR-activated CD8 (eff+cyt) produce LTβ; naive/suppressed excluded
+            // Furtado2007/Kumar2015: Th+Tfh are canonical LTβ producers; Tregs excluded (TLS forms at effector, not regulatory, sites)
+            if (at == CELL_TYPE_BCELL) {
+                if (ms == BCELL_NAIVE || ms == BCELL_ACTIVATED) ltb_lymph_count++;
+            } else if (at == CELL_TYPE_T) {
+                if (ms == T_CELL_EFF || ms == T_CELL_CYT) ltb_lymph_count++;
+            } else if (at == CELL_TYPE_TREG) {
+                if (ms == TCD4_TH || ms == TCD4_TFH) ltb_lymph_count++;
+            }
         }
     }
 
+    // Compute adhesion p_move from matrix
+    const int my_sc = self_sc_idx(CELL_TYPE_FIB, FLAMEGPU->getVariable<int>("cell_state"));
+    const float adh_pmove = compute_adhesion_pmove(my_sc, adh_counts, ADH_MATRIX_PTR(FLAMEGPU));
+
     FLAMEGPU->setVariable<int>("neighbor_cancer_count", cancer_count);
     FLAMEGPU->setVariable<int>("neighbor_fib_count", fib_count);
+    FLAMEGPU->setVariable<int>("neighbor_ltb_lymph_count", ltb_lymph_count);
+    FLAMEGPU->setVariable<float>("adh_p_move", adh_pmove);
     return flamegpu::ALIVE;
 }
 
@@ -96,11 +124,11 @@ FLAMEGPU_AGENT_FUNCTION(fib_write_to_occ_grid, flamegpu::MessageNone, flamegpu::
     }
     const int vidx = z * (gx * gy) + y * gx + x;
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-    float my_vol = (cell_state == FIB_QUIESCENT) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_QUIESCENT") :
-        (cell_state == FIB_MYCAF) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
+    float my_vol;
+    if (cell_state == FIB_QUIESCENT) my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_QUIESCENT");
+    else if (cell_state == FIB_MYCAF) my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF");
+    else if (cell_state == FIB_ICAF)  my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
+    else                               my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_FRC");
     float* vol_used = VOL_PTR(FLAMEGPU);
     atomicAdd(&vol_used[vidx], my_vol);
 
@@ -110,7 +138,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_write_to_occ_grid, flamegpu::MessageNone, flamegpu::
 // ============================================================================
 // Fibroblast: Compute chemical sources
 // myCAF: TGF-β + CCL2 (HIF-boosted under hypoxia, reduced at severe hypoxia)
-// iCAF:  IL-6 + CXCL13 + CCL2
+// iCAF:  IL-6 + CCL2 + CXCL12 + CCL5
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
@@ -150,17 +178,20 @@ FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, fla
         PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB,  voxel, tgfb_rate  * eff_boost / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL2,  voxel, ccl2_rate  * eff_boost / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_VEGFA, voxel, vegfa_rate * eff_boost / voxel_volume);
-    } else {  // FIB_ICAF
+    } else if (cs == FIB_ICAF) {
         const float il6_rate    = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_IL6_RELEASE");
-        const float cxcl13_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_CXCL13_RELEASE");
         const float ccl2_rate   = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_RELEASE");
         const float cxcl12_rate = FLAMEGPU->environment.getProperty<float>("PARAM_CXCL12_ICAF_RELEASE");
         const float ccl5_rate   = FLAMEGPU->environment.getProperty<float>("PARAM_CCL5_ICAF_RELEASE");
         PDE_SECRETE(FLAMEGPU, PDE_SRC_IL6,    voxel, il6_rate / voxel_volume);
-        PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL13, voxel, cxcl13_rate / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL2,   voxel, ccl2_rate / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL12, voxel, cxcl12_rate / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL5,   voxel, ccl5_rate / voxel_volume);
+    } else {  // FIB_FRC — TLS T-zone scaffold, CCL21 source (Luther2000, Link2007)
+        const float ccl21_rate  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_FRC_CCL21_RELEASE");
+        const float cxcl12_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_FRC_CXCL12_RELEASE");
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL21,  voxel, ccl21_rate  / voxel_volume);
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL12, voxel, cxcl12_rate / voxel_volume);
     }
 
     return flamegpu::ALIVE;
@@ -178,8 +209,8 @@ FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) 
     const int z = FLAMEGPU->getVariable<int>("z");
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
 
-    // Quiescent fibroblasts don't move (preserve existing behavior)
-    if (cs == FIB_QUIESCENT) return flamegpu::ALIVE;
+    // Quiescent + FRC fibroblasts are sessile (preserve tissue architecture / TLS scaffold)
+    if (cs == FIB_QUIESCENT || cs == FIB_FRC) return flamegpu::ALIVE;
 
     // Adhesion-based movement probability (ECM anchorage + cell-cell)
 
@@ -192,7 +223,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) 
         FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_FIB_ICAF");
 
     float bias = (cs == FIB_MYCAF) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_FIB_MYCAF") : 0.0f;
+        ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_FIB_MYCAF")) : 0.0f;
 
     // Read TGF-β gradient for myCAF chemotaxis
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
@@ -219,27 +250,17 @@ FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) 
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
     mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_FIB");
-    // Adhesion from neighbor counts + ECM
-    {
-        const int n_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
-        const int n_fib = FLAMEGPU->getVariable<int>("neighbor_fib_count");
-        float local_ecm = mp.ecm_density[vidx];
-        float ecm_th = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_ECM_DENSITY_TH");
-        float a_cancer, a_fib, a_ecm;
-        if (cs == FIB_MYCAF) {
-            a_cancer = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_MYCAF_CANCER");
-            a_fib    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_MYCAF_FIB");
-            a_ecm    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_MYCAF_ECM");
-        } else {
-            a_cancer = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_ICAF_CANCER");
-            a_fib    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_ICAF_FIB");
-            a_ecm    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_FIB_ICAF_ECM");
-        }
-        mp.p_move = compute_adhesion_pmove(a_cancer, n_cancer, a_fib, n_fib, a_ecm, local_ecm, ecm_th);
-    }
+    // Adhesion: pre-computed from matrix in scan_neighbors
+    mp.p_move = FLAMEGPU->getVariable<float>("adh_p_move");
     mp.p_persist = p_persist;
     mp.bias_strength = bias;
     mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
+    mp.orient_x = ECM_ORIENT_X_PTR(FLAMEGPU);
+    mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
+    mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
+    mp.barrier_strength = (cs == FIB_MYCAF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_FIB_MYCAF") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_FIB_ICAF");
 
     // Contact guidance
     {
@@ -295,7 +316,8 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
         int death_idx;
         if (cs == FIB_QUIESCENT)  death_idx = EVT_DEATH_FIB_QUIESCENT;
         else if (cs == FIB_MYCAF) death_idx = EVT_DEATH_FIB_MYCAF;
-        else                      death_idx = EVT_DEATH_FIB_ICAF;
+        else if (cs == FIB_ICAF)  death_idx = EVT_DEATH_FIB_ICAF;
+        else                       death_idx = EVT_DEATH_FIB_FRC;
         atomicAdd(&ec[death_idx], 1u);
         return flamegpu::DEAD;
     }
@@ -350,6 +372,25 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
 
     // iCAF ↔ myCAF interconversion (ODE RF245, RF246)
     if (cs == FIB_ICAF) {
+        // iCAF → FRC: LTβ-competent lymphocyte density gating (takes priority over iCAF→myCAF)
+        // Sustained threshold for PARAM_FIB_FRC_DWELL_STEPS → irreversible FRC commitment.
+        // Refs: Bénézech2012 (FRC maturation kinetics), Drayton2003 (ectopic TLS cell density)
+        const int n_ltb = FLAMEGPU->getVariable<int>("neighbor_ltb_lymph_count");
+        const int frc_th = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_FRC_LYMPH_THRESHOLD"));
+        int dwell = FLAMEGPU->getVariable<int>("frc_dwell_counter");
+        if (n_ltb >= frc_th) {
+            dwell++;
+        } else {
+            dwell = 0;  // reset if threshold not sustained
+        }
+        const int frc_dwell_max = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_FRC_DWELL_STEPS"));
+        if (dwell >= frc_dwell_max) {
+            FLAMEGPU->setVariable<int>("cell_state", FIB_FRC);
+            FLAMEGPU->setVariable<int>("frc_dwell_counter", 0);
+            return flamegpu::ALIVE;
+        }
+        FLAMEGPU->setVariable<int>("frc_dwell_counter", dwell);
+
         // iCAF → myCAF: k_iCAF_to_myCAF * H_TGFb(TGFb_50_CAF_act)
         const float k_i2m = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_TO_MYCAF");
         if (FLAMEGPU->random.uniform<float>() < k_i2m * H_TGFb) {
@@ -372,9 +413,10 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
         FLAMEGPU->setVariable<int>("divide_cooldown", cooldown - 1);
     }
 
-    // Division check: only activated fibroblasts, off cooldown, under max count
+    // Division check: only activated CAFs (myCAF/iCAF), off cooldown, under max count
+    // FRC excluded: terminally differentiated TLS stromal scaffold, network-anchored
     // Cooldown derived from QSP k_prolif rates (per-subtype)
-    if (cs != FIB_QUIESCENT && cooldown <= 0) {
+    if ((cs == FIB_MYCAF || cs == FIB_ICAF) && cooldown <= 0) {
         const int div_count = FLAMEGPU->getVariable<int>("divide_count");
         const int div_max = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_MAX"));
         if (div_count < div_max) {
@@ -394,7 +436,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide, flamegpu::MessageNone, flamegpu::MessageNone
     FLAMEGPU->setVariable<int>("divide_flag", 0);
 
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
-    if (cs == FIB_QUIESCENT) return flamegpu::ALIVE;
+    if (cs == FIB_QUIESCENT || cs == FIB_FRC) return flamegpu::ALIVE;
 
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");

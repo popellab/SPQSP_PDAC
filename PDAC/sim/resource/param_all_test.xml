@@ -4,16 +4,11 @@
       <SecPerSlice name="PARAM_SEC_PER_SLICE" type="float" val="pos" units="seconds">21600</SecPerSlice>
       <recSiteFactor name="PARAM_REC_SITE_FACTOR" type="float" val="pos">1e5</recSiteFactor>
       <adhSiteDens name="PARAM_ADH_SITE_DENSITY" type="float" val="pos">1000</adhSiteDens>  
-      <ShuffleInterval name="PARAM_SHUFFLE_INTERVAL" type="int" val="pos" units="slices">8</ShuffleInterval>
-      <gridshiftInterval name="PARAM_GRID_SHIFT_INTERVAL" type="int" val="pos" units="slices">4</gridshiftInterval>
       <Tumor>
         <XSize name="PARAM_X_SIZE" type="int" val="pos" units="microns">50</XSize>
         <YSize name="PARAM_Y_SIZE" type="int" val="pos" units="microns">50</YSize>
         <ZSize name="PARAM_Z_SIZE" type="int" val="pos" units="microns">50</ZSize>
         <VoxelSize name="PARAM_VOXEL_SIZE" type="int" val="pos" units="microns">20</VoxelSize>
-        <nr_T_voxel name="PARAM_NR_T_VOXELS" type="int" val="pos">8</nr_T_voxel>
-        <nr_T_voxel_C name="PARAM_NR_T_VOXELS_C" type="int" val="pos">1</nr_T_voxel_C>
-        <stem_mode name="PARAM_STEM_MODE" type="int" val="pos">2</stem_mode> 
       </Tumor>
     </Environment>
     <Pharmacokinetics>
@@ -28,117 +23,115 @@
       <caboDose name="PARAM_CABO_DOSE" type="float" val="pr">9.44e-5</caboDose>
       <entOn name="PARAM_ENT_ON" type="bool">0</entOn>
     </Pharmacokinetics>
-    <!-- Not used in this model anywhere, leftover from earlier models -->
-    <!-- <cell>
-      <PDL1_th name="PARAM_PDL1_TH" type="float" val="pr">.1</PDL1_th>
-      <PDL1_halflife name="PARAM_PDL1_HALF" type="float" val="pr">.1</PDL1_halflife>
-    </cell> -->
     <TCell>
       <lifespanSD name="PARAM_TCELL_LIFESPAN_SD" type="float" val="pos">10</lifespanSD>
-      <div_interval name="PARAM_TCELL_DIV_INTERNAL" type="int" val="pos">10</div_interval>
+      <div_interval name="PARAM_TCELL_DIV_INTERNAL" type="int" val="pos">3</div_interval> <!-- MAPLE posterior ~3 steps (18h). Duthoo2022, Dowling2014, Kinjyo2015 -->
       <div_limit name="PARAM_TCELL_DIV_LIMIT" type="int" val="pos">4</div_limit>
-      <moveSteps name="PARAM_TCELL_MOVE_STEPS" type="int" val="pos">53</moveSteps>
+      <moveSteps name="PARAM_TCELL_MOVE_STEPS" type="int" val="pos">64</moveSteps> <!-- MAPLE posterior 64 (3.6 um/min). Boissonnas2007, Salmon2012 -->
       <IL2_release_time name="PARAM_TCELL_IL2_RELEASE_TIME" type="float" val="pos">86400</IL2_release_time>
-      <IL2_prolif_th name="PARAM_TCELL_IL2_PROLIF_TH" type="float" val="pos">63460000</IL2_prolif_th> <!-- nM*s threshold -->
-      <IFNg_release_time name="PARAM_TCELL_IFNG_RELEASE_TIME" type="float" val="pos">21600</IFNg_release_time>
-      <IFNg_recruit_Half name="PARAM_TEFF_IFN_EC50" type="float" val="pos">72.5</IFNg_recruit_Half> <!-- nM -->
+      <IL2_commit_time name="PARAM_TCELL_IL2_COMMIT_TIME" type="float" val="pos">28800</IL2_commit_time> <!-- seconds; Cantrell&Smith1984: ~6-8h sustained IL-2R signaling for S-phase entry -->
+      <IFNg_release_time name="PARAM_TCELL_IFNG_RELEASE_TIME" type="float" val="pos">23620</IFNg_release_time> <!-- MAPLE posterior 23620s (6.6h). Han2012 -->
       <hypoxia_threshold name="PARAM_TCELL_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>   <!-- O2 mM below which hypoxia counter increments -->
       <hypoxia_tier1 name="PARAM_TCELL_HYPOXIA_TIER1" type="float" val="pr">10</hypoxia_tier1>             <!-- Exposure steps for low impairment onset -->
       <hypoxia_tier2 name="PARAM_TCELL_HYPOXIA_TIER2" type="float" val="pr">30</hypoxia_tier2>             <!-- Exposure steps for medium impairment onset -->
       <hypoxia_recovery name="PARAM_TCELL_HYPOXIA_RECOVERY" type="float" val="pr">1</hypoxia_recovery>        <!-- Recovery decrement per normoxic step (int) -->
       <hypoxia_factor1 name="PARAM_TCELL_HYPOXIA_FACTOR1" type="float" val="pr">0.7</hypoxia_factor1>        <!-- Multiplier: low tier -->
       <hypoxia_factor2 name="PARAM_TCELL_HYPOXIA_FACTOR2" type="float" val="pr">0.4</hypoxia_factor2>        <!-- Multiplier: medium tier -->
-      <hypoxia_factor3 name="PARAM_TCELL_HYPOXIA_FACTOR3" type="float" val="pr">0.1</hypoxia_factor3>        <!-- Multiplier: high tier -->
+      <hypoxia_factor3 name="PARAM_TCELL_HYPOXIA_FACTOR3" type="float" val="pr">0.12</hypoxia_factor3>        <!-- MAPLE posterior 0.12. Doedens2013 (VHL-KO exhaustion) -->
     </TCell>
     <TCD4>
       <lifespanSD name="PARAM_TCD4_LIFESPAN_SD" type="float" val="pos">10</lifespanSD>
-      <TGFB_release_time name="PARAM_TCD4_TGFB_RELEASE_TIME" type="float" val="pos">43200</TGFB_release_time>
+      <TGFB_release_time name="PARAM_TCD4_TGFB_RELEASE_TIME" type="float" val="pos">705000</TGFB_release_time> <!-- MAPLE posterior ~705000s (8.2 days). Nakamura2001 -->
       <div_limit name="PARAM_TCD4_DIV_LIMIT" type="int" val="pos">4</div_limit>
       <!-- Tfh differentiation: TH → Tfh requires mature DC contact + IL-6 -->
-      <tfh_diff_k name="PARAM_TFH_DIFF_K" type="float" val="pr">0.001</tfh_diff_k>
-      <tfh_ec50_il6 name="PARAM_TFH_EC50_IL6" type="float" val="pr">1.0</tfh_ec50_il6> <!-- nM -->
+      <tfh_diff_k name="PARAM_TFH_DIFF_K" type="float" val="pr">0.078</tfh_diff_k> <!-- MAPLE posterior 0.078. Gao2019 -->
+      <tfh_ec50_il6 name="PARAM_TFH_EC50_IL6" type="float" val="pr">0.46</tfh_ec50_il6> <!-- MAPLE posterior 0.46 nM. Gao2019 -->
+      <cxcl13_release_tfh name="PARAM_TFH_CXCL13_RELEASE" type="float" val="pr">4.97e-11</cxcl13_release_tfh>  <!-- MAPLE posterior 4.97e-11 (~100x down). Ukita2022 -->
     </TCD4>
     <MDSC>
       <lifespanSD name="PARAM_MDSC_LIFESPAN_SD" type="float" val="pos">1</lifespanSD>
-      <moveSteps name="PARAM_MDSC_MOVE_STEPS" type="int" val="pos">6</moveSteps>
+      <moveSteps name="PARAM_MDSC_MOVE_STEPS" type="int" val="pos">71</moveSteps> <!-- MAPLE posterior 71 (3.9 um/min). Kreisel2010 neutrophil proxy -->
     </MDSC>
     <BCell>
       <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           <!-- ABM steps (~15 days) -->
       <lifespanSD name="PARAM_BCELL_LIFE_SD" type="float" val="pos">10</lifespanSD>
-      <moveSteps name="PARAM_BCELL_MOVE_STEPS" type="int" val="pos">10</moveSteps>
+      <moveSteps name="PARAM_BCELL_MOVE_STEPS" type="int" val="pos">30</moveSteps>
       <recruit_k name="PARAM_BCELL_RECRUIT_K" type="float" val="pr">0.05</recruit_k>               <!-- Recruitment probability scalar -->
-      <ec50_cxcl13_rec name="PARAM_BCELL_EC50_CXCL13_REC" type="float" val="pr">5.0</ec50_cxcl13_rec> <!-- CXCL13 EC50 for source marking [nM] -->
-      <div_interval name="PARAM_BCELL_DIV_CD" type="int" val="pos">4</div_interval>                <!-- ~1 day GC cycling -->
+      <ec50_cxcl13_rec name="PARAM_BCELL_EC50_CXCL13_REC" type="float" val="pr">10.0</ec50_cxcl13_rec> <!-- CXCL13 EC50 for source marking [nM] -->
+      <div_interval name="PARAM_BCELL_DIV_CD" type="int" val="pos">2</div_interval>                <!-- ~12h GC centroblast cycle (Victora2010, Gitlin2014) -->
       <div_limit name="PARAM_BCELL_DIV_LIMIT" type="int" val="pos">6</div_limit>                   <!-- Max clonal expansion rounds -->
-      <activation_timer_base name="PARAM_BCELL_ACTIVATION_TIMER" type="int" val="pos">20</activation_timer_base>  <!-- Steps before plasma differentiation -->
-      <tls_speedup name="PARAM_BCELL_TLS_SPEEDUP" type="float" val="pr">0.5</tls_speedup>           <!-- Timer multiplier in TLS clusters -->
+      <activation_timer_base name="PARAM_BCELL_ACTIVATION_TIMER" type="int" val="pos">40</activation_timer_base>  <!-- Steps before plasma differentiation (~10 days GC transit; TFH speedup halves to 5 days) -->
+      <tls_speedup name="PARAM_BCELL_TLS_SPEEDUP" type="float" val="pr">1.0</tls_speedup>           <!-- Neutral: GC pathway slower than EF, not faster (Elsner2020). Tfh handles acceleration. -->
       <tls_threshold name="PARAM_BCELL_TLS_THRESHOLD" type="int" val="pos">3</tls_threshold>         <!-- Neighbor B cell count for TLS effect -->
-      <breg_fraction name="PARAM_BCELL_BREG_FRACTION" type="float" val="pr">0.1</breg_fraction>       <!-- Probability of Breg at activation -->
-      <antibody_release name="PARAM_BCELL_ANTIBODY_RELEASE" type="float" val="pr">1e-11</antibody_release>  <!-- Plasma cell antibody secretion [mol/s] -->
-      <il10_release name="PARAM_BCELL_IL10_RELEASE" type="float" val="pr">6.25e-10</il10_release>      <!-- Breg IL-10 secretion [pmol/(cell*s)] -->
-      <il6_release name="PARAM_BCELL_IL6_RELEASE" type="float" val="pr">5e-9</il6_release>          <!-- Activated B cell IL-6 secretion [pmol/(cell*s)] -->
-      <antigen_capture_prob name="PARAM_BCELL_ANTIGEN_CAPTURE_PROB" type="float" val="pr">0.3</antigen_capture_prob>  <!-- Per dying cancer neighbor per step -->
+      <breg_fraction name="PARAM_BCELL_BREG_FRACTION" type="float" val="pr">0.05</breg_fraction>      <!-- Probability of Breg at activation (PDAC IL-10+ Bregs ~5-9% of B cells) -->
+      <antibody_release name="PARAM_BCELL_ANTIBODY_RELEASE" type="float" val="pr">1e-5</antibody_release>  <!-- Plasma cell antibody secretion [pmol/(cell*s)] (~100 pg/cell/day = 1e-17 mol/s = 1e-5 pmol/s, McMillan2025/Cheng2023) -->
+      <il10_release name="PARAM_BCELL_IL10_RELEASE" type="float" val="pr">1e-7</il10_release>           <!-- Breg IL-10 secretion [pmol/(cell*s)] (per-Breg rate; Iwata2011) -->
+      <il6_release name="PARAM_BCELL_IL6_RELEASE" type="float" val="pr">2e-7</il6_release>           <!-- Activated B cell IL-6 secretion [pmol/(cell*s)] (CpG-stimulated, PMC2777861) -->
+      <antigen_capture_prob name="PARAM_BCELL_ANTIGEN_CAPTURE_PROB" type="float" val="pr">0.15</antigen_capture_prob> <!-- Per dying cancer neighbor per step (naive B cell efficiency, Harwood2022) -->
       <plasma_move_prob name="PARAM_BCELL_PLASMA_MOVE_PROB" type="float" val="pr">0.05</plasma_move_prob>  <!-- Near-sessile plasma cells -->
       <!-- ADCC: Antibody-dependent cellular cytotoxicity -->
-      <adcc_ab_ec50 name="PARAM_ADCC_AB_EC50" type="float" val="pr">0.001</adcc_ab_ec50>            <!-- Antibody EC50 for ADCC [mM] -->
+      <adcc_ab_ec50 name="PARAM_ADCC_AB_EC50" type="float" val="pr">0.01</adcc_ab_ec50>              <!-- Antibody EC50 for ADCC [nM] (endogenous polyclonal IgG, not therapeutic mAb) -->
       <adcc_ab_hill_n name="PARAM_ADCC_AB_HILL_N" type="float" val="pr">2.0</adcc_ab_hill_n>          <!-- Hill coefficient -->
       <adcc_boost_max name="PARAM_ADCC_BOOST_MAX" type="float" val="pr">2.0</adcc_boost_max>          <!-- Max fold-increase in MAC kill prob -->
+      <!-- Tfh germinal center help -->
+      <tfh_maturation_speedup name="PARAM_BCELL_TFH_SPEEDUP" type="float" val="pr">0.5</tfh_maturation_speedup>  <!-- Timer multiplier when Tfh present (0.5 = halves time) -->
+      <!-- CXCL13 secretion (TLS self-organization) -->
+      <cxcl13_release_act name="PARAM_BCELL_ACT_CXCL13_RELEASE" type="float" val="pr">1e-9</cxcl13_release_act>       <!-- Activated B cell CXCL13 [pmol/(cell*s)] (monocyte proxy, Mackay2004) -->
+      <cxcl13_release_plasma name="PARAM_BCELL_PLASMA_CXCL13_RELEASE" type="float" val="pr">4e-10</cxcl13_release_plasma> <!-- Plasma B cell CXCL13 [pmol/(cell*s)] (proportional to activated) -->
     </BCell>
     <DC>
       <lifeImmatureSD name="PARAM_DC_LIFE_IMMATURE_SD" type="float" val="pos">40</lifeImmatureSD>
       <lifeMatureSD name="PARAM_DC_LIFE_MATURE_SD" type="float" val="pos">4</lifeMatureSD>
-      <moveSteps name="PARAM_DC_MOVE_STEPS" type="int" val="pos">10</moveSteps>
-      <presentation_capacity name="PARAM_DC_PRESENTATION_CAPACITY" type="int" val="pos">5</presentation_capacity>  <!-- Max T/B cell activations before exhaustion -->
+      <moveSteps name="PARAM_DC_MOVE_STEPS" type="int" val="pos">38</moveSteps> <!-- MAPLE posterior 38 (2.1 um/min). Lindquist2004 -->
+      <presentation_capacity name="PARAM_DC_PRESENTATION_CAPACITY" type="int" val="pos">25</presentation_capacity>  <!-- MAPLE posterior 25. Mempel2004 + Miller2004 -->
+      <!-- Antibody immune complex boost on DC maturation -->
+      <antibody_maturation_50 name="PARAM_DC_ANTIBODY_50" type="float" val="pr">29.3</antibody_maturation_50>    <!-- MAPLE posterior 29.3 nM. FcgRI KD (Bruhns2009) -->
+      <antibody_maturation_boost name="PARAM_DC_ANTIBODY_BOOST" type="float" val="pr">3.95</antibody_maturation_boost>  <!-- MAPLE posterior 3.95. Regnault1999 -->
     </DC>
     <Mac>
       <lifespanSD>1</lifespanSD>
-      <moveSteps name="PARAM_MAC_MOVE_STEPS" type="int" val="pos">6</moveSteps>
+      <moveSteps name="PARAM_MAC_MOVE_STEPS" type="int" val="pos">30</moveSteps> <!-- MAPLE posterior 30 (1.6 um/min). Chen2019 BMDM -->
       <hypoxia_threshold name="PARAM_MAC_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>  <!-- O2 mM below which M2 bias activates -->
-      <m2_bias_strength name="PARAM_MAC_M2_BIAS_STRENGTH" type="float" val="pr">0.6</m2_bias_strength>     <!-- Max reduction factor on M2→M1 reversion (0-1) -->
+      <m2_bias_strength name="PARAM_MAC_M2_BIAS_STRENGTH" type="float" val="pr">0.75</m2_bias_strength>     <!-- MAPLE posterior 0.75. Raggi2017, Leblond2016 -->
     </Mac>
     <CancerCell>
-      <progGrowthRate name="PARAM_PROG_GROWTH_RATE" type="float" val="pr">.5</progGrowthRate>
-      <senescentDeathRate name="PARAM_SEN_DEATH_RATE" type="float" val="pr">1</senescentDeathRate>
+      <progGrowthRate name="PARAM_PROG_GROWTH_RATE" type="float" val="pr">0.071</progGrowthRate> <!-- MAPLE posterior. PANC-1 52h DT (Lieber1975), clinical TVDT 159d (Furukawa2001) -->
+      <senescentDeathRate name="PARAM_SEN_DEATH_RATE" type="float" val="pr">0.026</senescentDeathRate> <!-- MAPLE posterior (~40x down). BCL-2 resistance. Campisi2007 -->
       <asymmetricDivProb name="PARAM_ASYM_DIV_PROB" type="float" val="pr">.95</asymmetricDivProb>
       <progenitorDivMax name="PARAM_PROG_DIV_MAX" type="int" val="pos">9</progenitorDivMax>
-      <moveSteps name="PARAM_CANCER_MOVE_STEPS" type="int" val="pos">1</moveSteps>
-      <moveSteps_csc name="PARAM_CANCER_MOVE_STEPS_STEM" type="int" val="pos">5</moveSteps_csc>
+      <moveSteps name="PARAM_CANCER_MOVE_STEPS" type="int" val="pos">2</moveSteps> <!-- MAPLE posterior 2. Non-CSC ~30 um/h (Park2020) -->
+      <moveSteps_csc name="PARAM_CANCER_MOVE_STEPS_STEM" type="int" val="pos">1</moveSteps_csc> <!-- MAPLE posterior 1 (5x down). CSCs slower 6 um/h (Park2020) -->
       <Tkill_scaler name="PARAM_TKILL_SCALAR" type="float" val="pos">3</Tkill_scaler>
       <mincc name="PARAM_MIN_CC" type="float" val="pos">1000</mincc>
       <hypoxia_th name="PARAM_CANCER_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_th>            <!-- ~1% O2 for HIF-1α activation [mM] -->
-      <hif_vegf_boost name="PARAM_HIF_VEGF_BOOST" type="float" val="pr">5.0</hif_vegf_boost>      <!-- VEGF-A secretion multiplier under HIF -->
-      <hif_ccl2_boost name="PARAM_HIF_CCL2_BOOST" type="float" val="pr">3.0</hif_ccl2_boost>      <!-- CCL2 secretion multiplier under HIF -->
-      <hif_pdl1_boost name="PARAM_HIF_PDL1_BOOST" type="float" val="pr">0.3</hif_pdl1_boost>      <!-- Additive PDL1 increase under HIF (capped at 1.0) -->
+      <hif_vegf_boost name="PARAM_HIF_VEGF_BOOST" type="float" val="pr">7.15</hif_vegf_boost>      <!-- MAPLE posterior 7.15. Buchler2003 -->
+      <hif_ccl2_boost name="PARAM_HIF_CCL2_BOOST" type="float" val="pr">3.20</hif_ccl2_boost>      <!-- MAPLE posterior 3.20 -->
+      <hif_pdl1_boost name="PARAM_HIF_PDL1_BOOST" type="float" val="pr">0.41</hif_pdl1_boost>      <!-- MAPLE posterior 0.41. Barsoum2014, Noman2014 -->
       <hif_mhc_reduction name="PARAM_HIF_MHC_REDUCTION" type="float" val="pr">0.5</hif_mhc_reduction> <!-- Kill probability multiplier for HIF-active targets -->
-      <density_csc name="PARAM_DENSITY_STEM" type="float" val="pr">0.1</density_csc>
     </CancerCell>
     <Vas>
       <maxPerVoxel name="PARAM_VAS_MAXPERVOXEL" type="float" val="pos">1</maxPerVoxel>
-      <O2_conc name="PARAM_VAS_O2_CONC" type="float" val="pr">0.51</O2_conc>
+      <O2_conc name="PARAM_VAS_O2_CONC" type="float" val="pr">0.065</O2_conc>  <!-- dissolved O2 at ~50 mmHg capillary pO2 [mM] -->
       <Rc name="PARAM_VAS_RC" type="float" val="pr">4e-4</Rc>
       <sigma name="PARAM_VAS_SIGMA" type="float" val="pr">0.84</sigma>
-      <ref_vas_frac name="PARAM_VAS_FRAC" type="float" val="pr">0.00099</ref_vas_frac>
-      <init_density name="PARAM_VAS_INIT_DENS" type="float" val="pr">2e-4</init_density>
-      <tumble name="PARAM_VAS_TUMBLE" type="float" val="pr">1e-5</tumble>
-      <delta name="PARAM_VAS_DELTA" type="float" val="pr">0.2</delta>
-      <branch_prob name="PARAM_VAS_BRANCH_PROB" type="float" val="pr">0.1</branch_prob>
-      <min_neighbor name="PARAM_VAS_MIN_NEIGHBOR" type="float" val="pos">15</min_neighbor>
-      <maturity_resistance name="PARAM_VAS_MATURITY_RESISTANCE" type="float" val="pr">0.02</maturity_resistance>      <!-- How much maturity reduces compression/regression -->
+      <branch_prob name="PARAM_VAS_BRANCH_PROB" type="float" val="pr">0.05</branch_prob>  <!-- PDAC slow angiogenesis; EC doubling 4-8 days -->
+      <min_neighbor name="PARAM_VAS_MIN_NEIGHBOR" type="float" val="pos">10</min_neighbor>  <!-- PDAC MVD 10-20/mm² → 160-224 um spacing -->
+      <maturity_resistance name="PARAM_VAS_MATURITY_RESISTANCE" type="float" val="pr">0.04</maturity_resistance>      <!-- Mature vessels 5x resistant; pericyte coverage data -->
       <initial_maturity name="PARAM_VAS_INITIAL_MATURITY" type="float" val="pr">100</initial_maturity>             <!-- Maturity steps for pre-existing vessels -->
       <collapse_threshold name="PARAM_VAS_COLLAPSE_THRESHOLD" type="float" val="pr">0.7</collapse_threshold>         <!-- ECM density above which collapse possible -->
       <collapse_ec50 name="PARAM_VAS_COLLAPSE_EC50" type="float" val="pr">0.85</collapse_ec50>                  <!-- Hill EC50 for collapse probability -->
-      <recovery_threshold name="PARAM_VAS_RECOVERY_THRESHOLD" type="float" val="pr">0.4</recovery_threshold>         <!-- ECM density below which recovery possible -->
+      <recovery_threshold name="PARAM_VAS_RECOVERY_THRESHOLD" type="float" val="pr">0.60</recovery_threshold>        <!-- Losartan: 32% collagen reduction restores perfusion -->
       <recovery_rate name="PARAM_VAS_RECOVERY_RATE" type="float" val="pr">0.05</recovery_rate>                  <!-- Per-step recovery probability -->
-      <kvl_dysfunctional name="PARAM_VAS_KVL_DYSFUNCTIONAL" type="float" val="pr">0.4</kvl_dysfunctional>           <!-- Fraction of K_vl for dysfunctional sprouts -->
+      <kvl_dysfunctional name="PARAM_VAS_KVL_DYSFUNCTIONAL" type="float" val="pr">0.2</kvl_dysfunctional>           <!-- Pericyte-poor TIP: ~20% of mature O2 delivery -->
       <hypoxia_threshold name="PARAM_VAS_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>          <!-- O2 mM below which sprouts are dysfunctional -->
       <!-- HEV (High Endothelial Venule) differentiation -->
-      <hev_ccl21_threshold name="PARAM_VAS_HEV_CCL21_TH" type="float" val="pr">1.0</hev_ccl21_threshold>         <!-- CCL21 nM threshold for HEV differentiation -->
-      <hev_lymph_density_th name="PARAM_VAS_HEV_LYMPH_DENSITY_TH" type="float" val="pr">500.0</hev_lymph_density_th> <!-- Volume (um3) of immune cells in Moore neighborhood for HEV -->
+      <hev_ccl21_threshold name="PARAM_VAS_HEV_CCL21_TH" type="float" val="pr">5.0</hev_ccl21_threshold>         <!-- Unbound CCL21 min ~5 nM in LN paracortex -->
+      <hev_lymph_density_th name="PARAM_VAS_HEV_LYMPH_DENSITY_TH" type="float" val="pr">8000.0</hev_lymph_density_th> <!-- ~1 cell in Moore neighborhood (1 voxel = 8000 um³) -->
       <hev_recruit_boost name="PARAM_VAS_HEV_RECRUIT_BOOST" type="float" val="pr">5.0</hev_recruit_boost>           <!-- Recruitment probability multiplier for HEV vs PHALANX -->
       <hev_revert_ccl21_th name="PARAM_VAS_HEV_REVERT_CCL21_TH" type="float" val="pr">0.5</hev_revert_ccl21_th> <!-- CCL21 nM below this → HEV reverts to PHALANX -->
     </Vas>
     <Fib>
-      <moveSteps name="PARAM_FIB_MOVE_STEPS" type="int" val="pos">16</moveSteps>
+      <moveSteps name="PARAM_FIB_MOVE_STEPS" type="int" val="pos">9</moveSteps> <!-- MAPLE posterior 9 (0.48 um/min). Liu2015 -->
       <!-- ECM deposition (myCAF only) -->
       <ECM_radius name="PARAM_FIB_ECM_RADIUS" type="float" val="pr">3</ECM_radius>                            <!-- Gaussian kernel radius [voxels] -->
       <ECM_variance name="PARAM_FIB_ECM_VARIANCE" type="float" val="pr">2.0</ECM_variance>                      <!-- Gaussian σ² -->
@@ -147,59 +140,65 @@
       <!-- Hypoxia/HIF response (myCAF) -->
       <hypoxia_th name="PARAM_FIB_HYPOXIA_TH" type="float" val="pr" units="mM">0.01</hypoxia_th>                         <!-- O2 threshold for HIF activation [mM] -->
       <hif_tgfb_boost name="PARAM_FIB_HIF_TGFB_BOOST" type="float" val="pr">3.0</hif_tgfb_boost>                  <!-- TGF-β secretion multiplier under hypoxia -->
-      <hif_ecm_boost name="PARAM_FIB_HIF_ECM_BOOST" type="float" val="pr">2.0</hif_ecm_boost>                    <!-- ECM deposition multiplier under hypoxia -->
+      <hif_ecm_boost name="PARAM_FIB_HIF_ECM_BOOST" type="float" val="pr">2.17</hif_ecm_boost>                    <!-- MAPLE posterior 2.17. Erkan2009 PSC collagen 2.3x at 0.75% O2 -->
+      <!-- FRC (fibroblastic reticular cell) transition from iCAF — LTβ-competent lymphocyte density gated -->
+      <!-- LTβ-competent states counted: BCELL_{NAIVE,ACTIVATED} + T_CELL_{EFF,CYT} + TCD4_{TH,TFH}. Tregs excluded. -->
+      <!-- Threshold: ~8 lymphocytes in 27-voxel Moore neighborhood (Drayton2003 ectopic TLS density; Link2007 FRC:lymphocyte scaling). -->
+      <frc_lymph_threshold name="PARAM_FIB_FRC_LYMPH_THRESHOLD" type="float" val="pr">8</frc_lymph_threshold>
+      <!-- Sustained threshold dwell before FRC commitment (4 ABM steps × 21600s = 24h; Bénézech2012 FRC maturation kinetics). -->
+      <frc_dwell_steps name="PARAM_FIB_FRC_DWELL_STEPS" type="float" val="pr">4</frc_dwell_steps>
     </Fib>
     <Occupancy>
       <voxelCapacity name="PARAM_VOXEL_CAPACITY" type="float" val="pr" units="um3">8000.0</voxelCapacity>             <!-- um3, = voxel_size^3 (20^3) -->
       <CancerCell>
-        <stemVolume name="PARAM_VOLUME_CANCER_STEM" type="float" val="pr" units="um3">2500.0</stemVolume>                  <!-- um3, ~16.8 um diameter -->
-        <progenitorVolume name="PARAM_VOLUME_CANCER_PROG" type="float" val="pr" units="um3">2500.0</progenitorVolume>
-        <senescentVolume name="PARAM_VOLUME_CANCER_SEN" type="float" val="pr" units="um3">3000.0</senescentVolume>         <!-- enlarged senescent cells -->
+        <stemVolume name="PARAM_VOLUME_CANCER_STEM" type="float" val="pr" units="um3">3053.0</stemVolume>                  <!-- MAPLE. Mendelaar2020 PANC-1 18-22 um -->
+        <progenitorVolume name="PARAM_VOLUME_CANCER_PROG" type="float" val="pr" units="um3">3018.0</progenitorVolume> <!-- MAPLE. Mendelaar2020 -->
+        <senescentVolume name="PARAM_VOLUME_CANCER_SEN" type="float" val="pr" units="um3">4570.0</senescentVolume>         <!-- MAPLE. Enlarged senescent -->
       </CancerCell>
       <TCell>
-        <effectorVolume name="PARAM_VOLUME_TCELL_EFF" type="float" val="pr" units="um3">500.0</effectorVolume>            <!-- um3, ~9.8 um diameter -->
-        <cytotoxicVolume name="PARAM_VOLUME_TCELL_CYT" type="float" val="pr" units="um3">500.0</cytotoxicVolume>
-        <suppressedVolume name="PARAM_VOLUME_TCELL_SUP" type="float" val="pr" units="um3">400.0</suppressedVolume>
+        <effectorVolume name="PARAM_VOLUME_TCELL_EFF" type="float" val="pr" units="um3">713.0</effectorVolume>            <!-- MAPLE. Kuse1985 -->
+        <cytotoxicVolume name="PARAM_VOLUME_TCELL_CYT" type="float" val="pr" units="um3">711.0</cytotoxicVolume> <!-- MAPLE. Kuse1985 -->
+        <suppressedVolume name="PARAM_VOLUME_TCELL_SUP" type="float" val="pr" units="um3">260.0</suppressedVolume> <!-- MAPLE. Smaller suppressed -->
       </TCell>
       <TReg>
-        <regulatoryVolume name="PARAM_VOLUME_TREG_REG" type="float" val="pr" units="um3">500.0</regulatoryVolume>
-        <helperVolume name="PARAM_VOLUME_TREG_TH" type="float" val="pr" units="um3">500.0</helperVolume>
-        <tfhVolume name="PARAM_VOLUME_TREG_TFH" type="float" val="pr" units="um3">500.0</tfhVolume>
+        <regulatoryVolume name="PARAM_VOLUME_TREG_REG" type="float" val="pr" units="um3">561.0</regulatoryVolume> <!-- MAPLE. Kuse1985 -->
+        <helperVolume name="PARAM_VOLUME_TREG_TH" type="float" val="pr" units="um3">555.0</helperVolume> <!-- MAPLE. Kuse1985 -->
+        <tfhVolume name="PARAM_VOLUME_TREG_TFH" type="float" val="pr" units="um3">550.0</tfhVolume> <!-- MAPLE. Kuse1985 -->
       </TReg>
       <Mac>
-        <m1Volume name="PARAM_VOLUME_MAC_M1" type="float" val="pr" units="um3">3000.0</m1Volume>                      <!-- um3, ~17.9 um diameter -->
-        <m2Volume name="PARAM_VOLUME_MAC_M2" type="float" val="pr" units="um3">3500.0</m2Volume>
+        <m1Volume name="PARAM_VOLUME_MAC_M1" type="float" val="pr" units="um3">3346.0</m1Volume>                      <!-- MAPLE. Nibbering1990 -->
+        <m2Volume name="PARAM_VOLUME_MAC_M2" type="float" val="pr" units="um3">3746.0</m2Volume> <!-- MAPLE. Nibbering1990 -->
       </Mac>
       <Fib>
-        <quiescentVolume name="PARAM_VOLUME_FIB_QUIESCENT" type="float" val="pr" units="um3">2000.0</quiescentVolume>
-        <myCAFVolume name="PARAM_VOLUME_FIB_MYCAF" type="float" val="pr" units="um3">3500.0</myCAFVolume>
-        <iCAFVolume name="PARAM_VOLUME_FIB_ICAF" type="float" val="pr" units="um3">2500.0</iCAFVolume>
+        <quiescentVolume name="PARAM_VOLUME_FIB_QUIESCENT" type="float" val="pr" units="um3">1771.0</quiescentVolume> <!-- MAPLE. Freitas1999 10-15 um -->
+        <myCAFVolume name="PARAM_VOLUME_FIB_MYCAF" type="float" val="pr" units="um3">3313.0</myCAFVolume> <!-- MAPLE. Freitas1999 -->
+        <iCAFVolume name="PARAM_VOLUME_FIB_ICAF" type="float" val="pr" units="um3">2197.0</iCAFVolume> <!-- MAPLE. Freitas1999 -->
+        <frcVolume name="PARAM_VOLUME_FIB_FRC" type="float" val="pr" units="um3">2500.0</frcVolume>         <!-- FRC: dendritic stromal cell, similar footprint to iCAF parent -->
       </Fib>
       <MDSC>
-        <volume name="PARAM_VOLUME_MDSC" type="float" val="pr" units="um3">1000.0</volume>                          <!-- um3, ~12.4 um diameter -->
+        <volume name="PARAM_VOLUME_MDSC" type="float" val="pr" units="um3">491.0</volume>                          <!-- MAPLE. Nibbering1990 granulocyte -->
       </MDSC>
       <BCell>
-        <naiveVolume name="PARAM_VOLUME_BCELL_NAIVE" type="float" val="pr" units="um3">500.0</naiveVolume>
-        <activatedVolume name="PARAM_VOLUME_BCELL_ACT" type="float" val="pr" units="um3">700.0</activatedVolume>      <!-- Blasts are larger -->
-        <plasmaVolume name="PARAM_VOLUME_BCELL_PLASMA" type="float" val="pr" units="um3">800.0</plasmaVolume>
-        <dcImmatureVolume name="PARAM_VOLUME_DC_IMMATURE" type="float" val="pr" units="um3">600.0</dcImmatureVolume>
-        <dcMatureVolume name="PARAM_VOLUME_DC_MATURE" type="float" val="pr" units="um3">800.0</dcMatureVolume>
+        <naiveVolume name="PARAM_VOLUME_BCELL_NAIVE" type="float" val="pr" units="um3">276.0</naiveVolume> <!-- MAPLE. Kuse1985 -->
+        <activatedVolume name="PARAM_VOLUME_BCELL_ACT" type="float" val="pr" units="um3">622.0</activatedVolume>      <!-- MAPLE. Kuse1985 + Zak2023 -->
+        <plasmaVolume name="PARAM_VOLUME_BCELL_PLASMA" type="float" val="pr" units="um3">1442.0</plasmaVolume> <!-- MAPLE. Larger plasma cells -->
+        <dcImmatureVolume name="PARAM_VOLUME_DC_IMMATURE" type="float" val="pr" units="um3">794.0</dcImmatureVolume> <!-- MAPLE. Nibbering1990 -->
+        <dcMatureVolume name="PARAM_VOLUME_DC_MATURE" type="float" val="pr" units="um3">1415.0</dcMatureVolume> <!-- MAPLE. Nibbering1990 -->
       </BCell>
       <Vas>
-        <phalanxVolume name="PARAM_VOLUME_VAS_PHALANX" type="float" val="pr" units="um3">1500.0</phalanxVolume>
-        <tipVolume name="PARAM_VOLUME_VAS_TIP" type="float" val="pr" units="um3">1500.0</tipVolume>
+        <phalanxVolume name="PARAM_VOLUME_VAS_PHALANX" type="float" val="pr" units="um3">1742.0</phalanxVolume> <!-- MAPLE. BioNumbers HUVEC -->
+        <tipVolume name="PARAM_VOLUME_VAS_TIP" type="float" val="pr" units="um3">1701.0</tipVolume> <!-- MAPLE. BioNumbers HUVEC -->
       </Vas>
     </Occupancy>
     <ECM>
-      <depositionRate name="PARAM_ECM_DEPOSITION_RATE" type="float" val="pr">1e-4</depositionRate>           <!-- k_depo: myCAF deposition rate [1/s] -->
-      <densityCap name="PARAM_ECM_DENSITY_CAP" type="float" val="pr">1.0</densityCap>                    <!-- Maximum ECM density per voxel -->
-      <mmpDegradeRate name="PARAM_ECM_MMP_DEGRADE_RATE" type="float" val="pr">1e-3</mmpDegradeRate>           <!-- k_mmp: MMP degradation rate [1/(s·mM)] -->
-      <crosslinkRate name="PARAM_ECM_CROSSLINK_RATE" type="float" val="pr">1e-6</crosslinkRate>             <!-- k_lox: LOX crosslink accumulation [1/s] -->
+      <!-- ECM density is in nmol/mL (= µM). QSP saturation = 1000 nmol/mL. -->
+      <!-- PARAM_ECM_DEPOSITION_RATE, PARAM_ECM_DECAY_RATE, PARAM_ECM_TGFB_EC50 are QSP-derived (see DerivedParams) -->
+      <densityCap name="PARAM_ECM_DENSITY_CAP" type="float" val="pr" units="nmol/mL">1000.0</densityCap>       <!-- Maximum ECM density per voxel [nmol/mL] -->
+      <mmpDegradeRate name="PARAM_ECM_MMP_DEGRADE_RATE" type="float" val="pr" units="1/(s*uM)">1e-3</mmpDegradeRate>  <!-- k_mmp: MMP degradation rate [1/(s·µM)]. MMP PDE in µM. -->
+      <crosslinkRate name="PARAM_ECM_CROSSLINK_RATE" type="float" val="pr" units="1/s">1e-6</crosslinkRate>     <!-- k_lox: LOX crosslink accumulation [1/s] -->
       <crosslinkResistance name="PARAM_ECM_CROSSLINK_RESISTANCE" type="float" val="pr">5.0</crosslinkResistance>  <!-- alpha: crosslink MMP resistance factor -->
-      <decayRate name="PARAM_ECM_DECAY_RATE" type="float" val="pr">1e-6</decayRate>                     <!-- k_decay: baseline ECM decay [1/s] -->
-      <baseline name="PARAM_ECM_BASELINE" type="float" val="pr">0.01</baseline>                       <!-- Floor density -->
-      <tgfbEC50 name="PARAM_ECM_TGFB_EC50" type="float" val="pr">10.0</tgfbEC50>                       <!-- TGF-β EC50 for deposition Hill function [nM] -->
-      <porosityCancer name="PARAM_ECM_POROSITY_CANCER" type="float" val="pr">0.1</porosityCancer>            <!-- Min porosity for cancer movement -->
+      <baseline name="PARAM_ECM_BASELINE" type="float" val="pr" units="nmol/mL">10.0</baseline>              <!-- Floor density [nmol/mL] = 1% of saturation -->
+      <porosityCancer name="PARAM_ECM_POROSITY_CANCER" type="float" val="pr">0.1</porosityCancer>            <!-- Min porosity for cancer movement (0-1, unitless) -->
       <porosityTcell name="PARAM_ECM_POROSITY_TCELL" type="float" val="pr">0.4</porosityTcell>              <!-- Min porosity for T cell movement -->
       <porosityTreg name="PARAM_ECM_POROSITY_TREG" type="float" val="pr">0.35</porosityTreg>               <!-- Min porosity for TReg movement -->
       <porosityTfh name="PARAM_ECM_POROSITY_TFH" type="float" val="pr">0.35</porosityTfh>                 <!-- Min porosity for Tfh movement -->
@@ -209,8 +208,8 @@
       <porosityBcell name="PARAM_ECM_POROSITY_BCELL" type="float" val="pr">0.35</porosityBcell>               <!-- Min porosity for B cell movement -->
       <porosityDC name="PARAM_ECM_POROSITY_DC" type="float" val="pr">0.3</porosityDC>                       <!-- Min porosity for DC movement -->
       <porosityVasTip name="PARAM_ECM_POROSITY_VAS_TIP" type="float" val="pr">0.2</porosityVasTip>            <!-- Min porosity for vascular TIP movement -->
-      <vasCompressK name="PARAM_VAS_ECM_COMPRESS_K" type="float" val="pr">0.5</vasCompressK>                <!-- Half-max ECM density for vascular compression -->
-      <yapEC50 name="PARAM_ECM_YAP_EC50" type="float" val="pr">0.8</yapEC50>                          <!-- YAP/TAZ Hill ceiling: stiffness EC50 (density*(1+crosslink)) -->
+      <vasCompressK name="PARAM_VAS_ECM_COMPRESS_K" type="float" val="pr" units="nmol/mL">200.0</vasCompressK>  <!-- EC50 for ECM vascular compression. ~79% vessel loss at PDAC baseline (Chauhan2013, Stylianopoulos2013) -->
+      <yapEC50 name="PARAM_ECM_YAP_EC50" type="float" val="pr" units="nmol/mL">800.0</yapEC50>               <!-- YAP/TAZ Hill ceiling: stiffness EC50 (density*(1+crosslink)) [nmol/mL] -->
       <!-- Fiber orientation (anisotropy) -->
       <stressDeposit name="PARAM_ECM_STRESS_DEPOSIT" type="float" val="pr">1.0</stressDeposit>          <!-- Stress magnitude deposited per cancer move event -->
       <stressDecayRate name="PARAM_ECM_STRESS_DECAY" type="float" val="pr" units="1/s">5e-4</stressDecayRate>  <!-- Stress field exponential decay rate -->
@@ -219,12 +218,6 @@
       <orientStressWeight name="PARAM_ECM_ORIENT_STRESS_W" type="float" val="pr">0.3</orientStressWeight>    <!-- Mechanical stress force weight (TACS-3 driver) -->
       <orientCrosslinkResist name="PARAM_ECM_ORIENT_CROSSLINK_RESIST" type="float" val="pr">2.0</orientCrosslinkResist>  <!-- Crosslinked ECM resists reorientation -->
     </ECM>
-    <Antigen>
-      <!-- Persistent antigen grid: deposited by dying cancer, read by DCs and B cells -->
-      <!-- PARAM_ANTIGEN_DEPOSIT, PARAM_ANTIGEN_DECAY_RATE now QSP-derived from P_P1_C1, P_k_P1_deg -->
-      <!-- PARAM_ANTIGEN_CAPTURE_THRESHOLD now QSP-derived (0.1 * P1_C1) -->
-      <!-- PARAM_DC_ANTIGEN_50 QSP-derived (P1_C1, 1 death = EC50) -->
-    </Antigen>
     <DomainInit>
       <!-- Lobular structure -->
       <lobule_spacing name="PARAM_DOMAIN_LOBULE_SPACING" type="float" val="pr" units="voxels">70</lobule_spacing>                     <!-- voxels between lobule centers -->
@@ -232,13 +225,13 @@
       <tumor_radius_fraction name="PARAM_DOMAIN_TUMOR_RADIUS_FRAC" type="float" val="pr">0.15</tumor_radius_fraction>     <!-- fraction of grid_x -->
       <margin_thickness name="PARAM_DOMAIN_MARGIN_THICKNESS" type="float" val="pr" units="voxels">5</margin_thickness>                   <!-- voxels around tumor surface -->
       <!-- ECM initialization by region -->
-      <ecm_septum_density name="PARAM_DOMAIN_ECM_SEPTUM_DENSITY" type="float" val="pr">0.7</ecm_septum_density>
+      <ecm_septum_density name="PARAM_DOMAIN_ECM_SEPTUM_DENSITY" type="float" val="pr" units="nmol/mL">700.0</ecm_septum_density>
       <ecm_septum_crosslink name="PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK" type="float" val="pr">0.3</ecm_septum_crosslink>
-      <ecm_stroma_density name="PARAM_DOMAIN_ECM_STROMA_DENSITY" type="float" val="pr">0.1</ecm_stroma_density>
-      <ecm_lobule_density name="PARAM_DOMAIN_ECM_LOBULE_DENSITY" type="float" val="pr">0.05</ecm_lobule_density>
-      <ecm_margin_density name="PARAM_DOMAIN_ECM_MARGIN_DENSITY" type="float" val="pr">0.5</ecm_margin_density>
+      <ecm_stroma_density name="PARAM_DOMAIN_ECM_STROMA_DENSITY" type="float" val="pr" units="nmol/mL">100.0</ecm_stroma_density>
+      <ecm_lobule_density name="PARAM_DOMAIN_ECM_LOBULE_DENSITY" type="float" val="pr" units="nmol/mL">50.0</ecm_lobule_density>
+      <ecm_margin_density name="PARAM_DOMAIN_ECM_MARGIN_DENSITY" type="float" val="pr" units="nmol/mL">500.0</ecm_margin_density>
       <ecm_margin_crosslink name="PARAM_DOMAIN_ECM_MARGIN_CROSSLINK" type="float" val="pr">0.1</ecm_margin_crosslink>
-      <ecm_tumor_density name="PARAM_DOMAIN_ECM_TUMOR_DENSITY" type="float" val="pr">0.1</ecm_tumor_density>
+      <ecm_tumor_density name="PARAM_DOMAIN_ECM_TUMOR_DENSITY" type="float" val="pr" units="nmol/mL">100.0</ecm_tumor_density>
       <!-- Cell placement probabilities by region -->
       <Fibroblast>
         <p_septum name="PARAM_DOMAIN_FIB_P_SEPTUM" type="float" val="pr">0.4</p_septum>
@@ -286,94 +279,155 @@
         <mdsc name="PARAM_PERSIST_MDSC" type="float" val="pr">0.3</mdsc>
         <bcell_naive name="PARAM_PERSIST_BCELL_NAIVE" type="float" val="pr">0.3</bcell_naive>
         <bcell_act name="PARAM_PERSIST_BCELL_ACT" type="float" val="pr">0.2</bcell_act>
-        <dc_immature name="PARAM_PERSIST_DC_IMMATURE" type="float" val="pr">0.3</dc_immature>
+        <dc_immature name="PARAM_PERSIST_DC_IMMATURE" type="float" val="pr">0.15</dc_immature>
         <dc_mature name="PARAM_PERSIST_DC_MATURE" type="float" val="pr">0.4</dc_mature>
       </Persistence>
       <Chemotaxis>
-        <!-- Gradient-biased direction selection strength (0=uniform random) -->
-        <!-- Signals: cancer_stem=O2(deferred), mac=CCL2, fib_mycaf=TGFB, vas_tip=VEGFA, treg=TGFB, mdsc=CCL2 -->
-        <cancer_stem_bias name="PARAM_CHEMO_BIAS_CANCER_STEM" type="float" val="pr">0.0</cancer_stem_bias>  <!-- O2 gradient not computed yet, defer -->
-        <mac_m1_bias name="PARAM_CHEMO_BIAS_MAC_M1" type="float" val="pr">0.6</mac_m1_bias>
-        <mac_m2_bias name="PARAM_CHEMO_BIAS_MAC_M2" type="float" val="pr">0.2</mac_m2_bias>
-        <fib_mycaf_bias name="PARAM_CHEMO_BIAS_FIB_MYCAF" type="float" val="pr">0.5</fib_mycaf_bias>
-        <vas_tip_bias name="PARAM_CHEMO_BIAS_VAS_TIP" type="float" val="pr">0.8</vas_tip_bias>
-        <treg_reg_bias name="PARAM_CHEMO_BIAS_TREG_REG" type="float" val="pr">0.4</treg_reg_bias>
-        <treg_tfh_bias name="PARAM_CHEMO_BIAS_TREG_TFH" type="float" val="pr">0.6</treg_tfh_bias>  <!-- CXCL13 chemotaxis -->
-        <mdsc_bias name="PARAM_CHEMO_BIAS_MDSC" type="float" val="pr">0.5</mdsc_bias>
-        <bcell_naive_bias name="PARAM_CHEMO_BIAS_BCELL_NAIVE" type="float" val="pr">0.6</bcell_naive_bias>   <!-- CXCL13 chemotaxis -->
-        <bcell_act_bias name="PARAM_CHEMO_BIAS_BCELL_ACT" type="float" val="pr">0.3</bcell_act_bias>       <!-- Reduced movement in clusters -->
-        <dc_immature_bias name="PARAM_CHEMO_BIAS_DC_IMMATURE" type="float" val="pr">0.5</dc_immature_bias>  <!-- CCL2 chemotaxis -->
-        <dc_mature_bias name="PARAM_CHEMO_BIAS_DC_MATURE" type="float" val="pr">0.7</dc_mature_bias>      <!-- CCL21 chemotaxis toward TLS -->
+        <!-- Chemotaxis index (CI): fraction of net displacement along gradient per step. -->
+        <!-- CI = E[d_gradient] / E[|d|] on 26-neighbor Moore lattice. 0=random walk, max~0.68. -->
+        <!-- Internally converted to CDF bias via ci_to_bias() (= 3*CI in linear regime). -->
+        <!-- Signals: cancer_stem=O2(deferred), tcell=CCL5, mac=CCL2, fib_mycaf=TGFB, vas_tip=VEGFA, treg=CXCL12, mdsc=CCL2 -->
+        <cancer_stem_ci name="PARAM_CHEMO_CI_CANCER_STEM" type="float" val="pr">0.0</cancer_stem_ci>       <!-- O2 gradient not computed yet, defer -->
+        <tcell_eff_ci name="PARAM_CHEMO_CI_TCELL_EFF" type="float" val="pr">0.17</tcell_eff_ci>            <!-- CCL5 chemotaxis toward tumor/iCAF -->
+        <tcell_cyt_ci name="PARAM_CHEMO_CI_TCELL_CYT" type="float" val="pr">0.129</tcell_cyt_ci>            <!-- MAPLE posterior 0.129. GaleanoNino2020 -->
+        <tcell_sup_ci name="PARAM_CHEMO_CI_TCELL_SUP" type="float" val="pr">0.03</tcell_sup_ci>            <!-- Suppressed: minimal directed movement -->
+        <mac_m1_ci name="PARAM_CHEMO_CI_MAC_M1" type="float" val="pr">0.106</mac_m1_ci>              <!-- MAPLE posterior 0.106. Lee2020 -->
+        <mac_m2_ci name="PARAM_CHEMO_CI_MAC_M2" type="float" val="pr">0.276</mac_m2_ci>              <!-- MAPLE posterior 0.276. Lee2020, Cui2018 -->
+        <fib_mycaf_ci name="PARAM_CHEMO_CI_FIB_MYCAF" type="float" val="pr">0.17</fib_mycaf_ci>
+        <vas_tip_ci name="PARAM_CHEMO_CI_VAS_TIP" type="float" val="pr">0.27</vas_tip_ci>
+        <treg_reg_ci name="PARAM_CHEMO_CI_TREG_REG" type="float" val="pr">0.13</treg_reg_ci>
+        <treg_tfh_ci name="PARAM_CHEMO_CI_TREG_TFH" type="float" val="pr">0.126</treg_tfh_ci>              <!-- MAPLE posterior 0.126. Liu2016 CXCL13 -->
+        <mdsc_ci name="PARAM_CHEMO_CI_MDSC" type="float" val="pr">0.17</mdsc_ci>
+        <bcell_naive_ci name="PARAM_CHEMO_CI_BCELL_NAIVE" type="float" val="pr">0.107</bcell_naive_ci>       <!-- MAPLE posterior 0.107. Liu2016 CXCL13 -->
+        <bcell_act_ci name="PARAM_CHEMO_CI_BCELL_ACT" type="float" val="pr">0.079</bcell_act_ci>            <!-- MAPLE posterior 0.079. Liu2016 -->
+        <dc_immature_ci name="PARAM_CHEMO_CI_DC_IMMATURE" type="float" val="pr">0.17</dc_immature_ci>      <!-- CCL2 chemotaxis -->
+        <dc_mature_ci name="PARAM_CHEMO_CI_DC_MATURE" type="float" val="pr">0.23</dc_mature_ci>            <!-- CCL21 chemotaxis toward TLS -->
       </Chemotaxis>
-      <Adhesion>
-        <!-- ECM density above this threshold counts as pseudo-neighbor for adhesion -->
-        <ecm_density_threshold name="PARAM_ADH_ECM_DENSITY_TH" type="float" val="pr">0.3</ecm_density_threshold>
-        <!-- p_move = max(0, 1 - sum(a_ij * n_j / 26) - a_ecm * ecm_factor) -->
+      <!-- Adhesion matrix: sparse cell-cell adhesion coefficients.
+           p_move = max(0, 1 - sum_j(M[i][j] * n_j / 26))
+           Row = mover type+state (StateCounterIdx), Col = neighbor type+state.
+           Unspecified pairs default to 0 (no adhesion). ECM handled by porosity, not here.
+           Tag names map to StateCounterIdx enum names (lowercase, no SC_ prefix). -->
+      <AdhesionMatrix>
         <!-- Cancer Stem (EMT, reduced E-cadherin) -->
-        <cancer_stem_to_cancer name="PARAM_ADH_CANCER_STEM_CANCER" type="float" val="pr">0.2</cancer_stem_to_cancer>
-        <cancer_stem_to_fib name="PARAM_ADH_CANCER_STEM_FIB" type="float" val="pr">0.05</cancer_stem_to_fib>
-        <cancer_stem_to_ecm name="PARAM_ADH_CANCER_STEM_ECM" type="float" val="pr">0.1</cancer_stem_to_ecm>
+        <cancer_stem>
+          <cancer_stem>0.15</cancer_stem>  <!-- Krebs2017: Zeb1-KO EMT, reduced E-cad. Stem/prog ratio 3-5x -->
+          <cancer_prog>0.15</cancer_prog>
+          <cancer_sen>0.15</cancer_sen>
+          <fib_mycaf>0.05</fib_mycaf>
+          <fib_icaf>0.05</fib_icaf>
+        </cancer_stem>
         <!-- Cancer Progenitor (high E-cadherin, tumor cohesion) -->
-        <cancer_prog_to_cancer name="PARAM_ADH_CANCER_PROG_CANCER" type="float" val="pr">0.6</cancer_prog_to_cancer>
-        <cancer_prog_to_fib name="PARAM_ADH_CANCER_PROG_FIB" type="float" val="pr">0.1</cancer_prog_to_fib>
-        <cancer_prog_to_ecm name="PARAM_ADH_CANCER_PROG_ECM" type="float" val="pr">0.2</cancer_prog_to_ecm>
+        <cancer_prog>
+          <cancer_stem>0.7</cancer_stem>  <!-- Deer2010: epithelial 20-100x higher E-cad. Krebs2017 -->
+          <cancer_prog>0.7</cancer_prog>
+          <cancer_sen>0.7</cancer_sen>
+          <fib_mycaf>0.1</fib_mycaf>
+          <fib_icaf>0.1</fib_icaf>
+        </cancer_prog>
         <!-- T cell Cytotoxic (LFA-1/ICAM-1 synapse, stays near cancer) -->
-        <tcell_cyt_to_cancer name="PARAM_ADH_TCELL_CYT_CANCER" type="float" val="pr">0.4</tcell_cyt_to_cancer>
+        <cd8_cyt>
+          <cancer_stem>0.4</cancer_stem>
+          <cancer_prog>0.4</cancer_prog>
+          <cancer_sen>0.4</cancer_sen>
+        </cd8_cyt>
         <!-- MAC M2 (semi-sessile niche retention) -->
-        <mac_m2_to_cancer name="PARAM_ADH_MAC_M2_CANCER" type="float" val="pr">0.1</mac_m2_to_cancer>
-        <mac_m2_to_fib name="PARAM_ADH_MAC_M2_FIB" type="float" val="pr">0.1</mac_m2_to_fib>
-        <mac_m2_to_ecm name="PARAM_ADH_MAC_M2_ECM" type="float" val="pr">0.1</mac_m2_to_ecm>
+        <mac_m2>
+          <cancer_stem>0.1</cancer_stem>
+          <cancer_prog>0.1</cancer_prog>
+          <cancer_sen>0.1</cancer_sen>
+          <fib_mycaf>0.1</fib_mycaf>
+          <fib_icaf>0.1</fib_icaf>
+        </mac_m2>
         <!-- Fibroblast myCAF (strong ECM anchorage, N-cadherin) -->
-        <fib_mycaf_to_cancer name="PARAM_ADH_FIB_MYCAF_CANCER" type="float" val="pr">0.1</fib_mycaf_to_cancer>
-        <fib_mycaf_to_fib name="PARAM_ADH_FIB_MYCAF_FIB" type="float" val="pr">0.2</fib_mycaf_to_fib>
-        <fib_mycaf_to_ecm name="PARAM_ADH_FIB_MYCAF_ECM" type="float" val="pr">0.5</fib_mycaf_to_ecm>
+        <fib_mycaf>
+          <cancer_stem>0.1</cancer_stem>
+          <cancer_prog>0.1</cancer_prog>
+          <fib_quiescent>0.2</fib_quiescent>
+          <fib_mycaf>0.2</fib_mycaf>
+          <fib_icaf>0.2</fib_icaf>
+          <fib_frc>0.2</fib_frc>
+        </fib_mycaf>
         <!-- Fibroblast iCAF (secretory, less anchored) -->
-        <fib_icaf_to_cancer name="PARAM_ADH_FIB_ICAF_CANCER" type="float" val="pr">0.05</fib_icaf_to_cancer>
-        <fib_icaf_to_fib name="PARAM_ADH_FIB_ICAF_FIB" type="float" val="pr">0.1</fib_icaf_to_fib>
-        <fib_icaf_to_ecm name="PARAM_ADH_FIB_ICAF_ECM" type="float" val="pr">0.1</fib_icaf_to_ecm>
+        <fib_icaf>
+          <cancer_stem>0.05</cancer_stem>
+          <cancer_prog>0.05</cancer_prog>
+          <fib_quiescent>0.1</fib_quiescent>
+          <fib_mycaf>0.1</fib_mycaf>
+          <fib_icaf>0.1</fib_icaf>
+          <fib_frc>0.1</fib_frc>
+        </fib_icaf>
         <!-- B cell Activated (homotypic adhesion in TLS) -->
-        <bcell_act_to_bcell name="PARAM_ADH_BCELL_ACT_BCELL" type="float" val="pr">0.3</bcell_act_to_bcell>
-        <bcell_act_to_ecm name="PARAM_ADH_BCELL_ACT_ECM" type="float" val="pr">0.1</bcell_act_to_ecm>
-      </Adhesion>
+        <bcell_act>
+          <bcell_naive>0.3</bcell_naive>
+          <bcell_act>0.3</bcell_act>
+          <bcell_plasma>0.3</bcell_plasma>
+        </bcell_act>
+      </AdhesionMatrix>
       <ContactGuidance>
         <!-- Per-type contact guidance strength: amplifies movement along fiber axis, suppresses perpendicular -->
-        <cancer_stem name="PARAM_CONTACT_GUIDANCE_CANCER_STEM" type="float" val="pr">0.5</cancer_stem>
-        <cancer_prog name="PARAM_CONTACT_GUIDANCE_CANCER_PROG" type="float" val="pr">0.6</cancer_prog>
-        <tcell name="PARAM_CONTACT_GUIDANCE_TCELL" type="float" val="pr">0.2</tcell>
-        <treg name="PARAM_CONTACT_GUIDANCE_TREG" type="float" val="pr">0.2</treg>
-        <mac name="PARAM_CONTACT_GUIDANCE_MAC" type="float" val="pr">0.15</mac>
+        <cancer_stem name="PARAM_CONTACT_GUIDANCE_CANCER_STEM" type="float" val="pr">0.65</cancer_stem>
+        <cancer_prog name="PARAM_CONTACT_GUIDANCE_CANCER_PROG" type="float" val="pr">0.25</cancer_prog>
+        <tcell name="PARAM_CONTACT_GUIDANCE_TCELL" type="float" val="pr">0.45</tcell>
+        <treg name="PARAM_CONTACT_GUIDANCE_TREG" type="float" val="pr">0.35</treg>
+        <mac name="PARAM_CONTACT_GUIDANCE_MAC" type="float" val="pr">0.30</mac>
         <fib_mycaf name="PARAM_CONTACT_GUIDANCE_FIB_MYCAF" type="float" val="pr">0.4</fib_mycaf>
         <fib_icaf name="PARAM_CONTACT_GUIDANCE_FIB_ICAF" type="float" val="pr">0.1</fib_icaf>
       </ContactGuidance>
+      <FiberBarrier>
+        <!-- Per-type fiber barrier strength: penalizes perpendicular movement through aligned fibers -->
+        <!-- 0 = no barrier (isotropic porosity only), 1 = full perpendicular block at max alignment -->
+        <!-- Multiplies CDF weight: w_barrier = 1 - barrier * fiber_mag * sin^2(angle_to_fiber) -->
+        <!-- Uses DESTINATION voxel fiber orientation (barrier you cross into, not where you are) -->
+        <cancer_stem name="PARAM_FIBER_BARRIER_CANCER_STEM" type="float" val="pr">0.40</cancer_stem>
+        <cancer_prog name="PARAM_FIBER_BARRIER_CANCER_PROG" type="float" val="pr">0.55</cancer_prog>
+        <tcell name="PARAM_FIBER_BARRIER_TCELL" type="float" val="pr">0.55</tcell>
+        <treg name="PARAM_FIBER_BARRIER_TREG" type="float" val="pr">0.5</treg>
+        <mac name="PARAM_FIBER_BARRIER_MAC" type="float" val="pr">0.30</mac>
+        <fib_mycaf name="PARAM_FIBER_BARRIER_FIB_MYCAF" type="float" val="pr">0.1</fib_mycaf>
+        <fib_icaf name="PARAM_FIBER_BARRIER_FIB_ICAF" type="float" val="pr">0.1</fib_icaf>
+        <vas_tip name="PARAM_FIBER_BARRIER_VAS_TIP" type="float" val="pr">0.3</vas_tip>
+        <mdsc name="PARAM_FIBER_BARRIER_MDSC" type="float" val="pr">0.4</mdsc>
+        <dc name="PARAM_FIBER_BARRIER_DC" type="float" val="pr">0.50</dc>
+        <bcell name="PARAM_FIBER_BARRIER_BCELL" type="float" val="pr">0.5</bcell>
+      </FiberBarrier>
     </Movement>
+    <DCPriming>
+      <!-- Naive T cell recruitment rate as fraction of existing effector/Th recruitment -->
+      <naive_cd8_recruit_frac name="PARAM_NAIVE_CD8_RECRUIT_FRAC" type="float">0.05</naive_cd8_recruit_frac> <!-- <5% naive CD8 in PDAC TIL (Schalck2022), trafficking bias 5-20x (Masopust2013) -->
+      <naive_cd4_recruit_frac name="PARAM_NAIVE_CD4_RECRUIT_FRAC" type="float">0.05</naive_cd4_recruit_frac> <!-- <5-10% naive CD4 in PDAC TIL (Pearce2023), HEV-dependent entry (Hang2019) -->
+      <!-- Naive cell lifespan in ABM steps (~4 days at 21600s/step) -->
+      <naive_lifespan_steps name="PARAM_NAIVE_LIFESPAN_STEPS" type="int">16</naive_lifespan_steps>
+      <!-- Extra divisions granted upon DC priming. Base DIV_LIMIT=4 + burst → 7-10 total (Kaech2001, Lanzavecchia2002) -->
+      <prime_div_burst name="PARAM_PRIME_DIV_BURST" type="int">4</prime_div_burst>
+    </DCPriming>
   </ABM>
   <Molecular>
     <stepPerSlice name="PARAM_MOLECULAR_STEPS" type="int" val="pos">36</stepPerSlice>  <!-- 36 substeps per ABM step, matching HCC (dt_pde = dt_abm/36 = 600s) -->
     <biofvm>
       <IFNg>
-        <diffusivity name="PARAM_IFNG_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>
+        <diffusivity name="PARAM_IFNG_DIFFUSIVITY" type="float" val="pr">1.26e-7</diffusivity> <!-- MAPLE. Ramanujan2002 -->
         <molecularWeight name="PARAM_IFNG_MOLECULAR_WEIGHT" type="float" val="pr">25</molecularWeight>
-        <uptake name="PARAM_CANCER_IFNG_UPTAKE" type="float" val="pr">1e-7</uptake>
       </IFNg>
       <IL_2>
-        <diffusivity name="PARAM_IL2_DIFFUSIVITY" type="float" val="pr">4e-8</diffusivity>
+        <diffusivity name="PARAM_IL2_DIFFUSIVITY" type="float" val="pr">6.87e-8</diffusivity> <!-- MAPLE (1.7x up). Ramanujan2002 -->
         <molecularWeight name="PARAM_IL2_MOLECULAR_WEIGHT" type="float" val="pr">16</molecularWeight>
       </IL_2>
       <CCL2>
-        <diffusivity name="PARAM_CCL2_DIFFUSIVITY" type="float" val="pr">1.31e-8</diffusivity>
-        <uptake name="PARAM_CCL2_UPTAKE" type="float" val="pr">1e-7</uptake>  <!-- Reduced from 1e-3: old value tuned to inflated HCC secretion rates -->
+        <diffusivity name="PARAM_CCL2_DIFFUSIVITY" type="float" val="pr">2.92e-8</diffusivity> <!-- MAPLE (2.2x up). Ramanujan2002 -->
+        <uptake name="PARAM_CCL2_UPTAKE" type="float" val="pr">5e-4</uptake>  <!-- CCR2 receptor cycling t1/2 ~23 min (Volpe2012, 10.1371/journal.pone.0037208). Was 1e-7 (80d t1/2, wrong) -->
         <molecularWeight name="PARAM_CCL2_MOLECULAR_WEIGHT" type="float" val="pr">14</molecularWeight>
       </CCL2>
       <ArgI>
-        <diffusivity name="PARAM_ARGI_DIFFUSIVITY" type="float" val="pr">1e-6</diffusivity>
+        <diffusivity name="PARAM_ARGI_DIFFUSIVITY" type="float" val="pr">6.35e-7</diffusivity> <!-- MAPLE (1.6x down). Ramanujan2002 -->
         <molecularWeight name="PARAM_ARGI_MOLECULAR_WEIGHT" type="float" val="pr">41</molecularWeight>
       </ArgI>
       <NO>
-        <diffusivity name="PARAM_NO_DIFFUSIVITY" type="float" val="pr">3.8e-5</diffusivity>
+        <diffusivity name="PARAM_NO_DIFFUSIVITY" type="float" val="pr">3.09e-5</diffusivity> <!-- MAPLE. Liu2008 -->
         <molecularWeight name="PARAM_NO_MOLECULAR_WEIGHT" type="float" val="pr">0.03</molecularWeight>
       </NO>
       <TGFB>
-        <diffusivity name="PARAM_TGFB_DIFFUSIVITY" type="float" val="pr">2.6e-7</diffusivity>
+        <diffusivity name="PARAM_TGFB_DIFFUSIVITY" type="float" val="pr">2.67e-7</diffusivity> <!-- MAPLE. Ramanujan2002 -->
         <release>
           <CancerStem name="PARAM_STEM_TGFB_RELEASE" type="float" val="pr">1.06e-7</CancerStem> <!-- [pmol/(cell*s)] -->
           <CancerProgenitor name="PARAM_PROG_TGFB_RELEASE" type="float" val="pr">0</CancerProgenitor>
@@ -381,74 +435,76 @@
         <molecularWeight name="PARAM_TGFB_MOLECULAR_WEIGHT" type="float" val="pr">44</molecularWeight>
       </TGFB>
       <IL10>
-        <diffusivity name="PARAM_IL10_DIFFUSIVITY" type="float" val="pr">1.4e-8</diffusivity>
+        <diffusivity name="PARAM_IL10_DIFFUSIVITY" type="float" val="pr">2.70e-8</diffusivity> <!-- MAPLE (1.9x up). Ramanujan2002 -->
         <release>
           <Treg name="PARAM_TREG_IL10_RELEASE" type="float" val="pr">0</Treg>
         </release>
         <molecularWeight name="PARAM_IL10_MOLECULAR_WEIGHT" type="float" val="pr">18</molecularWeight>
       </IL10>
       <IL12>
-        <diffusivity name="PARAM_IL12_DIFFUSIVITY" type="float" val="pr">2.4e-8</diffusivity>
+        <diffusivity name="PARAM_IL12_DIFFUSIVITY" type="float" val="pr">3.97e-8</diffusivity> <!-- MAPLE (1.7x up). Ramanujan2002 -->
         <molecularWeight name="PARAM_IL12_MOLECULAR_WEIGHT" type="float" val="pr">70</molecularWeight>
       </IL12>
       <VEGFA>
-        <diffusivity name="PARAM_VEGFA_DIFFUSIVITY" type="float" val="pr">2.9e-7</diffusivity>
+        <diffusivity name="PARAM_VEGFA_DIFFUSIVITY" type="float" val="pr">2.71e-7</diffusivity> <!-- MAPLE. Ramanujan2002 -->
         <uptake name="PARAM_VEGFA_UPTAKE" type="float" val="pr">5e-5</uptake>
         <decayRate name="PARAM_VEGFA_DECAY_RATE" type="float" val="pr">0.0001921</decayRate>
         <molecularWeight name="PARAM_VEGFA_MOLECULAR_WEIGHT" type="float" val="pr">45</molecularWeight>
       </VEGFA>
       <O2>
-        <diffusivity name="PARAM_O2_DIFFUSIVITY" type="float" val="pr">2.8e-5</diffusivity>
-        <uptake name="PARAM_O2_UPTAKE" type="float" val="pr">1e-3</uptake>
+        <diffusivity name="PARAM_O2_DIFFUSIVITY" type="float" val="pr">1.75e-5</diffusivity>  <!-- Tumor tissue: Grote1977, DS-carcinosarcoma 37°C -->
+        <uptake name="PARAM_O2_UPTAKE" type="float" val="pr">0.10</uptake>  <!-- MIA PaCa-2: 57 amol/cell/s → k=0.11/s; PhysiCell default 0.167/s -->
         <decayRate name="PARAM_O2_DECAY_RATE" type="float" val="pr">1e-5</decayRate>
         <molecularWeight name="PARAM_O2_MOLECULAR_WEIGHT" type="float" val="pr">16</molecularWeight>
       </O2>
       <IL1>
-        <diffusivity name="PARAM_IL1_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>            <!-- Similar to IFN-γ (small cytokine) -->
+        <diffusivity name="PARAM_IL1_DIFFUSIVITY" type="float" val="pr">1.31e-7</diffusivity>            <!-- MAPLE. Ramanujan2002 -->
         <release>
           <!-- Per-state scaling: stem=1.0x, prog=0.5x, sen=0.2x (SASP) -->
-          <MacM1 name="PARAM_MAC_M1_IL1_RELEASE" type="float" val="pr">5e-9</MacM1>                     <!-- M1 macrophage IL-1 secretion [pmol/(cell*s)] -->
+          <MacM1 name="PARAM_MAC_M1_IL1_RELEASE" type="float" val="pr">4.7e-13</MacM1>                  <!-- MAPLE posterior 4.7e-13 (~10000x down). Netea2009 -->
         </release>
         <molecularWeight name="PARAM_IL1_MOLECULAR_WEIGHT" type="float" val="pr">17</molecularWeight>      <!-- IL-1β ~17 kDa -->
       </IL1>
       <IL6>
-        <diffusivity name="PARAM_IL6_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>            <!-- Similar to IFN-γ -->
+        <diffusivity name="PARAM_IL6_DIFFUSIVITY" type="float" val="pr">1.33e-7</diffusivity>            <!-- MAPLE. Ramanujan2002 -->
         <molecularWeight name="PARAM_IL6_MOLECULAR_WEIGHT" type="float" val="pr">21</molecularWeight>      <!-- IL-6 ~21 kDa -->
       </IL6>
       <CXCL13>
-        <diffusivity name="PARAM_CXCL13_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>            <!-- Small chemokine -->
+        <diffusivity name="PARAM_CXCL13_DIFFUSIVITY" type="float" val="pr">1.47e-7</diffusivity>            <!-- MAPLE. Ramanujan2002 -->
         <decayRate name="PARAM_CXCL13_DECAY_RATE" type="float" val="pr">1e-4</decayRate>
         <release>
-          <iCAF name="PARAM_FIB_ICAF_CXCL13_RELEASE" type="float" val="pr">1e-8</iCAF>     <!-- iCAF CXCL13 secretion [pmol/(cell*s)], ABM-only (no ODE counterpart) -->
+          <!-- CXCL13 sources: Tfh cells + activated/plasma B cells only.
+               iCAFs do NOT produce CXCL13 (O'Connor2023). Removed. -->
         </release>
         <molecularWeight name="PARAM_CXCL13_MOLECULAR_WEIGHT" type="float" val="pr">10</molecularWeight>      <!-- CXCL13 ~10 kDa -->
       </CXCL13>
       <MMP>
-        <diffusivity name="PARAM_MMP_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>              <!-- MMP-2/9 diffusivity [cm²/s] -->
+        <diffusivity name="PARAM_MMP_DIFFUSIVITY" type="float" val="pr">1.17e-7</diffusivity>              <!-- MAPLE. Ramanujan2002 -->
         <decayRate name="PARAM_MMP_DECAY_RATE" type="float" val="pr">5e-4</decayRate>                   <!-- Fast turnover (TIMP binding) -->
         <molecularWeight name="PARAM_MMP_MOLECULAR_WEIGHT" type="float" val="pr">54000</molecularWeight>      <!-- MMP-2 ~72 kDa, MMP-9 ~92 kDa, avg -->
         <release>
           <Cancer name="PARAM_CANCER_MMP_RELEASE" type="float" val="pr">1e-12</Cancer>                      <!-- All cancer states secrete MMP -->
-          <MacM1 name="PARAM_MAC_M1_MMP_RELEASE" type="float" val="pr">5e-12</MacM1>                        <!-- M1 macrophage MMP secretion -->
+          <MacM1 name="PARAM_MAC_M1_MMP_RELEASE" type="float" val="pr">1.0e-10</MacM1>                     <!-- MAPLE posterior 1.0e-10 (~20x up). Zajac2013 -->
         </release>
       </MMP>
       <Antibody>
-        <diffusivity name="PARAM_ANTIBODY_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>        <!-- IgG ~150kDa, slow diffusion [cm²/s] -->
-        <decayRate name="PARAM_ANTIBODY_DECAY_RATE" type="float" val="pr">1e-5</decayRate>             <!-- Long tissue half-life (~hours) [1/s] -->
+        <diffusivity name="PARAM_ANTIBODY_DIFFUSIVITY" type="float" val="pr">1.02e-7</diffusivity>        <!-- MAPLE. Thurber2008 + Thorne2006 -->
+        <decayRate name="PARAM_ANTIBODY_DECAY_RATE" type="float" val="pr">5e-5</decayRate>             <!-- Tissue interstitial t1/2 ~3.9 hr (Eigenmann2017, 10.1113/JP274819). Was 1e-5 (serum t1/2) -->
         <molecularWeight name="PARAM_ANTIBODY_MOLECULAR_WEIGHT" type="float" val="pr">150</molecularWeight>  <!-- IgG ~150 kDa -->
       </Antibody>
       <CCL21>
-        <diffusivity name="PARAM_CCL21_DIFFUSIVITY" type="float" val="pr">1e-7</diffusivity>            <!-- Small chemokine ~12 kDa [cm²/s] -->
+        <diffusivity name="PARAM_CCL21_DIFFUSIVITY" type="float" val="pr">1.35e-7</diffusivity>            <!-- MAPLE. Ramanujan2002 -->
         <decayRate name="PARAM_CCL21_DECAY_RATE" type="float" val="pr">1e-5</decayRate>                 <!-- Moderate tissue half-life [1/s] -->
         <molecularWeight name="PARAM_CCL21_MOLECULAR_WEIGHT" type="float" val="pr">12</molecularWeight>  <!-- CCL21 ~12 kDa -->
-        <release name="PARAM_DC_CCL21_RELEASE" type="float" val="pr">5e-9</release>           <!-- Mature DC CCL21 secretion [pmol/(cell*s)], no ODE counterpart -->
+        <frcRelease name="PARAM_FIB_FRC_CCL21_RELEASE" type="float" val="pr">5e-9</frcRelease>          <!-- FRC CCL21 secretion [pmol/(cell*s)]; Luther2000 (FRCs/HEVs are the in vivo source) -->
+        <frcCxcl12Release name="PARAM_FIB_FRC_CXCL12_RELEASE" type="float" val="pr">2e-9</frcCxcl12Release>  <!-- FRC CXCL12 secretion [pmol/(cell*s)]; Link2007 (FRCs produce CXCL12 in T zone) -->
       </CCL21>
       <CXCL12>
-        <diffusivity name="PARAM_CXCL12_DIFFUSIVITY" type="float" val="pr">1.5e-7</diffusivity>         <!-- SDF-1 ~8 kDa, small chemokine [cm²/s] -->
+        <diffusivity name="PARAM_CXCL12_DIFFUSIVITY" type="float" val="pr">2.03e-7</diffusivity>         <!-- MAPLE. Ramanujan2002 -->
         <molecularWeight name="PARAM_CXCL12_MOLECULAR_WEIGHT" type="float" val="pr">8</molecularWeight>  <!-- CXCL12/SDF-1 ~8 kDa -->
       </CXCL12>
       <CCL5>
-        <diffusivity name="PARAM_CCL5_DIFFUSIVITY" type="float" val="pr">1.5e-7</diffusivity>           <!-- RANTES ~8 kDa, similar to CXCL12 [cm²/s] -->
+        <diffusivity name="PARAM_CCL5_DIFFUSIVITY" type="float" val="pr">2.06e-7</diffusivity>           <!-- MAPLE. Ramanujan2002 -->
         <molecularWeight name="PARAM_CCL5_MOLECULAR_WEIGHT" type="float" val="pr">8</molecularWeight>    <!-- CCL5/RANTES ~8 kDa -->
       </CCL5>
     </biofvm>
@@ -1089,6 +1145,10 @@
     <!-- T cell lifespan SD in slices -->
     <D name="PARAM_TCELL_LIFESPAN_SD_SLICE" type="float" comment="T cell lifespan SD in time steps"><![CDATA[env.getProperty<float>("PARAM_TCELL_LIFESPAN_SD") / env.getProperty<float>("PARAM_SEC_PER_SLICE") * SEC_PER_DAY]]></D>
 
+    <!-- T cell IL-2 proliferation threshold: IL2_50 (nM) × commitment time (s) → nM·s
+         Cantrell&Smith1984: 6-8h sustained IL-2R signaling for S-phase commitment -->
+    <D name="PARAM_TCELL_IL2_PROLIF_TH" type="float" comment="IL-2 accumulation threshold for division [nM*s] = IL2_50 * commit_time"><![CDATA[QP(CancerVCT::P_IL2_50) * 1e6 * env.getProperty<float>("PARAM_TCELL_IL2_COMMIT_TIME")]]></D>
+
     <!-- Volume params from QSP -->
     <D name="PARAM_CELL" type="float" comment="cell count (not moles)"><![CDATA[QP(CancerVCT::P_cell) * AVOGADROS]]></D>
     <D name="PARAM_V_CELL" type="float" comment="volume of cancer cells"><![CDATA[QP(CancerVCT::P_vol_cell)]]></D>
@@ -1179,9 +1239,17 @@
     <D name="PARAM_KOFF_SIRPa_CD47" type="float" comment="SIRPa-CD47 koff"><![CDATA[QP(CancerVCT::P_koff_CD47_SIRPa)]]></D>
     <D name="PARAM_N_SIRPa_CD47" type="float" comment="SIRPa Hill coefficient"><![CDATA[QP(CancerVCT::P_n_SIRPa)]]></D>
 
-    <!-- Fibroblast/ECM QSP-derived params -->
-    <D name="PARAM_FIB_ECM_RELEASE_FIB" type="float" comment="fibroblast ECM secretion rate [nmol/(cell*day)] — currently unused"><![CDATA[QP(CancerVCT::P_k_col_myCAF_sec) / (AVOGADROS * 1e-9) * SEC_PER_DAY]]></D>
-    <D name="PARAM_FIB_ECM_RELEASE_CAF" type="float" comment="CAF ECM secretion rate [nmol/(cell*day)] — currently unused"><![CDATA[QP(CancerVCT::P_k_col_myCAF_sec) / (AVOGADROS * 1e-9) * SEC_PER_DAY]]></D>
+    <!-- ECM QSP-derived rate params (replaces XML PARAM_ECM_DEPOSITION_RATE, _DECAY_RATE, _TGFB_EC50) -->
+    <!-- ECM deposition rate [nmol/(fib_density_unit*s)]. Kernel formula: deposition = fib * (1+H_TGFB) * k_depo/3 * (1-sat) * yap * dt.
+         QSP matching: at no TGFb, ABM_k/3 = QSP_k_per_cell * f_col_basal; at max TGFb, ABM_k/3*2 = QSP_k_per_cell.
+         Both match when ABM_k = 3 * QSP_k_per_cell * f_col_basal (works exactly because f_col_basal=0.5). -->
+    <D name="PARAM_ECM_DEPOSITION_RATE" type="float" comment="ECM deposition rate [nmol/(fib_density_unit*s)] from QSP k_col_myCAF_sec, f_col_basal"><![CDATA[3.0 * QP(CancerVCT::P_k_col_myCAF_sec) / (AVOGADROS * 1e-9) * QP(CancerVCT::P_f_col_basal)]]></D>
+    <!-- ECM natural decay rate [1/s] from QSP k_col_deg (0.007/day → ~8.1e-8/s) -->
+    <D name="PARAM_ECM_DECAY_RATE" type="float" comment="ECM natural decay rate [1/s] from QSP k_col_deg"><![CDATA[QP(CancerVCT::P_k_col_deg)]]></D>
+    <!-- TGFb EC50 for ECM deposition Hill function [nM]. QSP stores in mM after 1e-6 conversion; *1e6 back to nM for PDE.
+         NOTE: QSP value = 0.07 nM (70 pM), much lower than previous 10 nM. TGFb gating will be nearly saturated at typical PDE concentrations. -->
+    <D name="PARAM_ECM_TGFB_EC50" type="float" comment="TGFb EC50 for ECM deposition [nM] from QSP TGFb_50_col_sec"><![CDATA[QP(CancerVCT::P_TGFb_50_col_sec) * 1e6]]></D>
+
     <!-- Fibroblast activation: separate rates for myCAF (TGF-β) vs iCAF (IL-1) -->
     <D name="PARAM_FIB_MYCAF_ACTIVATION" type="float" comment="qPSC→myCAF activation rate per timestep"><![CDATA[QP(CancerVCT::P_k_psc_activation_myCAF) * t_step_sec]]></D>
     <D name="PARAM_FIB_ICAF_ACTIVATION" type="float" comment="qPSC→iCAF activation rate per timestep"><![CDATA[QP(CancerVCT::P_k_psc_activation_iCAF) * t_step_sec]]></D>
@@ -1201,13 +1269,8 @@
     <!-- Fibroblast division cooldowns: 1/(k_prolif * t_step_sec) timesteps -->
     <D name="PARAM_FIB_DIV_COOLDOWN_MYCAF" type="float" comment="myCAF division cooldown [timesteps] from k_myCAF_prolif"><![CDATA[1.0 / (QP(CancerVCT::P_k_myCAF_prolif) * t_step_sec)]]></D>
     <D name="PARAM_FIB_DIV_COOLDOWN_ICAF" type="float" comment="iCAF division cooldown [timesteps] from k_iCAF_prolif"><![CDATA[1.0 / (QP(CancerVCT::P_k_iCAF_prolif) * t_step_sec)]]></D>
-    <D name="PARAM_FIB_ECM_TGFB_FACTOR" type="float" comment="ECM TGFb factor"><![CDATA[2]]></D>
-    <D name="PARAM_FIB_ECM_DECAY_RATE" type="float" comment="ECM degradation rate"><![CDATA[QP(CancerVCT::P_k_col_deg)]]></D>
-    <D name="PARAM_FIB_ECM_BASELINE" type="float" comment="ECM baseline [nmole/ml]"><![CDATA[0.1f * 1e3]]></D>
-    <D name="PARAM_FIB_ECM_SATURATION" type="float" comment="ECM saturation [nmole/ml]"><![CDATA[1.0f * 1e3]]></D>
-    <D name="PARAM_FIB_ECM_MOT_EC50" type="float" comment="ECM EC50 for T cell motility"><![CDATA[QP(CancerVCT::P_phi_col_50_Kmax) * 5e3]]></D>
 
-    <!-- Side-effect: initialize ECM grid to saturation -->
+    <!-- Side-effect: initialize ECM grid to saturation [nmol/mL] -->
     <Call comment="Init ECM grid to saturation"><![CDATA[PDAC::initialize_ecm_to_saturation(static_cast<float>(1.0f * 1e3))]]></Call>
 
     <!-- Fibroblast lifespan -->

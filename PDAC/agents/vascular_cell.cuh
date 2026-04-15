@@ -198,11 +198,10 @@ FLAMEGPU_AGENT_FUNCTION(vascular_mark_sources, flamegpu::MessageNone, flamegpu::
 
     int bits = 0;
 
-    // --- T cells (bit 0): IFN-γ gated ---
-    const float local_IFNg = PDE_READ(FLAMEGPU, PDE_CONC_IFN, voxel_idx);
-    const float ec50_ifng = FLAMEGPU->environment.getProperty<float>("PARAM_TEFF_IFN_EC50");
-    const float H_IFNg = local_IFNg / (local_IFNg + ec50_ifng);
-    float p_t = H_IFNg * tumor_scaler * vas_scaler * hev_boost;
+    // --- T cells (bit 0): cancer-density gated (matches QSP: no IFNg gating) ---
+    // QSP uses C_total^2 / (C_total^2 + Kc_rec); ABM uses tumor_scaler as proxy.
+    // CXCL12 exclusion and Treg resistance applied at placement (recruit_all_kernel).
+    float p_t = tumor_scaler * vas_scaler * hev_boost;
     if (FLAMEGPU->random.uniform<float>() < p_t) {
         bits |= 1;
     }
@@ -225,13 +224,10 @@ FLAMEGPU_AGENT_FUNCTION(vascular_mark_sources, flamegpu::MessageNone, flamegpu::
     // Always mark; probability rolled at placement via PARAM_DC_RECRUIT_K_CDC1/CDC2
     bits |= 16;  // DC
 
-    // --- B cells (bit 3): CXCL13 gated ---
-    const float local_CXCL13 = PDE_READ(FLAMEGPU, PDE_CONC_CXCL13, voxel_idx);
-    const float ec50_cxcl13 = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_EC50_CXCL13_REC");
-    const float H_CXCL13 = local_CXCL13 / (local_CXCL13 + ec50_cxcl13);
-    if (FLAMEGPU->random.uniform<float>() < H_CXCL13) {
-        bits |= 8;  // B cell
-    }
+    // --- B cells (bit 3): always mark, CXCL13 boost applied at placement ---
+    // B cells recruit at baseline rate; CXCL13 from TFH/B cells amplifies locally.
+    // Gate removed to prevent recruitment deadlock (B cells needed for TFH differentiation).
+    bits |= 8;  // B cell
 
     if (bits != 0) {
         atomicOr(&d_recruitment_sources[voxel_idx], bits);
@@ -567,8 +563,12 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
     mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_VAS_TIP");
     mp.p_move = 1.0f;
     mp.p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_VAS_TIP");
-    mp.bias_strength = FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_VAS_TIP");
+    mp.bias_strength = ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_VAS_TIP"));
     mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
+    mp.orient_x = ECM_ORIENT_X_PTR(FLAMEGPU);
+    mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
+    mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
+    mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_VAS_TIP");
 
     MoveResult r = move_cell(mp, x, y, z,
         FLAMEGPU->getVariable<int>("persist_dir_x"),

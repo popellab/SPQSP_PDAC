@@ -14,6 +14,10 @@
     env.newProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE", 
                     env.getProperty<float>("PARAM_TCELL_LIFESPAN_SD") / env.getProperty<float>("PARAM_SEC_PER_SLICE") * SEC_PER_DAY);
 
+    // IL-2 accumulation threshold for division [nM*s] = IL2_50 * commit_time
+    env.newProperty<float>("PARAM_TCELL_IL2_PROLIF_TH", 
+                    QP(CancerVCT::P_IL2_50) * 1e6 * env.getProperty<float>("PARAM_TCELL_IL2_COMMIT_TIME"));
+
     // cell count (not moles)
     env.newProperty<float>("PARAM_CELL", 
                     QP(CancerVCT::P_cell) * AVOGADROS);
@@ -260,13 +264,17 @@
     env.newProperty<float>("PARAM_N_SIRPa_CD47", 
                     QP(CancerVCT::P_n_SIRPa));
 
-    // fibroblast ECM secretion rate [nmol/(cell*day)] — currently unused
-    env.newProperty<float>("PARAM_FIB_ECM_RELEASE_FIB", 
-                    QP(CancerVCT::P_k_col_myCAF_sec) / (AVOGADROS * 1e-9) * SEC_PER_DAY);
+    // ECM deposition rate [nmol/(fib_density_unit*s)] from QSP k_col_myCAF_sec, f_col_basal
+    env.newProperty<float>("PARAM_ECM_DEPOSITION_RATE", 
+                    3.0 * QP(CancerVCT::P_k_col_myCAF_sec) / (AVOGADROS * 1e-9) * QP(CancerVCT::P_f_col_basal));
 
-    // CAF ECM secretion rate [nmol/(cell*day)] — currently unused
-    env.newProperty<float>("PARAM_FIB_ECM_RELEASE_CAF", 
-                    QP(CancerVCT::P_k_col_myCAF_sec) / (AVOGADROS * 1e-9) * SEC_PER_DAY);
+    // ECM natural decay rate [1/s] from QSP k_col_deg
+    env.newProperty<float>("PARAM_ECM_DECAY_RATE", 
+                    QP(CancerVCT::P_k_col_deg));
+
+    // TGFb EC50 for ECM deposition [nM] from QSP TGFb_50_col_sec
+    env.newProperty<float>("PARAM_ECM_TGFB_EC50", 
+                    QP(CancerVCT::P_TGFb_50_col_sec) * 1e6);
 
     // qPSC→myCAF activation rate per timestep
     env.newProperty<float>("PARAM_FIB_MYCAF_ACTIVATION", 
@@ -319,26 +327,6 @@
     // iCAF division cooldown [timesteps] from k_iCAF_prolif
     env.newProperty<float>("PARAM_FIB_DIV_COOLDOWN_ICAF", 
                     1.0 / (QP(CancerVCT::P_k_iCAF_prolif) * t_step_sec));
-
-    // ECM TGFb factor
-    env.newProperty<float>("PARAM_FIB_ECM_TGFB_FACTOR", 
-                    2);
-
-    // ECM degradation rate
-    env.newProperty<float>("PARAM_FIB_ECM_DECAY_RATE", 
-                    QP(CancerVCT::P_k_col_deg));
-
-    // ECM baseline [nmole/ml]
-    env.newProperty<float>("PARAM_FIB_ECM_BASELINE", 
-                    0.1f * 1e3);
-
-    // ECM saturation [nmole/ml]
-    env.newProperty<float>("PARAM_FIB_ECM_SATURATION", 
-                    1.0f * 1e3);
-
-    // ECM EC50 for T cell motility
-    env.newProperty<float>("PARAM_FIB_ECM_MOT_EC50", 
-                    QP(CancerVCT::P_phi_col_50_Kmax) * 5e3);
 
     // Init ECM grid to saturation
     PDAC::initialize_ecm_to_saturation(static_cast<float>(1.0f * 1e3));
@@ -668,3 +656,47 @@
     // Th/Tfh division cooldown [steps] from k_Th_pro_tumor
     env.newProperty<int>("PARAM_TH_DIV_INTERVAL", 
                     static_cast<int>(std::round(1.0 / (QP(CancerVCT::P_k_Th_pro_tumor) * t_step_sec))));
+
+    // ── Adhesion matrix (cell-cell, sparse from XML <AdhesionMatrix>) ──
+    {
+        constexpr int N = ABM_STATE_COUNTER_SIZE;
+        float h_adh_matrix[N * N] = {0};
+        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_STEM] = 0.15f;
+        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_PROG] = 0.15f;
+        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_SEN] = 0.15f;
+        h_adh_matrix[SC_CANCER_STEM * N + SC_FIB_MYCAF] = 0.05f;
+        h_adh_matrix[SC_CANCER_STEM * N + SC_FIB_ICAF] = 0.05f;
+        h_adh_matrix[SC_CANCER_PROG * N + SC_CANCER_STEM] = 0.7f;
+        h_adh_matrix[SC_CANCER_PROG * N + SC_CANCER_PROG] = 0.7f;
+        h_adh_matrix[SC_CANCER_PROG * N + SC_CANCER_SEN] = 0.7f;
+        h_adh_matrix[SC_CANCER_PROG * N + SC_FIB_MYCAF] = 0.1f;
+        h_adh_matrix[SC_CANCER_PROG * N + SC_FIB_ICAF] = 0.1f;
+        h_adh_matrix[SC_CD8_CYT * N + SC_CANCER_STEM] = 0.4f;
+        h_adh_matrix[SC_CD8_CYT * N + SC_CANCER_PROG] = 0.4f;
+        h_adh_matrix[SC_CD8_CYT * N + SC_CANCER_SEN] = 0.4f;
+        h_adh_matrix[SC_MAC_M2 * N + SC_CANCER_STEM] = 0.1f;
+        h_adh_matrix[SC_MAC_M2 * N + SC_CANCER_PROG] = 0.1f;
+        h_adh_matrix[SC_MAC_M2 * N + SC_CANCER_SEN] = 0.1f;
+        h_adh_matrix[SC_MAC_M2 * N + SC_FIB_MYCAF] = 0.1f;
+        h_adh_matrix[SC_MAC_M2 * N + SC_FIB_ICAF] = 0.1f;
+        h_adh_matrix[SC_FIB_MYCAF * N + SC_CANCER_STEM] = 0.1f;
+        h_adh_matrix[SC_FIB_MYCAF * N + SC_CANCER_PROG] = 0.1f;
+        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_QUIESCENT] = 0.2f;
+        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_MYCAF] = 0.2f;
+        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_ICAF] = 0.2f;
+        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_FRC] = 0.2f;
+        h_adh_matrix[SC_FIB_ICAF * N + SC_CANCER_STEM] = 0.05f;
+        h_adh_matrix[SC_FIB_ICAF * N + SC_CANCER_PROG] = 0.05f;
+        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_QUIESCENT] = 0.1f;
+        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_MYCAF] = 0.1f;
+        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_ICAF] = 0.1f;
+        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_FRC] = 0.1f;
+        h_adh_matrix[SC_BCELL_ACT * N + SC_BCELL_NAIVE] = 0.3f;
+        h_adh_matrix[SC_BCELL_ACT * N + SC_BCELL_ACT] = 0.3f;
+        h_adh_matrix[SC_BCELL_ACT * N + SC_BCELL_PLASMA] = 0.3f;
+        float* d_adh_matrix = nullptr;
+        cudaMalloc(&d_adh_matrix, N * N * sizeof(float));
+        cudaMemcpy(d_adh_matrix, h_adh_matrix, N * N * sizeof(float), cudaMemcpyHostToDevice);
+        env.newProperty<unsigned long long>("adh_matrix_ptr",
+            static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_adh_matrix)));
+    }

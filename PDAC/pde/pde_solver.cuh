@@ -8,13 +8,14 @@
 namespace PDAC {
 
 // Chemical substrate indices
-// Units: cytokines/chemokines in nM, O2/MMP/Antibody in µM
-// Sources: pmol/(cell*s) for nM substrates, nmol/(cell*s) for µM substrates
-// EC50s: nM for nM substrates, µM for µM substrates
+// Units: all cytokines/chemokines/MMP/Antibody in nM; O2 in mM.
+// Sources: pmol/(cell*s) / voxel_volume [cm³] → nM/s (all substrates except O2)
+//          O2 uses implicit Krogh cylinder (source in mM/s via KvLv*C_blood/vol)
+// EC50s: nM (matching grid), except O2 thresholds in mM
 // Decay/uptake rates: 1/s (unit-independent)
 // Diffusivities: cm²/s (unit-independent)
 enum ChemicalSubstrate {
-    CHEM_O2 = 0,    // [µM] — oxygen, vascular PHALANX source
+    CHEM_O2 = 0,    // [mM] — oxygen, vascular PHALANX source (0.065 mM ≈ 65 µM ≈ 50 mmHg)
     CHEM_IFN,       // [nM] — IFN-gamma
     CHEM_IL2,       // [nM] — IL-2
     CHEM_IL10,      // [nM] — IL-10
@@ -27,8 +28,8 @@ enum ChemicalSubstrate {
     CHEM_IL1,       // [nM] — IL-1beta
     CHEM_IL6,       // [nM] — IL-6
     CHEM_CXCL13,    // [nM] — CXCL13 (B cell/TLS chemokine)
-    CHEM_MMP,       // [µM] — MMP-2/9 (matrix metalloproteinase)
-    CHEM_ANTIBODY,  // [µM] — IgG antibody (B cell plasma secretion, ADCC)
+    CHEM_MMP,       // [nM] — MMP-2/9 (matrix metalloproteinase)
+    CHEM_ANTIBODY,  // [nM] — IgG antibody (B cell plasma secretion, ADCC)
     CHEM_CCL21,     // [nM] — CCL21 (mature DC secretion, TLS T-zone homing)
     CHEM_CXCL12,    // [nM] — CXCL12/SDF-1 (iCAF + cancer, T cell exclusion)
     CHEM_CCL5,      // [nM] — CCL5/RANTES (cancer + iCAF, Treg CCR5 recruitment)
@@ -36,7 +37,7 @@ enum ChemicalSubstrate {
 };
 
 // Gradient substrates (subset used for chemotaxis)
-// GRAD_IFN=0 → CHEM_IFN, GRAD_TGFB=1 → CHEM_TGFB, GRAD_CCL2=2 → CHEM_CCL2, GRAD_VEGFA=3 → CHEM_VEGFA
+// Maps gradient indices to chemical indices for chemotaxis
 enum GradientSubstrate {
     GRAD_IFN = 0,
     GRAD_TGFB,
@@ -44,6 +45,8 @@ enum GradientSubstrate {
     GRAD_VEGFA,
     GRAD_CXCL13,
     GRAD_CCL21,
+    GRAD_CXCL12,
+    GRAD_CCL5,
     NUM_GRAD_SUBSTRATES
 };
 
@@ -143,7 +146,7 @@ private:
     float* d_src_;         // Sources [conc/s]:  [NUM_SUBSTRATES * V]
     float* d_upt_;         // Uptakes [1/s]:     [NUM_SUBSTRATES * V]
     // Gradients: layout [grad_s * 3 * V + dim * V + voxel_idx]
-    //   dim 0=x, 1=y, 2=z; grad_s ∈ {GRAD_IFN, GRAD_TGFB, GRAD_CCL2, GRAD_VEGFA}
+    //   dim 0=x, 1=y, 2=z; grad_s ∈ GradientSubstrate enum
     float* d_grad_;        // [NUM_GRAD_SUBSTRATES * 3 * V]
     int*   d_recruitment_; // [V]
 

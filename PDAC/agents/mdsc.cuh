@@ -56,9 +56,8 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_scan_neighbors, flamegpu::MessageSpatial3D, flamegp
     int treg_count = 0;
     int mdsc_count = 0;
 
-    // Track which neighbor voxels have MDSCs (for movement availability)
-    bool neighbor_blocked[26] = {false};
-    int neighbor_tcells[26] = {0};
+    // Adhesion: count all type+state neighbors
+    int adh_counts[ABM_STATE_COUNTER_SIZE] = {0};
 
     for (const auto& msg : FLAMEGPU->message_in(my_pos_x, my_pos_y, my_pos_z)) {
         const int msg_x = msg.getVariable<int>("voxel_x");
@@ -72,56 +71,34 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_scan_neighbors, flamegpu::MessageSpatial3D, flamegp
         // Moore neighborhood (excluding self)
         if (abs(dx) <= 1 && abs(dy) <= 1 && abs(dz) <= 1 && !(dx == 0 && dy == 0 && dz == 0)) {
             const int agent_type = msg.getVariable<int>("agent_type");
+            const int agent_state = msg.getVariable<int>("cell_state");
+            const float kill_factor = msg.getVariable<float>("kill_factor");
 
-            // Find direction index
-            int dir_idx = -1;
-            for (int i = 0; i < 26; i++) {
-                int ddx, ddy, ddz;
-                get_moore_direction(i, ddx, ddy, ddz);
-                if (ddx == dx && ddy == dy && ddz == dz) {
-                    dir_idx = i;
-                    break;
-                }
-            }
+            // Adhesion: accumulate into type+state count vector
+            adh_counts[msg_to_sc_idx(agent_type, agent_state, kill_factor)]++;
 
-            if (dir_idx >= 0) {
-                if (agent_type == CELL_TYPE_CANCER) {
-                    cancer_count++;
-                } else if (agent_type == CELL_TYPE_T) {
-                    tcell_count++;
-                    neighbor_tcells[dir_idx]++;
-                } else if (agent_type == CELL_TYPE_TREG) {
-                    treg_count++;
-                } else if (agent_type == CELL_TYPE_MDSC) {
-                    mdsc_count++;
-                    neighbor_blocked[dir_idx] = true;
-                }
+            // Agent-specific interaction counts
+            if (agent_type == CELL_TYPE_CANCER) {
+                cancer_count++;
+            } else if (agent_type == CELL_TYPE_T) {
+                tcell_count++;
+            } else if (agent_type == CELL_TYPE_TREG) {
+                treg_count++;
+            } else if (agent_type == CELL_TYPE_MDSC) {
+                mdsc_count++;
             }
         }
     }
 
-    // Build available_neighbors mask (voxels without MDSC - since 1 MDSC per voxel max)
-    // unsigned int available_neighbors = 0;
-    // for (int i = 0; i < 26; i++) {
-    //     int dx, dy, dz;
-    //     get_moore_direction(i, dx, dy, dz);
-    //     int nx = my_x + dx;
-    //     int ny = my_y + dy;
-    //     int nz = my_z + dz;
-
-    //     if (is_in_bounds(nx, ny, nz, size_x, size_y, size_z)) {
-    //         // MDSC can move to voxel only if no other MDSC is there
-    //         if (!neighbor_blocked[i]) {
-    //             available_neighbors |= (1u << i);
-    //         }
-    //     }
-    // }
+    // Compute adhesion p_move from matrix
+    const int my_sc = SC_MDSC;  // MDSC has single state
+    const float adh_pmove = compute_adhesion_pmove(my_sc, adh_counts, ADH_MATRIX_PTR(FLAMEGPU));
 
     FLAMEGPU->setVariable<int>("neighbor_cancer_count", cancer_count);
     FLAMEGPU->setVariable<int>("neighbor_Tcell_count", tcell_count);
     FLAMEGPU->setVariable<int>("neighbor_Treg_count", treg_count);
     FLAMEGPU->setVariable<int>("neighbor_MDSC_count", mdsc_count);
-    // FLAMEGPU->setVariable<unsigned int>("available_neighbors", available_neighbors);
+    FLAMEGPU->setVariable<float>("adh_p_move", adh_pmove);
 
     return flamegpu::ALIVE;
 }
@@ -272,10 +249,14 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone)
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
     mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_MDSC");
-    mp.p_move = 1.0f;
+    mp.p_move = FLAMEGPU->getVariable<float>("adh_p_move");
     mp.p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_MDSC");
-    mp.bias_strength = FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_MDSC");
+    mp.bias_strength = ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_MDSC"));
     mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
+    mp.orient_x = ECM_ORIENT_X_PTR(FLAMEGPU);
+    mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
+    mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
+    mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_MDSC");
 
     MoveResult r = move_cell(mp, x, y, z,
         FLAMEGPU->getVariable<int>("persist_dir_x"),
