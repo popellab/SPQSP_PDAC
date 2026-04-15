@@ -2,7 +2,7 @@
 
 ## Harness
 
-- `ode_compile/` — standalone CMake build of `dump_trajectories` against the
+- `PDAC/qsp/sim/` — standalone CMake build of `qsp_sim` against the
   generated `PDAC/qsp/ode/*.cpp` + `PDAC/qsp/cvode/CVODEBase` +
   `PDAC/core/ParamBase`. SUNDIALS 7 found locally or fetched via `FetchContent`.
 - `export_matlab_trajectories.m` — SimBiology reference exporter. Loads the
@@ -14,8 +14,8 @@
 
 Build and run:
 ```
-cmake -S PDAC/sim/tests/ode_compile -B PDAC/sim/tests/ode_compile/build
-cmake --build PDAC/sim/tests/ode_compile/build
+cmake -S PDAC/qsp/sim -B PDAC/qsp/sim/build
+cmake --build PDAC/qsp/sim/build
 .venv/bin/pytest PDAC/sim/tests/test_ode_vs_matlab.py -v --run-matlab
 ```
 
@@ -107,6 +107,6 @@ python PDAC/codegen/check_sync.py    # all-green sanity check
 Considered relocating codegen + validation harness to `pdac-build` so
 the QSP model, its export, and its validation all live together; SBML
 would live only there; C++ would consume pre-generated files + a
-`version.txt` recording the pdac-build SHA. Downsides: `dump_trajectories`
+`version.txt` recording the pdac-build SHA. Downsides: `qsp_sim`
 infrastructure (CVODEBase, ParamBase, SUNDIALS, CMake) would have to
 move too or be vendored. Decision deferred.

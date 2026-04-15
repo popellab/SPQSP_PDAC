@@ -55,6 +55,15 @@ public:
 	//! set non species varaible value with original units
 	void setParameterVal(unsigned int idx, double val, bool raw = true);
 
+	//! number of species emitted by operator<< (sp_var + sp_other)
+	int getNumOutputSpecies() const {
+		return _neq + static_cast<int>(_species_other.size());
+	}
+	//! value of output species i in original units — public forwarder over
+	//! the protected virtual getVarOriginalUnit, for callers that need to
+	//! snapshot the full row to a buffer rather than to an ostream
+	double getSpeciesOutputValue(int i) const { return getVarOriginalUnit(i); }
+
 	//! manually update solver variable values
 	void updateVar(void);
 

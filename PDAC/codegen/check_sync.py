@@ -4,7 +4,7 @@
 Use before running a C++ simulation to confirm:
 - SBML is up to date with the live MATLAB model script
 - The generated C++ ODE is up to date with the SBML
-- The dump_trajectories binary is up to date with the codegen
+- The qsp_sim binary is up to date with the codegen
 - param_all.xml contains every name the codegen expects
 
 Usage:

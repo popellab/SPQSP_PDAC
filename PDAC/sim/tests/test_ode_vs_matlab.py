@@ -1,8 +1,8 @@
 """Compare MATLAB SimBiology and C++ CVODE ODE trajectories.
 
 Requires MATLAB + a local pdac-build/ sibling directory with startup.m and
-immune_oncology_model_PDAC.m. The dump_trajectories binary must be built
-from PDAC/sim/tests/ode_compile/ (see its CMakeLists.txt).
+immune_oncology_model_PDAC.m. The qsp_sim binary must be built
+from PDAC/qsp/sim/ (see its CMakeLists.txt).
 
 Run locally with:
     pytest PDAC/sim/tests/test_ode_vs_matlab.py -v --run-matlab
@@ -17,7 +17,7 @@ import pytest
 TESTS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TESTS_DIR.parent.parent.parent
 PDAC_BUILD = REPO_ROOT.parent / "pdac-build"
-ODE_BUILD = TESTS_DIR / "ode_compile" / "build"
+ODE_BUILD = REPO_ROOT / "PDAC" / "qsp" / "sim" / "build"
 PARAM_XML = REPO_ROOT / "PDAC" / "sim" / "resource" / "param_all.xml"
 # Both MATLAB and C++ simulate from the same XML so parameter divergence
 # isn't confounded with solver divergence. Override via PDAC_PARAM_XML env var.
@@ -28,7 +28,7 @@ PARAM_XML = Path(_os.environ.get("PDAC_PARAM_XML", str(PARAM_XML)))
 SBML_PATH = REPO_ROOT / "PDAC" / "qsp" / "PDAC_model.sbml"
 MATLAB_EXPORT_SCRIPT = TESTS_DIR / "export_matlab_trajectories.m"
 
-DUMP_BIN = ODE_BUILD / "dump_trajectories"
+DUMP_BIN = ODE_BUILD / "qsp_sim"
 
 sys.path.insert(0, str(TESTS_DIR))
 sys.path.insert(0, str(REPO_ROOT / "PDAC" / "codegen"))
@@ -96,7 +96,7 @@ def matlab_trajectories(run_matlab, tmp_path_factory):
 @pytest.fixture(scope="session")
 def cpp_trajectories(tmp_path_factory):
     if not DUMP_BIN.exists():
-        pytest.skip(f"dump_trajectories not built: {DUMP_BIN}")
+        pytest.skip(f"qsp_sim not built: {DUMP_BIN}")
     if not PARAM_XML.exists():
         pytest.skip(f"param_all.xml not found: {PARAM_XML}")
 

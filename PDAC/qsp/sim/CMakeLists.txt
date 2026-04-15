@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.18)
-project(ode_compile CXX)
+project(qsp_sim CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# PDAC/sim/tests/ode_compile -> ../../.. -> PDAC/
-set(PDAC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
+# PDAC/qsp/sim -> ../.. -> PDAC/
+set(PDAC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
 
 # --- SUNDIALS ---
 set(SUNDIALS_DIR "" CACHE PATH "SUNDIALS installation")
@@ -45,17 +45,19 @@ endif()
 # --- Boost ---
 find_package(Boost 1.70 REQUIRED COMPONENTS serialization)
 
-# --- Trajectory dumper (MATLAB vs C++ validation) ---
-add_executable(dump_trajectories
-    dump_trajectories.cpp
+# --- QSP standalone simulator ---
+# Runs the PDAC QSP ODE system from a parameter XML and writes trajectories
+# as CSV (for SimBiology comparison) or raw binary (for param-sweep callers).
+add_executable(qsp_sim
+    qsp_sim.cpp
     ${PDAC_ROOT}/qsp/ode/ODE_system.cpp
     ${PDAC_ROOT}/qsp/ode/QSPParam.cpp
     ${PDAC_ROOT}/qsp/cvode/CVODEBase.cpp
     ${PDAC_ROOT}/core/ParamBase.cpp
 )
 
-target_include_directories(dump_trajectories PRIVATE ${PDAC_ROOT})
-target_link_libraries(dump_trajectories PRIVATE
+target_include_directories(qsp_sim PRIVATE ${PDAC_ROOT})
+target_link_libraries(qsp_sim PRIVATE
     ${SUNDIALS_LIBRARIES}
     Boost::serialization
 )

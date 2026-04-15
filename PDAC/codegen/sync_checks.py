@@ -27,7 +27,7 @@ DEFAULT_MATLAB_MODEL = PDAC_BUILD_DIR / "scripts" / "immune_oncology_model_PDAC.
 DEFAULT_ODE_CPP = REPO_ROOT / "PDAC" / "qsp" / "ode" / "ODE_system.cpp"
 DEFAULT_PARAM_SNIPPET = REPO_ROOT / "PDAC" / "qsp" / "ode" / "qsp_params_xml_snippet.xml"
 DEFAULT_PARAM_XML = REPO_ROOT / "PDAC" / "sim" / "resource" / "param_all.xml"
-DEFAULT_DUMP_BIN = REPO_ROOT / "PDAC" / "sim" / "tests" / "ode_compile" / "build" / "dump_trajectories"
+DEFAULT_DUMP_BIN = REPO_ROOT / "PDAC" / "qsp" / "sim" / "build" / "qsp_sim"
 
 Result = Tuple[bool, str]
 
@@ -78,18 +78,18 @@ def check_binary_newer_than_codegen(
     dump_bin: Path = DEFAULT_DUMP_BIN,
     ode_cpp: Path = DEFAULT_ODE_CPP,
 ) -> Result:
-    """The dump_trajectories binary must be rebuilt after codegen runs."""
+    """The qsp_sim binary must be rebuilt after codegen runs."""
     if not dump_bin.exists():
-        return True, f"skip: dump_trajectories not built ({dump_bin})"
+        return True, f"skip: qsp_sim not built ({dump_bin})"
     if not ode_cpp.exists():
         return True, "skip: no codegen output to compare against"
     drift = ode_cpp.stat().st_mtime - dump_bin.stat().st_mtime
     if drift > 0:
         return False, (
             f"{dump_bin.name} is {drift:.0f}s older than {ode_cpp.name}.\n"
-            f"  Rebuild: cmake --build {dump_bin.parent} --target dump_trajectories"
+            f"  Rebuild: cmake --build {dump_bin.parent} --target qsp_sim"
         )
-    return True, "dump_trajectories is up to date"
+    return True, "qsp_sim is up to date"
 
 
 def check_param_xml_contains_snippet(
