@@ -892,8 +892,15 @@ def compute_jacobian(sbml: SBMLModel, mapping: Dict[str, str]) -> dict:
         col_ptrs.append(len(row_indices))
 
     # CSE compresses ~1.7 MB of naive ccode down to ~40 KB by extracting
-    # shared subexpressions (mostly the same AUX_VARs that appear in f).
-    replacements, reduced = sp.cse(entry_exprs, optimizations="basic")
+    # shared subexpressions. optimizations=None (rather than "basic")
+    # because "basic" aggressively factors out 1/x terms across multiple
+    # entries — e.g. it turns (n-1)*pow(x, n-1)*A into aux=(n-1)/x,
+    # pow(x, n)*A*aux. That aux diverges at x=0 even though the original
+    # entry was finite, which breaks KLU's numeric factorization whenever
+    # a species touches zero. optimizations=None keeps each entry
+    # arithmetically isolated; the extra ~250 aux vars are negligible,
+    # and this CSE pass is also ~70x faster (~0.5s vs ~38s).
+    replacements, reduced = sp.cse(entry_exprs, optimizations=None)
 
     wrap_map = ctx["sympy_wrap_mapping"]
 

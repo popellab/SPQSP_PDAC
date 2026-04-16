@@ -13,7 +13,16 @@ set(PDAC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
 # by qsp_codegen.py. ~2-5x faster per integration step on PDAC's
 # 164-species, ~5%-dense system vs dense LU. Default ON when
 # SuiteSparse is discoverable.
-option(USE_KLU "Enable KLU sparse linear solver via SuiteSparse" ON)
+# USE_KLU: opt-in. Infrastructure (sparse matrix alloc, jac emission,
+# CSC sparsity pattern, CVodeSetJacFn wiring) is complete, but the
+# emitted analytical Jacobian has boundary singularities at states
+# where species = 0. Multiple remediation attempts (NaN clamp, IC
+# floor, constraint removal) got to "CVODE setup passes, then crashes
+# mid-integration". Deferring until either (a) rate laws are
+# regularized to avoid 1/x factors in derivatives, or (b) we add a
+# per-entry FD fallback inside jac(). Leaving default OFF so normal
+# builds stay on the dense path (which works fine).
+option(USE_KLU "Enable KLU sparse linear solver via SuiteSparse (currently WIP)" OFF)
 if(USE_KLU)
     find_package(SuiteSparse QUIET COMPONENTS KLU)
     if(NOT SuiteSparse_FOUND)

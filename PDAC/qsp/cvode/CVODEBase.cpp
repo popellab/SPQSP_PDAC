@@ -538,6 +538,7 @@ void CVODEBase::resetSolver(realtype t0, realtype t1){
 	pre-initial-assignment defaults), and CVODE internally caches that
 	state. Without the re-init, simOdeSample would integrate from the
 	stale state, not the properly-initialized one.
+
 */
 void CVODEBase::setupSamplingRun(double tEndOfSim){
 	restore_y();
