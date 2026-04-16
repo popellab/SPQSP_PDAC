@@ -49,6 +49,7 @@
 #include "qsp/ode/ODE_system.h"
 #include "qsp/ode/QSPParam.h"
 #include "qsp/ode/QSP_enum.h"
+#include "sim/evolve_to_diagnosis.h"
 
 using namespace CancerVCT;
 
@@ -61,6 +62,10 @@ struct Args {
     std::string species_out;
     std::string scenario_yaml;
     std::string drug_meta_yaml;
+    std::string healthy_yaml;      // --evolve-to-diagnosis <path>: evolve
+                                   // from healthy IC; outputs start at t=0
+                                   // = diagnosis time. Dose times shift
+                                   // by t_diag.
     double t_end_days = 365.0;
     double dt_days = 0.1;
 };
@@ -71,6 +76,7 @@ void print_usage(const char* prog) {
         << " --param <xml> [--csv-out <path>] [--binary-out <path>]\n"
         << "                  [--species-out <path>] [--t-end-days N] [--dt-days N]\n"
         << "                  [--scenario <scenario.yaml> --drug-metadata <drug_meta.yaml>]\n"
+        << "                  [--evolve-to-diagnosis <healthy_state.yaml>]\n"
         << "\n"
         << "Legacy: " << prog
         << " <param_xml> <csv_out> [t_end_days] [dt_days]\n";
@@ -120,6 +126,9 @@ bool parse_args(int argc, char* argv[], Args& out) {
         } else if (a == "--drug-metadata") {
             const char* v = need_val("--drug-metadata"); if (!v) return false;
             out.drug_meta_yaml = v;
+        } else if (a == "--evolve-to-diagnosis") {
+            const char* v = need_val("--evolve-to-diagnosis"); if (!v) return false;
+            out.healthy_yaml = v;
         } else if (a == "-h" || a == "--help") {
             return false;
         } else {
@@ -347,9 +356,32 @@ int main(int argc, char* argv[]) {
 
     std::vector<double> row(n_species);
 
+    // Optional: replace ICs with the healthy microinvasive state and integrate
+    // forward until V_T diameter crosses the target. The state at return is
+    // the "diagnosis" state; CSV output starts at user-time 0 (i.e. diagnosis).
+    // t_offset is the solver's internal time at diagnosis. The scenario
+    // dosing loop runs from t_offset to t_offset + t_end while write_state
+    // writes (t - t_offset) so the output time axis stays user-relative.
+    double t_offset = 0.0;
+    if (!args.healthy_yaml.empty()) {
+        EvolveOpts eo;
+        eo.yaml_path = args.healthy_yaml;
+        eo.time_factor = time_factor;
+        eo.verbose = true;
+        EvolveResult er = evolve_to_diagnosis(ode, eo);
+        if (!er.success) {
+            std::cerr << "evolve_to_diagnosis REJECTED: "
+                      << er.reject_reason << std::endl;
+            return 2;
+        }
+        std::cerr << "evolve_to_diagnosis: t_diag=" << er.t_diagnosis_days
+                  << " d, diameter=" << er.diameter_cm << " cm\n";
+        t_offset = er.t_diagnosis_days * time_factor;
+    }
+
     auto write_state = [&](double t) {
         if (csv.is_open()) {
-            csv << t / time_factor << ode;
+            csv << (t - t_offset) / time_factor << ode;
             for (const auto& c : extra_comps) {
                 csv << "," << ode.get_compartment_volume(c);
             }
@@ -372,10 +404,13 @@ int main(int argc, char* argv[]) {
         YAML::Node scenario = YAML::LoadFile(args.scenario_yaml);
         YAML::Node drug_meta = YAML::LoadFile(args.drug_meta_yaml);
         dose_plan = build_dose_plan(scenario, drug_meta, time_factor);
+        // Shift into solver time: user-specified dose times are relative to
+        // diagnosis (t=0 user = t_offset solver).
+        for (auto& b : dose_plan) b.t_sim += t_offset;
         std::cerr << "Loaded " << dose_plan.size() << " bolus events from "
                   << args.scenario_yaml << std::endl;
         for (const auto& b : dose_plan) {
-            std::cerr << "  t=" << (b.t_sim / time_factor) << "d  "
+            std::cerr << "  t=" << (b.t_sim - t_offset) / time_factor << "d  "
                       << b.label << "  amount=" << b.amount << std::endl;
         }
         if (scenario["sim_config"] && scenario["sim_config"]["stop_time"]) {
@@ -383,29 +418,32 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    const double t_stop = t_offset + t_end;
+
     uint64_t n_times = 0;
 
     if (dose_plan.empty()) {
         // Fast sampling path: CVODE keeps its internal history across output
         // points (via simOdeSample) so fine output cadence doesn't force
         // the solver to repeatedly restart from a tiny step-size. Event-free.
-        ode.setupSamplingRun(t_end);
+        ode.setupSamplingRun(t_stop);
 
-        write_state(0.0);
+        write_state(t_offset);
         n_times = 1;
 
-        double t = 0.0;
+        double t = t_offset;
         int step = 0;
-        while (t < t_end) {
+        while (t < t_stop) {
             t += dt;
-            if (t > t_end) t = t_end;  // clamp last step to exact boundary
+            if (t > t_stop) t = t_stop;  // clamp last step to exact boundary
             ode.simOdeSample(t);
             step++;
             write_state(t);
             n_times++;
 
             if (step % 1000 == 0) {
-                std::cerr << "  t=" << t / time_factor << " days" << std::endl;
+                std::cerr << "  t=" << (t - t_offset) / time_factor
+                          << " days" << std::endl;
             }
         }
     } else {
@@ -416,9 +454,10 @@ int main(int argc, char* argv[]) {
         // times with setupSamplingRun, reinit at dose boundaries. See
         // memory/cpp_sim_segmented_sampling_followup.md for design.
         auto apply_due = [&](double t_lo, double t_hi) {
-            // Half-open (t_lo, t_hi] for mid-sim; closed [0, 0] for t=0.
+            // Half-open (t_lo, t_hi] for mid-sim; closed [t_offset, t_offset]
+            // catches boluses scheduled at user-time 0 = solver-time t_offset.
             for (const auto& b : dose_plan) {
-                bool due = (t_lo == 0.0 && b.t_sim == 0.0) ||
+                bool due = (t_lo == t_offset && b.t_sim == t_offset) ||
                            (b.t_sim > t_lo && b.t_sim <= t_hi);
                 if (due) {
                     double cur = ode.getSpeciesVar(
@@ -426,21 +465,22 @@ int main(int argc, char* argv[]) {
                     ode.setSpeciesVar(
                         static_cast<unsigned int>(b.species_idx),
                         cur + b.amount, false);
-                    std::cerr << "  [dose] t=" << (t_hi / time_factor) << "d  "
+                    std::cerr << "  [dose] t="
+                              << (t_hi - t_offset) / time_factor << "d  "
                               << b.label << "  +" << b.amount << std::endl;
                 }
             }
         };
-        apply_due(0.0, 0.0);
+        apply_due(t_offset, t_offset);
 
-        write_state(0.0);
+        write_state(t_offset);
         n_times = 1;
 
-        double t = 0.0;
+        double t = t_offset;
         int step = 0;
-        while (t < t_end) {
+        while (t < t_stop) {
             double t_step = dt;
-            if (t + t_step > t_end) t_step = t_end - t;
+            if (t + t_step > t_stop) t_step = t_stop - t;
             ode.simOdeStep(t, t_step);
             double t_new = t + t_step;
             apply_due(t, t_new);
@@ -450,7 +490,8 @@ int main(int argc, char* argv[]) {
             n_times++;
 
             if (step % 1000 == 0) {
-                std::cerr << "  t=" << t / time_factor << " days" << std::endl;
+                std::cerr << "  t=" << (t - t_offset) / time_factor
+                          << " days" << std::endl;
             }
         }
     }

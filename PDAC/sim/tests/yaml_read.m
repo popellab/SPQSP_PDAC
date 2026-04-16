@@ -25,7 +25,12 @@ while ~feof(fid)
     end
 
     stripped = strtrim(line);
-    indent = length(line) - length(stripped);
+    % Count leading whitespace only. Using length(line)-length(stripped)
+    % includes trailing whitespace (e.g. left over after inline-comment
+    % stripping), which would mis-classify a root-level `key: val  # c`
+    % line as nested.
+    leading = regexp(line, '^\s*', 'match', 'once');
+    indent = length(leading);
 
     % Handle multiline strings (|)
     if contains(stripped, ': |')

@@ -156,6 +156,26 @@ if exist('scenario_yaml', 'var') && ~isempty(scenario_yaml)
     end
 end
 
+% Optional: run pdac-build's evolve_to_diagnosis (YAML-driven; reads
+% SPQSP_PDAC/PDAC/sim/resource/healthy_state.yaml — same file the C++
+% side consumes). Replaces the model ICs with the diagnosis-time state;
+% the scenario then runs on top of that. Mirrors the C++ dumper's
+% --evolve-to-diagnosis flow so both sides solve the same problem.
+if exist('evolve_to_diagnosis_enabled', 'var') && evolve_to_diagnosis_enabled
+    fprintf('Running evolve_to_diagnosis (YAML-driven natural history)...\n');
+    % evolve_to_diagnosis mutates the model in place (ICs -> diagnosis
+    % state); scenario doses run from the evolved state forward. The
+    % target diameter defaults to initial_tumour_diameter from the model.
+    [model, evolve_ok, ~] = evolve_to_diagnosis(model, 'Debug', true);
+    if ~evolve_ok
+        error('evolve_to_diagnosis rejected this parameter set');
+    end
+    % After evolve, StopTime/OutputTimes were already restored by
+    % evolve_to_diagnosis; reinstate the scenario's output grid.
+    cfg.StopTime = stop_time;
+    cfg.SolverOptions.OutputTimes = (0:0.1:stop_time)';
+end
+
 if isempty(dose_schedule)
     simdata = sbiosimulate(model);
 else

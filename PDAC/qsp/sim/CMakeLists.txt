@@ -124,13 +124,18 @@ endif()
 # as CSV (for SimBiology comparison) or raw binary (for param-sweep callers).
 add_executable(qsp_sim
     qsp_sim.cpp
+    ${PDAC_ROOT}/sim/set_healthy_populations.cpp
+    ${PDAC_ROOT}/sim/evolve_to_diagnosis.cpp
     ${PDAC_ROOT}/qsp/ode/ODE_system.cpp
     ${PDAC_ROOT}/qsp/ode/QSPParam.cpp
     ${PDAC_ROOT}/qsp/cvode/CVODEBase.cpp
     ${PDAC_ROOT}/core/ParamBase.cpp
 )
 
-target_include_directories(qsp_sim PRIVATE ${PDAC_ROOT})
+target_include_directories(qsp_sim PRIVATE
+    ${PDAC_ROOT}
+    ${PDAC_ROOT}/sim
+)
 target_link_libraries(qsp_sim PRIVATE
     ${SUNDIALS_LIBRARIES}
     Boost::serialization

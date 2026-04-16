@@ -295,10 +295,12 @@ def test_event_trajectories_match(event_matlab_trajectories, event_cpp_trajector
 # it to sbiosimulate. Trajectories should agree post-dose.
 
 SCENARIO_YAML = TESTS_DIR / "scenarios" / "nivo_single_day7.yaml"
+HEALTHY_YAML = REPO_ROOT / "PDAC" / "sim" / "resource" / "healthy_state.yaml"
 
 
 @pytest.fixture(scope="session")
 def scenario_cpp_trajectories(tmp_path_factory):
+    """C++ scenario trajectories run from the evolved diagnosis state."""
     if not DUMP_BIN.exists():
         pytest.skip(f"dump_trajectories not built: {DUMP_BIN}")
     if not SCENARIO_YAML.exists():
@@ -307,8 +309,9 @@ def scenario_cpp_trajectories(tmp_path_factory):
     result = subprocess.run(
         [str(DUMP_BIN), str(PARAM_XML), str(csv_path), "30", "0.1",
          "--scenario", str(SCENARIO_YAML),
-         "--drug-metadata", str(DRUG_META)],
-        capture_output=True, text=True, timeout=120,
+         "--drug-metadata", str(DRUG_META),
+         "--evolve-to-diagnosis", str(HEALTHY_YAML)],
+        capture_output=True, text=True, timeout=600,
     )
     assert result.returncode == 0, f"C++ ODE failed:\n{result.stderr}"
     assert "[dose]" in result.stderr, (
@@ -326,11 +329,12 @@ def scenario_matlab_trajectories(run_matlab, tmp_path_factory):
         f"output_csv='{csv_path}'; pdac_build_dir='{PDAC_BUILD}'; "
         f"param_xml='{PARAM_XML}'; sbml_path='{SBML_PATH}'; "
         f"scenario_yaml='{SCENARIO_YAML}'; stop_time=30; "
+        f"evolve_to_diagnosis_enabled=true; "
         f"run('{MATLAB_EXPORT_SCRIPT}')"
     )
     result = subprocess.run(
         ["matlab", "-batch", matlab_cmd],
-        capture_output=True, text=True, timeout=300,
+        capture_output=True, text=True, timeout=600,
         cwd=str(PDAC_BUILD),
     )
     assert result.returncode == 0, f"MATLAB failed:\n{result.stderr}"
@@ -338,9 +342,8 @@ def scenario_matlab_trajectories(run_matlab, tmp_path_factory):
 
 
 def test_dose_applied_in_cpp(scenario_cpp_trajectories):
-    """After day 7, V_C.aPD1 and V_ID.GVAX_cells should be nonzero in C++."""
+    """After day 7, V_C.aPD1 should be nonzero in C++ (post-nivo bolus)."""
     _, vc = _load_traj(scenario_cpp_trajectories)
-    # Row index 70 ≈ t=7.0 d. Bolus fires between step 69→70, so row 70 is post-bolus.
     assert vc["V_C_aPD1"][69] == 0, (
         f"V_C.aPD1 should be 0 just before day 7, got {vc['V_C_aPD1'][69]:.3e}"
     )
@@ -350,16 +353,15 @@ def test_dose_applied_in_cpp(scenario_cpp_trajectories):
     )
 
 
-@pytest.mark.skip(
-    reason="MATLAB hits step-size-zero in sbiosimulate when a bolus fires "
-    "against the just-starting-tumor ICs in param_all.xml. Enabling this test "
-    "requires a native C++ evolve_to_diagnosis (no MATLAB deps in the C++ path) "
-    "that brings the tumor to the target diameter before scenario doses run. "
-    "See PDAC/sim/tests/NEXT_SESSION_evolve_to_diagnosis.md for the plan."
-)
 def test_scenario_trajectories_match(scenario_matlab_trajectories, scenario_cpp_trajectories):
     """MATLAB dose_schedule and C++ YAML-driven boluses must land at the
-    same times with the same amounts → trajectories agree post-dose."""
+    same times with the same amounts → trajectories agree post-dose.
+
+    Both sides run evolve_to_diagnosis (reading healthy_state.yaml) to
+    reach the diagnosis state before applying the nivo bolus. This
+    avoids the step-size-zero crash that previously required skipping
+    this test.
+    """
     from compare_trajectories import compare
 
     passed, report = compare(
@@ -437,3 +439,215 @@ def test_trajectories_match(matlab_trajectories, cpp_trajectories):
             pass_rate = 1 - failures / total
             print(f"Pass rate: {pass_rate:.1%}")
             assert pass_rate > 0.95, f"Pass rate too low: {pass_rate:.1%}"
+
+
+# --- Evolve-to-diagnosis stand-alone (C++ only) ----------------------------
+# Verify the C++ evolve_to_diagnosis lands at the expected diameter and the
+# resulting state is reasonable (V_T.C1 plausible, V_T volume matches target).
+
+def test_evolve_to_diagnosis_reaches_target():
+    """C++ evolve_to_diagnosis must reach the target V_T diameter (3.2 cm)
+    within the biological-plausibility window (120–7300 d)."""
+    if not DUMP_BIN.exists():
+        pytest.skip(f"dump_trajectories not built: {DUMP_BIN}")
+    if not HEALTHY_YAML.exists():
+        pytest.skip(f"healthy_state.yaml not found: {HEALTHY_YAML}")
+
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".csv") as f:
+        csv_path = f.name
+    result = subprocess.run(
+        [str(DUMP_BIN), str(PARAM_XML), csv_path, "1", "0.1",
+         "--evolve-to-diagnosis", str(HEALTHY_YAML)],
+        capture_output=True, text=True, timeout=600,
+    )
+    assert result.returncode == 0, f"evolve failed:\n{result.stderr}"
+    assert "diagnosis at" in result.stderr, (
+        f"evolve_to_diagnosis did not reach diagnosis.\nstderr:\n{result.stderr}"
+    )
+    # Parse t_diag and diameter from the summary line:
+    #   evolve_to_diagnosis: t_diag=857 d, diameter=3.20022 cm
+    import re
+    m = re.search(
+        r"evolve_to_diagnosis: t_diag=(\d+) d, diameter=([\d.]+) cm",
+        result.stderr)
+    assert m, f"Could not parse evolve summary from stderr:\n{result.stderr}"
+    t_diag = int(m.group(1))
+    diam = float(m.group(2))
+    assert 120 <= t_diag <= 7300, (
+        f"t_diag={t_diag} d is outside the plausibility window [120, 7300]"
+    )
+    assert 3.1 < diam < 3.5, f"Diameter {diam} cm is not near the 3.2 cm target"
+
+
+# --- Evolved IC match (MATLAB vs C++) ----------------------------------------
+
+def test_evolved_initial_conditions_match(
+    scenario_matlab_trajectories, scenario_cpp_trajectories
+):
+    """Species values at t=0 (post-evolve, pre-dose) must agree between
+    MATLAB and C++. Both sides read healthy_state.yaml, evolve to diagnosis,
+    then start the scenario. If ICs diverge, trajectory comparison is
+    uninformative — this test isolates that.
+    """
+    _, vm = _load_traj(scenario_matlab_trajectories)
+    _, vc = _load_traj(scenario_cpp_trajectories)
+    common = sorted(set(vm) & set(vc))
+    bad = []
+    for k in common:
+        a, b = vm[k][0], vc[k][0]
+        denom = max(abs(a), abs(b), 1e-12)
+        rd = abs(a - b) / denom
+        if rd > 0.05:
+            bad.append((k, a, b, rd))
+    bad.sort(key=lambda x: -x[3])
+    assert not bad, (
+        f"{len(bad)} species have mismatched evolved ICs at t=0 (rtol > 5%). "
+        f"Worst:\n  " +
+        "\n  ".join(f"{k}: MATLAB={a:.6e}, C++={b:.6e}, rdiff={rd:.2e}"
+                    for k, a, b, rd in bad[:10])
+    )
+
+
+# --- Healthy-state sanity (C++ only, no MATLAB) ------------------------------
+
+def test_healthy_state_cell_counts():
+    """set_healthy_populations must produce cell counts matching the YAML
+    densities × V_tumor_mm3 (from D_cell=17 µm, tumor_cells=1e6).
+
+    Pure C++ test: parse the verbose stderr from --evolve-to-diagnosis.
+    """
+    if not DUMP_BIN.exists():
+        pytest.skip(f"dump_trajectories not built: {DUMP_BIN}")
+    if not HEALTHY_YAML.exists():
+        pytest.skip(f"healthy_state.yaml not found: {HEALTHY_YAML}")
+
+    import math, re, tempfile, yaml
+    with open(HEALTHY_YAML) as f:
+        hs = yaml.safe_load(f)
+
+    D_cell_um = 17.0  # from param_all.xml
+    vol_cell_um3 = (4.0 / 3.0) * math.pi * (D_cell_um / 2.0) ** 3
+    V_tumor_mm3 = 1e6 * vol_cell_um3 / 1e12 * 1e3
+
+    with tempfile.NamedTemporaryFile(suffix=".csv") as f:
+        csv_path = f.name
+    result = subprocess.run(
+        [str(DUMP_BIN), str(PARAM_XML), csv_path, "1", "0.1",
+         "--evolve-to-diagnosis", str(HEALTHY_YAML)],
+        capture_output=True, text=True, timeout=600,
+    )
+    assert result.returncode == 0, f"evolve failed:\n{result.stderr}"
+
+    # Parse "[healthy] CD8 = 128.622 cells" lines from stderr
+    reported = {}
+    for m in re.finditer(
+        r"\[healthy\]\s+(\S+)\s+=\s+([\d.e+\-]+)\s+cells", result.stderr
+    ):
+        reported[m.group(1)] = float(m.group(2))
+
+    dens = hs["cell_densities_per_mm3"]
+    ratios = hs["ratios"]
+    TAM_total = dens["TAM_total"] * V_tumor_mm3
+    APC_total = dens["APC_total"] * V_tumor_mm3
+
+    expected = {
+        "C1":    1e6,
+        "K":     1e6,
+        "CD8":   dens["CD8"]  * V_tumor_mm3,
+        "Treg":  dens["Treg"] * V_tumor_mm3,
+        "Th":    dens["Th"]   * V_tumor_mm3,
+        "MDSC":  dens["MDSC"] * V_tumor_mm3,
+        "Mac_M1": ratios["m1_m2"] * TAM_total / (1 + ratios["m1_m2"]),
+        "Mac_M2": TAM_total / (1 + ratios["m1_m2"]),
+        "iCAF":  dens["iCAF"]  * V_tumor_mm3,
+        "myCAF": dens["myCAF"] * V_tumor_mm3,
+        "apCAF": dens["apCAF"] * V_tumor_mm3,
+        "qPSC":  dens["qPSC"]  * V_tumor_mm3,
+        "cDC1":  ratios["f_cDC1"] * (1 - ratios["apc_mat"]) * APC_total,
+        "cDC2":  (1 - ratios["f_cDC1"]) * (1 - ratios["apc_mat"]) * APC_total,
+        "mcDC1": ratios["f_cDC1"] * ratios["apc_mat"] * APC_total,
+        "mcDC2": (1 - ratios["f_cDC1"]) * ratios["apc_mat"] * APC_total,
+    }
+
+    bad = []
+    for name, exp in expected.items():
+        got = reported.get(name)
+        if got is None:
+            bad.append(f"{name}: not in stderr output")
+            continue
+        rdiff = abs(got - exp) / max(abs(exp), 1e-12)
+        # Tolerance 1e-4: stderr prints ~6 significant digits, so truncation
+        # noise up to ~1e-6 is expected; 1e-4 catches real formula errors.
+        if rdiff > 1e-4:
+            bad.append(f"{name}: expected={exp:.6e}, got={got:.6e}, rdiff={rdiff:.2e}")
+    assert not bad, (
+        f"set_healthy_populations cell counts do not match YAML math:\n  "
+        + "\n  ".join(bad)
+    )
+
+
+# --- Evolve rejection guards (C++ only) --------------------------------------
+
+def test_evolve_rejects_when_max_days_exceeded():
+    """evolve_to_diagnosis must reject (exit code 2) when the target diameter
+    cannot be reached within the max_days cap.
+    """
+    if not DUMP_BIN.exists():
+        pytest.skip(f"dump_trajectories not built: {DUMP_BIN}")
+
+    import tempfile, yaml
+    # Write a temp YAML with max_days=100. Normal evolution to 3.2 cm takes
+    # ~857 d, so this will time out and reject.
+    with open(HEALTHY_YAML) as f:
+        hs = yaml.safe_load(f)
+    hs["evolve"]["max_days"] = 100
+    tmp_yaml = Path(tempfile.mktemp(suffix=".yaml"))
+    with open(tmp_yaml, "w") as f:
+        yaml.dump(hs, f)
+    with tempfile.NamedTemporaryFile(suffix=".csv") as f:
+        csv_path = f.name
+    result = subprocess.run(
+        [str(DUMP_BIN), str(PARAM_XML), csv_path, "1", "0.1",
+         "--evolve-to-diagnosis", str(tmp_yaml)],
+        capture_output=True, text=True, timeout=120,
+    )
+    tmp_yaml.unlink(missing_ok=True)
+    assert result.returncode == 2, (
+        f"Expected exit code 2 for exceeded max_days, got {result.returncode}.\n"
+        f"stderr:\n{result.stderr}"
+    )
+    assert "REJECTED" in result.stderr, (
+        f"Expected REJECTED message in stderr:\n{result.stderr}"
+    )
+
+
+def test_evolve_rejects_too_fast_diagnosis():
+    """evolve_to_diagnosis must reject when the tumor reaches the target
+    diameter faster than min_days (biologically implausible growth).
+    """
+    if not DUMP_BIN.exists():
+        pytest.skip(f"dump_trajectories not built: {DUMP_BIN}")
+
+    import tempfile, yaml
+    # Write a temp healthy_state.yaml with min_days cranked to 10000 d so the
+    # normal ~857 d evolution triggers the guard.
+    with open(HEALTHY_YAML) as f:
+        hs = yaml.safe_load(f)
+    hs["evolve"]["min_days"] = 10000
+    tmp_yaml = Path(tempfile.mktemp(suffix=".yaml"))
+    with open(tmp_yaml, "w") as f:
+        yaml.dump(hs, f)
+    with tempfile.NamedTemporaryFile(suffix=".csv") as f:
+        csv_path = f.name
+    result = subprocess.run(
+        [str(DUMP_BIN), str(PARAM_XML), csv_path, "1", "0.1",
+         "--evolve-to-diagnosis", str(tmp_yaml)],
+        capture_output=True, text=True, timeout=600,
+    )
+    tmp_yaml.unlink(missing_ok=True)
+    assert result.returncode == 2, (
+        f"Expected exit code 2 for too-fast diagnosis, got {result.returncode}.\n"
+        f"stderr:\n{result.stderr}"
+    )
+    assert "REJECTED" in result.stderr

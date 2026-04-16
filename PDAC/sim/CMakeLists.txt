@@ -173,6 +173,21 @@ if(NOT _BOOST_READY)
     # Boost CMake superproject provides targets like Boost::serialization
 endif()
 
+# --- yaml-cpp (healthy_state.yaml + scenario YAML reader) ---
+find_package(yaml-cpp QUIET)
+if(NOT yaml-cpp_FOUND)
+    message(STATUS "yaml-cpp: fetching v0.8.0 from GitHub...")
+    FetchContent_Declare(yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG        0.8.0
+        GIT_SHALLOW    TRUE
+    )
+    set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(yaml-cpp)
+endif()
+
 # --- FLAME GPU 2 ---
 
 if(NOT TARGET flamegpu)
@@ -242,6 +257,8 @@ add_executable(pdac
     ../core/ParamBase.cpp
     ../core/model_functions.cu
     ../abm/gpu_param.cu
+    set_healthy_populations.cpp
+    evolve_to_diagnosis.cpp
 )
 
 # Make pdac depend on codegen so a stale ODE_system.cpp can never link
@@ -249,6 +266,9 @@ add_dependencies(pdac qsp_codegen)
 
 # Link against FLAMEGPU2
 target_link_libraries(pdac PRIVATE flamegpu)
+
+# Link against yaml-cpp (healthy_state.yaml, scenario YAML)
+target_link_libraries(pdac PRIVATE yaml-cpp::yaml-cpp)
 target_compile_definitions(pdac PRIVATE FLAMEGPU_SEATBELTS=0)
 
 # Link against SUNDIALS (CVODE)
