@@ -21,12 +21,16 @@ public:
     // so it is safe to allocate the SUNSparseMatrix with this nnz once per
     // solver instance. CSC format: col_ptrs has length neq+1, row_indices
     // has length nnz.
-    static constexpr sunindextype _jac_nnz = 1432;
+    static constexpr sunindextype _jac_nnz = 1434;
     static const sunindextype _jac_col_ptrs[];
     static const sunindextype _jac_row_indices[];
     static int jac(realtype t, N_Vector y, N_Vector fy,
                    SUNMatrix J, void *user_data,
                    N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+    // Hooks CVODEBase::setupCVODE consults to wire up the sparse
+    // linsol + jac callback (only active when built with USE_KLU).
+    sunindextype getJacobianNnz() const override { return _jac_nnz; }
+    CVLsJacFn getJacobianFn() const override { return &ODE_system::jac; }
 
     static std::string getHeader();
     static void setup_class_parameters(QSPParam& param);

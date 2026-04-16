@@ -7,6 +7,40 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # PDAC/qsp/sim -> ../.. -> PDAC/
 set(PDAC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
 
+# --- KLU sparse linear solver opt-in ---
+# When ON, build SUNDIALS with KLU support (requires SuiteSparse) and
+# define USE_KLU so CVODEBase uses the analytical sparse Jacobian emitted
+# by qsp_codegen.py. ~2-5x faster per integration step on PDAC's
+# 164-species, ~5%-dense system vs dense LU. Default ON when
+# SuiteSparse is discoverable.
+option(USE_KLU "Enable KLU sparse linear solver via SuiteSparse" ON)
+if(USE_KLU)
+    find_package(SuiteSparse QUIET COMPONENTS KLU)
+    if(NOT SuiteSparse_FOUND)
+        # Homebrew on macOS / Debian package both install CMake files under
+        # suite-sparse's own paths — try a direct find_library fallback.
+        find_path(KLU_INCLUDE_DIR klu.h PATH_SUFFIXES suitesparse)
+        find_library(KLU_LIBRARY klu)
+        find_library(AMD_LIBRARY amd)
+        find_library(COLAMD_LIBRARY colamd)
+        find_library(BTF_LIBRARY btf)
+        find_library(SUITESPARSECONFIG_LIBRARY suitesparseconfig)
+        if(KLU_INCLUDE_DIR AND KLU_LIBRARY)
+            set(SuiteSparse_FOUND TRUE)
+            set(KLU_LIBRARIES ${KLU_LIBRARY} ${AMD_LIBRARY} ${COLAMD_LIBRARY}
+                              ${BTF_LIBRARY} ${SUITESPARSECONFIG_LIBRARY})
+            message(STATUS "KLU found via find_library: ${KLU_LIBRARY}")
+            message(STATUS "KLU include: ${KLU_INCLUDE_DIR}")
+        else()
+            message(WARNING "USE_KLU=ON but SuiteSparse/KLU not found. "
+                            "Falling back to dense linear solver. "
+                            "brew install suite-sparse  (macOS)  or  "
+                            "apt install libsuitesparse-dev  (Debian)")
+            set(USE_KLU OFF)
+        endif()
+    endif()
+endif()
+
 # --- SUNDIALS ---
 set(SUNDIALS_DIR "" CACHE PATH "SUNDIALS installation")
 if(NOT SUNDIALS_DIR AND DEFINED ENV{SUNDIALS_DIR})
@@ -22,6 +56,9 @@ if(SUNDIALS_DIR)
     if(SUNDIALS_FOUND)
         set(_SUNDIALS_READY TRUE)
         set(SUNDIALS_LIBRARIES SUNDIALS::cvode)
+        if(USE_KLU)
+            list(APPEND SUNDIALS_LIBRARIES SUNDIALS::sunlinsolklu)
+        endif()
         message(STATUS "Found SUNDIALS: ${SUNDIALS_DIR}")
     endif()
 endif()
@@ -38,8 +75,21 @@ if(NOT _SUNDIALS_READY)
     set(SUNDIALS_BUILD_WITH_MONITORING OFF CACHE BOOL "" FORCE)
     set(EXAMPLES_ENABLE_C OFF CACHE BOOL "" FORCE)
     set(EXAMPLES_ENABLE_CXX OFF CACHE BOOL "" FORCE)
+    if(USE_KLU)
+        set(ENABLE_KLU ON CACHE BOOL "" FORCE)
+        if(KLU_INCLUDE_DIR)
+            set(KLU_INCLUDE_DIR ${KLU_INCLUDE_DIR} CACHE PATH "" FORCE)
+        endif()
+        if(KLU_LIBRARIES)
+            set(KLU_LIBRARY_DIR "" CACHE STRING "" FORCE)
+            # SUNDIALS expects KLU_LIBRARIES as the full paths.
+        endif()
+    endif()
     FetchContent_MakeAvailable(sundials)
     set(SUNDIALS_LIBRARIES sundials_cvode)
+    if(USE_KLU)
+        list(APPEND SUNDIALS_LIBRARIES sundials_sunlinsolklu)
+    endif()
 endif()
 
 # --- Boost ---
@@ -61,6 +111,15 @@ target_link_libraries(qsp_sim PRIVATE
     ${SUNDIALS_LIBRARIES}
     Boost::serialization
 )
+if(USE_KLU)
+    target_compile_definitions(qsp_sim PRIVATE USE_KLU)
+    if(KLU_INCLUDE_DIR)
+        target_include_directories(qsp_sim PRIVATE ${KLU_INCLUDE_DIR})
+    endif()
+    if(KLU_LIBRARIES)
+        target_link_libraries(qsp_sim PRIVATE ${KLU_LIBRARIES})
+    endif()
+endif()
 
 # --- Jacobian sparsity profiler (one-off diagnostic) ---
 add_executable(profile_jacobian
@@ -75,3 +134,12 @@ target_link_libraries(profile_jacobian PRIVATE
     ${SUNDIALS_LIBRARIES}
     Boost::serialization
 )
+if(USE_KLU)
+    target_compile_definitions(profile_jacobian PRIVATE USE_KLU)
+    if(KLU_INCLUDE_DIR)
+        target_include_directories(profile_jacobian PRIVATE ${KLU_INCLUDE_DIR})
+    endif()
+    if(KLU_LIBRARIES)
+        target_link_libraries(profile_jacobian PRIVATE ${KLU_LIBRARIES})
+    endif()
+endif()

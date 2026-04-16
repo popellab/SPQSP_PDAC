@@ -872,6 +872,16 @@ def compute_jacobian(sbml: SBMLModel, mapping: Dict[str, str]) -> dict:
             if d != 0:
                 entries_by_col[j].append((i, d))
 
+    # KLU + CVODE work on M = I - gamma*J for BDF-Newton iteration. SUNDIALS
+    # stores M in-place inside J's allocated sparsity pattern, which means
+    # we must include every diagonal (j, j) entry — even ones where the
+    # analytical Jacobian is exactly 0. Otherwise SUNMatScaleAddI has no
+    # slot to place the `1` and the linear-solver setup fails with
+    # "At t=0, the setup routine failed in an unrecoverable manner."
+    for j in range(len(sbml.species)):
+        if not any(i == j for (i, _) in entries_by_col[j]):
+            entries_by_col[j].append((j, sp.Integer(0)))
+
     col_ptrs: List[int] = [0]
     row_indices: List[int] = []
     entry_exprs: List["sp.Expr"] = []
@@ -949,6 +959,17 @@ def gen_jacobian_cpp(sbml: SBMLModel, info: dict) -> str:
     for k, cpp in enumerate(info["entry_cpp"]):
         lines.append(f"    data[{k}] = {cpp};")
     lines.append("")
+    lines.append("    // Boundary-state safety clamp. Analytical Jacobian entries can produce")
+    lines.append("    // NaN/Inf when a species is exactly zero and its rate law contains a")
+    lines.append("    // pow(x, n<1) or 1/x factor that the formal derivative inherits — e.g.")
+    lines.append("    // d/dx[x^(n-1)/x] at x=0. CVODE's FD Jacobian avoids this naturally,")
+    lines.append("    // but we traded that robustness for speed. Clamping to 0 is safe: the")
+    lines.append("    // step controller rejects the step if Newton fails to converge, and")
+    lines.append("    // once species move off zero on subsequent substeps the entries become")
+    lines.append("    // finite. This is the same remedy AMICI and libroadrunner use.")
+    lines.append(f"    for (sunindextype k = 0; k < {nnz}; ++k) {{")
+    lines.append("        if (!std::isfinite(data[k])) data[k] = 0.0;")
+    lines.append("    }")
     lines.append("    return 0;")
     lines.append("}")
     return "\n".join(lines) + "\n"
@@ -1039,6 +1060,10 @@ def gen_ode_h(jac_nnz: int = 0) -> str:
             '    static int jac(realtype t, N_Vector y, N_Vector fy,\n'
             '                   SUNMatrix J, void *user_data,\n'
             '                   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);\n'
+            '    // Hooks CVODEBase::setupCVODE consults to wire up the sparse\n'
+            '    // linsol + jac callback (only active when built with USE_KLU).\n'
+            '    sunindextype getJacobianNnz() const override { return _jac_nnz; }\n'
+            '    CVLsJacFn getJacobianFn() const override { return &ODE_system::jac; }\n'
         )
 
     return ('''#ifndef __CancerVCT_ODE__

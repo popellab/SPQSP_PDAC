@@ -2615,8 +2615,8 @@ const sunindextype ODE_system::_jac_col_ptrs[] = {
     1106, 1111, 1116, 1121, 1125, 1128, 1135, 1139, 1143, 1151, 1163, 1172, 1176, 1182, 1185, 1188,
     1191, 1194, 1201, 1208, 1211, 1214, 1217, 1220, 1223, 1226, 1229, 1232, 1240, 1247, 1254, 1259,
     1264, 1269, 1274, 1278, 1281, 1288, 1296, 1300, 1308, 1320, 1329, 1333, 1339, 1342, 1345, 1348,
-    1351, 1360, 1360, 1360, 1369, 1378, 1385, 1392, 1395, 1398, 1401, 1404, 1407, 1410, 1412, 1416,
-    1419, 1422, 1425, 1429, 1432,
+    1351, 1360, 1361, 1362, 1371, 1380, 1387, 1394, 1397, 1400, 1403, 1406, 1409, 1412, 1414, 1418,
+    1421, 1424, 1427, 1431, 1434,
 };
 
 const sunindextype ODE_system::_jac_row_indices[] = {
@@ -2705,11 +2705,11 @@ const sunindextype ODE_system::_jac_row_indices[] = {
     130, 132, 134, 136, 137, 139, 140, 141, 123, 126, 127, 128, 129, 135, 136, 137,
     138, 114, 132, 137, 138, 125, 130, 131, 135, 136, 139, 136, 140, 141, 136, 140,
     141, 142, 143, 144, 142, 143, 144, 17, 20, 26, 27, 28, 29, 142, 143, 144,
-    17, 20, 26, 27, 28, 29, 147, 149, 150, 17, 20, 26, 27, 28, 29, 148,
-    149, 151, 147, 148, 149, 150, 151, 152, 153, 147, 149, 150, 154, 155, 156, 158,
-    148, 149, 151, 149, 152, 153, 149, 152, 153, 150, 154, 155, 150, 154, 155, 150,
-    156, 158, 157, 158, 150, 156, 157, 158, 159, 162, 163, 160, 161, 163, 63, 160,
-    161, 160, 161, 162, 163, 160, 161, 163,
+    145, 146, 17, 20, 26, 27, 28, 29, 147, 149, 150, 17, 20, 26, 27, 28,
+    29, 148, 149, 151, 147, 148, 149, 150, 151, 152, 153, 147, 149, 150, 154, 155,
+    156, 158, 148, 149, 151, 149, 152, 153, 149, 152, 153, 150, 154, 155, 150, 154,
+    155, 150, 156, 158, 157, 158, 150, 156, 157, 158, 159, 162, 163, 160, 161, 163,
+    63, 160, 161, 160, 161, 162, 163, 160, 161, 163,
 };
 
 int ODE_system::jac(realtype t, N_Vector y, N_Vector fy,
@@ -2723,7 +2723,7 @@ int ODE_system::jac(realtype t, N_Vector y, N_Vector fy,
     // Restamp the sparsity pattern every call: cheap, and
     // robust against CVODE reallocating between solves.
     for (sunindextype k = 0; k <= 164; ++k) colptrs[k] = _jac_col_ptrs[k];
-    for (sunindextype k = 0; k < 1432; ++k) rowvals[k] = _jac_row_indices[k];
+    for (sunindextype k = 0; k < 1434; ++k) rowvals[k] = _jac_row_indices[k];
 
     // Common subexpressions extracted by sympy.cse() from the
     // ~1.7 MB naive Jacobian — compresses to ~40 KB of output.
@@ -5570,79 +5570,92 @@ int ODE_system::jac(realtype t, N_Vector y, N_Vector fy,
     data[1357] = PARAM(P_koff_CD47_SIRPa);
     data[1358] = PARAM(P_koff_CD47_SIRPa);
     data[1359] = -PARAM(P_koff_CD47_SIRPa);
-    data[1360] = x1395;
-    data[1361] = x1396;
-    data[1362] = x1399;
-    data[1363] = x1401;
-    data[1364] = x1398;
-    data[1365] = x1400;
-    data[1366] = x1222;
-    data[1367] = PARAM(P_koff_PD1_PDL1);
-    data[1368] = -x1222 - x1402;
-    data[1369] = x1395;
-    data[1370] = x1396;
-    data[1371] = x1399;
-    data[1372] = x1401;
-    data[1373] = x1398;
-    data[1374] = x1400;
-    data[1375] = x1225;
-    data[1376] = PARAM(P_koff_PD1_PDL2);
-    data[1377] = -x1225 - x1402;
-    data[1378] = x1404;
-    data[1379] = x1405;
-    data[1380] = -x1233 - x1404 - x1405 - x1408;
-    data[1381] = -x1404;
-    data[1382] = -x1405;
-    data[1383] = PARAM(P_kon_PD1_aPD1)*(-x1234 - x1407);
-    data[1384] = x1408;
-    data[1385] = x1409;
-    data[1386] = -x1409;
-    data[1387] = -x1242 - x1402 - x1409 - x1411 - x1414;
-    data[1388] = PARAM(P_kon_PDL1_aPDL1)*(-x1243 - x1413);
-    data[1389] = x1414;
-    data[1390] = x1411;
-    data[1391] = -x1411;
-    data[1392] = x1416;
-    data[1393] = -x1416;
-    data[1394] = -x100*(PARAM(P_k_in_PDL1) + x100*x1223*x564 + x1415);
-    data[1395] = -x1245 - x1417;
-    data[1396] = -PARAM(P_koff_PD1_aPD1) - x1417;
-    data[1397] = x1417;
-    data[1398] = x1247;
-    data[1399] = x1247;
-    data[1400] = x1248;
-    data[1401] = -x1418 - x1419;
-    data[1402] = -PARAM(P_koff_PDL1_aPDL1) - x1418;
-    data[1403] = x1418;
-    data[1404] = -2.0*x1419;
-    data[1405] = x1253;
-    data[1406] = x1254;
-    data[1407] = -x1280 - x1402;
-    data[1408] = x1280;
-    data[1409] = PARAM(P_koff_CD80_PDL1);
-    data[1410] = -PARAM(P_koff_CD80_CD80);
-    data[1411] = x1300;
-    data[1412] = -x1421;
-    data[1413] = x1421;
-    data[1414] = x1303*x1410;
-    data[1415] = -x100*(SPVAR(SP_syn_M_C_CD80m)*x1304 + x1420);
-    data[1416] = -PARAM(P_k_GVAX_clearance);
-    data[1417] = PARAM(P_V_ID)*PARAM(P_k_GMCSF_prod);
-    data[1418] = PARAM(P_k_GVAX_clearance)*PARAM(P_y_Ag_per_cell);
-    data[1419] = -PARAM(P_k_APC_death_ID) - x1427 - x1433;
-    data[1420] = x1433;
-    data[1421] = -PARAM(P_sigma_P1_per_mAPC)*x1433;
-    data[1422] = x1434;
-    data[1423] = -x1427;
-    data[1424] = -PARAM(P_k_mAPC_death_ID) - x1434;
-    data[1425] = x1423*x1425*(PARAM(P_K_APC_ID)*PARAM(P_k_APC_recruit_ID)*x1436/x1422 - x1428*x1430*x1435 + x1432*x1435);
-    data[1426] = x1436*x1438;
-    data[1427] = -PARAM(P_k_GMCSF_deg);
-    data[1428] = -PARAM(P_sigma_P1_per_mAPC)*x1436*x1438;
-    data[1429] = -x1439*x1440;
-    data[1430] = x1439*x1440;
-    data[1431] = -PARAM(P_k_P1_deg_ID) - PARAM(P_sigma_P1_per_mAPC)*x1440 + SPVAR(SP_V_ID_APC)*SPVAR(SP_V_ID_GMCSF)*SPVAR(SP_V_ID_P1_GVAX)*PARAM(P_k_APC_mature_ID)*PARAM(P_sigma_P1_per_mAPC)*x1425/(std::pow(PARAM(P_V_ID), 3)*std::pow(x1429, 2));
+    data[1360] = 0;
+    data[1361] = 0;
+    data[1362] = x1395;
+    data[1363] = x1396;
+    data[1364] = x1399;
+    data[1365] = x1401;
+    data[1366] = x1398;
+    data[1367] = x1400;
+    data[1368] = x1222;
+    data[1369] = PARAM(P_koff_PD1_PDL1);
+    data[1370] = -x1222 - x1402;
+    data[1371] = x1395;
+    data[1372] = x1396;
+    data[1373] = x1399;
+    data[1374] = x1401;
+    data[1375] = x1398;
+    data[1376] = x1400;
+    data[1377] = x1225;
+    data[1378] = PARAM(P_koff_PD1_PDL2);
+    data[1379] = -x1225 - x1402;
+    data[1380] = x1404;
+    data[1381] = x1405;
+    data[1382] = -x1233 - x1404 - x1405 - x1408;
+    data[1383] = -x1404;
+    data[1384] = -x1405;
+    data[1385] = PARAM(P_kon_PD1_aPD1)*(-x1234 - x1407);
+    data[1386] = x1408;
+    data[1387] = x1409;
+    data[1388] = -x1409;
+    data[1389] = -x1242 - x1402 - x1409 - x1411 - x1414;
+    data[1390] = PARAM(P_kon_PDL1_aPDL1)*(-x1243 - x1413);
+    data[1391] = x1414;
+    data[1392] = x1411;
+    data[1393] = -x1411;
+    data[1394] = x1416;
+    data[1395] = -x1416;
+    data[1396] = -x100*(PARAM(P_k_in_PDL1) + x100*x1223*x564 + x1415);
+    data[1397] = -x1245 - x1417;
+    data[1398] = -PARAM(P_koff_PD1_aPD1) - x1417;
+    data[1399] = x1417;
+    data[1400] = x1247;
+    data[1401] = x1247;
+    data[1402] = x1248;
+    data[1403] = -x1418 - x1419;
+    data[1404] = -PARAM(P_koff_PDL1_aPDL1) - x1418;
+    data[1405] = x1418;
+    data[1406] = -2.0*x1419;
+    data[1407] = x1253;
+    data[1408] = x1254;
+    data[1409] = -x1280 - x1402;
+    data[1410] = x1280;
+    data[1411] = PARAM(P_koff_CD80_PDL1);
+    data[1412] = -PARAM(P_koff_CD80_CD80);
+    data[1413] = x1300;
+    data[1414] = -x1421;
+    data[1415] = x1421;
+    data[1416] = x1303*x1410;
+    data[1417] = -x100*(SPVAR(SP_syn_M_C_CD80m)*x1304 + x1420);
+    data[1418] = -PARAM(P_k_GVAX_clearance);
+    data[1419] = PARAM(P_V_ID)*PARAM(P_k_GMCSF_prod);
+    data[1420] = PARAM(P_k_GVAX_clearance)*PARAM(P_y_Ag_per_cell);
+    data[1421] = -PARAM(P_k_APC_death_ID) - x1427 - x1433;
+    data[1422] = x1433;
+    data[1423] = -PARAM(P_sigma_P1_per_mAPC)*x1433;
+    data[1424] = x1434;
+    data[1425] = -x1427;
+    data[1426] = -PARAM(P_k_mAPC_death_ID) - x1434;
+    data[1427] = x1423*x1425*(PARAM(P_K_APC_ID)*PARAM(P_k_APC_recruit_ID)*x1436/x1422 - x1428*x1430*x1435 + x1432*x1435);
+    data[1428] = x1436*x1438;
+    data[1429] = -PARAM(P_k_GMCSF_deg);
+    data[1430] = -PARAM(P_sigma_P1_per_mAPC)*x1436*x1438;
+    data[1431] = -x1439*x1440;
+    data[1432] = x1439*x1440;
+    data[1433] = -PARAM(P_k_P1_deg_ID) - PARAM(P_sigma_P1_per_mAPC)*x1440 + SPVAR(SP_V_ID_APC)*SPVAR(SP_V_ID_GMCSF)*SPVAR(SP_V_ID_P1_GVAX)*PARAM(P_k_APC_mature_ID)*PARAM(P_sigma_P1_per_mAPC)*x1425/(std::pow(PARAM(P_V_ID), 3)*std::pow(x1429, 2));
 
+    // Boundary-state safety clamp. Analytical Jacobian entries can produce
+    // NaN/Inf when a species is exactly zero and its rate law contains a
+    // pow(x, n<1) or 1/x factor that the formal derivative inherits — e.g.
+    // d/dx[x^(n-1)/x] at x=0. CVODE's FD Jacobian avoids this naturally,
+    // but we traded that robustness for speed. Clamping to 0 is safe: the
+    // step controller rejects the step if Newton fails to converge, and
+    // once species move off zero on subsequent substeps the entries become
+    // finite. This is the same remedy AMICI and libroadrunner use.
+    for (sunindextype k = 0; k < 1434; ++k) {
+        if (!std::isfinite(data[k])) data[k] = 0.0;
+    }
     return 0;
 }
 
