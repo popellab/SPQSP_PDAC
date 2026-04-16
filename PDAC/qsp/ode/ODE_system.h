@@ -54,6 +54,11 @@ public:
     void eval_init_assignment(void);
     unsigned int get_num_variables(void)const { return _species_var.size(); };
     unsigned int get_num_params(void)const { return _class_parameter.size(); };
+    // Evaluate a dynamic (assignment-rule) compartment's volume at the
+    // current state, returned in its SBML-native unit (e.g. mL for V_T).
+    // Returns the static compartment size for constant compartments.
+    // Throws std::out_of_range for an unknown name.
+    realtype get_compartment_volume(const std::string& name) const;
 
 protected:
     void setupVariables(void);

@@ -1350,6 +1350,11 @@ public:
     void eval_init_assignment(void);
     unsigned int get_num_variables(void)const { return _species_var.size(); };
     unsigned int get_num_params(void)const { return _class_parameter.size(); };
+    // Evaluate a dynamic (assignment-rule) compartment's volume at the
+    // current state, returned in its SBML-native unit (e.g. mL for V_T).
+    // Returns the static compartment size for constant compartments.
+    // Throws std::out_of_range for an unknown name.
+    realtype get_compartment_volume(const std::string& name) const;
 
 protected:
     void setupVariables(void);
@@ -1660,6 +1665,64 @@ def gen_ode_cpp(sbml: SBMLModel, mapping: dict) -> str:
     lines.append('')
     # Build compartment lookup: name → compartment dict
     comp_by_name = {c["name"]: c for c in sbml.compartments}
+
+    # ---- get_compartment_volume ----------------------------------------
+    # Returns the current volume of a named compartment in its SBML-native
+    # unit. Dynamic (rule-driven) compartments recompute via the same AUX_VAR
+    # chain used in f(). Constant compartments return _class_parameter[P_…]
+    # converted back to native by dividing by its SI factor.
+    rules_by_name_cv = {r["variable_name"]: r for r in sbml.assignment_rules}
+    rule_vars_cv = set(rules_by_name_cv)
+    mem_mapping_cv = {}
+    for sp in sbml.species:
+        san = _sanitize(sp["name"])
+        if sp.get("has_only_substance_units", False):
+            mem_mapping_cv[sp["name"]] = f'_species_var[SP_{san}]'
+        else:
+            cn = sp["compartment"]
+            cs = _sanitize(cn)
+            vol = f'AUX_VAR_{cs}' if cn in rule_vars_cv else f'PARAM(P_{cs})'
+            mem_mapping_cv[sp["name"]] = f'(_species_var[SP_{san}] / {vol})'
+    for r in sbml.assignment_rules:
+        mem_mapping_cv[r["variable_name"]] = f'AUX_VAR_{_sanitize(r["variable_name"])}'
+    for p in sbml.parameters:
+        if p["name"] not in rule_vars_cv:
+            mem_mapping_cv[p["name"]] = f'PARAM(P_{_sanitize(p["name"])})'
+    for c in sbml.compartments:
+        if c["name"] in rule_vars_cv:
+            pass
+        elif c["name"] not in mem_mapping_cv:
+            mem_mapping_cv[c["name"]] = f'PARAM(P_{_sanitize(c["name"])})'
+
+    lines.append('realtype ODE_system::get_compartment_volume(const std::string& name) const {')
+    # Dynamic compartments: emit a case block per rule-driven compartment.
+    dyn_comps = [c for c in sbml.compartments if c["name"] in rule_vars_cv]
+    for c in dyn_comps:
+        cname = c["name"]
+        csan = _sanitize(cname)
+        native_factor = sbml.get_si_factor(c["units"])
+        # Collect rule chain needed for this compartment's rule.
+        needed = _collect_rule_deps([cname], rules_by_name_cv, sbml=sbml)
+        lines.append(f'    if (name == "{cname}") {{')
+        for r in needed:
+            rn = r["variable_name"]
+            rs = _sanitize(rn)
+            expr = wrap_expression(r["expression"], mem_mapping_cv)
+            lines.append(f'        realtype AUX_VAR_{rs} = {expr};')
+        # AUX_VAR value is in SI (m³/m² for compartments). Convert to native.
+        lines.append(f'        return AUX_VAR_{csan} / {native_factor:.15g};')
+        lines.append('    }')
+    # Constant compartments: PARAM(P_name) stored in SI → divide by SI factor.
+    for c in sbml.compartments:
+        if c["name"] in rule_vars_cv:
+            continue
+        cname = c["name"]
+        csan = _sanitize(cname)
+        native_factor = sbml.get_si_factor(c["units"])
+        lines.append(f'    if (name == "{cname}") return PARAM(P_{csan}) / {native_factor:.15g};')
+    lines.append('    throw std::out_of_range("unknown compartment: " + name);')
+    lines.append('}')
+    lines.append('')
 
     # setup_instance_variables — convert to SI amounts
     # For AMOUNT species (hasOnlySubstanceUnits=true):

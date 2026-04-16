@@ -1349,6 +1349,27 @@ void ODE_system::setup_instance_tolerance(QSPParam&){
     N_VDestroy(abstol);
 }
 
+realtype ODE_system::get_compartment_volume(const std::string& name) const {
+    if (name == "V_T") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        return AUX_VAR_V_T / 1e-06;
+    }
+    if (name == "V_C") return PARAM(P_V_C) / 0.001;
+    if (name == "V_P") return PARAM(P_V_P) / 0.001;
+    if (name == "V_LN") return PARAM(P_V_LN) / 1e-09;
+    if (name == "V_e") return PARAM(P_V_e) / 0.001;
+    if (name == "A_e") return PARAM(P_A_e) / 1e-12;
+    if (name == "A_s") return PARAM(P_A_s) / 1e-12;
+    if (name == "syn_CD8_C1") return PARAM(P_syn_CD8_C1) / 1e-12;
+    if (name == "syn_CD8_APC") return PARAM(P_syn_CD8_APC) / 1e-12;
+    if (name == "syn_M_C") return PARAM(P_syn_M_C) / 1e-12;
+    if (name == "V_ID") return PARAM(P_V_ID) / 0.001;
+    throw std::out_of_range("unknown compartment: " + name);
+}
+
 void ODE_system::setup_instance_variables(QSPParam& param){
     //V_C.nCD4, index: 0, units: MWUSERUNIT_cell
     _species_var[SP_V_C_nCD4] = PFILE(QSP_V_C_nCD4) * 1.66053872801495e-24;

@@ -304,6 +304,16 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // Dynamic-compartment volumes MATLAB also emits (simdata.Data includes
+    // V_T, V_C, etc.). Appending them here lets compare_trajectories pick
+    // them up by name — V_T in particular is the clinical tumor-volume
+    // quantity and should be validated directly against SimBiology. CSV only;
+    // the binary format stays purely species (callers parse by index).
+    const std::vector<std::string> extra_comps = {
+        "V_T", "V_C", "V_P", "V_LN", "V_e",
+        "A_e", "A_s", "syn_CD8_C1", "syn_CD8_APC", "syn_M_C", "V_ID",
+    };
+
     std::ofstream csv;
     if (!args.csv_out.empty()) {
         csv.open(args.csv_out);
@@ -311,7 +321,9 @@ int main(int argc, char* argv[]) {
         // operator<< on CVODEBase emits all species prefixed with commas; pair
         // it with "Time,<header>" (no leading comma in getHeader()) for a
         // self-consistent CSV.
-        csv << "Time," << header << std::endl;
+        csv << "Time," << header;
+        for (const auto& c : extra_comps) csv << "," << c;
+        csv << std::endl;
     }
 
     // Binary header is written up front with a placeholder n_times; we seek
@@ -338,6 +350,9 @@ int main(int argc, char* argv[]) {
     auto write_state = [&](double t) {
         if (csv.is_open()) {
             csv << t / time_factor << ode;
+            for (const auto& c : extra_comps) {
+                csv << "," << ode.get_compartment_volume(c);
+            }
             csv << std::endl;
         }
         if (bin.is_open()) {

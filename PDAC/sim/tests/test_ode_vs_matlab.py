@@ -311,7 +311,6 @@ def scenario_cpp_trajectories(tmp_path_factory):
         capture_output=True, text=True, timeout=120,
     )
     assert result.returncode == 0, f"C++ ODE failed:\n{result.stderr}"
-    # Sanity: at least one dose event logged.
     assert "[dose]" in result.stderr, (
         f"No boluses applied. stderr:\n{result.stderr}"
     )
@@ -352,11 +351,11 @@ def test_dose_applied_in_cpp(scenario_cpp_trajectories):
 
 
 @pytest.mark.skip(
-    reason="MATLAB hits step-size-zero in sbiosimulate when a nivo bolus fires "
-    "against the just-starting tumor ICs from param_all.xml. run_median_simulation "
-    "avoids this by running evolve_to_diagnosis first to bring the tumor to "
-    "~1e9 cells. Enabling this test requires exporting that evolved state as a "
-    "param_all override so both sides start from the same stable IC."
+    reason="MATLAB hits step-size-zero in sbiosimulate when a bolus fires "
+    "against the just-starting-tumor ICs in param_all.xml. Enabling this test "
+    "requires a native C++ evolve_to_diagnosis (no MATLAB deps in the C++ path) "
+    "that brings the tumor to the target diameter before scenario doses run. "
+    "See PDAC/sim/tests/NEXT_SESSION_evolve_to_diagnosis.md for the plan."
 )
 def test_scenario_trajectories_match(scenario_matlab_trajectories, scenario_cpp_trajectories):
     """MATLAB dose_schedule and C++ YAML-driven boluses must land at the
@@ -381,6 +380,33 @@ def test_scenario_trajectories_match(scenario_matlab_trajectories, scenario_cpp_
                 f"Scenario pass rate too low: {pass_rate:.1%}. "
                 f"MATLAB and C++ disagree on dose timing/amount or downstream dynamics."
             )
+
+
+def test_V_T_matches(matlab_trajectories, cpp_trajectories):
+    """V_T (dynamic tumor volume) must match MATLAB pointwise.
+
+    V_T is the clinical tumor-volume quantity (cancer + immune + stroma +
+    collagen). It drives diagnosis-criterion decisions and many
+    concentration expressions inside the ODE, so drift here indicates
+    either a codegen bug in the V_T rule or a divergence in its species
+    inputs. Tighter tolerance than the full trajectory match (which
+    absorbs near-zero species noise).
+    """
+    import numpy as np
+    t_m, vm = _load_traj(matlab_trajectories)
+    t_c, vc = _load_traj(cpp_trajectories)
+    assert "V_T" in vm, "MATLAB CSV has no V_T column"
+    assert "V_T" in vc, "C++ CSV has no V_T column"
+    v_m = vm["V_T"]
+    v_c = vc["V_T"]
+    denom = np.maximum(np.maximum(np.abs(v_m), np.abs(v_c)), 1e-9)
+    rel_diff = np.abs(v_m - v_c) / denom
+    i_worst = int(np.argmax(rel_diff))
+    assert rel_diff.max() < 0.01, (
+        f"V_T drift too large: max rel diff = {rel_diff.max():.2e} at "
+        f"t={t_c[i_worst]:.1f}d (MATLAB={v_m[i_worst]:.3e}, "
+        f"C++={v_c[i_worst]:.3e})"
+    )
 
 
 def test_trajectories_match(matlab_trajectories, cpp_trajectories):
