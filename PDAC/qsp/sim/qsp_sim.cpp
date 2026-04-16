@@ -27,14 +27,17 @@
  *           [--scenario <scenario.yaml> --drug-metadata <drug_meta.yaml>]
  *
  * With --scenario, doses declared in the scenario YAML are applied as boluses
- * to their target species between integration steps. This switches the solver
- * from the fast sampling path (setupSamplingRun + simOdeSample) to the
- * step-based path (simOdeStep), which is required for mid-integration state
- * perturbations.
+ * to their target species at exactly their dose times. The solver uses a
+ * segmented sampling path: simOdeSample runs between dose boundaries
+ * (Nordsieck history preserved, ~5-10x faster than per-step reinit) and
+ * setupSamplingRun re-inits CVODE only at dose times. With no doses the
+ * segmented loop collapses to a single segment identical to the plain
+ * fast-sampling path.
  *
  * Legacy positional form (kept for back-compat with existing tests):
  *   qsp_sim <param_xml> <csv_out> [t_end_days] [dt_days]
  */
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
@@ -420,82 +423,97 @@ int main(int argc, char* argv[]) {
 
     const double t_stop = t_offset + t_end;
 
-    uint64_t n_times = 0;
-
-    if (dose_plan.empty()) {
-        // Fast sampling path: CVODE keeps its internal history across output
-        // points (via simOdeSample) so fine output cadence doesn't force
-        // the solver to repeatedly restart from a tiny step-size. Event-free.
-        // Pass t_offset so CVodeReInit picks up where evolve_to_diagnosis
-        // left off; without this, CVODE silently restarts at t=0 and blasts
-        // past the first sample by the full evolve duration (~857 days).
-        ode.setupSamplingRun(t_stop, t_offset);
-
-        write_state(t_offset);
-        n_times = 1;
-
-        double t = t_offset;
-        int step = 0;
-        while (t < t_stop) {
-            t += dt;
-            if (t > t_stop) t = t_stop;  // clamp last step to exact boundary
-            ode.simOdeSample(t);
-            step++;
-            write_state(t);
-            n_times++;
-
-            if (step % 1000 == 0) {
-                std::cerr << "  t=" << (t - t_offset) / time_factor
-                          << " days" << std::endl;
-            }
+    // Segmented sampling: partition [t_offset, t_stop] on dose boundaries
+    // and use simOdeSample within each segment, so CVODE's Nordsieck history
+    // is preserved across output ticks. Only re-init (setupSamplingRun)
+    // happens at dose times. With no doses, this collapses to a single
+    // segment and matches the previous fast-sampling path exactly.
+    //
+    // Also gives doses exact timing: a bolus at day 7.2 is applied at 7.2
+    // even if output ticks land at 7.0 and 7.5 — the old step-based path
+    // integrated through dose times and applied at the next tick boundary,
+    // which was only accidentally correct when doses aligned with ticks.
+    std::vector<double> dose_boundaries;
+    {
+        std::vector<double> tmp;
+        for (const auto& b : dose_plan) {
+            if (b.t_sim > t_offset && b.t_sim <= t_stop) tmp.push_back(b.t_sim);
         }
-    } else {
-        // Step-based dosing path: boluses are applied between simOdeStep calls
-        // via setSpeciesVar(cur + amt). simOdeStep re-inits CVODE each step,
-        // which picks up the perturbed state on the next integration chunk.
-        // TODO (segmented sampling follow-up): integrate only between dose
-        // times with setupSamplingRun, reinit at dose boundaries. See
-        // memory/cpp_sim_segmented_sampling_followup.md for design.
-        auto apply_due = [&](double t_lo, double t_hi) {
-            // Half-open (t_lo, t_hi] for mid-sim; closed [t_offset, t_offset]
-            // catches boluses scheduled at user-time 0 = solver-time t_offset.
-            for (const auto& b : dose_plan) {
-                bool due = (t_lo == t_offset && b.t_sim == t_offset) ||
-                           (b.t_sim > t_lo && b.t_sim <= t_hi);
-                if (due) {
-                    double cur = ode.getSpeciesVar(
-                        static_cast<unsigned int>(b.species_idx), false);
-                    ode.setSpeciesVar(
-                        static_cast<unsigned int>(b.species_idx),
-                        cur + b.amount, false);
-                    std::cerr << "  [dose] t="
-                              << (t_hi - t_offset) / time_factor << "d  "
-                              << b.label << "  +" << b.amount << std::endl;
-                }
-            }
-        };
-        apply_due(t_offset, t_offset);
+        std::sort(tmp.begin(), tmp.end());
+        tmp.erase(std::unique(tmp.begin(), tmp.end()), tmp.end());
+        dose_boundaries = std::move(tmp);
+    }
 
-        write_state(t_offset);
-        n_times = 1;
+    auto apply_at = [&](double dose_t) {
+        for (const auto& b : dose_plan) {
+            if (b.t_sim != dose_t) continue;
+            double cur = ode.getSpeciesVar(
+                static_cast<unsigned int>(b.species_idx), false);
+            ode.setSpeciesVar(
+                static_cast<unsigned int>(b.species_idx),
+                cur + b.amount, false);
+            std::cerr << "  [dose] t=" << (dose_t - t_offset) / time_factor
+                      << "d  " << b.label << "  +" << b.amount << std::endl;
+        }
+    };
 
-        double t = t_offset;
-        int step = 0;
-        while (t < t_stop) {
-            double t_step = dt;
-            if (t + t_step > t_stop) t_step = t_stop - t;
-            ode.simOdeStep(t, t_step);
-            double t_new = t + t_step;
-            apply_due(t, t_new);
-            t = t_new;
-            step++;
+    // Apply any t=0 (solver = t_offset) boluses before integrating so the
+    // first written sample reflects post-dose state.
+    apply_at(t_offset);
+
+    uint64_t n_times = 1;
+    write_state(t_offset);
+
+    double t = t_offset;
+    size_t next_dose_idx = 0;
+    // Tick index counts emitted output points (0 = the t=t_offset row above).
+    // Recomputing next_tick = t_offset + tick_idx * dt each iteration avoids
+    // accumulated float drift over many steps — important because we compare
+    // it to seg_end with exact equality.
+    int tick_idx = 1;
+
+    double seg_end = dose_boundaries.empty()
+        ? t_stop : std::min(dose_boundaries.front(), t_stop);
+    ode.setupSamplingRun(seg_end, t);
+
+    int step = 0;
+    while (t < t_stop) {
+        double next_tick = t_offset + tick_idx * dt;
+        if (next_tick > t_stop) next_tick = t_stop;
+        double target = std::min(next_tick, seg_end);
+
+        ode.simOdeSample(target);
+        t = target;
+
+        // Exact float comparisons are safe here: `target` was assigned from
+        // one of {next_tick, seg_end, t_stop} and simOdeSample returns the
+        // caller's t verbatim. next_tick is recomputed from tick_idx*dt, not
+        // accumulated.
+        bool at_boundary = (t == seg_end) && (next_dose_idx < dose_boundaries.size());
+        bool at_tick = (t == next_tick);
+
+        // Apply bolus before the output emit so the written sample is
+        // post-dose (matching the step-based M10 port's semantics and the
+        // MATLAB sbiosimulate dose_schedule semantics).
+        if (at_boundary) apply_at(t);
+
+        if (at_tick) {
             write_state(t);
             n_times++;
+            tick_idx++;
+        }
 
-            if (step % 1000 == 0) {
-                std::cerr << "  t=" << (t - t_offset) / time_factor
-                          << " days" << std::endl;
-            }
+        if (at_boundary && t < t_stop) {
+            ++next_dose_idx;
+            seg_end = (next_dose_idx < dose_boundaries.size())
+                ? std::min(dose_boundaries[next_dose_idx], t_stop) : t_stop;
+            ode.setupSamplingRun(seg_end, t);
+        }
+
+        ++step;
+        if (step % 1000 == 0) {
+            std::cerr << "  t=" << (t - t_offset) / time_factor
+                      << " days" << std::endl;
         }
     }
 
