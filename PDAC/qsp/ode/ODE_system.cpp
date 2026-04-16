@@ -1370,6 +1370,529 @@ realtype ODE_system::get_compartment_volume(const std::string& name) const {
     throw std::out_of_range("unknown compartment: " + name);
 }
 
+realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
+    if (name == "C_total") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        return AUX_VAR_C_total / 1.66053872801495e-24;
+    }
+    if (name == "T_total") {
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        return AUX_VAR_T_total / 1.66053872801495e-24;
+    }
+    if (name == "T_total_LN") {
+        realtype AUX_VAR_T_total_LN = 0.0 * PARAM(P_cell) + _species_var[SP_V_LN_Treg] + _species_var[SP_V_LN_CD8] + _species_var[SP_V_LN_Th];
+        return AUX_VAR_T_total_LN / 1.66053872801495e-24;
+    }
+    if (name == "R_Tcell") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_H_PD1_C1 = (std::pow(((_species_var[SP_syn_CD8_C1_PD1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PD1_PDL2] / PARAM(P_syn_CD8_C1))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) / ((std::pow(((_species_var[SP_syn_CD8_C1_PD1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PD1_PDL2] / PARAM(P_syn_CD8_C1))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) + 1.0);
+        realtype AUX_VAR_H_PD1_M = (std::pow(((_species_var[SP_syn_M_C_PD1_PDL1] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PD1_PDL2] / PARAM(P_syn_M_C))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) / ((std::pow(((_species_var[SP_syn_M_C_PD1_PDL1] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PD1_PDL2] / PARAM(P_syn_M_C))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) + 1.0);
+        realtype AUX_VAR_H_SIRPa = std::pow((_species_var[SP_syn_M_C_CD47_SIRPa] / PARAM(P_syn_M_C)) / PARAM(P_SIRPa_50), PARAM(P_n_SIRPa)) / (std::pow((_species_var[SP_syn_M_C_CD47_SIRPa] / PARAM(P_syn_M_C)) / PARAM(P_SIRPa_50), PARAM(P_n_SIRPa)) + 1.0);
+        realtype AUX_VAR_H_Mac_C = (1.0 - ((1.0 - AUX_VAR_H_SIRPa)) * ((1.0 - AUX_VAR_H_PD1_M)));
+        realtype AUX_VAR_K_T_Treg = 1.0 / PARAM(P_R50_Treg);
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_Tregs_ = _species_var[SP_V_T_Treg];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_IL10_phago = (_species_var[SP_V_T_IL10] / AUX_VAR_V_T) / (PARAM(P_IL10_50_phago) + (_species_var[SP_V_T_IL10] / AUX_VAR_V_T));
+        realtype AUX_VAR_H_TGFb_Teff = (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50_Teff));
+        realtype AUX_VAR_k_C1_therapy = 0.0 / PARAM(P_day);
+        realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / (AUX_VAR_V_T * PARAM(P_rho_collagen));
+        realtype AUX_VAR_d_pore = PARAM(P_d_pore_ref) * (std::pow(PARAM(P_phi_col_ref) / (AUX_VAR_phi_collagen + 1e-6), 0.5));
+        realtype AUX_VAR_H_pore_T = 1.0 / (1.0 + std::pow(AUX_VAR_d_pore / PARAM(P_d_crit_T), PARAM(P_n_pore)));
+        realtype AUX_VAR_k_C_Tcell_eff = ((PARAM(P_p_T_kill_per_contact) * PARAM(P_v_T_search_volume) * _species_var[SP_V_T_CD8] / AUX_VAR_V_T / PARAM(P_cell) * ((1.0 - AUX_VAR_H_pore_T)) * _species_var[SP_V_T_CD8]) / (_species_var[SP_V_T_CD8] + AUX_VAR_K_T_Treg * AUX_VAR_Tregs_ + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_PD1_C1)) * ((1.0 - AUX_VAR_H_TGFb_Teff));
+        realtype AUX_VAR_R_Tcell = 0.0 * PARAM(P_cell) / PARAM(P_day) + ((PARAM(P_k_C1_death) + AUX_VAR_k_C1_therapy) * _species_var[SP_V_T_C1]) + AUX_VAR_k_C_Tcell_eff * _species_var[SP_V_T_C1] + ((PARAM(P_k_M1_phago) * _species_var[SP_V_T_C1] * _species_var[SP_V_T_Mac_M1] / (_species_var[SP_V_T_Mac_M1] + PARAM(P_K_M1_phago) * AUX_VAR_C_total + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_Mac_C)) * ((1.0 - AUX_VAR_H_IL10_phago)));
+        return AUX_VAR_R_Tcell / 1.92191982409137e-29;
+    }
+    if (name == "k_C1_therapy") {
+        realtype AUX_VAR_k_C1_therapy = 0.0 / PARAM(P_day);
+        return AUX_VAR_k_C1_therapy / 1.15740740740741e-05;
+    }
+    if (name == "C_max") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_aPSC_total = _species_var[SP_V_T_iCAF] + _species_var[SP_V_T_myCAF] + _species_var[SP_V_T_apCAF];
+        realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / (AUX_VAR_V_T * PARAM(P_rho_collagen));
+        realtype AUX_VAR_C_max = (_species_var[SP_V_T_K] + PARAM(P_k_stroma_support) * AUX_VAR_aPSC_total) * ((1.0 - AUX_VAR_phi_collagen / (AUX_VAR_phi_collagen + PARAM(P_phi_col_50_Kmax))));
+        return AUX_VAR_C_max / 1.66053872801495e-24;
+    }
+    if (name == "Tregs_") {
+        realtype AUX_VAR_Tregs_ = _species_var[SP_V_T_Treg];
+        return AUX_VAR_Tregs_ / 1.66053872801495e-24;
+    }
+    if (name == "H_CCL5_Treg") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_CCL5_Treg = (_species_var[SP_V_T_CCL5] / AUX_VAR_V_T) / ((_species_var[SP_V_T_CCL5] / AUX_VAR_V_T) + PARAM(P_CCL5_50_Treg));
+        return AUX_VAR_H_CCL5_Treg / 1;
+    }
+    if (name == "K_T_Treg") {
+        realtype AUX_VAR_K_T_Treg = 1.0 / PARAM(P_R50_Treg);
+        return AUX_VAR_K_T_Treg / 1;
+    }
+    if (name == "k_C_Tcell_eff") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_H_PD1_C1 = (std::pow(((_species_var[SP_syn_CD8_C1_PD1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PD1_PDL2] / PARAM(P_syn_CD8_C1))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) / ((std::pow(((_species_var[SP_syn_CD8_C1_PD1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PD1_PDL2] / PARAM(P_syn_CD8_C1))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) + 1.0);
+        realtype AUX_VAR_K_T_Treg = 1.0 / PARAM(P_R50_Treg);
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_Tregs_ = _species_var[SP_V_T_Treg];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_TGFb_Teff = (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50_Teff));
+        realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / (AUX_VAR_V_T * PARAM(P_rho_collagen));
+        realtype AUX_VAR_d_pore = PARAM(P_d_pore_ref) * (std::pow(PARAM(P_phi_col_ref) / (AUX_VAR_phi_collagen + 1e-6), 0.5));
+        realtype AUX_VAR_H_pore_T = 1.0 / (1.0 + std::pow(AUX_VAR_d_pore / PARAM(P_d_crit_T), PARAM(P_n_pore)));
+        realtype AUX_VAR_k_C_Tcell_eff = ((PARAM(P_p_T_kill_per_contact) * PARAM(P_v_T_search_volume) * _species_var[SP_V_T_CD8] / AUX_VAR_V_T / PARAM(P_cell) * ((1.0 - AUX_VAR_H_pore_T)) * _species_var[SP_V_T_CD8]) / (_species_var[SP_V_T_CD8] + AUX_VAR_K_T_Treg * AUX_VAR_Tregs_ + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_PD1_C1)) * ((1.0 - AUX_VAR_H_TGFb_Teff));
+        return AUX_VAR_k_C_Tcell_eff / 1.15740740740741e-05;
+    }
+    if (name == "H_DAMP") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_H_PD1_C1 = (std::pow(((_species_var[SP_syn_CD8_C1_PD1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PD1_PDL2] / PARAM(P_syn_CD8_C1))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) / ((std::pow(((_species_var[SP_syn_CD8_C1_PD1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PD1_PDL2] / PARAM(P_syn_CD8_C1))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) + 1.0);
+        realtype AUX_VAR_H_PD1_M = (std::pow(((_species_var[SP_syn_M_C_PD1_PDL1] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PD1_PDL2] / PARAM(P_syn_M_C))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) / ((std::pow(((_species_var[SP_syn_M_C_PD1_PDL1] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PD1_PDL2] / PARAM(P_syn_M_C))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) + 1.0);
+        realtype AUX_VAR_H_SIRPa = std::pow((_species_var[SP_syn_M_C_CD47_SIRPa] / PARAM(P_syn_M_C)) / PARAM(P_SIRPa_50), PARAM(P_n_SIRPa)) / (std::pow((_species_var[SP_syn_M_C_CD47_SIRPa] / PARAM(P_syn_M_C)) / PARAM(P_SIRPa_50), PARAM(P_n_SIRPa)) + 1.0);
+        realtype AUX_VAR_H_Mac_C = (1.0 - ((1.0 - AUX_VAR_H_SIRPa)) * ((1.0 - AUX_VAR_H_PD1_M)));
+        realtype AUX_VAR_K_T_Treg = 1.0 / PARAM(P_R50_Treg);
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_Tregs_ = _species_var[SP_V_T_Treg];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_IL10_phago = (_species_var[SP_V_T_IL10] / AUX_VAR_V_T) / (PARAM(P_IL10_50_phago) + (_species_var[SP_V_T_IL10] / AUX_VAR_V_T));
+        realtype AUX_VAR_H_TGFb_Teff = (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50_Teff));
+        realtype AUX_VAR_k_C1_therapy = 0.0 / PARAM(P_day);
+        realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / (AUX_VAR_V_T * PARAM(P_rho_collagen));
+        realtype AUX_VAR_d_pore = PARAM(P_d_pore_ref) * (std::pow(PARAM(P_phi_col_ref) / (AUX_VAR_phi_collagen + 1e-6), 0.5));
+        realtype AUX_VAR_H_pore_T = 1.0 / (1.0 + std::pow(AUX_VAR_d_pore / PARAM(P_d_crit_T), PARAM(P_n_pore)));
+        realtype AUX_VAR_k_C_Tcell_eff = ((PARAM(P_p_T_kill_per_contact) * PARAM(P_v_T_search_volume) * _species_var[SP_V_T_CD8] / AUX_VAR_V_T / PARAM(P_cell) * ((1.0 - AUX_VAR_H_pore_T)) * _species_var[SP_V_T_CD8]) / (_species_var[SP_V_T_CD8] + AUX_VAR_K_T_Treg * AUX_VAR_Tregs_ + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_PD1_C1)) * ((1.0 - AUX_VAR_H_TGFb_Teff));
+        realtype AUX_VAR_R_Tcell = 0.0 * PARAM(P_cell) / PARAM(P_day) + ((PARAM(P_k_C1_death) + AUX_VAR_k_C1_therapy) * _species_var[SP_V_T_C1]) + AUX_VAR_k_C_Tcell_eff * _species_var[SP_V_T_C1] + ((PARAM(P_k_M1_phago) * _species_var[SP_V_T_C1] * _species_var[SP_V_T_Mac_M1] / (_species_var[SP_V_T_Mac_M1] + PARAM(P_K_M1_phago) * AUX_VAR_C_total + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_Mac_C)) * ((1.0 - AUX_VAR_H_IL10_phago)));
+        realtype AUX_VAR_H_DAMP = AUX_VAR_R_Tcell / (AUX_VAR_R_Tcell + PARAM(P_DAMP_50));
+        return AUX_VAR_H_DAMP / 1;
+    }
+    if (name == "H_TGFb_APC") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_TGFb_APC = (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50_APC));
+        return AUX_VAR_H_TGFb_APC / 1;
+    }
+    if (name == "APC_total_T") {
+        realtype AUX_VAR_APC_total_T = _species_var[SP_V_T_cDC1] + _species_var[SP_V_T_cDC2];
+        return AUX_VAR_APC_total_T / 1.66053872801495e-24;
+    }
+    if (name == "mAPC_total_T") {
+        realtype AUX_VAR_mAPC_total_T = _species_var[SP_V_T_mcDC1] + _species_var[SP_V_T_mcDC2];
+        return AUX_VAR_mAPC_total_T / 1.66053872801495e-24;
+    }
+    if (name == "mAPC_total_LN") {
+        realtype AUX_VAR_mAPC_total_LN = _species_var[SP_V_LN_mcDC1] + _species_var[SP_V_LN_mcDC2];
+        return AUX_VAR_mAPC_total_LN / 1.66053872801495e-24;
+    }
+    if (name == "H_APC_Treg") {
+        realtype AUX_VAR_H_APC_Treg = PARAM(P_n_sites_APC) * _species_var[SP_V_LN_mcDC2] / (PARAM(P_n_sites_APC) * _species_var[SP_V_LN_mcDC2] + _species_var[SP_V_LN_nCD4] * PARAM(P_n_CD4_clones) + PARAM(P_cell));
+        return AUX_VAR_H_APC_Treg / 1;
+    }
+    if (name == "H_mAPC") {
+        realtype AUX_VAR_H_mAPC = PARAM(P_n_sites_APC) * _species_var[SP_V_LN_mcDC1] / (PARAM(P_n_sites_APC) * _species_var[SP_V_LN_mcDC1] + _species_var[SP_V_LN_nCD8] * PARAM(P_n_CD8_clones) + PARAM(P_cell));
+        return AUX_VAR_H_mAPC / 1;
+    }
+    if (name == "H_APC_Th") {
+        realtype AUX_VAR_H_APC_Th = PARAM(P_n_sites_APC) * _species_var[SP_V_LN_mcDC2] / (PARAM(P_n_sites_APC) * _species_var[SP_V_LN_mcDC2] + _species_var[SP_V_LN_nCD4] * PARAM(P_n_CD4_clones) + PARAM(P_cell));
+        return AUX_VAR_H_APC_Th / 1;
+    }
+    if (name == "pTCR_p0_MHC_tot") {
+        realtype AUX_VAR_pTCR_p0_MHC_tot = (PARAM(P_k_M1p0_TCR_off) / (PARAM(P_k_M1p0_TCR_off) + PARAM(P_phi_M1p0_TCR))) * (std::pow(PARAM(P_k_M1p0_TCR_p) / (PARAM(P_k_M1p0_TCR_off) + PARAM(P_k_M1p0_TCR_p)), PARAM(P_N_M1p0_TCR))) * 0.5 * (((_species_var[SP_A_s_M1p0] / PARAM(P_A_s)) / PARAM(P_n_CD4_clones) + PARAM(P_TCR_p0_tot) + PARAM(P_k_M1p0_TCR_off) / PARAM(P_k_M1p0_TCR_on) - PARAM(P_TCR_p0_tot) * (std::pow(std::max((std::pow(((_species_var[SP_A_s_M1p0] / PARAM(P_A_s)) / PARAM(P_n_CD4_clones) + PARAM(P_TCR_p0_tot) + PARAM(P_k_M1p0_TCR_off) / PARAM(P_k_M1p0_TCR_on)) / PARAM(P_TCR_p0_tot), 2.0) - 4.0 * (_species_var[SP_A_s_M1p0] / PARAM(P_A_s)) / PARAM(P_n_CD4_clones) / PARAM(P_TCR_p0_tot)), 0.0), 1.0 / 2.0))));
+        return AUX_VAR_pTCR_p0_MHC_tot / 1.66053872801495e-12;
+    }
+    if (name == "H_P0") {
+        realtype AUX_VAR_pTCR_p0_MHC_tot = (PARAM(P_k_M1p0_TCR_off) / (PARAM(P_k_M1p0_TCR_off) + PARAM(P_phi_M1p0_TCR))) * (std::pow(PARAM(P_k_M1p0_TCR_p) / (PARAM(P_k_M1p0_TCR_off) + PARAM(P_k_M1p0_TCR_p)), PARAM(P_N_M1p0_TCR))) * 0.5 * (((_species_var[SP_A_s_M1p0] / PARAM(P_A_s)) / PARAM(P_n_CD4_clones) + PARAM(P_TCR_p0_tot) + PARAM(P_k_M1p0_TCR_off) / PARAM(P_k_M1p0_TCR_on) - PARAM(P_TCR_p0_tot) * (std::pow(std::max((std::pow(((_species_var[SP_A_s_M1p0] / PARAM(P_A_s)) / PARAM(P_n_CD4_clones) + PARAM(P_TCR_p0_tot) + PARAM(P_k_M1p0_TCR_off) / PARAM(P_k_M1p0_TCR_on)) / PARAM(P_TCR_p0_tot), 2.0) - 4.0 * (_species_var[SP_A_s_M1p0] / PARAM(P_A_s)) / PARAM(P_n_CD4_clones) / PARAM(P_TCR_p0_tot)), 0.0), 1.0 / 2.0))));
+        realtype AUX_VAR_H_P0 = AUX_VAR_pTCR_p0_MHC_tot / (AUX_VAR_pTCR_p0_MHC_tot + PARAM(P_p0_50));
+        return AUX_VAR_H_P0 / 1;
+    }
+    if (name == "pTCR_p1_MHC_tot") {
+        realtype AUX_VAR_pTCR_p1_MHC_tot = (PARAM(P_k_M1p1_TCR_off) / (PARAM(P_k_M1p1_TCR_off) + PARAM(P_phi_M1p1_TCR))) * (std::pow(PARAM(P_k_M1p1_TCR_p) / (PARAM(P_k_M1p1_TCR_off) + PARAM(P_k_M1p1_TCR_p)), PARAM(P_N_M1p1_TCR))) * 0.5 * (((_species_var[SP_A_s_M1p1] / PARAM(P_A_s)) / PARAM(P_n_CD8_clones) + PARAM(P_TCR_p1_tot) + PARAM(P_k_M1p1_TCR_off) / PARAM(P_k_M1p1_TCR_on) - PARAM(P_TCR_p1_tot) * (std::pow(std::max((std::pow(((_species_var[SP_A_s_M1p1] / PARAM(P_A_s)) / PARAM(P_n_CD8_clones) + PARAM(P_TCR_p1_tot) + PARAM(P_k_M1p1_TCR_off) / PARAM(P_k_M1p1_TCR_on)) / PARAM(P_TCR_p1_tot), 2.0) - 4.0 * (_species_var[SP_A_s_M1p1] / PARAM(P_A_s)) / PARAM(P_n_CD8_clones) / PARAM(P_TCR_p1_tot)), 0.0), 1.0 / 2.0))));
+        return AUX_VAR_pTCR_p1_MHC_tot / 1.66053872801495e-12;
+    }
+    if (name == "H_P1") {
+        realtype AUX_VAR_pTCR_p1_MHC_tot = (PARAM(P_k_M1p1_TCR_off) / (PARAM(P_k_M1p1_TCR_off) + PARAM(P_phi_M1p1_TCR))) * (std::pow(PARAM(P_k_M1p1_TCR_p) / (PARAM(P_k_M1p1_TCR_off) + PARAM(P_k_M1p1_TCR_p)), PARAM(P_N_M1p1_TCR))) * 0.5 * (((_species_var[SP_A_s_M1p1] / PARAM(P_A_s)) / PARAM(P_n_CD8_clones) + PARAM(P_TCR_p1_tot) + PARAM(P_k_M1p1_TCR_off) / PARAM(P_k_M1p1_TCR_on) - PARAM(P_TCR_p1_tot) * (std::pow(std::max((std::pow(((_species_var[SP_A_s_M1p1] / PARAM(P_A_s)) / PARAM(P_n_CD8_clones) + PARAM(P_TCR_p1_tot) + PARAM(P_k_M1p1_TCR_off) / PARAM(P_k_M1p1_TCR_on)) / PARAM(P_TCR_p1_tot), 2.0) - 4.0 * (_species_var[SP_A_s_M1p1] / PARAM(P_A_s)) / PARAM(P_n_CD8_clones) / PARAM(P_TCR_p1_tot)), 0.0), 1.0 / 2.0))));
+        realtype AUX_VAR_H_P1 = AUX_VAR_pTCR_p1_MHC_tot / (AUX_VAR_pTCR_p1_MHC_tot + PARAM(P_p1_50));
+        return AUX_VAR_H_P1 / 1;
+    }
+    if (name == "syn_CD8_C1_PDL1_total") {
+        realtype AUX_VAR_syn_CD8_C1_PDL1_total = (_species_var[SP_syn_CD8_C1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PD1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PDL1_aPDL1] / PARAM(P_syn_CD8_C1)) + 2.0 * (_species_var[SP_syn_CD8_C1_PDL1_aPDL1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PDL1_CD80] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PDL1_CD80_CD28] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PDL1_CD80_CTLA4] / PARAM(P_syn_CD8_C1));
+        return AUX_VAR_syn_CD8_C1_PDL1_total / 1.66053872801495e-12;
+    }
+    if (name == "syn_CD8_C1_PDL2_total") {
+        realtype AUX_VAR_syn_CD8_C1_PDL2_total = (_species_var[SP_syn_CD8_C1_PD1_PDL2] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PDL2] / PARAM(P_syn_CD8_C1));
+        return AUX_VAR_syn_CD8_C1_PDL2_total / 1.66053872801495e-12;
+    }
+    if (name == "H_PD1_C1") {
+        realtype AUX_VAR_H_PD1_C1 = (std::pow(((_species_var[SP_syn_CD8_C1_PD1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PD1_PDL2] / PARAM(P_syn_CD8_C1))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) / ((std::pow(((_species_var[SP_syn_CD8_C1_PD1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PD1_PDL2] / PARAM(P_syn_CD8_C1))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) + 1.0);
+        return AUX_VAR_H_PD1_C1 / 1;
+    }
+    if (name == "H_CD28_C1") {
+        realtype AUX_VAR_H_CD28_C1 = (std::pow(((_species_var[SP_syn_CD8_C1_CD28_CD80] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_CD28_CD86] / PARAM(P_syn_CD8_C1)) + 2.0 * (_species_var[SP_syn_CD8_C1_CD28_CD80_CD28] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PDL1_CD80_CD28] / PARAM(P_syn_CD8_C1))) / PARAM(P_CD28_CD8X_50), PARAM(P_n_CD28_CD8X))) / ((std::pow(((_species_var[SP_syn_CD8_C1_CD28_CD80] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_CD28_CD86] / PARAM(P_syn_CD8_C1)) + 2.0 * (_species_var[SP_syn_CD8_C1_CD28_CD80_CD28] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PDL1_CD80_CD28] / PARAM(P_syn_CD8_C1))) / PARAM(P_CD28_CD8X_50), PARAM(P_n_CD28_CD8X))) + 1.0);
+        return AUX_VAR_H_CD28_C1 / 1;
+    }
+    if (name == "syn_CD8_APC_PDL1_total") {
+        realtype AUX_VAR_syn_CD8_APC_PDL1_total = (_species_var[SP_syn_CD8_APC_PDL1] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PD1_PDL1] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_aPDL1] / PARAM(P_syn_CD8_APC)) + 2.0 * (_species_var[SP_syn_CD8_APC_PDL1_aPDL1_PDL1] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_CD80] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_CD80_CD28] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_CD80_CTLA4] / PARAM(P_syn_CD8_APC));
+        return AUX_VAR_syn_CD8_APC_PDL1_total / 1.66053872801495e-12;
+    }
+    if (name == "syn_CD8_APC_PDL2_total") {
+        realtype AUX_VAR_syn_CD8_APC_PDL2_total = (_species_var[SP_syn_CD8_APC_PD1_PDL2] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL2] / PARAM(P_syn_CD8_APC));
+        return AUX_VAR_syn_CD8_APC_PDL2_total / 1.66053872801495e-12;
+    }
+    if (name == "H_PD1_APC") {
+        realtype AUX_VAR_H_PD1_APC = (std::pow(((_species_var[SP_syn_CD8_APC_PD1_PDL1] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PD1_PDL2] / PARAM(P_syn_CD8_APC))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) / ((std::pow(((_species_var[SP_syn_CD8_APC_PD1_PDL1] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PD1_PDL2] / PARAM(P_syn_CD8_APC))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) + 1.0);
+        return AUX_VAR_H_PD1_APC / 1;
+    }
+    if (name == "H_CD28_APC") {
+        realtype AUX_VAR_H_CD28_APC = (std::pow(((_species_var[SP_syn_CD8_APC_CD28_CD80] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_CD28_CD86] / PARAM(P_syn_CD8_APC)) + 2.0 * (_species_var[SP_syn_CD8_APC_CD28_CD80_CD28] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_CD80_CD28] / PARAM(P_syn_CD8_APC))) / PARAM(P_CD28_CD8X_50), PARAM(P_n_CD28_CD8X))) / ((std::pow(((_species_var[SP_syn_CD8_APC_CD28_CD80] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_CD28_CD86] / PARAM(P_syn_CD8_APC)) + 2.0 * (_species_var[SP_syn_CD8_APC_CD28_CD80_CD28] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_CD80_CD28] / PARAM(P_syn_CD8_APC))) / PARAM(P_CD28_CD8X_50), PARAM(P_n_CD28_CD8X))) + 1.0);
+        return AUX_VAR_H_CD28_APC / 1;
+    }
+    if (name == "N_aT") {
+        realtype AUX_VAR_H_CD28_APC = (std::pow(((_species_var[SP_syn_CD8_APC_CD28_CD80] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_CD28_CD86] / PARAM(P_syn_CD8_APC)) + 2.0 * (_species_var[SP_syn_CD8_APC_CD28_CD80_CD28] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_CD80_CD28] / PARAM(P_syn_CD8_APC))) / PARAM(P_CD28_CD8X_50), PARAM(P_n_CD28_CD8X))) / ((std::pow(((_species_var[SP_syn_CD8_APC_CD28_CD80] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_CD28_CD86] / PARAM(P_syn_CD8_APC)) + 2.0 * (_species_var[SP_syn_CD8_APC_CD28_CD80_CD28] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_CD80_CD28] / PARAM(P_syn_CD8_APC))) / PARAM(P_CD28_CD8X_50), PARAM(P_n_CD28_CD8X))) + 1.0);
+        realtype AUX_VAR_N_aT = PARAM(P_N_div_base) + PARAM(P_N_div_costim) * AUX_VAR_H_CD28_APC + (PARAM(P_N_IL2_CD8) * (_species_var[SP_V_LN_IL2] / PARAM(P_V_LN)) / (PARAM(P_IL2_50) + (_species_var[SP_V_LN_IL2] / PARAM(P_V_LN))));
+        return AUX_VAR_N_aT / 1;
+    }
+    if (name == "N_aT0") {
+        realtype AUX_VAR_H_CD28_APC = (std::pow(((_species_var[SP_syn_CD8_APC_CD28_CD80] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_CD28_CD86] / PARAM(P_syn_CD8_APC)) + 2.0 * (_species_var[SP_syn_CD8_APC_CD28_CD80_CD28] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_CD80_CD28] / PARAM(P_syn_CD8_APC))) / PARAM(P_CD28_CD8X_50), PARAM(P_n_CD28_CD8X))) / ((std::pow(((_species_var[SP_syn_CD8_APC_CD28_CD80] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_CD28_CD86] / PARAM(P_syn_CD8_APC)) + 2.0 * (_species_var[SP_syn_CD8_APC_CD28_CD80_CD28] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_CD80_CD28] / PARAM(P_syn_CD8_APC))) / PARAM(P_CD28_CD8X_50), PARAM(P_n_CD28_CD8X))) + 1.0);
+        realtype AUX_VAR_N_aT0 = PARAM(P_N_div_base) + PARAM(P_N_div_costim) * AUX_VAR_H_CD28_APC + (PARAM(P_N_IL2_CD4) * (_species_var[SP_V_LN_IL2] / PARAM(P_V_LN)) / (PARAM(P_IL2_50) + (_species_var[SP_V_LN_IL2] / PARAM(P_V_LN))));
+        return AUX_VAR_N_aT0 / 1;
+    }
+    if (name == "N_aTh") {
+        realtype AUX_VAR_H_CD28_APC = (std::pow(((_species_var[SP_syn_CD8_APC_CD28_CD80] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_CD28_CD86] / PARAM(P_syn_CD8_APC)) + 2.0 * (_species_var[SP_syn_CD8_APC_CD28_CD80_CD28] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_CD80_CD28] / PARAM(P_syn_CD8_APC))) / PARAM(P_CD28_CD8X_50), PARAM(P_n_CD28_CD8X))) / ((std::pow(((_species_var[SP_syn_CD8_APC_CD28_CD80] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_CD28_CD86] / PARAM(P_syn_CD8_APC)) + 2.0 * (_species_var[SP_syn_CD8_APC_CD28_CD80_CD28] / PARAM(P_syn_CD8_APC)) + (_species_var[SP_syn_CD8_APC_PDL1_CD80_CD28] / PARAM(P_syn_CD8_APC))) / PARAM(P_CD28_CD8X_50), PARAM(P_n_CD28_CD8X))) + 1.0);
+        realtype AUX_VAR_N_aTh = PARAM(P_N_div_base) + PARAM(P_N_div_costim) * AUX_VAR_H_CD28_APC + (PARAM(P_N_IL2_CD4) * (_species_var[SP_V_LN_IL2] / PARAM(P_V_LN)) / (PARAM(P_IL2_50) + (_species_var[SP_V_LN_IL2] / PARAM(P_V_LN))));
+        return AUX_VAR_N_aTh / 1;
+    }
+    if (name == "H_TGFb") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_TGFb = (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50));
+        return AUX_VAR_H_TGFb / 1;
+    }
+    if (name == "H_TGFb_Teff") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_TGFb_Teff = (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50_Teff));
+        return AUX_VAR_H_TGFb_Teff / 1;
+    }
+    if (name == "H_NO") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_NO = (_species_var[SP_V_T_NO] / AUX_VAR_V_T) / (PARAM(P_NO_50_Teff) + (_species_var[SP_V_T_NO] / AUX_VAR_V_T));
+        return AUX_VAR_H_NO / 1;
+    }
+    if (name == "H_ArgI_Teff") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_ArgI_Teff = (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T) / (PARAM(P_ArgI_50_Teff) + (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T));
+        return AUX_VAR_H_ArgI_Teff / 1;
+    }
+    if (name == "H_ArgI_Treg") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_ArgI_Treg = (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T) / (PARAM(P_ArgI_50_Treg) + (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T));
+        return AUX_VAR_H_ArgI_Treg / 1;
+    }
+    if (name == "H_MDSC") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_ArgI_Teff = (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T) / (PARAM(P_ArgI_50_Teff) + (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T));
+        realtype AUX_VAR_H_NO = (_species_var[SP_V_T_NO] / AUX_VAR_V_T) / (PARAM(P_NO_50_Teff) + (_species_var[SP_V_T_NO] / AUX_VAR_V_T));
+        realtype AUX_VAR_H_MDSC = (1.0 - ((1.0 - AUX_VAR_H_NO)) * ((1.0 - AUX_VAR_H_ArgI_Teff)));
+        return AUX_VAR_H_MDSC / 1;
+    }
+    if (name == "syn_M_C.PDL1_total") {
+        realtype AUX_VAR_syn_M_C_PDL1_total = (_species_var[SP_syn_M_C_PDL1] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PD1_PDL1] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PDL1_aPDL1] / PARAM(P_syn_M_C)) + 2.0 * (_species_var[SP_syn_M_C_PDL1_aPDL1_PDL1] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PDL1_CD80] / PARAM(P_syn_M_C));
+        return AUX_VAR_syn_M_C_PDL1_total / 1;
+    }
+    if (name == "syn_M_C.PDL2_total") {
+        realtype AUX_VAR_syn_M_C_PDL2_total = (_species_var[SP_syn_M_C_PD1_PDL2] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PDL2] / PARAM(P_syn_M_C));
+        return AUX_VAR_syn_M_C_PDL2_total / 1;
+    }
+    if (name == "H_SIRPa") {
+        realtype AUX_VAR_H_SIRPa = std::pow((_species_var[SP_syn_M_C_CD47_SIRPa] / PARAM(P_syn_M_C)) / PARAM(P_SIRPa_50), PARAM(P_n_SIRPa)) / (std::pow((_species_var[SP_syn_M_C_CD47_SIRPa] / PARAM(P_syn_M_C)) / PARAM(P_SIRPa_50), PARAM(P_n_SIRPa)) + 1.0);
+        return AUX_VAR_H_SIRPa / 1;
+    }
+    if (name == "H_PD1_M") {
+        realtype AUX_VAR_H_PD1_M = (std::pow(((_species_var[SP_syn_M_C_PD1_PDL1] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PD1_PDL2] / PARAM(P_syn_M_C))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) / ((std::pow(((_species_var[SP_syn_M_C_PD1_PDL1] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PD1_PDL2] / PARAM(P_syn_M_C))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) + 1.0);
+        return AUX_VAR_H_PD1_M / 1;
+    }
+    if (name == "H_Mac_C") {
+        realtype AUX_VAR_H_PD1_M = (std::pow(((_species_var[SP_syn_M_C_PD1_PDL1] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PD1_PDL2] / PARAM(P_syn_M_C))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) / ((std::pow(((_species_var[SP_syn_M_C_PD1_PDL1] / PARAM(P_syn_M_C)) + (_species_var[SP_syn_M_C_PD1_PDL2] / PARAM(P_syn_M_C))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) + 1.0);
+        realtype AUX_VAR_H_SIRPa = std::pow((_species_var[SP_syn_M_C_CD47_SIRPa] / PARAM(P_syn_M_C)) / PARAM(P_SIRPa_50), PARAM(P_n_SIRPa)) / (std::pow((_species_var[SP_syn_M_C_CD47_SIRPa] / PARAM(P_syn_M_C)) / PARAM(P_SIRPa_50), PARAM(P_n_SIRPa)) + 1.0);
+        realtype AUX_VAR_H_Mac_C = (1.0 - ((1.0 - AUX_VAR_H_SIRPa)) * ((1.0 - AUX_VAR_H_PD1_M)));
+        return AUX_VAR_H_Mac_C / 1;
+    }
+    if (name == "M_total") {
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        return AUX_VAR_M_total / 1.66053872801495e-24;
+    }
+    if (name == "H_IL10") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_IL10 = (_species_var[SP_V_T_IL10] / AUX_VAR_V_T) / (PARAM(P_IL10_50) + (_species_var[SP_V_T_IL10] / AUX_VAR_V_T));
+        return AUX_VAR_H_IL10 / 1;
+    }
+    if (name == "H_IL10_phago") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_IL10_phago = (_species_var[SP_V_T_IL10] / AUX_VAR_V_T) / (PARAM(P_IL10_50_phago) + (_species_var[SP_V_T_IL10] / AUX_VAR_V_T));
+        return AUX_VAR_H_IL10_phago / 1;
+    }
+    if (name == "H_IL12") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_IL12 = (_species_var[SP_V_T_IL12] / AUX_VAR_V_T) / (PARAM(P_IL12_50) + (_species_var[SP_V_T_IL12] / AUX_VAR_V_T));
+        return AUX_VAR_H_IL12 / 1;
+    }
+    if (name == "phi_collagen") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / (AUX_VAR_V_T * PARAM(P_rho_collagen));
+        return AUX_VAR_phi_collagen / 1;
+    }
+    if (name == "d_pore") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / (AUX_VAR_V_T * PARAM(P_rho_collagen));
+        realtype AUX_VAR_d_pore = PARAM(P_d_pore_ref) * (std::pow(PARAM(P_phi_col_ref) / (AUX_VAR_phi_collagen + 1e-6), 0.5));
+        return AUX_VAR_d_pore / 1e-06;
+    }
+    if (name == "H_pore_T") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / (AUX_VAR_V_T * PARAM(P_rho_collagen));
+        realtype AUX_VAR_d_pore = PARAM(P_d_pore_ref) * (std::pow(PARAM(P_phi_col_ref) / (AUX_VAR_phi_collagen + 1e-6), 0.5));
+        realtype AUX_VAR_H_pore_T = 1.0 / (1.0 + std::pow(AUX_VAR_d_pore / PARAM(P_d_crit_T), PARAM(P_n_pore)));
+        return AUX_VAR_H_pore_T / 1;
+    }
+    if (name == "H_pore_APC") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / (AUX_VAR_V_T * PARAM(P_rho_collagen));
+        realtype AUX_VAR_d_pore = PARAM(P_d_pore_ref) * (std::pow(PARAM(P_phi_col_ref) / (AUX_VAR_phi_collagen + 1e-6), 0.5));
+        realtype AUX_VAR_H_pore_APC = 1.0 / (1.0 + std::pow(AUX_VAR_d_pore / PARAM(P_d_crit_APC), PARAM(P_n_pore)));
+        return AUX_VAR_H_pore_APC / 1;
+    }
+    if (name == "stiffness") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / (AUX_VAR_V_T * PARAM(P_rho_collagen));
+        realtype AUX_VAR_stiffness = PARAM(P_E_ref) * std::pow(AUX_VAR_phi_collagen / PARAM(P_phi_col_ref), PARAM(P_n_stiff));
+        return AUX_VAR_stiffness / 1;
+    }
+    if (name == "H_stiff_Texh") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / (AUX_VAR_V_T * PARAM(P_rho_collagen));
+        realtype AUX_VAR_stiffness = PARAM(P_E_ref) * std::pow(AUX_VAR_phi_collagen / PARAM(P_phi_col_ref), PARAM(P_n_stiff));
+        realtype AUX_VAR_H_stiff_Texh = std::pow(AUX_VAR_stiffness, PARAM(P_n_Texh)) / (std::pow(PARAM(P_E_50_Texh), PARAM(P_n_Texh)) + std::pow(AUX_VAR_stiffness, PARAM(P_n_Texh)));
+        return AUX_VAR_H_stiff_Texh / 1;
+    }
+    if (name == "H_stiff_fib") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / (AUX_VAR_V_T * PARAM(P_rho_collagen));
+        realtype AUX_VAR_stiffness = PARAM(P_E_ref) * std::pow(AUX_VAR_phi_collagen / PARAM(P_phi_col_ref), PARAM(P_n_stiff));
+        realtype AUX_VAR_H_stiff_fib = std::pow(AUX_VAR_stiffness, PARAM(P_n_fib)) / (std::pow(PARAM(P_E_50_fib), PARAM(P_n_fib)) + std::pow(AUX_VAR_stiffness, PARAM(P_n_fib)));
+        return AUX_VAR_H_stiff_fib / 1;
+    }
+    if (name == "IL1_ratio") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_IL1_ratio = (_species_var[SP_V_T_IL1] / AUX_VAR_V_T) / (PARAM(P_IL1_50) * (1.0 + (PARAM(P_Emax_IL1R1) * (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / (PARAM(P_TGFb_50_IL1R1) + (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T)))));
+        return AUX_VAR_IL1_ratio / 1;
+    }
+    if (name == "H_IL1_eff") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_IL1_ratio = (_species_var[SP_V_T_IL1] / AUX_VAR_V_T) / (PARAM(P_IL1_50) * (1.0 + (PARAM(P_Emax_IL1R1) * (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / (PARAM(P_TGFb_50_IL1R1) + (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T)))));
+        realtype AUX_VAR_H_IL1_eff = std::pow(AUX_VAR_IL1_ratio, PARAM(P_n_IL1)) / (1.0 + std::pow(AUX_VAR_IL1_ratio, PARAM(P_n_IL1)));
+        return AUX_VAR_H_IL1_eff / 1;
+    }
+    if (name == "H_P1_apCAF") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_P1_apCAF = (_species_var[SP_V_T_P1] / AUX_VAR_V_T) / ((_species_var[SP_V_T_P1] / AUX_VAR_V_T) + PARAM(P_P1_50_apCAF));
+        return AUX_VAR_H_P1_apCAF / 1;
+    }
+    if (name == "H_CXCL12_Texcl") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_CXCL12_Texcl = (_species_var[SP_V_T_CXCL12] / AUX_VAR_V_T) / (PARAM(P_CXCL12_50_Texcl) + (_species_var[SP_V_T_CXCL12] / AUX_VAR_V_T));
+        return AUX_VAR_H_CXCL12_Texcl / 1;
+    }
+    if (name == "H_IL6_MDSC") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_IL6_MDSC = (_species_var[SP_V_T_IL6] / AUX_VAR_V_T) / (PARAM(P_IL6_50_MDSC) + (_species_var[SP_V_T_IL6] / AUX_VAR_V_T));
+        return AUX_VAR_H_IL6_MDSC / 1;
+    }
+    if (name == "H_IL6_M2") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_IL6_M2 = (_species_var[SP_V_T_IL6] / AUX_VAR_V_T) / (PARAM(P_IL6_50_M2) + (_species_var[SP_V_T_IL6] / AUX_VAR_V_T));
+        return AUX_VAR_H_IL6_M2 / 1;
+    }
+    if (name == "H_IL6_iCAF") {
+        realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
+        realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th];
+        realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell))) / PARAM(P_Ve_T)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell) / PARAM(P_Ve_T) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen);
+        realtype AUX_VAR_H_IL6_iCAF = (_species_var[SP_V_T_IL6] / AUX_VAR_V_T) / (PARAM(P_IL6_50_iCAF) + (_species_var[SP_V_T_IL6] / AUX_VAR_V_T));
+        return AUX_VAR_H_IL6_iCAF / 1;
+    }
+    if (name == "aPSC_total") {
+        realtype AUX_VAR_aPSC_total = _species_var[SP_V_T_iCAF] + _species_var[SP_V_T_myCAF] + _species_var[SP_V_T_apCAF];
+        return AUX_VAR_aPSC_total / 1.66053872801495e-24;
+    }
+    if (name == "H_GMCSF_ID") {
+        realtype AUX_VAR_H_GMCSF_ID = _species_var[SP_V_ID_GMCSF] / PARAM(P_V_ID) / (PARAM(P_EC50_GMCSF) + _species_var[SP_V_ID_GMCSF] / PARAM(P_V_ID));
+        return AUX_VAR_H_GMCSF_ID / 1;
+    }
+    if (name == "J_mature_ID") {
+        realtype AUX_VAR_H_GMCSF_ID = _species_var[SP_V_ID_GMCSF] / PARAM(P_V_ID) / (PARAM(P_EC50_GMCSF) + _species_var[SP_V_ID_GMCSF] / PARAM(P_V_ID));
+        realtype AUX_VAR_J_mature_ID = PARAM(P_k_APC_mature_ID) * AUX_VAR_H_GMCSF_ID * _species_var[SP_V_ID_APC] * _species_var[SP_V_ID_P1_GVAX] / PARAM(P_V_ID) / (_species_var[SP_V_ID_P1_GVAX] / PARAM(P_V_ID) + PARAM(P_EC50_P1_mature));
+        return AUX_VAR_J_mature_ID / 1.92191982409137e-29;
+    }
+    throw std::out_of_range("unknown assignment rule: " + name);
+}
+
+std::vector<std::string> ODE_system::getCompartmentNames() {
+    return {
+        "V_C",
+        "V_P",
+        "V_T",
+        "V_LN",
+        "V_e",
+        "A_e",
+        "A_s",
+        "syn_CD8_C1",
+        "syn_CD8_APC",
+        "syn_M_C",
+        "V_ID",
+    };
+}
+
+std::vector<std::string> ODE_system::getAssignmentRuleNames() {
+    return {
+        "C_total",
+        "T_total",
+        "T_total_LN",
+        "R_Tcell",
+        "k_C1_therapy",
+        "C_max",
+        "Tregs_",
+        "H_CCL5_Treg",
+        "K_T_Treg",
+        "k_C_Tcell_eff",
+        "H_DAMP",
+        "H_TGFb_APC",
+        "APC_total_T",
+        "mAPC_total_T",
+        "mAPC_total_LN",
+        "H_APC_Treg",
+        "H_mAPC",
+        "H_APC_Th",
+        "pTCR_p0_MHC_tot",
+        "H_P0",
+        "pTCR_p1_MHC_tot",
+        "H_P1",
+        "syn_CD8_C1_PDL1_total",
+        "syn_CD8_C1_PDL2_total",
+        "H_PD1_C1",
+        "H_CD28_C1",
+        "syn_CD8_APC_PDL1_total",
+        "syn_CD8_APC_PDL2_total",
+        "H_PD1_APC",
+        "H_CD28_APC",
+        "N_aT",
+        "N_aT0",
+        "N_aTh",
+        "H_TGFb",
+        "H_TGFb_Teff",
+        "H_NO",
+        "H_ArgI_Teff",
+        "H_ArgI_Treg",
+        "H_MDSC",
+        "syn_M_C.PDL1_total",
+        "syn_M_C.PDL2_total",
+        "H_SIRPa",
+        "H_PD1_M",
+        "H_Mac_C",
+        "M_total",
+        "H_IL10",
+        "H_IL10_phago",
+        "H_IL12",
+        "phi_collagen",
+        "d_pore",
+        "H_pore_T",
+        "H_pore_APC",
+        "stiffness",
+        "H_stiff_Texh",
+        "H_stiff_fib",
+        "IL1_ratio",
+        "H_IL1_eff",
+        "H_P1_apCAF",
+        "H_CXCL12_Texcl",
+        "H_IL6_MDSC",
+        "H_IL6_M2",
+        "H_IL6_iCAF",
+        "aPSC_total",
+        "H_GMCSF_ID",
+        "J_mature_ID",
+    };
+}
+
 void ODE_system::setup_instance_variables(QSPParam& param){
     //V_C.nCD4, index: 0, units: MWUSERUNIT_cell
     _species_var[SP_V_C_nCD4] = PFILE(QSP_V_C_nCD4) * 1.66053872801495e-24;

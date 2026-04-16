@@ -1319,6 +1319,8 @@ def gen_ode_h(jac_nnz: int = 0) -> str:
 #include "../cvode/CVODEBase.h"
 #include "QSPParam.h"
 #include <sunmatrix/sunmatrix_sparse.h>
+#include <string>
+#include <vector>
 
 namespace CancerVCT{
 
@@ -1355,6 +1357,21 @@ public:
     // Returns the static compartment size for constant compartments.
     // Throws std::out_of_range for an unknown name.
     realtype get_compartment_volume(const std::string& name) const;
+    // Evaluate a (non-compartment) SBML assignment rule's current value
+    // in its native unit. Use this for derived quantities like
+    // phi_collagen, C_total, etc. that downstream calibration targets
+    // expect to read alongside species. Throws std::out_of_range for an
+    // unknown name.
+    realtype get_assignment_rule_value(const std::string& name) const;
+    // Static enumeration of compartment names (for output column
+    // ordering). Matches the order returned by get_compartment_volume's
+    // case branches.
+    static std::vector<std::string> getCompartmentNames();
+    // Static enumeration of assignment-rule names whose values are
+    // exposed via get_assignment_rule_value (excludes rules whose
+    // target is also a compartment — those go through
+    // get_compartment_volume).
+    static std::vector<std::string> getAssignmentRuleNames();
 
 protected:
     void setupVariables(void);
@@ -1721,6 +1738,100 @@ def gen_ode_cpp(sbml: SBMLModel, mapping: dict) -> str:
         native_factor = sbml.get_si_factor(c["units"])
         lines.append(f'    if (name == "{cname}") return PARAM(P_{csan}) / {native_factor:.15g};')
     lines.append('    throw std::out_of_range("unknown compartment: " + name);')
+    lines.append('}')
+    lines.append('')
+
+    # ---- get_assignment_rule_value -------------------------------------
+    # Mirror of get_compartment_volume but for non-compartment assignment
+    # rules — derived quantities like phi_collagen, C_total, K_T_Treg
+    # that calibration-target functions expect to read alongside species
+    # values. Compartment-targeted rules are excluded here (they are
+    # served by get_compartment_volume).
+    #
+    # Dep collection runs in two passes. _collect_rule_deps walks the
+    # SBML expression for *rule names*; that misses rules that get
+    # introduced by mem_mapping substitution (e.g. a concentration
+    # species "V_T.NO" expands to "(_species_var[SP_V_T_NO] / AUX_VAR_V_T)",
+    # implicitly requiring V_T's rule even though "V_T" isn't a token in
+    # the SBML source). A second pass scans each substituted expression
+    # for AUX_VAR_X references and pulls in the matching rule until the
+    # set is closed.
+    comp_names_set = {c["name"] for c in sbml.compartments}
+    param_by_name = {p["name"]: p for p in sbml.parameters}
+    non_comp_rules = [
+        r for r in sbml.assignment_rules
+        if r["variable_name"] not in comp_names_set
+    ]
+    # Pre-build sanitized → variable_name lookup so we can resolve
+    # AUX_VAR_<sanitized> tokens back to the original rule name.
+    san_to_rule_name = {_sanitize(r["variable_name"]): r["variable_name"]
+                        for r in sbml.assignment_rules}
+    aux_var_re = re.compile(r'AUX_VAR_([a-zA-Z0-9_]+)')
+
+    def _close_under_substitution(seed_names):
+        """Return the rule dict list (topo-ordered) that includes every
+        rule needed to evaluate the seeds, accounting for AUX_VAR
+        references introduced by mem_mapping substitution."""
+        needed_names = set()
+        queue = list(seed_names)
+        while queue:
+            vn = queue.pop()
+            if vn in needed_names or vn not in rules_by_name_cv:
+                continue
+            needed_names.add(vn)
+            substituted = wrap_expression(
+                rules_by_name_cv[vn]["expression"], mem_mapping_cv
+            )
+            for match in aux_var_re.finditer(substituted):
+                ref_name = san_to_rule_name.get(match.group(1))
+                if ref_name and ref_name != vn and ref_name not in needed_names:
+                    queue.append(ref_name)
+        rules_list = [rules_by_name_cv[n] for n in needed_names]
+        return order_rules(rules_list, needed_names, sbml=sbml)
+
+    lines.append(
+        'realtype ODE_system::get_assignment_rule_value(const std::string& name) const {'
+    )
+    for r in non_comp_rules:
+        rname = r["variable_name"]
+        rsan = _sanitize(rname)
+        # Resolve native-unit factor: rules typically write to a
+        # parameter, in which case its declared unit is the target unit.
+        # Fall back to dimensionless (factor 1) if we can't find one.
+        target_param = param_by_name.get(rname)
+        if target_param is not None and target_param.get("units"):
+            native_factor = sbml.get_si_factor(target_param["units"])
+        else:
+            native_factor = 1.0
+        needed = _close_under_substitution([rname])
+        lines.append(f'    if (name == "{rname}") {{')
+        for dep in needed:
+            dn = dep["variable_name"]
+            ds = _sanitize(dn)
+            expr = wrap_expression(dep["expression"], mem_mapping_cv)
+            lines.append(f'        realtype AUX_VAR_{ds} = {expr};')
+        lines.append(f'        return AUX_VAR_{rsan} / {native_factor:.15g};')
+        lines.append('    }')
+    lines.append(
+        '    throw std::out_of_range("unknown assignment rule: " + name);'
+    )
+    lines.append('}')
+    lines.append('')
+
+    # ---- name lists for output column ordering -----------------------
+    lines.append('std::vector<std::string> ODE_system::getCompartmentNames() {')
+    lines.append('    return {')
+    for c in sbml.compartments:
+        lines.append(f'        "{c["name"]}",')
+    lines.append('    };')
+    lines.append('}')
+    lines.append('')
+
+    lines.append('std::vector<std::string> ODE_system::getAssignmentRuleNames() {')
+    lines.append('    return {')
+    for r in non_comp_rules:
+        lines.append(f'        "{r["variable_name"]}",')
+    lines.append('    };')
     lines.append('}')
     lines.append('')
 

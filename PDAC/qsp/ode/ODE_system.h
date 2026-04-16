@@ -6,6 +6,8 @@
 #include "../cvode/CVODEBase.h"
 #include "QSPParam.h"
 #include <sunmatrix/sunmatrix_sparse.h>
+#include <string>
+#include <vector>
 
 namespace CancerVCT{
 
@@ -59,6 +61,21 @@ public:
     // Returns the static compartment size for constant compartments.
     // Throws std::out_of_range for an unknown name.
     realtype get_compartment_volume(const std::string& name) const;
+    // Evaluate a (non-compartment) SBML assignment rule's current value
+    // in its native unit. Use this for derived quantities like
+    // phi_collagen, C_total, etc. that downstream calibration targets
+    // expect to read alongside species. Throws std::out_of_range for an
+    // unknown name.
+    realtype get_assignment_rule_value(const std::string& name) const;
+    // Static enumeration of compartment names (for output column
+    // ordering). Matches the order returned by get_compartment_volume's
+    // case branches.
+    static std::vector<std::string> getCompartmentNames();
+    // Static enumeration of assignment-rule names whose values are
+    // exposed via get_assignment_rule_value (excludes rules whose
+    // target is also a compartment — those go through
+    // get_compartment_volume).
+    static std::vector<std::string> getAssignmentRuleNames();
 
 protected:
     void setupVariables(void);

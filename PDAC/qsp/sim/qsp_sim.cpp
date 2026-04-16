@@ -63,6 +63,14 @@ struct Args {
     std::string csv_out;
     std::string binary_out;
     std::string species_out;
+    std::string compartments_out;  // --compartments-out <path>: one
+                                   // compartment name per line, in the
+                                   // same order they appear after the
+                                   // species block in the v2 binary.
+    std::string rules_out;         // --rules-out <path>: one assignment-
+                                   // rule name per line, in the same
+                                   // order they appear after the
+                                   // compartment block in the v2 binary.
     std::string scenario_yaml;
     std::string drug_meta_yaml;
     std::string healthy_yaml;      // --evolve-to-diagnosis <path>: evolve
@@ -77,7 +85,8 @@ void print_usage(const char* prog) {
     std::cerr
         << "Usage: " << prog
         << " --param <xml> [--csv-out <path>] [--binary-out <path>]\n"
-        << "                  [--species-out <path>] [--t-end-days N] [--dt-days N]\n"
+        << "                  [--species-out <path>] [--compartments-out <path>]\n"
+        << "                  [--rules-out <path>] [--t-end-days N] [--dt-days N]\n"
         << "                  [--scenario <scenario.yaml> --drug-metadata <drug_meta.yaml>]\n"
         << "                  [--evolve-to-diagnosis <healthy_state.yaml>]\n"
         << "\n"
@@ -117,6 +126,12 @@ bool parse_args(int argc, char* argv[], Args& out) {
         } else if (a == "--species-out") {
             const char* v = need_val("--species-out"); if (!v) return false;
             out.species_out = v;
+        } else if (a == "--compartments-out") {
+            const char* v = need_val("--compartments-out"); if (!v) return false;
+            out.compartments_out = v;
+        } else if (a == "--rules-out") {
+            const char* v = need_val("--rules-out"); if (!v) return false;
+            out.rules_out = v;
         } else if (a == "--t-end-days") {
             const char* v = need_val("--t-end-days"); if (!v) return false;
             out.t_end_days = std::stod(v);
@@ -316,15 +331,26 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Dynamic-compartment volumes MATLAB also emits (simdata.Data includes
-    // V_T, V_C, etc.). Appending them here lets compare_trajectories pick
-    // them up by name — V_T in particular is the clinical tumor-volume
-    // quantity and should be validated directly against SimBiology. CSV only;
-    // the binary format stays purely species (callers parse by index).
-    const std::vector<std::string> extra_comps = {
-        "V_T", "V_C", "V_P", "V_LN", "V_e",
-        "A_e", "A_s", "syn_CD8_C1", "syn_CD8_APC", "syn_M_C", "V_ID",
-    };
+    // Compartment volumes + non-compartment assignment-rule values are
+    // emitted alongside species so downstream calibration-target functions
+    // can read derived quantities (V_T, phi_collagen, C_total, …) by name
+    // without re-deriving them in Python. MATLAB SimBiology already exposes
+    // these in `simdata.Data`; matching the column set keeps the C++
+    // backend a drop-in replacement. Names come from the codegen so they
+    // stay in sync with the SBML.
+    const std::vector<std::string> extra_comps = ODE_system::getCompartmentNames();
+    const std::vector<std::string> extra_rules = ODE_system::getAssignmentRuleNames();
+    const size_t n_compartments = extra_comps.size();
+    const size_t n_rules = extra_rules.size();
+
+    if (!args.compartments_out.empty()) {
+        std::ofstream c_out(args.compartments_out);
+        for (const auto& c : extra_comps) c_out << c << '\n';
+    }
+    if (!args.rules_out.empty()) {
+        std::ofstream r_out(args.rules_out);
+        for (const auto& r : extra_rules) r_out << r << '\n';
+    }
 
     std::ofstream csv;
     if (!args.csv_out.empty()) {
@@ -335,29 +361,44 @@ int main(int argc, char* argv[]) {
         // self-consistent CSV.
         csv << "Time," << header;
         for (const auto& c : extra_comps) csv << "," << c;
+        for (const auto& r : extra_rules) csv << "," << r;
         csv << std::endl;
     }
 
-    // Binary header is written up front with a placeholder n_times; we seek
-    // back and patch it after the stepping loop, since the loop condition
-    // `t < t_end` with floating-point dt can produce one more or one fewer
-    // step than ceil(t_end/dt) predicts.
+    // Binary v2 layout (header is 56 bytes):
+    //   uint32 magic, uint32 version=2, uint64 n_t,
+    //   uint64 n_species, uint64 n_compartments, uint64 n_rules,
+    //   double dt_days, double t_end_days
+    // followed by n_t × (n_sp + n_comp + n_rules) doubles in row-major
+    // order (species first, then compartments, then rules — matching the
+    // order of the *_out name files). v1 (40-byte header, species-only
+    // body) is no longer produced; readers should accept it in
+    // backward-compat mode but can't be generated here anymore.
+    //
+    // Header is written with a placeholder n_t; we seek back and patch
+    // it after stepping because float dt may yield one more or one fewer
+    // step than ceil(t_end/dt).
     std::ofstream bin;
     const uint32_t MAGIC = 0x51535042u;  // "QSPB"
-    const uint32_t VERSION = 1;
+    const uint32_t VERSION = 2;
     if (!args.binary_out.empty()) {
         bin.open(args.binary_out, std::ios::binary);
         uint64_t n_times_placeholder = 0;
         uint64_t n_sp64 = static_cast<uint64_t>(n_species);
+        uint64_t n_comp64 = static_cast<uint64_t>(n_compartments);
+        uint64_t n_rules64 = static_cast<uint64_t>(n_rules);
         bin.write(reinterpret_cast<const char*>(&MAGIC), sizeof(MAGIC));
         bin.write(reinterpret_cast<const char*>(&VERSION), sizeof(VERSION));
         bin.write(reinterpret_cast<const char*>(&n_times_placeholder), sizeof(uint64_t));
         bin.write(reinterpret_cast<const char*>(&n_sp64), sizeof(uint64_t));
+        bin.write(reinterpret_cast<const char*>(&n_comp64), sizeof(uint64_t));
+        bin.write(reinterpret_cast<const char*>(&n_rules64), sizeof(uint64_t));
         bin.write(reinterpret_cast<const char*>(&args.dt_days), sizeof(double));
         bin.write(reinterpret_cast<const char*>(&args.t_end_days), sizeof(double));
     }
 
-    std::vector<double> row(n_species);
+    const size_t n_cols = n_species + n_compartments + n_rules;
+    std::vector<double> row(n_cols);
 
     // Optional: replace ICs with the healthy microinvasive state and integrate
     // forward until V_T diameter crosses the target. The state at return is
@@ -388,14 +429,24 @@ int main(int argc, char* argv[]) {
             for (const auto& c : extra_comps) {
                 csv << "," << ode.get_compartment_volume(c);
             }
+            for (const auto& r : extra_rules) {
+                csv << "," << ode.get_assignment_rule_value(r);
+            }
             csv << std::endl;
         }
         if (bin.is_open()) {
             for (size_t i = 0; i < n_species; ++i) {
                 row[i] = ode.getSpeciesOutputValue(static_cast<int>(i));
             }
+            for (size_t i = 0; i < n_compartments; ++i) {
+                row[n_species + i] = ode.get_compartment_volume(extra_comps[i]);
+            }
+            for (size_t i = 0; i < n_rules; ++i) {
+                row[n_species + n_compartments + i] =
+                    ode.get_assignment_rule_value(extra_rules[i]);
+            }
             bin.write(reinterpret_cast<const char*>(row.data()),
-                      static_cast<std::streamsize>(n_species * sizeof(double)));
+                      static_cast<std::streamsize>(n_cols * sizeof(double)));
         }
     };
 
@@ -523,11 +574,16 @@ int main(int argc, char* argv[]) {
                   << std::endl;
     }
     if (bin.is_open()) {
+        // n_times slot is at offset 8 in the header (after magic + version).
         bin.seekp(sizeof(uint32_t) * 2, std::ios::beg);
         bin.write(reinterpret_cast<const char*>(&n_times), sizeof(uint64_t));
         bin.close();
-        std::cerr << "Wrote " << n_times << " time points × " << n_species
-                  << " species to " << args.binary_out << std::endl;
+        std::cerr << "Wrote " << n_times << " time points × " << n_cols
+                  << " columns ("
+                  << n_species << " species + "
+                  << n_compartments << " compartments + "
+                  << n_rules << " rules) to "
+                  << args.binary_out << std::endl;
     }
     return 0;
 }
