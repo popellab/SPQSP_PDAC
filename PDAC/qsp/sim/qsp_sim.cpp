@@ -426,7 +426,10 @@ int main(int argc, char* argv[]) {
         // Fast sampling path: CVODE keeps its internal history across output
         // points (via simOdeSample) so fine output cadence doesn't force
         // the solver to repeatedly restart from a tiny step-size. Event-free.
-        ode.setupSamplingRun(t_stop);
+        // Pass t_offset so CVodeReInit picks up where evolve_to_diagnosis
+        // left off; without this, CVODE silently restarts at t=0 and blasts
+        // past the first sample by the full evolve duration (~857 days).
+        ode.setupSamplingRun(t_stop, t_offset);
 
         write_state(t_offset);
         n_times = 1;

@@ -61,8 +61,13 @@ public:
 
 	//! One-time setup before the first simOdeSample call: sets the CVODE
 	//! stop time to t_end_of_sim so CV_NORMAL stepping won't walk past it,
-	//! and runs any pending initial-assignment events at t=0.
-	void setupSamplingRun(double tEndOfSim);
+	//! and runs any pending initial-assignment events at t0.
+	//!
+	//! `t0` is the absolute integration start time. Pass the ODE's current
+	//! internal time when entering a sampling run after a prior
+	//! simOdeStep-based phase (e.g. evolve_to_diagnosis); if the fast path
+	//! runs from fresh ICs, leave it at the 0.0 default.
+	void setupSamplingRun(double tEndOfSim, double t0 = 0.0);
 
 	//! examples of optional output
 	void PrintFinalStats(void *cvode_mem);

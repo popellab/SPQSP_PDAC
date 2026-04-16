@@ -540,10 +540,10 @@ void CVODEBase::resetSolver(realtype t0, realtype t1){
 	stale state, not the properly-initialized one.
 
 */
-void CVODEBase::setupSamplingRun(double tEndOfSim){
+void CVODEBase::setupSamplingRun(double tEndOfSim, double t0){
 	restore_y();
-	resolveEvents(0.0);
-	CVodeReInit(_cvode_mem, 0.0, _y);
+	resolveEvents(t0);
+	CVodeReInit(_cvode_mem, t0, _y);
 	CVodeSetStopTime(_cvode_mem, tEndOfSim);
 }
 
