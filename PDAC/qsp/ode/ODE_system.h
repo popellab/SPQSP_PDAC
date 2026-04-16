@@ -5,6 +5,7 @@
 
 #include "../cvode/CVODEBase.h"
 #include "QSPParam.h"
+#include <sunmatrix/sunmatrix_sparse.h>
 
 namespace CancerVCT{
 
@@ -14,6 +15,19 @@ class ODE_system :
 public:
     static int f(realtype t, N_Vector y, N_Vector ydot, void *user_data);
     static int g(realtype t, N_Vector y, realtype *gout, void *user_data);
+    // --- Analytical Jacobian for KLU sparse linear solver ---
+    // Emitted by qsp_codegen.py via sympy symbolic differentiation of f.
+    // Sparsity pattern is static (derived from SBML reaction/rule structure)
+    // so it is safe to allocate the SUNSparseMatrix with this nnz once per
+    // solver instance. CSC format: col_ptrs has length neq+1, row_indices
+    // has length nnz.
+    static constexpr sunindextype _jac_nnz = 1432;
+    static const sunindextype _jac_col_ptrs[];
+    static const sunindextype _jac_row_indices[];
+    static int jac(realtype t, N_Vector y, N_Vector fy,
+                   SUNMatrix J, void *user_data,
+                   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+
     static std::string getHeader();
     static void setup_class_parameters(QSPParam& param);
     static double get_class_param(unsigned int i);

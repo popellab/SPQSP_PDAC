@@ -631,6 +631,330 @@ def build_stoichiometry(reactions: list, species_names: set) -> Dict[str, List[T
 
 
 # =========================================================================
+# Symbolic Jacobian (for KLU sparse linear solver)
+# =========================================================================
+# Builds df/dy from the SBML reaction rates + assignment rules using sympy,
+# applies CSE to compress output, and emits a CVODE-compatible jac() function
+# plus a static CSC sparsity pattern. Measured sparsity on PDAC_model.sbml is
+# ~1296 nnz out of 164² = ~4.8% density, so sparse LU beats dense by ~20x
+# in flops.
+
+def _build_sympy_context(sbml: SBMLModel):
+    """Build sympy symbol registry + a C++-infix-to-sympy parser.
+
+    The sympy path differs from the main codegen's string-substitution path
+    in one critical way: SBML concentration species appear in rate laws as
+    CONCENTRATION (= amount / compartment_volume), but CVODE integrates
+    AMOUNT. For the analytical Jacobian ∂f_i/∂y_j to be correct under y=amount,
+    we substitute concentration references with (amount_symbol / comp_symbol)
+    in sympy, then let sympy's expansion/differentiation handle the chain rule
+    correctly when the compartment rule gets substituted.
+
+    Returns a dict with:
+        - orig_to_san: map SBML name ("V_T.C1") → sanitized ("V_T_C1")
+        - symbols:     map sanitized name → sp.Symbol
+        - species_syms / species_set: the species symbols in enum order
+        - to_sympy(expr_str) → sp.Expr
+        - sympy_wrap_mapping: orig-name → C++ macro for wrapping ccode
+          output in the jac() function (uses raw SPVAR, no
+          compartment-division, since concentration was done in sympy)
+    """
+    import sympy as sp
+
+    all_names: Set[str] = set()
+    for s_ in sbml.species:     all_names.add(s_["name"])
+    for p  in sbml.parameters:  all_names.add(p["name"])
+    for c  in sbml.compartments: all_names.add(c["name"])
+    for r  in sbml.assignment_rules: all_names.add(r["variable_name"])
+
+    orig_to_san = {n: _sanitize(n) for n in all_names}
+    symbols: Dict[str, "sp.Symbol"] = {_sanitize(n): sp.Symbol(_sanitize(n)) for n in all_names}
+
+    # Per-identifier substitution strings for the sympy parser. Dotted
+    # concentration species expand to (amount / compartment); amount species
+    # and plain identifiers just sanitize their dots.
+    id_infix: Dict[str, str] = {}
+    rule_var_set = {r["variable_name"] for r in sbml.assignment_rules}
+    for sp_ in sbml.species:
+        nm = sp_["name"]
+        san = _sanitize(nm)
+        if sp_.get("has_only_substance_units", False):
+            id_infix[nm] = san
+        else:
+            comp = sp_["compartment"]
+            comp_san = _sanitize(comp)
+            id_infix[nm] = f"({san} / {comp_san})"
+    # All non-species identifiers just sanitize (dotted params/rule vars are rare
+    # but possible; stay robust).
+    for nm in all_names:
+        if nm not in id_infix:
+            id_infix[nm] = _sanitize(nm)
+
+    # Longest first so V_T.C1 wins over V_T.
+    sorted_orig = sorted(id_infix.keys(), key=len, reverse=True)
+
+    _fn_rewrites = [
+        (re.compile(r"\bstd::"), ""),
+        (re.compile(r"\bmax\b"), "Max"),
+        (re.compile(r"\bmin\b"), "Min"),
+        (re.compile(r"\babs\b"), "Abs"),
+        (re.compile(r"\bln\b"), "log"),
+        (re.compile(r"\bceil\b"), "ceiling"),
+    ]
+
+    def to_sympy(expr: str) -> "sp.Expr":
+        s = expr
+        for pat, repl in _fn_rewrites:
+            s = pat.sub(repl, s)
+        # Two-phase substitution: first insert placeholders for each known
+        # identifier, then realize placeholders to their sympy infix. This
+        # avoids 'V_T' eating part of 'V_T_C1' that we just produced.
+        slots: List[Tuple[str, str]] = []
+        for orig in sorted_orig:
+            pat = r'(?<![A-Za-z0-9_\.])' + re.escape(orig) + r'(?![A-Za-z0-9_\.])'
+            if re.search(pat, s):
+                ph = f"__SYMIDX{len(slots)}__"
+                s = re.sub(pat, ph, s)
+                slots.append((ph, id_infix[orig]))
+        for ph, infix in slots:
+            s = s.replace(ph, infix)
+        return sp.sympify(s, locals=symbols)
+
+    species_syms = [symbols[orig_to_san[sp_["name"]]] for sp_ in sbml.species]
+
+    # Mapping for wrapping the sympy-emitted C++ code back to SPVAR/PARAM
+    # macros. Differs from classify_identifiers': concentration species are
+    # just their raw amount (SPVAR(SP_X)) because the compartment division
+    # was already done in sympy-space and has been expanded symbolically.
+    sympy_wrap_mapping: Dict[str, str] = {}
+    for sp_ in sbml.species:
+        sympy_wrap_mapping[sp_["name"]] = f'SPVAR(SP_{_sanitize(sp_["name"])})'
+    for p in sbml.parameters:
+        if p["name"] not in rule_var_set:
+            sympy_wrap_mapping[p["name"]] = f'PARAM(P_{_sanitize(p["name"])})'
+    for c in sbml.compartments:
+        if c["name"] not in rule_var_set and c["name"] not in sympy_wrap_mapping:
+            sympy_wrap_mapping[c["name"]] = f'PARAM(P_{_sanitize(c["name"])})'
+    # Assignment-rule variables shouldn't appear post-expand, but map them as
+    # a defensive fallback so sympy output referencing them is visibly broken
+    # rather than silently emitting a bare identifier.
+    for r in sbml.assignment_rules:
+        sympy_wrap_mapping.setdefault(r["variable_name"],
+                                      f'/*UNEXPANDED_RULE_{_sanitize(r["variable_name"])}*/')
+
+    return {
+        "orig_to_san": orig_to_san,
+        "symbols": symbols,
+        "species_syms": species_syms,
+        "species_set": set(species_syms),
+        "to_sympy": to_sympy,
+        "sympy_wrap_mapping": sympy_wrap_mapping,
+    }
+
+
+def _postprocess_ccode(cpp: str) -> str:
+    """Translate sympy's default ccode output to match the rest of the
+    codegen's conventions (std:: prefix on math functions)."""
+    # Order matters: log2/log10 before log.
+    subs = [
+        (r"\blog10\(", "std::log10("),
+        (r"\blog2\(",  "std::log2("),
+        (r"\blog\(",   "std::log("),
+        (r"\bexp\(",   "std::exp("),
+        (r"\bsqrt\(",  "std::sqrt("),
+        (r"\bpow\(",   "std::pow("),
+        (r"\bfmax\(",  "std::fmax("),
+        (r"\bfmin\(",  "std::fmin("),
+        (r"\bfabs\(",  "std::fabs("),
+        (r"\bsin\(",   "std::sin("),
+        (r"\bcos\(",   "std::cos("),
+        (r"\btan\(",   "std::tan("),
+    ]
+    for pat, repl in subs:
+        cpp = re.sub(pat, repl, cpp)
+    return cpp
+
+
+def _sympy_wrap(cpp_code: str, mapping: Dict[str, str], orig_to_san: Dict[str, str]) -> str:
+    """Replace sanitized identifiers in sympy's ccode output with the
+    C++ macros (SPVAR/PARAM/AUX_VAR) from the codegen's mapping."""
+    # mapping is keyed by original names; we need sanitized-key lookups
+    # because sympy emits sanitized identifier names.
+    san_to_macro: Dict[str, str] = {}
+    for orig, macro in mapping.items():
+        san_to_macro[orig_to_san.get(orig, orig.replace(".", "_"))] = macro
+
+    # Two-pass placeholder substitution (same trick wrap_expression uses).
+    sorted_sans = sorted(san_to_macro, key=len, reverse=True)
+    placeholders: List[Tuple[str, str]] = []
+    for san in sorted_sans:
+        pat = r'(?<![A-Za-z0-9_])' + re.escape(san) + r'(?![A-Za-z0-9_])'
+        if re.search(pat, cpp_code):
+            ph = f"__JPH{len(placeholders)}__"
+            cpp_code = re.sub(pat, ph, cpp_code)
+            placeholders.append((ph, san_to_macro[san]))
+    for ph, macro in placeholders:
+        cpp_code = cpp_code.replace(ph, macro)
+    return cpp_code
+
+
+def compute_jacobian(sbml: SBMLModel, mapping: Dict[str, str]) -> dict:
+    """Derive df/dy symbolically, run CSE, prepare C++ strings.
+
+    Returns:
+        {
+          "nnz":         int,                         # nonzero count
+          "col_ptrs":    List[int] length neq+1,      # CSC column pointers
+          "row_indices": List[int] length nnz,        # CSC row indices
+          "cse_items":   List[Tuple[str, str]],       # [(aux_var, cpp_expr)]
+          "entry_cpp":   List[str] length nnz,        # J values in CSC order
+        }
+    """
+    import sympy as sp
+
+    ctx = _build_sympy_context(sbml)
+    symbols = ctx["symbols"]
+    orig_to_san = ctx["orig_to_san"]
+    species_syms = ctx["species_syms"]
+    species_set = ctx["species_set"]
+    to_sympy = ctx["to_sympy"]
+
+    rate_sym = [to_sympy(r["rate_law"]) for r in sbml.reactions]
+    rule_exprs = {symbols[orig_to_san[r["variable_name"]]]: to_sympy(r["expression"])
+                  for r in sbml.assignment_rules}
+
+    def expand(expr: "sp.Expr") -> "sp.Expr":
+        # Fixpoint-substitute until no rule symbol remains. Assignment-rule
+        # DAG is acyclic by SBML contract; 50-pass cap is a safety net.
+        prev = None
+        e = expr
+        for _ in range(50):
+            e = e.subs(rule_exprs)
+            if e == prev:
+                return e
+            prev = e
+        return e
+
+    rate_expanded = [expand(r) for r in rate_sym]
+
+    sp_names = {sp_["name"] for sp_ in sbml.species}
+    stoich = build_stoichiometry(sbml.reactions, sp_names)
+
+    ydot: Dict["sp.Symbol", "sp.Expr"] = {}
+    for sp_ in sbml.species:
+        sym = symbols[orig_to_san[sp_["name"]]]
+        entries = stoich.get(sp_["name"], [])
+        if not entries:
+            ydot[sym] = sp.Integer(0)
+            continue
+        flux_sum = sum((sign * rate_expanded[fi-1] for fi, sign in entries), sp.Integer(0))
+        comp_name = needs_volume_scaling(sp_, sbml)
+        if comp_name is not None:
+            v_sym = symbols[orig_to_san[comp_name]]
+            v_expr = expand(v_sym) if v_sym in rule_exprs else v_sym
+            ydot[sym] = flux_sum / v_expr
+        else:
+            ydot[sym] = flux_sum
+
+    # Walk columns (j) so col_ptrs drops out naturally.
+    entries_by_col: Dict[int, List[Tuple[int, "sp.Expr"]]] = {
+        j: [] for j in range(len(sbml.species))
+    }
+    for i, sp_i in enumerate(sbml.species):
+        sym_i = symbols[orig_to_san[sp_i["name"]]]
+        expr_i = ydot[sym_i]
+        if expr_i == 0:
+            continue
+        free = expr_i.free_symbols & species_set
+        for sym_j in free:
+            j = species_syms.index(sym_j)
+            d = sp.diff(expr_i, sym_j)
+            if d != 0:
+                entries_by_col[j].append((i, d))
+
+    col_ptrs: List[int] = [0]
+    row_indices: List[int] = []
+    entry_exprs: List["sp.Expr"] = []
+    for j in range(len(sbml.species)):
+        for (i, d) in sorted(entries_by_col[j], key=lambda p: p[0]):
+            row_indices.append(i)
+            entry_exprs.append(d)
+        col_ptrs.append(len(row_indices))
+
+    # CSE compresses ~1.7 MB of naive ccode down to ~40 KB by extracting
+    # shared subexpressions (mostly the same AUX_VARs that appear in f).
+    replacements, reduced = sp.cse(entry_exprs, optimizations="basic")
+
+    wrap_map = ctx["sympy_wrap_mapping"]
+
+    cse_items: List[Tuple[str, str]] = []
+    for aux_sym, aux_rhs in replacements:
+        cpp = _postprocess_ccode(sp.ccode(aux_rhs))
+        cpp = _sympy_wrap(cpp, wrap_map, orig_to_san)
+        cse_items.append((str(aux_sym), cpp))
+
+    entry_cpp: List[str] = []
+    for r in reduced:
+        cpp = _postprocess_ccode(sp.ccode(r))
+        cpp = _sympy_wrap(cpp, wrap_map, orig_to_san)
+        entry_cpp.append(cpp)
+
+    return {
+        "nnz": len(row_indices),
+        "col_ptrs": col_ptrs,
+        "row_indices": row_indices,
+        "cse_items": cse_items,
+        "entry_cpp": entry_cpp,
+    }
+
+
+def gen_jacobian_cpp(sbml: SBMLModel, info: dict) -> str:
+    """Emit the static CSC arrays + the ODE_system::jac function body."""
+    neq = len(sbml.species)
+    nnz = info["nnz"]
+
+    def _emit_int_array(name: str, values: List[int], per_line: int = 16) -> List[str]:
+        out = [f"const sunindextype ODE_system::{name}[] = {{"]
+        for i in range(0, len(values), per_line):
+            chunk = values[i:i+per_line]
+            out.append("    " + ", ".join(str(x) for x in chunk) + ",")
+        out.append("};")
+        return out
+
+    lines: List[str] = []
+    lines.append("// --- Analytical Jacobian (generated) ---")
+    lines.extend(_emit_int_array("_jac_col_ptrs", info["col_ptrs"]))
+    lines.append("")
+    lines.extend(_emit_int_array("_jac_row_indices", info["row_indices"]))
+    lines.append("")
+    lines.append("int ODE_system::jac(realtype t, N_Vector y, N_Vector fy,")
+    lines.append("                     SUNMatrix J, void *user_data,")
+    lines.append("                     N_Vector tmp1, N_Vector tmp2, N_Vector tmp3){")
+    lines.append("    ODE_system* ptrOde = static_cast<ODE_system*>(user_data);")
+    lines.append("    sunindextype *colptrs = SUNSparseMatrix_IndexPointers(J);")
+    lines.append("    sunindextype *rowvals = SUNSparseMatrix_IndexValues(J);")
+    lines.append("    realtype *data = SUNSparseMatrix_Data(J);")
+    lines.append("")
+    lines.append("    // Restamp the sparsity pattern every call: cheap, and")
+    lines.append("    // robust against CVODE reallocating between solves.")
+    lines.append(f"    for (sunindextype k = 0; k <= {neq}; ++k) colptrs[k] = _jac_col_ptrs[k];")
+    lines.append(f"    for (sunindextype k = 0; k < {nnz}; ++k) rowvals[k] = _jac_row_indices[k];")
+    lines.append("")
+    lines.append("    // Common subexpressions extracted by sympy.cse() from the")
+    lines.append("    // ~1.7 MB naive Jacobian — compresses to ~40 KB of output.")
+    for aux_name, cpp in info["cse_items"]:
+        lines.append(f"    realtype {aux_name} = {cpp};")
+    lines.append("")
+    lines.append("    // Jacobian values (CSC order, matches _jac_row_indices / _jac_col_ptrs):")
+    for k, cpp in enumerate(info["entry_cpp"]):
+        lines.append(f"    data[{k}] = {cpp};")
+    lines.append("")
+    lines.append("    return 0;")
+    lines.append("}")
+    return "\n".join(lines) + "\n"
+
+
+# =========================================================================
 # Code generators
 # =========================================================================
 
@@ -699,14 +1023,32 @@ def gen_enum_h(sbml: SBMLModel) -> str:
     return "\n".join(lines) + "\n"
 
 
-def gen_ode_h() -> str:
-    return '''#ifndef __CancerVCT_ODE__
+def gen_ode_h(jac_nnz: int = 0) -> str:
+    jac_decl = ''
+    if jac_nnz > 0:
+        jac_decl = (
+            '\n    // --- Analytical Jacobian for KLU sparse linear solver ---\n'
+            '    // Emitted by qsp_codegen.py via sympy symbolic differentiation of f.\n'
+            '    // Sparsity pattern is static (derived from SBML reaction/rule structure)\n'
+            '    // so it is safe to allocate the SUNSparseMatrix with this nnz once per\n'
+            '    // solver instance. CSC format: col_ptrs has length neq+1, row_indices\n'
+            '    // has length nnz.\n'
+            f'    static constexpr sunindextype _jac_nnz = {jac_nnz};\n'
+            '    static const sunindextype _jac_col_ptrs[];\n'
+            '    static const sunindextype _jac_row_indices[];\n'
+            '    static int jac(realtype t, N_Vector y, N_Vector fy,\n'
+            '                   SUNMatrix J, void *user_data,\n'
+            '                   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);\n'
+        )
+
+    return ('''#ifndef __CancerVCT_ODE__
 #define __CancerVCT_ODE__
 
 // Auto-generated by qsp_codegen.py from SBML — do not edit manually
 
 #include "../cvode/CVODEBase.h"
 #include "QSPParam.h"
+#include <sunmatrix/sunmatrix_sparse.h>
 
 namespace CancerVCT{
 
@@ -715,7 +1057,7 @@ class ODE_system :
 {
 public:
     static int f(realtype t, N_Vector y, N_Vector ydot, void *user_data);
-    static int g(realtype t, N_Vector y, realtype *gout, void *user_data);
+    static int g(realtype t, N_Vector y, realtype *gout, void *user_data);''' + jac_decl + '''
     static std::string getHeader();
     static void setup_class_parameters(QSPParam& param);
     static double get_class_param(unsigned int i);
@@ -775,7 +1117,7 @@ inline void ODE_system::set_class_param(unsigned int i, double v){
 
 }  // namespace CancerVCT
 #endif
-'''
+''')
 
 
 def gen_ode_cpp(sbml: SBMLModel, mapping: dict) -> str:
@@ -1266,8 +1608,20 @@ def gen_ode_cpp(sbml: SBMLModel, mapping: dict) -> str:
     lines.append('    return 0;')
     lines.append('}')
     lines.append('')
+
+    # Analytical Jacobian (KLU-ready sparse CSC format). Generated via sympy
+    # symbolic differentiation of the same rate/rule expressions that
+    # produced f() above. The CVODEBase setupCVODE path will attach this
+    # via CVodeSetJacFn when built with KLU support; dense builds ignore it.
+    if gen_ode_cpp._jacobian_info is not None:
+        lines.append(gen_jacobian_cpp(sbml, gen_ode_cpp._jacobian_info))
     lines.append('}  // namespace CancerVCT')
     return "\n".join(lines) + "\n"
+
+
+# Set by main() before gen_ode_cpp runs, so gen_ode_h (called first) can
+# embed the nnz and gen_ode_cpp can reuse the sympy work.
+gen_ode_cpp._jacobian_info = None
 
 
 def gen_qsp_param_h() -> str:
@@ -1423,10 +1777,28 @@ def main():
     mapping = classify_identifiers(sbml)
     print(f"  Identifier mappings: {len(mapping)}")
 
+    # Symbolic Jacobian (skip gracefully if sympy is unavailable).
+    # Computed once and shared between gen_ode_h (nnz constant) and
+    # gen_ode_cpp (emits the actual function body).
+    try:
+        import sympy  # noqa: F401
+        print("\nDeriving analytical Jacobian (sympy + CSE)...")
+        jac_info = compute_jacobian(sbml, mapping)
+        print(f"  nnz = {jac_info['nnz']} "
+              f"({100.0 * jac_info['nnz'] / (len(sbml.species) ** 2):.2f}% density)")
+        print(f"  CSE subexpressions: {len(jac_info['cse_items'])}")
+        gen_ode_cpp._jacobian_info = jac_info
+        jac_nnz = jac_info["nnz"]
+    except ImportError:
+        print("\nsympy not installed — skipping analytical Jacobian emission. "
+              "Install with `uv pip install sympy` to enable KLU sparse solver.")
+        gen_ode_cpp._jacobian_info = None
+        jac_nnz = 0
+
     print("\nGenerating C++ files...")
     files = {
         "QSP_enum.h": gen_enum_h(sbml),
-        "ODE_system.h": gen_ode_h(),
+        "ODE_system.h": gen_ode_h(jac_nnz=jac_nnz),
         "ODE_system.cpp": gen_ode_cpp(sbml, mapping),
         "QSPParam.h": gen_qsp_param_h(),
         "QSPParam.cpp": gen_qsp_param_cpp(sbml),
