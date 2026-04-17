@@ -105,6 +105,27 @@ public:
 	//! manually update solver variable values
 	void updateVar(void);
 
+	//! Serialize the full instance-level ODE state (species + nonspecies +
+	//! delay-event queue + trigger/event flags) to a binary stream. Used
+	//! by the evolve-to-diagnosis cache (qsp_sim --dump-state) to preserve
+	//! the post-evolve state across scenario runs. Does NOT capture CVODE
+	//! internal state (Nordsieck history etc.) — after loadFullState the
+	//! caller must sync via updateVar() and re-init the solver via
+	//! setupSamplingRun() or resetSolver() before integrating.
+	//!
+	//! Field-by-field layout (little-endian, packed), read by loadFullState:
+	//!   uint64 n_species_var;      float64[n_species_var]
+	//!   uint64 n_nonspecies_var;   float64[n_nonspecies_var]
+	//!   uint64 n_delay_events;     { float64 t; int32 idx; }[n_delay_events]
+	//!   uint64 n_trigger_sat;      uint8[n_trigger_sat]    (0/1)
+	//!   uint64 n_event_trig;       uint8[n_event_trig]     (0/1)
+	void saveFullState(std::ostream& os) const;
+	//! Mirror of saveFullState: read the same layout and populate the
+	//! instance state vectors in place. Throws std::runtime_error on
+	//! length/stream errors. Caller is responsible for calling updateVar()
+	//! + setupSamplingRun() / resetSolver() afterwards.
+	void loadFullState(std::istream& is);
+
 
 protected:
 

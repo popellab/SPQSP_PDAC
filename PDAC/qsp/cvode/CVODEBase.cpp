@@ -1,8 +1,10 @@
 #include "CVODEBase.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 const int mxstep = 500000;
@@ -565,6 +567,146 @@ void CVODEBase::simOdeSample(double tEnd){
 	save_y();
 	update_y_other();
 }
+// ----- Evolve-cache full-state serialization -----------------------------
+//
+// Pure data dump: ODE_system state vectors + delay-event queue + trigger
+// flags, nothing CVODE-internal. Used by qsp_sim --dump-state /
+// --initial-state so multi-scenario sweeps share one evolve run per theta.
+
+namespace {
+
+template <typename T>
+inline void write_pod(std::ostream& os, const T& v) {
+    os.write(reinterpret_cast<const char*>(&v), sizeof(T));
+}
+
+template <typename T>
+inline void read_pod(std::istream& is, T& v) {
+    is.read(reinterpret_cast<char*>(&v), sizeof(T));
+    if (!is) {
+        throw std::runtime_error(
+            "CVODEBase::loadFullState: truncated stream");
+    }
+}
+
+}  // namespace
+
+void CVODEBase::saveFullState(std::ostream& os) const {
+    const uint64_t n_sp = static_cast<uint64_t>(_species_var.size());
+    const uint64_t n_nsp = static_cast<uint64_t>(_nonspecies_var.size());
+    const uint64_t n_de = static_cast<uint64_t>(_delayEvents.size());
+    const uint64_t n_tsat = static_cast<uint64_t>(
+        _trigger_element_satisfied.size());
+    const uint64_t n_etrig = static_cast<uint64_t>(_event_triggered.size());
+
+    write_pod(os, n_sp);
+    if (n_sp) {
+        os.write(reinterpret_cast<const char*>(_species_var.data()),
+                 static_cast<std::streamsize>(n_sp * sizeof(double)));
+    }
+
+    write_pod(os, n_nsp);
+    if (n_nsp) {
+        os.write(reinterpret_cast<const char*>(_nonspecies_var.data()),
+                 static_cast<std::streamsize>(n_nsp * sizeof(double)));
+    }
+
+    write_pod(os, n_de);
+    for (const auto& ev : _delayEvents) {
+        const double t = static_cast<double>(ev.first);
+        const int32_t idx = static_cast<int32_t>(ev.second);
+        write_pod(os, t);
+        write_pod(os, idx);
+    }
+
+    write_pod(os, n_tsat);
+    for (bool b : _trigger_element_satisfied) {
+        const uint8_t byte = b ? 1u : 0u;
+        write_pod(os, byte);
+    }
+
+    write_pod(os, n_etrig);
+    for (bool b : _event_triggered) {
+        const uint8_t byte = b ? 1u : 0u;
+        write_pod(os, byte);
+    }
+}
+
+void CVODEBase::loadFullState(std::istream& is) {
+    uint64_t n_sp = 0, n_nsp = 0, n_de = 0, n_tsat = 0, n_etrig = 0;
+
+    read_pod(is, n_sp);
+    if (n_sp != _species_var.size()) {
+        std::ostringstream msg;
+        msg << "CVODEBase::loadFullState: species_var length mismatch "
+            << "(file=" << n_sp << ", current model=" << _species_var.size()
+            << "). Likely a qsp_sim version / SBML codegen mismatch — "
+               "rebuild the cache.";
+        throw std::runtime_error(msg.str());
+    }
+    if (n_sp) {
+        is.read(reinterpret_cast<char*>(_species_var.data()),
+                static_cast<std::streamsize>(n_sp * sizeof(double)));
+        if (!is) throw std::runtime_error(
+            "CVODEBase::loadFullState: truncated species_var payload");
+    }
+
+    read_pod(is, n_nsp);
+    if (n_nsp != _nonspecies_var.size()) {
+        std::ostringstream msg;
+        msg << "CVODEBase::loadFullState: nonspecies_var length mismatch "
+            << "(file=" << n_nsp
+            << ", current model=" << _nonspecies_var.size() << ")";
+        throw std::runtime_error(msg.str());
+    }
+    if (n_nsp) {
+        is.read(reinterpret_cast<char*>(_nonspecies_var.data()),
+                static_cast<std::streamsize>(n_nsp * sizeof(double)));
+        if (!is) throw std::runtime_error(
+            "CVODEBase::loadFullState: truncated nonspecies_var payload");
+    }
+
+    read_pod(is, n_de);
+    _delayEvents.clear();
+    _delayEvents.reserve(static_cast<size_t>(n_de));
+    for (uint64_t i = 0; i < n_de; ++i) {
+        double t = 0.0;
+        int32_t idx = 0;
+        read_pod(is, t);
+        read_pod(is, idx);
+        _delayEvents.emplace_back(static_cast<realtype>(t),
+                                  static_cast<int>(idx));
+    }
+
+    read_pod(is, n_tsat);
+    if (n_tsat != _trigger_element_satisfied.size()) {
+        std::ostringstream msg;
+        msg << "CVODEBase::loadFullState: trigger_element_satisfied length "
+               "mismatch (file=" << n_tsat
+            << ", current model=" << _trigger_element_satisfied.size() << ")";
+        throw std::runtime_error(msg.str());
+    }
+    for (uint64_t i = 0; i < n_tsat; ++i) {
+        uint8_t byte = 0;
+        read_pod(is, byte);
+        _trigger_element_satisfied[i] = (byte != 0);
+    }
+
+    read_pod(is, n_etrig);
+    if (n_etrig != _event_triggered.size()) {
+        std::ostringstream msg;
+        msg << "CVODEBase::loadFullState: event_triggered length mismatch "
+            << "(file=" << n_etrig
+            << ", current model=" << _event_triggered.size() << ")";
+        throw std::runtime_error(msg.str());
+    }
+    for (uint64_t i = 0; i < n_etrig; ++i) {
+        uint8_t byte = 0;
+        read_pod(is, byte);
+        _event_triggered[i] = (byte != 0);
+    }
+}
+
 /*! copy variable value from vector to serial
 */
 void CVODEBase::restore_y(){
