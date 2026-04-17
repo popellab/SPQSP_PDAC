@@ -43,6 +43,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -77,9 +78,34 @@ struct Args {
                                    // from healthy IC; outputs start at t=0
                                    // = diagnosis time. Dose times shift
                                    // by t_diag.
+    std::string dump_state_path;   // --dump-state <path>: after evolve,
+                                   // serialize ODE state to <path> and exit
+                                   // 0. Requires --evolve-to-diagnosis.
+    std::string initial_state_path; // --initial-state <path>: skip evolve,
+                                   // load ODE state from <path>, set
+                                   // t_offset from its header. Mutually
+                                   // exclusive with --evolve-to-diagnosis.
+    std::string params_hash;       // --params-hash <hex>: stored into
+                                   // dumped-state headers; verified against
+                                   // --initial-state headers. Catches
+                                   // cache/theta mismatches.
     double t_end_days = 365.0;
     double dt_days = 0.1;
 };
+
+// Evolve-cache file format (QSTH blob). Fixed 128-byte header followed by
+// a CVODEBase full-state payload (see CVODEBase::saveFullState).
+//   uint32   magic         = 0x53545148  ('QSTH' little-endian)
+//   uint32   version       = 1
+//   uint64   n_species_var                (matches current ODE_system on load)
+//   float64  t_diagnosis_days             (model-time at which evolve stopped)
+//   float64  vt_diameter_cm               (diagnostic V_T diameter at dump)
+//   char[32] params_hash_hex              (null-padded; empty means unchecked)
+//   char[64] reserved                     (zero-filled for forward compat)
+constexpr uint32_t QSTH_MAGIC = 0x53545148u;
+constexpr uint32_t QSTH_VERSION = 1u;
+constexpr size_t QSTH_HEADER_SIZE = 128;
+constexpr size_t QSTH_HASH_LEN = 32;
 
 void print_usage(const char* prog) {
     std::cerr
@@ -89,6 +115,18 @@ void print_usage(const char* prog) {
         << "                  [--rules-out <path>] [--t-end-days N] [--dt-days N]\n"
         << "                  [--scenario <scenario.yaml> --drug-metadata <drug_meta.yaml>]\n"
         << "                  [--evolve-to-diagnosis <healthy_state.yaml>]\n"
+        << "                  [--dump-state <path> | --initial-state <path>]\n"
+        << "                  [--params-hash <hex>]\n"
+        << "\n"
+        << "Evolve cache:\n"
+        << "  --dump-state    <path>  with --evolve-to-diagnosis: run evolve, write\n"
+        << "                          post-evolve ODE state to <path> (QSTH blob),\n"
+        << "                          then exit 0. No scenario sim runs.\n"
+        << "  --initial-state <path>  skip evolve; load ODE state from <path> and\n"
+        << "                          proceed into the scenario sim. t_offset is\n"
+        << "                          read from the blob header.\n"
+        << "  --params-hash   <hex>   stored in dumps, verified on loads (catches\n"
+        << "                          cache/theta mismatches).\n"
         << "\n"
         << "Legacy: " << prog
         << " <param_xml> <csv_out> [t_end_days] [dt_days]\n";
@@ -147,6 +185,15 @@ bool parse_args(int argc, char* argv[], Args& out) {
         } else if (a == "--evolve-to-diagnosis") {
             const char* v = need_val("--evolve-to-diagnosis"); if (!v) return false;
             out.healthy_yaml = v;
+        } else if (a == "--dump-state") {
+            const char* v = need_val("--dump-state"); if (!v) return false;
+            out.dump_state_path = v;
+        } else if (a == "--initial-state") {
+            const char* v = need_val("--initial-state"); if (!v) return false;
+            out.initial_state_path = v;
+        } else if (a == "--params-hash") {
+            const char* v = need_val("--params-hash"); if (!v) return false;
+            out.params_hash = v;
         } else if (a == "-h" || a == "--help") {
             return false;
         } else {
@@ -159,7 +206,10 @@ bool parse_args(int argc, char* argv[], Args& out) {
         std::cerr << "--param is required" << std::endl;
         return false;
     }
-    if (out.csv_out.empty() && out.binary_out.empty()) {
+    // --dump-state runs evolve only, then exits — trajectory output is
+    // meaningless in that mode, so skip the csv/binary requirement.
+    if (out.dump_state_path.empty()
+        && out.csv_out.empty() && out.binary_out.empty()) {
         std::cerr << "At least one of --csv-out or --binary-out is required"
                   << std::endl;
         return false;
@@ -168,7 +218,111 @@ bool parse_args(int argc, char* argv[], Args& out) {
         std::cerr << "--scenario requires --drug-metadata" << std::endl;
         return false;
     }
+    if (!out.dump_state_path.empty() && out.healthy_yaml.empty()) {
+        std::cerr << "--dump-state requires --evolve-to-diagnosis" << std::endl;
+        return false;
+    }
+    if (!out.initial_state_path.empty() && !out.healthy_yaml.empty()) {
+        std::cerr << "--initial-state and --evolve-to-diagnosis are mutually "
+                     "exclusive" << std::endl;
+        return false;
+    }
+    if (!out.initial_state_path.empty() && !out.dump_state_path.empty()) {
+        std::cerr << "--initial-state and --dump-state are mutually exclusive"
+                  << std::endl;
+        return false;
+    }
     return true;
+}
+
+// ----- QSTH (evolve-cache) header I/O --------------------------------
+//
+// Hand-rolled fixed-size header so the Python side can sanity-check the
+// cache without instantiating qsp_sim. Keep in sync with
+// qsp_hpc/cpp/evolve_cache.py.
+
+struct QsthHeader {
+    uint32_t magic;
+    uint32_t version;
+    uint64_t n_species_var;
+    double t_diagnosis_days;
+    double vt_diameter_cm;
+    char params_hash[QSTH_HASH_LEN];  // null-padded ASCII hex
+    // char reserved[64] — implicit padding; written as zero bytes below.
+};
+
+void write_qsth_header(std::ostream& os,
+                       uint64_t n_species_var,
+                       double t_diagnosis_days,
+                       double vt_diameter_cm,
+                       const std::string& params_hash) {
+    QsthHeader h{};
+    h.magic = QSTH_MAGIC;
+    h.version = QSTH_VERSION;
+    h.n_species_var = n_species_var;
+    h.t_diagnosis_days = t_diagnosis_days;
+    h.vt_diameter_cm = vt_diameter_cm;
+    const size_t copy_n = std::min(params_hash.size(), QSTH_HASH_LEN);
+    std::memcpy(h.params_hash, params_hash.data(), copy_n);
+
+    os.write(reinterpret_cast<const char*>(&h.magic), sizeof(h.magic));
+    os.write(reinterpret_cast<const char*>(&h.version), sizeof(h.version));
+    os.write(reinterpret_cast<const char*>(&h.n_species_var),
+             sizeof(h.n_species_var));
+    os.write(reinterpret_cast<const char*>(&h.t_diagnosis_days),
+             sizeof(h.t_diagnosis_days));
+    os.write(reinterpret_cast<const char*>(&h.vt_diameter_cm),
+             sizeof(h.vt_diameter_cm));
+    os.write(h.params_hash, QSTH_HASH_LEN);
+    // Pad to QSTH_HEADER_SIZE.
+    const size_t written = sizeof(h.magic) + sizeof(h.version)
+        + sizeof(h.n_species_var) + sizeof(h.t_diagnosis_days)
+        + sizeof(h.vt_diameter_cm) + QSTH_HASH_LEN;
+    static_assert(sizeof(uint32_t) * 2 + sizeof(uint64_t)
+                  + sizeof(double) * 2 + QSTH_HASH_LEN <= QSTH_HEADER_SIZE,
+                  "QSTH header fields exceed fixed header size");
+    const size_t pad = QSTH_HEADER_SIZE - written;
+    static const char zeros[QSTH_HEADER_SIZE] = {0};
+    os.write(zeros, static_cast<std::streamsize>(pad));
+}
+
+// Returns the parsed header. Throws on magic/version mismatch or truncation.
+QsthHeader read_qsth_header(std::istream& is) {
+    QsthHeader h{};
+    is.read(reinterpret_cast<char*>(&h.magic), sizeof(h.magic));
+    is.read(reinterpret_cast<char*>(&h.version), sizeof(h.version));
+    is.read(reinterpret_cast<char*>(&h.n_species_var),
+            sizeof(h.n_species_var));
+    is.read(reinterpret_cast<char*>(&h.t_diagnosis_days),
+            sizeof(h.t_diagnosis_days));
+    is.read(reinterpret_cast<char*>(&h.vt_diameter_cm),
+            sizeof(h.vt_diameter_cm));
+    is.read(h.params_hash, QSTH_HASH_LEN);
+    const size_t read_n = sizeof(h.magic) + sizeof(h.version)
+        + sizeof(h.n_species_var) + sizeof(h.t_diagnosis_days)
+        + sizeof(h.vt_diameter_cm) + QSTH_HASH_LEN;
+    char discard[QSTH_HEADER_SIZE];
+    is.read(discard, static_cast<std::streamsize>(QSTH_HEADER_SIZE - read_n));
+    if (!is) {
+        throw std::runtime_error(
+            "QSTH header truncated — expected " + std::to_string(QSTH_HEADER_SIZE)
+            + " bytes");
+    }
+    if (h.magic != QSTH_MAGIC) {
+        std::ostringstream msg;
+        msg << "QSTH magic mismatch: got 0x" << std::hex << h.magic
+            << ", expected 0x" << QSTH_MAGIC
+            << " (file is not an evolve-state blob)";
+        throw std::runtime_error(msg.str());
+    }
+    if (h.version != QSTH_VERSION) {
+        std::ostringstream msg;
+        msg << "QSTH version mismatch: got " << h.version
+            << ", expected " << QSTH_VERSION
+            << " (rebuild the evolve cache against the current qsp_sim)";
+        throw std::runtime_error(msg.str());
+    }
+    return h;
 }
 
 // ---- Species-name → index -------------------------------------------
@@ -406,6 +560,15 @@ int main(int argc, char* argv[]) {
     // t_offset is the solver's internal time at diagnosis. The scenario
     // dosing loop runs from t_offset to t_offset + t_end while write_state
     // writes (t - t_offset) so the output time axis stays user-relative.
+    //
+    // Three entry paths:
+    //   (a) --evolve-to-diagnosis alone: integrate, then continue into the
+    //       scenario sim.
+    //   (b) --evolve-to-diagnosis + --dump-state: integrate, write QSTH blob,
+    //       exit 0. The same theta can then be run under many scenarios via
+    //       (c) without re-paying the evolve cost.
+    //   (c) --initial-state: skip evolve entirely, load state from a prior
+    //       dump, set t_offset from the blob header. Scenario runs as usual.
     double t_offset = 0.0;
     if (!args.healthy_yaml.empty()) {
         EvolveOpts eo;
@@ -421,6 +584,73 @@ int main(int argc, char* argv[]) {
         std::cerr << "evolve_to_diagnosis: t_diag=" << er.t_diagnosis_days
                   << " d, diameter=" << er.diameter_cm << " cm\n";
         t_offset = er.t_diagnosis_days * time_factor;
+
+        if (!args.dump_state_path.empty()) {
+            std::ofstream dump(args.dump_state_path, std::ios::binary);
+            if (!dump) {
+                std::cerr << "failed to open --dump-state path: "
+                          << args.dump_state_path << std::endl;
+                return 3;
+            }
+            write_qsth_header(dump,
+                              static_cast<uint64_t>(ode.get_num_variables()),
+                              er.t_diagnosis_days,
+                              er.diameter_cm,
+                              args.params_hash);
+            ode.saveFullState(dump);
+            if (!dump) {
+                std::cerr << "failed to write --dump-state payload: "
+                          << args.dump_state_path << std::endl;
+                return 3;
+            }
+            dump.close();
+            std::cerr << "dump-state: wrote post-evolve ODE state to "
+                      << args.dump_state_path << " (t_diag="
+                      << er.t_diagnosis_days << " d)\n";
+            return 0;
+        }
+    } else if (!args.initial_state_path.empty()) {
+        std::ifstream in(args.initial_state_path, std::ios::binary);
+        if (!in) {
+            std::cerr << "failed to open --initial-state path: "
+                      << args.initial_state_path << std::endl;
+            return 3;
+        }
+        QsthHeader h{};
+        try {
+            h = read_qsth_header(in);
+        } catch (const std::exception& e) {
+            std::cerr << "initial-state header error: " << e.what() << "\n";
+            return 3;
+        }
+        if (!args.params_hash.empty()) {
+            const std::string stored(h.params_hash,
+                strnlen(h.params_hash, QSTH_HASH_LEN));
+            if (stored != args.params_hash) {
+                std::cerr << "initial-state params_hash mismatch: file='"
+                          << stored << "' arg='" << args.params_hash
+                          << "' (cache and current theta don't match — "
+                             "rebuild the cache)" << std::endl;
+                return 3;
+            }
+        }
+        try {
+            ode.loadFullState(in);
+        } catch (const std::exception& e) {
+            std::cerr << "initial-state payload error: " << e.what() << "\n";
+            return 3;
+        }
+        // Sync CVODE's N_Vector with the freshly-loaded _species_var and
+        // refresh _species_other. The subsequent setupSamplingRun at
+        // t=t_offset will CVodeReInit on top of this, so CVODE's internal
+        // step history is discarded (correct — we have no history from the
+        // evolve run we skipped).
+        ode.updateVar();
+        t_offset = h.t_diagnosis_days * time_factor;
+        std::cerr << "initial-state: loaded ODE state from "
+                  << args.initial_state_path
+                  << " (t_diag=" << h.t_diagnosis_days
+                  << " d, diameter=" << h.vt_diameter_cm << " cm)\n";
     }
 
     auto write_state = [&](double t) {
