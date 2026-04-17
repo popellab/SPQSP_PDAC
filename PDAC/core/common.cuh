@@ -33,7 +33,8 @@ enum CancerState : int {
 enum TCellState : int {
     T_CELL_EFF = 0,
     T_CELL_CYT = 1,
-    T_CELL_SUPP = 2
+    T_CELL_SUPP = 2,
+    T_CELL_NAIVE = 3
 };
 
 // T reg state enumeration (TH=0 matches HCC convention: TCD4_Th < TCD4_TREG)
@@ -41,6 +42,7 @@ enum TCD4State : int {
     TCD4_TH = 0,
     TCD4_TREG = 1,
     TCD4_TFH = 2,
+    TCD4_NAIVE = 3,
 };
 
 // Macrophage state enumeration (M1/M2 polarization)
@@ -54,7 +56,8 @@ enum MacrophageState : int {
 enum FibroblastState : int {
     FIB_QUIESCENT = 0,  // Quiescent fibroblast (tissue maintenance)
     FIB_MYCAF = 1,      // Myofibroblastic CAF (ECM deposition, contractile)
-    FIB_ICAF = 2        // Inflammatory CAF (IL-6, CXCL13 secretion)
+    FIB_ICAF = 2,       // Inflammatory CAF (IL-6, CXCL13 secretion)
+    FIB_FRC = 3         // Fibroblastic reticular cell (TLS T-zone stromal, CCL21 source)
 };
 
 // Vascular cell cell_states
@@ -82,15 +85,6 @@ enum DCState : int {
 enum DCSubtype : int {
     DC_CDC1 = 0,   // cDC1: cross-presents to CD8 T cells, secretes IL-12
     DC_CDC2 = 1    // cDC2: MHC-II presents to CD4/Th/Treg
-};
-
-// Voxel tissue type labels (static, set during initialization)
-enum VoxelType : uint8_t {
-    VOXEL_STROMA = 0,  // General stromal tissue (default)
-    VOXEL_SEPTUM = 1,  // Lobular septum (high ECM, fibroblasts, vessels)
-    VOXEL_LOBULE = 2,  // Lobule interior (parenchymal tissue)
-    VOXEL_TUMOR  = 3,  // Initial tumor region
-    VOXEL_MARGIN = 4   // Tumor-stroma boundary (desmoplastic shell)
 };
 
 // Message names
@@ -135,6 +129,7 @@ enum EventCounterIdx : int {
     EVT_PROLIF_FIB_QUIESCENT, // 0 — quiescent fibroblasts don't divide
     EVT_PROLIF_FIB_MYCAF,
     EVT_PROLIF_FIB_ICAF,
+    EVT_PROLIF_FIB_FRC,
     EVT_PROLIF_VAS_TIP,
     EVT_PROLIF_VAS_PHALANX,   // 0
     EVT_PROLIF_BCELL_NAIVE,
@@ -156,6 +151,7 @@ enum EventCounterIdx : int {
     EVT_DEATH_FIB_QUIESCENT,
     EVT_DEATH_FIB_MYCAF,
     EVT_DEATH_FIB_ICAF,
+    EVT_DEATH_FIB_FRC,
     EVT_DEATH_VAS_TIP,
     EVT_DEATH_VAS_PHALANX,
     EVT_DEATH_VAS_COLLAPSED,
@@ -167,6 +163,12 @@ enum EventCounterIdx : int {
     EVT_DEATH_DC_CDC1_MATURE,
     EVT_DEATH_DC_CDC2_IMMATURE,
     EVT_DEATH_DC_CDC2_MATURE,
+    EVT_DEATH_CD8_NAIVE,
+    EVT_DEATH_TCD4_NAIVE,
+    // DC priming events
+    EVT_PRIME_CD8,
+    EVT_PRIME_TH,
+    EVT_PRIME_TREG,
     // PDL1 expression numerator (divide by total cancer for PDL1_frac)
     EVT_PDL1_COUNT,
     ABM_EVENT_COUNTER_SIZE    // = 31
@@ -181,15 +183,18 @@ enum StateCounterIdx : int {
     SC_CD8_EFF,
     SC_CD8_CYT,
     SC_CD8_SUP,
+    SC_CD8_NAIVE,
     SC_TH,
     SC_TREG,
     SC_TFH,
+    SC_TCD4_NAIVE,
     SC_MDSC,
     SC_MAC_M1,
     SC_MAC_M2,
     SC_FIB_QUIESCENT,
     SC_FIB_MYCAF,
     SC_FIB_ICAF,
+    SC_FIB_FRC,
     SC_VAS_TIP,
     SC_VAS_PHALANX,
     SC_VAS_COLLAPSED,
@@ -339,6 +344,12 @@ enum ABMEventCounterIndex : int {
 #define PDE_GRAD_CCL21_X "pde_grad_CCL21_x"
 #define PDE_GRAD_CCL21_Y "pde_grad_CCL21_y"
 #define PDE_GRAD_CCL21_Z "pde_grad_CCL21_z"
+#define PDE_GRAD_CXCL12_X "pde_grad_CXCL12_x"
+#define PDE_GRAD_CXCL12_Y "pde_grad_CXCL12_y"
+#define PDE_GRAD_CXCL12_Z "pde_grad_CXCL12_z"
+#define PDE_GRAD_CCL5_X  "pde_grad_CCL5_x"
+#define PDE_GRAD_CCL5_Y  "pde_grad_CCL5_y"
+#define PDE_GRAD_CCL5_Z  "pde_grad_CCL5_z"
 
 // ============================================================
 // PDE Access Helper Macros
@@ -496,6 +507,77 @@ constexpr unsigned int VON_NEUMANN_MASK = 0x3Fu;  // binary: 00111111
 #define STRESS_Z_PTR(fgpu) \
     reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>("stress_z_ptr"))
 
+// Adhesion matrix pointer (flat float[ABM_STATE_COUNTER_SIZE * ABM_STATE_COUNTER_SIZE])
+#define ADH_MATRIX_PTR(fgpu) \
+    reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>("adh_matrix_ptr"))
+
+// Map broadcast message fields (agent_type, cell_state, kill_factor) to StateCounterIdx.
+// DC encodes subtype in kill_factor (0.0=cDC1, 1.0=cDC2); other agents ignore it here.
+__device__ __forceinline__ int msg_to_sc_idx(int agent_type, int cell_state, float kill_factor) {
+    switch (agent_type) {
+        case CELL_TYPE_CANCER:
+            switch (cell_state) {
+                case CANCER_STEM:       return SC_CANCER_STEM;
+                case CANCER_PROGENITOR: return SC_CANCER_PROG;
+                default:                return SC_CANCER_SEN;
+            }
+        case CELL_TYPE_T:
+            switch (cell_state) {
+                case T_CELL_EFF:  return SC_CD8_EFF;
+                case T_CELL_CYT:  return SC_CD8_CYT;
+                case T_CELL_SUPP: return SC_CD8_SUP;
+                default:          return SC_CD8_NAIVE;
+            }
+        case CELL_TYPE_TREG:
+            switch (cell_state) {
+                case TCD4_TH:   return SC_TH;
+                case TCD4_TREG: return SC_TREG;
+                case TCD4_TFH:  return SC_TFH;
+                default:        return SC_TCD4_NAIVE;
+            }
+        case CELL_TYPE_MDSC: return SC_MDSC;
+        case CELL_TYPE_MAC:
+            return (cell_state == MAC_M1) ? SC_MAC_M1 : SC_MAC_M2;
+        case CELL_TYPE_FIB:
+            switch (cell_state) {
+                case FIB_QUIESCENT: return SC_FIB_QUIESCENT;
+                case FIB_MYCAF:     return SC_FIB_MYCAF;
+                case FIB_ICAF:      return SC_FIB_ICAF;
+                default:            return SC_FIB_FRC;
+            }
+        case CELL_TYPE_VASCULAR:
+            switch (cell_state) {
+                case VAS_TIP:               return SC_VAS_TIP;
+                case VAS_PHALANX:           return SC_VAS_PHALANX;
+                case VAS_PHALANX_COLLAPSED: return SC_VAS_COLLAPSED;
+                default:                    return SC_VAS_HEV;
+            }
+        case CELL_TYPE_BCELL:
+            switch (cell_state) {
+                case BCELL_NAIVE:     return SC_BCELL_NAIVE;
+                case BCELL_ACTIVATED: return SC_BCELL_ACT;
+                default:              return SC_BCELL_PLASMA;
+            }
+        case CELL_TYPE_DC: {
+            int subtype = (kill_factor < 0.5f) ? DC_CDC1 : DC_CDC2;
+            if (subtype == DC_CDC1)
+                return (cell_state == DC_IMMATURE) ? SC_DC_CDC1_IMMATURE : SC_DC_CDC1_MATURE;
+            else
+                return (cell_state == DC_IMMATURE) ? SC_DC_CDC2_IMMATURE : SC_DC_CDC2_MATURE;
+        }
+        default: return 0;
+    }
+}
+
+// Convenience: map own agent type + cell state to SC index (no kill_factor needed)
+__device__ __forceinline__ int self_sc_idx(int agent_type, int cell_state) {
+    return msg_to_sc_idx(agent_type, cell_state, 0.0f);
+}
+// DC variant that needs subtype
+__device__ __forceinline__ int dc_self_sc_idx(int cell_state, int dc_subtype) {
+    return msg_to_sc_idx(CELL_TYPE_DC, cell_state, static_cast<float>(dc_subtype));
+}
+
 // Compute ECM porosity at a voxel: porosity = max(0, 1 - density/cap * (1 + crosslink))
 __device__ __forceinline__ float ecm_porosity(const float* ecm_density, const float* ecm_crosslink,
                                                int voxel_idx, float density_cap) {
@@ -595,17 +677,30 @@ __device__ __forceinline__ void apply_contact_guidance_persist(
 // Replaces per-agent run-tumble and random walk with a composable
 // 3-behavior pipeline: adhesion → persistence → gradient-biased selection.
 
-// Compute adhesion-based move probability:
-//   p_move = max(0, 1 - sum(a_ij * n_j / 26) - a_ecm * ecm_factor)
-// ecm_factor = min(1, ecm_density / ecm_threshold) at current voxel
+// Convert chemotaxis index (CI) to internal bias_strength for CDF weighting.
+// On the 26-neighbor Moore lattice, direction weights are w_i = max(0, 1 + b*cos(theta_i)).
+// The expected CI (= E[displacement along gradient] / E[step length]) is exactly CI = b/3
+// for b <= 1 (no clamping), due to lattice symmetry: sum(cos_i*dx_i)/sum(mag_i) = 1/3.
+// For CI > 1/3 (b > 1), clamping saturates the relationship; max achievable CI ~ 0.68.
+// Typical experimental immune cell CIs are 0.05-0.40, well within the linear regime.
+__device__ __forceinline__ float ci_to_bias(float ci) {
+    return 3.0f * ci;
+}
+
+// Compute adhesion-based move probability from type+state neighbor counts and matrix.
+//   p_move = max(0, 1 - sum_j(M[my_idx][j] * n_j / 26))
+// adh_matrix is flat float[ABM_STATE_COUNTER_SIZE * ABM_STATE_COUNTER_SIZE], row-major.
+// neighbor_counts is int[ABM_STATE_COUNTER_SIZE] from scan_neighbors.
 __device__ __forceinline__ float compute_adhesion_pmove(
-    float a_cancer, int n_cancer,
-    float a_fib, int n_fib,
-    float a_ecm, float ecm_density, float ecm_threshold)
+    int my_sc_idx,
+    const int* neighbor_counts,
+    const float* adh_matrix)
 {
-    float sum = a_cancer * (static_cast<float>(n_cancer) / 26.0f)
-              + a_fib    * (static_cast<float>(n_fib)    / 26.0f)
-              + a_ecm    * fminf(1.0f, ecm_density / fmaxf(ecm_threshold, 1e-12f));
+    const float* row = &adh_matrix[my_sc_idx * ABM_STATE_COUNTER_SIZE];
+    float sum = 0.0f;
+    for (int j = 0; j < ABM_STATE_COUNTER_SIZE; j++) {
+        sum += row[j] * (static_cast<float>(neighbor_counts[j]) / 26.0f);
+    }
     return fmaxf(0.0f, 1.0f - sum);
 }
 
@@ -626,8 +721,14 @@ struct MoveParams {
     // Behavior: persistence (probability of keeping previous direction)
     float p_persist;
     // Behavior: chemotaxis (gradient-biased direction selection)
-    float bias_strength;   // 0 = uniform random, >0 = gradient-biased
+    float bias_strength;   // internal CDF weight param; set via ci_to_bias(CI)
     float grad_x, grad_y, grad_z;  // gradient vector at current voxel
+    // Fiber barrier: anisotropic restriction from aligned ECM fibers at destination voxel.
+    // Penalizes perpendicular movement through aligned fibers; parallel movement unaffected.
+    const float* orient_x;
+    const float* orient_y;
+    const float* orient_z;
+    float barrier_strength;  // 0 = no barrier, 1 = full perpendicular block (scaled by fiber_mag)
 };
 
 struct MoveResult {
@@ -704,7 +805,10 @@ __device__ __forceinline__ MoveResult move_cell(
             ghat_z = p.grad_z * inv_gmag;
         }
 
-        // Compute weights: w_i = max(0, 1 + bias * cos_angle)
+        // Compute weights: w_i = max(0, 1 + bias * cos_angle) * w_barrier
+        // Fiber barrier: penalize perpendicular movement at destination voxel.
+        // w_barrier = 1 - barrier_strength * fiber_mag * sin²(angle_to_fiber)
+        // Parallel to fiber: w_barrier = 1.0 (no effect). Perpendicular: reduced.
         float weights[26];
         float total_w = 0.0f;
         for (int i = 0; i < n_cands; i++) {
@@ -714,6 +818,24 @@ __device__ __forceinline__ MoveResult move_cell(
             float dir_mag = sqrtf(dx_f * dx_f + dy_f * dy_f + dz_f * dz_f);
             float cos_angle = (dx_f * ghat_x + dy_f * ghat_y + dz_f * ghat_z) / dir_mag;
             float w = fmaxf(0.0f, 1.0f + p.bias_strength * cos_angle);
+
+            // Fiber barrier at destination voxel
+            if (p.barrier_strength > 1e-6f) {
+                int dest_vidx = (z + cand_dz[i]) * (p.grid_x * p.grid_y)
+                              + (y + cand_dy[i]) * p.grid_x
+                              + (x + cand_dx[i]);
+                float fox = p.orient_x[dest_vidx];
+                float foy = p.orient_y[dest_vidx];
+                float foz = p.orient_z[dest_vidx];
+                float fmag2 = fox * fox + foy * foy + foz * foz;
+                if (fmag2 > 1e-4f) {
+                    float fmag = sqrtf(fmag2);
+                    float cos_fiber = (dx_f * fox + dy_f * foy + dz_f * foz) / (dir_mag * fmag);
+                    float sin2 = 1.0f - cos_fiber * cos_fiber;
+                    w *= fmaxf(0.0f, 1.0f - p.barrier_strength * fmag * sin2);
+                }
+            }
+
             weights[i] = w;
             total_w += w;
         }

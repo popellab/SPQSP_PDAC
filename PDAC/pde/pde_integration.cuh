@@ -50,16 +50,13 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model);
 // Initialize ECM grid to saturation value (call after QSP is initialized, before simulation)
 // Matches HCC behavior: all voxels start at ECM_saturation, not 0/baseline.
 void initialize_ecm_to_saturation(float ecm_saturation);
+void initialize_ecm_floor_uniform(float baseline);
 
-// Return device pointer for voxel type grid (domain initialization labels)
-uint8_t* get_voxel_type_device_ptr();
-
-// Copy host-side voxel type array to device (call after generate_domain_structure)
-void set_voxel_type_from_host(const uint8_t* host_data, int total_voxels);
-
-// Copy host-side ECM arrays to device (call after preseed_ecm_by_voxel_type)
+// Copy host-side ECM arrays to device (call after preseed_ecm)
 void set_ecm_density_from_host(const float* host_data, int total_voxels);
 void set_ecm_crosslink_from_host(const float* host_data, int total_voxels);
+void set_ecm_floor_from_host(const float* host_data, int total_voxels);
+void set_ecm_orient_from_host(const float* ox, const float* oy, const float* oz, int total_voxels);
 
 // Return device pointers for ECM arrays (for output)
 float* get_ecm_density_device_ptr();

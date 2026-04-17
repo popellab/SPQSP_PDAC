@@ -55,11 +55,8 @@ static unsigned int* d_vas_tip_id_grid = nullptr;
 // Layout: idx = z * (nx * ny) + y * nx + x  (z-major, x-minor; matches PDE convention)
 static float* d_ecm_density = nullptr;
 static float* d_ecm_crosslink = nullptr;   // Per-voxel crosslink accumulator (LOX-driven)
+static float* d_ecm_floor = nullptr;       // Per-voxel density floor (passive decay clamped here; MMP bypasses)
 static float* d_fib_density_field = nullptr;
-
-// Voxel tissue type labels (static, set once during initialization).
-// uint8_t per voxel: VOXEL_STROMA(0), VOXEL_SEPTUM(1), VOXEL_LOBULE(2), VOXEL_TUMOR(3), VOXEL_MARGIN(4)
-static uint8_t* d_voxel_type = nullptr;
 
 // Volume-based occupancy: single float per voxel tracking total cell volume (µm³).
 // Replaces the old per-type occ_grid MacroProperty + flat arrays (d_t_occ, d_mac_occ, d_mdsc_occ).
@@ -123,11 +120,12 @@ static RecruitDiag* d_recruit_diag = nullptr;
 // ============================================================================
 __global__ void update_ecm_grid_kernel(
     float* ecm_density, float* ecm_crosslink,
+    const float* ecm_floor,
     const float* fib_field, const float* tgfb_conc, const float* mmp_conc,
     int nx, int ny, int nz,
     float voxel_vol_cm3, float dt,
     float k_decay, float k_depo, float density_cap,
-    float tgfb_ec50, float ecm_baseline,
+    float tgfb_ec50,
     float k_mmp, float alpha_crosslink,
     float k_lox, float yap_ec50)
 {
@@ -144,31 +142,32 @@ __global__ void update_ecm_grid_kernel(
     float tgfb      = tgfb_conc[idx];
     float mmp       = mmp_conc[idx];
 
-    // 1. Exponential baseline decay
+    // 1. Exponential passive decay
     float density_amt = density * voxel_vol_cm3;
     density_amt *= expf(-k_decay * dt);
     density = density_amt / voxel_vol_cm3;
 
-    // 2. myCAF deposition (TGF-β gated, saturation-limited, YAP/TAZ Hill ceiling)
+    // 2. Per-voxel floor (catches passive decay only — septa stay stable without MMP)
+    density = fmaxf(density, ecm_floor[idx]);
+
+    // 3. myCAF deposition (TGF-β gated, saturation-limited, YAP/TAZ Hill ceiling)
     float H_TGFB = tgfb / (tgfb + tgfb_ec50 + 1e-30f);
     float sat_frac = fminf(density / density_cap, 1.0f);
-    // YAP/TAZ ceiling: stiff ECM (high density × crosslink) → feedback limits further deposition
-    // Hill function: yap_factor = 1 / (1 + (stiffness/yap_ec50)^2)
     float stiffness = density * (1.0f + crosslink);
     float yap_factor = 1.0f / (1.0f + (stiffness * stiffness) / (yap_ec50 * yap_ec50 + 1e-30f));
     float deposition = fib * (1.0f + H_TGFB) * k_depo / 3.0f * (1.0f - sat_frac) * yap_factor * dt;
     density += deposition / voxel_vol_cm3;
 
-    // 3. MMP degradation (crosslink-resistant)
+    // 4. MMP degradation (crosslink-resistant, can push below per-voxel floor)
     float mmp_degrade = k_mmp * mmp * density / (1.0f + alpha_crosslink * crosslink) * dt;
     density -= mmp_degrade;
 
-    // 4. Floor to baseline
-    density = fmaxf(density, ecm_baseline);
+    // 5. Hard non-negative floor + density cap
+    density = fmaxf(density, 0.0f);
     density = fminf(density, density_cap);
     ecm_density[idx] = density;
 
-    // 5. Crosslink accumulation (LOX from myCAFs, saturates at 1.0)
+    // 6. Crosslink accumulation (LOX from myCAFs, saturates at 1.0)
     float mycaf_present = (fib > 0.0f) ? 1.0f : 0.0f;
     crosslink += k_lox * (1.0f - crosslink) * mycaf_present * dt;
     crosslink = fminf(crosslink, 1.0f);
@@ -418,16 +417,13 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     CUDA_CHECK(cudaMemset(d_vas_tip_id_grid, 0, total_voxels * sizeof(unsigned int)));
 
     // Allocate ECM and fibroblast density field device arrays.
-    // ECM starts at 0 here; initialize_ecm_to_saturation() is called after QSP init
-    // (in set_internal_params) to fill with PARAM_FIB_ECM_SATURATION — matching HCC.
-    // Allocate voxel type grid (domain initialization labels)
-    CUDA_CHECK(cudaMalloc(&d_voxel_type, total_voxels * sizeof(uint8_t)));
-    CUDA_CHECK(cudaMemset(d_voxel_type, 0, total_voxels * sizeof(uint8_t)));  // Default VOXEL_STROMA=0
-
+    // ECM starts at 0 here; preseed_ecm() sets initial values per region.
     CUDA_CHECK(cudaMalloc(&d_ecm_density, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_ecm_density, 0, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMalloc(&d_ecm_crosslink, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_ecm_crosslink, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_ecm_floor, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_ecm_floor, 0, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMalloc(&d_fib_density_field, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_fib_density_field, 0, total_voxels * sizeof(float)));
 
@@ -491,9 +487,9 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
         model.Environment().newProperty<unsigned long long>(uptake_key,        static_cast<unsigned long long>(upt_ptr));
     }
 
-    // Store gradient pointers for chemotaxis substrates (IFN=0, TGFB=1, CCL2=2, VEGFA=3)
+    // Store gradient pointers for chemotaxis substrates
     // Naming: pde_grad_IFN_x, pde_grad_IFN_y, pde_grad_IFN_z, pde_grad_TGFB_x, ...
-    static const char* grad_names[NUM_GRAD_SUBSTRATES] = {"IFN", "TGFB", "CCL2", "VEGFA", "CXCL13", "CCL21"};
+    static const char* grad_names[NUM_GRAD_SUBSTRATES] = {"IFN", "TGFB", "CCL2", "VEGFA", "CXCL13", "CCL21", "CXCL12", "CCL5"};
     for (int g = 0; g < NUM_GRAD_SUBSTRATES; g++) {
         model.Environment().newProperty<unsigned long long>(
             std::string("pde_grad_") + grad_names[g] + "_x",
@@ -518,15 +514,13 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
     model.Environment().newProperty<unsigned long long>("vas_tip_id_grid_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_vas_tip_id_grid)));
 
-    // Store voxel type grid pointer (domain initialization labels)
-    model.Environment().newProperty<unsigned long long>("voxel_type_ptr",
-        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_voxel_type)));
-
     // Store ECM and fibroblast density field pointers (replace MacroProperty approach)
     model.Environment().newProperty<unsigned long long>("ecm_density_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_density)));
     model.Environment().newProperty<unsigned long long>("ecm_crosslink_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_crosslink)));
+    model.Environment().newProperty<unsigned long long>("ecm_floor_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_ecm_floor)));
     model.Environment().newProperty<unsigned long long>("fib_density_field_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_fib_density_field)));
 
@@ -578,10 +572,6 @@ void cleanup_pde_solver() {
         cudaFree(d_cancer_occ);
         d_cancer_occ = nullptr;
     }
-    if (d_voxel_type) {
-        cudaFree(d_voxel_type);
-        d_voxel_type = nullptr;
-    }
     if (d_ecm_density) {
         cudaFree(d_ecm_density);
         d_ecm_density = nullptr;
@@ -589,6 +579,10 @@ void cleanup_pde_solver() {
     if (d_ecm_crosslink) {
         cudaFree(d_ecm_crosslink);
         d_ecm_crosslink = nullptr;
+    }
+    if (d_ecm_floor) {
+        cudaFree(d_ecm_floor);
+        d_ecm_floor = nullptr;
     }
     if (d_fib_density_field) {
         cudaFree(d_fib_density_field);
@@ -618,13 +612,15 @@ void initialize_ecm_to_saturation(float ecm_saturation) {
     int grid_size = (total_voxels + block_size - 1) / block_size;
     fill_ecm_kernel<<<grid_size, block_size>>>(d_ecm_density, total_voxels, ecm_saturation);
     CUDA_CHECK(cudaDeviceSynchronize());
-
 }
 
-uint8_t* get_voxel_type_device_ptr() { return d_voxel_type; }
-
-void set_voxel_type_from_host(const uint8_t* host_data, int total_voxels) {
-    CUDA_CHECK(cudaMemcpy(d_voxel_type, host_data, total_voxels * sizeof(uint8_t), cudaMemcpyHostToDevice));
+void initialize_ecm_floor_uniform(float baseline) {
+    if (!d_ecm_floor || !g_pde_solver) return;
+    int total_voxels = g_pde_solver->get_total_voxels();
+    int block_size = 256;
+    int grid_size = (total_voxels + block_size - 1) / block_size;
+    fill_ecm_kernel<<<grid_size, block_size>>>(d_ecm_floor, total_voxels, baseline);
+    CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 void set_ecm_density_from_host(const float* host_data, int total_voxels) {
@@ -634,6 +630,17 @@ void set_ecm_density_from_host(const float* host_data, int total_voxels) {
 void set_ecm_crosslink_from_host(const float* host_data, int total_voxels) {
     CUDA_CHECK(cudaMemcpy(d_ecm_crosslink, host_data, total_voxels * sizeof(float), cudaMemcpyHostToDevice));
 }
+
+void set_ecm_floor_from_host(const float* host_data, int total_voxels) {
+    CUDA_CHECK(cudaMemcpy(d_ecm_floor, host_data, total_voxels * sizeof(float), cudaMemcpyHostToDevice));
+}
+
+void set_ecm_orient_from_host(const float* ox, const float* oy, const float* oz, int total_voxels) {
+    CUDA_CHECK(cudaMemcpy(d_ecm_orient_x, ox, total_voxels * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_ecm_orient_y, oy, total_voxels * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_ecm_orient_z, oz, total_voxels * sizeof(float), cudaMemcpyHostToDevice));
+}
+
 float* get_ecm_density_device_ptr() { return d_ecm_density; }
 float* get_ecm_crosslink_device_ptr() { return d_ecm_crosslink; }
 float* get_fib_density_field_device_ptr() { return d_fib_density_field; }
@@ -715,6 +722,8 @@ struct RecruitKernelParams {
     // B cell recruitment
     float p_bcell;
     float bcell_life_mean, bcell_life_sd;
+    const float* cxcl13_conc;  // CXCL13 PDE concentration (B cell recruitment boost)
+    float cxcl13_ec50_bcell;   // CXCL13 EC50 for B cell recruitment boost
     // DC recruitment (per-subtype, homeostatic)
     float p_dc_cdc1;
     float p_dc_cdc2;
@@ -734,6 +743,10 @@ struct RecruitKernelParams {
     float vol_teff, vol_treg, vol_th;
     float vol_mdsc, vol_mac_m1, vol_mac_m2;
     float vol_bcell;
+    // Naive T cell recruitment (DC priming pathway)
+    float naive_cd8_frac;     // Fraction of Teff events that also spawn a naive CD8
+    float naive_cd4_frac;     // Fraction of TH events that also spawn a naive CD4
+    int naive_lifespan;       // Lifespan in ABM steps for naive cells
 };
 
 // Device helper: xorshift32 RNG (fast, good enough for recruitment)
@@ -884,6 +897,29 @@ __global__ void recruit_all_kernel(
                     req.CTLA4 = 0.0f;
                     d_requests[slot] = req;
                 }
+
+                // Also try to recruit a naive CD8 alongside (TLS priming pathway)
+                if (p.naive_cd8_frac > 0.0f && rng_uniform(rng) < p.naive_cd8_frac) {
+                    int npx, npy, npz;
+                    if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                            d_vol_used, p.vol_teff, p.voxel_capacity,
+                            rng, npx, npy, npz)) {
+                        int nslot = atomicAdd(d_request_count, 1);
+                        if (nslot < MAX_RECRUITS_PER_STEP) {
+                            RecruitRequest nreq;
+                            nreq.x = npx; nreq.y = npy; nreq.z = npz;
+                            nreq.cell_type = CELL_TYPE_T;
+                            nreq.cell_state = T_CELL_NAIVE;
+                            nreq.life = p.naive_lifespan;
+                            nreq.divide_cd = 0;
+                            nreq.divide_limit = 0;  // No division until primed
+                            nreq.IL2_release_remain = 0.0f;
+                            nreq.TGFB_release_remain = 0.0f;
+                            nreq.CTLA4 = 0.0f;
+                            d_requests[nslot] = nreq;
+                        }
+                    }
+                }
             } else {
                 atomicAdd(&diag->teff_place_fail, 1);
             }
@@ -935,6 +971,29 @@ __global__ void recruit_all_kernel(
                     req.TGFB_release_remain = p.tcd4_TGFB_release;
                     req.CTLA4 = 0.0f;
                     d_requests[slot] = req;
+                }
+
+                // Also try to recruit a naive CD4 alongside (TLS priming pathway)
+                if (p.naive_cd4_frac > 0.0f && rng_uniform(rng) < p.naive_cd4_frac) {
+                    int npx, npy, npz;
+                    if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                            d_vol_used, p.vol_th, p.voxel_capacity,
+                            rng, npx, npy, npz)) {
+                        int nslot = atomicAdd(d_request_count, 1);
+                        if (nslot < MAX_RECRUITS_PER_STEP) {
+                            RecruitRequest nreq;
+                            nreq.x = npx; nreq.y = npy; nreq.z = npz;
+                            nreq.cell_type = CELL_TYPE_TREG;  // Naive CD4 uses TReg agent type
+                            nreq.cell_state = TCD4_NAIVE;
+                            nreq.life = p.naive_lifespan;
+                            nreq.divide_cd = 0;
+                            nreq.divide_limit = 0;  // No division until primed
+                            nreq.IL2_release_remain = 0.0f;
+                            nreq.TGFB_release_remain = 0.0f;
+                            nreq.CTLA4 = 0.0f;
+                            d_requests[nslot] = nreq;
+                        }
+                    }
                 }
             } else {
                 atomicAdd(&diag->th_place_fail, 1);
@@ -1009,10 +1068,17 @@ __global__ void recruit_all_kernel(
         }
     }
 
-    // ── BCell source (bit 3) ──
+    // ── BCell source (bit 3) — baseline + CXCL13 boost ──
     if (flags & 8) {
         atomicAdd(&diag->bcell_sources, 1);
-        if (rng_uniform(rng) < p.p_bcell) {
+        // CXCL13 from TFH/B cells amplifies recruitment locally (not a gate)
+        float p_bcell_eff = p.p_bcell;
+        if (p.cxcl13_conc) {
+            float cxcl13 = p.cxcl13_conc[idx];
+            float H_cxcl13 = cxcl13 / (cxcl13 + p.cxcl13_ec50_bcell + 1e-30f);
+            p_bcell_eff *= (1.0f + H_cxcl13);
+        }
+        if (rng_uniform(rng) < p_bcell_eff) {
             atomicAdd(&diag->bcell_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_bcell, p.voxel_capacity,
@@ -1152,6 +1218,9 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     p.p_bcell = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_RECRUIT_K");
     p.bcell_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_LIFE_MEAN");
     p.bcell_life_sd   = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_LIFE_SD");
+    p.cxcl13_conc = g_pde_solver ? reinterpret_cast<const float*>(
+        g_pde_solver->get_device_concentration_ptr(CHEM_CXCL13)) : nullptr;
+    p.cxcl13_ec50_bcell = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_EC50_CXCL13_REC");
 
     // DC params
     p.p_dc_cdc1 = FLAMEGPU->environment.getProperty<float>("PARAM_DC_RECRUIT_K_CDC1");
@@ -1184,6 +1253,11 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     p.vol_mac_m1 = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M1");
     p.vol_mac_m2 = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M2");
     p.vol_bcell  = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_NAIVE");
+
+    // Naive T cell recruitment params
+    p.naive_cd8_frac = FLAMEGPU->environment.getProperty<float>("PARAM_NAIVE_CD8_RECRUIT_FRAC");
+    p.naive_cd4_frac = FLAMEGPU->environment.getProperty<float>("PARAM_NAIVE_CD4_RECRUIT_FRAC");
+    p.naive_lifespan = FLAMEGPU->environment.getProperty<int>("PARAM_NAIVE_LIFESPAN_STEPS");
 
     // Launch kernel
     dim3 block(8, 8, 8);
@@ -1437,7 +1511,6 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
     float k_depo            = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DEPOSITION_RATE");
     float density_cap       = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
     float tgfb_ec50         = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_TGFB_EC50");
-    float ecm_baseline      = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_BASELINE");
     float k_mmp             = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_MMP_DEGRADE_RATE");
     float alpha_crosslink   = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_CROSSLINK_RESISTANCE");
     float k_lox             = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_CROSSLINK_RATE");
@@ -1451,11 +1524,12 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
     dim3 grid((grid_x + 7) / 8, (grid_y + 7) / 8, (grid_z + 7) / 8);
     update_ecm_grid_kernel<<<grid, block>>>(
         d_ecm_density, d_ecm_crosslink,
+        d_ecm_floor,
         d_fib_density_field, tgfb_ptr, mmp_ptr,
         grid_x, grid_y, grid_z,
         voxel_vol_cm3, dt,
         k_decay, k_depo, density_cap,
-        tgfb_ec50, ecm_baseline,
+        tgfb_ec50,
         k_mmp, alpha_crosslink,
         k_lox, yap_ec50);
     cudaDeviceSynchronize();
