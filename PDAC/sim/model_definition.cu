@@ -85,6 +85,7 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     cancer_cell.newVariable<int>("neighbor_MDSC_count", 0);
     cancer_cell.newVariable<int>("neighbor_Mac1_count", 0);
     cancer_cell.newVariable<int>("neighbor_fib_count", 0);
+    cancer_cell.newVariable<float>("adh_p_move", 1.0f);  // Adhesion move probability (from matrix)
 
     // Cached bitmask of available neighbor voxels (no cancer cell, in bounds)
     cancer_cell.newVariable<unsigned int>("available_neighbors", 0u);
@@ -184,6 +185,8 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     tcell.newVariable<int>("neighbor_all_count", 0);
     tcell.newVariable<float>("max_neighbor_PDL1", 0.0f);
     tcell.newVariable<int>("found_progenitor", 0);
+    tcell.newVariable<int>("neighbor_dc_cdc1_mature_count", 0);  // Mature cDC1 neighbors (for naive CD8 priming)
+    tcell.newVariable<float>("adh_p_move", 1.0f);  // Adhesion move probability (from matrix)
 
     // Cached bitmask of available neighbor voxels
     tcell.newVariable<unsigned int>("available_neighbors", 0u);
@@ -269,6 +272,7 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     treg.newVariable<int>("found_progenitor", 0);
     treg.newVariable<int>("neighbor_dc_mature_count", 0);
     treg.newVariable<int>("neighbor_bcell_count", 0);
+    treg.newVariable<float>("adh_p_move", 1.0f);  // Adhesion move probability (from matrix)
 
     // Cached bitmask of available neighbor voxels
     treg.newVariable<unsigned int>("available_neighbors", 0u);
@@ -335,6 +339,7 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state) {
     mdsc.newVariable<int>("neighbor_Tcell_count", 0);
     mdsc.newVariable<int>("neighbor_Treg_count", 0);
     mdsc.newVariable<int>("neighbor_MDSC_count", 0);
+    mdsc.newVariable<float>("adh_p_move", 1.0f);  // Adhesion move probability (from matrix)
 
     // Cached bitmask of available neighbor voxels (no MDSC)
     mdsc.newVariable<unsigned int>("available_neighbors", 0u);
@@ -399,6 +404,7 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
     // Neighbor counts (computed via messaging)
     mac.newVariable<int>("neighbor_cancer_count", 0);
     mac.newVariable<int>("neighbor_fib_count", 0);
+    mac.newVariable<float>("adh_p_move", 1.0f);  // Adhesion move probability (from matrix)
 
     mac.newVariable<int>("ifng_active",0);
 
@@ -447,6 +453,12 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
     // Lifecycle
     fib.newVariable<int>("neighbor_cancer_count", 0);
     fib.newVariable<int>("neighbor_fib_count", 0);
+    // Count of LTβ-competent lymphocytes in Moore neighborhood — drives iCAF→FRC transition
+    // B cells: BCELL_NAIVE+ACTIVATED; CD8: EFF+CYT; CD4: TCD4_TH+TCD4_TFH (Tregs excluded)
+    fib.newVariable<int>("neighbor_ltb_lymph_count", 0);
+    fib.newVariable<float>("adh_p_move", 1.0f);  // Adhesion move probability (from matrix)
+    // Consecutive steps above LTβ-lymphocyte threshold before committing to FRC
+    fib.newVariable<int>("frc_dwell_counter", 0);
     fib.newVariable<int>("life", 0);
 
     // Division
@@ -565,8 +577,10 @@ void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     // Neighbor counts (computed via messaging)
     bcell.newVariable<int>("neighbor_cancer_count", 0);
     bcell.newVariable<int>("neighbor_th_count", 0);
+    bcell.newVariable<int>("neighbor_tfh_count", 0);
     bcell.newVariable<int>("neighbor_bcell_count", 0);
     bcell.newVariable<int>("neighbor_fib_count", 0);
+    bcell.newVariable<float>("adh_p_move", 1.0f);  // Adhesion move probability (from matrix)
 
     // Lifecycle
     bcell.newVariable<int>("life", 0);
@@ -621,6 +635,7 @@ void defineDCAgent(flamegpu::ModelDescription& model, bool include_state) {
     // Neighbor counts (computed via messaging)
     dc.newVariable<int>("neighbor_tcell_count", 0);
     dc.newVariable<int>("neighbor_bcell_count", 0);
+    dc.newVariable<float>("adh_p_move", 1.0f);  // Adhesion move probability (from matrix)
 
     // Lifecycle
     dc.newVariable<int>("life", 0);

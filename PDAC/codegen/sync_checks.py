@@ -28,6 +28,7 @@ DEFAULT_ODE_CPP = REPO_ROOT / "PDAC" / "qsp" / "ode" / "ODE_system.cpp"
 DEFAULT_PARAM_SNIPPET = REPO_ROOT / "PDAC" / "qsp" / "ode" / "qsp_params_xml_snippet.xml"
 DEFAULT_PARAM_XML = REPO_ROOT / "PDAC" / "sim" / "resource" / "param_all.xml"
 DEFAULT_DUMP_BIN = REPO_ROOT / "PDAC" / "qsp" / "sim" / "build" / "qsp_sim"
+DEFAULT_PRIORS_CSV = PDAC_BUILD_DIR / "parameters" / "pdac_priors.csv"
 
 Result = Tuple[bool, str]
 
@@ -113,11 +114,44 @@ def check_param_xml_contains_snippet(
     return True, f"{param_xml.name} contains all snippet names"
 
 
+def check_priors_csv_names_in_param_xml(
+    priors_csv: Path = DEFAULT_PRIORS_CSV,
+    param_xml: Path = DEFAULT_PARAM_XML,
+) -> Result:
+    """Every parameter name in pdac_priors.csv must appear in param_all.xml.
+
+    The C++ worker sets each sampled parameter via the XML template; a prior
+    row whose name is absent from the template aborts the sim with
+    ParamNotFoundError before the ODE solver runs. Catches orphan prior rows
+    for modules that were removed from the SimBiology model.
+    """
+    if not priors_csv.exists():
+        return True, f"skip: priors CSV not found ({priors_csv})"
+    if not param_xml.exists():
+        return False, f"param_all.xml missing: {param_xml}"
+    import csv
+    with open(priors_csv) as f:
+        prior_names = {row["name"] for row in csv.DictReader(f)}
+    xml_names = set(re.findall(r"<([A-Za-z_][\w]*)>", param_xml.read_text()))
+    missing = sorted(prior_names - xml_names)
+    if missing:
+        return False, (
+            f"{len(missing)} prior(s) in {priors_csv.name} missing from "
+            f"{param_xml.name}:\n"
+            f"  {missing[:20]}{'...' if len(missing) > 20 else ''}\n"
+            f"  Fix: drop orphan rows from pdac_priors.csv OR re-export SBML "
+            f"(matlab -batch \"run('scripts/export_sbml.m')\") + run "
+            f"qsp_codegen.py + refresh_param_xml.py."
+        )
+    return True, f"all {len(prior_names)} prior names present in {param_xml.name}"
+
+
 ALL_CHECKS = [
     check_sbml_newer_than_matlab,
     check_codegen_newer_than_sbml,
     check_binary_newer_than_codegen,
     check_param_xml_contains_snippet,
+    check_priors_csv_names_in_param_xml,
 ]
 
 

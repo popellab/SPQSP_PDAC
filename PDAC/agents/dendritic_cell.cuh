@@ -28,7 +28,8 @@ FLAMEGPU_AGENT_FUNCTION(dc_broadcast_location, flamegpu::MessageNone, flamegpu::
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
     FLAMEGPU->message_out.setVariable<int>("cell_state", cs);
     FLAMEGPU->message_out.setVariable<float>("PDL1", 0.0f);
-    FLAMEGPU->message_out.setVariable<float>("kill_factor", 0.0f);
+    // Encode DC subtype in kill_factor: 0.0=cDC1, 1.0=cDC2 (read by T cells for priming)
+    FLAMEGPU->message_out.setVariable<float>("kill_factor", (float)FLAMEGPU->getVariable<int>("dc_subtype"));
     FLAMEGPU->message_out.setVariable<int>("dead", 0);
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
     FLAMEGPU->message_out.setVariable<int>("voxel_y", y);
@@ -71,6 +72,9 @@ FLAMEGPU_AGENT_FUNCTION(dc_scan_neighbors, flamegpu::MessageSpatial3D, flamegpu:
     int tcell_count = 0;
     int bcell_count = 0;
 
+    // Adhesion: count all type+state neighbors
+    int adh_counts[ABM_STATE_COUNTER_SIZE] = {0};
+
     for (const auto& msg : FLAMEGPU->message_in(my_pos_x, my_pos_y, my_pos_z)) {
         const int msg_x = msg.getVariable<int>("voxel_x");
         const int msg_y = msg.getVariable<int>("voxel_y");
@@ -82,6 +86,11 @@ FLAMEGPU_AGENT_FUNCTION(dc_scan_neighbors, flamegpu::MessageSpatial3D, flamegpu:
 
         if (abs(dx) <= 1 && abs(dy) <= 1 && abs(dz) <= 1 && !(dx == 0 && dy == 0 && dz == 0)) {
             const int agent_type = msg.getVariable<int>("agent_type");
+            const int agent_state = msg.getVariable<int>("cell_state");
+            const float kill_factor = msg.getVariable<float>("kill_factor");
+
+            // Adhesion: accumulate into type+state count vector
+            adh_counts[msg_to_sc_idx(agent_type, agent_state, kill_factor)]++;
 
             if (agent_type == CELL_TYPE_T) {
                 tcell_count++;
@@ -91,8 +100,14 @@ FLAMEGPU_AGENT_FUNCTION(dc_scan_neighbors, flamegpu::MessageSpatial3D, flamegpu:
         }
     }
 
+    // Compute adhesion p_move from matrix
+    const int my_sc = dc_self_sc_idx(FLAMEGPU->getVariable<int>("cell_state"),
+                                     FLAMEGPU->getVariable<int>("dc_subtype"));
+    const float adh_pmove = compute_adhesion_pmove(my_sc, adh_counts, ADH_MATRIX_PTR(FLAMEGPU));
+
     FLAMEGPU->setVariable<int>("neighbor_tcell_count", tcell_count);
     FLAMEGPU->setVariable<int>("neighbor_bcell_count", bcell_count);
+    FLAMEGPU->setVariable<float>("adh_p_move", adh_pmove);
 
     return flamegpu::ALIVE;
 }
@@ -160,8 +175,16 @@ FLAMEGPU_AGENT_FUNCTION(dc_state_step, flamegpu::MessageNone, flamegpu::MessageN
         const float tgfb_50 = FLAMEGPU->environment.getProperty<float>("PARAM_DC_TGFB_50");
         const float H_TGFb = local_tgfb / (local_tgfb + tgfb_50 + 1e-30f);
 
+        // Antibody-antigen immune complexes enhance DC cross-presentation via Fc receptors
+        const float local_ab = PDE_READ(FLAMEGPU, PDE_CONC_ANTIBODY, voxel);
+        const float ab_50 = FLAMEGPU->environment.getProperty<float>("PARAM_DC_ANTIBODY_50");
+        const float H_ab = local_ab / (local_ab + ab_50 + 1e-30f);
+        const float ab_boost = FLAMEGPU->environment.getProperty<float>("PARAM_DC_ANTIBODY_BOOST");
+        // Effective antigen = antigen * (1 + boost * H_ab): immune complexes improve uptake
+        const float H_antigen_eff = fminf(H_antigen * (1.0f + ab_boost * H_ab), 1.0f);
+
         // Combined activation signal: either antigen or IL-12 (or both) drive maturation
-        const float H_signal = 1.0f - (1.0f - H_antigen) * (1.0f - H_IL12);
+        const float H_signal = 1.0f - (1.0f - H_antigen_eff) * (1.0f - H_IL12);
 
         // Per-subtype maturation rate [prob/step]
         const float k_mat = (subtype == DC_CDC1)
@@ -266,9 +289,9 @@ FLAMEGPU_AGENT_FUNCTION(dc_compute_chemical_sources, flamegpu::MessageNone, flam
         PDE_SECRETE(FLAMEGPU, PDE_SRC_IL12, voxel, il12_rate / voxel_volume);
     }
 
-    // Both subtypes secrete CCL21 (TLS T-zone homing signal)
-    float ccl21_rate = FLAMEGPU->environment.getProperty<float>("PARAM_DC_CCL21_RELEASE");
-    PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL21, voxel, ccl21_rate / voxel_volume);
+    // CCL21 is produced by FRCs (fibroblastic reticular cells), not DCs.
+    // Mature DCs still chemotax along the CCL21 gradient toward TLS T-zones, but they
+    // do not establish the gradient. See FIB_FRC branch in fib_compute_chemical_sources.
 
     return flamegpu::ALIVE;
 }
@@ -322,15 +345,19 @@ FLAMEGPU_AGENT_FUNCTION(dc_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_DC");
     mp.grad_x = gx_val; mp.grad_y = gy_val; mp.grad_z = gz_val;
 
+    // Adhesion: pre-computed from matrix in scan_neighbors
+    mp.p_move = FLAMEGPU->getVariable<float>("adh_p_move");
     if (cs == DC_IMMATURE) {
-        mp.p_move = 1.0f;
         mp.p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_DC_IMMATURE");
-        mp.bias_strength = FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_DC_IMMATURE");
+        mp.bias_strength = ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_DC_IMMATURE"));
     } else {
-        mp.p_move = 1.0f;
         mp.p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_DC_MATURE");
-        mp.bias_strength = FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_DC_MATURE");
+        mp.bias_strength = ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_DC_MATURE"));
     }
+    mp.orient_x = ECM_ORIENT_X_PTR(FLAMEGPU);
+    mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
+    mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
+    mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_DC");
 
     MoveResult r = move_cell(mp, x, y, z,
         FLAMEGPU->getVariable<int>("persist_dir_x"),

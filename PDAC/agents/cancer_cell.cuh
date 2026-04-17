@@ -61,11 +61,10 @@ FLAMEGPU_AGENT_FUNCTION(cancer_count_neighbors, flamegpu::MessageSpatial3D, flam
     int cancer_count = 0;  // Other cancer cells in neighborhood
     int mdsc_count = 0;    // MDSCs (suppress T cell killing)
     int mac_m1_count = 0;  // Mac M1 count
-    int fib_count = 0;     // Fibroblasts (for adhesion)
+    int fib_count = 0;     // Fibroblasts
 
-    // Track which neighbor voxels have cancer cells (bit i = neighbor direction i)
-    bool neighbor_blocked[26] = {false};
-    int neighbor_tcells[26] = {0};
+    // Adhesion: count all type+state neighbors for matrix dot product
+    int adh_counts[ABM_STATE_COUNTER_SIZE] = {0};
 
     for (const auto& msg : FLAMEGPU->message_in(my_pos_x, my_pos_y, my_pos_z)) {
         const int msg_x = msg.getVariable<int>("voxel_x");
@@ -80,34 +79,24 @@ FLAMEGPU_AGENT_FUNCTION(cancer_count_neighbors, flamegpu::MessageSpatial3D, flam
         if (abs(dx) <= 1 && abs(dy) <= 1 && abs(dz) <= 1 && !(dx == 0 && dy == 0 && dz == 0)) {
             const int agent_type = msg.getVariable<int>("agent_type");
             const int agent_cell_state = msg.getVariable<int>("cell_state");
+            const float kill_factor = msg.getVariable<float>("kill_factor");
 
+            // Adhesion: accumulate into type+state count vector
+            adh_counts[msg_to_sc_idx(agent_type, agent_cell_state, kill_factor)]++;
 
-            // Find direction index
-            int dir_idx = -1;
-            for (int i = 0; i < 26; i++) {
-                int ddx, ddy, ddz;
-                get_moore_direction(i, ddx, ddy, ddz);
-                if (ddx == dx && ddy == dy && ddz == dz) {
-                    dir_idx = i;
-                    break;
-                }
-            }
-
+            // Agent-specific interaction counts
             if (agent_type == CELL_TYPE_T) {
                 if (agent_cell_state == T_CELL_CYT || agent_cell_state == T_CELL_EFF) {
-                    tcyt_effective += msg.getVariable<float>("kill_factor");
+                    tcyt_effective += kill_factor;
                 }
-                neighbor_tcells[dir_idx]++;
             } else if (agent_type == CELL_TYPE_TREG) {
                 treg_count++;
-                neighbor_tcells[dir_idx]++;
             } else if (agent_type == CELL_TYPE_MDSC) {
                 mdsc_count++;
             } else if (agent_type == CELL_TYPE_CANCER) {
                 cancer_count++;
-                neighbor_blocked[dir_idx] = true;
             } else if (agent_type == CELL_TYPE_MAC) {
-                if (agent_cell_state == MAC_M1){
+                if (agent_cell_state == MAC_M1) {
                     mac_m1_count++;
                 }
             } else if (agent_type == CELL_TYPE_FIB) {
@@ -116,24 +105,9 @@ FLAMEGPU_AGENT_FUNCTION(cancer_count_neighbors, flamegpu::MessageSpatial3D, flam
         }
     }
 
-    // // Build available_neighbors mask (voxels with no cancer, 1 or fewer tcells, no MDSCs AND in bounds)
-    // // Only scan Von Neumann neighbors for availability, can just skip other directions
-    // // Counts for interactions already calculated
-    // unsigned int available_neighbors = 0;
-    // for (int i = 0; i < 6; i++) {
-    //     int dx, dy, dz;
-    //     get_moore_direction(i, dx, dy, dz);
-    //     int nx = my_x + dx;
-    //     int ny = my_y + dy;
-    //     int nz = my_z + dz;
-
-    //     if (is_in_bounds(nx, ny, nz, size_x, size_y, size_z)) {
-    //         // Cancer cells can move to voxel only if no other Cancer cell, MDSC, or more than 1 T cell
-    //         if (!neighbor_blocked[i] && neighbor_tcells[i] <= 1) {
-    //             available_neighbors |= (1u << i);
-    //         }
-    //     }
-    // }
+    // Compute adhesion p_move from matrix
+    const int my_sc = self_sc_idx(CELL_TYPE_CANCER, FLAMEGPU->getVariable<int>("cell_state"));
+    const float adh_pmove = compute_adhesion_pmove(my_sc, adh_counts, ADH_MATRIX_PTR(FLAMEGPU));
 
     FLAMEGPU->setVariable<float>("neighbor_Teff_count", tcyt_effective);
     FLAMEGPU->setVariable<int>("neighbor_Treg_count", treg_count);
@@ -141,6 +115,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_count_neighbors, flamegpu::MessageSpatial3D, flam
     FLAMEGPU->setVariable<int>("neighbor_MDSC_count", mdsc_count);
     FLAMEGPU->setVariable<int>("neighbor_Mac1_count", mac_m1_count);
     FLAMEGPU->setVariable<int>("neighbor_fib_count", fib_count);
+    FLAMEGPU->setVariable<float>("adh_p_move", adh_pmove);
 
     return flamegpu::ALIVE;
 }
@@ -678,9 +653,9 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG") :
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_SEN");
 
-    // Cancer stem gets weak O2 chemotaxis (deferred — bias=0 until O2 gradient computed)
+    // Cancer stem gets weak O2 chemotaxis (deferred — CI=0 until O2 gradient computed)
     float bias = (cell_state == CANCER_STEM) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_CANCER_STEM") : 0.0f;
+        ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_CANCER_STEM")) : 0.0f;
 
     MoveParams mp;
     mp.grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
@@ -693,28 +668,17 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
     mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_CANCER");
-    // Adhesion: E-cadherin (cancer-cancer), integrin (cancer-ECM), N-cadherin (cancer-fib)
-    {
-        const int n_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
-        const int n_fib = FLAMEGPU->getVariable<int>("neighbor_fib_count");
-        const int vidx = z * (mp.grid_x * mp.grid_y) + y * mp.grid_x + x;
-        float local_ecm = mp.ecm_density[vidx];
-        float ecm_th = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_ECM_DENSITY_TH");
-        float a_cancer, a_fib, a_ecm;
-        if (cell_state == CANCER_STEM) {
-            a_cancer = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_CANCER_STEM_CANCER");
-            a_fib    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_CANCER_STEM_FIB");
-            a_ecm    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_CANCER_STEM_ECM");
-        } else {
-            a_cancer = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_CANCER_PROG_CANCER");
-            a_fib    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_CANCER_PROG_FIB");
-            a_ecm    = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_CANCER_PROG_ECM");
-        }
-        mp.p_move = compute_adhesion_pmove(a_cancer, n_cancer, a_fib, n_fib, a_ecm, local_ecm, ecm_th);
-    }
+    // Adhesion: pre-computed from matrix in count_neighbors
+    mp.p_move = FLAMEGPU->getVariable<float>("adh_p_move");
     mp.p_persist = 0.0f;    // no persistence for cancer
     mp.bias_strength = bias;
     mp.grad_x = 0.0f; mp.grad_y = 0.0f; mp.grad_z = 0.0f;  // O2 gradient not yet computed
+    mp.orient_x = ECM_ORIENT_X_PTR(FLAMEGPU);
+    mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
+    mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
+    mp.barrier_strength = (cell_state == CANCER_STEM) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_CANCER_STEM") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_CANCER_PROG");
 
     // Contact guidance: fiber orientation modifies effective gradient
     {

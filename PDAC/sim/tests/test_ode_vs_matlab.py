@@ -71,6 +71,18 @@ def test_param_xml_contains_snippet_names():
     _assert_check(check_param_xml_contains_snippet, param_xml=PARAM_XML)
 
 
+def test_priors_csv_names_in_param_xml():
+    """Catch orphan rows in pdac-build/parameters/pdac_priors.csv.
+
+    Each prior row becomes a sampled column in params.csv which the C++
+    worker sets via the XML template. Names absent from param_all.xml
+    abort the worker with ParamNotFoundError — this test catches them
+    at check-time instead.
+    """
+    from sync_checks import check_priors_csv_names_in_param_xml
+    _assert_check(check_priors_csv_names_in_param_xml, param_xml=PARAM_XML)
+
+
 @pytest.fixture(scope="session")
 def run_matlab(request):
     if not request.config.getoption("--run-matlab"):

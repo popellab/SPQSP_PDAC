@@ -19,3 +19,6 @@
 /.vscode/
 /PDAC_QSP/
 CLAUDE.md
+.mcp.json
+/calibration/
+/calibration_targets/

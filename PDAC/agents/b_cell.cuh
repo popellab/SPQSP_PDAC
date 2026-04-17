@@ -62,8 +62,12 @@ FLAMEGPU_AGENT_FUNCTION(bcell_scan_neighbors, flamegpu::MessageSpatial3D, flameg
 
     int cancer_count = 0;
     int th_count = 0;
+    int tfh_count = 0;
     int bcell_count = 0;
     int fib_count = 0;
+
+    // Adhesion: count all type+state neighbors
+    int adh_counts[ABM_STATE_COUNTER_SIZE] = {0};
 
     for (const auto& msg : FLAMEGPU->message_in(my_pos_x, my_pos_y, my_pos_z)) {
         const int msg_x = msg.getVariable<int>("voxel_x");
@@ -76,14 +80,19 @@ FLAMEGPU_AGENT_FUNCTION(bcell_scan_neighbors, flamegpu::MessageSpatial3D, flameg
 
         if (abs(dx) <= 1 && abs(dy) <= 1 && abs(dz) <= 1 && !(dx == 0 && dy == 0 && dz == 0)) {
             const int agent_type = msg.getVariable<int>("agent_type");
+            const int agent_state = msg.getVariable<int>("cell_state");
+            const float kill_factor = msg.getVariable<float>("kill_factor");
+
+            // Adhesion: accumulate into type+state count vector
+            adh_counts[msg_to_sc_idx(agent_type, agent_state, kill_factor)]++;
 
             if (agent_type == CELL_TYPE_CANCER) {
                 cancer_count++;
             } else if (agent_type == CELL_TYPE_TREG) {
-                // TH and Tfh cells provide T cell help for B cell activation
-                int treg_state = msg.getVariable<int>("cell_state");
-                if (treg_state == TCD4_TH || treg_state == TCD4_TFH) {
-                    th_count++;
+                if (agent_state == TCD4_TFH) {
+                    tfh_count++;  // Tfh: germinal center help for B cell maturation
+                } else if (agent_state == TCD4_TH) {
+                    th_count++;   // TH: general T cell help for activation
                 }
             } else if (agent_type == CELL_TYPE_T) {
                 // Effector T cells also provide help (simplified)
@@ -96,10 +105,16 @@ FLAMEGPU_AGENT_FUNCTION(bcell_scan_neighbors, flamegpu::MessageSpatial3D, flameg
         }
     }
 
+    // Compute adhesion p_move from matrix
+    const int my_sc = self_sc_idx(CELL_TYPE_BCELL, FLAMEGPU->getVariable<int>("cell_state"));
+    const float adh_pmove = compute_adhesion_pmove(my_sc, adh_counts, ADH_MATRIX_PTR(FLAMEGPU));
+
     FLAMEGPU->setVariable<int>("neighbor_cancer_count", cancer_count);
     FLAMEGPU->setVariable<int>("neighbor_th_count", th_count);
+    FLAMEGPU->setVariable<int>("neighbor_tfh_count", tfh_count);
     FLAMEGPU->setVariable<int>("neighbor_bcell_count", bcell_count);
     FLAMEGPU->setVariable<int>("neighbor_fib_count", fib_count);
+    FLAMEGPU->setVariable<float>("adh_p_move", adh_pmove);
 
     return flamegpu::ALIVE;
 }
@@ -158,8 +173,9 @@ FLAMEGPU_AGENT_FUNCTION(bcell_state_step, flamegpu::MessageNone, flamegpu::Messa
 
     // ── State machine ──
     if (cs == BCELL_NAIVE) {
-        // Naive → Activated: requires antigen + T cell help
-        if (has_antigen == 1 && th_count > 0) {
+        // Naive → Activated: requires antigen + T cell help (TH or Tfh)
+        int tfh_count = FLAMEGPU->getVariable<int>("neighbor_tfh_count");
+        if (has_antigen == 1 && (th_count + tfh_count) > 0) {
             FLAMEGPU->setVariable<int>("cell_state", BCELL_ACTIVATED);
             FLAMEGPU->setVariable<int>("activation_timer", 0);
 
@@ -179,15 +195,22 @@ FLAMEGPU_AGENT_FUNCTION(bcell_state_step, flamegpu::MessageNone, flamegpu::Messa
         int timer = FLAMEGPU->getVariable<int>("activation_timer") + 1;
         FLAMEGPU->setVariable<int>("activation_timer", timer);
 
-        // Compute differentiation threshold (TLS speedup)
+        // Compute differentiation threshold (TLS speedup + Tfh germinal center help)
         int base_timer = FLAMEGPU->environment.getProperty<int>("PARAM_BCELL_ACTIVATION_TIMER");
         int tls_th = FLAMEGPU->environment.getProperty<int>("PARAM_BCELL_TLS_THRESHOLD");
         float tls_speedup = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_TLS_SPEEDUP");
 
-        float effective_threshold = (float)base_timer;
+        float speedup = 1.0f;
         if (bcell_count >= tls_th) {
-            effective_threshold *= tls_speedup;  // Faster in TLS clusters
+            speedup = tls_speedup;  // B cell clustering speedup
         }
+        // Tfh germinal center help: accelerates class switching & affinity maturation
+        int tfh_count = FLAMEGPU->getVariable<int>("neighbor_tfh_count");
+        if (tfh_count > 0) {
+            float tfh_factor = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_TFH_SPEEDUP");
+            speedup *= tfh_factor;  // e.g. 0.5 = halves remaining time
+        }
+        float effective_threshold = (float)base_timer * speedup;
 
         // Activated → Plasma: time-dependent differentiation
         if (timer >= (int)effective_threshold) {
@@ -272,6 +295,9 @@ FLAMEGPU_AGENT_FUNCTION(bcell_compute_chemical_sources, flamegpu::MessageNone, f
             float ab_rate = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_ANTIBODY_RELEASE");
             PDE_SECRETE(FLAMEGPU, PDE_SRC_ANTIBODY, voxel, ab_rate / voxel_volume);
         }
+        // Plasma B cells secrete CXCL13 (TLS organizing signal)
+        float cxcl13_rate = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_PLASMA_CXCL13_RELEASE");
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL13, voxel, cxcl13_rate / voxel_volume);
     }
     else if (cs == BCELL_ACTIVATED) {
         // Activated B cells secrete IL-6
@@ -283,6 +309,10 @@ FLAMEGPU_AGENT_FUNCTION(bcell_compute_chemical_sources, flamegpu::MessageNone, f
             float il10_rate = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_IL10_RELEASE");
             PDE_SECRETE(FLAMEGPU, PDE_SRC_IL10, voxel, il10_rate / voxel_volume);
         }
+
+        // Activated B cells secrete CXCL13 (TLS organizing signal, stronger than plasma)
+        float cxcl13_rate = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_ACT_CXCL13_RELEASE");
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL13, voxel, cxcl13_rate / voxel_volume);
     }
 
     return flamegpu::ALIVE;
@@ -328,28 +358,27 @@ FLAMEGPU_AGENT_FUNCTION(bcell_move, flamegpu::MessageNone, flamegpu::MessageNone
     mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_BCELL");
     mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
 
+    // Adhesion: pre-computed from matrix in scan_neighbors
+    // Plasma cells additionally have a fixed low move probability
     if (cs == BCELL_PLASMA) {
-        // Near-sessile: very low movement probability
-        mp.p_move = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_PLASMA_MOVE_PROB");
+        mp.p_move = fminf(FLAMEGPU->getVariable<float>("adh_p_move"),
+                          FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_PLASMA_MOVE_PROB"));
         mp.p_persist = 0.0f;
         mp.bias_strength = 0.0f;
     } else if (cs == BCELL_ACTIVATED) {
-        // Reduced movement, some adhesion in clusters
-        const int n_bcell = FLAMEGPU->getVariable<int>("neighbor_bcell_count");
-        float adh_bcell = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_BCELL_ACT_BCELL");
-        float adh_ecm = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_BCELL_ACT_ECM");
-        float ecm_local = ECM_DENSITY_PTR(FLAMEGPU)[vidx];
-        float ecm_th = FLAMEGPU->environment.getProperty<float>("PARAM_ADH_ECM_DENSITY_TH");
-        float ecm_factor = (ecm_local > ecm_th) ? 1.0f : 0.0f;
-        mp.p_move = fmaxf(0.0f, 1.0f - adh_bcell * (float)n_bcell / 26.0f - adh_ecm * ecm_factor);
+        mp.p_move = FLAMEGPU->getVariable<float>("adh_p_move");
         mp.p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_BCELL_ACT");
-        mp.bias_strength = FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_BCELL_ACT");
+        mp.bias_strength = ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_BCELL_ACT"));
     } else {
         // Naive: free-moving, CXCL13 chemotaxis
-        mp.p_move = 1.0f;
+        mp.p_move = FLAMEGPU->getVariable<float>("adh_p_move");
         mp.p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_BCELL_NAIVE");
-        mp.bias_strength = FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_BIAS_BCELL_NAIVE");
+        mp.bias_strength = ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_BCELL_NAIVE"));
     }
+    mp.orient_x = ECM_ORIENT_X_PTR(FLAMEGPU);
+    mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
+    mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
+    mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_BCELL");
 
     MoveResult r = move_cell(mp, x, y, z,
         FLAMEGPU->getVariable<int>("persist_dir_x"),

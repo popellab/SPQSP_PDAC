@@ -111,30 +111,32 @@ void initializeVascularCellsTest(
 // Domain Structure Generation (Structured Init, -i 1)
 // ============================================================================
 
-// Generate lobular tissue structure: Poisson disk lobule centers → Voronoi
-// tessellation → septum/lobule labels → tumor hemisphere + margin overlay.
-// Returns host-side voxel type array (uint8_t, total_voxels elements).
-std::vector<uint8_t> generate_domain_structure(
-    int grid_x, int grid_y, int grid_z,
-    float lobule_spacing, float septum_thickness,
-    float tumor_radius_frac, float margin_thickness,
-    unsigned int seed);
+struct Point3 { float x, y, z; };
 
-// ECM density/crosslink pre-seeding by voxel type.
-// Reads voxel_type array and DomainInit params, writes to d_ecm_density and
-// d_ecm_crosslink device arrays via pde_integration helpers.
-struct ECMInitParams {
-    float septum_density, septum_crosslink;
-    float stroma_density;
-    float lobule_density;
-    float margin_density, margin_crosslink;
-    float tumor_density;
+// Domain structure: temporary init-time data (no persistent voxel types)
+struct DomainStructure {
+    std::vector<bool> is_septum;          // true for Voronoi boundary voxels
+    std::vector<bool> is_tumor;           // true for tumor hemisphere voxels
+    std::vector<Point3> lobule_centers;   // for orientation computation
 };
 
-void preseed_ecm_by_voxel_type(
-    const std::vector<uint8_t>& voxel_type,
-    const ECMInitParams& ecm_params,
-    int total_voxels, unsigned int seed);
+// Generate lobular tissue structure via Poisson disk + Voronoi tessellation.
+// Identifies septum and tumor voxels (temporary, not stored on GPU).
+DomainStructure generate_domain_structure(
+    int grid_x, int grid_y, int grid_z,
+    float lobule_spacing, float septum_thickness,
+    float tumor_radius_frac,
+    unsigned int seed);
+
+// ECM pre-seeding: density, crosslink, floor, and fiber orientation.
+// Septa get high density+crosslink+aligned orientation; lobule gets low baseline.
+void preseed_ecm(
+    const DomainStructure& domain,
+    int grid_x, int grid_y, int grid_z,
+    float septum_density, float septum_crosslink,
+    float lobule_density, float tumor_density,
+    float lobule_floor,
+    unsigned int seed);
 
 // ============================================================================
 // Master Initialization Functions
