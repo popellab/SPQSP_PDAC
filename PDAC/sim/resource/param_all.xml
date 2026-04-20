@@ -1,4 +1,6 @@
-<QSP>
+<?xml version="1.0" encoding="utf-8"?>
+<Param>
+  <QSP>
   <simulation>
     <weight_qsp>0.8</weight_qsp>
     <t_steadystate>5000</t_steadystate>
@@ -596,3 +598,4 @@
     </Parameter>
   </init_value>
 </QSP>
+</Param>

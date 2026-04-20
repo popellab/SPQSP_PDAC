@@ -5,6 +5,9 @@
 
 #include "../cvode/CVODEBase.h"
 #include "QSPParam.h"
+#include <sunmatrix/sunmatrix_sparse.h>
+#include <string>
+#include <vector>
 
 namespace CancerVCT{
 
@@ -14,6 +17,23 @@ class ODE_system :
 public:
     static int f(realtype t, N_Vector y, N_Vector ydot, void *user_data);
     static int g(realtype t, N_Vector y, realtype *gout, void *user_data);
+    // --- Analytical Jacobian for KLU sparse linear solver ---
+    // Emitted by qsp_codegen.py via sympy symbolic differentiation of f.
+    // Sparsity pattern is static (derived from SBML reaction/rule structure)
+    // so it is safe to allocate the SUNSparseMatrix with this nnz once per
+    // solver instance. CSC format: col_ptrs has length neq+1, row_indices
+    // has length nnz.
+    static constexpr sunindextype _jac_nnz = 1434;
+    static const sunindextype _jac_col_ptrs[];
+    static const sunindextype _jac_row_indices[];
+    static int jac(realtype t, N_Vector y, N_Vector fy,
+                   SUNMatrix J, void *user_data,
+                   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+    // Hooks CVODEBase::setupCVODE consults to wire up the sparse
+    // linsol + jac callback (only active when built with USE_KLU).
+    sunindextype getJacobianNnz() const override { return _jac_nnz; }
+    CVLsJacFn getJacobianFn() const override { return &ODE_system::jac; }
+
     static std::string getHeader();
     static void setup_class_parameters(QSPParam& param);
     static double get_class_param(unsigned int i);
@@ -36,6 +56,26 @@ public:
     void eval_init_assignment(void);
     unsigned int get_num_variables(void)const { return _species_var.size(); };
     unsigned int get_num_params(void)const { return _class_parameter.size(); };
+    // Evaluate a dynamic (assignment-rule) compartment's volume at the
+    // current state, returned in its SBML-native unit (e.g. mL for V_T).
+    // Returns the static compartment size for constant compartments.
+    // Throws std::out_of_range for an unknown name.
+    realtype get_compartment_volume(const std::string& name) const;
+    // Evaluate a (non-compartment) SBML assignment rule's current value
+    // in its native unit. Use this for derived quantities like
+    // phi_collagen, C_total, etc. that downstream calibration targets
+    // expect to read alongside species. Throws std::out_of_range for an
+    // unknown name.
+    realtype get_assignment_rule_value(const std::string& name) const;
+    // Static enumeration of compartment names (for output column
+    // ordering). Matches the order returned by get_compartment_volume's
+    // case branches.
+    static std::vector<std::string> getCompartmentNames();
+    // Static enumeration of assignment-rule names whose values are
+    // exposed via get_assignment_rule_value (excludes rules whose
+    // target is also a compartment — those go through
+    // get_compartment_volume).
+    static std::vector<std::string> getAssignmentRuleNames();
 
 protected:
     void setupVariables(void);

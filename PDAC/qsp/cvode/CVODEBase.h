@@ -7,9 +7,14 @@
 #include <boost/serialization/utility.hpp> /* std::pair */
 
 #include <cvode/cvode.h>               /* prototypes for CVODE fcts., consts.  */
+#include <cvode/cvode_ls.h>            /* CVLsJacFn type for analytical J hook */
 #include <nvector/nvector_serial.h>    /* access to serial N_Vector            */
 #include <sunmatrix/sunmatrix_dense.h> /* access to dense SUNMatrix            */
+#include <sunmatrix/sunmatrix_sparse.h> /* access to sparse SUNMatrix (KLU)    */
 #include <sunlinsol/sunlinsol_dense.h> /* access to dense SUNLinearSolver      */
+#ifdef USE_KLU
+#include <sunlinsol/sunlinsol_klu.h>   /* sparse direct via SuiteSparse KLU    */
+#endif
 #include <sundials/sundials_types.h>            /* defs. of sunrealtype, sunindextype */
 #include <sundials/sundials_types_deprecated.h> /* realtype compat (removed in v7)    */
 #include <sundials/sundials_context.h>          /* SUNContext (SUNDIALS >= 6)         */
@@ -18,6 +23,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 typedef std::vector< double > state_type;
@@ -37,8 +43,31 @@ public:
 	CVODEBase(const CVODEBase & c);
 	~CVODEBase();
 
-	//! simulate ODE model
+	//! simulate ODE model (event-handling path, used by ABM coupling).
+	//! Calls CVodeReInit at every step boundary — cheap on short steps but
+	//! prohibitive when the caller wants fine-grained output sampling of
+	//! a long simulation.
 	void simOdeStep(double tStart, double tStep);
+
+	//! Forward-advance CVODE to absolute time tEnd without reinitializing.
+	//! Designed for output sampling loops in event-free simulations: the
+	//! caller sets up once via setupSamplingRun(tEnd_of_simulation) and
+	//! then invokes simOdeSample(t_out_i) for each snapshot time. CVODE's
+	//! internal adaptive step / Nordsieck history is preserved across
+	//! calls, which can be 5-10x faster than simOdeStep on stiff systems
+	//! with many output points per event. Does NOT handle SBML events or
+	//! delayed-execution discontinuities — use simOdeStep for those.
+	void simOdeSample(double tEnd);
+
+	//! One-time setup before the first simOdeSample call: sets the CVODE
+	//! stop time to t_end_of_sim so CV_NORMAL stepping won't walk past it,
+	//! and runs any pending initial-assignment events at t0.
+	//!
+	//! `t0` is the absolute integration start time. Pass the ODE's current
+	//! internal time when entering a sampling run after a prior
+	//! simOdeStep-based phase (e.g. evolve_to_diagnosis); if the fast path
+	//! runs from fresh ICs, leave it at the 0.0 default.
+	void setupSamplingRun(double tEndOfSim, double t0 = 0.0);
 
 	//! examples of optional output
 	void PrintFinalStats(void *cvode_mem);
@@ -55,8 +84,47 @@ public:
 	//! set non species varaible value with original units
 	void setParameterVal(unsigned int idx, double val, bool raw = true);
 
+	//! number of species emitted by operator<< (sp_var + sp_other)
+	int getNumOutputSpecies() const {
+		return _neq + static_cast<int>(_species_other.size());
+	}
+	//! value of output species i in original units — public forwarder over
+	//! the protected virtual getVarOriginalUnit, for callers that need to
+	//! snapshot the full row to a buffer rather than to an ostream
+	double getSpeciesOutputValue(int i) const { return getVarOriginalUnit(i); }
+
+	//! Analytical Jacobian hooks for sparse-KLU linear solver.
+	//! Default implementation returns 0 / nullptr, which keeps setupCVODE
+	//! on the dense linear-solver path (backwards compatible). A derived
+	//! class with a generated ODE_system::jac overrides these to expose
+	//! the sparse Jacobian; setupCVODE then allocates a SUNSparseMatrix
+	//! of the right nnz and registers the callback via CVodeSetJacFn.
+	virtual sunindextype getJacobianNnz() const { return 0; }
+	virtual CVLsJacFn getJacobianFn() const { return nullptr; }
+
 	//! manually update solver variable values
 	void updateVar(void);
+
+	//! Serialize the full instance-level ODE state (species + nonspecies +
+	//! delay-event queue + trigger/event flags) to a binary stream. Used
+	//! by the evolve-to-diagnosis cache (qsp_sim --dump-state) to preserve
+	//! the post-evolve state across scenario runs. Does NOT capture CVODE
+	//! internal state (Nordsieck history etc.) — after loadFullState the
+	//! caller must sync via updateVar() and re-init the solver via
+	//! setupSamplingRun() or resetSolver() before integrating.
+	//!
+	//! Field-by-field layout (little-endian, packed), read by loadFullState:
+	//!   uint64 n_species_var;      float64[n_species_var]
+	//!   uint64 n_nonspecies_var;   float64[n_nonspecies_var]
+	//!   uint64 n_delay_events;     { float64 t; int32 idx; }[n_delay_events]
+	//!   uint64 n_trigger_sat;      uint8[n_trigger_sat]    (0/1)
+	//!   uint64 n_event_trig;       uint8[n_event_trig]     (0/1)
+	void saveFullState(std::ostream& os) const;
+	//! Mirror of saveFullState: read the same layout and populate the
+	//! instance state vectors in place. Throws std::runtime_error on
+	//! length/stream errors. Caller is responsible for calling updateVar()
+	//! + setupSamplingRun() / resetSolver() afterwards.
+	void loadFullState(std::istream& is);
 
 
 protected:

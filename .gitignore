@@ -1,4 +1,5 @@
 /PDAC/sim/build/
+/PDAC/sim/tests/ode_compile/build/
 /PDAC/sim/outputs/
 /PDAC/sim/profiling/
 /PDAC/sim/HCC_outputs2/
