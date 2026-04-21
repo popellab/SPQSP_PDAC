@@ -1,0 +1,50 @@
+# Early-microinvasive PDAC initial condition.
+#
+# Read by both sides:
+#   - C++ set_healthy_populations (PDAC/sim/set_healthy_populations.cpp)
+#   - MATLAB set_healthy_populations / export_matlab_trajectories (via
+#     spqsp_resource.m; SPQSP_PDAC_ROOT env var points at this repo).
+#
+# Cell counts at t=0 are density × V_tumor_mm3, where V_tumor is derived
+# from cancer-cell count × vol_cell (vol_cell = (4/3)π(D_cell/2)^3, D_cell
+# from param_all.xml). All other compartments and treatment-related
+# species are zeroed or left at their param_all.xml defaults.
+
+default_tumor_cells: 1.0e6    # cancer cells at start of evolution
+
+cell_densities_per_mm3:
+  CD8: 50
+  Treg: 20
+  Th: 30
+  MDSC: 5
+  TAM_total: 100              # split M1/M2 by m1_m2 ratio
+  iCAF: 3.5
+  myCAF: 6.0
+  apCAF: 0.5
+  qPSC: 200
+  APC_total: 50               # split cDC1/cDC2 by f_cDC1; mature by apc_mat
+
+ratios:
+  m1_m2: 1.5                  # M1/M2 (healthy, M1-skewed)
+  f_cDC1: 0.6                 # cDC1 fraction of APC_total
+  apc_mat: 0.1                # mature fraction of APCs
+
+collagen:
+  volume_fraction: 0.05       # 5% of V_tumor_mL
+  density_mg_per_mL: 1400     # hydrated tissue density
+
+basal_cytokines:
+  CCL2_nM: 0.1
+  TGFb_nM: 0.016              # ≈ TGFb_baseline param
+  VEGF_pg_per_mL: 10
+
+# Species in the V_T compartment explicitly zeroed after population set.
+# Match MATLAB set_healthy_populations.m's zero_species list. Flow-style
+# list so the simple yaml_read.m in pdac-build can parse it (yaml-cpp on
+# the C++ side is happy with either flow or block style).
+zero_species: ["C_x", "T_exh", "CD8_exh", "Th_exh", "C1_PDL1", "APC_PDL1", "CD8_PD1", "Treg_PD1", "P1_ID", "GMCSF_ID", "C_dead", "C1_b"]
+
+evolve:
+  min_days: 120               # reject if diagnosis reached faster (implausible)
+  max_days: 7300              # 20 yr PDAC natural-history cap
+  step_days: 1.0              # integration MaxStep / sampling during evolve

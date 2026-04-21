@@ -1,0 +1,75 @@
+# Drug pharmacology metadata — shared between MATLAB schedule_dosing.m
+# and C++ dump_trajectories. Both sides read this file so the mg/kg →
+# mole conversion, target species, and dose splits stay in lockstep.
+#
+# Field reference:
+#   mw             Molecular weight [mg/mole]. Omit for drugs in `cell` units.
+#   units          'mole' | 'cell' | 'milligram' — the amount_units used when
+#                  writing to the target species.
+#   dose_basis     'per_weight' (dose = value × patient_weight_kg, in mg)
+#                  'per_bsa'    (dose = value × patient_BSA_m2, in mg)
+#                  'direct'     (dose = value, in mg or cells)
+#   targets        List of {species, fraction} entries; fractions should sum
+#                  to 1 for a single dose. For drugs with two absorption
+#                  sites (entinostat, cabozantinib) the fraction splits the
+#                  total dose between species.
+#
+# Values seeded from pdac-build/core/model_compilation/schedule_dosing.m
+# (schedule_dosing.m is still the MATLAB source of truth; refactoring it
+# to read this file is deferred — for now the two must be kept in sync).
+
+drugs:
+  nivolumab:
+    mw: 1.436e8           # mg/mole
+    units: mole
+    dose_basis: per_weight
+    targets:
+      - {species: V_C.aPD1, fraction: 1.0}
+
+  pembrolizumab:
+    mw: 1.49e8
+    units: mole
+    dose_basis: per_weight
+    targets:
+      - {species: V_C.aPD1, fraction: 1.0}
+
+  atezolizumab:
+    mw: 1.436e8
+    units: mole
+    dose_basis: per_weight
+    targets:
+      - {species: V_C.aPDL1, fraction: 1.0}
+
+  durvalumab:
+    mw: 1.49e8
+    units: mole
+    dose_basis: per_weight
+    targets:
+      - {species: V_C.aPDL1, fraction: 1.0}
+
+  ipilimumab:
+    mw: 1.486349e8
+    units: mole
+    dose_basis: per_weight
+    targets:
+      - {species: V_C.aCTLA4, fraction: 1.0}
+
+  tremelimumab:
+    mw: 1.4638e8
+    units: mole
+    dose_basis: per_weight
+    targets:
+      - {species: V_C.aCTLA4, fraction: 1.0}
+
+  aCD47:
+    mw: 7.8e7
+    units: mole
+    dose_basis: per_weight
+    targets:
+      - {species: V_C.aCD47, fraction: 1.0}
+
+  GVAX:
+    units: cell
+    dose_basis: direct      # dose value is the cell count
+    targets:
+      - {species: V_ID.GVAX_cells, fraction: 1.0}

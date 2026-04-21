@@ -1,8 +1,10 @@
 #include "CVODEBase.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 const int mxstep = 500000;
@@ -255,17 +257,42 @@ void CVODEBase::setupCVODE(){
 		flag = CVodeSetUserData(_cvode_mem, this);
 		check_flag(&flag, "CVodeSVtolerances", 1);
 
-		/* Create dense SUNMatrix for use in linear solves */
-		_A = SUNDenseMatrix(_neq, _neq, _sunctx);
-		check_flag(&flag, "SUNDenseMatrix", 1);
-
-		/* Create dense SUNLinearSolver object for use by CVode */
-		_LS = SUNLinSol_Dense(_y, _A, _sunctx);
-		check_flag(&flag, "SUNLinSol_Dense", 1);
-
-		/* Call CVodeSetLinearSolver to attach the matrix and linear solver to CVode */
-		flag = CVodeSetLinearSolver(_cvode_mem, _LS, _A);
-		check_flag(&flag, "CVodeSetLinearSolver", 1);
+		/* Linear solver selection: if the derived class exposes an
+		 * analytical sparse Jacobian (nnz > 0) AND KLU is compiled in,
+		 * use SUNSparseMatrix + SUNLinSol_KLU. Otherwise fall back to
+		 * the dense path. Sparse is ~2-5x faster per integration step on
+		 * the PDAC model (164 species, ~5% density) since it skips the
+		 * O(n^3) dense LU in favour of KLU's symbolic + numeric
+		 * factorization over the static sparsity pattern.
+		 */
+		sunindextype jac_nnz = getJacobianNnz();
+		CVLsJacFn jac_fn = getJacobianFn();
+#ifdef USE_KLU
+		if (jac_nnz > 0 && jac_fn != nullptr) {
+			_A = SUNSparseMatrix(_neq, _neq, jac_nnz, CSC_MAT, _sunctx);
+			check_flag(&flag, "SUNSparseMatrix", 1);
+			_LS = SUNLinSol_KLU(_y, _A, _sunctx);
+			check_flag(&flag, "SUNLinSol_KLU", 1);
+			flag = CVodeSetLinearSolver(_cvode_mem, _LS, _A);
+			check_flag(&flag, "CVodeSetLinearSolver (KLU)", 1);
+			flag = CVodeSetJacFn(_cvode_mem, jac_fn);
+			check_flag(&flag, "CVodeSetJacFn", 1);
+		} else
+#endif
+		{
+			/* Dense fallback (always available). We do NOT attach the
+			 * codegen's analytical Jacobian here: it is emitted against
+			 * SUNSparseMatrix (CSC), not SUNDenseMatrix, so using it on
+			 * the dense path would segfault in SUNSparseMatrix_IndexPointers.
+			 * CVODE's default finite-difference Jacobian is correct here.
+			 */
+			_A = SUNDenseMatrix(_neq, _neq, _sunctx);
+			check_flag(&flag, "SUNDenseMatrix", 1);
+			_LS = SUNLinSol_Dense(_y, _A, _sunctx);
+			check_flag(&flag, "SUNLinSol_Dense", 1);
+			flag = CVodeSetLinearSolver(_cvode_mem, _LS, _A);
+			check_flag(&flag, "CVodeSetLinearSolver (dense)", 1);
+		}
 
 	}
 	catch (std::string s){
@@ -501,6 +528,185 @@ void CVODEBase::resetSolver(realtype t0, realtype t1){
 	flag = CVodeReInit(_cvode_mem, t0, _y);
 	return;
 }
+
+/*! One-time setup for a sampling run. Syncs _species_var -> _y, resolves
+	any initial-assignment events at t=0, pushes that post-init state into
+	CVODE via a single CVodeReInit, and pins the stop time so CV_NORMAL
+	calls won't walk past tEndOfSim. Must be called once before the first
+	simOdeSample call.
+
+	The CVodeReInit here is essential: setupCVODE()/initSolver() was called
+	during construction with whatever _y held at that point (typically
+	pre-initial-assignment defaults), and CVODE internally caches that
+	state. Without the re-init, simOdeSample would integrate from the
+	stale state, not the properly-initialized one.
+
+*/
+void CVODEBase::setupSamplingRun(double tEndOfSim, double t0){
+	restore_y();
+	resolveEvents(t0);
+	CVodeReInit(_cvode_mem, t0, _y);
+	CVodeSetStopTime(_cvode_mem, tEndOfSim);
+}
+
+/*! Advance CVODE from its current internal time to tEnd in CV_NORMAL mode.
+	Unlike simOdeStep, this does NOT call CVodeReInit — the Nordsieck history
+	and adaptive step-size controller are preserved across sampling points,
+	which is where the factor-of-5+ speedup over repeated simOdeStep calls
+	comes from on stiff systems. CV_TOO_CLOSE is silently treated as a no-op
+	(we're already at tEnd).
+*/
+void CVODEBase::simOdeSample(double tEnd){
+	realtype t_ret = tEnd;
+	int flag = CVode(_cvode_mem, tEnd, _y, &t_ret, CV_NORMAL);
+	if (flag != CV_TOO_CLOSE) {
+		check_flag(&flag, "CVode", 1);
+	}
+	// Sync derived outputs (assignment-rule species, original-unit views)
+	// so getSpeciesOutputValue/operator<< emit current state.
+	save_y();
+	update_y_other();
+}
+// ----- Evolve-cache full-state serialization -----------------------------
+//
+// Pure data dump: ODE_system state vectors + delay-event queue + trigger
+// flags, nothing CVODE-internal. Used by qsp_sim --dump-state /
+// --initial-state so multi-scenario sweeps share one evolve run per theta.
+
+namespace {
+
+template <typename T>
+inline void write_pod(std::ostream& os, const T& v) {
+    os.write(reinterpret_cast<const char*>(&v), sizeof(T));
+}
+
+template <typename T>
+inline void read_pod(std::istream& is, T& v) {
+    is.read(reinterpret_cast<char*>(&v), sizeof(T));
+    if (!is) {
+        throw std::runtime_error(
+            "CVODEBase::loadFullState: truncated stream");
+    }
+}
+
+}  // namespace
+
+void CVODEBase::saveFullState(std::ostream& os) const {
+    const uint64_t n_sp = static_cast<uint64_t>(_species_var.size());
+    const uint64_t n_nsp = static_cast<uint64_t>(_nonspecies_var.size());
+    const uint64_t n_de = static_cast<uint64_t>(_delayEvents.size());
+    const uint64_t n_tsat = static_cast<uint64_t>(
+        _trigger_element_satisfied.size());
+    const uint64_t n_etrig = static_cast<uint64_t>(_event_triggered.size());
+
+    write_pod(os, n_sp);
+    if (n_sp) {
+        os.write(reinterpret_cast<const char*>(_species_var.data()),
+                 static_cast<std::streamsize>(n_sp * sizeof(double)));
+    }
+
+    write_pod(os, n_nsp);
+    if (n_nsp) {
+        os.write(reinterpret_cast<const char*>(_nonspecies_var.data()),
+                 static_cast<std::streamsize>(n_nsp * sizeof(double)));
+    }
+
+    write_pod(os, n_de);
+    for (const auto& ev : _delayEvents) {
+        const double t = static_cast<double>(ev.first);
+        const int32_t idx = static_cast<int32_t>(ev.second);
+        write_pod(os, t);
+        write_pod(os, idx);
+    }
+
+    write_pod(os, n_tsat);
+    for (bool b : _trigger_element_satisfied) {
+        const uint8_t byte = b ? 1u : 0u;
+        write_pod(os, byte);
+    }
+
+    write_pod(os, n_etrig);
+    for (bool b : _event_triggered) {
+        const uint8_t byte = b ? 1u : 0u;
+        write_pod(os, byte);
+    }
+}
+
+void CVODEBase::loadFullState(std::istream& is) {
+    uint64_t n_sp = 0, n_nsp = 0, n_de = 0, n_tsat = 0, n_etrig = 0;
+
+    read_pod(is, n_sp);
+    if (n_sp != _species_var.size()) {
+        std::ostringstream msg;
+        msg << "CVODEBase::loadFullState: species_var length mismatch "
+            << "(file=" << n_sp << ", current model=" << _species_var.size()
+            << "). Likely a qsp_sim version / SBML codegen mismatch — "
+               "rebuild the cache.";
+        throw std::runtime_error(msg.str());
+    }
+    if (n_sp) {
+        is.read(reinterpret_cast<char*>(_species_var.data()),
+                static_cast<std::streamsize>(n_sp * sizeof(double)));
+        if (!is) throw std::runtime_error(
+            "CVODEBase::loadFullState: truncated species_var payload");
+    }
+
+    read_pod(is, n_nsp);
+    if (n_nsp != _nonspecies_var.size()) {
+        std::ostringstream msg;
+        msg << "CVODEBase::loadFullState: nonspecies_var length mismatch "
+            << "(file=" << n_nsp
+            << ", current model=" << _nonspecies_var.size() << ")";
+        throw std::runtime_error(msg.str());
+    }
+    if (n_nsp) {
+        is.read(reinterpret_cast<char*>(_nonspecies_var.data()),
+                static_cast<std::streamsize>(n_nsp * sizeof(double)));
+        if (!is) throw std::runtime_error(
+            "CVODEBase::loadFullState: truncated nonspecies_var payload");
+    }
+
+    read_pod(is, n_de);
+    _delayEvents.clear();
+    _delayEvents.reserve(static_cast<size_t>(n_de));
+    for (uint64_t i = 0; i < n_de; ++i) {
+        double t = 0.0;
+        int32_t idx = 0;
+        read_pod(is, t);
+        read_pod(is, idx);
+        _delayEvents.emplace_back(static_cast<realtype>(t),
+                                  static_cast<int>(idx));
+    }
+
+    read_pod(is, n_tsat);
+    if (n_tsat != _trigger_element_satisfied.size()) {
+        std::ostringstream msg;
+        msg << "CVODEBase::loadFullState: trigger_element_satisfied length "
+               "mismatch (file=" << n_tsat
+            << ", current model=" << _trigger_element_satisfied.size() << ")";
+        throw std::runtime_error(msg.str());
+    }
+    for (uint64_t i = 0; i < n_tsat; ++i) {
+        uint8_t byte = 0;
+        read_pod(is, byte);
+        _trigger_element_satisfied[i] = (byte != 0);
+    }
+
+    read_pod(is, n_etrig);
+    if (n_etrig != _event_triggered.size()) {
+        std::ostringstream msg;
+        msg << "CVODEBase::loadFullState: event_triggered length mismatch "
+            << "(file=" << n_etrig
+            << ", current model=" << _event_triggered.size() << ")";
+        throw std::runtime_error(msg.str());
+    }
+    for (uint64_t i = 0; i < n_etrig; ++i) {
+        uint8_t byte = 0;
+        read_pod(is, byte);
+        _event_triggered[i] = (byte != 0);
+    }
+}
+
 /*! copy variable value from vector to serial
 */
 void CVODEBase::restore_y(){

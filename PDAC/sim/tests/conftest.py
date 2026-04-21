@@ -18,6 +18,13 @@ STEPS = 10
 SEED = 42
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-matlab", action="store_true", default=False,
+        help="Run MATLAB-dependent ODE validation tests (local only)",
+    )
+
+
 def has_gpu():
     """Check if a CUDA GPU is available."""
     try:

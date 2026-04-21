@@ -173,6 +173,21 @@ if(NOT _BOOST_READY)
     # Boost CMake superproject provides targets like Boost::serialization
 endif()
 
+# --- yaml-cpp (healthy_state.yaml + scenario YAML reader) ---
+find_package(yaml-cpp QUIET)
+if(NOT yaml-cpp_FOUND)
+    message(STATUS "yaml-cpp: fetching v0.8.0 from GitHub...")
+    FetchContent_Declare(yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG        0.8.0
+        GIT_SHALLOW    TRUE
+    )
+    set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(yaml-cpp)
+endif()
+
 # --- FLAME GPU 2 ---
 
 if(NOT TARGET flamegpu)
@@ -191,6 +206,40 @@ if(NOT TARGET flamegpu)
     endif()
 endif()
 
+# ============================================================================
+# Codegen — regenerate PDAC/qsp/ode/*.cpp from the in-repo SBML whenever it
+# changes, then refresh the <QSP> block in PDAC/sim/resource/param_all{,_test}.xml
+# from the freshly-emitted snippet. SBML is checked in as the contract
+# between MATLAB and C++; re-export from MATLAB and commit the new file
+# to bump the model.
+# ============================================================================
+set(PDAC_REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+set(SBML_PATH "${PDAC_REPO_ROOT}/PDAC/qsp/PDAC_model.sbml" CACHE FILEPATH
+    "Path to PDAC_model.sbml (in-repo by default)")
+
+set(_GENERATED_ODE
+    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/ODE_system.cpp
+    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/ODE_system.h
+    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/QSPParam.cpp
+    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/QSPParam.h
+    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/QSP_enum.h
+    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/qsp_params_xml_snippet.xml
+)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_custom_command(
+    OUTPUT ${_GENERATED_ODE}
+    COMMAND ${Python3_EXECUTABLE} ${PDAC_REPO_ROOT}/PDAC/codegen/qsp_codegen.py ${SBML_PATH}
+    COMMAND ${Python3_EXECUTABLE} ${PDAC_REPO_ROOT}/PDAC/codegen/refresh_param_xml.py
+    DEPENDS
+        ${SBML_PATH}
+        ${PDAC_REPO_ROOT}/PDAC/codegen/qsp_codegen.py
+        ${PDAC_REPO_ROOT}/PDAC/codegen/refresh_param_xml.py
+    COMMENT "Regenerating QSP ODE C++ from ${SBML_PATH} and refreshing param_all.xml"
+    VERBATIM
+)
+add_custom_target(qsp_codegen DEPENDS ${_GENERATED_ODE})
+
 # Define executable with ALL source files
 add_executable(pdac
     main.cu
@@ -208,10 +257,18 @@ add_executable(pdac
     ../core/ParamBase.cpp
     ../core/model_functions.cu
     ../abm/gpu_param.cu
+    set_healthy_populations.cpp
+    evolve_to_diagnosis.cpp
 )
+
+# Make pdac depend on codegen so a stale ODE_system.cpp can never link
+add_dependencies(pdac qsp_codegen)
 
 # Link against FLAMEGPU2
 target_link_libraries(pdac PRIVATE flamegpu)
+
+# Link against yaml-cpp (healthy_state.yaml, scenario YAML)
+target_link_libraries(pdac PRIVATE yaml-cpp::yaml-cpp)
 target_compile_definitions(pdac PRIVATE FLAMEGPU_SEATBELTS=0)
 
 # Link against SUNDIALS (CVODE)

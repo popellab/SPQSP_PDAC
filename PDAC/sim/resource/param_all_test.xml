@@ -512,9 +512,9 @@
   </IC>
 <QSP>
   <simulation>
-    <weight_qsp name="PARAM_WEIGHT_QSP" type="float" val="pr">0.8</weight_qsp>
-    <t_steadystate>5000</t_steadystate>  
-    <use_resection>0</use_resection>    
+    <weight_qsp>0.8</weight_qsp>
+    <t_steadystate>5000</t_steadystate>
+    <use_resection>0</use_resection>
     <t_resection>1000</t_resection>
     <presimulation_diam_frac>1.00</presimulation_diam_frac>
     <start>0</start>
@@ -729,9 +729,9 @@
       <C_max>27000.0</C_max>
       <k_C1_therapy>0.0</k_C1_therapy>
       <initial_tumour_diameter>3.2</initial_tumour_diameter>
-      <K0>10300.0</K0>
-      <k_K_g>0.15</k_K_g>
-      <k_K_d>0.0004</k_K_d>
+      <K_initial>10300.0</K_initial>
+      <k_vas_growth>0.15</k_vas_growth>
+      <k_vas_decay>0.004</k_vas_decay>
       <k_vas_Csec>0.004</k_vas_Csec>
       <k_vas_deg>16.6</k_vas_deg>
       <VEGF_50>2410.0</VEGF_50>
@@ -755,7 +755,7 @@
       <K_nTreg_pro>1000000000.0</K_nTreg_pro>
       <k_nTreg_death>0.002</k_nTreg_death>
       <f_nTreg>0.25</f_nTreg>
-      <k_Treg>0.1</k_Treg>
+      <k_Treg_CD8_exh>0.1</k_Treg_CD8_exh>
       <H_P0>1.0</H_P0>
       <k_CCL5_sec>2e-12</k_CCL5_sec>
       <k_CCL5_deg>1.5</k_CCL5_deg>
@@ -769,7 +769,7 @@
       <q_nCD8_LN_out>1.8</q_nCD8_LN_out>
       <k_CD8_act>23.0</k_CD8_act>
       <k_CD8_pro>1.0</k_CD8_pro>
-      <k_T_activation_per_APC>5e-07</k_T_activation_per_APC>
+      <k_T_activation_per_APC>0.0001</k_T_activation_per_APC>
       <n_T_expansion_burst>800.0</n_T_expansion_burst>
       <k_CD8_death>0.1</k_CD8_death>
       <q_CD8_P_in>2.436</q_CD8_P_in>
@@ -781,9 +781,9 @@
       <k_nCD8_pro>320000000.0</k_nCD8_pro>
       <K_nCD8_pro>1000000000.0</K_nCD8_pro>
       <k_nCD8_death>0.002</k_nCD8_death>
-      <k_CD8>0.1</k_CD8>
+      <k_C_CD8_exh>0.1</k_C_CD8_exh>
       <k_C_CD8>2.2</k_C_CD8>
-      <k_Tcell_col>0.02</k_Tcell_col>
+      <k_stiff_CD8_exh>0.02</k_stiff_CD8_exh>
       <k_CD8_basal_exh>0.05</k_CD8_basal_exh>
       <K_C_exh>1000000.0</K_C_exh>
       <k_CD8_exh_death>0.15</k_CD8_exh_death>
@@ -926,21 +926,21 @@
       <syn_CD8_APC_PDL1_total>0.0</syn_CD8_APC_PDL1_total>
       <syn_CD8_APC_PDL2_total>0.0</syn_CD8_APC_PDL2_total>
       <k_Th_act>10.0</k_Th_act>
-      <k_Th_Treg>0.022</k_Th_Treg>
+      <k_Th_to_Treg>0.022</k_Th_to_Treg>
       <k_CD4_pro>1.0</k_CD4_pro>
       <k_CD4_death>0.1</k_CD4_death>
-      <Kc_rec>20200000.0</Kc_rec>
+      <K_C2_recruit>20200000.0</K_C2_recruit>
       <k_Th_pro_tumor>0.15</k_Th_pro_tumor>
       <rho_Th_max>5000000.0</rho_Th_max>
       <k_IL2_deg>0.0907984488525718</k_IL2_deg>
-      <k_IL2_sec>3e-05</k_IL2_sec>
-      <k_IL2_cons>6e-06</k_IL2_cons>
+      <k_IL2_sec>1e-11</k_IL2_sec>
+      <k_IL2_cons>5e-11</k_IL2_cons>
       <IL2_50>0.32</IL2_50>
       <IL2_50_Treg>0.32</IL2_50_Treg>
       <w_IL2_CD8>1.0</w_IL2_CD8>
       <w_IL2_Treg>1.0</w_IL2_Treg>
-      <N0>2.0</N0>
-      <N_costim>3.0</N_costim>
+      <N_div_base>2.0</N_div_base>
+      <N_div_costim>3.0</N_div_costim>
       <N_IL2_CD8>11.0</N_IL2_CD8>
       <N_IL2_CD4>8.5</N_IL2_CD4>
       <k_IFNg_Tsec>4e-12</k_IFNg_Tsec>
@@ -949,7 +949,7 @@
       <IFNg_50_ind>2.96</IFNg_50_ind>
       <k_TGFb_Tsec>1.2e-10</k_TGFb_Tsec>
       <k_TGFb_deg>14.3</k_TGFb_deg>
-      <TGFbase>0.016</TGFbase>
+      <TGFb_baseline>0.016</TGFb_baseline>
       <TGFb_50>0.07</TGFb_50>
       <TGFb_50_Teff>0.14</TGFb_50_Teff>
       <N_aT>1.0</N_aT>
@@ -987,7 +987,7 @@
       <k_M1_pol>0.045</k_M1_pol>
       <IL10_50>8.0</IL10_50>
       <IL12_50>15.0</IL12_50>
-      <IFNg_50>2.9</IFNg_50>
+      <IFNg_50>1000.0</IFNg_50>
       <k_M1_phago>0.33</k_M1_phago>
       <vol_Mcell>4849.04826081585</vol_Mcell>
       <kon_CD47_SIRPa>0.0625</kon_CD47_SIRPa>
@@ -1002,17 +1002,17 @@
       <M_SIRPa>100.0</M_SIRPa>
       <A_Mcell>1385.4423602331</A_Mcell>
       <IL10_50_phago>270.0</IL10_50_phago>
-      <K_Mac_C>2.0</K_Mac_C>
+      <K_M1_phago>2.0</K_M1_phago>
       <M_total>0.0</M_total>
       <H_IL10>1.0</H_IL10>
       <H_IL10_phago>1.0</H_IL10_phago>
       <H_IL12>1.0</H_IL12>
       <H_IL6_M2>0.0</H_IL6_M2>
-      <k_psc_encounter>1000000.0</k_psc_encounter>
-      <k_psc_const>2000000.0</k_psc_const>
-      <k_psc_activation_myCAF>0.4</k_psc_activation_myCAF>
-      <k_psc_activation_iCAF>0.2</k_psc_activation_iCAF>
-      <k_psc_activation_apCAF>0.01</k_psc_activation_apCAF>
+      <k_CAF_encounter>1000000.0</k_CAF_encounter>
+      <k_CAF_const>2000000.0</k_CAF_const>
+      <k_PSC_to_myCAF>0.4</k_PSC_to_myCAF>
+      <k_PSC_to_iCAF>0.2</k_PSC_to_iCAF>
+      <k_PSC_to_apCAF>0.01</k_PSC_to_apCAF>
       <k_iCAF_to_myCAF>0.1</k_iCAF_to_myCAF>
       <k_myCAF_to_iCAF>0.05</k_myCAF_to_iCAF>
       <k_myCAF_prolif>0.15</k_myCAF_prolif>
@@ -1024,7 +1024,7 @@
       <TGFb_50_CAF_act>0.07</TGFb_50_CAF_act>
       <TGFb_50_col_sec>0.07</TGFb_50_col_sec>
       <k_col_deg>0.007</k_col_deg>
-      <k_MMP_M1>1e-08</k_MMP_M1>
+      <k_MMP_M2>1e-08</k_MMP_M2>
       <rho_collagen>0.025</rho_collagen>
       <phi_collagen>0.12</phi_collagen>
       <k_qpsc_death>0.0165</k_qpsc_death>
@@ -1060,9 +1060,9 @@
       <CXCL12_50_Texcl>2.0</CXCL12_50_Texcl>
       <k_IL6_sec_iCAF>4e-11</k_IL6_sec_iCAF>
       <k_IL6_deg>10.0</k_IL6_deg>
-      <IL6_50_MDSC>0.06</IL6_50_MDSC>
-      <IL6_50_M2>0.2</IL6_50_M2>
-      <IL6_50_iCAF>0.1</IL6_50_iCAF>
+      <IL6_50_MDSC>0.015</IL6_50_MDSC>
+      <IL6_50_M2>0.015</IL6_50_M2>
+      <IL6_50_iCAF>0.015</IL6_50_iCAF>
       <f_IL6_iCAF>3.0</f_IL6_iCAF>
       <H_IL6_iCAF>0.0</H_IL6_iCAF>
       <k_IL1_sec>1e-12</k_IL1_sec>
@@ -1070,17 +1070,18 @@
       <IL1_50>0.01</IL1_50>
       <n_IL1>1.0</n_IL1>
       <TGFb_50_IL1R1>0.07</TGFb_50_IL1R1>
+      <Emax_IL1R1>9.0</Emax_IL1R1>
       <IL1_ratio>0.0</IL1_ratio>
       <H_IL1_eff>0.0</H_IL1_eff>
-      <k_vas_myCAF_sec>8.5e-06</k_vas_myCAF_sec>
+      <k_vas_myCAF_sec>0.005</k_vas_myCAF_sec>
       <k_P1_up_apCAF>1.44</k_P1_up_apCAF>
       <k_apCAF_Treg>0.03</k_apCAF_Treg>
       <K_apCAF_Treg>10000000.0</K_apCAF_Treg>
       <P1_50_apCAF>1e-09</P1_50_apCAF>
       <aPSC_total>0.0</aPSC_total>
-      <k_TGFb_sec_myCAF>2e-11</k_TGFb_sec_myCAF>
+      <k_TGFb_sec_myCAF>1e-09</k_TGFb_sec_myCAF>
       <k_CXCL12_sec_cancer>5e-11</k_CXCL12_sec_cancer>
-      <k_CCL5_sec_iCAF>1e-12</k_CCL5_sec_iCAF>
+      <k_CCL5_sec_iCAF>1e-10</k_CCL5_sec_iCAF>
       <H_P1_apCAF>0.0</H_P1_apCAF>
       <k_GVAX_clearance>0.1</k_GVAX_clearance>
       <V_ID_volume>0.0001</V_ID_volume>
@@ -1098,7 +1099,7 @@
       <k_mAPC_death_ID>0.7</k_mAPC_death_ID>
       <y_Ag_per_cell>1.7e-08</y_Ag_per_cell>
       <k_P1_deg_ID>10.0</k_P1_deg_ID>
-      <K_mig>100000.0</K_mig>
+      <K_APC_mig>100000.0</K_APC_mig>
       <H_GMCSF_ID>0.0</H_GMCSF_ID>
       <J_mature_ID>0.0</J_mature_ID>
       <k_Cy_clear>0.5</k_Cy_clear>
