@@ -1,0 +1,8 @@
+check,description,pass,detail
+il1_drives_icaf,IL1 run: final n_iCAF ≥ 90 (TGFB absent → iCAF path wins),PASS,"iCAF=100, myCAF=0, q=0"
+tgfb_drives_mycaf,TGFB run: final n_myCAF ≥ 90 (IL1 absent → myCAF path wins),PASS,"myCAF=100, iCAF=0, q=0"
+both_mycaf_dominant_mixed,Both run: myCAF > iCAF and both > 0 (TGFB supp + detailed balance),PASS,"myCAF=66, iCAF=34, ratio myCAF:iCAF=1.94"
+both_detailed_balance,Both run: iCAF fraction within ±0.15 of 0.33 (k_m2i/(k_m2i+k_i2m)),PASS,"observed f_iCAF=0.34, expected≈0.33"
+il1_no_quiescent_left,"IL1 high, TGFB=0: n_quiescent == 0 at final step (activation fired)",PASS,q=0
+tgfb_no_quiescent_left,"TGFB high, IL1=0: n_quiescent == 0 at final step (activation fired)",PASS,q=0
+both_no_quiescent_left,Both high: n_quiescent == 0 at final step (activation fired),PASS,q=0

@@ -18,6 +18,26 @@
     env.newProperty<float>("PARAM_TCELL_IL2_PROLIF_TH", 
                     QP(CancerVCT::P_IL2_50) * 1e6 * env.getProperty<float>("PARAM_TCELL_IL2_COMMIT_TIME"));
 
+    // cDC1 → naive CD8 priming rate [1/s] from QSP k_CD8_act
+    env.newProperty<float>("PARAM_DC_PRIME_K_CD8", 
+                    QP(CancerVCT::P_k_CD8_act));
+
+    // cDC2 → naive CD4 (Th) priming rate [1/s] from QSP k_Th_act
+    env.newProperty<float>("PARAM_DC_PRIME_K_TH", 
+                    QP(CancerVCT::P_k_Th_act));
+
+    // cDC2 → naive CD4 (Treg) priming rate [1/s] from QSP k_Treg_act
+    env.newProperty<float>("PARAM_DC_PRIME_K_TREG", 
+                    QP(CancerVCT::P_k_Treg_act));
+
+    // presentation sites per APC (dimensionless) from QSP n_sites_APC
+    env.newProperty<float>("PARAM_DC_N_SITES", 
+                    QP(CancerVCT::P_n_sites_APC));
+
+    // fraction of activated naive CD4 → Treg (dimensionless) from QSP f_nTreg
+    env.newProperty<float>("PARAM_F_NTREG", 
+                    QP(CancerVCT::P_f_nTreg));
+
     // cell count (not moles)
     env.newProperty<float>("PARAM_CELL", 
                     QP(CancerVCT::P_cell) * AVOGADROS);
@@ -420,11 +440,11 @@
 
     // mean T cell lifespan in timesteps
     env.newProperty<float>("PARAM_T_CELL_LIFE_MEAN_SLICE", 
-                    1 / QP(CancerVCT::P_k_CD8_death) / t_step_sec / 5);
+                    1 / QP(CancerVCT::P_k_CD8_death) / t_step_sec);
 
     // mean TCD4 lifespan in timesteps
     env.newProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE", 
-                    1 / QP(CancerVCT::P_k_Treg_death) / t_step_sec / 5);
+                    1 / QP(CancerVCT::P_k_Treg_death) / t_step_sec);
 
     // mean MDSC lifespan in timesteps
     env.newProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE", 

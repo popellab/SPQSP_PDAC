@@ -46,6 +46,13 @@ struct SimulationConfig {
     int grid_out;
     int interval_out;
 
+    // Simulation mode (per phase): true = full QSP+ABM coupling, false = QSP frozen (ABM-only)
+    bool presim_qsp_enabled;   // default: true (legacy behavior)
+    bool main_qsp_enabled;     // default: true (legacy behavior)
+
+    // Presim stopping criterion: if >= 0, use step count; if < 0, use QSP volume (legacy).
+    int presim_steps;
+
     // Constructor with defaults
     SimulationConfig();
 

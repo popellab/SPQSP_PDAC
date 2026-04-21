@@ -731,6 +731,13 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     // Step counter that starts at 0 when the main simulation (Phase 4) begins
     env.newProperty<unsigned int>("main_sim_step", 0u);
 
+    // Simulation mode flag: 1 = step QSP normally, 0 = freeze QSP (ABM-only mode).
+    // When 0, solve_qsp_step, aggregate_abm_events, and copy_abm_counters_to_environment
+    // early-return. QSP-derived env properties stay pinned at whatever values they
+    // had when the flag was flipped; exportQSPData still emits a row each step so
+    // the CSV schema matches across modes. Set per-phase by main.cu.
+    env.newProperty<int>("step_qsp", 1);
+
     // Agent count tracking (updated each timestep by host function)
     env.newProperty<unsigned int>("total_cancer_cells", 0u);
     env.newProperty<unsigned int>("total_tcells", 0u);

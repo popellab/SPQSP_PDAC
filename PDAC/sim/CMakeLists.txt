@@ -320,6 +320,20 @@ target_compile_options(pde_test PRIVATE
 add_executable(pdac_test
     ../test/test_main.cu
     ../test/test_harness.cu
+    ../test/scenarios/chemotaxis_cdf/test_chemotaxis_cdf.cu
+    ../test/scenarios/persistence/test_persistence.cu
+    ../test/scenarios/adhesion/test_adhesion.cu
+    ../test/scenarios/ecm_density/test_ecm_density.cu
+    ../test/scenarios/contact_guidance/test_contact_guidance.cu
+    ../test/scenarios/molecular_grids/test_molecular_grids.cu
+    ../test/scenarios/bcell_lifecycle/test_bcell_lifecycle.cu
+    ../test/scenarios/dc_priming/test_dc_priming.cu
+    ../test/scenarios/icaf_diff/test_icaf_diff.cu
+    ../test/scenarios/frc_transition/test_frc_transition.cu
+    ../test/scenarios/vascular_o2_saturation/test_vascular_o2_saturation.cu
+    ../test/scenarios/vascular_o2_cancer_uptake/test_vascular_o2_cancer_uptake.cu
+    ../test/scenarios/vascular_sprout/test_vascular_sprout.cu
+    ../test/scenarios/pde_substep_sweep/test_pde_substep_sweep.cu
     model_definition.cu
     model_layers.cu
     initialization.cu

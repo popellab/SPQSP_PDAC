@@ -100,7 +100,7 @@ struct TestConfig {
     unsigned int steps  = 100;      // ABM steps to run
     unsigned int seed   = 42;       // RNG seed
     std::string param_file;         // XML param file path (required)
-    std::string output_dir;         // output directory (auto: outputs/tests/<name>/)
+    std::string output_dir;         // output dir (auto: ../test/scenarios/<name>/outputs/)
 
     // What to run
     LayerConfig layers;
@@ -113,6 +113,14 @@ struct TestConfig {
 
     // ECM preset (applied after PDE init, before simulation)
     ECMPreset ecm;
+
+    // Per-scenario overrides for FLAMEGPU environment properties.
+    // Applied after defineEnvironment() populates XML params, but BEFORE
+    // defineTestLayers() reads them to build layer structure. Use this to
+    // force a single move substep, disable a subprocess rate, etc.
+    std::vector<std::pair<std::string, int>>   int_env_overrides;
+    std::vector<std::pair<std::string, float>> float_env_overrides;
+    std::vector<std::pair<std::string, bool>>  bool_env_overrides;
 
     // Per-step logging callback
     StepCallback step_callback;

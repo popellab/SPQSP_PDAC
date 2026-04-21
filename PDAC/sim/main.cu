@@ -36,6 +36,7 @@ extern flamegpu::FLAMEGPU_STEP_FUNCTION_POINTER exportQSPData;
 namespace PDAC {
     extern void exportQSPData_step0();
     extern void set_qsp_output_path(const std::string& path);
+    extern void seed_qsp_env_properties(flamegpu::CUDASimulation& simulation);
 }
 
 namespace PDAC {
@@ -874,6 +875,12 @@ int main(int argc, const char** argv) {
     simulation.SimulationConfig().steps = config.steps;
     simulation.SimulationConfig().random_seed = config.random_seed;
     simulation.setEnvironmentProperty<unsigned int>("sim_seed", static_cast<unsigned int>(config.random_seed));
+
+    // Seed qsp_* env properties from the post-warmup ODE state. solve_qsp_step
+    // overwrites these every step in QSP-on modes; in QSP-frozen modes this is
+    // the only place they ever get populated, so ABM reads post-warmup values
+    // instead of the 0.0 default.
+    PDAC::seed_qsp_env_properties(simulation);
     init_lap("cuda_sim_create");
 
     // ========== INITIALIZE AGENTS ==========
@@ -894,27 +901,63 @@ int main(int argc, const char** argv) {
     std::cout << "[MEM] After agent init: " << (used_mem_2 / (1024*1024)) << " MB used / "
               << (total_mem_2 / (1024*1024)) << " MB total" << std::endl;
 
-    // ========== PHASE 3: PRE-SIMULATION (QSP-seeded init only) ==========
-    // Run ABM+QSP (no drugs) until QSP tumor volume reaches 1.0× target diameter.
-    // This fills the gap between the 0.95× warmup and the treatment start.
+    // ========== PHASE 3: PRE-SIMULATION ==========
+    // Step ABM (and optionally QSP) until either a target tumor volume or a
+    // fixed step count is reached. Drug dosing is always off during presim.
+    //
+    // Mode selection (per config):
+    //   presim_qsp_enabled=true  : full ABM+QSP coupling, no drugs
+    //   presim_qsp_enabled=false : ABM-only; QSP frozen at post-warmup state
+    //
+    // Stopping criterion:
+    //   presim_steps >= 0 : run exactly presim_steps iterations
+    //   presim_steps <  0 : run until QSP tumor volume >= full_target_vol (legacy)
     const double full_target_vol = _lymph.get_full_target_volume();
     double cur_vol = _lymph.get_tumor_volume();
 
-    std::cout << "\n=== Phase 3: Pre-simulation (ABM+QSP, no drugs) ===" << std::endl;
-    std::cout << "  Target volume (1.0x diam): " << full_target_vol << " cm^3" << std::endl;
-    std::cout << "  Current QSP volume       : " << cur_vol         << " cm^3" << std::endl;
+    // Set the per-phase QSP step flag BEFORE the loop so gated host functions
+    // see the correct mode starting on iteration 0.
+    simulation.setEnvironmentProperty<int>("step_qsp", config.presim_qsp_enabled ? 1 : 0);
 
+    // Misconfiguration guard: abm_only freezes QSP, so cur_vol never updates.
+    // The volume stopper would then loop until the safety cap (100k steps).
+    if (!config.presim_qsp_enabled && config.presim_steps < 0) {
+        std::cerr << "ERROR: --presim-mode abm_only requires --presim-steps N "
+                     "(QSP is frozen, so the volume stopper would never trigger)." << std::endl;
+        return 1;
+    }
+
+    std::cout << "\n=== Phase 3: Pre-simulation ("
+              << (config.presim_qsp_enabled ? "ABM+QSP, no drugs" : "ABM only, QSP frozen")
+              << ") ===" << std::endl;
+    if (config.presim_steps >= 0) {
+        std::cout << "  Stopper: fixed step count = " << config.presim_steps << std::endl;
+    } else {
+        std::cout << "  Stopper: QSP tumor volume" << std::endl;
+        std::cout << "  Target volume (1.0x diam): " << full_target_vol << " cm^3" << std::endl;
+        std::cout << "  Current QSP volume       : " << cur_vol         << " cm^3" << std::endl;
+    }
+
+    // Presim never doses drugs. This flag gates the wrapper's drug-bolus path;
+    // even when step_qsp=0 it's harmless (wrapper is never called).
     _lymph.set_presimulation_mode(true);
 
-    const unsigned int max_presim_steps = 100000;
+    const unsigned int max_presim_steps = 100000;  // safety cap for volume stopper
     unsigned int presim_step = 0;
+
+    auto presim_should_continue = [&]() -> bool {
+        if (config.presim_steps >= 0) {
+            return presim_step < static_cast<unsigned int>(config.presim_steps);
+        }
+        return cur_vol < full_target_vol && presim_step < max_presim_steps;
+    };
 
     // Pre-create presim output dirs if needed (grid_out > 0 means we'll write files)
     if (config.grid_out != 0) {
         ensureOutputDirectories();
     }
 
-    while (cur_vol < full_target_vol && presim_step < max_presim_steps) {
+    while (presim_should_continue()) {
         bool ok = simulation.step();
         if (!ok) {
             std::cout << "  Pre-simulation: ABM terminated early (all cancer cells gone)" << std::endl;
@@ -977,8 +1020,14 @@ int main(int argc, const char** argv) {
 
     _lymph.set_presimulation_mode(false);
 
+    // Switch to main-sim mode flag (may differ from presim mode).
+    simulation.setEnvironmentProperty<int>("step_qsp", config.main_qsp_enabled ? 1 : 0);
+
     std::cout << "  Pre-simulation complete: " << presim_step << " steps, "
               << "QSP tum_vol=" << cur_vol << " cm^3" << std::endl;
+    std::cout << "  Main-sim mode: "
+              << (config.main_qsp_enabled ? "qsp_abm (drugs ON)" : "abm_only (QSP frozen)")
+              << std::endl;
     init_lap("presim");
     init_file.close();
 

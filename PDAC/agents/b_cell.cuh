@@ -212,6 +212,14 @@ FLAMEGPU_AGENT_FUNCTION(bcell_state_step, flamegpu::MessageNone, flamegpu::Messa
         }
         float effective_threshold = (float)base_timer * speedup;
 
+        // TLS gate: plasma differentiation requires cluster + Tfh help (germinal-center-like
+        // microenvironment). Extrafollicular plasmablasts are disabled when flag is on.
+        // Timer keeps counting so a B cell that joins a TLS late can still convert.
+        bool requires_tls = FLAMEGPU->environment.getProperty<bool>("PARAM_BCELL_PLASMA_REQUIRES_TLS");
+        if (requires_tls && (bcell_count < tls_th || tfh_count == 0)) {
+            effective_threshold = 1e9f;  // never fires while gate is closed
+        }
+
         // Activated → Plasma: time-dependent differentiation
         if (timer >= (int)effective_threshold) {
             FLAMEGPU->setVariable<int>("cell_state", BCELL_PLASMA);

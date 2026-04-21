@@ -1,0 +1,6 @@
+check,description,pass,detail
+activation_timing,step 0: n_activated == 25,PASS,got naive=0 activated=25 plasma=0
+no_premature_plasma,step 39: n_plasma == 0,PASS,got activated=25 plasma=0
+plasma_transition,step 40: n_plasma == 25,PASS,got activated=0 plasma=25
+monotonicity,"naive non-increasing, plasma non-decreasing, N=const",PASS,"Δnaive∈[0,0], Δplasma∈[0,25]"
+antibody_mass_balance,Σ C_ab ≈ N·S/k (tol 12%),PASS,"observed 5.693e+08, expected 6.250e+08, err 8.9%"

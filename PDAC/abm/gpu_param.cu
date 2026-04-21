@@ -292,6 +292,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Pharmacokinetics.ipiOn", "", ""},  // PARAM_IPI_ON
     {"Param.ABM.Pharmacokinetics.caboOn", "", ""},  // PARAM_CABO_ON
     {"Param.ABM.Pharmacokinetics.entOn", "", ""},  // PARAM_ENT_ON
+    {"Param.ABM.BCell.plasma_requires_tls", "", ""},  // PARAM_BCELL_PLASMA_REQUIRES_TLS
 };
 
 // Verify that _gpu_param_description has the correct number of entries
@@ -605,6 +606,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<bool>("PARAM_IPI_ON", getBool(PARAM_IPI_ON));
     env.newProperty<bool>("PARAM_CABO_ON", getBool(PARAM_CABO_ON));
     env.newProperty<bool>("PARAM_ENT_ON", getBool(PARAM_ENT_ON));
+    env.newProperty<bool>("PARAM_BCELL_PLASMA_REQUIRES_TLS", getBool(PARAM_BCELL_PLASMA_REQUIRES_TLS));
 
     // Computed properties
     // total voxel count

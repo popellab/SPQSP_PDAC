@@ -35,6 +35,49 @@ void set_qsp_output_path(const std::string& path) {
     g_qsp_output_path = path;
 }
 
+// Populate every qsp_* env property from the wrapper's current ODE state, plus
+// derived quantities (qsp_f_tum_cap, R_cabo). solve_qsp_step normally does this
+// at the end of each step, but when QSP is frozen (step_qsp=0) those writes are
+// skipped — leaving env properties at their default 0.0. Call this once after
+// the internal QSP warmup so ABM-only modes inherit post-warmup values.
+void seed_qsp_env_properties(flamegpu::CUDASimulation& simulation) {
+    if (!g_lymph) return;
+    auto qsp_state = g_lymph->get_state_for_abm();
+    const float avogadros = simulation.getEnvironmentProperty<float>("AVOGADROS");
+    const float ic50_axl  = simulation.getEnvironmentProperty<float>("PARAM_IC50_AXL");
+
+    simulation.setEnvironmentProperty<float>("qsp_teff_central", static_cast<float>(qsp_state.teff_central));
+    simulation.setEnvironmentProperty<float>("qsp_treg_central", static_cast<float>(qsp_state.treg_central));
+    simulation.setEnvironmentProperty<float>("qsp_th_central",   static_cast<float>(qsp_state.th_central));
+
+    simulation.setEnvironmentProperty<float>("qsp_teff_tumor",   static_cast<float>(qsp_state.teff_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_treg_tumor",   static_cast<float>(qsp_state.treg_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_th_tumor",     static_cast<float>(qsp_state.th_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_mdsc_tumor",   static_cast<float>(qsp_state.mdsc_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_m1_tumor",     static_cast<float>(qsp_state.m1_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_m2_tumor",     static_cast<float>(qsp_state.m2_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_caf_tumor",    static_cast<float>(qsp_state.caf_tumor));
+
+    simulation.setEnvironmentProperty<float>("qsp_nivo_tumor",   static_cast<float>(qsp_state.nivo_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_cabo_tumor",   static_cast<float>(qsp_state.cabo_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_ipi_tumor",    static_cast<float>(qsp_state.ipi_tumor));
+
+    const float cc_tumor_mM = static_cast<float>(qsp_state.cc_tumor) / avogadros;
+    simulation.setEnvironmentProperty<float>("qsp_cc_tumor",     cc_tumor_mM);
+    simulation.setEnvironmentProperty<float>("qsp_cx_tumor",     static_cast<float>(qsp_state.cx_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_t_exh_tumor",  static_cast<float>(qsp_state.t_exh_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_tum_vol",      static_cast<float>(qsp_state.tum_vol));
+    simulation.setEnvironmentProperty<float>("qsp_tum_cmax",     static_cast<float>(qsp_state.tum_cmax));
+
+    const float f_tum_cap = (qsp_state.tum_cmax > 0.0)
+        ? cc_tumor_mM / static_cast<float>(qsp_state.tum_cmax)
+        : 0.0f;
+    simulation.setEnvironmentProperty<float>("qsp_f_tum_cap", f_tum_cap);
+
+    const float cabo = static_cast<float>(qsp_state.cabo_tumor);
+    simulation.setEnvironmentProperty<float>("R_cabo", cabo / (cabo + ic50_axl));
+}
+
 // Export step-0 QSP state (initial condition, before any simulation steps).
 // Called from main.cu after presim completes and before the main loop.
 void exportQSPData_step0() {
@@ -54,6 +97,14 @@ void exportQSPData_step0() {
 FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
     nvtxRangePush("QSP Solve");
     if (!g_lymph) { nvtxRangePop(); return; }
+
+    // ABM-only mode: skip QSP solve. All qsp_* env properties stay pinned at
+    // whatever values they had when step_qsp was flipped to 0.
+    if (FLAMEGPU->environment.getProperty<int>("step_qsp") == 0) {
+        g_last_qsp_ms = 0.0;
+        nvtxRangePop();
+        return;
+    }
 
     // Get current simulation time/step from environment
     unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");

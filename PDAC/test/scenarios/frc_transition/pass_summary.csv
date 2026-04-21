@@ -1,0 +1,10 @@
+check,description,pass,detail
+pos_transitions_to_frc,Positive: fib state reaches FIB_FRC (3) within run,PASS,"states observed: [2, 3]"
+pos_counter_increments,Positive: counter reached 3 pre-flip,PASS,max dwell before flip = 3
+pos_n_ltb_correct,Positive: neighbor_ltb_count == 20 (all 20 LTβ⁺ cells counted),PASS,n_ltb at step 0 = 20
+treg_no_transition,Treg: state stays FIB_ICAF (2) entire run,PASS,final state = 2
+treg_counter_zero,Treg: counter never leaves 0,PASS,max dwell = 0
+treg_excluded_from_ltb,Treg: neighbor_ltb_count == 0 (Treg state correctly excluded from LTβ count),PASS,max n_ltb = 0
+sub_no_transition,Sub-threshold: state stays FIB_ICAF entire run,PASS,final state = 2
+sub_counter_zero,Sub-threshold: counter stays 0 (resets each step when n_ltb < threshold),PASS,max dwell = 0
+sub_n_ltb_six,Sub-threshold: n_ltb == 6 < threshold (8),PASS,observed n_ltb = 6

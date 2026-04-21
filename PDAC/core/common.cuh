@@ -688,7 +688,9 @@ __device__ __forceinline__ float ci_to_bias(float ci) {
 }
 
 // Compute adhesion-based move probability from type+state neighbor counts and matrix.
-//   p_move = max(0, 1 - sum_j(M[my_idx][j] * n_j / 26))
+//   p_move = max(0, 1 - sum_j(M[my_idx][j] * n_j))
+// M[i][j] is the per-contact adhesion coefficient: each neighbor of type j reduces
+// i's move probability by M[i][j]. Paired cells with M=0.5 give p_move=0.5 at n=1.
 // adh_matrix is flat float[ABM_STATE_COUNTER_SIZE * ABM_STATE_COUNTER_SIZE], row-major.
 // neighbor_counts is int[ABM_STATE_COUNTER_SIZE] from scan_neighbors.
 __device__ __forceinline__ float compute_adhesion_pmove(
@@ -699,7 +701,7 @@ __device__ __forceinline__ float compute_adhesion_pmove(
     const float* row = &adh_matrix[my_sc_idx * ABM_STATE_COUNTER_SIZE];
     float sum = 0.0f;
     for (int j = 0; j < ABM_STATE_COUNTER_SIZE; j++) {
-        sum += row[j] * (static_cast<float>(neighbor_counts[j]) / 26.0f);
+        sum += row[j] * static_cast<float>(neighbor_counts[j]);
     }
     return fmaxf(0.0f, 1.0f - sum);
 }

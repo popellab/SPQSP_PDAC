@@ -264,6 +264,21 @@ std::unique_ptr<flamegpu::ModelDescription> buildTestModel(
     // Define environment with GPU parameters
     defineEnvironment(*model, gs, gs, gs, config.voxel_size, gpu_params);
 
+    // Apply per-scenario env property overrides BEFORE layer definition so
+    // defineTestLayers() sees the overridden values (e.g. PARAM_*_MOVE_STEPS).
+    for (const auto& [name, val] : config.int_env_overrides) {
+        model->Environment().setProperty<int>(name, val);
+        std::cout << "[test] override int " << name << " = " << val << std::endl;
+    }
+    for (const auto& [name, val] : config.float_env_overrides) {
+        model->Environment().setProperty<float>(name, val);
+        std::cout << "[test] override float " << name << " = " << val << std::endl;
+    }
+    for (const auto& [name, val] : config.bool_env_overrides) {
+        model->Environment().setProperty<bool>(name, val);
+        std::cout << "[test] override bool " << name << " = " << val << std::endl;
+    }
+
     // Define only the layers the test needs
     defineTestLayers(*model, config.layers);
 
@@ -417,9 +432,11 @@ int runTest(const TestConfig& config) {
     const int gs = config.grid_size;
 
     // 1. Create output directory
+    // Default output goes into the scenario's source folder so artefacts
+    // survive `outputs/` cleanups. Binary is run from PDAC/sim/.
     std::string out_dir = config.output_dir;
     if (out_dir.empty()) {
-        out_dir = "outputs/tests/" + config.name;
+        out_dir = "../test/scenarios/" + config.name + "/outputs";
     }
     std::filesystem::create_directories(out_dir);
 
@@ -473,6 +490,11 @@ int runTest(const TestConfig& config) {
 
     // 9. Apply initial pinned fields
     applyPinnedFields(config.pinned_fields, gs, gs, gs);
+
+    // Pre-compute gradients so step 0 movement sees a valid gradient.
+    // (The gradient layer runs after movement in each step, so without this
+    // call, step 0 chemotaxis would read zero-initialized gradient buffers.)
+    g_pde_solver->compute_gradients();
 
     // 10. Run simulation with per-step callback
     std::cout << "[test] Running " << config.steps << " steps..." << std::endl;

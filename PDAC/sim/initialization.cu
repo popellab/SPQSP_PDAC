@@ -25,6 +25,9 @@ SimulationConfig::SimulationConfig()
     , vascular_xml_file("")
     , grid_out(0)
     , interval_out(1)
+    , presim_qsp_enabled(true)
+    , main_qsp_enabled(true)
+    , presim_steps(-1)  // -1 = use QSP volume stopper (legacy)
 {
 }
 
@@ -65,6 +68,24 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             vascular_mode = argv[++i];
         } else if ((arg == "--vascular-xml" || arg == "-vx") && i + 1 < argc) {
             vascular_xml_file = argv[++i];
+        } else if (arg == "--presim-mode" && i + 1 < argc) {
+            std::string m = argv[++i];
+            if (m == "qsp_abm")        presim_qsp_enabled = true;
+            else if (m == "abm_only")  presim_qsp_enabled = false;
+            else {
+                std::cerr << "ERROR: --presim-mode must be qsp_abm or abm_only (got: " << m << ")" << std::endl;
+                exit(1);
+            }
+        } else if (arg == "--main-mode" && i + 1 < argc) {
+            std::string m = argv[++i];
+            if (m == "qsp_abm")        main_qsp_enabled = true;
+            else if (m == "abm_only")  main_qsp_enabled = false;
+            else {
+                std::cerr << "ERROR: --main-mode must be qsp_abm or abm_only (got: " << m << ")" << std::endl;
+                exit(1);
+            }
+        } else if (arg == "--presim-steps" && i + 1 < argc) {
+            presim_steps = std::atoi(argv[++i]);
         } else if (arg == "-h" || arg == "--help") {
             std::cout << "Usage: " << argv[0] << " [options]\n"
                       << "\nOptions:\n"
@@ -77,6 +98,9 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  --seed N                 Random seed [default: 12345]\n"
                       << "  -vm, --vascular-mode STR Vasculature initialization: random, xml, test [default: random]\n"
                       << "  -vx, --vascular-xml FILE XML file for vasculature (when mode=xml)\n"
+                      << "  --presim-mode MODE       Presim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
+                      << "  --main-mode MODE         Main-sim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
+                      << "  --presim-steps N         Presim step count (>=0 uses step stopper; <0 uses QSP volume) [default: -1]\n"
                       << "  -h, --help               Show this help\n";
             exit(0);
         }
@@ -97,6 +121,13 @@ void SimulationConfig::print() const {
     std::cout << "Steps: " << steps << std::endl;
     std::cout << "Random seed: " << random_seed << std::endl;
     std::cout << "Init: " << (init_method == 1 ? "Structured domain (-i 1)" : "QSP-seeded (-i 0)") << std::endl;
+
+    std::cout << "\nSimulation modes:" << std::endl;
+    std::cout << "  Presim: " << (presim_qsp_enabled ? "qsp_abm" : "abm_only");
+    if (presim_steps >= 0) std::cout << "  (stopper: steps=" << presim_steps << ")";
+    else                   std::cout << "  (stopper: QSP volume)";
+    std::cout << std::endl;
+    std::cout << "  Main:   " << (main_qsp_enabled ? "qsp_abm" : "abm_only") << std::endl;
 
     std::cout << "\nPDE Integration:" << std::endl;
     std::cout << "  ABM timestep: " << dt_abm << " s (" << (dt_abm/60.0f) << " min)" << std::endl;

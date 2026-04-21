@@ -63,6 +63,7 @@
       <activation_timer_base name="PARAM_BCELL_ACTIVATION_TIMER" type="int" val="pos">40</activation_timer_base>  <!-- Steps before plasma differentiation (~10 days GC transit; TFH speedup halves to 5 days) -->
       <tls_speedup name="PARAM_BCELL_TLS_SPEEDUP" type="float" val="pr">1.0</tls_speedup>           <!-- Neutral: GC pathway slower than EF, not faster (Elsner2020). Tfh handles acceleration. -->
       <tls_threshold name="PARAM_BCELL_TLS_THRESHOLD" type="int" val="pos">3</tls_threshold>         <!-- Neighbor B cell count for TLS effect -->
+      <plasma_requires_tls name="PARAM_BCELL_PLASMA_REQUIRES_TLS" type="bool">1</plasma_requires_tls>  <!-- If 1: BCELL_ACT→PLASMA gated on cluster (bcell_count>=TLS_THRESHOLD) AND Tfh contact; else timer-only (legacy) -->
       <breg_fraction name="PARAM_BCELL_BREG_FRACTION" type="float" val="pr">0.05</breg_fraction>      <!-- Probability of Breg at activation (PDAC IL-10+ Bregs ~5-9% of B cells) -->
       <antibody_release name="PARAM_BCELL_ANTIBODY_RELEASE" type="float" val="pr">1e-5</antibody_release>  <!-- Plasma cell antibody secretion [pmol/(cell*s)] (~100 pg/cell/day = 1e-17 mol/s = 1e-5 pmol/s, McMillan2025/Cheng2023) -->
       <il10_release name="PARAM_BCELL_IL10_RELEASE" type="float" val="pr">1e-7</il10_release>           <!-- Breg IL-10 secretion [pmol/(cell*s)] (per-Breg rate; Iwata2011) -->
@@ -1127,6 +1128,14 @@
          Cantrell&Smith1984: 6-8h sustained IL-2R signaling for S-phase commitment -->
     <D name="PARAM_TCELL_IL2_PROLIF_TH" type="float" comment="IL-2 accumulation threshold for division [nM*s] = IL2_50 * commit_time"><![CDATA[QP(CancerVCT::P_IL2_50) * 1e6 * env.getProperty<float>("PARAM_TCELL_IL2_COMMIT_TIME")]]></D>
 
+    <!-- DC priming rates. QSP k_X_act are in 1/day; ODE_system.cpp divides by 86400 on load,
+         so QP() returns 1/s. ABM uses p=1-exp(-k*H*sec_per_slice), consistent units. -->
+    <D name="PARAM_DC_PRIME_K_CD8" type="float" comment="cDC1 → naive CD8 priming rate [1/s] from QSP k_CD8_act"><![CDATA[QP(CancerVCT::P_k_CD8_act)]]></D>
+    <D name="PARAM_DC_PRIME_K_TH" type="float" comment="cDC2 → naive CD4 (Th) priming rate [1/s] from QSP k_Th_act"><![CDATA[QP(CancerVCT::P_k_Th_act)]]></D>
+    <D name="PARAM_DC_PRIME_K_TREG" type="float" comment="cDC2 → naive CD4 (Treg) priming rate [1/s] from QSP k_Treg_act"><![CDATA[QP(CancerVCT::P_k_Treg_act)]]></D>
+    <D name="PARAM_DC_N_SITES" type="float" comment="presentation sites per APC (dimensionless) from QSP n_sites_APC"><![CDATA[QP(CancerVCT::P_n_sites_APC)]]></D>
+    <D name="PARAM_F_NTREG" type="float" comment="fraction of activated naive CD4 → Treg (dimensionless) from QSP f_nTreg"><![CDATA[QP(CancerVCT::P_f_nTreg)]]></D>
+
     <!-- Volume params from QSP -->
     <D name="PARAM_CELL" type="float" comment="cell count (not moles)"><![CDATA[QP(CancerVCT::P_cell) * AVOGADROS]]></D>
     <D name="PARAM_V_CELL" type="float" comment="volume of cancer cells"><![CDATA[QP(CancerVCT::P_vol_cell)]]></D>
@@ -1287,8 +1296,8 @@
     <D name="PARAM_K_xP_DEG" type="float" comment="antigen degradation in tumor"><![CDATA[QP(CancerVCT::P_k_xP0_deg)]]></D>
 
     <!-- Cell lifespans in timesteps -->
-    <D name="PARAM_T_CELL_LIFE_MEAN_SLICE" type="float" comment="mean T cell lifespan in timesteps"><![CDATA[1 / QP(CancerVCT::P_k_CD8_death) / t_step_sec / 5]]></D>
-    <D name="PARAM_TCD4_LIFE_MEAN_SLICE" type="float" comment="mean TCD4 lifespan in timesteps"><![CDATA[1 / QP(CancerVCT::P_k_Treg_death) / t_step_sec / 5]]></D>
+    <D name="PARAM_T_CELL_LIFE_MEAN_SLICE" type="float" comment="mean T cell lifespan in timesteps"><![CDATA[1 / QP(CancerVCT::P_k_CD8_death) / t_step_sec]]></D>
+    <D name="PARAM_TCD4_LIFE_MEAN_SLICE" type="float" comment="mean TCD4 lifespan in timesteps"><![CDATA[1 / QP(CancerVCT::P_k_Treg_death) / t_step_sec]]></D>
     <D name="PARAM_MDSC_LIFE_MEAN_SLICE" type="float" comment="mean MDSC lifespan in timesteps"><![CDATA[1 / QP(CancerVCT::P_k_MDSC_death) / t_step_sec]]></D>
     <D name="PARAM_MAC_LIFE_MEAN" type="float" comment="mean MAC lifespan in timesteps"><![CDATA[1 / QP(CancerVCT::P_k_Mac_death) / t_step_sec]]></D>
     <D name="PARAM_APC_LIFE_MEAN" type="float" comment="mean APC lifespan in timesteps"><![CDATA[1 / QP(CancerVCT::P_k_APC_death) / t_step_sec]]></D>

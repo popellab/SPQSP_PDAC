@@ -1622,6 +1622,11 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_orientation) {
 // ============================================================================
 FLAMEGPU_HOST_FUNCTION(aggregate_abm_events) {
     nvtxRangePush("Aggregate ABM Events");
+    // ABM-only mode: QSP is frozen, no point aggregating ABM→QSP feedback events.
+    if (FLAMEGPU->environment.getProperty<int>("step_qsp") == 0) {
+        nvtxRangePop();
+        return;
+    }
     auto counters = FLAMEGPU->environment.getMacroProperty<int, ABM_EVENT_COUNTER_SIZE>("abm_event_counters");
     auto cc_api = FLAMEGPU->agent("CancerCell");
 
@@ -1663,6 +1668,11 @@ FLAMEGPU_HOST_FUNCTION(aggregate_abm_events) {
 // ============================================================================
 FLAMEGPU_HOST_FUNCTION(copy_abm_counters_to_environment) {
     nvtxRangePush("Copy ABM Counters");
+    // ABM-only mode: QSP is frozen, skip the copy (downstream QSP reads are also gated).
+    if (FLAMEGPU->environment.getProperty<int>("step_qsp") == 0) {
+        nvtxRangePop();
+        return;
+    }
     auto counters = FLAMEGPU->environment.getMacroProperty<int, ABM_EVENT_COUNTER_SIZE>("abm_event_counters");
 
     // Copy from MacroProperty array to environment properties for QSP access

@@ -69,7 +69,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-JOBS="${JOBS:-$(nproc)}"
+# Cap parallelism by RAM — each nvcc TU with FLAMEGPU/Boost/SUNDIALS peaks
+# at ~3–5 GB. Default to min(nproc, RAM_GB / 4) to avoid OOM (WSL crash).
+if [[ -z "${JOBS}" ]]; then
+    RAM_GB=$(awk '/MemTotal/ {printf "%d", $2/1024/1024}' /proc/meminfo)
+    RAM_JOBS=$(( RAM_GB / 4 ))
+    (( RAM_JOBS < 1 )) && RAM_JOBS=1
+    NPROC_JOBS=$(nproc)
+    JOBS=$(( RAM_JOBS < NPROC_JOBS ? RAM_JOBS : NPROC_JOBS ))
+    echo "  auto -j ${JOBS} (RAM=${RAM_GB}GB, nproc=${NPROC_JOBS})"
+fi
 
 # ============================================================================
 # Prerequisite checks

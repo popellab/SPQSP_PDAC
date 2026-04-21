@@ -1,0 +1,6 @@
+check,description,pass,detail
+priming_fires,step 0: n_naive ≤ 2 (most primed on contact),PASS,got n_naive=0  (p_per_step_analytic=0.9917)
+no_spurious_deaths,step 0: n_naive + n_cyt == 25 (no T cell deaths),PASS,got n_naive+n_cyt=25
+event_matches_transitions,step 0: EVT_PRIME_CD8 == n_cyt,PASS,got evt=25 n_cyt=25
+dc_stable,step 0: n_dc == 25 (no DC deaths),PASS,got n_dc=25
+divide_burst_applied,primed T cells have divide_limit == PARAM_PRIME_DIV_BURST (4),PASS,"n_primed=25, limits={4}"
