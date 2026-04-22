@@ -206,39 +206,16 @@ if(NOT TARGET flamegpu)
     endif()
 endif()
 
-# ============================================================================
-# Codegen — regenerate PDAC/qsp/ode/*.cpp from the in-repo SBML whenever it
-# changes, then refresh the <QSP> block in PDAC/sim/resource/param_all{,_test}.xml
-# from the freshly-emitted snippet. SBML is checked in as the contract
-# between MATLAB and C++; re-export from MATLAB and commit the new file
-# to bump the model.
-# ============================================================================
 set(PDAC_REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
-set(SBML_PATH "${PDAC_REPO_ROOT}/PDAC/qsp/PDAC_model.sbml" CACHE FILEPATH
-    "Path to PDAC_model.sbml (in-repo by default)")
 
-set(_GENERATED_ODE
-    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/ODE_system.cpp
-    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/ODE_system.h
-    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/QSPParam.cpp
-    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/QSPParam.h
-    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/QSP_enum.h
-    ${PDAC_REPO_ROOT}/PDAC/qsp/ode/qsp_params_xml_snippet.xml
-)
-
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
-add_custom_command(
-    OUTPUT ${_GENERATED_ODE}
-    COMMAND ${Python3_EXECUTABLE} ${PDAC_REPO_ROOT}/PDAC/codegen/qsp_codegen.py ${SBML_PATH}
-    COMMAND ${Python3_EXECUTABLE} ${PDAC_REPO_ROOT}/PDAC/codegen/refresh_param_xml.py
-    DEPENDS
-        ${SBML_PATH}
-        ${PDAC_REPO_ROOT}/PDAC/codegen/qsp_codegen.py
-        ${PDAC_REPO_ROOT}/PDAC/codegen/refresh_param_xml.py
-    COMMENT "Regenerating QSP ODE C++ from ${SBML_PATH} and refreshing param_all.xml"
-    VERBATIM
-)
-add_custom_target(qsp_codegen DEPENDS ${_GENERATED_ODE})
+# ============================================================================
+# Codegen moved to the standalone `qsp-codegen` tool (authored in
+# pdac-build's Makefile, run by pdac-build's refresh-cpp target). SBML
+# now lives in pdac-build only. The generated files below are committed
+# to this repo; consumers of this build tree just compile whatever is
+# present in PDAC/qsp/ode/. See notes/codegen_decoupling_plan.md in
+# pdac-build for the rationale.
+# ============================================================================
 
 # Define executable with ALL source files
 add_executable(pdac
@@ -260,9 +237,6 @@ add_executable(pdac
     set_healthy_populations.cpp
     evolve_to_diagnosis.cpp
 )
-
-# Make pdac depend on codegen so a stale ODE_system.cpp can never link
-add_dependencies(pdac qsp_codegen)
 
 # Link against FLAMEGPU2
 target_link_libraries(pdac PRIVATE flamegpu)

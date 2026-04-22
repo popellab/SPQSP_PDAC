@@ -16,13 +16,11 @@ import os
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-# SBML is checked in here as the contract between MATLAB and C++.
-# Re-export from MATLAB → copy file → commit.
-DEFAULT_SBML = REPO_ROOT / "PDAC" / "qsp" / "PDAC_model.sbml"
-
-# The live MATLAB model script lives outside this repo. Override the
-# directory with PDAC_BUILD_DIR; defaults to a sibling pdac-build/.
+# SBML and the MATLAB model both live in pdac-build now (producer of the
+# model contract). Override the pdac-build location with PDAC_BUILD_DIR;
+# defaults to a sibling pdac-build/.
 PDAC_BUILD_DIR = Path(os.environ.get("PDAC_BUILD_DIR", REPO_ROOT.parent / "pdac-build"))
+DEFAULT_SBML = PDAC_BUILD_DIR / "PDAC_model.sbml"
 DEFAULT_MATLAB_MODEL = PDAC_BUILD_DIR / "scripts" / "immune_oncology_model_PDAC.m"
 DEFAULT_ODE_CPP = REPO_ROOT / "PDAC" / "qsp" / "ode" / "ODE_system.cpp"
 DEFAULT_PARAM_SNIPPET = REPO_ROOT / "PDAC" / "qsp" / "ode" / "qsp_params_xml_snippet.xml"
@@ -43,13 +41,13 @@ def check_sbml_newer_than_matlab(
     if not sbml.exists():
         return False, (
             f"SBML missing: {sbml}\n"
-            f"  Re-export in pdac-build: matlab -batch \"run('scripts/export_sbml.m')\""
+            f"  Re-export in pdac-build: make export-sbml"
         )
     drift = matlab_script.stat().st_mtime - sbml.stat().st_mtime
     if drift > 0:
         return False, (
             f"{sbml.name} is {drift:.0f}s older than {matlab_script.name}.\n"
-            f"  Re-export: matlab -batch \"run('scripts/export_sbml.m')\""
+            f"  Re-export in pdac-build: make export-sbml"
         )
     return True, "SBML is up to date with MATLAB model script"
 
@@ -64,13 +62,13 @@ def check_codegen_newer_than_sbml(
     if not ode_cpp.exists():
         return False, (
             f"Generated ODE missing: {ode_cpp}\n"
-            f"  Run: python PDAC/codegen/qsp_codegen.py {sbml}"
+            f"  Regenerate in pdac-build: make refresh-cpp"
         )
     drift = sbml.stat().st_mtime - ode_cpp.stat().st_mtime
     if drift > 0:
         return False, (
             f"{ode_cpp.name} is {drift:.0f}s older than the SBML.\n"
-            f"  Regenerate: python PDAC/codegen/qsp_codegen.py {sbml}"
+            f"  Regenerate in pdac-build: make refresh-cpp"
         )
     return True, "Generated ODE is up to date with SBML"
 
@@ -109,7 +107,7 @@ def check_param_xml_contains_snippet(
         return False, (
             f"{len(missing)} name(s) in {snippet.name} missing from {param_xml.name}:\n"
             f"  {missing[:20]}\n"
-            f"  Refresh: python PDAC/codegen/refresh_param_xml.py"
+            f"  Refresh in pdac-build: make refresh-cpp"
         )
     return True, f"{param_xml.name} contains all snippet names"
 
@@ -139,9 +137,9 @@ def check_priors_csv_names_in_param_xml(
             f"{len(missing)} prior(s) in {priors_csv.name} missing from "
             f"{param_xml.name}:\n"
             f"  {missing[:20]}{'...' if len(missing) > 20 else ''}\n"
-            f"  Fix: drop orphan rows from pdac_priors.csv OR re-export SBML "
-            f"(matlab -batch \"run('scripts/export_sbml.m')\") + run "
-            f"qsp_codegen.py + refresh_param_xml.py."
+            f"  Fix: drop orphan rows from pdac_priors.csv OR in pdac-build "
+            f"run `make refresh-cpp` to regenerate param_all.xml from the "
+            f"current SBML."
         )
     return True, f"all {len(prior_names)} prior names present in {param_xml.name}"
 
