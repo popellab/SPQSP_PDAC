@@ -14,14 +14,22 @@ from pathlib import Path
 
 import pytest
 
+import os as _os
+
 TESTS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TESTS_DIR.parent.parent.parent
-PDAC_BUILD = REPO_ROOT.parent / "pdac-build"
+# The MATLAB .m source the test drives must match the branch/worktree whose
+# SBML was exported to regenerate the C++ codegen under test. Otherwise the
+# two engines simulate different models (see the Fix-2 equivalence bug,
+# 2026-04-21 — MATLAB ran main-branch modules while C++ ran the
+# worktree-exported SBML, producing spurious 5.8× divergence). The
+# pdac-build Makefile's cpp-equivalence target exports PDAC_BUILD_DIR so the
+# worktree wins; fall back to the sibling pdac-build/ only if unset.
+PDAC_BUILD = Path(_os.environ.get("PDAC_BUILD_DIR", REPO_ROOT.parent / "pdac-build"))
 ODE_BUILD = REPO_ROOT / "PDAC" / "qsp" / "sim" / "build"
 PARAM_XML = REPO_ROOT / "PDAC" / "sim" / "resource" / "param_all.xml"
 # Both MATLAB and C++ simulate from the same XML so parameter divergence
 # isn't confounded with solver divergence. Override via PDAC_PARAM_XML env var.
-import os as _os
 PARAM_XML = Path(_os.environ.get("PDAC_PARAM_XML", str(PARAM_XML)))
 # MATLAB loads the model via sbmlimport from the same SBML the C++ codegen
 # reads, so both sides simulate the exact same ODE structure.
