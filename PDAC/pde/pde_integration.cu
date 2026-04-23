@@ -1298,10 +1298,19 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
 FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
     nvtxRangePush("Place Recruited Agents");
 
-    // Read count from device
+    // Read count from device. d_recruit_count is atomically incremented even when
+    // the slot would exceed the buffer, so (count > MAX) means requests were dropped.
     int count = 0;
     CUDA_CHECK(cudaMemcpy(&count, d_recruit_count, sizeof(int), cudaMemcpyDeviceToHost));
-    if (count > MAX_RECRUITS_PER_STEP) count = MAX_RECRUITS_PER_STEP;
+    if (count > MAX_RECRUITS_PER_STEP) {
+        std::cerr << "[WARN] Recruitment cap hit at step "
+                  << FLAMEGPU->getStepCounter()
+                  << ": " << count << " requests generated, buffer capped at "
+                  << MAX_RECRUITS_PER_STEP << " ("
+                  << (count - MAX_RECRUITS_PER_STEP) << " dropped). "
+                  << "Raise MAX_RECRUITS_PER_STEP in core/common.cuh." << std::endl;
+        count = MAX_RECRUITS_PER_STEP;
+    }
 
     if (count == 0) {
         // Zero stats

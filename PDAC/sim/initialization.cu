@@ -56,6 +56,12 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             grid_x = size;
             grid_y = size;
             grid_z = size;
+        } else if ((arg == "--grid-x" || arg == "-gx") && i + 1 < argc) {
+            grid_x = std::atoi(argv[++i]);
+        } else if ((arg == "--grid-y" || arg == "-gy") && i + 1 < argc) {
+            grid_y = std::atoi(argv[++i]);
+        } else if ((arg == "--grid-z" || arg == "-gz") && i + 1 < argc) {
+            grid_z = std::atoi(argv[++i]);
         } else if ((arg == "--steps" || arg == "-s") && i + 1 < argc) {
             steps = std::atoi(argv[++i]);
         } else if ((arg == "--grid-output" || arg == "-G") && i + 1 < argc) {
@@ -92,6 +98,9 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  -p, --param-file FILE    Path to parameter XML file [default: param_all_test.xml]\n"
                       << "  -i, --initialization N   initialization type: 0=QSP-seeded [default: 0]\n"
                       << "  -g, --grid-size N        Grid dimensions NxNxN [default: from XML]\n"
+                      << "  -gx, --grid-x N          Override grid X only (applied after -g)\n"
+                      << "  -gy, --grid-y N          Override grid Y only (applied after -g)\n"
+                      << "  -gz, --grid-z N          Override grid Z only (applied after -g)\n"
                       << "  -s, --steps N            Number of simulation steps [default: 200]\n"
                       << "  -G, --grid-output N      Grid output: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both [default: 0]\n"
                       << "  -oi, --out_int N         Output interval frequency [default: 1]\n"
@@ -874,97 +883,21 @@ DomainStructure generate_domain_structure(
     domain.is_septum.resize(total, false);
     domain.is_tumor.resize(total, false);
 
-    std::mt19937 rng(seed + 9999);
+    (void)seed;  // rng was only used by the silenced Poisson-disk pass
 
     // -----------------------------------------------------------------------
-    // Step 1: Poisson disk sampling for lobule centers in 3D (Bridson's)
+    // Lobular/septa structure is currently silenced (Apr 22, 2026).
+    // Lobule centers stay empty, so the Voronoi septum pass below and the
+    // septum fiber-orientation pass in preseed_ecm both skip. ECM collapses
+    // to a uniform lobule baseline (plus tumor hemisphere). Unused silenced
+    // params: PARAM_DOMAIN_LOBULE_SPACING, PARAM_DOMAIN_SEPTUM_THICKNESS,
+    // PARAM_DOMAIN_ECM_SEPTUM_DENSITY, PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK.
+    // To re-enable: restore the Poisson disk + Voronoi blocks from git.
     // -----------------------------------------------------------------------
-    const float min_dist = lobule_spacing;
-    const int max_attempts = 30;
-
-    std::uniform_real_distribution<float> ux(0.0f, static_cast<float>(grid_x));
-    std::uniform_real_distribution<float> uy(0.0f, static_cast<float>(grid_y));
-    std::uniform_real_distribution<float> uz(0.0f, static_cast<float>(grid_z));
-
-    domain.lobule_centers.push_back({ux(rng), uy(rng), uz(rng)});
-
-    std::vector<int> active;
-    active.push_back(0);
-
-    std::uniform_real_distribution<float> u_phi(0.0f, 2.0f * static_cast<float>(M_PI));
-    std::uniform_real_distribution<float> u_cos(-1.0f, 1.0f);
-    std::uniform_real_distribution<float> u_r(min_dist, 2.0f * min_dist);
-
-    while (!active.empty()) {
-        std::uniform_int_distribution<int> u_idx(0, static_cast<int>(active.size()) - 1);
-        int ai = u_idx(rng);
-        const Point3 p = domain.lobule_centers[active[ai]];
-
-        bool found = false;
-        for (int attempt = 0; attempt < max_attempts; attempt++) {
-            float r = u_r(rng);
-            float cos_theta = u_cos(rng);
-            float sin_theta = std::sqrt(1.0f - cos_theta * cos_theta);
-            float phi = u_phi(rng);
-
-            float nx = p.x + r * sin_theta * std::cos(phi);
-            float ny = p.y + r * sin_theta * std::sin(phi);
-            float nz = p.z + r * cos_theta;
-
-            if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z)
-                continue;
-
-            bool too_close = false;
-            for (const auto& c : domain.lobule_centers) {
-                float dx = nx - c.x, dy = ny - c.y, dz = nz - c.z;
-                if (dx*dx + dy*dy + dz*dz < min_dist * min_dist) {
-                    too_close = true;
-                    break;
-                }
-            }
-
-            if (!too_close) {
-                int new_idx = static_cast<int>(domain.lobule_centers.size());
-                domain.lobule_centers.push_back({nx, ny, nz});
-                active.push_back(new_idx);
-                found = true;
-                break;
-            }
-        }
-
-        if (!found) {
-            active.erase(active.begin() + ai);
-        }
-    }
-
-    std::cout << "  Domain: " << domain.lobule_centers.size() << " lobule centers (spacing="
-              << lobule_spacing << " voxels)" << std::endl;
-
-    // -----------------------------------------------------------------------
-    // Step 2: Voronoi tessellation — mark septum voxels
-    // -----------------------------------------------------------------------
-    if (!domain.lobule_centers.empty()) {
-        for (int z = 0; z < grid_z; z++) {
-            for (int y = 0; y < grid_y; y++) {
-                for (int x = 0; x < grid_x; x++) {
-                    float vx = x + 0.5f, vy = y + 0.5f, vz = z + 0.5f;
-                    float d1 = 1e30f, d2 = 1e30f;
-
-                    for (const auto& c : domain.lobule_centers) {
-                        float dx = vx - c.x, dy = vy - c.y, dz = vz - c.z;
-                        float d = std::sqrt(dx*dx + dy*dy + dz*dz);
-                        if (d < d1) { d2 = d1; d1 = d; }
-                        else if (d < d2) { d2 = d; }
-                    }
-
-                    int idx = x + y * grid_x + z * grid_x * grid_y;
-                    if (d2 - d1 < septum_thickness) {
-                        domain.is_septum[idx] = true;
-                    }
-                }
-            }
-        }
-    }
+    (void)lobule_spacing;
+    (void)septum_thickness;
+    std::cout << "  Domain: lobular/septa structure disabled — uniform lobule baseline"
+              << std::endl;
 
     // -----------------------------------------------------------------------
     // Step 3: Mark tumor hemisphere on x=0 face

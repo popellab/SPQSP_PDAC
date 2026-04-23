@@ -206,7 +206,13 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
         }
     }
 
+    // Track whether we successfully divided this call; if not, bump stuck_steps.
+    // Covers both "no candidates at all" and "all candidates lost volume contention".
+    bool divided = false;
+
     if (n_cands == 0) {
+        const int stuck = FLAMEGPU->getVariable<int>("stuck_steps");
+        FLAMEGPU->setVariable<int>("stuck_steps", stuck + 1);
         return flamegpu::ALIVE;
     }
 
@@ -271,6 +277,14 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
         } else if (cell_state == CANCER_PROGENITOR) {
             int divideCountRemaining = FLAMEGPU->getVariable<int>("divideCountRemaining");
             divideCountRemaining--;
+            // Telomerase reactivation: rare heritable event that restores full proliferative
+            // potential in BOTH parent and daughter (hTERT upregulation, ~85-95% of PDAC clones
+            // during PanIN progression — Matsuda2019). Applied pre-write so both copies inherit
+            // the boosted count.
+            const float p_react = FLAMEGPU->environment.getProperty<float>("PARAM_TELOMERASE_REACTIVATION_PROB");
+            if (p_react > 0.0f && FLAMEGPU->random.uniform<float>() < p_react) {
+                divideCountRemaining = divMax;
+            }
             FLAMEGPU->setVariable<int>("divideCountRemaining", divideCountRemaining);
 
             const float div_int = FLAMEGPU->environment.getProperty<float>(
@@ -299,7 +313,15 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
         auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
         atomicAdd(&evts[cell_state == CANCER_STEM ? EVT_PROLIF_CANCER_STEM : EVT_PROLIF_CANCER_PROG], 1u);
 
+        FLAMEGPU->setVariable<int>("stuck_steps", 0);  // Divided successfully → not stuck
+        divided = true;
         break;  // Division done; stop trying candidates
+    }
+
+    // All candidates lost volume contention → count as stuck for contact-inhibited senescence.
+    if (!divided) {
+        const int stuck = FLAMEGPU->getVariable<int>("stuck_steps");
+        FLAMEGPU->setVariable<int>("stuck_steps", stuck + 1);
     }
 
     return flamegpu::ALIVE;
@@ -515,6 +537,26 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
     if (cell_state == CANCER_PROGENITOR) {
         const int divideCountRemaining = FLAMEGPU->getVariable<int>("divideCountRemaining");
         if (divideCountRemaining <= 0) {
+            FLAMEGPU->setVariable<int>("cell_state", CANCER_SENESCENT);
+            FLAMEGPU->setVariable<int>("divideCD", -1);
+            FLAMEGPU->setVariable<int>("divideFlag", 0);
+            const float mean_life = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_SENESCENT_MEAN_LIFE");
+            const float rand_val  = FLAMEGPU->random.uniform<float>();
+            const int life = static_cast<int>(-mean_life * logf(rand_val + 0.0001f) + 0.5f);
+            FLAMEGPU->setVariable<int>("life", life > 0 ? life : 1);
+        }
+    }
+
+    // === CONTACT-INHIBITED SENESCENCE ===
+    // Proliferative cells (STEM, PROGENITOR) that repeatedly find no free voxel to divide
+    // into (cancer_divide increments stuck_steps) force-senesce once stuck_steps crosses
+    // PARAM_CANCER_STUCK_SENESCENCE_STEPS. Prevents trapped-progenitor interior deadlock.
+    // Re-read cell_state: the exhaustion block above may have just flipped us to SENESCENT.
+    const int post_state = FLAMEGPU->getVariable<int>("cell_state");
+    if (post_state != CANCER_SENESCENT) {
+        const int stuck = FLAMEGPU->getVariable<int>("stuck_steps");
+        const int stuck_th = FLAMEGPU->environment.getProperty<int>("PARAM_CANCER_STUCK_SENESCENCE_STEPS");
+        if (stuck >= stuck_th) {
             FLAMEGPU->setVariable<int>("cell_state", CANCER_SENESCENT);
             FLAMEGPU->setVariable<int>("divideCD", -1);
             FLAMEGPU->setVariable<int>("divideFlag", 0);

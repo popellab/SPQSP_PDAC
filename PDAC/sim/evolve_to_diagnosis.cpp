@@ -9,8 +9,8 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "qsp/ode/ODE_system.h"
-#include "qsp/ode/QSP_enum.h"
+#include "../qsp/ode/ODE_system.h"
+#include "../qsp/ode/QSP_enum.h"
 
 namespace CancerVCT {
 

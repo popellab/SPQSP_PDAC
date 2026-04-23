@@ -96,10 +96,12 @@
       <m2_bias_strength name="PARAM_MAC_M2_BIAS_STRENGTH" type="float" val="pr">0.75</m2_bias_strength>     <!-- MAPLE posterior 0.75. Raggi2017, Leblond2016 -->
     </Mac>
     <CancerCell>
-      <progGrowthRate name="PARAM_PROG_GROWTH_RATE" type="float" val="pr">0.071</progGrowthRate> <!-- MAPLE posterior. PANC-1 52h DT (Lieber1975), clinical TVDT 159d (Furukawa2001) -->
-      <senescentDeathRate name="PARAM_SEN_DEATH_RATE" type="float" val="pr">0.026</senescentDeathRate> <!-- MAPLE posterior (~40x down). BCL-2 resistance. Campisi2007 -->
+      <progGrowthRate name="PARAM_PROG_GROWTH_RATE" type="float" val="pr">0.3</progGrowthRate> <!-- TEMP bump (from MAPLE posterior 0.071): 52h DT ≈ 0.32/day restores prog-faster-than-stem hierarchy. Stem formula gives 0.2/day from k_C1_growth/(1-asym_div_prob); with PROG=0.071 the hierarchy was inverted. Revisit: either raise asym_div_prob→0.99 or drop k_C1_growth so stem DT>10d, and recalibrate PROG to clinical TVDT via MAPLE. -->
+      <senescentDeathRate name="PARAM_SEN_DEATH_RATE" type="float" val="pr">0.1</senescentDeathRate> <!-- MAPLE posterior (~40x down). BCL-2 resistance. Campisi2007; Temp bump to 0.1 from 0.026 --> 
       <asymmetricDivProb name="PARAM_ASYM_DIV_PROB" type="float" val="pr">.95</asymmetricDivProb>
-      <progenitorDivMax name="PARAM_PROG_DIV_MAX" type="int" val="pos">9</progenitorDivMax>
+      <progenitorDivMax name="PARAM_PROG_DIV_MAX" type="int" val="pos">10</progenitorDivMax>
+      <stuckSenescenceSteps name="PARAM_CANCER_STUCK_SENESCENCE_STEPS" type="int" val="pos">20</stuckSenescenceSteps>  <!-- Contact-inhibited senescence: proliferative cells (STEM + PROGENITOR) whose cancer_divide finds n_cands==0 for N consecutive steps (in their wave) are forced to senesce. Prevents interior trapped-progenitor deadlock (proliferating edge ends up senescent, interior progenitors stay locked). Default 20 slices ≈ 5 days at SEC_PER_SLICE=21600, ~2.2× PROG div interval at PROG_GROWTH_RATE=0.3. Lower → more aggressive turnover, higher → longer dormancy tolerance. -->
+      <telomeraseReactivationProb name="PARAM_TELOMERASE_REACTIVATION_PROB" type="float" val="pr">0.005</telomeraseReactivationProb>  <!-- Per-progenitor-division probability that hTERT reactivates and restores divideCountRemaining = PARAM_PROG_DIV_MAX in BOTH parent and daughter (heritable state — models clonal emergence of telomerase-positive subclones during PanIN→PDAC progression, Matsuda2019, Hashimoto2008). Default 0.005: per-lineage prob over ~divMax divisions = 1-(1-p)^divMax ≈ 5% at divMax=10, preventing the hard Hayflick cap on tumor size while keeping subpop hierarchy mostly intact. Bump up if tumor still caps; 0 disables (pure Hayflick). -->
       <moveSteps name="PARAM_CANCER_MOVE_STEPS" type="int" val="pos">2</moveSteps> <!-- MAPLE posterior 2. Non-CSC ~30 um/h (Park2020) -->
       <moveSteps_csc name="PARAM_CANCER_MOVE_STEPS_STEM" type="int" val="pos">1</moveSteps_csc> <!-- MAPLE posterior 1 (5x down). CSCs slower 6 um/h (Park2020) -->
       <Tkill_scaler name="PARAM_TKILL_SCALAR" type="float" val="pos">3</Tkill_scaler>
@@ -119,9 +121,9 @@
       <min_neighbor name="PARAM_VAS_MIN_NEIGHBOR" type="float" val="pos">10</min_neighbor>  <!-- PDAC MVD 10-20/mm² → 160-224 um spacing -->
       <maturity_resistance name="PARAM_VAS_MATURITY_RESISTANCE" type="float" val="pr">0.04</maturity_resistance>      <!-- Mature vessels 5x resistant; pericyte coverage data -->
       <initial_maturity name="PARAM_VAS_INITIAL_MATURITY" type="float" val="pr">100</initial_maturity>             <!-- Maturity steps for pre-existing vessels -->
-      <collapse_threshold name="PARAM_VAS_COLLAPSE_THRESHOLD" type="float" val="pr">0.7</collapse_threshold>         <!-- ECM density above which collapse possible -->
-      <collapse_ec50 name="PARAM_VAS_COLLAPSE_EC50" type="float" val="pr">0.85</collapse_ec50>                  <!-- Hill EC50 for collapse probability -->
-      <recovery_threshold name="PARAM_VAS_RECOVERY_THRESHOLD" type="float" val="pr">0.60</recovery_threshold>        <!-- Losartan: 32% collagen reduction restores perfusion -->
+      <collapse_threshold name="PARAM_VAS_COLLAPSE_THRESHOLD" type="float" val="pr" units="nmol/mL">700</collapse_threshold>  <!-- Raw ECM density above which collapse possible (cap=1000) -->
+      <collapse_ec50 name="PARAM_VAS_COLLAPSE_EC50" type="float" val="pr" units="nmol/mL">850</collapse_ec50>           <!-- Hill EC50 for collapse probability (raw ECM) -->
+      <recovery_threshold name="PARAM_VAS_RECOVERY_THRESHOLD" type="float" val="pr" units="nmol/mL">600</recovery_threshold> <!-- Losartan: 32% collagen reduction restores perfusion; raw ECM -->
       <recovery_rate name="PARAM_VAS_RECOVERY_RATE" type="float" val="pr">0.05</recovery_rate>                  <!-- Per-step recovery probability -->
       <kvl_dysfunctional name="PARAM_VAS_KVL_DYSFUNCTIONAL" type="float" val="pr">0.2</kvl_dysfunctional>           <!-- Pericyte-poor TIP: ~20% of mature O2 delivery -->
       <hypoxia_threshold name="PARAM_VAS_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>          <!-- O2 mM below which sprouts are dysfunctional -->
@@ -195,11 +197,11 @@
       <!-- ECM density is in nmol/mL (= µM). QSP saturation = 1000 nmol/mL. -->
       <!-- PARAM_ECM_DEPOSITION_RATE, PARAM_ECM_DECAY_RATE, PARAM_ECM_TGFB_EC50 are QSP-derived (see DerivedParams) -->
       <densityCap name="PARAM_ECM_DENSITY_CAP" type="float" val="pr" units="nmol/mL">1000.0</densityCap>       <!-- Maximum ECM density per voxel [nmol/mL] -->
-      <mmpDegradeRate name="PARAM_ECM_MMP_DEGRADE_RATE" type="float" val="pr" units="1/(s*uM)">1e-3</mmpDegradeRate>  <!-- k_mmp: MMP degradation rate [1/(s·µM)]. MMP PDE in µM. -->
+      <mmpDegradeRate name="PARAM_ECM_MMP_DEGRADE_RATE" type="float" val="pr" units="1/(s*uM)">0</mmpDegradeRate>  <!-- k_mmp: MMP degradation rate [1/(s·µM)]. Zeroed 2026-04-23: PDAC immune exclusion is dominated by CXCL12 (Feig 2013) + interstitial pressure (Provenzano 2012), not MMP tunneling. MMP-mediated ECM degradation was opening immune infiltration paths through the desmoplastic ring; cancer now passes regardless of ECM via amoeboid/protease-independent migration (see PARAM_ECM_POROSITY_CANCER). -->
       <crosslinkRate name="PARAM_ECM_CROSSLINK_RATE" type="float" val="pr" units="1/s">1e-6</crosslinkRate>     <!-- k_lox: LOX crosslink accumulation [1/s] -->
       <crosslinkResistance name="PARAM_ECM_CROSSLINK_RESISTANCE" type="float" val="pr">5.0</crosslinkResistance>  <!-- alpha: crosslink MMP resistance factor -->
       <baseline name="PARAM_ECM_BASELINE" type="float" val="pr" units="nmol/mL">10.0</baseline>              <!-- Floor density [nmol/mL] = 1% of saturation -->
-      <porosityCancer name="PARAM_ECM_POROSITY_CANCER" type="float" val="pr">0.1</porosityCancer>            <!-- Min porosity for cancer movement (0-1, unitless) -->
+      <porosityCancer name="PARAM_ECM_POROSITY_CANCER" type="float" val="pr">0</porosityCancer>            <!-- Min porosity for cancer movement. Zeroed 2026-04-23: PDAC cancer cells use EMT + amoeboid migration (Wolf & Friedl 2011), pass through dense matrix regardless of density. ECM gate now exclusive to immune cells so desmoplastic ring is a one-way exclusion zone. -->
       <porosityTcell name="PARAM_ECM_POROSITY_TCELL" type="float" val="pr">0.4</porosityTcell>              <!-- Min porosity for T cell movement -->
       <porosityTreg name="PARAM_ECM_POROSITY_TREG" type="float" val="pr">0.35</porosityTreg>               <!-- Min porosity for TReg movement -->
       <porosityTfh name="PARAM_ECM_POROSITY_TFH" type="float" val="pr">0.35</porosityTfh>                 <!-- Min porosity for Tfh movement -->
@@ -223,14 +225,14 @@
       <!-- Lobular structure -->
       <lobule_spacing name="PARAM_DOMAIN_LOBULE_SPACING" type="float" val="pr" units="voxels">70</lobule_spacing>                     <!-- voxels between lobule centers -->
       <septum_thickness name="PARAM_DOMAIN_SEPTUM_THICKNESS" type="float" val="pr" units="voxels">4</septum_thickness>                   <!-- voxels, Voronoi boundary width -->
-      <tumor_radius_fraction name="PARAM_DOMAIN_TUMOR_RADIUS_FRAC" type="float" val="pr">0.15</tumor_radius_fraction>     <!-- fraction of grid_x -->
+      <tumor_radius_fraction name="PARAM_DOMAIN_TUMOR_RADIUS_FRAC" type="float" val="pr">0.20</tumor_radius_fraction>     <!-- fraction of grid_x -->
       <!-- ECM initialization by region (septa are ECM-only, no persistent voxel types) -->
       <ecm_septum_density name="PARAM_DOMAIN_ECM_SEPTUM_DENSITY" type="float" val="pr" units="nmol/mL">700.0</ecm_septum_density>
       <ecm_septum_crosslink name="PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK" type="float" val="pr">0.3</ecm_septum_crosslink>
       <ecm_lobule_density name="PARAM_DOMAIN_ECM_LOBULE_DENSITY" type="float" val="pr" units="nmol/mL">50.0</ecm_lobule_density>
       <ecm_tumor_density name="PARAM_DOMAIN_ECM_TUMOR_DENSITY" type="float" val="pr" units="nmol/mL">100.0</ecm_tumor_density>
       <!-- Cell densities from healthy pancreas IMC (cells/mm³, median of lognormal) -->
-      <fibroblast_density name="PARAM_DOMAIN_FIB_DENSITY" type="float" val="pr" units="cells/mm3">16018</fibroblast_density>
+      <fibroblast_density name="PARAM_DOMAIN_FIB_DENSITY" type="float" val="pr" units="cells/mm3">10000</fibroblast_density>
       <vascular_density name="PARAM_DOMAIN_VAS_DENSITY" type="float" val="pr" units="cells/mm3">9661</vascular_density>
       <macrophage_density name="PARAM_DOMAIN_MAC_DENSITY" type="float" val="pr" units="cells/mm3">2846</macrophage_density>
       <cd8_density name="PARAM_DOMAIN_CD8_DENSITY" type="float" val="pr" units="cells/mm3">1958</cd8_density>
@@ -290,9 +292,9 @@
       <AdhesionMatrix>
         <!-- Cancer Stem (EMT, reduced E-cadherin) -->
         <cancer_stem>
-          <cancer_stem>0.15</cancer_stem>  <!-- Krebs2017: Zeb1-KO EMT, reduced E-cad. Stem/prog ratio 3-5x -->
-          <cancer_prog>0.15</cancer_prog>
-          <cancer_sen>0.15</cancer_sen>
+          <cancer_stem>0.05</cancer_stem>  <!-- Krebs2017: Zeb1-KO EMT, reduced E-cad. Stem/prog ratio 3-5x; temp drop to 0.05 from 0.15-->
+          <cancer_prog>0.05</cancer_prog>
+          <cancer_sen>0.05</cancer_sen>
           <fib_mycaf>0.05</fib_mycaf>
           <fib_icaf>0.05</fib_icaf>
         </cancer_stem>
@@ -322,23 +324,23 @@
         <fib_mycaf>
           <cancer_stem>0.1</cancer_stem>
           <cancer_prog>0.1</cancer_prog>
-          <fib_quiescent>0.2</fib_quiescent>
-          <fib_mycaf>0.2</fib_mycaf>
-          <fib_icaf>0.2</fib_icaf>
-          <fib_frc>0.2</fib_frc>
+          <fib_quiescent>0.1</fib_quiescent>
+          <fib_mycaf>0.1</fib_mycaf>
+          <fib_icaf>0.1</fib_icaf>
+          <fib_frc>0.1</fib_frc>
         </fib_mycaf>
         <!-- Fibroblast iCAF (secretory, less anchored) -->
         <fib_icaf>
           <cancer_stem>0.05</cancer_stem>
           <cancer_prog>0.05</cancer_prog>
-          <fib_quiescent>0.1</fib_quiescent>
-          <fib_mycaf>0.1</fib_mycaf>
-          <fib_icaf>0.1</fib_icaf>
-          <fib_frc>0.1</fib_frc>
+          <fib_quiescent>0.05</fib_quiescent>
+          <fib_mycaf>0.05</fib_mycaf>
+          <fib_icaf>0.05</fib_icaf>
+          <fib_frc>0.05</fib_frc>
         </fib_icaf>
         <!-- B cell Activated (homotypic adhesion in TLS) -->
         <bcell_act>
-          <bcell_naive>0.3</bcell_naive>
+          <bcell_naive>0.0</bcell_naive>
           <bcell_act>0.3</bcell_act>
           <bcell_plasma>0.3</bcell_plasma>
         </bcell_act>
@@ -408,8 +410,9 @@
       <TGFB>
         <diffusivity name="PARAM_TGFB_DIFFUSIVITY" type="float" val="pr">2.67e-7</diffusivity> <!-- MAPLE. Ramanujan2002 -->
         <release>
-          <CancerStem name="PARAM_STEM_TGFB_RELEASE" type="float" val="pr">1.06e-7</CancerStem> <!-- [pmol/(cell*s)] -->
-          <CancerProgenitor name="PARAM_PROG_TGFB_RELEASE" type="float" val="pr">0</CancerProgenitor>
+          <CancerStem name="PARAM_STEM_TGFB_RELEASE" type="float" val="pr">2.5e-12</CancerStem> <!-- [pmol/(cell*s)] — Ellenrieder 2001 (Cancer Res): PANC-1/BxPC-3/MiaPaCa-2 secrete TGFβ1 at ~1–5 ng/10⁶ cells/day → 4.6e-13–2.3e-12 pmol/cell/s. Mid-literature for PDAC bulk tumor cell. Prior 1.06e-7 was 40 000× above this range, no source in MAPLE. -->
+          <CancerProgenitor name="PARAM_PROG_TGFB_RELEASE" type="float" val="pr">2.5e-12</CancerProgenitor> <!-- [pmol/(cell*s)] — same Ellenrieder 2001 reference (bulk PDAC cell lines, not stem-sorted). Previously 0, which flattened the TGFβ gradient and stopped myCAF desmoplastic migration. Progenitors are the bulk of the tumor mass so they carry the tumor-interior TGFβ source. -->
+
         </release>
         <molecularWeight name="PARAM_TGFB_MOLECULAR_WEIGHT" type="float" val="pr">44</molecularWeight>
       </TGFB>
@@ -835,7 +838,8 @@
       <pTCR_p0_MHC_tot>0.0</pTCR_p0_MHC_tot>
       <k_P1_up>14.4</k_P1_up>
       <k_xP1_deg>2.0</k_xP1_deg>
-      <k_P1_deg>17.28</k_P1_deg>
+      <k_P1_deg>3.0</k_P1_deg> <!-- Tissue antigen decay [1/day]. Slowed from 17.28 (1h t1/2 — too fast) to 3.0 (~5.5h t1/2) on 2026-04-23 so DCs have a multi-step window to sample cancer-death deposits. Literature supports 6-24h tissue persistence: Pape 2007 Immunity 26:491, Itano 2003 Immunity 19:47, Savill 2002 Nat Rev Immunol 2:965, Nair-Gupta 2014 Cell 158:506. -->
+
       <k_p1_deg>144.0</k_p1_deg>
       <k_P1_on>144000.0</k_P1_on>
       <k_P1_d1>1e-08</k_P1_d1>
@@ -1015,9 +1019,10 @@
       <k_PSC_to_apCAF>0.01</k_PSC_to_apCAF>
       <k_iCAF_to_myCAF>0.1</k_iCAF_to_myCAF>
       <k_myCAF_to_iCAF>0.05</k_myCAF_to_iCAF>
-      <k_myCAF_prolif>0.15</k_myCAF_prolif>
-      <k_iCAF_prolif>0.1</k_iCAF_prolif>
-      <k_apCAF_prolif>0.05</k_apCAF_prolif>
+      <k_myCAF_prolif>0.0165</k_myCAF_prolif>  <!-- Dialed down to match k_myCAF_death (stable pop, turnover only). Uncapped cooldown-only division runs away without QSP carrying-cap term (RF247/248); revisit when ABM-side saturation gate exists. -->
+      <k_iCAF_prolif>0.0165</k_iCAF_prolif>    <!-- Matches k_iCAF_death — same rationale as myCAF. -->
+      <k_apCAF_prolif>0.0165</k_apCAF_prolif>  <!-- Matches k_apCAF_death — same rationale. -->
+
       <f_stroma_max>3.0</f_stroma_max>
       <k_col_myCAF_sec>5e-09</k_col_myCAF_sec>
       <f_col_basal>0.5</f_col_basal>
@@ -1200,14 +1205,14 @@
     <!-- CD8 exhaustion: 3 independent pathways matching ODE (RF57/59/60) -->
     <!-- RF61 (stiffness) omitted — ABM handles via spatial ECM porosity, movement restriction, hypoxia -->
     <D name="PARAM_EXHAUST_BASE_BASAL" type="float" comment="Basal/antigen exhaustion (RF57: k_CD8_basal_exh)"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_CD8_basal_exh))]]></D>
-    <D name="PARAM_EXHAUST_BASE_PD1" type="float" comment="PD1-driven exhaustion (RF60: k_CD8)"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_CD8))]]></D>
-    <D name="PARAM_EXHAUST_BASE_TREG" type="float" comment="Treg-mediated exhaustion (RF59: k_Treg)"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_Treg))]]></D>
+    <D name="PARAM_EXHAUST_BASE_PD1" type="float" comment="PD1-driven exhaustion (RF60: k_C_CD8_exh)"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_C_CD8_exh))]]></D>
+    <D name="PARAM_EXHAUST_BASE_TREG" type="float" comment="Treg-mediated exhaustion (RF59: k_Treg_CD8_exh)"><![CDATA[std::exp(-t_step_sec * QP(CancerVCT::P_k_Treg_CD8_exh))]]></D>
     <D name="PARAM_K_C_EXH" type="float" comment="Cancer half-max for basal exhaustion (K_C_exh in cells)"><![CDATA[QP(CancerVCT::P_K_C_exh) * AVOGADROS]]></D>
     <D name="PARAM_EXHAUST_IL10_EC50" type="float" comment="IL-10 EC50 for Treg exhaustion modulation [nM]"><![CDATA[QP(CancerVCT::P_IL10_50) * 1e6]]></D>
     <D name="PARAM_K_T_TREG" type="float" comment="Treg competitive suppression weight (ODE: 1/R50_Treg ≈ 3.23)"><![CDATA[1.0 / QP(CancerVCT::P_R50_Treg)]]></D>
 
     <!-- State transition rates (QSP rate * timestep) -->
-    <D name="PARAM_K_TH_TREG" type="float" comment="Th to Treg rate per timestep"><![CDATA[t_step_sec * QP(CancerVCT::P_k_Th_Treg)]]></D>
+    <D name="PARAM_K_TH_TREG" type="float" comment="Th to Treg rate per timestep"><![CDATA[t_step_sec * QP(CancerVCT::P_k_Th_to_Treg)]]></D>
     <D name="PARAM_MAC_M2_POL" type="float" comment="M1 to M2 polarization rate per timestep"><![CDATA[t_step_sec * QP(CancerVCT::P_k_M2_pol)]]></D>
     <D name="PARAM_MAC_M1_POL" type="float" comment="M2 to M1 polarization rate per timestep"><![CDATA[t_step_sec * QP(CancerVCT::P_k_M1_pol)]]></D>
 
@@ -1239,8 +1244,8 @@
     <D name="PARAM_ECM_TGFB_EC50" type="float" comment="TGFb EC50 for ECM deposition [nM] from QSP TGFb_50_col_sec"><![CDATA[QP(CancerVCT::P_TGFb_50_col_sec) * 1e6]]></D>
 
     <!-- Fibroblast activation: separate rates for myCAF (TGF-β) vs iCAF (IL-1) -->
-    <D name="PARAM_FIB_MYCAF_ACTIVATION" type="float" comment="qPSC→myCAF activation rate per timestep"><![CDATA[QP(CancerVCT::P_k_psc_activation_myCAF) * t_step_sec]]></D>
-    <D name="PARAM_FIB_ICAF_ACTIVATION" type="float" comment="qPSC→iCAF activation rate per timestep"><![CDATA[QP(CancerVCT::P_k_psc_activation_iCAF) * t_step_sec]]></D>
+    <D name="PARAM_FIB_MYCAF_ACTIVATION" type="float" comment="qPSC→myCAF activation rate per timestep"><![CDATA[QP(CancerVCT::P_k_PSC_to_myCAF) * t_step_sec]]></D>
+    <D name="PARAM_FIB_ICAF_ACTIVATION" type="float" comment="qPSC→iCAF activation rate per timestep"><![CDATA[QP(CancerVCT::P_k_PSC_to_iCAF) * t_step_sec]]></D>
     <D name="PARAM_FIB_CAF_EC50" type="float" comment="TGFb EC50 for CAF activation + interconversion [nM] (TGFb_50_CAF_act)"><![CDATA[QP(CancerVCT::P_TGFb_50_CAF_act) * 1e6]]></D>
     <!-- iCAF ↔ myCAF interconversion rates from ODE (RF245, RF246) -->
     <D name="PARAM_FIB_ICAF_TO_MYCAF" type="float" comment="iCAF→myCAF rate per timestep (H_TGFb gated)"><![CDATA[QP(CancerVCT::P_k_iCAF_to_myCAF) * t_step_sec]]></D>
@@ -1310,13 +1315,21 @@
     <D name="PARAM_DC_ANTIGEN_50" type="float" comment="antigen EC50 for maturation [molecules/voxel] = P1_C1 (1 death equiv)"><![CDATA[QP(CancerVCT::P_P1_C1)]]></D>
     <D name="PARAM_DC_IL12_50" type="float" comment="IL-12 EC50 for maturation boost [nM]"><![CDATA[QP(CancerVCT::P_IL12_50) * 1e6]]></D>
     <D name="PARAM_DC_IL10_50" type="float" comment="IL-10 EC50 for maturation suppression [nM]"><![CDATA[QP(CancerVCT::P_IL10_50) * 1e6]]></D>
-    <D name="PARAM_DC_TGFB_50" type="float" comment="TGF-b EC50 for maturation suppression [nM]"><![CDATA[QP(CancerVCT::P_TGFb_50_APC) * 1e6]]></D>
+    <!-- PARAM_DC_TGFB_50: decoupled from QSP P_TGFb_50_APC (Apr 23 2026). Direct
+         literature value for TGFβ1 suppression of DC maturation. Range in primary
+         refs spans 0.02–0.2 nM: Strobl & Knapp 1999 J Immunol 163:2895 (IC50
+         0.02–0.08 nM), Yamaguchi 1997 J Immunol 159:5927 (ED50 ~0.04 nM),
+         Geissmann 1999 J Immunol 162:4567 (0.02–0.2 nM range), Kobayashi 2004
+         Cancer Res 64:6071 (IC50 ~0.05–0.2 nM). Picked mid-upper (0.15 nM) to
+         reserve the lower end for transient suppression in CAF-adjacent pockets
+         without saturating background maturation. -->
+    <D name="PARAM_DC_TGFB_50" type="float" comment="TGF-b EC50 for DC maturation suppression [nM], literature 0.02–0.2 nM"><![CDATA[0.15]]></D>
 
     <!-- Vascular parameters from QSP ODE -->
     <!-- VAS_50: VEGF EC50 for sprouting. ODE: VEGF_50 [pg/mL] → internal mol/m³ → nM -->
     <D name="PARAM_VAS_50" type="float" comment="VEGF EC50 for sprouting [nM] from VEGF_50"><![CDATA[QP(CancerVCT::P_VEGF_50) * 1e6]]></D>
     <!-- Regression rate: ODE k_K_d [1/day → 1/s], converted to per-step probability -->
-    <D name="PARAM_VAS_REGRESS_RATE" type="float" comment="vessel regression base rate [prob/step] from k_K_d"><![CDATA[QP(CancerVCT::P_k_K_d) * t_step_sec]]></D>
+    <D name="PARAM_VAS_REGRESS_RATE" type="float" comment="vessel regression base rate [prob/step] from k_vas_decay"><![CDATA[QP(CancerVCT::P_k_vas_decay) * t_step_sec]]></D>
     <!-- Survival EC50: same as sprouting EC50 (vessels need VEGF to survive) -->
     <D name="PARAM_VAS_VEGFA_SURVIVAL_EC50" type="float" comment="VEGF EC50 for vessel survival [nM] from VEGF_50"><![CDATA[QP(CancerVCT::P_VEGF_50) * 1e6]]></D>
 

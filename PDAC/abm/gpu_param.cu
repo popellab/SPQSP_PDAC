@@ -62,6 +62,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.CancerCell.progGrowthRate", "", "pr"},  // PARAM_PROG_GROWTH_RATE
     {"Param.ABM.CancerCell.senescentDeathRate", "", "pr"},  // PARAM_SEN_DEATH_RATE
     {"Param.ABM.CancerCell.asymmetricDivProb", "", "pr"},  // PARAM_ASYM_DIV_PROB
+    {"Param.ABM.CancerCell.telomeraseReactivationProb", "", "pr"},  // PARAM_TELOMERASE_REACTIVATION_PROB
     {"Param.ABM.CancerCell.Tkill_scaler", "", "pos"},  // PARAM_TKILL_SCALAR
     {"Param.ABM.CancerCell.mincc", "", "pos"},  // PARAM_MIN_CC
     {"Param.ABM.CancerCell.hypoxia_th", "", "pr"},  // PARAM_CANCER_HYPOXIA_TH
@@ -77,9 +78,9 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Vas.min_neighbor", "", "pos"},  // PARAM_VAS_MIN_NEIGHBOR
     {"Param.ABM.Vas.maturity_resistance", "", "pr"},  // PARAM_VAS_MATURITY_RESISTANCE
     {"Param.ABM.Vas.initial_maturity", "", "pr"},  // PARAM_VAS_INITIAL_MATURITY
-    {"Param.ABM.Vas.collapse_threshold", "", "pr"},  // PARAM_VAS_COLLAPSE_THRESHOLD
-    {"Param.ABM.Vas.collapse_ec50", "", "pr"},  // PARAM_VAS_COLLAPSE_EC50
-    {"Param.ABM.Vas.recovery_threshold", "", "pr"},  // PARAM_VAS_RECOVERY_THRESHOLD
+    {"Param.ABM.Vas.collapse_threshold", "nmol/mL", "pr"},  // PARAM_VAS_COLLAPSE_THRESHOLD
+    {"Param.ABM.Vas.collapse_ec50", "nmol/mL", "pr"},  // PARAM_VAS_COLLAPSE_EC50
+    {"Param.ABM.Vas.recovery_threshold", "nmol/mL", "pr"},  // PARAM_VAS_RECOVERY_THRESHOLD
     {"Param.ABM.Vas.recovery_rate", "", "pr"},  // PARAM_VAS_RECOVERY_RATE
     {"Param.ABM.Vas.kvl_dysfunctional", "", "pr"},  // PARAM_VAS_KVL_DYSFUNCTIONAL
     {"Param.ABM.Vas.hypoxia_threshold", "", "pr"},  // PARAM_VAS_HYPOXIA_TH
@@ -260,7 +261,6 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.CXCL12.molecularWeight", "", "pr"},  // PARAM_CXCL12_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.CCL5.diffusivity", "", "pr"},  // PARAM_CCL5_DIFFUSIVITY
     {"Param.Molecular.biofvm.CCL5.molecularWeight", "", "pr"},  // PARAM_CCL5_MOLECULAR_WEIGHT
-    {"Param.QSP.simulation.weight_qsp", "", "pr"},  // PARAM_WEIGHT_QSP
     // Int parameters
     {"Param.ABM.Environment.Tumor.XSize", "microns", "pos"},  // PARAM_X_SIZE
     {"Param.ABM.Environment.Tumor.YSize", "microns", "pos"},  // PARAM_Y_SIZE
@@ -280,6 +280,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.DC.presentation_capacity", "", "pos"},  // PARAM_DC_PRESENTATION_CAPACITY
     {"Param.ABM.Mac.moveSteps", "", "pos"},  // PARAM_MAC_MOVE_STEPS
     {"Param.ABM.CancerCell.progenitorDivMax", "", "pos"},  // PARAM_PROG_DIV_MAX
+    {"Param.ABM.CancerCell.stuckSenescenceSteps", "", "pos"},  // PARAM_CANCER_STUCK_SENESCENCE_STEPS
     {"Param.ABM.CancerCell.moveSteps", "", "pos"},  // PARAM_CANCER_MOVE_STEPS
     {"Param.ABM.CancerCell.moveSteps_csc", "", "pos"},  // PARAM_CANCER_MOVE_STEPS_STEM
     {"Param.ABM.Fib.moveSteps", "", "pos"},  // PARAM_FIB_MOVE_STEPS
@@ -376,6 +377,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_PROG_GROWTH_RATE", getFloat(PARAM_PROG_GROWTH_RATE));
     env.newProperty<float>("PARAM_SEN_DEATH_RATE", getFloat(PARAM_SEN_DEATH_RATE));
     env.newProperty<float>("PARAM_ASYM_DIV_PROB", getFloat(PARAM_ASYM_DIV_PROB));
+    env.newProperty<float>("PARAM_TELOMERASE_REACTIVATION_PROB", getFloat(PARAM_TELOMERASE_REACTIVATION_PROB));
     env.newProperty<float>("PARAM_TKILL_SCALAR", getFloat(PARAM_TKILL_SCALAR));
     env.newProperty<float>("PARAM_MIN_CC", getFloat(PARAM_MIN_CC));
     env.newProperty<float>("PARAM_CANCER_HYPOXIA_TH", getFloat(PARAM_CANCER_HYPOXIA_TH));
@@ -574,7 +576,6 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_CXCL12_MOLECULAR_WEIGHT", getFloat(PARAM_CXCL12_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_CCL5_DIFFUSIVITY", getFloat(PARAM_CCL5_DIFFUSIVITY));
     env.newProperty<float>("PARAM_CCL5_MOLECULAR_WEIGHT", getFloat(PARAM_CCL5_MOLECULAR_WEIGHT));
-    env.newProperty<float>("PARAM_WEIGHT_QSP", getFloat(PARAM_WEIGHT_QSP));
 
     env.newProperty<int>("PARAM_X_SIZE", getInt(PARAM_X_SIZE));
     env.newProperty<int>("PARAM_Y_SIZE", getInt(PARAM_Y_SIZE));
@@ -594,6 +595,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<int>("PARAM_DC_PRESENTATION_CAPACITY", getInt(PARAM_DC_PRESENTATION_CAPACITY));
     env.newProperty<int>("PARAM_MAC_MOVE_STEPS", getInt(PARAM_MAC_MOVE_STEPS));
     env.newProperty<int>("PARAM_PROG_DIV_MAX", getInt(PARAM_PROG_DIV_MAX));
+    env.newProperty<int>("PARAM_CANCER_STUCK_SENESCENCE_STEPS", getInt(PARAM_CANCER_STUCK_SENESCENCE_STEPS));
     env.newProperty<int>("PARAM_CANCER_MOVE_STEPS", getInt(PARAM_CANCER_MOVE_STEPS));
     env.newProperty<int>("PARAM_CANCER_MOVE_STEPS_STEM", getInt(PARAM_CANCER_MOVE_STEPS_STEM));
     env.newProperty<int>("PARAM_FIB_MOVE_STEPS", getInt(PARAM_FIB_MOVE_STEPS));

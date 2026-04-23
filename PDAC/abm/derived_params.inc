@@ -204,13 +204,13 @@
     env.newProperty<float>("PARAM_EXHAUST_BASE_BASAL", 
                     std::exp(-t_step_sec * QP(CancerVCT::P_k_CD8_basal_exh)));
 
-    // PD1-driven exhaustion (RF60: k_CD8)
+    // PD1-driven exhaustion (RF60: k_C_CD8_exh)
     env.newProperty<float>("PARAM_EXHAUST_BASE_PD1", 
-                    std::exp(-t_step_sec * QP(CancerVCT::P_k_CD8)));
+                    std::exp(-t_step_sec * QP(CancerVCT::P_k_C_CD8_exh)));
 
-    // Treg-mediated exhaustion (RF59: k_Treg)
+    // Treg-mediated exhaustion (RF59: k_Treg_CD8_exh)
     env.newProperty<float>("PARAM_EXHAUST_BASE_TREG", 
-                    std::exp(-t_step_sec * QP(CancerVCT::P_k_Treg)));
+                    std::exp(-t_step_sec * QP(CancerVCT::P_k_Treg_CD8_exh)));
 
     // Cancer half-max for basal exhaustion (K_C_exh in cells)
     env.newProperty<float>("PARAM_K_C_EXH", 
@@ -226,7 +226,7 @@
 
     // Th to Treg rate per timestep
     env.newProperty<float>("PARAM_K_TH_TREG", 
-                    t_step_sec * QP(CancerVCT::P_k_Th_Treg));
+                    t_step_sec * QP(CancerVCT::P_k_Th_to_Treg));
 
     // M1 to M2 polarization rate per timestep
     env.newProperty<float>("PARAM_MAC_M2_POL", 
@@ -298,11 +298,11 @@
 
     // qPSC→myCAF activation rate per timestep
     env.newProperty<float>("PARAM_FIB_MYCAF_ACTIVATION", 
-                    QP(CancerVCT::P_k_psc_activation_myCAF) * t_step_sec);
+                    QP(CancerVCT::P_k_PSC_to_myCAF) * t_step_sec);
 
     // qPSC→iCAF activation rate per timestep
     env.newProperty<float>("PARAM_FIB_ICAF_ACTIVATION", 
-                    QP(CancerVCT::P_k_psc_activation_iCAF) * t_step_sec);
+                    QP(CancerVCT::P_k_PSC_to_iCAF) * t_step_sec);
 
     // TGFb EC50 for CAF activation + interconversion [nM] (TGFb_50_CAF_act)
     env.newProperty<float>("PARAM_FIB_CAF_EC50", 
@@ -478,17 +478,17 @@
     env.newProperty<float>("PARAM_DC_IL10_50", 
                     QP(CancerVCT::P_IL10_50) * 1e6);
 
-    // TGF-b EC50 for maturation suppression [nM]
+    // TGF-b EC50 for DC maturation suppression [nM], literature 0.02–0.2 nM
     env.newProperty<float>("PARAM_DC_TGFB_50", 
-                    QP(CancerVCT::P_TGFb_50_APC) * 1e6);
+                    0.15);
 
     // VEGF EC50 for sprouting [nM] from VEGF_50
     env.newProperty<float>("PARAM_VAS_50", 
                     QP(CancerVCT::P_VEGF_50) * 1e6);
 
-    // vessel regression base rate [prob/step] from k_K_d
+    // vessel regression base rate [prob/step] from k_vas_decay
     env.newProperty<float>("PARAM_VAS_REGRESS_RATE", 
-                    QP(CancerVCT::P_k_K_d) * t_step_sec);
+                    QP(CancerVCT::P_k_vas_decay) * t_step_sec);
 
     // VEGF EC50 for vessel survival [nM] from VEGF_50
     env.newProperty<float>("PARAM_VAS_VEGFA_SURVIVAL_EC50", 
@@ -684,9 +684,9 @@
     {
         constexpr int N = ABM_STATE_COUNTER_SIZE;
         float h_adh_matrix[N * N] = {0};
-        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_STEM] = 0.15f;
-        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_PROG] = 0.15f;
-        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_SEN] = 0.15f;
+        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_STEM] = 0.05f;
+        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_PROG] = 0.05f;
+        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_SEN] = 0.05f;
         h_adh_matrix[SC_CANCER_STEM * N + SC_FIB_MYCAF] = 0.05f;
         h_adh_matrix[SC_CANCER_STEM * N + SC_FIB_ICAF] = 0.05f;
         h_adh_matrix[SC_CANCER_PROG * N + SC_CANCER_STEM] = 0.7f;
@@ -704,17 +704,17 @@
         h_adh_matrix[SC_MAC_M2 * N + SC_FIB_ICAF] = 0.1f;
         h_adh_matrix[SC_FIB_MYCAF * N + SC_CANCER_STEM] = 0.1f;
         h_adh_matrix[SC_FIB_MYCAF * N + SC_CANCER_PROG] = 0.1f;
-        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_QUIESCENT] = 0.2f;
-        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_MYCAF] = 0.2f;
-        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_ICAF] = 0.2f;
-        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_FRC] = 0.2f;
+        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_QUIESCENT] = 0.1f;
+        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_MYCAF] = 0.1f;
+        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_ICAF] = 0.1f;
+        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_FRC] = 0.1f;
         h_adh_matrix[SC_FIB_ICAF * N + SC_CANCER_STEM] = 0.05f;
         h_adh_matrix[SC_FIB_ICAF * N + SC_CANCER_PROG] = 0.05f;
-        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_QUIESCENT] = 0.1f;
-        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_MYCAF] = 0.1f;
-        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_ICAF] = 0.1f;
-        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_FRC] = 0.1f;
-        h_adh_matrix[SC_BCELL_ACT * N + SC_BCELL_NAIVE] = 0.3f;
+        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_QUIESCENT] = 0.05f;
+        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_MYCAF] = 0.05f;
+        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_ICAF] = 0.05f;
+        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_FRC] = 0.05f;
+        h_adh_matrix[SC_BCELL_ACT * N + SC_BCELL_NAIVE] = 0.0f;
         h_adh_matrix[SC_BCELL_ACT * N + SC_BCELL_ACT] = 0.3f;
         h_adh_matrix[SC_BCELL_ACT * N + SC_BCELL_PLASMA] = 0.3f;
         float* d_adh_matrix = nullptr;

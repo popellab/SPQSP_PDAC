@@ -379,10 +379,11 @@ FLAMEGPU_STEP_FUNCTION(exportECMData) {
 //
 // Shape: (N_agents, 8), dtype int32
 // Columns: [type_id, agent_id, x, y, z, cell_state, life, extra]
-//   type_id:    0=CANCER 1=TCELL 2=TREG 3=MDSC 4=MAC 5=FIB 6=VAS
+//   type_id:    0=CANCER 1=TCELL 2=TREG 3=MDSC 4=MAC 5=FIB 6=VAS 7=BCELL 8=DC
 //   cell_state: enum int (STEM=0/PROG=1/SEN=2; EFF=0/CYT=1/SUPP=2; etc.)
 //   life:       age counter (0 for cancer/vascular which don't use it)
-//   extra:      divideCD for cancer, 0 for all others
+//   extra:      divideCD for cancer, is_breg for BCELL, dc_subtype for DC,
+//               0 for all others
 // ============================================================================
 static constexpr int ABM_NCOLS = 8;
 static constexpr int32_t ABM_TYPE_CANCER = 0;
@@ -392,6 +393,8 @@ static constexpr int32_t ABM_TYPE_MDSC   = 3;
 static constexpr int32_t ABM_TYPE_MAC    = 4;
 static constexpr int32_t ABM_TYPE_FIB    = 5;
 static constexpr int32_t ABM_TYPE_VAS    = 6;
+static constexpr int32_t ABM_TYPE_BCELL  = 7;
+static constexpr int32_t ABM_TYPE_DC     = 8;
 
 // g_abm_buf kept for step-0 (uses AgentVector API outside step functions)
 static std::vector<int32_t> g_abm_buf;
@@ -521,6 +524,24 @@ static void collect_abm_step0(flamegpu::CUDASimulation& sim,
                 st, 0, 0);
         }
     }
+    {
+        flamegpu::AgentVector p(model.Agent(PDAC::AGENT_BCELL));
+        sim.getPopulationData(p);
+        for (unsigned i = 0; i < p.size(); ++i)
+            abm_push(buf, ABM_TYPE_BCELL, (int32_t)p[i].getID(),
+                p[i].getVariable<int>("x"), p[i].getVariable<int>("y"), p[i].getVariable<int>("z"),
+                p[i].getVariable<int>("cell_state"), p[i].getVariable<int>("life"),
+                p[i].getVariable<int>("is_breg"));
+    }
+    {
+        flamegpu::AgentVector p(model.Agent(PDAC::AGENT_DC));
+        sim.getPopulationData(p);
+        for (unsigned i = 0; i < p.size(); ++i)
+            abm_push(buf, ABM_TYPE_DC, (int32_t)p[i].getID(),
+                p[i].getVariable<int>("x"), p[i].getVariable<int>("y"), p[i].getVariable<int>("z"),
+                p[i].getVariable<int>("cell_state"), p[i].getVariable<int>("life"),
+                p[i].getVariable<int>("dc_subtype"));
+    }
 }
 
 // In-step version: uses DeviceAgentVector API, writes to provided buffer
@@ -578,6 +599,22 @@ static void collect_abm_step(flamegpu::HostAPI* FLAMEGPU, std::vector<int32_t>& 
                 p[i].getVariable<int>("x"), p[i].getVariable<int>("y"), p[i].getVariable<int>("z"),
                 st, 0, 0);
         }
+    }
+    {
+        flamegpu::DeviceAgentVector p = FLAMEGPU->agent(PDAC::AGENT_BCELL).getPopulationData();
+        for (unsigned i = 0; i < p.size(); ++i)
+            abm_push(buf, ABM_TYPE_BCELL, (int32_t)p[i].getID(),
+                p[i].getVariable<int>("x"), p[i].getVariable<int>("y"), p[i].getVariable<int>("z"),
+                p[i].getVariable<int>("cell_state"), p[i].getVariable<int>("life"),
+                p[i].getVariable<int>("is_breg"));
+    }
+    {
+        flamegpu::DeviceAgentVector p = FLAMEGPU->agent(PDAC::AGENT_DC).getPopulationData();
+        for (unsigned i = 0; i < p.size(); ++i)
+            abm_push(buf, ABM_TYPE_DC, (int32_t)p[i].getID(),
+                p[i].getVariable<int>("x"), p[i].getVariable<int>("y"), p[i].getVariable<int>("z"),
+                p[i].getVariable<int>("cell_state"), p[i].getVariable<int>("life"),
+                p[i].getVariable<int>("dc_subtype"));
     }
 }
 
@@ -1057,17 +1094,19 @@ int main(int argc, const char** argv) {
               << "Header (20 bytes): magic='ABM1', n_agents(i32), n_cols=8(i32), raw_bytes(i32), comp_bytes(i32)\n"
               << "Data: LZ4-compressed int32 array, shape (N_agents, 8)\n"
               << "Columns: [type_id, agent_id, x, y, z, cell_state, life, extra]\n"
-              << "  type_id:    0=CANCER 1=TCELL 2=TREG 3=MDSC 4=MAC 5=FIB 6=VAS\n"
+              << "  type_id:    0=CANCER 1=TCELL 2=TREG 3=MDSC 4=MAC 5=FIB 6=VAS 7=BCELL 8=DC\n"
               << "  cell_state: state enum per type\n"
               << "    CANCER: STEM=0, PROGENITOR=1, SENESCENT=2\n"
               << "    TCELL:  EFFECTOR=0, CYTOTOXIC=1, SUPPRESSED=2\n"
               << "    TREG:   TH=0, TREG=1\n"
               << "    MDSC:   (single state=0)\n"
               << "    MAC:    M1=0, M2=1\n"
-              << "    FIB:    NORMAL=0, CAF=1  (one row per segment in chain)\n"
+              << "    FIB:    NORMAL=0, CAF=1\n"
               << "    VAS:    TIP=0, PHALANX=2\n"
+              << "    BCELL:  NAIVE=0, ACTIVATED=1, PLASMA=2\n"
+              << "    DC:     IMMATURE=0, MATURE=1\n"
               << "  life:  age counter (steps alive)\n"
-              << "  extra: divideCD for CANCER, 0 otherwise\n"
+              << "  extra: divideCD for CANCER, is_breg for BCELL, dc_subtype (0=cDC1,1=cDC2) for DC, 0 otherwise\n"
               << "Loading:\n"
               << "  import lz4.block, struct, numpy as np\n"
               << "  with open('agents_step_000001.abm.lz4', 'rb') as f:\n"

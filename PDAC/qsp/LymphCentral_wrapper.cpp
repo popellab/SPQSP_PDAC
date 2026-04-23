@@ -122,7 +122,11 @@ bool LymphCentralWrapper::initialize(const std::string& param_filename) {
             }
         }
 
-        while (tt < max_time) {
+        // Check break condition BEFORE the first solve so presim_frac=1e-8 runs
+        // zero CVODE steps instead of one. A single stiff step was collapsing
+        // V_C.CD8 / V_C.Th by ~150x, which downstream throttled ABM recruitment.
+        tum_vol = _compute_tumor_volume(ss_model.getSystem());
+        while (tt < max_time && tum_vol < target_vol) {
             ss_model.solve(tt, dt);
             tt += dt;
             step_count++;
@@ -137,7 +141,6 @@ bool LymphCentralWrapper::initialize(const std::string& param_filename) {
                 std::cout << "  t=" << tt / 86400.0 << " d  tum_vol=" << tum_vol
                           << " cm^3  (target=" << target_vol << ")" << std::endl;
             }
-            if (tum_vol >= target_vol) break;
         }
 
         if (tum_vol < target_vol) {

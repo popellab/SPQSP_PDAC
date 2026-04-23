@@ -70,6 +70,7 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     cancer_cell.newVariable<int>("divideCountRemaining", 0);
     cancer_cell.newVariable<unsigned int>("stemID", 0);
     cancer_cell.newVariable<int>("divide_wave", 0);   // Wave assignment for interleaved division
+    cancer_cell.newVariable<int>("stuck_steps", 0);   // Consecutive ABM steps where cancer_divide found n_cands==0 (contact inhibition → senescence)
 
     // Molecular state (affects behavior)
     cancer_cell.newVariable<float>("PDL1_syn", 0.0f);

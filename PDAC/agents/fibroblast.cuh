@@ -413,9 +413,10 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
         FLAMEGPU->setVariable<int>("divide_cooldown", cooldown - 1);
     }
 
-    // Division check: only activated CAFs (myCAF/iCAF), off cooldown, under max count
-    // FRC excluded: terminally differentiated TLS stromal scaffold, network-anchored
-    // Cooldown derived from QSP k_prolif rates (per-subtype)
+    // Low-rate CAF proliferation: k_*CAF_prolif in XML is dialed down to the death
+    // rate so births balance deaths (stable population with turnover). Kept the
+    // divide_count cap as a safeguard; remove or raise once the QSP stroma
+    // carrying-cap term (RF247/248) is mirrored on the ABM side.
     if ((cs == FIB_MYCAF || cs == FIB_ICAF) && cooldown <= 0) {
         const int div_count = FLAMEGPU->getVariable<int>("divide_count");
         const int div_max = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_MAX"));
