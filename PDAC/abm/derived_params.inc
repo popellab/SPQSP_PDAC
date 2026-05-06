@@ -422,9 +422,13 @@
     env.newProperty<float>("PARAM_ANTIGEN_DECAY_RATE", 
                     QP(CancerVCT::P_k_P1_deg));
 
-    // min antigen for B cell capture [molecules] = 0.1 * P1_C1
+    // min antigen for B cell capture [molecules] = 0.1 * P1_C1 (deprecated; kept for legacy uptake path)
     env.newProperty<float>("PARAM_ANTIGEN_CAPTURE_THRESHOLD", 
                     0.1 * QP(CancerVCT::P_P1_C1));
+
+    // min antigen for B cell NAIVE→ACT activation [molecules] = 0.01 * P1_C1
+    env.newProperty<float>("PARAM_BCELL_ACTIVATION_ANTIGEN_MIN", 
+                    0.01 * QP(CancerVCT::P_P1_C1));
 
     // Immature DC lifespan [timesteps] from k_APC_death
     env.newProperty<float>("PARAM_DC_LIFE_IMMATURE_MEAN", 
@@ -680,46 +684,12 @@
     env.newProperty<int>("PARAM_TH_DIV_INTERVAL", 
                     static_cast<int>(std::round(1.0 / (QP(CancerVCT::P_k_Th_pro_tumor) * t_step_sec))));
 
-    // ── Adhesion matrix (cell-cell, sparse from XML <AdhesionMatrix>) ──
+    // ── Adhesion matrix (no <AdhesionMatrix> found, all zeros) ──
     {
         constexpr int N = ABM_STATE_COUNTER_SIZE;
-        float h_adh_matrix[N * N] = {0};
-        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_STEM] = 0.05f;
-        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_PROG] = 0.05f;
-        h_adh_matrix[SC_CANCER_STEM * N + SC_CANCER_SEN] = 0.05f;
-        h_adh_matrix[SC_CANCER_STEM * N + SC_FIB_MYCAF] = 0.05f;
-        h_adh_matrix[SC_CANCER_STEM * N + SC_FIB_ICAF] = 0.05f;
-        h_adh_matrix[SC_CANCER_PROG * N + SC_CANCER_STEM] = 0.7f;
-        h_adh_matrix[SC_CANCER_PROG * N + SC_CANCER_PROG] = 0.7f;
-        h_adh_matrix[SC_CANCER_PROG * N + SC_CANCER_SEN] = 0.7f;
-        h_adh_matrix[SC_CANCER_PROG * N + SC_FIB_MYCAF] = 0.1f;
-        h_adh_matrix[SC_CANCER_PROG * N + SC_FIB_ICAF] = 0.1f;
-        h_adh_matrix[SC_CD8_CYT * N + SC_CANCER_STEM] = 0.4f;
-        h_adh_matrix[SC_CD8_CYT * N + SC_CANCER_PROG] = 0.4f;
-        h_adh_matrix[SC_CD8_CYT * N + SC_CANCER_SEN] = 0.4f;
-        h_adh_matrix[SC_MAC_M2 * N + SC_CANCER_STEM] = 0.1f;
-        h_adh_matrix[SC_MAC_M2 * N + SC_CANCER_PROG] = 0.1f;
-        h_adh_matrix[SC_MAC_M2 * N + SC_CANCER_SEN] = 0.1f;
-        h_adh_matrix[SC_MAC_M2 * N + SC_FIB_MYCAF] = 0.1f;
-        h_adh_matrix[SC_MAC_M2 * N + SC_FIB_ICAF] = 0.1f;
-        h_adh_matrix[SC_FIB_MYCAF * N + SC_CANCER_STEM] = 0.1f;
-        h_adh_matrix[SC_FIB_MYCAF * N + SC_CANCER_PROG] = 0.1f;
-        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_QUIESCENT] = 0.1f;
-        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_MYCAF] = 0.1f;
-        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_ICAF] = 0.1f;
-        h_adh_matrix[SC_FIB_MYCAF * N + SC_FIB_FRC] = 0.1f;
-        h_adh_matrix[SC_FIB_ICAF * N + SC_CANCER_STEM] = 0.05f;
-        h_adh_matrix[SC_FIB_ICAF * N + SC_CANCER_PROG] = 0.05f;
-        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_QUIESCENT] = 0.05f;
-        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_MYCAF] = 0.05f;
-        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_ICAF] = 0.05f;
-        h_adh_matrix[SC_FIB_ICAF * N + SC_FIB_FRC] = 0.05f;
-        h_adh_matrix[SC_BCELL_ACT * N + SC_BCELL_NAIVE] = 0.0f;
-        h_adh_matrix[SC_BCELL_ACT * N + SC_BCELL_ACT] = 0.3f;
-        h_adh_matrix[SC_BCELL_ACT * N + SC_BCELL_PLASMA] = 0.3f;
         float* d_adh_matrix = nullptr;
         cudaMalloc(&d_adh_matrix, N * N * sizeof(float));
-        cudaMemcpy(d_adh_matrix, h_adh_matrix, N * N * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemset(d_adh_matrix, 0, N * N * sizeof(float));
         env.newProperty<unsigned long long>("adh_matrix_ptr",
             static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_adh_matrix)));
     }

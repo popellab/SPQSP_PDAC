@@ -163,7 +163,10 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
             const float k = FLAMEGPU->environment.getProperty<float>("PARAM_DC_PRIME_K_CD8");
             const float p = 1.0f - expf(-k * H * sec_per_slice);
             if (FLAMEGPU->random.uniform<float>() < p) {
-                FLAMEGPU->setVariable<int>("cell_state", T_CELL_CYT);
+                // DC priming yields effector T cells (not cytotoxic). Cytotoxic
+                // differentiation is the post-priming step, gated separately on
+                // sustained progenitor contact via PARAM_TCELL_EFF_TO_CYT_RATE.
+                FLAMEGPU->setVariable<int>("cell_state", T_CELL_EFF);
                 const int N_prime = FLAMEGPU->environment.getProperty<int>("PARAM_PRIME_DIV_BURST");
                 FLAMEGPU->setVariable<int>("divide_limit",
                     FLAMEGPU->getVariable<int>("divide_limit") + N_prime);
@@ -247,9 +250,14 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
         FLAMEGPU->setVariable<float>("IL2_exposure",IL2_exposure);
     }
 
-    // EFF -> CYT: Found cancer progenitor in neighborhood
-    if (cell_state == T_CELL_EFF) {
-        if (found_progenitor == 1) {
+    // EFF -> CYT: probabilistic conversion when cancer progenitor in neighborhood.
+    // Was deterministic (any contact → instant CYT) which over-converted; PDAC IMC
+    // patients show ~0% cytotoxic. Rate parameterized by PARAM_TCELL_EFF_TO_CYT_RATE
+    // so it can be tuned/swept; default ~1e-6/s gives ~12d timescale → ~2% per step.
+    if (cell_state == T_CELL_EFF && found_progenitor == 1) {
+        const float k_eff_cyt = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_EFF_TO_CYT_RATE");
+        const float p_eff_cyt = 1.0f - expf(-k_eff_cyt * sec_per_slice);
+        if (FLAMEGPU->random.uniform<float>() < p_eff_cyt) {
             cell_state = T_CELL_CYT;
             FLAMEGPU->setVariable<int>("cell_state", T_CELL_CYT);
             FLAMEGPU->setVariable<int>("divide_flag", 1);
@@ -508,7 +516,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_compute_chemical_sources, flamegpu::MessageNone, f
         // EFF cells secrete IFN-γ only when in contact with cancer (matching HCC)
         // EFF cells do NOT secrete IL-2 — only CYT cells do, after activation
         if (cell_state == T_CELL_EFF && found_progenitor == 1){
-
+            IFNg_release_rate = FLAMEGPU->environment.getProperty<float>("PARAM_IFNG_RELEASE");
         } else if (cell_state == T_CELL_CYT) {
             if (found_progenitor == 1){
                 IFNg_release_rate = FLAMEGPU->environment.getProperty<float>("PARAM_IFNG_RELEASE");

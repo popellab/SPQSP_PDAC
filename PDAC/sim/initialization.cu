@@ -1380,6 +1380,23 @@ void initializeStructuredDomain(
     std::cout << "  Tumor voxels: " << tumor_voxels.size()
               << "  Non-tumor: " << nontumor_voxels.size() << std::endl;
 
+    // Seed antigen grid at tumor voxels so APC activation chains (DC maturation,
+    // B cell capture) aren't strictly gated on the first cancer-death event.
+    // Senescent cells still deposit P1_C1 on natural death — this is just a
+    // bootstrap floor for step 0. Set to 0 to disable.
+    {
+        const float p1c1 = model.Environment().getProperty<float>("PARAM_ANTIGEN_DEPOSIT");
+        const float seed_frac = 0.1f;  // 10% of one cancer-death equivalent
+        const float seed_value = seed_frac * p1c1;
+        seed_antigen_grid_voxels(tumor_voxels.data(),
+                                 static_cast<int>(tumor_voxels.size()),
+                                 seed_value);
+        std::cout << "  Antigen seed: " << seed_value
+                  << " molecules/voxel × " << tumor_voxels.size()
+                  << " tumor voxels (= " << seed_frac
+                  << " × PARAM_ANTIGEN_DEPOSIT)" << std::endl;
+    }
+
     // Occupancy grid for exclusive cells (cancer, fibroblast, vascular)
     std::vector<bool> occupied(total_voxels, false);
 

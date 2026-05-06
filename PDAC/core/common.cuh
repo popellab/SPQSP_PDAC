@@ -491,6 +491,32 @@ constexpr unsigned int VON_NEUMANN_MASK = 0x3Fu;  // binary: 00111111
 #define ANTIGEN_GRID_PTR(fgpu) \
     reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>("antigen_grid_ptr"))
 
+// Sample a per-voxel scalar grid as the mean over the 27-cell Moore neighborhood
+// (self + 26 neighbors), with edge-aware divisor (bounds-clipped neighbors are
+// skipped, divisor is the count of valid samples). Used by APCs (DCs, B cells)
+// to read local antigen so detection isn't strictly co-voxel.
+__device__ __forceinline__ float read_grid_moore_avg(
+    const float* grid, int x, int y, int z, int gx, int gy, int gz)
+{
+    float sum = 0.0f;
+    int n = 0;
+    for (int dz = -1; dz <= 1; ++dz) {
+        int zz = z + dz;
+        if (zz < 0 || zz >= gz) continue;
+        for (int dy = -1; dy <= 1; ++dy) {
+            int yy = y + dy;
+            if (yy < 0 || yy >= gy) continue;
+            for (int dx = -1; dx <= 1; ++dx) {
+                int xx = x + dx;
+                if (xx < 0 || xx >= gx) continue;
+                sum += grid[zz * (gx * gy) + yy * gx + xx];
+                ++n;
+            }
+        }
+    }
+    return (n > 0) ? (sum / static_cast<float>(n)) : 0.0f;
+}
+
 // ECM fiber orientation pointers (per-voxel axis vector, magnitude = alignment strength)
 #define ECM_ORIENT_X_PTR(fgpu) \
     reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>("ecm_orient_x_ptr"))

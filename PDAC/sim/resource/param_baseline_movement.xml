@@ -1,3 +1,36 @@
+<!--
+  BASELINE-MOVEMENT DIAGNOSTIC PARAM SET (May 2026)
+  =================================================
+  Stripped-down variant of param_all_test.xml for Option-1 calibration probe.
+  Goal: see whether base movement (bias + persistence + move_steps) alone can
+  reproduce IMC neighborhood structure, or whether the higher-order mechanics
+  (porosity, contact guidance, fiber barrier, adhesion) are doing load-bearing
+  calibration work.
+
+  Movement disabled (vs. param_all_test.xml):
+    - ECM porosity restrictions (PARAM_ECM_POROSITY_*)        → 0
+    - Contact guidance (PARAM_CONTACT_GUIDANCE_*)             → 0
+    - Fiber barrier / anisotropy (PARAM_FIBER_BARRIER_*)      → 0
+    - Adhesion matrix already off (AdhesionMatrix_DISABLED, Apr 29 2026)
+
+  Initialization disabled — these populations come from recruitment only:
+    - Macrophages    (PARAM_DOMAIN_MAC_DENSITY)               → 0
+    - CD8 T cells    (PARAM_DOMAIN_CD8_DENSITY)               → 0
+    - CD4 T cells    (PARAM_DOMAIN_CD4_DENSITY)               → 0
+    - Dendritic      (PARAM_DOMAIN_DC_DENSITY)                → 0
+    - B cells        (PARAM_DOMAIN_BCELL_DENSITY)             → 0
+    (MDSCs already absent at init — they're recruited via CCL2.)
+
+  Initialization KEPT: cancer (tumor voxels), fibroblasts, vasculature.
+
+  NOT touched (biology, not movement) — re-evaluate if state-change audit flags them:
+    - PARAM_VAS_ECM_COMPRESS_K (vessel stiffness/O2 secretion)
+    - PARAM_ECM_YAP_EC50       (stiffness-driven crosslink saturation)
+    - PARAM_ECM_STRESS_*, PARAM_ECM_ORIENT_* (fiber field still computed but has
+      no behavioral effect with CG=0 and FB=0; left for re-enabling later)
+
+  Reverting: pass the master XML via the run_sweep template-xml flag.
+-->
 <Param>
   <ABM>
     <Environment>
@@ -38,7 +71,7 @@
       <hypoxia_factor1 name="PARAM_TCELL_HYPOXIA_FACTOR1" type="float" val="pr">0.7</hypoxia_factor1>        <!-- Multiplier: low tier -->
       <hypoxia_factor2 name="PARAM_TCELL_HYPOXIA_FACTOR2" type="float" val="pr">0.4</hypoxia_factor2>        <!-- Multiplier: medium tier -->
       <hypoxia_factor3 name="PARAM_TCELL_HYPOXIA_FACTOR3" type="float" val="pr">0.12</hypoxia_factor3>        <!-- MAPLE posterior 0.12. Doedens2013 (VHL-KO exhaustion) -->
-      <eff_to_cyt_rate name="PARAM_TCELL_EFF_TO_CYT_RATE" type="float" val="pr" units="1/s">1e-6</eff_to_cyt_rate>  <!-- EFF→CYT rate per second when cancer-progenitor in Moore neighborhood. Was deterministic on first contact (over-converted to CYT — IMC PDAC patients show ~0% cytotoxic). 1e-6/s ≈ 12d timescale → ~2% conversion per ABM step. Sweepable. -->
+      <eff_to_cyt_rate name="PARAM_TCELL_EFF_TO_CYT_RATE" type="float" val="pr" units="1/s">1e-6</eff_to_cyt_rate>  <!-- EFF→CYT rate per second when cancer-progenitor in Moore neighborhood. -->
     </TCell>
     <TCD4>
       <lifespanSD name="PARAM_TCD4_LIFESPAN_SD" type="float" val="pos">10</lifespanSD>
@@ -202,16 +235,16 @@
       <crosslinkRate name="PARAM_ECM_CROSSLINK_RATE" type="float" val="pr" units="1/s">1e-6</crosslinkRate>     <!-- k_lox: LOX crosslink accumulation [1/s] -->
       <crosslinkResistance name="PARAM_ECM_CROSSLINK_RESISTANCE" type="float" val="pr">5.0</crosslinkResistance>  <!-- alpha: crosslink MMP resistance factor -->
       <baseline name="PARAM_ECM_BASELINE" type="float" val="pr" units="nmol/mL">10.0</baseline>              <!-- Floor density [nmol/mL] = 1% of saturation -->
-      <porosityCancer name="PARAM_ECM_POROSITY_CANCER" type="float" val="pr">0</porosityCancer>            <!-- Min porosity for cancer movement. Zeroed 2026-04-23: PDAC cancer cells use EMT + amoeboid migration (Wolf & Friedl 2011), pass through dense matrix regardless of density. ECM gate now exclusive to immune cells so desmoplastic ring is a one-way exclusion zone. -->
-      <porosityTcell name="PARAM_ECM_POROSITY_TCELL" type="float" val="pr">0.4</porosityTcell>              <!-- Min porosity for T cell movement -->
-      <porosityTreg name="PARAM_ECM_POROSITY_TREG" type="float" val="pr">0.35</porosityTreg>               <!-- Min porosity for TReg movement -->
-      <porosityTfh name="PARAM_ECM_POROSITY_TFH" type="float" val="pr">0.35</porosityTfh>                 <!-- Min porosity for Tfh movement -->
-      <porosityMDSC name="PARAM_ECM_POROSITY_MDSC" type="float" val="pr">0.3</porosityMDSC>                <!-- Min porosity for MDSC movement -->
-      <porosityMac name="PARAM_ECM_POROSITY_MAC" type="float" val="pr">0.3</porosityMac>                  <!-- Min porosity for macrophage movement -->
-      <porosityFib name="PARAM_ECM_POROSITY_FIB" type="float" val="pr">0.05</porosityFib>                 <!-- Min porosity for fibroblast movement -->
-      <porosityBcell name="PARAM_ECM_POROSITY_BCELL" type="float" val="pr">0.35</porosityBcell>               <!-- Min porosity for B cell movement -->
-      <porosityDC name="PARAM_ECM_POROSITY_DC" type="float" val="pr">0.3</porosityDC>                       <!-- Min porosity for DC movement -->
-      <porosityVasTip name="PARAM_ECM_POROSITY_VAS_TIP" type="float" val="pr">0.2</porosityVasTip>            <!-- Min porosity for vascular TIP movement -->
+      <porosityCancer name="PARAM_ECM_POROSITY_CANCER" type="float" val="pr">0</porosityCancer>            <!-- BASELINE: 0 (was 0). Min porosity for cancer movement. -->
+      <porosityTcell name="PARAM_ECM_POROSITY_TCELL" type="float" val="pr">0</porosityTcell>              <!-- BASELINE: 0 (was 0.4). -->
+      <porosityTreg name="PARAM_ECM_POROSITY_TREG" type="float" val="pr">0</porosityTreg>               <!-- BASELINE: 0 (was 0.35). -->
+      <porosityTfh name="PARAM_ECM_POROSITY_TFH" type="float" val="pr">0</porosityTfh>                 <!-- BASELINE: 0 (was 0.35). -->
+      <porosityMDSC name="PARAM_ECM_POROSITY_MDSC" type="float" val="pr">0</porosityMDSC>                <!-- BASELINE: 0 (was 0.3). -->
+      <porosityMac name="PARAM_ECM_POROSITY_MAC" type="float" val="pr">0</porosityMac>                  <!-- BASELINE: 0 (was 0.3). -->
+      <porosityFib name="PARAM_ECM_POROSITY_FIB" type="float" val="pr">0</porosityFib>                 <!-- BASELINE: 0 (was 0.05). -->
+      <porosityBcell name="PARAM_ECM_POROSITY_BCELL" type="float" val="pr">0</porosityBcell>               <!-- BASELINE: 0 (was 0.35). -->
+      <porosityDC name="PARAM_ECM_POROSITY_DC" type="float" val="pr">0</porosityDC>                       <!-- BASELINE: 0 (was 0.3). -->
+      <porosityVasTip name="PARAM_ECM_POROSITY_VAS_TIP" type="float" val="pr">0</porosityVasTip>            <!-- BASELINE: 0 (was 0.2). -->
       <vasCompressK name="PARAM_VAS_ECM_COMPRESS_K" type="float" val="pr" units="nmol/mL">200.0</vasCompressK>  <!-- EC50 for ECM vascular compression. ~79% vessel loss at PDAC baseline (Chauhan2013, Stylianopoulos2013) -->
       <yapEC50 name="PARAM_ECM_YAP_EC50" type="float" val="pr" units="nmol/mL">800.0</yapEC50>               <!-- YAP/TAZ Hill ceiling: stiffness EC50 (density*(1+crosslink)) [nmol/mL] -->
       <!-- Fiber orientation (anisotropy) -->
@@ -235,11 +268,11 @@
       <!-- Cell densities from healthy pancreas IMC (cells/mm³, median of lognormal) -->
       <fibroblast_density name="PARAM_DOMAIN_FIB_DENSITY" type="float" val="pr" units="cells/mm3">10000</fibroblast_density>
       <vascular_density name="PARAM_DOMAIN_VAS_DENSITY" type="float" val="pr" units="cells/mm3">9661</vascular_density>
-      <macrophage_density name="PARAM_DOMAIN_MAC_DENSITY" type="float" val="pr" units="cells/mm3">2846</macrophage_density>
-      <cd8_density name="PARAM_DOMAIN_CD8_DENSITY" type="float" val="pr" units="cells/mm3">1958</cd8_density>
-      <cd4_density name="PARAM_DOMAIN_CD4_DENSITY" type="float" val="pr" units="cells/mm3">580</cd4_density>
-      <dc_density name="PARAM_DOMAIN_DC_DENSITY" type="float" val="pr" units="cells/mm3">2568</dc_density>
-      <bcell_density name="PARAM_DOMAIN_BCELL_DENSITY" type="float" val="pr" units="cells/mm3">800</bcell_density>
+      <macrophage_density name="PARAM_DOMAIN_MAC_DENSITY" type="float" val="pr" units="cells/mm3">0</macrophage_density>   <!-- BASELINE: 0 (was 2846). Recruited only. -->
+      <cd8_density name="PARAM_DOMAIN_CD8_DENSITY" type="float" val="pr" units="cells/mm3">0</cd8_density>                 <!-- BASELINE: 0 (was 1958). Recruited only. -->
+      <cd4_density name="PARAM_DOMAIN_CD4_DENSITY" type="float" val="pr" units="cells/mm3">0</cd4_density>                 <!-- BASELINE: 0 (was 580). Recruited only. -->
+      <dc_density name="PARAM_DOMAIN_DC_DENSITY" type="float" val="pr" units="cells/mm3">0</dc_density>                    <!-- BASELINE: 0 (was 2568). Recruited only. -->
+      <bcell_density name="PARAM_DOMAIN_BCELL_DENSITY" type="float" val="pr" units="cells/mm3">0</bcell_density>           <!-- BASELINE: 0 (was 800). Recruited only. -->
       <!-- PDE warmup -->
       <pde_warmup_substeps name="PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS" type="int" val="pos">20</pde_warmup_substeps>
     </DomainInit>
@@ -351,30 +384,30 @@
       </AdhesionMatrix_DISABLED>
       <ContactGuidance>
         <!-- Per-type contact guidance strength: amplifies movement along fiber axis, suppresses perpendicular -->
-        <cancer_stem name="PARAM_CONTACT_GUIDANCE_CANCER_STEM" type="float" val="pr">0.65</cancer_stem>
-        <cancer_prog name="PARAM_CONTACT_GUIDANCE_CANCER_PROG" type="float" val="pr">0.25</cancer_prog>
-        <tcell name="PARAM_CONTACT_GUIDANCE_TCELL" type="float" val="pr">0.45</tcell>
-        <treg name="PARAM_CONTACT_GUIDANCE_TREG" type="float" val="pr">0.35</treg>
-        <mac name="PARAM_CONTACT_GUIDANCE_MAC" type="float" val="pr">0.30</mac>
-        <fib_mycaf name="PARAM_CONTACT_GUIDANCE_FIB_MYCAF" type="float" val="pr">0.4</fib_mycaf>
-        <fib_icaf name="PARAM_CONTACT_GUIDANCE_FIB_ICAF" type="float" val="pr">0.1</fib_icaf>
+        <cancer_stem name="PARAM_CONTACT_GUIDANCE_CANCER_STEM" type="float" val="pr">0</cancer_stem>     <!-- BASELINE: 0 (was 0.65) -->
+        <cancer_prog name="PARAM_CONTACT_GUIDANCE_CANCER_PROG" type="float" val="pr">0</cancer_prog>     <!-- BASELINE: 0 (was 0.25) -->
+        <tcell name="PARAM_CONTACT_GUIDANCE_TCELL" type="float" val="pr">0</tcell>                       <!-- BASELINE: 0 (was 0.45) -->
+        <treg name="PARAM_CONTACT_GUIDANCE_TREG" type="float" val="pr">0</treg>                          <!-- BASELINE: 0 (was 0.35) -->
+        <mac name="PARAM_CONTACT_GUIDANCE_MAC" type="float" val="pr">0</mac>                             <!-- BASELINE: 0 (was 0.30) -->
+        <fib_mycaf name="PARAM_CONTACT_GUIDANCE_FIB_MYCAF" type="float" val="pr">0</fib_mycaf>           <!-- BASELINE: 0 (was 0.4) -->
+        <fib_icaf name="PARAM_CONTACT_GUIDANCE_FIB_ICAF" type="float" val="pr">0</fib_icaf>              <!-- BASELINE: 0 (was 0.1) -->
       </ContactGuidance>
       <FiberBarrier>
         <!-- Per-type fiber barrier strength: penalizes perpendicular movement through aligned fibers -->
         <!-- 0 = no barrier (isotropic porosity only), 1 = full perpendicular block at max alignment -->
         <!-- Multiplies CDF weight: w_barrier = 1 - barrier * fiber_mag * sin^2(angle_to_fiber) -->
         <!-- Uses DESTINATION voxel fiber orientation (barrier you cross into, not where you are) -->
-        <cancer_stem name="PARAM_FIBER_BARRIER_CANCER_STEM" type="float" val="pr">0.40</cancer_stem>
-        <cancer_prog name="PARAM_FIBER_BARRIER_CANCER_PROG" type="float" val="pr">0.55</cancer_prog>
-        <tcell name="PARAM_FIBER_BARRIER_TCELL" type="float" val="pr">0.55</tcell>
-        <treg name="PARAM_FIBER_BARRIER_TREG" type="float" val="pr">0.5</treg>
-        <mac name="PARAM_FIBER_BARRIER_MAC" type="float" val="pr">0.30</mac>
-        <fib_mycaf name="PARAM_FIBER_BARRIER_FIB_MYCAF" type="float" val="pr">0.1</fib_mycaf>
-        <fib_icaf name="PARAM_FIBER_BARRIER_FIB_ICAF" type="float" val="pr">0.1</fib_icaf>
-        <vas_tip name="PARAM_FIBER_BARRIER_VAS_TIP" type="float" val="pr">0.3</vas_tip>
-        <mdsc name="PARAM_FIBER_BARRIER_MDSC" type="float" val="pr">0.4</mdsc>
-        <dc name="PARAM_FIBER_BARRIER_DC" type="float" val="pr">0.50</dc>
-        <bcell name="PARAM_FIBER_BARRIER_BCELL" type="float" val="pr">0.5</bcell>
+        <cancer_stem name="PARAM_FIBER_BARRIER_CANCER_STEM" type="float" val="pr">0</cancer_stem>   <!-- BASELINE: 0 (was 0.40) -->
+        <cancer_prog name="PARAM_FIBER_BARRIER_CANCER_PROG" type="float" val="pr">0</cancer_prog>   <!-- BASELINE: 0 (was 0.55) -->
+        <tcell name="PARAM_FIBER_BARRIER_TCELL" type="float" val="pr">0</tcell>                     <!-- BASELINE: 0 (was 0.55) -->
+        <treg name="PARAM_FIBER_BARRIER_TREG" type="float" val="pr">0</treg>                        <!-- BASELINE: 0 (was 0.5) -->
+        <mac name="PARAM_FIBER_BARRIER_MAC" type="float" val="pr">0</mac>                           <!-- BASELINE: 0 (was 0.30) -->
+        <fib_mycaf name="PARAM_FIBER_BARRIER_FIB_MYCAF" type="float" val="pr">0</fib_mycaf>         <!-- BASELINE: 0 (was 0.1) -->
+        <fib_icaf name="PARAM_FIBER_BARRIER_FIB_ICAF" type="float" val="pr">0</fib_icaf>            <!-- BASELINE: 0 (was 0.1) -->
+        <vas_tip name="PARAM_FIBER_BARRIER_VAS_TIP" type="float" val="pr">0</vas_tip>               <!-- BASELINE: 0 (was 0.3) -->
+        <mdsc name="PARAM_FIBER_BARRIER_MDSC" type="float" val="pr">0</mdsc>                        <!-- BASELINE: 0 (was 0.4) -->
+        <dc name="PARAM_FIBER_BARRIER_DC" type="float" val="pr">0</dc>                              <!-- BASELINE: 0 (was 0.50) -->
+        <bcell name="PARAM_FIBER_BARRIER_BCELL" type="float" val="pr">0</bcell>                     <!-- BASELINE: 0 (was 0.5) -->
       </FiberBarrier>
     </Movement>
     <DCPriming>

@@ -96,6 +96,11 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_grid;
 // Antigen grid: exponential decay of persistent antigen from dying cancer cells
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER decay_antigen_grid;
 
+// Seed the antigen grid at the listed flat voxel indices with `value` (molecules/voxel).
+// Used by initialization to give APCs a non-zero baseline antigen in tumor voxels so
+// activation chains aren't gated on the first cancer-death event.
+void seed_antigen_grid_voxels(const int* voxel_indices, int n, float value);
+
 // ECM fiber anisotropy: stress field decay + orientation update
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER decay_stress_field;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_orientation;

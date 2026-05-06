@@ -150,15 +150,18 @@ FLAMEGPU_AGENT_FUNCTION(dc_state_step, flamegpu::MessageNone, flamegpu::MessageN
 
         const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
         const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
         const int my_x = FLAMEGPU->getVariable<int>("x");
         const int my_y = FLAMEGPU->getVariable<int>("y");
         const int my_z = FLAMEGPU->getVariable<int>("z");
         const int voxel = my_z * ny * nx + my_y * nx + my_x;
 
-        // Read local antigen (physical units: molecules/voxel)
+        // Read local antigen as Moore-neighborhood mean (self + 26 neighbors)
+        // so co-voxel placement isn't required for detection.
         const float* antigen_grid = reinterpret_cast<const float*>(
             FLAMEGPU->environment.getProperty<uint64_t>("antigen_grid_ptr"));
-        const float local_antigen = antigen_grid[voxel];
+        const float local_antigen = read_grid_moore_avg(antigen_grid,
+            my_x, my_y, my_z, nx, ny, nz);
         const float antigen_50 = FLAMEGPU->environment.getProperty<float>("PARAM_DC_ANTIGEN_50");
 
         // Read local cytokine concentrations [nM]

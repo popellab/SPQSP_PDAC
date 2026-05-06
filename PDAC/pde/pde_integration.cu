@@ -716,9 +716,16 @@ struct RecruitKernelParams {
     float mdsc_life_mean;
     const float* il6_conc;    // IL-6 PDE concentration (for MDSC recruitment boost)
     float il6_ec50_mdsc;      // IL-6 EC50 for MDSC recruitment [nM]
-    // MAC recruitment
+    // MAC recruitment + probabilistic M1/M2 polarization at spawn
     float p_mac;
     float mac_life_mean;
+    const float* mac_ifng_conc;   // IFN-γ PDE concentration (M1 driver)
+    const float* mac_il12_conc;   // IL-12 PDE concentration (M1 driver)
+    const float* mac_il10_conc;   // IL-10 PDE concentration (M2 driver)
+    const float* mac_tgfb_conc;   // TGF-β PDE concentration (M2 driver)
+    // mac_il6_conc reuses il6_conc pointer above (same PDE field)
+    float mac_ifng_ec50, mac_il12_ec50;
+    float mac_il10_ec50, mac_tgfb_ec50, mac_il6_ec50;
     // B cell recruitment
     float p_bcell;
     float bcell_life_mean, bcell_life_sd;
@@ -1052,8 +1059,40 @@ __global__ void recruit_all_kernel(
                     RecruitRequest req;
                     req.x = px; req.y = py; req.z = pz;
                     req.cell_type = CELL_TYPE_MAC;
-                    // ODE recruits all macrophages as M1; polarization handled by M1↔M2 transitions
-                    req.cell_state = MAC_M1;
+
+                    // Probabilistic M1/M2 polarization at spawn — mirrors the
+                    // state-step polarization formula so a freshly-recruited
+                    // macrophage's initial phenotype tracks the local cytokine
+                    // milieu rather than always defaulting to M1.
+                    //   H_M1 = H(IFN-γ) + H(IL-12)              [M1 drivers]
+                    //   H_M2 = H(TGF-β) + H(IL-10) + H(IL-6)    [M2 drivers]
+                    //   P(M2) = H_M2 / (H_M1 + H_M2); default M2 if no signal
+                    float h_m1 = 0.0f, h_m2 = 0.0f;
+                    if (p.mac_ifng_conc) {
+                        float c = p.mac_ifng_conc[idx];
+                        h_m1 += c / (c + p.mac_ifng_ec50 + 1e-30f);
+                    }
+                    if (p.mac_il12_conc) {
+                        float c = p.mac_il12_conc[idx];
+                        h_m1 += c / (c + p.mac_il12_ec50 + 1e-30f);
+                    }
+                    if (p.mac_tgfb_conc) {
+                        float c = p.mac_tgfb_conc[idx];
+                        h_m2 += c / (c + p.mac_tgfb_ec50 + 1e-30f);
+                    }
+                    if (p.mac_il10_conc) {
+                        float c = p.mac_il10_conc[idx];
+                        h_m2 += c / (c + p.mac_il10_ec50 + 1e-30f);
+                    }
+                    if (p.il6_conc) {  // shared PDE field with MDSC
+                        float c = p.il6_conc[idx];
+                        h_m2 += c / (c + p.mac_il6_ec50 + 1e-30f);
+                    }
+                    float p_m2 = (h_m1 + h_m2 < 1e-9f)
+                        ? 1.0f                          // no cytokine signal → PDAC TAM bias (M2)
+                        : h_m2 / (h_m1 + h_m2);
+                    req.cell_state = (rng_uniform(rng) < p_m2) ? MAC_M2 : MAC_M1;
+
                     req.life = sample_exp_life_gpu(p.mac_life_mean, rng);
                     req.divide_cd = 0;
                     req.divide_limit = 0;
@@ -1213,6 +1252,20 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     // MAC params
     p.p_mac = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_RECRUIT_K");
     p.mac_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_LIFE_MEAN");
+    // Cytokine fields for M1/M2 spawn polarization (same EC50s as state-step)
+    p.mac_ifng_conc = g_pde_solver ? reinterpret_cast<const float*>(
+        g_pde_solver->get_device_concentration_ptr(CHEM_IFN)) : nullptr;
+    p.mac_il12_conc = g_pde_solver ? reinterpret_cast<const float*>(
+        g_pde_solver->get_device_concentration_ptr(CHEM_IL12)) : nullptr;
+    p.mac_il10_conc = g_pde_solver ? reinterpret_cast<const float*>(
+        g_pde_solver->get_device_concentration_ptr(CHEM_IL10)) : nullptr;
+    p.mac_tgfb_conc = g_pde_solver ? reinterpret_cast<const float*>(
+        g_pde_solver->get_device_concentration_ptr(CHEM_TGFB)) : nullptr;
+    p.mac_ifng_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IFN_G_EC50");
+    p.mac_il12_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_12_EC50");
+    p.mac_il10_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_10_EC50");
+    p.mac_tgfb_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_EC50");
+    p.mac_il6_ec50  = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL6_M2_EC50");
 
     // B cell params
     p.p_bcell = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_RECRUIT_K");
@@ -1551,6 +1604,24 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
 // Called once per ABM step, before agents read the grid.
 // decay_factor = exp(-decay_rate * dt)
 // ============================================================================
+// Seed the antigen grid at specified voxel indices with `value`.
+// Builds a sparse host-side delta and copies into device memory voxel-by-voxel via
+// a transient buffer (one cudaMemcpy). Called from initialization before main sim.
+void seed_antigen_grid_voxels(const int* voxel_indices, int n, float value) {
+    if (!d_antigen_grid || !g_pde_solver || n <= 0 || value == 0.0f) return;
+    int total_voxels = g_pde_solver->get_total_voxels();
+    std::vector<float> host_grid(total_voxels, 0.0f);
+    // Pull current device contents so we add to (not overwrite) any existing antigen.
+    cudaMemcpy(host_grid.data(), d_antigen_grid,
+               total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    for (int i = 0; i < n; ++i) {
+        int v = voxel_indices[i];
+        if (v >= 0 && v < total_voxels) host_grid[v] += value;
+    }
+    cudaMemcpy(d_antigen_grid, host_grid.data(),
+               total_voxels * sizeof(float), cudaMemcpyHostToDevice);
+}
+
 FLAMEGPU_HOST_FUNCTION(decay_antigen_grid) {
     nvtxRangePush("Decay Antigen Grid");
     if (d_antigen_grid && g_pde_solver) {

@@ -143,39 +143,32 @@ FLAMEGPU_AGENT_FUNCTION(bcell_state_step, flamegpu::MessageNone, flamegpu::Messa
     FLAMEGPU->setVariable<int>("life", life);
 
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
-    int has_antigen = FLAMEGPU->getVariable<int>("has_antigen");
     const int th_count = FLAMEGPU->getVariable<int>("neighbor_th_count");
     const int bcell_count = FLAMEGPU->getVariable<int>("neighbor_bcell_count");
 
-    // ── Antigen capture from persistent antigen grid ──
-    if (has_antigen == 0) {
+    // ── State machine ──
+    if (cs == BCELL_NAIVE) {
+        // Naive → Activated: gated on (a) seeing antigen above a small minimum
+        // (Moore-mean of persistent antigen grid) and (b) any T cell help (TH
+        // or Tfh) in the neighborhood. Replaces the prior multi-step capture
+        // pipeline (probabilistic uptake + persistent has_antigen flag), which
+        // effectively never fired in practice — see 2026-05-06 sweep where
+        // <2.5% of runs produced any activated B cells.
         const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
         const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
         const int my_x = FLAMEGPU->getVariable<int>("x");
         const int my_y = FLAMEGPU->getVariable<int>("y");
         const int my_z = FLAMEGPU->getVariable<int>("z");
-        const int voxel = my_z * ny * nx + my_y * nx + my_x;
-
         const float* antigen_grid = reinterpret_cast<const float*>(
             FLAMEGPU->environment.getProperty<uint64_t>("antigen_grid_ptr"));
-        const float local_antigen = antigen_grid[voxel];
-        const float capture_threshold = FLAMEGPU->environment.getProperty<float>("PARAM_ANTIGEN_CAPTURE_THRESHOLD");
+        const float local_antigen = read_grid_moore_avg(antigen_grid,
+            my_x, my_y, my_z, nx, ny, nz);
+        const float min_antigen = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_ACTIVATION_ANTIGEN_MIN");
 
-        if (local_antigen > capture_threshold) {
-            const float capture_prob = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_ANTIGEN_CAPTURE_PROB");
-            float p_capture = capture_prob * local_antigen / (local_antigen + capture_threshold);
-            if (FLAMEGPU->random.uniform<float>() < p_capture) {
-                has_antigen = 1;
-                FLAMEGPU->setVariable<int>("has_antigen", 1);
-            }
-        }
-    }
-
-    // ── State machine ──
-    if (cs == BCELL_NAIVE) {
-        // Naive → Activated: requires antigen + T cell help (TH or Tfh)
-        int tfh_count = FLAMEGPU->getVariable<int>("neighbor_tfh_count");
-        if (has_antigen == 1 && (th_count + tfh_count) > 0) {
+        const int tfh_count = FLAMEGPU->getVariable<int>("neighbor_tfh_count");
+        if (local_antigen > min_antigen && (th_count + tfh_count) > 0) {
+            FLAMEGPU->setVariable<int>("has_antigen", 1);  // Legacy flag, kept for downstream consumers
             FLAMEGPU->setVariable<int>("cell_state", BCELL_ACTIVATED);
             FLAMEGPU->setVariable<int>("activation_timer", 0);
 

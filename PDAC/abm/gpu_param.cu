@@ -30,6 +30,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.TCell.hypoxia_factor1", "", "pr"},  // PARAM_TCELL_HYPOXIA_FACTOR1
     {"Param.ABM.TCell.hypoxia_factor2", "", "pr"},  // PARAM_TCELL_HYPOXIA_FACTOR2
     {"Param.ABM.TCell.hypoxia_factor3", "", "pr"},  // PARAM_TCELL_HYPOXIA_FACTOR3
+    {"Param.ABM.TCell.eff_to_cyt_rate", "1/s", "pr"},  // PARAM_TCELL_EFF_TO_CYT_RATE
     {"Param.ABM.TCD4.lifespanSD", "", "pos"},  // PARAM_TCD4_LIFESPAN_SD
     {"Param.ABM.TCD4.TGFB_release_time", "", "pos"},  // PARAM_TCD4_TGFB_RELEASE_TIME
     {"Param.ABM.TCD4.tfh_diff_k", "", "pr"},  // PARAM_TFH_DIFF_K
@@ -345,6 +346,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR1", getFloat(PARAM_TCELL_HYPOXIA_FACTOR1));
     env.newProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR2", getFloat(PARAM_TCELL_HYPOXIA_FACTOR2));
     env.newProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR3", getFloat(PARAM_TCELL_HYPOXIA_FACTOR3));
+    env.newProperty<float>("PARAM_TCELL_EFF_TO_CYT_RATE", getFloat(PARAM_TCELL_EFF_TO_CYT_RATE));
     env.newProperty<float>("PARAM_TCD4_LIFESPAN_SD", getFloat(PARAM_TCD4_LIFESPAN_SD));
     env.newProperty<float>("PARAM_TCD4_TGFB_RELEASE_TIME", getFloat(PARAM_TCD4_TGFB_RELEASE_TIME));
     env.newProperty<float>("PARAM_TFH_DIFF_K", getFloat(PARAM_TFH_DIFF_K));
