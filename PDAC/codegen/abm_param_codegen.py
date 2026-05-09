@@ -394,32 +394,21 @@ def gen_derived_inc(derived, adh_matrix_entries=None):
             lines.append('')
 
     # ── Adhesion matrix device array initialization ──
-    if adh_matrix_entries:
-        lines.append('    // ── Adhesion matrix (cell-cell, sparse from XML <AdhesionMatrix>) ──')
-        lines.append('    {')
-        lines.append('        constexpr int N = ABM_STATE_COUNTER_SIZE;')
-        lines.append('        float h_adh_matrix[N * N] = {0};')
-        for row_sc, col_sc, val in adh_matrix_entries:
-            lines.append(f'        h_adh_matrix[{row_sc} * N + {col_sc}] = {val}f;')
-        lines.append('        float* d_adh_matrix = nullptr;')
-        lines.append('        cudaMalloc(&d_adh_matrix, N * N * sizeof(float));')
-        lines.append('        cudaMemcpy(d_adh_matrix, h_adh_matrix, N * N * sizeof(float), cudaMemcpyHostToDevice);')
-        lines.append('        env.newProperty<unsigned long long>("adh_matrix_ptr",')
-        lines.append('            static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_adh_matrix)));')
-        lines.append('    }')
-        lines.append('')
-    else:
-        # No adhesion matrix in XML — allocate zeroed array (no adhesion)
-        lines.append('    // ── Adhesion matrix (no <AdhesionMatrix> found, all zeros) ──')
-        lines.append('    {')
-        lines.append('        constexpr int N = ABM_STATE_COUNTER_SIZE;')
-        lines.append('        float* d_adh_matrix = nullptr;')
-        lines.append('        cudaMalloc(&d_adh_matrix, N * N * sizeof(float));')
-        lines.append('        cudaMemset(d_adh_matrix, 0, N * N * sizeof(float));')
-        lines.append('        env.newProperty<unsigned long long>("adh_matrix_ptr",')
-        lines.append('            static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_adh_matrix)));')
-        lines.append('    }')
-        lines.append('')
+    # Values are loaded at runtime from xml_path via PDAC::load_adhesion_matrix_from_xml.
+    # Adding a new state still requires regenerating common.cuh + this file; value-only
+    # changes do not.
+    lines.append('    // ── Adhesion matrix (cell-cell, loaded from XML <AdhesionMatrix> at runtime) ──')
+    lines.append('    {')
+    lines.append('        constexpr int N = ABM_STATE_COUNTER_SIZE;')
+    lines.append('        float h_adh_matrix[N * N] = {0};')
+    lines.append('        PDAC::load_adhesion_matrix_from_xml(xml_path, h_adh_matrix, N);')
+    lines.append('        float* d_adh_matrix = nullptr;')
+    lines.append('        cudaMalloc(&d_adh_matrix, N * N * sizeof(float));')
+    lines.append('        cudaMemcpy(d_adh_matrix, h_adh_matrix, N * N * sizeof(float), cudaMemcpyHostToDevice);')
+    lines.append('        env.newProperty<unsigned long long>("adh_matrix_ptr",')
+    lines.append('            static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_adh_matrix)));')
+    lines.append('    }')
+    lines.append('')
 
     return '\n'.join(lines)
 
@@ -451,7 +440,8 @@ def main():
 
     print(f"Parsed: {nf} float, {ni} int, {nb} bool params")
     print(f"Derived: {nd} properties, {nl} locals, {nc} calls, {ncomp} computed")
-    print(f"Adhesion matrix: {len(adh_matrix)} non-zero entries")
+    print(f"Adhesion matrix: {len(adh_matrix)} non-zero entries in XML "
+          f"(values loaded at runtime — no rebuild needed for value changes)")
 
     os.makedirs(output_dir, exist_ok=True)
 

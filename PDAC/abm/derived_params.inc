@@ -684,12 +684,14 @@
     env.newProperty<int>("PARAM_TH_DIV_INTERVAL", 
                     static_cast<int>(std::round(1.0 / (QP(CancerVCT::P_k_Th_pro_tumor) * t_step_sec))));
 
-    // ── Adhesion matrix (no <AdhesionMatrix> found, all zeros) ──
+    // ── Adhesion matrix (cell-cell, loaded from XML <AdhesionMatrix> at runtime) ──
     {
         constexpr int N = ABM_STATE_COUNTER_SIZE;
+        float h_adh_matrix[N * N] = {0};
+        PDAC::load_adhesion_matrix_from_xml(xml_path, h_adh_matrix, N);
         float* d_adh_matrix = nullptr;
         cudaMalloc(&d_adh_matrix, N * N * sizeof(float));
-        cudaMemset(d_adh_matrix, 0, N * N * sizeof(float));
+        cudaMemcpy(d_adh_matrix, h_adh_matrix, N * N * sizeof(float), cudaMemcpyHostToDevice);
         env.newProperty<unsigned long long>("adh_matrix_ptr",
             static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_adh_matrix)));
     }

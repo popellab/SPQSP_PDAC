@@ -1,0 +1,1407 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Param>
+  <ABM>
+    <Environment>
+      <SecPerSlice name="PARAM_SEC_PER_SLICE" type="float" val="pos" units="seconds">21600</SecPerSlice>
+      <recSiteFactor name="PARAM_REC_SITE_FACTOR" type="float" val="pos">1e5</recSiteFactor>
+      <adhSiteDens name="PARAM_ADH_SITE_DENSITY" type="float" val="pos">1000</adhSiteDens>  
+      <Tumor>
+        <XSize name="PARAM_X_SIZE" type="int" val="pos" units="microns">50</XSize>
+        <YSize name="PARAM_Y_SIZE" type="int" val="pos" units="microns">50</YSize>
+        <ZSize name="PARAM_Z_SIZE" type="int" val="pos" units="microns">50</ZSize>
+        <VoxelSize name="PARAM_VOXEL_SIZE" type="int" val="pos" units="microns">20</VoxelSize>
+      </Tumor>
+    </Environment>
+    <Pharmacokinetics>
+      <nivoOn name="PARAM_NIVO_ON" type="bool">0</nivoOn>
+      <nivoDoseIntervalTime name="PARAM_NIVO_DOSE_INTERVAL_TIME" type="float" val="pr">14</nivoDoseIntervalTime>
+      <nivoDose name="PARAM_NIVO_DOSE" type="float" val="pr">2.79e-4</nivoDose>
+      <ipiOn name="PARAM_IPI_ON" type="bool">0</ipiOn>
+      <ipiDoseIntervalTime name="PARAM_IPI_DOSE_INTERVAL_TIME" type="float" val="pr">14</ipiDoseIntervalTime>
+      <ipiDose name="PARAM_IPI_DOSE" type="float" val="pr">0.93e-4</ipiDose>
+      <caboOn name="PARAM_CABO_ON" type="bool">0</caboOn>
+      <caboDoseIntervalTime name="PARAM_CABO_DOSE_INTERVAL_TIME" type="float" val="pr">1</caboDoseIntervalTime>
+      <caboDose name="PARAM_CABO_DOSE" type="float" val="pr">9.44e-5</caboDose>
+      <entOn name="PARAM_ENT_ON" type="bool">0</entOn>
+    </Pharmacokinetics>
+    <TCell>
+      <lifespanSD name="PARAM_TCELL_LIFESPAN_SD" type="float" val="pos">10</lifespanSD>
+      <div_interval name="PARAM_TCELL_DIV_INTERNAL" type="int" val="pos">3</div_interval> 
+      <div_limit name="PARAM_TCELL_DIV_LIMIT" type="int" val="pos">4</div_limit>
+      <moveSteps name="PARAM_TCELL_MOVE_STEPS" type="int" val="pos">64</moveSteps> 
+      <IL2_release_time name="PARAM_TCELL_IL2_RELEASE_TIME" type="float" val="pos">86400</IL2_release_time>
+      <IL2_commit_time name="PARAM_TCELL_IL2_COMMIT_TIME" type="float" val="pos">28800</IL2_commit_time> 
+      <IFNg_release_time name="PARAM_TCELL_IFNG_RELEASE_TIME" type="float" val="pos">23620</IFNg_release_time> 
+      <hypoxia_threshold name="PARAM_TCELL_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>   
+      <hypoxia_tier1 name="PARAM_TCELL_HYPOXIA_TIER1" type="float" val="pr">10</hypoxia_tier1>             
+      <hypoxia_tier2 name="PARAM_TCELL_HYPOXIA_TIER2" type="float" val="pr">30</hypoxia_tier2>             
+      <hypoxia_recovery name="PARAM_TCELL_HYPOXIA_RECOVERY" type="float" val="pr">1</hypoxia_recovery>        
+      <hypoxia_factor1 name="PARAM_TCELL_HYPOXIA_FACTOR1" type="float" val="pr">0.7</hypoxia_factor1>        
+      <hypoxia_factor2 name="PARAM_TCELL_HYPOXIA_FACTOR2" type="float" val="pr">0.4</hypoxia_factor2>        
+      <hypoxia_factor3 name="PARAM_TCELL_HYPOXIA_FACTOR3" type="float" val="pr">0.12</hypoxia_factor3>        
+      <eff_to_cyt_rate name="PARAM_TCELL_EFF_TO_CYT_RATE" type="float" val="pr" units="1/s">1e-6</eff_to_cyt_rate>  
+    </TCell>
+    <TCD4>
+      <lifespanSD name="PARAM_TCD4_LIFESPAN_SD" type="float" val="pos">10</lifespanSD>
+      <TGFB_release_time name="PARAM_TCD4_TGFB_RELEASE_TIME" type="float" val="pos">705000</TGFB_release_time> 
+      <div_limit name="PARAM_TCD4_DIV_LIMIT" type="int" val="pos">4</div_limit>
+      
+      <tfh_diff_k name="PARAM_TFH_DIFF_K" type="float" val="pr">0.078</tfh_diff_k> 
+      <tfh_ec50_il6 name="PARAM_TFH_EC50_IL6" type="float" val="pr">0.46</tfh_ec50_il6> 
+      <cxcl13_release_tfh name="PARAM_TFH_CXCL13_RELEASE" type="float" val="pr">4.97e-11</cxcl13_release_tfh>  
+    </TCD4>
+    <MDSC>
+      <lifespanSD name="PARAM_MDSC_LIFESPAN_SD" type="float" val="pos">1</lifespanSD>
+      <moveSteps name="PARAM_MDSC_MOVE_STEPS" type="int" val="pos">71</moveSteps> 
+    </MDSC>
+    <BCell>
+      <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           
+      <lifespanSD name="PARAM_BCELL_LIFE_SD" type="float" val="pos">10</lifespanSD>
+      <moveSteps name="PARAM_BCELL_MOVE_STEPS" type="int" val="pos">30</moveSteps>
+      <recruit_k name="PARAM_BCELL_RECRUIT_K" type="float" val="pr">3.4e-6</recruit_k>             
+      <ec50_cxcl13_rec name="PARAM_BCELL_EC50_CXCL13_REC" type="float" val="pr">10.0</ec50_cxcl13_rec> 
+      <div_interval name="PARAM_BCELL_DIV_CD" type="int" val="pos">2</div_interval>                
+      <div_limit name="PARAM_BCELL_DIV_LIMIT" type="int" val="pos">6</div_limit>                   
+      <activation_timer_base name="PARAM_BCELL_ACTIVATION_TIMER" type="int" val="pos">40</activation_timer_base>  
+      <tls_speedup name="PARAM_BCELL_TLS_SPEEDUP" type="float" val="pr">1.0</tls_speedup>           
+      <tls_threshold name="PARAM_BCELL_TLS_THRESHOLD" type="int" val="pos">3</tls_threshold>         
+      <plasma_requires_tls name="PARAM_BCELL_PLASMA_REQUIRES_TLS" type="bool">1</plasma_requires_tls>  
+      <breg_fraction name="PARAM_BCELL_BREG_FRACTION" type="float" val="pr">0.05</breg_fraction>      
+      <antibody_release name="PARAM_BCELL_ANTIBODY_RELEASE" type="float" val="pr">1e-5</antibody_release>  
+      <il10_release name="PARAM_BCELL_IL10_RELEASE" type="float" val="pr">1e-7</il10_release>           
+      <il6_release name="PARAM_BCELL_IL6_RELEASE" type="float" val="pr">2e-7</il6_release>           
+      <antigen_capture_prob name="PARAM_BCELL_ANTIGEN_CAPTURE_PROB" type="float" val="pr">0.15</antigen_capture_prob> 
+      <plasma_move_prob name="PARAM_BCELL_PLASMA_MOVE_PROB" type="float" val="pr">0.05</plasma_move_prob>  
+      
+      <adcc_ab_ec50 name="PARAM_ADCC_AB_EC50" type="float" val="pr">0.01</adcc_ab_ec50>              
+      <adcc_ab_hill_n name="PARAM_ADCC_AB_HILL_N" type="float" val="pr">2.0</adcc_ab_hill_n>          
+      <adcc_boost_max name="PARAM_ADCC_BOOST_MAX" type="float" val="pr">2.0</adcc_boost_max>          
+      
+      <tfh_maturation_speedup name="PARAM_BCELL_TFH_SPEEDUP" type="float" val="pr">0.5</tfh_maturation_speedup>  
+      
+      <cxcl13_release_act name="PARAM_BCELL_ACT_CXCL13_RELEASE" type="float" val="pr">1e-9</cxcl13_release_act>       
+      <cxcl13_release_plasma name="PARAM_BCELL_PLASMA_CXCL13_RELEASE" type="float" val="pr">4e-10</cxcl13_release_plasma> 
+    </BCell>
+    <DC>
+      <lifeImmatureSD name="PARAM_DC_LIFE_IMMATURE_SD" type="float" val="pos">40</lifeImmatureSD>
+      <lifeMatureSD name="PARAM_DC_LIFE_MATURE_SD" type="float" val="pos">4</lifeMatureSD>
+      <moveSteps name="PARAM_DC_MOVE_STEPS" type="int" val="pos">38</moveSteps> 
+      <presentation_capacity name="PARAM_DC_PRESENTATION_CAPACITY" type="int" val="pos">25</presentation_capacity>  
+      
+      <antibody_maturation_50 name="PARAM_DC_ANTIBODY_50" type="float" val="pr">29.3</antibody_maturation_50>    
+      <antibody_maturation_boost name="PARAM_DC_ANTIBODY_BOOST" type="float" val="pr">3.95</antibody_maturation_boost>  
+    </DC>
+    <Mac>
+      <lifespanSD>1</lifespanSD>
+      <moveSteps name="PARAM_MAC_MOVE_STEPS" type="int" val="pos">30</moveSteps> 
+      <hypoxia_threshold name="PARAM_MAC_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>  
+      <m2_bias_strength name="PARAM_MAC_M2_BIAS_STRENGTH" type="float" val="pr">0.75</m2_bias_strength>     
+    </Mac>
+    <CancerCell>
+      <progGrowthRate name="PARAM_PROG_GROWTH_RATE" type="float" val="pr">0.3</progGrowthRate> 
+      <senescentDeathRate name="PARAM_SEN_DEATH_RATE" type="float" val="pr">0.1</senescentDeathRate>  
+      <asymmetricDivProb name="PARAM_ASYM_DIV_PROB" type="float" val="pr">.95</asymmetricDivProb>
+      <progenitorDivMax name="PARAM_PROG_DIV_MAX" type="int" val="pos">10</progenitorDivMax>
+      <stuckSenescenceSteps name="PARAM_CANCER_STUCK_SENESCENCE_STEPS" type="int" val="pos">20</stuckSenescenceSteps>  
+      <telomeraseReactivationProb name="PARAM_TELOMERASE_REACTIVATION_PROB" type="float" val="pr">0.005</telomeraseReactivationProb>  
+      <moveSteps name="PARAM_CANCER_MOVE_STEPS" type="int" val="pos">2</moveSteps> 
+      <moveSteps_csc name="PARAM_CANCER_MOVE_STEPS_STEM" type="int" val="pos">1</moveSteps_csc> 
+      <Tkill_scaler name="PARAM_TKILL_SCALAR" type="float" val="pos">3</Tkill_scaler>
+      <mincc name="PARAM_MIN_CC" type="float" val="pos">1000</mincc>
+      <hypoxia_th name="PARAM_CANCER_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_th>            
+      <hif_vegf_boost name="PARAM_HIF_VEGF_BOOST" type="float" val="pr">7.15</hif_vegf_boost>      
+      <hif_ccl2_boost name="PARAM_HIF_CCL2_BOOST" type="float" val="pr">3.20</hif_ccl2_boost>      
+      <hif_pdl1_boost name="PARAM_HIF_PDL1_BOOST" type="float" val="pr">0.41</hif_pdl1_boost>      
+      <hif_mhc_reduction name="PARAM_HIF_MHC_REDUCTION" type="float" val="pr">0.5</hif_mhc_reduction> 
+    </CancerCell>
+    <Vas>
+      <maxPerVoxel name="PARAM_VAS_MAXPERVOXEL" type="float" val="pos">1</maxPerVoxel>
+      <O2_conc name="PARAM_VAS_O2_CONC" type="float" val="pr">0.065</O2_conc>  
+      <Rc name="PARAM_VAS_RC" type="float" val="pr">4e-4</Rc>
+      <sigma name="PARAM_VAS_SIGMA" type="float" val="pr">0.84</sigma>
+      <branch_prob name="PARAM_VAS_BRANCH_PROB" type="float" val="pr">0.05</branch_prob>  
+      <min_neighbor name="PARAM_VAS_MIN_NEIGHBOR" type="float" val="pos">20</min_neighbor>  
+      <maturity_resistance name="PARAM_VAS_MATURITY_RESISTANCE" type="float" val="pr">0.04</maturity_resistance>      
+      <initial_maturity name="PARAM_VAS_INITIAL_MATURITY" type="float" val="pr">100</initial_maturity>             
+      <collapse_threshold name="PARAM_VAS_COLLAPSE_THRESHOLD" type="float" val="pr" units="nmol/mL">700</collapse_threshold>  
+      <collapse_ec50 name="PARAM_VAS_COLLAPSE_EC50" type="float" val="pr" units="nmol/mL">850</collapse_ec50>           
+      <recovery_threshold name="PARAM_VAS_RECOVERY_THRESHOLD" type="float" val="pr" units="nmol/mL">600</recovery_threshold> 
+      <recovery_rate name="PARAM_VAS_RECOVERY_RATE" type="float" val="pr">0.05</recovery_rate>                  
+      <kvl_dysfunctional name="PARAM_VAS_KVL_DYSFUNCTIONAL" type="float" val="pr">0.2</kvl_dysfunctional>           
+      <hypoxia_threshold name="PARAM_VAS_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>          
+      
+      <hev_ccl21_threshold name="PARAM_VAS_HEV_CCL21_TH" type="float" val="pr">5.0</hev_ccl21_threshold>         
+      <hev_lymph_density_th name="PARAM_VAS_HEV_LYMPH_DENSITY_TH" type="float" val="pr">8000.0</hev_lymph_density_th> 
+      <hev_recruit_boost name="PARAM_VAS_HEV_RECRUIT_BOOST" type="float" val="pr">5.0</hev_recruit_boost>           
+      <hev_revert_ccl21_th name="PARAM_VAS_HEV_REVERT_CCL21_TH" type="float" val="pr">0.5</hev_revert_ccl21_th> 
+    </Vas>
+    <Fib>
+      <moveSteps name="PARAM_FIB_MOVE_STEPS" type="int" val="pos">9</moveSteps> 
+      
+      <ECM_radius name="PARAM_FIB_ECM_RADIUS" type="float" val="pr">3</ECM_radius>                            
+      <ECM_variance name="PARAM_FIB_ECM_VARIANCE" type="float" val="pr">2.0</ECM_variance>                      
+      
+      <div_max name="PARAM_FIB_DIV_MAX" type="float" val="pr">10</div_max>                                 
+      
+      <hypoxia_th name="PARAM_FIB_HYPOXIA_TH" type="float" val="pr" units="mM">0.01</hypoxia_th>                         
+      <hif_tgfb_boost name="PARAM_FIB_HIF_TGFB_BOOST" type="float" val="pr">3.0</hif_tgfb_boost>                  
+      <hif_ecm_boost name="PARAM_FIB_HIF_ECM_BOOST" type="float" val="pr">2.17</hif_ecm_boost>                    
+      
+      
+      
+      <frc_lymph_threshold name="PARAM_FIB_FRC_LYMPH_THRESHOLD" type="float" val="pr">8</frc_lymph_threshold>
+      
+      <frc_dwell_steps name="PARAM_FIB_FRC_DWELL_STEPS" type="float" val="pr">4</frc_dwell_steps>
+    </Fib>
+    <Occupancy>
+      <voxelCapacity name="PARAM_VOXEL_CAPACITY" type="float" val="pr" units="um3">8000.0</voxelCapacity>             
+      <CancerCell>
+        <stemVolume name="PARAM_VOLUME_CANCER_STEM" type="float" val="pr" units="um3">3053.0</stemVolume>                  
+        <progenitorVolume name="PARAM_VOLUME_CANCER_PROG" type="float" val="pr" units="um3">3018.0</progenitorVolume> 
+        <senescentVolume name="PARAM_VOLUME_CANCER_SEN" type="float" val="pr" units="um3">4570.0</senescentVolume>         
+      </CancerCell>
+      <TCell>
+        <effectorVolume name="PARAM_VOLUME_TCELL_EFF" type="float" val="pr" units="um3">713.0</effectorVolume>            
+        <cytotoxicVolume name="PARAM_VOLUME_TCELL_CYT" type="float" val="pr" units="um3">711.0</cytotoxicVolume> 
+        <suppressedVolume name="PARAM_VOLUME_TCELL_SUP" type="float" val="pr" units="um3">260.0</suppressedVolume> 
+      </TCell>
+      <TReg>
+        <regulatoryVolume name="PARAM_VOLUME_TREG_REG" type="float" val="pr" units="um3">561.0</regulatoryVolume> 
+        <helperVolume name="PARAM_VOLUME_TREG_TH" type="float" val="pr" units="um3">555.0</helperVolume> 
+        <tfhVolume name="PARAM_VOLUME_TREG_TFH" type="float" val="pr" units="um3">550.0</tfhVolume> 
+      </TReg>
+      <Mac>
+        <m1Volume name="PARAM_VOLUME_MAC_M1" type="float" val="pr" units="um3">3346.0</m1Volume>                      
+        <m2Volume name="PARAM_VOLUME_MAC_M2" type="float" val="pr" units="um3">3746.0</m2Volume> 
+      </Mac>
+      <Fib>
+        <quiescentVolume name="PARAM_VOLUME_FIB_QUIESCENT" type="float" val="pr" units="um3">1771.0</quiescentVolume> 
+        <myCAFVolume name="PARAM_VOLUME_FIB_MYCAF" type="float" val="pr" units="um3">3313.0</myCAFVolume> 
+        <iCAFVolume name="PARAM_VOLUME_FIB_ICAF" type="float" val="pr" units="um3">2197.0</iCAFVolume> 
+        <frcVolume name="PARAM_VOLUME_FIB_FRC" type="float" val="pr" units="um3">2500.0</frcVolume>         
+      </Fib>
+      <MDSC>
+        <volume name="PARAM_VOLUME_MDSC" type="float" val="pr" units="um3">491.0</volume>                          
+      </MDSC>
+      <BCell>
+        <naiveVolume name="PARAM_VOLUME_BCELL_NAIVE" type="float" val="pr" units="um3">276.0</naiveVolume> 
+        <activatedVolume name="PARAM_VOLUME_BCELL_ACT" type="float" val="pr" units="um3">622.0</activatedVolume>      
+        <plasmaVolume name="PARAM_VOLUME_BCELL_PLASMA" type="float" val="pr" units="um3">1442.0</plasmaVolume> 
+        <dcImmatureVolume name="PARAM_VOLUME_DC_IMMATURE" type="float" val="pr" units="um3">794.0</dcImmatureVolume> 
+        <dcMatureVolume name="PARAM_VOLUME_DC_MATURE" type="float" val="pr" units="um3">1415.0</dcMatureVolume> 
+      </BCell>
+      <Vas>
+        <phalanxVolume name="PARAM_VOLUME_VAS_PHALANX" type="float" val="pr" units="um3">1742.0</phalanxVolume> 
+        <tipVolume name="PARAM_VOLUME_VAS_TIP" type="float" val="pr" units="um3">1701.0</tipVolume> 
+      </Vas>
+    </Occupancy>
+    <ECM>
+      
+      
+      <densityCap name="PARAM_ECM_DENSITY_CAP" type="float" val="pr" units="nmol/mL">1000.0</densityCap>       
+      <mmpDegradeRate name="PARAM_ECM_MMP_DEGRADE_RATE" type="float" val="pr" units="1/(s*uM)">0</mmpDegradeRate>  
+      <crosslinkRate name="PARAM_ECM_CROSSLINK_RATE" type="float" val="pr" units="1/s">1e-6</crosslinkRate>     
+      <crosslinkResistance name="PARAM_ECM_CROSSLINK_RESISTANCE" type="float" val="pr">5.0</crosslinkResistance>  
+      <baseline name="PARAM_ECM_BASELINE" type="float" val="pr" units="nmol/mL">10.0</baseline>              
+      <porosityCancer name="PARAM_ECM_POROSITY_CANCER" type="float" val="pr">0</porosityCancer>            
+      <porosityTcell name="PARAM_ECM_POROSITY_TCELL" type="float" val="pr">0</porosityTcell>           
+      <porosityTreg name="PARAM_ECM_POROSITY_TREG" type="float" val="pr">0</porosityTreg>             
+      <porosityTfh name="PARAM_ECM_POROSITY_TFH" type="float" val="pr">0</porosityTfh>               
+      <porosityMDSC name="PARAM_ECM_POROSITY_MDSC" type="float" val="pr">0</porosityMDSC>            
+      <porosityMac name="PARAM_ECM_POROSITY_MAC" type="float" val="pr">0</porosityMac>               
+      <porosityFib name="PARAM_ECM_POROSITY_FIB" type="float" val="pr">0</porosityFib>                 
+      <porosityBcell name="PARAM_ECM_POROSITY_BCELL" type="float" val="pr">0</porosityBcell>          
+      <porosityDC name="PARAM_ECM_POROSITY_DC" type="float" val="pr">0</porosityDC>                  
+      <porosityVasTip name="PARAM_ECM_POROSITY_VAS_TIP" type="float" val="pr">0</porosityVasTip>        
+      <vasCompressK name="PARAM_VAS_ECM_COMPRESS_K" type="float" val="pr" units="nmol/mL">200.0</vasCompressK>  
+      <yapEC50 name="PARAM_ECM_YAP_EC50" type="float" val="pr" units="nmol/mL">800.0</yapEC50>               
+      
+      <stressDeposit name="PARAM_ECM_STRESS_DEPOSIT" type="float" val="pr">1.0</stressDeposit>          
+      <stressDecayRate name="PARAM_ECM_STRESS_DECAY" type="float" val="pr" units="1/s">5e-4</stressDecayRate>  
+      <orientUpdateRate name="PARAM_ECM_ORIENT_RATE" type="float" val="pr">0.001</orientUpdateRate>      
+      <orientTractionWeight name="PARAM_ECM_ORIENT_TRACTION_W" type="float" val="pr">0.5</orientTractionWeight>  
+      <orientStressWeight name="PARAM_ECM_ORIENT_STRESS_W" type="float" val="pr">0.3</orientStressWeight>    
+      <orientCrosslinkResist name="PARAM_ECM_ORIENT_CROSSLINK_RESIST" type="float" val="pr">2.0</orientCrosslinkResist>  
+    </ECM>
+    <DomainInit>
+      
+      <lobule_spacing name="PARAM_DOMAIN_LOBULE_SPACING" type="float" val="pr" units="voxels">70</lobule_spacing>                     
+      <septum_thickness name="PARAM_DOMAIN_SEPTUM_THICKNESS" type="float" val="pr" units="voxels">4</septum_thickness>                   
+      <tumor_radius_fraction name="PARAM_DOMAIN_TUMOR_RADIUS_FRAC" type="float" val="pr">0.20</tumor_radius_fraction>     
+      
+      <ecm_septum_density name="PARAM_DOMAIN_ECM_SEPTUM_DENSITY" type="float" val="pr" units="nmol/mL">700.0</ecm_septum_density>
+      <ecm_septum_crosslink name="PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK" type="float" val="pr">0.3</ecm_septum_crosslink>
+      <ecm_lobule_density name="PARAM_DOMAIN_ECM_LOBULE_DENSITY" type="float" val="pr" units="nmol/mL">50.0</ecm_lobule_density>
+      <ecm_tumor_density name="PARAM_DOMAIN_ECM_TUMOR_DENSITY" type="float" val="pr" units="nmol/mL">100.0</ecm_tumor_density>
+      
+      <fibroblast_density name="PARAM_DOMAIN_FIB_DENSITY" type="float" val="pr" units="cells/mm3">10000</fibroblast_density>
+      <vascular_density name="PARAM_DOMAIN_VAS_DENSITY" type="float" val="pr" units="cells/mm3">5000</vascular_density>  
+      <macrophage_density name="PARAM_DOMAIN_MAC_DENSITY" type="float" val="pr" units="cells/mm3">0</macrophage_density>   
+      <cd8_density name="PARAM_DOMAIN_CD8_DENSITY" type="float" val="pr" units="cells/mm3">0</cd8_density>                 
+      <cd4_density name="PARAM_DOMAIN_CD4_DENSITY" type="float" val="pr" units="cells/mm3">0</cd4_density>                 
+      <dc_density name="PARAM_DOMAIN_DC_DENSITY" type="float" val="pr" units="cells/mm3">0</dc_density>                    
+      <bcell_density name="PARAM_DOMAIN_BCELL_DENSITY" type="float" val="pr" units="cells/mm3">0</bcell_density>           
+      
+      <pde_warmup_substeps name="PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS" type="int" val="pos">20</pde_warmup_substeps>
+    </DomainInit>
+    
+    <Movement>
+      <Persistence>
+        
+        <tcell_eff name="PARAM_PERSIST_TCELL_EFF" type="float" val="pr">0.4</tcell_eff>
+        <tcell_cyt name="PARAM_PERSIST_TCELL_CYT" type="float" val="pr">0.1</tcell_cyt>
+        <tcell_sup name="PARAM_PERSIST_TCELL_SUP" type="float" val="pr">0.1</tcell_sup>
+        <mac_m1 name="PARAM_PERSIST_MAC_M1" type="float" val="pr">0.3</mac_m1>
+        <mac_m2 name="PARAM_PERSIST_MAC_M2" type="float" val="pr">0.1</mac_m2>
+        <fib_mycaf name="PARAM_PERSIST_FIB_MYCAF" type="float" val="pr">0.2</fib_mycaf>
+        <fib_icaf name="PARAM_PERSIST_FIB_ICAF" type="float" val="pr">0.1</fib_icaf>
+        <vas_tip name="PARAM_PERSIST_VAS_TIP" type="float" val="pr">0.5</vas_tip>
+        <treg_reg name="PARAM_PERSIST_TREG_REG" type="float" val="pr">0.3</treg_reg>
+        <treg_th name="PARAM_PERSIST_TREG_TH" type="float" val="pr">0.4</treg_th>
+        <treg_tfh name="PARAM_PERSIST_TREG_TFH" type="float" val="pr">0.4</treg_tfh>
+        <mdsc name="PARAM_PERSIST_MDSC" type="float" val="pr">0.3</mdsc>
+        <bcell_naive name="PARAM_PERSIST_BCELL_NAIVE" type="float" val="pr">0.3</bcell_naive>
+        <bcell_act name="PARAM_PERSIST_BCELL_ACT" type="float" val="pr">0.2</bcell_act>
+        <dc_immature name="PARAM_PERSIST_DC_IMMATURE" type="float" val="pr">0.15</dc_immature>
+        <dc_mature name="PARAM_PERSIST_DC_MATURE" type="float" val="pr">0.4</dc_mature>
+      </Persistence>
+      <Chemotaxis>
+        
+        
+        
+        
+        <cancer_stem_ci name="PARAM_CHEMO_CI_CANCER_STEM" type="float" val="pr">0.0</cancer_stem_ci>       
+        <tcell_eff_ci name="PARAM_CHEMO_CI_TCELL_EFF" type="float" val="pr">0.0</tcell_eff_ci>            
+        <tcell_cyt_ci name="PARAM_CHEMO_CI_TCELL_CYT" type="float" val="pr">0.0</tcell_cyt_ci>            
+        <tcell_sup_ci name="PARAM_CHEMO_CI_TCELL_SUP" type="float" val="pr">0.0</tcell_sup_ci>            
+        <mac_m1_ci name="PARAM_CHEMO_CI_MAC_M1" type="float" val="pr">0.0</mac_m1_ci>              
+        <mac_m2_ci name="PARAM_CHEMO_CI_MAC_M2" type="float" val="pr">0.0</mac_m2_ci>              
+        <fib_mycaf_ci name="PARAM_CHEMO_CI_FIB_MYCAF" type="float" val="pr">0.0</fib_mycaf_ci>    
+        <vas_tip_ci name="PARAM_CHEMO_CI_VAS_TIP" type="float" val="pr">0.0</vas_tip_ci>
+        <treg_reg_ci name="PARAM_CHEMO_CI_TREG_REG" type="float" val="pr">0.0</treg_reg_ci>
+        <treg_tfh_ci name="PARAM_CHEMO_CI_TREG_TFH" type="float" val="pr">0.0</treg_tfh_ci>              
+        <mdsc_ci name="PARAM_CHEMO_CI_MDSC" type="float" val="pr">0.0</mdsc_ci>
+        <bcell_naive_ci name="PARAM_CHEMO_CI_BCELL_NAIVE" type="float" val="pr">0.0</bcell_naive_ci>       
+        <bcell_act_ci name="PARAM_CHEMO_CI_BCELL_ACT" type="float" val="pr">0.0</bcell_act_ci>            
+        <dc_immature_ci name="PARAM_CHEMO_CI_DC_IMMATURE" type="float" val="pr">0.0</dc_immature_ci>      
+        <dc_mature_ci name="PARAM_CHEMO_CI_DC_MATURE" type="float" val="pr">0.0</dc_mature_ci>            
+      </Chemotaxis>
+      
+      
+      <AdhesionMatrix_DISABLED>
+        
+        <cancer_stem>
+          <cancer_stem>0.05</cancer_stem>  
+          <cancer_prog>0.05</cancer_prog>
+          <cancer_sen>0.05</cancer_sen>
+          <fib_mycaf>0.05</fib_mycaf>
+          <fib_icaf>0.05</fib_icaf>
+        </cancer_stem>
+        
+        <cancer_prog>
+          <cancer_stem>0.7</cancer_stem>  
+          <cancer_prog>0.7</cancer_prog>
+          <cancer_sen>0.7</cancer_sen>
+          <fib_mycaf>0.1</fib_mycaf>
+          <fib_icaf>0.1</fib_icaf>
+        </cancer_prog>
+        
+        <cd8_cyt>
+          <cancer_stem>0.4</cancer_stem>
+          <cancer_prog>0.4</cancer_prog>
+          <cancer_sen>0.4</cancer_sen>
+        </cd8_cyt>
+        
+        <mac_m2>
+          <cancer_stem>0.1</cancer_stem>
+          <cancer_prog>0.1</cancer_prog>
+          <cancer_sen>0.1</cancer_sen>
+          <fib_mycaf>0.1</fib_mycaf>
+          <fib_icaf>0.1</fib_icaf>
+        </mac_m2>
+        
+        <fib_mycaf>
+          <cancer_stem>0.03</cancer_stem>
+          <cancer_prog>0.03</cancer_prog>
+          <fib_quiescent>0.1</fib_quiescent>
+          <fib_mycaf>0.3</fib_mycaf>
+          <fib_icaf>0.1</fib_icaf>
+          <fib_frc>0.1</fib_frc>
+        </fib_mycaf>
+        
+        <fib_icaf>
+          <cancer_stem>0.05</cancer_stem>
+          <cancer_prog>0.05</cancer_prog>
+          <fib_quiescent>0.05</fib_quiescent>
+          <fib_mycaf>0.05</fib_mycaf>
+          <fib_icaf>0.05</fib_icaf>
+          <fib_frc>0.05</fib_frc>
+        </fib_icaf>
+        
+        <bcell_act>
+          <bcell_naive>0.0</bcell_naive>
+          <bcell_act>0.30</bcell_act>
+          <bcell_plasma>0.30</bcell_plasma>
+        </bcell_act>
+      </AdhesionMatrix_DISABLED>
+      <ContactGuidance>
+        
+        <cancer_stem name="PARAM_CONTACT_GUIDANCE_CANCER_STEM" type="float" val="pr">0</cancer_stem>     
+        <cancer_prog name="PARAM_CONTACT_GUIDANCE_CANCER_PROG" type="float" val="pr">0</cancer_prog>     
+        <tcell name="PARAM_CONTACT_GUIDANCE_TCELL" type="float" val="pr">0</tcell>                       
+        <treg name="PARAM_CONTACT_GUIDANCE_TREG" type="float" val="pr">0</treg>                          
+        <mac name="PARAM_CONTACT_GUIDANCE_MAC" type="float" val="pr">0</mac>                             
+        <fib_mycaf name="PARAM_CONTACT_GUIDANCE_FIB_MYCAF" type="float" val="pr">0</fib_mycaf>           
+        <fib_icaf name="PARAM_CONTACT_GUIDANCE_FIB_ICAF" type="float" val="pr">0</fib_icaf>              
+      </ContactGuidance>
+      <FiberBarrier>
+        
+        
+        
+        
+        <cancer_stem name="PARAM_FIBER_BARRIER_CANCER_STEM" type="float" val="pr">0</cancer_stem>   
+        <cancer_prog name="PARAM_FIBER_BARRIER_CANCER_PROG" type="float" val="pr">0</cancer_prog>   
+        <tcell name="PARAM_FIBER_BARRIER_TCELL" type="float" val="pr">0</tcell>                     
+        <treg name="PARAM_FIBER_BARRIER_TREG" type="float" val="pr">0</treg>                        
+        <mac name="PARAM_FIBER_BARRIER_MAC" type="float" val="pr">0</mac>                           
+        <fib_mycaf name="PARAM_FIBER_BARRIER_FIB_MYCAF" type="float" val="pr">0</fib_mycaf>         
+        <fib_icaf name="PARAM_FIBER_BARRIER_FIB_ICAF" type="float" val="pr">0</fib_icaf>            
+        <vas_tip name="PARAM_FIBER_BARRIER_VAS_TIP" type="float" val="pr">0</vas_tip>               
+        <mdsc name="PARAM_FIBER_BARRIER_MDSC" type="float" val="pr">0</mdsc>                        
+        <dc name="PARAM_FIBER_BARRIER_DC" type="float" val="pr">0</dc>                              
+        <bcell name="PARAM_FIBER_BARRIER_BCELL" type="float" val="pr">0</bcell>                     
+      </FiberBarrier>
+    </Movement>
+    <DCPriming>
+      
+      <naive_cd8_recruit_frac name="PARAM_NAIVE_CD8_RECRUIT_FRAC" type="float">0.05</naive_cd8_recruit_frac> 
+      <naive_cd4_recruit_frac name="PARAM_NAIVE_CD4_RECRUIT_FRAC" type="float">0.05</naive_cd4_recruit_frac> 
+      
+      <naive_lifespan_steps name="PARAM_NAIVE_LIFESPAN_STEPS" type="int">16</naive_lifespan_steps>
+      
+      <prime_div_burst name="PARAM_PRIME_DIV_BURST" type="int">4</prime_div_burst>
+    </DCPriming>
+  </ABM>
+  <Molecular>
+    <stepPerSlice name="PARAM_MOLECULAR_STEPS" type="int" val="pos">36</stepPerSlice>  
+    <biofvm>
+      <IFNg>
+        <diffusivity name="PARAM_IFNG_DIFFUSIVITY" type="float" val="pr">1.26e-7</diffusivity> 
+        <molecularWeight name="PARAM_IFNG_MOLECULAR_WEIGHT" type="float" val="pr">25</molecularWeight>
+      </IFNg>
+      <IL_2>
+        <diffusivity name="PARAM_IL2_DIFFUSIVITY" type="float" val="pr">6.87e-8</diffusivity> 
+        <molecularWeight name="PARAM_IL2_MOLECULAR_WEIGHT" type="float" val="pr">16</molecularWeight>
+      </IL_2>
+      <CCL2>
+        <diffusivity name="PARAM_CCL2_DIFFUSIVITY" type="float" val="pr">2.92e-8</diffusivity> 
+        <uptake name="PARAM_CCL2_UPTAKE" type="float" val="pr">5e-4</uptake>  
+        <molecularWeight name="PARAM_CCL2_MOLECULAR_WEIGHT" type="float" val="pr">14</molecularWeight>
+      </CCL2>
+      <ArgI>
+        <diffusivity name="PARAM_ARGI_DIFFUSIVITY" type="float" val="pr">6.35e-7</diffusivity> 
+        <molecularWeight name="PARAM_ARGI_MOLECULAR_WEIGHT" type="float" val="pr">41</molecularWeight>
+      </ArgI>
+      <NO>
+        <diffusivity name="PARAM_NO_DIFFUSIVITY" type="float" val="pr">3.09e-5</diffusivity> 
+        <molecularWeight name="PARAM_NO_MOLECULAR_WEIGHT" type="float" val="pr">0.03</molecularWeight>
+      </NO>
+      <TGFB>
+        <diffusivity name="PARAM_TGFB_DIFFUSIVITY" type="float" val="pr">2.67e-7</diffusivity> 
+        <release>
+          <CancerStem name="PARAM_STEM_TGFB_RELEASE" type="float" val="pr">5.0e-12</CancerStem> 
+          <CancerProgenitor name="PARAM_PROG_TGFB_RELEASE" type="float" val="pr">5.0e-12</CancerProgenitor> 
+
+        </release>
+        <molecularWeight name="PARAM_TGFB_MOLECULAR_WEIGHT" type="float" val="pr">44</molecularWeight>
+      </TGFB>
+      <IL10>
+        <diffusivity name="PARAM_IL10_DIFFUSIVITY" type="float" val="pr">2.70e-8</diffusivity> 
+        <release>
+          <Treg name="PARAM_TREG_IL10_RELEASE" type="float" val="pr">0</Treg>
+        </release>
+        <molecularWeight name="PARAM_IL10_MOLECULAR_WEIGHT" type="float" val="pr">18</molecularWeight>
+      </IL10>
+      <IL12>
+        <diffusivity name="PARAM_IL12_DIFFUSIVITY" type="float" val="pr">3.97e-8</diffusivity> 
+        <molecularWeight name="PARAM_IL12_MOLECULAR_WEIGHT" type="float" val="pr">70</molecularWeight>
+      </IL12>
+      <VEGFA>
+        <diffusivity name="PARAM_VEGFA_DIFFUSIVITY" type="float" val="pr">2.71e-7</diffusivity> 
+        <uptake name="PARAM_VEGFA_UPTAKE" type="float" val="pr">5e-5</uptake>
+        <decayRate name="PARAM_VEGFA_DECAY_RATE" type="float" val="pr">0.0001921</decayRate>
+        <molecularWeight name="PARAM_VEGFA_MOLECULAR_WEIGHT" type="float" val="pr">45</molecularWeight>
+      </VEGFA>
+      <O2>
+        <diffusivity name="PARAM_O2_DIFFUSIVITY" type="float" val="pr">1.75e-5</diffusivity>  
+        <uptake name="PARAM_O2_UPTAKE" type="float" val="pr">0.10</uptake>  
+        <decayRate name="PARAM_O2_DECAY_RATE" type="float" val="pr">1e-5</decayRate>
+        <molecularWeight name="PARAM_O2_MOLECULAR_WEIGHT" type="float" val="pr">16</molecularWeight>
+      </O2>
+      <IL1>
+        <diffusivity name="PARAM_IL1_DIFFUSIVITY" type="float" val="pr">1.31e-7</diffusivity>            
+        <release>
+          
+          <MacM1 name="PARAM_MAC_M1_IL1_RELEASE" type="float" val="pr">4.7e-13</MacM1>                  
+        </release>
+        <molecularWeight name="PARAM_IL1_MOLECULAR_WEIGHT" type="float" val="pr">17</molecularWeight>      
+      </IL1>
+      <IL6>
+        <diffusivity name="PARAM_IL6_DIFFUSIVITY" type="float" val="pr">1.33e-7</diffusivity>            
+        <molecularWeight name="PARAM_IL6_MOLECULAR_WEIGHT" type="float" val="pr">21</molecularWeight>      
+      </IL6>
+      <CXCL13>
+        <diffusivity name="PARAM_CXCL13_DIFFUSIVITY" type="float" val="pr">1.47e-7</diffusivity>            
+        <decayRate name="PARAM_CXCL13_DECAY_RATE" type="float" val="pr">1e-4</decayRate>
+        <release>
+          
+        </release>
+        <molecularWeight name="PARAM_CXCL13_MOLECULAR_WEIGHT" type="float" val="pr">10</molecularWeight>      
+      </CXCL13>
+      <MMP>
+        <diffusivity name="PARAM_MMP_DIFFUSIVITY" type="float" val="pr">1.17e-7</diffusivity>              
+        <decayRate name="PARAM_MMP_DECAY_RATE" type="float" val="pr">5e-4</decayRate>                   
+        <molecularWeight name="PARAM_MMP_MOLECULAR_WEIGHT" type="float" val="pr">54000</molecularWeight>      
+        <release>
+          <Cancer name="PARAM_CANCER_MMP_RELEASE" type="float" val="pr">1e-12</Cancer>                      
+          <MacM1 name="PARAM_MAC_M1_MMP_RELEASE" type="float" val="pr">1.0e-10</MacM1>                     
+        </release>
+      </MMP>
+      <Antibody>
+        <diffusivity name="PARAM_ANTIBODY_DIFFUSIVITY" type="float" val="pr">1.02e-7</diffusivity>        
+        <decayRate name="PARAM_ANTIBODY_DECAY_RATE" type="float" val="pr">5e-5</decayRate>             
+        <molecularWeight name="PARAM_ANTIBODY_MOLECULAR_WEIGHT" type="float" val="pr">150</molecularWeight>  
+      </Antibody>
+      <CCL21>
+        <diffusivity name="PARAM_CCL21_DIFFUSIVITY" type="float" val="pr">1.35e-7</diffusivity>            
+        <decayRate name="PARAM_CCL21_DECAY_RATE" type="float" val="pr">1e-5</decayRate>                 
+        <molecularWeight name="PARAM_CCL21_MOLECULAR_WEIGHT" type="float" val="pr">12</molecularWeight>  
+        <frcRelease name="PARAM_FIB_FRC_CCL21_RELEASE" type="float" val="pr">5e-9</frcRelease>          
+        <frcCxcl12Release name="PARAM_FIB_FRC_CXCL12_RELEASE" type="float" val="pr">2e-9</frcCxcl12Release>  
+      </CCL21>
+      <CXCL12>
+        <diffusivity name="PARAM_CXCL12_DIFFUSIVITY" type="float" val="pr">2.03e-7</diffusivity>         
+        <molecularWeight name="PARAM_CXCL12_MOLECULAR_WEIGHT" type="float" val="pr">8</molecularWeight>  
+      </CXCL12>
+      <CCL5>
+        <diffusivity name="PARAM_CCL5_DIFFUSIVITY" type="float" val="pr">2.06e-7</diffusivity>           
+        <molecularWeight name="PARAM_CCL5_MOLECULAR_WEIGHT" type="float" val="pr">8</molecularWeight>    
+      </CCL5>
+    </biofvm>
+    <allMolecularOff>0</allMolecularOff>
+    <diffusionOff>0</diffusionOff>
+    <cellOdeOff>1</cellOdeOff>
+  </Molecular>
+  <IC>
+    <stationary>1</stationary>
+    <shiftgrid>0</shiftgrid>
+    <xmin>60</xmin>
+    <ymin>3</ymin>
+    <zmin>60</zmin>
+    <xlim>80</xlim>
+    <ylim>4</ylim>
+    <zlim>80</zlim>
+    <vas>
+      <use_file>0</use_file>
+    </vas>
+    <Fib>
+      <inclusion>0</inclusion>
+      <Xposition>0</Xposition>
+      <Yposition>0</Yposition>
+      <Zposition>0</Zposition>
+    </Fib> 
+  </IC>
+<QSP>
+  <simulation>
+    <weight_qsp>0.8</weight_qsp>
+    <t_steadystate>5000</t_steadystate>
+    <use_resection>0</use_resection>
+    <t_resection>1000</t_resection>
+    <presimulation_diam_frac>1.00</presimulation_diam_frac>
+    <start>0</start>
+    <step>1</step>
+    <n_step>360</n_step>
+    <tol_rel>1e-09</tol_rel>
+    <tol_abs>1e-12</tol_abs>
+  </simulation>
+  <init_value>
+    <Compartment>
+      <V_C>5.0</V_C>
+      <V_P>60.0</V_P>
+      <V_T>1e-06</V_T>
+      <V_LN>1112.64739814639</V_LN>
+      <V_e>4e-16</V_e>
+      <A_e>15.0</A_e>
+      <A_s>900.0</A_s>
+      <syn_CD8_C1>37.8</syn_CD8_C1>
+      <syn_CD8_APC>37.8</syn_CD8_APC>
+      <syn_M_C>37.8</syn_M_C>
+      <V_ID>0.0001</V_ID>
+    </Compartment>
+    <Species>
+      <V_C_nCD4>3706.89655172414</V_C_nCD4>
+      <V_C_Treg>0.0</V_C_Treg>
+      <V_C_nCD8>2274.77477477477</V_C_nCD8>
+      <V_C_CD8>0.0</V_C_CD8>
+      <V_C_aPD1>0.0</V_C_aPD1>
+      <V_C_aPDL1>0.0</V_C_aPDL1>
+      <V_C_aCTLA4>0.0</V_C_aCTLA4>
+      <V_C_Th>0.0</V_C_Th>
+      <V_C_Cy>0.0</V_C_Cy>
+      <V_P_nCD4>185344.827586207</V_P_nCD4>
+      <V_P_Treg>0.0</V_P_Treg>
+      <V_P_nCD8>113738.738738739</V_P_nCD8>
+      <V_P_CD8>0.0</V_P_CD8>
+      <V_P_aPD1>0.0</V_P_aPD1>
+      <V_P_aPDL1>0.0</V_P_aPDL1>
+      <V_P_aCTLA4>0.0</V_P_aCTLA4>
+      <V_P_Th>0.0</V_P_Th>
+      <V_T_C_x>0.0</V_T_C_x>
+      <V_T_CD8_exh>0.0</V_T_CD8_exh>
+      <V_T_Th_exh>0.0</V_T_Th_exh>
+      <V_T_C1>1.0</V_T_C1>
+      <V_T_K>10300.0</V_T_K>
+      <V_T_VEGF>0.0</V_T_VEGF>
+      <V_T_Treg>0.0</V_T_Treg>
+      <V_T_CCL5>0.0</V_T_CCL5>
+      <V_T_CD8>0.0</V_T_CD8>
+      <V_T_cDC1>0.0</V_T_cDC1>
+      <V_T_cDC2>0.0</V_T_cDC2>
+      <V_T_mcDC1>0.0</V_T_mcDC1>
+      <V_T_mcDC2>0.0</V_T_mcDC2>
+      <V_T_P0>1e-18</V_T_P0>
+      <V_T_P1>1e-18</V_T_P1>
+      <V_T_aPD1>0.0</V_T_aPD1>
+      <V_T_aPDL1>0.0</V_T_aPDL1>
+      <V_T_aCTLA4>0.0</V_T_aCTLA4>
+      <V_T_Th>0.0</V_T_Th>
+      <V_T_IFNg>0.0</V_T_IFNg>
+      <V_T_TGFb>0.0</V_T_TGFb>
+      <V_T_MDSC>0.0</V_T_MDSC>
+      <V_T_NO>0.0</V_T_NO>
+      <V_T_ArgI>0.0</V_T_ArgI>
+      <V_T_CCL2>0.0</V_T_CCL2>
+      <V_T_Mac_M1>0.0</V_T_Mac_M1>
+      <V_T_Mac_M2>0.0</V_T_Mac_M2>
+      <V_T_IL12>0.0</V_T_IL12>
+      <V_T_IL10>0.0</V_T_IL10>
+      <V_T_qPSC>0.0</V_T_qPSC>
+      <V_T_iCAF>0.0</V_T_iCAF>
+      <V_T_myCAF>0.0</V_T_myCAF>
+      <V_T_apCAF>0.0</V_T_apCAF>
+      <V_T_collagen>0.0</V_T_collagen>
+      <V_T_CXCL12>0.0</V_T_CXCL12>
+      <V_T_IL6>0.0</V_T_IL6>
+      <V_T_IL1>0.0</V_T_IL1>
+      <V_LN_nCD4>155.689655172414</V_LN_nCD4>
+      <V_LN_aTreg>0.0</V_LN_aTreg>
+      <V_LN_Treg>0.0</V_LN_Treg>
+      <V_LN_nCD8>113.738738738739</V_LN_nCD8>
+      <V_LN_aCD8>0.0</V_LN_aCD8>
+      <V_LN_CD8>0.0</V_LN_CD8>
+      <V_LN_cDC1>0.0</V_LN_cDC1>
+      <V_LN_cDC2>0.0</V_LN_cDC2>
+      <V_LN_mcDC1>0.0</V_LN_mcDC1>
+      <V_LN_mcDC2>0.0</V_LN_mcDC2>
+      <V_LN_aPD1>0.0</V_LN_aPD1>
+      <V_LN_aPDL1>0.0</V_LN_aPDL1>
+      <V_LN_aCTLA4>0.0</V_LN_aCTLA4>
+      <V_LN_aTh>0.0</V_LN_aTh>
+      <V_LN_Th>0.0</V_LN_Th>
+      <V_LN_IL2>0.00019</V_LN_IL2>
+      <V_e_P0>1e-18</V_e_P0>
+      <V_e_p0>1e-18</V_e_p0>
+      <V_e_P1>1e-18</V_e_P1>
+      <V_e_p1>1e-18</V_e_p1>
+      <A_e_M1>2185.79234972678</A_e_M1>
+      <A_e_M1p0>1e-06</A_e_M1p0>
+      <A_e_M1p1>1e-06</A_e_M1p1>
+      <A_s_M1>1e-06</A_s_M1>
+      <A_s_M1p0>1e-06</A_s_M1p0>
+      <A_s_M1p1>1e-06</A_s_M1p1>
+      <syn_CD8_C1_PD1_PDL1>0.0</syn_CD8_C1_PD1_PDL1>
+      <syn_CD8_C1_PD1_PDL2>0.0</syn_CD8_C1_PD1_PDL2>
+      <syn_CD8_C1_PD1>0.0</syn_CD8_C1_PD1>
+      <syn_CD8_C1_PDL1>0.0</syn_CD8_C1_PDL1>
+      <syn_CD8_C1_PDL2>0.0</syn_CD8_C1_PDL2>
+      <syn_CD8_C1_PD1_aPD1>0.0</syn_CD8_C1_PD1_aPD1>
+      <syn_CD8_C1_PD1_aPD1_PD1>0.0</syn_CD8_C1_PD1_aPD1_PD1>
+      <syn_CD8_C1_PDL1_aPDL1>0.0</syn_CD8_C1_PDL1_aPDL1>
+      <syn_CD8_C1_PDL1_aPDL1_PDL1>0.0</syn_CD8_C1_PDL1_aPDL1_PDL1>
+      <syn_CD8_C1_TPDL1>0.0</syn_CD8_C1_TPDL1>
+      <syn_CD8_C1_TPDL1_aPDL1>0.0</syn_CD8_C1_TPDL1_aPDL1>
+      <syn_CD8_C1_TPDL1_aPDL1_TPDL1>0.0</syn_CD8_C1_TPDL1_aPDL1_TPDL1>
+      <syn_CD8_C1_CD28_CD80>0.0</syn_CD8_C1_CD28_CD80>
+      <syn_CD8_C1_CD28_CD80_CD28>0.0</syn_CD8_C1_CD28_CD80_CD28>
+      <syn_CD8_C1_CD28_CD86>0.0</syn_CD8_C1_CD28_CD86>
+      <syn_CD8_C1_CD80_CTLA4>0.0</syn_CD8_C1_CD80_CTLA4>
+      <syn_CD8_C1_CD80_CTLA4_CD80>0.0</syn_CD8_C1_CD80_CTLA4_CD80>
+      <syn_CD8_C1_CTLA4_CD80_CTLA4>0.0</syn_CD8_C1_CTLA4_CD80_CTLA4>
+      <syn_CD8_C1_CD80_CTLA4_CD80_CTLA4>0.0</syn_CD8_C1_CD80_CTLA4_CD80_CTLA4>
+      <syn_CD8_C1_CD86_CTLA4>0.0</syn_CD8_C1_CD86_CTLA4>
+      <syn_CD8_C1_CD86_CTLA4_CD86>0.0</syn_CD8_C1_CD86_CTLA4_CD86>
+      <syn_CD8_C1_PDL1_CD80>0.0</syn_CD8_C1_PDL1_CD80>
+      <syn_CD8_C1_PDL1_CD80_CD28>0.0</syn_CD8_C1_PDL1_CD80_CD28>
+      <syn_CD8_C1_PDL1_CD80_CTLA4>0.0</syn_CD8_C1_PDL1_CD80_CTLA4>
+      <syn_CD8_C1_CD28>0.0</syn_CD8_C1_CD28>
+      <syn_CD8_C1_CTLA4>0.0</syn_CD8_C1_CTLA4>
+      <syn_CD8_C1_CD80>0.0</syn_CD8_C1_CD80>
+      <syn_CD8_C1_CD80m>0.0</syn_CD8_C1_CD80m>
+      <syn_CD8_C1_CD86>0.0</syn_CD8_C1_CD86>
+      <syn_CD8_C1_CTLA4_aCTLA4>0.0</syn_CD8_C1_CTLA4_aCTLA4>
+      <syn_CD8_C1_CTLA4_aCTLA4_CTLA4>0.0</syn_CD8_C1_CTLA4_aCTLA4_CTLA4>
+      <syn_CD8_APC_PD1_PDL1>0.0</syn_CD8_APC_PD1_PDL1>
+      <syn_CD8_APC_PD1_PDL2>0.0</syn_CD8_APC_PD1_PDL2>
+      <syn_CD8_APC_PD1>0.0</syn_CD8_APC_PD1>
+      <syn_CD8_APC_PDL1>0.0</syn_CD8_APC_PDL1>
+      <syn_CD8_APC_PDL2>0.0</syn_CD8_APC_PDL2>
+      <syn_CD8_APC_PD1_aPD1>0.0</syn_CD8_APC_PD1_aPD1>
+      <syn_CD8_APC_PD1_aPD1_PD1>0.0</syn_CD8_APC_PD1_aPD1_PD1>
+      <syn_CD8_APC_PDL1_aPDL1>0.0</syn_CD8_APC_PDL1_aPDL1>
+      <syn_CD8_APC_PDL1_aPDL1_PDL1>0.0</syn_CD8_APC_PDL1_aPDL1_PDL1>
+      <syn_CD8_APC_TPDL1>0.0</syn_CD8_APC_TPDL1>
+      <syn_CD8_APC_TPDL1_aPDL1>0.0</syn_CD8_APC_TPDL1_aPDL1>
+      <syn_CD8_APC_TPDL1_aPDL1_TPDL1>0.0</syn_CD8_APC_TPDL1_aPDL1_TPDL1>
+      <syn_CD8_APC_CD28_CD80>0.0</syn_CD8_APC_CD28_CD80>
+      <syn_CD8_APC_CD28_CD80_CD28>0.0</syn_CD8_APC_CD28_CD80_CD28>
+      <syn_CD8_APC_CD28_CD86>0.0</syn_CD8_APC_CD28_CD86>
+      <syn_CD8_APC_CD80_CTLA4>0.0</syn_CD8_APC_CD80_CTLA4>
+      <syn_CD8_APC_CD80_CTLA4_CD80>0.0</syn_CD8_APC_CD80_CTLA4_CD80>
+      <syn_CD8_APC_CTLA4_CD80_CTLA4>0.0</syn_CD8_APC_CTLA4_CD80_CTLA4>
+      <syn_CD8_APC_CD80_CTLA4_CD80_CTLA4>0.0</syn_CD8_APC_CD80_CTLA4_CD80_CTLA4>
+      <syn_CD8_APC_CD86_CTLA4>0.0</syn_CD8_APC_CD86_CTLA4>
+      <syn_CD8_APC_CD86_CTLA4_CD86>0.0</syn_CD8_APC_CD86_CTLA4_CD86>
+      <syn_CD8_APC_PDL1_CD80>0.0</syn_CD8_APC_PDL1_CD80>
+      <syn_CD8_APC_PDL1_CD80_CD28>0.0</syn_CD8_APC_PDL1_CD80_CD28>
+      <syn_CD8_APC_PDL1_CD80_CTLA4>0.0</syn_CD8_APC_PDL1_CD80_CTLA4>
+      <syn_CD8_APC_CD28>0.0</syn_CD8_APC_CD28>
+      <syn_CD8_APC_CTLA4>0.0</syn_CD8_APC_CTLA4>
+      <syn_CD8_APC_CD80>0.0</syn_CD8_APC_CD80>
+      <syn_CD8_APC_CD80m>0.0</syn_CD8_APC_CD80m>
+      <syn_CD8_APC_CD86>0.0</syn_CD8_APC_CD86>
+      <syn_CD8_APC_CTLA4_aCTLA4>0.0</syn_CD8_APC_CTLA4_aCTLA4>
+      <syn_CD8_APC_CTLA4_aCTLA4_CTLA4>0.0</syn_CD8_APC_CTLA4_aCTLA4_CTLA4>
+      <syn_M_C_CD47>600.0</syn_M_C_CD47>
+      <syn_M_C_SIRPa>100.0</syn_M_C_SIRPa>
+      <syn_M_C_CD47_SIRPa>0.0</syn_M_C_CD47_SIRPa>
+      <syn_M_C_PDL1_total>0.0</syn_M_C_PDL1_total>
+      <syn_M_C_PDL2_total>0.0</syn_M_C_PDL2_total>
+      <syn_M_C_PD1_PDL1>0.0</syn_M_C_PD1_PDL1>
+      <syn_M_C_PD1_PDL2>0.0</syn_M_C_PD1_PDL2>
+      <syn_M_C_PD1>0.0</syn_M_C_PD1>
+      <syn_M_C_PDL1>0.0</syn_M_C_PDL1>
+      <syn_M_C_PDL2>0.0</syn_M_C_PDL2>
+      <syn_M_C_PD1_aPD1>0.0</syn_M_C_PD1_aPD1>
+      <syn_M_C_PD1_aPD1_PD1>0.0</syn_M_C_PD1_aPD1_PD1>
+      <syn_M_C_PDL1_aPDL1>0.0</syn_M_C_PDL1_aPDL1>
+      <syn_M_C_PDL1_aPDL1_PDL1>0.0</syn_M_C_PDL1_aPDL1_PDL1>
+      <syn_M_C_PDL1_CD80>0.0</syn_M_C_PDL1_CD80>
+      <syn_M_C_CD80>0.0</syn_M_C_CD80>
+      <syn_M_C_CD80m>0.0</syn_M_C_CD80m>
+      <V_ID_GVAX_cells>0.0</V_ID_GVAX_cells>
+      <V_ID_APC>0.0</V_ID_APC>
+      <V_ID_mAPC>0.0</V_ID_mAPC>
+      <V_ID_GMCSF>0.0</V_ID_GMCSF>
+      <V_ID_P1_GVAX>0.0</V_ID_P1_GVAX>
+    </Species>
+    <Parameter>
+      <k_cell_clear>0.1</k_cell_clear>
+      <cell>1.0</cell>
+      <day>1.0</day>
+      <D_cell>17.0</D_cell>
+      <vol_cell>2572.44078451444</vol_cell>
+      <vol_Tcell>175.015709799539</vol_Tcell>
+      <Ve_T>1.0</Ve_T>
+      <V_Tmin>1e-06</V_Tmin>
+      <C_total>0.0</C_total>
+      <T_total>0.0</T_total>
+      <T_total_LN>0.0</T_total_LN>
+      <R_Tcell>1.0</R_Tcell>
+      <Tregs_>0.0</Tregs_>
+      <H_APC_Treg>0.5</H_APC_Treg>
+      <H_mAPC>1.0</H_mAPC>
+      <H_APC_Th>1.0</H_APC_Th>
+      <H_PD1_C1>0.9</H_PD1_C1>
+      <H_PD1_APC>0.9</H_PD1_APC>
+      <H_CD28_C1>0.1</H_CD28_C1>
+      <H_CD28_APC>0.1</H_CD28_APC>
+      <k_C1_growth>0.01</k_C1_growth>
+      <k_C1_death>0.003</k_C1_death>
+      <C_max>27000.0</C_max>
+      <k_C1_therapy>0.0</k_C1_therapy>
+      <initial_tumour_diameter>3.2</initial_tumour_diameter>
+      <K_initial>10300.0</K_initial>
+      <k_vas_growth>0.15</k_vas_growth>
+      <k_vas_decay>0.004</k_vas_decay>
+      <k_vas_Csec>0.004</k_vas_Csec>
+      <k_vas_deg>16.6</k_vas_deg>
+      <VEGF_50>2410.0</VEGF_50>
+      <div_Treg>1160000.0</div_Treg>
+      <n_CD4_clones>100.0</n_CD4_clones>
+      <q_nCD4_LN_in>0.1</q_nCD4_LN_in>
+      <q_Treg_LN_out>24.0</q_Treg_LN_out>
+      <q_nCD4_LN_out>2.88</q_nCD4_LN_out>
+      <k_Treg_act>5.0</k_Treg_act>
+      <k_Treg_pro>0.05</k_Treg_pro>
+      <k_Treg_death>0.1</k_Treg_death>
+      <k_Treg_pro_tumor>0.2</k_Treg_pro_tumor>
+      <rho_Treg_max>10000000.0</rho_Treg_max>
+      <q_Treg_P_in>2.436</q_Treg_P_in>
+      <q_Treg_P_out>24.0</q_Treg_P_out>
+      <q_Treg_T_in>5.8e-05</q_Treg_T_in>
+      <q_nCD4_P_in>0.1764</q_nCD4_P_in>
+      <q_nCD4_P_out>5.1</q_nCD4_P_out>
+      <Q_nCD4_thym>1000000.0</Q_nCD4_thym>
+      <k_nCD4_pro>320000000.0</k_nCD4_pro>
+      <K_nTreg_pro>1000000000.0</K_nTreg_pro>
+      <k_nTreg_death>0.002</k_nTreg_death>
+      <f_nTreg>0.25</f_nTreg>
+      <k_Treg_CD8_exh>0.1</k_Treg_CD8_exh>
+      <H_P0>1.0</H_P0>
+      <k_CCL5_sec>2e-12</k_CCL5_sec>
+      <k_CCL5_deg>1.5</k_CCL5_deg>
+      <CCL5_50_Treg>0.15</CCL5_50_Treg>
+      <k_CCR5_Treg_rec>0.0001</k_CCR5_Treg_rec>
+      <H_CCL5_Treg>1.0</H_CCL5_Treg>
+      <div_CD8>1110000.0</div_CD8>
+      <n_CD8_clones>120.0</n_CD8_clones>
+      <q_nCD8_LN_in>0.076</q_nCD8_LN_in>
+      <q_CD8_LN_out>24.0</q_CD8_LN_out>
+      <q_nCD8_LN_out>1.8</q_nCD8_LN_out>
+      <k_CD8_act>23.0</k_CD8_act>
+      <k_CD8_pro>1.0</k_CD8_pro>
+      <k_T_activation_per_APC>0.0001</k_T_activation_per_APC>
+      <n_T_expansion_burst>800.0</n_T_expansion_burst>
+      <k_CD8_death>0.1</k_CD8_death>
+      <q_CD8_P_in>2.436</q_CD8_P_in>
+      <q_CD8_P_out>24.0</q_CD8_P_out>
+      <q_CD8_T_in>5.8e-05</q_CD8_T_in>
+      <q_nCD8_P_in>0.1764</q_nCD8_P_in>
+      <q_nCD8_P_out>5.1</q_nCD8_P_out>
+      <Q_nCD8_thym>3000000.0</Q_nCD8_thym>
+      <k_nCD8_pro>320000000.0</k_nCD8_pro>
+      <K_nCD8_pro>1000000000.0</K_nCD8_pro>
+      <k_nCD8_death>0.002</k_nCD8_death>
+      <k_C_CD8_exh>0.1</k_C_CD8_exh>
+      <k_C_CD8>2.2</k_C_CD8>
+      <k_stiff_CD8_exh>0.02</k_stiff_CD8_exh>
+      <k_CD8_basal_exh>0.05</k_CD8_basal_exh>
+      <K_C_exh>1000000.0</K_C_exh>
+      <k_CD8_exh_death>0.15</k_CD8_exh_death>
+      <H_CXCL12_Texcl>0.0</H_CXCL12_Texcl>
+      <H_P1>1.0</H_P1>
+      <K_T_C>1.2</K_T_C>
+      <R50_Treg>0.31</R50_Treg>
+      <K_T_Treg>3.2258064516129</K_T_Treg>
+      <v_T_search_volume>1e-05</v_T_search_volume>
+      <p_T_kill_per_contact>0.45</p_T_kill_per_contact>
+      <k_C_Tcell_eff>0.0</k_C_Tcell_eff>
+      <k_APC_mat_cDC1>2.0</k_APC_mat_cDC1>
+      <k_APC_mat_cDC2>1.5</k_APC_mat_cDC2>
+      <k_APC_mig>4.0</k_APC_mig>
+      <k_APC_death>0.15</k_APC_death>
+      <k_mAPC_death>0.3</k_mAPC_death>
+      <APC0_cDC1_T>540000.0</APC0_cDC1_T>
+      <APC0_cDC2_T>2160000.0</APC0_cDC2_T>
+      <APC0_cDC1_LN>240000.0</APC0_cDC1_LN>
+      <APC0_cDC2_LN>960000.0</APC0_cDC2_LN>
+      <n_sites_APC>10.0</n_sites_APC>
+      <DAMP_50>10000.0</DAMP_50>
+      <H_DAMP>0.0</H_DAMP>
+      <TGFb_50_APC>0.07</TGFb_50_APC>
+      <H_TGFb_APC>0.0</H_TGFb_APC>
+      <APC_total_T>0.0</APC_total_T>
+      <mAPC_total_T>0.0</mAPC_total_T>
+      <mAPC_total_LN>0.0</mAPC_total_LN>
+      <kin>14.4</kin>
+      <kout>28.8</kout>
+      <k_P0_up>14.4</k_P0_up>
+      <k_xP0_deg>2.0</k_xP0_deg>
+      <k_P0_deg>17.28</k_P0_deg>
+      <k_p0_deg>144.0</k_p0_deg>
+      <k_P0_on>144000.0</k_P0_on>
+      <k_P0_d1>1e-07</k_P0_d1>
+      <p0_50>2.64550264550265e-05</p0_50>
+      <P0_C1>5.4e-13</P0_C1>
+      <A_syn>37.8</A_syn>
+      <A_Tcell>151.310411930437</A_Tcell>
+      <A_cell>907.92027688745</A_cell>
+      <A_APC>900.0</A_APC>
+      <k_M1p0_TCR_on>1.0</k_M1p0_TCR_on>
+      <k_M1p0_TCR_off>1.0</k_M1p0_TCR_off>
+      <k_M1p0_TCR_p>1.0</k_M1p0_TCR_p>
+      <phi_M1p0_TCR>0.09</phi_M1p0_TCR>
+      <N_M1p0_TCR>10.0</N_M1p0_TCR>
+      <TCR_p0_tot>103.813080670361</TCR_p0_tot>
+      <pTCR_p0_MHC_tot>0.0</pTCR_p0_MHC_tot>
+      <k_P1_up>14.4</k_P1_up>
+      <k_xP1_deg>2.0</k_xP1_deg>
+      <k_P1_deg>3.0</k_P1_deg> 
+
+      <k_p1_deg>144.0</k_p1_deg>
+      <k_P1_on>144000.0</k_P1_on>
+      <k_P1_d1>1e-08</k_P1_d1>
+      <p1_50>2.64550264550265e-05</p1_50>
+      <P1_C1>5.4e-13</P1_C1>
+      <k_M1p1_TCR_on>1.0</k_M1p1_TCR_on>
+      <k_M1p1_TCR_off>1.0</k_M1p1_TCR_off>
+      <k_M1p1_TCR_p>1.0</k_M1p1_TCR_p>
+      <phi_M1p1_TCR>0.09</phi_M1p1_TCR>
+      <N_M1p1_TCR>10.0</N_M1p1_TCR>
+      <TCR_p1_tot>103.813080670361</TCR_p1_tot>
+      <pTCR_p1_MHC_tot>0.0</pTCR_p1_MHC_tot>
+      <q_P_aPD1>8.8e-06</q_P_aPD1>
+      <q_T_aPD1>8.52e-05</q_T_aPD1>
+      <q_LN_aPD1>3.25e-06</q_LN_aPD1>
+      <q_LD_aPD1>0.0015</q_LD_aPD1>
+      <k_cl_aPD1>0.37</k_cl_aPD1>
+      <gamma_C_aPD1>0.61</gamma_C_aPD1>
+      <gamma_P_aPD1>0.0452</gamma_P_aPD1>
+      <gamma_T_aPD1>0.522</gamma_T_aPD1>
+      <gamma_LN_aPD1>0.2</gamma_LN_aPD1>
+      <q_P_aPDL1>5.56e-06</q_P_aPDL1>
+      <q_T_aPDL1>8.52e-05</q_T_aPDL1>
+      <q_LN_aPDL1>3.25e-06</q_LN_aPDL1>
+      <q_LD_aPDL1>0.0015</q_LD_aPDL1>
+      <k_cl_aPDL1>0.33</k_cl_aPDL1>
+      <gamma_C_aPDL1>0.7</gamma_C_aPDL1>
+      <gamma_P_aPDL1>0.057</gamma_P_aPDL1>
+      <gamma_T_aPDL1>0.522</gamma_T_aPDL1>
+      <gamma_LN_aPDL1>0.2</gamma_LN_aPDL1>
+      <k_cln_aPDL1>5.6</k_cln_aPDL1>
+      <Kc_aPDL1>1.69</Kc_aPDL1>
+      <q_P_aCTLA4>5.331e-06</q_P_aCTLA4>
+      <q_T_aCTLA4>8.52e-05</q_T_aCTLA4>
+      <q_LN_aCTLA4>3.25e-06</q_LN_aCTLA4>
+      <q_LD_aCTLA4>0.0015</q_LD_aCTLA4>
+      <k_cl_aCTLA4>0.3276</k_cl_aCTLA4>
+      <gamma_C_aCTLA4>0.794</gamma_C_aCTLA4>
+      <gamma_P_aCTLA4>0.062</gamma_P_aCTLA4>
+      <gamma_T_aCTLA4>0.522</gamma_T_aCTLA4>
+      <gamma_LN_aCTLA4>0.2</gamma_LN_aCTLA4>
+      <kon_PD1_PDL1>0.06</kon_PD1_PDL1>
+      <k_out_PDL1>50000.0</k_out_PDL1>
+      <k_in_PDL1>1.0</k_in_PDL1>
+      <r_PDL1_IFNg>6.0</r_PDL1_IFNg>
+      <kon_PD1_PDL2>0.08</kon_PD1_PDL2>
+      <kon_PD1_aPD1>670000.0</kon_PD1_aPD1>
+      <kon_PDL1_aPDL1>430000.0</kon_PDL1_aPDL1>
+      <kon_CD28_CD80>0.133333333333333</kon_CD28_CD80>
+      <kon_CD28_CD86>0.466666666666667</kon_CD28_CD86>
+      <kon_CTLA4_CD80>0.333333333333333</kon_CTLA4_CD80>
+      <kon_CTLA4_CD86>0.666666666666667</kon_CTLA4_CD86>
+      <kon_CD80_PDL1>0.106666666666667</kon_CD80_PDL1>
+      <kon_CTLA4_aCTLA4>383000.0</kon_CTLA4_aCTLA4>
+      <kon_CD80_CD80>0.000196666666666667</kon_CD80_CD80>
+      <koff_PD1_PDL1>1.476</koff_PD1_PDL1>
+      <koff_PD1_PDL2>0.552</koff_PD1_PDL2>
+      <koff_PD1_aPD1>0.00268</koff_PD1_aPD1>
+      <koff_PDL1_aPDL1>0.000172</koff_PDL1_aPDL1>
+      <koff_CD28_CD80>1.6</koff_CD28_CD80>
+      <koff_CD28_CD86>28.0</koff_CD28_CD86>
+      <koff_CTLA4_CD80>0.42</koff_CTLA4_CD80>
+      <koff_CTLA4_CD86>5.2</koff_CTLA4_CD86>
+      <koff_CD80_PDL1>6.016</koff_CD80_PDL1>
+      <koff_CTLA4_aCTLA4>0.0069706</koff_CTLA4_aCTLA4>
+      <koff_CD80_CD80>0.01003</koff_CD80_CD80>
+      <Chi_PD1_aPD1>33.3333330953227</Chi_PD1_aPD1>
+      <Chi_PDL1_aPDL1>33.3333330953227</Chi_PDL1_aPDL1>
+      <Chi_CTLA4_aCTLA4>33.3333330953227</Chi_CTLA4_aCTLA4>
+      <PD1_50>6.0</PD1_50>
+      <n_PD1>2.0</n_PD1>
+      <CD28_CD8X_50>200.0</CD28_CD8X_50>
+      <n_CD28_CD8X>2.0</n_CD28_CD8X>
+      <CD8_PD1_total>27900.0</CD8_PD1_total>
+      <CD8_CD28_total>184000.0</CD8_CD28_total>
+      <CD8_CTLA4_syn>8000.0</CD8_CTLA4_syn>
+      <CD8_PDL1_total>83700.0</CD8_PDL1_total>
+      <C1_PDL1_base>120000.0</C1_PDL1_base>
+      <r_PDL2C1>0.07</r_PDL2C1>
+      <C1_CD80_total>80000.0</C1_CD80_total>
+      <C1_CD86_total>860000.0</C1_CD86_total>
+      <syn_CD8_C1_PDL1_total>0.0</syn_CD8_C1_PDL1_total>
+      <syn_CD8_C1_PDL2_total>0.0</syn_CD8_C1_PDL2_total>
+      <APC_PDL1_base>120000.0</APC_PDL1_base>
+      <r_PDL2APC>0.07</r_PDL2APC>
+      <APC_CD80_total>80000.0</APC_CD80_total>
+      <APC_CD86_total>860000.0</APC_CD86_total>
+      <syn_CD8_APC_PDL1_total>0.0</syn_CD8_APC_PDL1_total>
+      <syn_CD8_APC_PDL2_total>0.0</syn_CD8_APC_PDL2_total>
+      <k_Th_act>10.0</k_Th_act>
+      <k_Th_to_Treg>0.022</k_Th_to_Treg>
+      <k_CD4_pro>1.0</k_CD4_pro>
+      <k_CD4_death>0.1</k_CD4_death>
+      <K_C2_recruit>20200000.0</K_C2_recruit>
+      <k_Th_pro_tumor>0.15</k_Th_pro_tumor>
+      <rho_Th_max>5000000.0</rho_Th_max>
+      <k_IL2_deg>0.0907984488525718</k_IL2_deg>
+      <k_IL2_sec>1e-11</k_IL2_sec>
+      <k_IL2_cons>5e-11</k_IL2_cons>
+      <IL2_50>0.32</IL2_50>
+      <IL2_50_Treg>0.32</IL2_50_Treg>
+      <w_IL2_CD8>1.0</w_IL2_CD8>
+      <w_IL2_Treg>1.0</w_IL2_Treg>
+      <N_div_base>2.0</N_div_base>
+      <N_div_costim>3.0</N_div_costim>
+      <N_IL2_CD8>11.0</N_IL2_CD8>
+      <N_IL2_CD4>8.5</N_IL2_CD4>
+      <k_IFNg_Tsec>4e-12</k_IFNg_Tsec>
+      <k_IFNg_Thsec>802.952114266667</k_IFNg_Thsec>
+      <k_IFNg_deg>7.68</k_IFNg_deg>
+      <IFNg_50_ind>2.96</IFNg_50_ind>
+      <k_TGFb_Tsec>1.2e-10</k_TGFb_Tsec>
+      <k_TGFb_deg>300</k_TGFb_deg>  
+      <TGFb_baseline>0.016</TGFb_baseline>
+      <TGFb_50>0.07</TGFb_50>
+      <TGFb_50_Teff>0.14</TGFb_50_Teff>
+      <N_aT>1.0</N_aT>
+      <N_aT0>1.0</N_aT0>
+      <N_aTh>1.0</N_aTh>
+      <H_TGFb>1.0</H_TGFb>
+      <H_TGFb_Teff>1.0</H_TGFb_Teff>
+      <k_CCL2_sec>2e-10</k_CCL2_sec>
+      <k_CCL2_deg>0.06</k_CCL2_deg>
+      <CCL2_50>0.23</CCL2_50>
+      <k_MDSC_rec>35000.0</k_MDSC_rec>
+      <k_MDSC_death>0.07</k_MDSC_death>
+      <k_NO_deg>135.0</k_NO_deg>
+      <k_ArgI_deg>0.173</k_ArgI_deg>
+      <k_NO_sec>4.8e-07</k_NO_sec>
+      <k_ArgI_sec>1.1e-10</k_ArgI_sec>
+      <ArgI_50_Teff>0.42</ArgI_50_Teff>
+      <NO_50_Teff>1.5</NO_50_Teff>
+      <ArgI_50_Treg>0.36</ArgI_50_Treg>
+      <H_NO>1.0</H_NO>
+      <H_ArgI_Teff>1.0</H_ArgI_Teff>
+      <H_ArgI_Treg>1.0</H_ArgI_Treg>
+      <H_MDSC>1.0</H_MDSC>
+      <H_IL6_MDSC>0.0</H_IL6_MDSC>
+      <k_Mac_rec>450000.0</k_Mac_rec>
+      <k_Mac_death>0.02</k_Mac_death>
+      <k_TGFb_Msec>2e-11</k_TGFb_Msec>
+      <k_vas_Msec>1.7e-05</k_vas_Msec>
+      <k_IL12_sec>8.5e-12</k_IL12_sec>
+      <k_IL12_Msec>5e-13</k_IL12_Msec>
+      <k_IL12_deg>0.0231</k_IL12_deg>
+      <k_IL10_sec>3e-12</k_IL10_sec>
+      <k_IL10_deg>4.0</k_IL10_deg>
+      <k_M2_pol>0.1</k_M2_pol>
+      <k_M1_pol>0.045</k_M1_pol>
+      <IL10_50>8.0</IL10_50>
+      <IL12_50>15.0</IL12_50>
+      <IFNg_50>100.0</IFNg_50>  
+      <k_M1_phago>0.33</k_M1_phago>
+      <vol_Mcell>4849.04826081585</vol_Mcell>
+      <kon_CD47_SIRPa>0.0625</kon_CD47_SIRPa>
+      <koff_CD47_SIRPa>0.3</koff_CD47_SIRPa>
+      <SIRPa_50>37.0</SIRPa_50>
+      <n_SIRPa>2.0</n_SIRPa>
+      <H_Mac_C>0.0</H_Mac_C>
+      <H_PD1_M>0.0</H_PD1_M>
+      <H_SIRPa>0.0</H_SIRPa>
+      <C_CD47>400.0</C_CD47>
+      <M_PD1_total>12500.0</M_PD1_total>
+      <M_SIRPa>100.0</M_SIRPa>
+      <A_Mcell>1385.4423602331</A_Mcell>
+      <IL10_50_phago>270.0</IL10_50_phago>
+      <K_M1_phago>2.0</K_M1_phago>
+      <M_total>0.0</M_total>
+      <H_IL10>1.0</H_IL10>
+      <H_IL10_phago>1.0</H_IL10_phago>
+      <H_IL12>1.0</H_IL12>
+      <H_IL6_M2>0.0</H_IL6_M2>
+      <k_CAF_encounter>1000000.0</k_CAF_encounter>
+      <k_CAF_const>2000000.0</k_CAF_const>
+      <k_PSC_to_myCAF>0.4</k_PSC_to_myCAF>
+      <k_PSC_to_iCAF>0.2</k_PSC_to_iCAF>
+      <k_PSC_to_apCAF>0.01</k_PSC_to_apCAF>
+      <k_iCAF_to_myCAF>0.1</k_iCAF_to_myCAF>
+      <k_myCAF_to_iCAF>0.05</k_myCAF_to_iCAF>
+      <k_myCAF_prolif>0.0165</k_myCAF_prolif>  
+      <k_iCAF_prolif>0.0165</k_iCAF_prolif>    
+      <k_apCAF_prolif>0.0165</k_apCAF_prolif>  
+
+      <f_stroma_max>3.0</f_stroma_max>
+      <k_col_myCAF_sec>5e-09</k_col_myCAF_sec>
+      <f_col_basal>0.5</f_col_basal>
+      <TGFb_50_CAF_act>0.07</TGFb_50_CAF_act>
+      <TGFb_50_col_sec>0.07</TGFb_50_col_sec>
+      <k_col_deg>0.007</k_col_deg>
+      <k_MMP_M2>1e-08</k_MMP_M2>
+      <rho_collagen>0.025</rho_collagen>
+      <phi_collagen>0.12</phi_collagen>
+      <k_qpsc_death>0.0165</k_qpsc_death>
+      <k_iCAF_death>0.0165</k_iCAF_death>
+      <k_myCAF_death>0.0165</k_myCAF_death>
+      <k_apCAF_death>0.0165</k_apCAF_death>
+      <d_pore_ref>3.5</d_pore_ref>
+      <phi_col_ref>0.12</phi_col_ref>
+      <d_crit_T>2.3</d_crit_T>
+      <d_crit_APC>2.1</d_crit_APC>
+      <n_pore>4.0</n_pore>
+      <d_pore>3.5</d_pore>
+      <H_pore_T>0.0</H_pore_T>
+      <H_pore_APC>0.0</H_pore_APC>
+      <E_ref>1.0</E_ref>
+      <n_stiff>1.8</n_stiff>
+      <E_50_Texh>4.0</E_50_Texh>
+      <n_Texh>1.0</n_Texh>
+      <E_50_fib>5.0</E_50_fib>
+      <n_fib>1.0</n_fib>
+      <stiffness>1.0</stiffness>
+      <H_stiff_Texh>0.0</H_stiff_Texh>
+      <H_stiff_fib>0.0</H_stiff_fib>
+      <phi_col_50_Kmax>2.0</phi_col_50_Kmax>
+      <K_stiff_niche>100000.0</K_stiff_niche>
+      <k_stroma_support>1.0</k_stroma_support>
+      <vol_qPSCcell>1600.0</vol_qPSCcell>
+      <vol_iCAFcell>1600.0</vol_iCAFcell>
+      <vol_myCAFcell>1600.0</vol_myCAFcell>
+      <vol_apCAFcell>1600.0</vol_apCAFcell>
+      <k_CXCL12_sec_iCAF>1e-10</k_CXCL12_sec_iCAF>
+      <k_CXCL12_deg>2.0</k_CXCL12_deg>
+      <CXCL12_50_Texcl>2.0</CXCL12_50_Texcl>
+      <k_IL6_sec_iCAF>4e-11</k_IL6_sec_iCAF>
+      <k_IL6_deg>10.0</k_IL6_deg>
+      <IL6_50_MDSC>0.015</IL6_50_MDSC>
+      <IL6_50_M2>0.015</IL6_50_M2>
+      <IL6_50_iCAF>0.015</IL6_50_iCAF>
+      <f_IL6_iCAF>3.0</f_IL6_iCAF>
+      <H_IL6_iCAF>0.0</H_IL6_iCAF>
+      <k_IL1_sec>1e-12</k_IL1_sec>
+      <k_IL1_deg>6.93</k_IL1_deg>
+      <IL1_50>0.01</IL1_50>
+      <n_IL1>1.0</n_IL1>
+      <TGFb_50_IL1R1>0.07</TGFb_50_IL1R1>
+      <Emax_IL1R1>9.0</Emax_IL1R1>
+      <IL1_ratio>0.0</IL1_ratio>
+      <H_IL1_eff>0.0</H_IL1_eff>
+      <k_vas_myCAF_sec>0.005</k_vas_myCAF_sec>
+      <k_P1_up_apCAF>1.44</k_P1_up_apCAF>
+      <k_apCAF_Treg>0.03</k_apCAF_Treg>
+      <K_apCAF_Treg>10000000.0</K_apCAF_Treg>
+      <P1_50_apCAF>1e-09</P1_50_apCAF>
+      <aPSC_total>0.0</aPSC_total>
+      <k_TGFb_sec_myCAF>1e-09</k_TGFb_sec_myCAF>
+      <k_CXCL12_sec_cancer>5e-11</k_CXCL12_sec_cancer>
+      <k_CCL5_sec_iCAF>1e-10</k_CCL5_sec_iCAF>
+      <H_P1_apCAF>0.0</H_P1_apCAF>
+      <k_GVAX_clearance>0.1</k_GVAX_clearance>
+      <V_ID_volume>0.0001</V_ID_volume>
+      <k_GMCSF_prod>1e-08</k_GMCSF_prod>
+      <k_GMCSF_deg>5.0</k_GMCSF_deg>
+      <k_APC_recruit_ID>100000.0</k_APC_recruit_ID>
+      <EC50_GMCSF>0.00294005042817446</EC50_GMCSF>
+      <k_APC_mature_ID>2.72805986290677</k_APC_mature_ID>
+      <k_APC_mig_ID_LN>0.7</k_APC_mig_ID_LN>
+      <k_APC_death_ID>0.1</k_APC_death_ID>
+      <sigma_P1_per_mAPC>1e-09</sigma_P1_per_mAPC>
+      <EC50_P1_mature>10.0</EC50_P1_mature>
+      <K_APC_ID>1000000.0</K_APC_ID>
+      <k_APC_recruit0>100.0</k_APC_recruit0>
+      <k_mAPC_death_ID>0.7</k_mAPC_death_ID>
+      <y_Ag_per_cell>1.7e-08</y_Ag_per_cell>
+      <k_P1_deg_ID>10.0</k_P1_deg_ID>
+      <K_APC_mig>100000.0</K_APC_mig>
+      <H_GMCSF_ID>0.0</H_GMCSF_ID>
+      <J_mature_ID>0.0</J_mature_ID>
+      <k_Cy_clear>0.5</k_Cy_clear>
+      <k_Cy_Treg_deplete>0.5</k_Cy_Treg_deplete>
+      <Cy_50_Treg>50.0</Cy_50_Treg>
+    </Parameter>
+  </init_value>
+</QSP>
+  
+  
+  
+  
+  
+  
+  
+  <DerivedParams>
+    
+    <D name="AVOGADROS" type="float">6.022140857E23</D>
+
+    
+    <D name="PARAM_VOXEL_SIZE_CM" type="float" comment="voxel size in cm">env.getProperty&lt;int&gt;("PARAM_VOXEL_SIZE") / 1e4f</D>
+
+    
+    <D name="PARAM_TCELL_LIFESPAN_SD_SLICE" type="float" comment="T cell lifespan SD in time steps">env.getProperty&lt;float&gt;("PARAM_TCELL_LIFESPAN_SD") / env.getProperty&lt;float&gt;("PARAM_SEC_PER_SLICE") * SEC_PER_DAY</D>
+
+    
+    <D name="PARAM_TCELL_IL2_PROLIF_TH" type="float" comment="IL-2 accumulation threshold for division [nM*s] = IL2_50 * commit_time">QP(CancerVCT::P_IL2_50) * 1e6 * env.getProperty&lt;float&gt;("PARAM_TCELL_IL2_COMMIT_TIME")</D>
+
+    
+    <D name="PARAM_DC_PRIME_K_CD8" type="float" comment="cDC1 → naive CD8 priming rate [1/s] from QSP k_CD8_act">QP(CancerVCT::P_k_CD8_act)</D>
+    <D name="PARAM_DC_PRIME_K_TH" type="float" comment="cDC2 → naive CD4 (Th) priming rate [1/s] from QSP k_Th_act">QP(CancerVCT::P_k_Th_act)</D>
+    <D name="PARAM_DC_PRIME_K_TREG" type="float" comment="cDC2 → naive CD4 (Treg) priming rate [1/s] from QSP k_Treg_act">QP(CancerVCT::P_k_Treg_act)</D>
+    <D name="PARAM_DC_N_SITES" type="float" comment="presentation sites per APC (dimensionless) from QSP n_sites_APC">QP(CancerVCT::P_n_sites_APC)</D>
+    <D name="PARAM_F_NTREG" type="float" comment="fraction of activated naive CD4 → Treg (dimensionless) from QSP f_nTreg">QP(CancerVCT::P_f_nTreg)</D>
+
+    
+    <D name="PARAM_CELL" type="float" comment="cell count (not moles)">QP(CancerVCT::P_cell) * AVOGADROS</D>
+    <D name="PARAM_V_CELL" type="float" comment="volume of cancer cells">QP(CancerVCT::P_vol_cell)</D>
+    <D name="PARAM_V_TCELL" type="float" comment="volume of T cells">QP(CancerVCT::P_vol_Tcell)</D>
+
+    
+    <D name="PARAM_INIT_TUM_VOL" type="float" comment="initial tumor volume from diameter">(PI * std::pow(QP(CancerVCT::P_initial_tumour_diameter), 3)) / 6</D>
+    <D name="PARAM_INIT_TUM_DIAM" type="float" comment="initial tumor diameter">QP(CancerVCT::P_initial_tumour_diameter)</D>
+
+    
+    <D name="PARAM_MDSC_EC50_CCL2_REC" type="float" comment="MDSC EC50 CCL2 recruitment [nM]">QP(CancerVCT::P_CCL2_50) * 1e6</D>
+    <D name="PARAM_MDSC_IC50_NO_CTL" type="float" comment="MDSC IC50 NO on T cell cytotoxicity [nM]">QP(CancerVCT::P_NO_50_Teff) * 1e6</D>
+    <D name="PARAM_MDSC_IC50_ArgI_CTL" type="float" comment="MDSC IC50 ArgI on T cell cytotoxicity [nM]">QP(CancerVCT::P_ArgI_50_Teff) * 1e6</D>
+    <D name="PARAM_MDSC_EC50_ArgI_Treg" type="float" comment="MDSC EC50 ArgI on Treg expansion [nM]">QP(CancerVCT::P_ArgI_50_Treg) * 1e6</D>
+
+    
+    <D name="PARAM_A_SYN" type="float" comment="synapse area">QP(CancerVCT::P_A_syn)</D>
+    <D name="PARAM_A_CELL" type="float" comment="cancer cell area">QP(CancerVCT::P_A_cell)</D>
+    <D name="PARAM_A_TCELL" type="float" comment="T cell area">QP(CancerVCT::P_A_Tcell)</D>
+    <D name="PARAM_A_MAC" type="float" comment="macrophage area">QP(CancerVCT::P_A_Mcell)</D>
+
+    
+    <D name="PARAM_PD1_PDL1_HALF" type="float" comment="PD1/PDL1 half-maximal inhibition count">QP(CancerVCT::P_PD1_50) * env.getProperty&lt;float&gt;("PARAM_A_CELL") * 3</D>
+    <D name="PARAM_PD1_SYN" type="float" comment="PD1 per synapse on T cell">QP(CancerVCT::P_CD8_PD1_total)</D>
+    <D name="PARAM_MAC_PD1_SYN" type="float" comment="PD1 per synapse on macrophage">QP(CancerVCT::P_M_PD1_total)</D>
+    <D name="PARAM_C1_CD47_SYN" type="float" comment="CD47 density on cancer cell">QP(CancerVCT::P_C_CD47)</D>
+    <D name="PARAM_MAC_SIRPa_SYN" type="float" comment="SIRPa density on macrophage">QP(CancerVCT::P_M_SIRPa)</D>
+    <D name="PARAM_PDL1_SYN_MAX" type="float" comment="PDL1 per synapse max (base * IFNg fold-increase)">QP(CancerVCT::P_C1_PDL1_base) * QP(CancerVCT::P_r_PDL1_IFNg)</D>
+    <D name="PARAM_PDL1_CELL" type="float" comment="total PDL1 per cancer cell (base, no IFNg)">QP(CancerVCT::P_C1_PDL1_base)</D>
+    <D name="PARAM_PDL1_INTERNALIZATION_RATE" type="float" comment="PDL1 internalization rate [1/s] from QSP k_in_PDL1">QP(CancerVCT::P_k_in_PDL1)</D>
+    <D name="PARAM_IFNG_PDL1_HALF" type="float" comment="IFNg EC50 for PDL1 induction [nM] from QSP IFNg_50_ind">QP(CancerVCT::P_IFNg_50_ind) * 1e6</D>
+    <D name="PARAM_IFNG_PDL1_N" type="float" comment="IFNg-PDL1 Hill coefficient (ODE uses n=1)">1.0</D>
+
+    
+    <D name="PARAM_PDL1_K1" type="float" comment="k1 = kon_PD1_PDL1 / (koff * A_CELL)">QP(CancerVCT::P_kon_PD1_PDL1) / (QP(CancerVCT::P_koff_PD1_PDL1) * env.getProperty&lt;float&gt;("PARAM_A_CELL"))</D>
+    <D name="PARAM_PDL1_K2" type="float" comment="k2 = 2*kon_PD1_aPD1 / (koff * gamma_T_nivo)">2 * QP(CancerVCT::P_kon_PD1_aPD1) / (QP(CancerVCT::P_koff_PD1_aPD1) * QP(CancerVCT::P_gamma_T_aPD1))</D>
+    <D name="PARAM_PDL1_K3" type="float" comment="k3 = Chi_PD1 * kon / (2 * koff)">QP(CancerVCT::P_Chi_PD1_aPD1) * QP(CancerVCT::P_kon_PD1_aPD1) / (2 * QP(CancerVCT::P_koff_PD1_aPD1))</D>
+    <D name="PARAM_N_PD1_PDL1" type="float" comment="PD1-PDL1 Hill coefficient">QP(CancerVCT::P_n_PD1)</D>
+
+    
+    <D name="PARAM_KOFF_CTLA4_IPI" type="float" comment="CTLA4-IPI unbinding rate">6.96e-06</D>
+    <D name="PARAM_GAMMA_T_IPI" type="float" comment="IPI volume fraction in tumor">0.718</D>
+    <D name="PARAM_CHI_CTLA4_IPI" type="float" comment="CTLA4-IPI cross-arm binding efficiency">3</D>
+    <D name="PARAM_TREG_CTLA4_50" type="float" comment="CTLA4 occupancy half-max for Treg inactivation">QP(CancerVCT::P_koff_PD1_aPD1) * QP(CancerVCT::P_k_xP1_deg)</D>
+    <D name="PARAM_CTLA4_TREG" type="float" comment="CTLA4 per Treg synapse">QP(CancerVCT::P_q_LN_aCTLA4) * QP(CancerVCT::P_k_xP1_deg)</D>
+    <D name="PARAM_K_ADCC" type="float" comment="anti-CTLA4 ADCC rate of Treg per timestep">0.1 * env.getProperty&lt;float&gt;("PARAM_SEC_PER_SLICE")</D>
+
+    
+    <Local var="t_step_sec" type="double">env.getProperty&lt;float&gt;("PARAM_SEC_PER_SLICE")</Local>
+
+    
+    <D name="PARAM_IC50_AXL" type="float" comment="IC50 AXL">0.0f</D>
+    <D name="PARAM_IC50_VEGFR2" type="float" comment="IC50 VEGFR2">0.0f</D>
+    <D name="PARAM_IC50_MET" type="float" comment="IC50 MET">0.0f</D>
+    <D name="PARAM_IC50_RET" type="float" comment="IC50 RET">0.0f</D>
+    <D name="PARAM_LAMBDA_C_CABO" type="float" comment="cabo therapeutic effect rate">0.0f</D>
+
+    
+    <D name="PARAM_ESCAPE_BASE" type="float" comment="T cell kill cancer escape prob">std::exp(-t_step_sec * QP(CancerVCT::P_k_C_Tcell_eff))</D>
+    <D name="PARAM_ESCAPE_MAC_BASE" type="float" comment="M1 mac kill cancer escape prob">std::exp(-t_step_sec * QP(CancerVCT::P_k_M1_phago))</D>
+    
+    
+    <D name="PARAM_EXHAUST_BASE_BASAL" type="float" comment="Basal/antigen exhaustion (RF57: k_CD8_basal_exh)">std::exp(-t_step_sec * QP(CancerVCT::P_k_CD8_basal_exh))</D>
+    <D name="PARAM_EXHAUST_BASE_PD1" type="float" comment="PD1-driven exhaustion (RF60: k_C_CD8_exh)">std::exp(-t_step_sec * QP(CancerVCT::P_k_C_CD8_exh))</D>
+    <D name="PARAM_EXHAUST_BASE_TREG" type="float" comment="Treg-mediated exhaustion (RF59: k_Treg_CD8_exh)">std::exp(-t_step_sec * QP(CancerVCT::P_k_Treg_CD8_exh))</D>
+    <D name="PARAM_K_C_EXH" type="float" comment="Cancer half-max for basal exhaustion (K_C_exh in cells)">QP(CancerVCT::P_K_C_exh) * AVOGADROS</D>
+    <D name="PARAM_EXHAUST_IL10_EC50" type="float" comment="IL-10 EC50 for Treg exhaustion modulation [nM]">QP(CancerVCT::P_IL10_50) * 1e6</D>
+    <D name="PARAM_K_T_TREG" type="float" comment="Treg competitive suppression weight (ODE: 1/R50_Treg ≈ 3.23)">1.0 / QP(CancerVCT::P_R50_Treg)</D>
+
+    
+    <D name="PARAM_K_TH_TREG" type="float" comment="Th to Treg rate per timestep">t_step_sec * QP(CancerVCT::P_k_Th_to_Treg)</D>
+    <D name="PARAM_MAC_M2_POL" type="float" comment="M1 to M2 polarization rate per timestep">t_step_sec * QP(CancerVCT::P_k_M2_pol)</D>
+    <D name="PARAM_MAC_M1_POL" type="float" comment="M2 to M1 polarization rate per timestep">t_step_sec * QP(CancerVCT::P_k_M1_pol)</D>
+
+    
+    <D name="PARAM_MAC_EC50_CCL2_REC" type="float" comment="MAC EC50 CCL2 recruitment [nM]">QP(CancerVCT::P_CCL2_50) * 1e6</D>
+    <D name="PARAM_MAC_TGFB_EC50" type="float" comment="TGFb half-max for polarization [nM]">QP(CancerVCT::P_TGFb_50) * 1e6</D>
+    <D name="PARAM_TEFF_TGFB_EC50" type="float" comment="TGFb EC50 for Teff suppression [nM]">QP(CancerVCT::P_TGFb_50_Teff) * 1e6</D>
+    <D name="PARAM_MAC_IL_10_EC50" type="float" comment="IL-10 EC50 for macrophage [nM]">QP(CancerVCT::P_IL10_50) * 1e6</D>
+    <D name="PARAM_MAC_IL_10_HALF_PHAGO" type="float" comment="IL-10 half-max for phagocytosis [nM]">QP(CancerVCT::P_IL10_50_phago) * 1e6</D>
+    <D name="PARAM_MAC_IFN_G_EC50" type="float" comment="IFNg EC50 for macrophage [nM]">QP(CancerVCT::P_IFNg_50) * 1e6</D>
+    <D name="PARAM_MAC_IL_12_EC50" type="float" comment="IL-12 EC50 for macrophage [nM]">QP(CancerVCT::P_IL12_50) * 1e6</D>
+    <D name="PARAM_MAC_IL6_M2_EC50" type="float" comment="IL-6 EC50 for M1→M2 polarization [nM]">QP(CancerVCT::P_IL6_50_M2) * 1e6</D>
+
+    
+    <D name="PARAM_MAC_SIRPa_HALF" type="float" comment="SIRPa half-max">QP(CancerVCT::P_SIRPa_50)</D>
+    <D name="PARAM_KON_SIRPa_CD47" type="float" comment="SIRPa-CD47 kon">QP(CancerVCT::P_kon_CD47_SIRPa)</D>
+    <D name="PARAM_KOFF_SIRPa_CD47" type="float" comment="SIRPa-CD47 koff">QP(CancerVCT::P_koff_CD47_SIRPa)</D>
+    <D name="PARAM_N_SIRPa_CD47" type="float" comment="SIRPa Hill coefficient">QP(CancerVCT::P_n_SIRPa)</D>
+
+    
+    
+    <D name="PARAM_ECM_DEPOSITION_RATE" type="float" comment="ECM deposition rate [nmol/(fib_density_unit*s)] from QSP k_col_myCAF_sec, f_col_basal">3.0 * QP(CancerVCT::P_k_col_myCAF_sec) / (AVOGADROS * 1e-9) * QP(CancerVCT::P_f_col_basal)</D>
+    
+    <D name="PARAM_ECM_DECAY_RATE" type="float" comment="ECM natural decay rate [1/s] from QSP k_col_deg">QP(CancerVCT::P_k_col_deg)</D>
+    
+    <D name="PARAM_ECM_TGFB_EC50" type="float" comment="TGFb EC50 for ECM deposition [nM] from QSP TGFb_50_col_sec">QP(CancerVCT::P_TGFb_50_col_sec) * 1e6</D>
+
+    
+    <D name="PARAM_FIB_MYCAF_ACTIVATION" type="float" comment="qPSC→myCAF activation rate per timestep">QP(CancerVCT::P_k_PSC_to_myCAF) * t_step_sec</D>
+    <D name="PARAM_FIB_ICAF_ACTIVATION" type="float" comment="qPSC→iCAF activation rate per timestep">QP(CancerVCT::P_k_PSC_to_iCAF) * t_step_sec</D>
+    <D name="PARAM_FIB_CAF_EC50" type="float" comment="TGFb EC50 for CAF activation + interconversion [nM] (TGFb_50_CAF_act)">QP(CancerVCT::P_TGFb_50_CAF_act) * 1e6</D>
+    
+    <D name="PARAM_FIB_ICAF_TO_MYCAF" type="float" comment="iCAF→myCAF rate per timestep (H_TGFb gated)">QP(CancerVCT::P_k_iCAF_to_myCAF) * t_step_sec</D>
+    <D name="PARAM_FIB_MYCAF_TO_ICAF" type="float" comment="myCAF→iCAF rate per timestep (H_IL1 gated)">QP(CancerVCT::P_k_myCAF_to_iCAF) * t_step_sec</D>
+    
+    <D name="PARAM_FIB_IL6_ICAF_FACTOR" type="float" comment="f_IL6_iCAF: IL-6 amplification weight for iCAF">QP(CancerVCT::P_f_IL6_iCAF)</D>
+    <D name="PARAM_FIB_IL6_ICAF_EC50" type="float" comment="IL-6 EC50 for iCAF amplification [nM]">QP(CancerVCT::P_IL6_50_iCAF) * 1e6</D>
+    
+    <D name="PARAM_FIB_ICAF_IL1_EC50" type="float" comment="IL-1 EC50 for iCAF activation [nM] (P_IL1_50)">QP(CancerVCT::P_IL1_50) * 1e6</D>
+    <D name="PARAM_FIB_ICAF_IL1_HILL_N" type="float" comment="IL-1 Hill coefficient for iCAF (P_n_IL1)">QP(CancerVCT::P_n_IL1)</D>
+    
+    <D name="PARAM_FIB_ICAF_TGFB_SUPPRESS_EC50" type="float" comment="TGF-β EC50 suppressing IL-1R1 on iCAF [nM] (P_TGFb_50_IL1R1)">QP(CancerVCT::P_TGFb_50_IL1R1) * 1e6</D>
+    <D name="PARAM_FIB_ICAF_TGFB_SUPPRESS_N" type="float" comment="TGF-β suppression Hill coeff (ODE uses Hill=1)">1.0</D>
+    
+    <D name="PARAM_FIB_DIV_COOLDOWN_MYCAF" type="float" comment="myCAF division cooldown [timesteps] from k_myCAF_prolif">1.0 / (QP(CancerVCT::P_k_myCAF_prolif) * t_step_sec)</D>
+    <D name="PARAM_FIB_DIV_COOLDOWN_ICAF" type="float" comment="iCAF division cooldown [timesteps] from k_iCAF_prolif">1.0 / (QP(CancerVCT::P_k_iCAF_prolif) * t_step_sec)</D>
+
+    
+    <Call comment="Init ECM grid to saturation">PDAC::initialize_ecm_to_saturation(static_cast&lt;float&gt;(1.0f * 1e3))</Call>
+    <Call comment="Init ECM floor to baseline (overridden per-voxel by -i 1 structured init)">PDAC::initialize_ecm_floor_uniform(env.getProperty&lt;float&gt;("PARAM_ECM_BASELINE"))</Call>
+
+    
+    <D name="PARAM_FIB_LIFE_MEAN" type="float" comment="mean fibroblast lifespan in timesteps">1.0f / ((QP(CancerVCT::P_k_iCAF_death) + QP(CancerVCT::P_k_myCAF_death)) / 2.0) / t_step_sec</D>
+
+    
+    <Local var="site_per_voxel" type="double">env.getProperty&lt;float&gt;("PARAM_ADH_SITE_DENSITY") * std::pow(env.getProperty&lt;int&gt;("PARAM_VOXEL_SIZE"), 3)</Local>
+    <Local var="site_per_port" type="double">env.getProperty&lt;float&gt;("PARAM_REC_SITE_FACTOR")</Local>
+    <D name="PARAM_REC_PORT" type="float" comment="recruitment ports per voxel">site_per_voxel / site_per_port</D>
+
+    
+    <D name="PARAM_TEFF_RECRUIT_K" type="float" comment="T effector recruitment rate constant">QP(CancerVCT::P_q_CD8_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty&lt;int&gt;("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty&lt;float&gt;("PARAM_REC_PORT")</D>
+    <D name="PARAM_TREG_RECRUIT_K" type="float" comment="Treg recruitment rate constant">QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty&lt;int&gt;("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty&lt;float&gt;("PARAM_REC_PORT")</D>
+    <D name="PARAM_TH_RECRUIT_K" type="float" comment="Th recruitment rate constant">QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty&lt;int&gt;("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty&lt;float&gt;("PARAM_REC_PORT")</D>
+    <D name="PARAM_MDSC_RECRUIT_K" type="float" comment="MDSC recruitment rate constant">QP(CancerVCT::P_k_MDSC_rec) * t_step_sec * AVOGADROS * std::pow(env.getProperty&lt;int&gt;("PARAM_VOXEL_SIZE") / 1e6, 3)</D>
+    <D name="PARAM_MAC_RECRUIT_K" type="float" comment="macrophage recruitment rate constant">QP(CancerVCT::P_k_Mac_rec) * t_step_sec * AVOGADROS * std::pow(env.getProperty&lt;int&gt;("PARAM_VOXEL_SIZE") / 1e6, 3)</D>
+
+    
+    <D name="PARAM_DC_RECRUIT_K_CDC1" type="float" comment="cDC1 recruitment rate per voxel per step">QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_APC0_cDC1_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty&lt;int&gt;("PARAM_VOXEL_SIZE") / 1e6, 3)</D>
+    <D name="PARAM_DC_RECRUIT_K_CDC2" type="float" comment="cDC2 recruitment rate per voxel per step">QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_APC0_cDC2_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty&lt;int&gt;("PARAM_VOXEL_SIZE") / 1e6, 3)</D>
+    <D name="PARAM_APC_TRANSMIG" type="float" comment="APC transmigration rate">QP(CancerVCT::P_k_APC_mig)</D>
+    <D name="PARAM_T0_CLONE" type="float" comment="T0 clonality">QP(CancerVCT::P_n_CD4_clones)</D>
+    <D name="PARAM_T1_CLONE" type="float" comment="T1 clonality">QP(CancerVCT::P_n_CD8_clones)</D>
+    <D name="PARAM_ANTIGEN_PER_CELL" type="float" comment="antigen per cancer cell [molecules/cell]">QP(CancerVCT::P_P1_C1)</D>
+    <D name="PARAM_ANTIGEN_UP" type="float" comment="antigen uptake by mAPC">QP(CancerVCT::P_k_P0_up)</D>
+
+    
+    <D name="PARAM_ANTIGEN_DEPOSIT" type="float" comment="antigen deposited per cancer death [molecules/cell] = P1_C1">QP(CancerVCT::P_P1_C1)</D>
+    <D name="PARAM_ANTIGEN_DECAY_RATE" type="float" comment="antigen decay rate [1/s] from k_P1_deg">QP(CancerVCT::P_k_P1_deg)</D>
+    <D name="PARAM_ANTIGEN_CAPTURE_THRESHOLD" type="float" comment="min antigen for B cell capture [molecules] = 0.1 * P1_C1 (deprecated; kept for legacy uptake path)">0.1 * QP(CancerVCT::P_P1_C1)</D>
+    <D name="PARAM_BCELL_ACTIVATION_ANTIGEN_MIN" type="float" comment="min antigen for B cell NAIVE→ACT activation [molecules] = 0.01 * P1_C1">0.01 * QP(CancerVCT::P_P1_C1)</D>
+
+    
+    <D name="PARAM_DC_LIFE_IMMATURE_MEAN" type="float" comment="Immature DC lifespan [timesteps] from k_APC_death">1.0 / (QP(CancerVCT::P_k_APC_death) * t_step_sec)</D>
+    <D name="PARAM_DC_LIFE_MATURE_MEAN" type="float" comment="Mature DC lifespan [timesteps] from k_mAPC_death">1.0 / (QP(CancerVCT::P_k_mAPC_death) * t_step_sec)</D>
+    <D name="PARAM_K_xP_DEG" type="float" comment="antigen degradation in tumor">QP(CancerVCT::P_k_xP0_deg)</D>
+
+    
+    <D name="PARAM_T_CELL_LIFE_MEAN_SLICE" type="float" comment="mean T cell lifespan in timesteps">1 / QP(CancerVCT::P_k_CD8_death) / t_step_sec</D>
+    <D name="PARAM_TCD4_LIFE_MEAN_SLICE" type="float" comment="mean TCD4 lifespan in timesteps">1 / QP(CancerVCT::P_k_Treg_death) / t_step_sec</D>
+    <D name="PARAM_MDSC_LIFE_MEAN_SLICE" type="float" comment="mean MDSC lifespan in timesteps">1 / QP(CancerVCT::P_k_MDSC_death) / t_step_sec</D>
+    <D name="PARAM_MAC_LIFE_MEAN" type="float" comment="mean MAC lifespan in timesteps">1 / QP(CancerVCT::P_k_Mac_death) / t_step_sec</D>
+    <D name="PARAM_APC_LIFE_MEAN" type="float" comment="mean APC lifespan in timesteps">1 / QP(CancerVCT::P_k_APC_death) / t_step_sec</D>
+
+    
+    
+    <D name="PARAM_DC_K_MAT_CDC1" type="float" comment="cDC1 maturation rate [prob/step] from k_APC_mat_cDC1">QP(CancerVCT::P_k_APC_mat_cDC1) * t_step_sec</D>
+    <D name="PARAM_DC_K_MAT_CDC2" type="float" comment="cDC2 maturation rate [prob/step] from k_APC_mat_cDC2">QP(CancerVCT::P_k_APC_mat_cDC2) * t_step_sec</D>
+    <D name="PARAM_DC_ANTIGEN_50" type="float" comment="antigen EC50 for maturation [molecules/voxel] = P1_C1 (1 death equiv)">QP(CancerVCT::P_P1_C1)</D>
+    <D name="PARAM_DC_IL12_50" type="float" comment="IL-12 EC50 for maturation boost [nM]">QP(CancerVCT::P_IL12_50) * 1e6</D>
+    <D name="PARAM_DC_IL10_50" type="float" comment="IL-10 EC50 for maturation suppression [nM]">QP(CancerVCT::P_IL10_50) * 1e6</D>
+    
+    <D name="PARAM_DC_TGFB_50" type="float" comment="TGF-b EC50 for DC maturation suppression [nM], literature 0.02–0.2 nM">0.15</D>
+
+    
+    
+    <D name="PARAM_VAS_50" type="float" comment="VEGF EC50 for sprouting [nM] from VEGF_50">QP(CancerVCT::P_VEGF_50) * 1e6</D>
+    
+    <D name="PARAM_VAS_REGRESS_RATE" type="float" comment="vessel regression base rate [prob/step] from k_vas_decay">QP(CancerVCT::P_k_vas_decay) * t_step_sec</D>
+    
+    <D name="PARAM_VAS_VEGFA_SURVIVAL_EC50" type="float" comment="VEGF EC50 for vessel survival [nM] from VEGF_50">QP(CancerVCT::P_VEGF_50) * 1e6</D>
+
+    
+    <Local var="rs" type="double" comment="stem cell division rate [s^-1]">QP(CancerVCT::P_k_C1_growth) / (1 - env.getProperty&lt;float&gt;("PARAM_ASYM_DIV_PROB"))</Local>
+    <D name="PARAM_CSC_GROWTH_RATE" type="float" comment="CSC growth rate [day^-1]">rs * SEC_PER_DAY</D>
+    <D name="PARAM_FLOAT_CANCER_CELL_STEM_DIV_INTERVAL_SLICE" type="float" comment="stem division interval in slices">std::log(2)/rs / env.getProperty&lt;float&gt;("PARAM_SEC_PER_SLICE")</D>
+
+    
+    <D name="PARAM_CANCER_SENESCENT_MEAN_LIFE" type="float" comment="senescent cancer mean life in slices">1 / env.getProperty&lt;float&gt;("PARAM_SEN_DEATH_RATE") / env.getProperty&lt;float&gt;("PARAM_SEC_PER_SLICE") * SEC_PER_DAY</D>
+
+    
+    <D name="PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE" type="float" comment="progenitor division interval in slices">std::log(2)/ env.getProperty&lt;float&gt;("PARAM_PROG_GROWTH_RATE") * SEC_PER_DAY / env.getProperty&lt;float&gt;("PARAM_SEC_PER_SLICE") + .5</D>
+
+    
+    
+    
+    
+    
+    <D name="PARAM_IFNG_DECAY_RATE" type="float" comment="IFNg decay [1/s]">QP(CancerVCT::P_k_IFNg_deg)</D>
+    <D name="PARAM_IL2_DECAY_RATE" type="float" comment="IL-2 decay [1/s]">QP(CancerVCT::P_k_IL2_deg)</D>
+    <D name="PARAM_IL10_DECAY_RATE" type="float" comment="IL-10 decay [1/s]">QP(CancerVCT::P_k_IL10_deg)</D>
+    <D name="PARAM_TGFB_DECAY_RATE" type="float" comment="TGFb decay [1/s]">QP(CancerVCT::P_k_TGFb_deg)</D>
+    <D name="PARAM_CCL2_DECAY_RATE" type="float" comment="CCL2 decay [1/s]">QP(CancerVCT::P_k_CCL2_deg)</D>
+    <D name="PARAM_ARGI_DECAY_RATE" type="float" comment="ArgI decay [1/s]">QP(CancerVCT::P_k_ArgI_deg)</D>
+    <D name="PARAM_NO_DECAY_RATE" type="float" comment="NO decay [1/s]">QP(CancerVCT::P_k_NO_deg)</D>
+    <D name="PARAM_IL12_DECAY_RATE" type="float" comment="IL-12 decay [1/s]">QP(CancerVCT::P_k_IL12_deg)</D>
+    <D name="PARAM_IL1_DECAY_RATE" type="float" comment="IL-1 decay [1/s]">QP(CancerVCT::P_k_IL1_deg)</D>
+    <D name="PARAM_IL6_DECAY_RATE" type="float" comment="IL-6 decay [1/s]">QP(CancerVCT::P_k_IL6_deg)</D>
+    <D name="PARAM_CXCL12_DECAY_RATE" type="float" comment="CXCL12 decay [1/s]">QP(CancerVCT::P_k_CXCL12_deg)</D>
+    <D name="PARAM_CCL5_DECAY_RATE" type="float" comment="CCL5 decay [1/s]">QP(CancerVCT::P_k_CCL5_deg)</D>
+
+    
+    
+    
+    
+    
+    <Local var="qp_sec_to_abm" type="double" comment="molecules/(cell*s) → pmol/(cell*s); /voxel_vol → nM/s">1.0 / (AVOGADROS * 1e-12)</Local>
+
+    
+    <D name="PARAM_CCL2_RELEASE" type="float" comment="CCL2 cancer secretion [pmol/(cell*s)] from QSP k_CCL2_sec">QP(CancerVCT::P_k_CCL2_sec) * qp_sec_to_abm</D>
+    <D name="PARAM_STEM_VEGFA_RELEASE" type="float" comment="VEGFA stem secretion [pmol/(cell*s)] from QSP k_vas_Csec">QP(CancerVCT::P_k_vas_Csec) * qp_sec_to_abm</D>
+    <D name="PARAM_PROG_VEGFA_RELEASE" type="float" comment="VEGFA progenitor secretion [pmol/(cell*s)] — same base rate as stem">QP(CancerVCT::P_k_vas_Csec) * qp_sec_to_abm</D>
+    <D name="PARAM_CANCER_IL1_RELEASE_STEM" type="float" comment="IL-1 stem secretion [pmol/(cell*s)] from QSP k_IL1_sec">QP(CancerVCT::P_k_IL1_sec) * qp_sec_to_abm</D>
+    <D name="PARAM_CANCER_IL1_RELEASE_PROG" type="float" comment="IL-1 progenitor secretion [pmol/(cell*s)] — 0.5x stem">QP(CancerVCT::P_k_IL1_sec) * qp_sec_to_abm * 0.5</D>
+    <D name="PARAM_CANCER_IL1_RELEASE_SEN" type="float" comment="IL-1 senescent secretion [pmol/(cell*s)] — 0.2x stem (SASP)">QP(CancerVCT::P_k_IL1_sec) * qp_sec_to_abm * 0.2</D>
+
+    
+    <D name="PARAM_IFNG_RELEASE" type="float" comment="IFN-γ per-cell secretion [pmol/(cell*s)] from QSP k_IFNg_Tsec">QP(CancerVCT::P_k_IFNg_Tsec) * qp_sec_to_abm</D>
+    <D name="PARAM_IL2_RELEASE" type="float" comment="IL-2 per-cell secretion [pmol/(cell*s)] from QSP k_IL2_sec">QP(CancerVCT::P_k_IL2_sec) * qp_sec_to_abm</D>
+
+    
+    <D name="PARAM_CXCL12_CANCER_RELEASE" type="float" comment="CXCL12 cancer secretion [pmol/(cell*s)]">QP(CancerVCT::P_k_CXCL12_sec_cancer) * qp_sec_to_abm</D>
+    <D name="PARAM_CXCL12_ICAF_RELEASE" type="float" comment="CXCL12 iCAF secretion [pmol/(cell*s)]">QP(CancerVCT::P_k_CXCL12_sec_iCAF) * qp_sec_to_abm</D>
+    <D name="PARAM_CXCL12_EC50_TEXCL" type="float" comment="CXCL12 EC50 T exclusion [nM]">QP(CancerVCT::P_CXCL12_50_Texcl) * 1e6</D>
+
+    
+    <D name="PARAM_CCL5_CANCER_RELEASE" type="float" comment="CCL5 cancer secretion [pmol/(cell*s)]">QP(CancerVCT::P_k_CCL5_sec) * qp_sec_to_abm</D>
+    <D name="PARAM_CCL5_ICAF_RELEASE" type="float" comment="CCL5 iCAF secretion [pmol/(cell*s)]">QP(CancerVCT::P_k_CCL5_sec_iCAF) * qp_sec_to_abm</D>
+    <D name="PARAM_CCL5_EC50_TREG" type="float" comment="CCL5 EC50 Treg recruitment [nM]">QP(CancerVCT::P_CCL5_50_Treg) * 1e6</D>
+    <D name="PARAM_CCL5_TREG_RATIO" type="float" comment="CCL5/CCR5 recruitment rate relative to base (k_CCR5_Treg_rec / q_Treg_T_in)">QP(CancerVCT::P_k_CCR5_Treg_rec) / QP(CancerVCT::P_q_Treg_T_in)</D>
+
+    
+    <D name="PARAM_TREG_TGFB_RELEASE" type="float" comment="Treg TGF-β secretion [pmol/(cell*s)] from QSP k_TGFb_Tsec">QP(CancerVCT::P_k_TGFb_Tsec) * qp_sec_to_abm</D>
+    <D name="PARAM_MAC_TGFB_RELEASE" type="float" comment="M2 MAC TGF-β secretion [pmol/(cell*s)] from QSP k_TGFb_Msec">QP(CancerVCT::P_k_TGFb_Msec) * qp_sec_to_abm</D>
+    <D name="PARAM_MAC_IL10_RELEASE" type="float" comment="M2 MAC IL-10 secretion [pmol/(cell*s)] from QSP k_IL10_sec">QP(CancerVCT::P_k_IL10_sec) * qp_sec_to_abm</D>
+    <D name="PARAM_IL12_RELEASE" type="float" comment="M1 MAC IL-12 secretion [pmol/(cell*s)] from QSP k_IL12_Msec">QP(CancerVCT::P_k_IL12_Msec) * qp_sec_to_abm</D>
+    <D name="PARAM_DC_IL12_RELEASE" type="float" comment="Mature DC IL-12 secretion [pmol/(cell*s)] from QSP k_IL12_sec (mcDC1)">QP(CancerVCT::P_k_IL12_sec) * qp_sec_to_abm</D>
+    <D name="PARAM_MAC_VEGFA_RELEASE" type="float" comment="M2 MAC VEGF-A secretion [pmol/(cell*s)] from QSP k_vas_Msec">QP(CancerVCT::P_k_vas_Msec) * qp_sec_to_abm</D>
+    <D name="PARAM_FIB_MYCAF_TGFB_RELEASE" type="float" comment="myCAF TGF-β secretion [pmol/(cell*s)] from QSP k_TGFb_sec_myCAF">QP(CancerVCT::P_k_TGFb_sec_myCAF) * qp_sec_to_abm</D>
+    <D name="PARAM_FIB_ICAF_IL6_RELEASE" type="float" comment="iCAF IL-6 secretion [pmol/(cell*s)] from QSP k_IL6_sec_iCAF">QP(CancerVCT::P_k_IL6_sec_iCAF) * qp_sec_to_abm</D>
+    <D name="PARAM_FIB_MYCAF_VEGFA_RELEASE" type="float" comment="myCAF VEGF-A secretion [pmol/(cell*s)] from QSP k_vas_myCAF_sec">QP(CancerVCT::P_k_vas_myCAF_sec) * qp_sec_to_abm</D>
+
+    
+    <D name="PARAM_NO_RELEASE" type="float" comment="MDSC NO secretion [pmol/(cell*s)] from QSP k_NO_sec">QP(CancerVCT::P_k_NO_sec) * qp_sec_to_abm</D>
+    <D name="PARAM_ARGI_RELEASE" type="float" comment="MDSC ArgI secretion [pmol/(cell*s)] from QSP k_ArgI_sec">QP(CancerVCT::P_k_ArgI_sec) * qp_sec_to_abm</D>
+
+    
+    <D name="PARAM_MDSC_EC50_IL6_REC" type="float" comment="IL-6 EC50 for MDSC recruitment boost [nM]">QP(CancerVCT::P_IL6_50_MDSC) * 1e6</D>
+
+    
+    <D name="PARAM_TREG_DIV_INTERVAL" type="int" comment="Treg division cooldown [steps] from k_Treg_pro_tumor">static_cast&lt;int&gt;(std::round(1.0 / (QP(CancerVCT::P_k_Treg_pro_tumor) * t_step_sec)))</D>
+    <D name="PARAM_TH_DIV_INTERVAL" type="int" comment="Th/Tfh division cooldown [steps] from k_Th_pro_tumor">static_cast&lt;int&gt;(std::round(1.0 / (QP(CancerVCT::P_k_Th_pro_tumor) * t_step_sec)))</D>
+
+    
+    <Computed name="PARAM_GRID_SIZE" type="float" comment="total voxel count">static_cast&lt;float&gt;(getInt(PARAM_X_SIZE) * getInt(PARAM_Y_SIZE) * getInt(PARAM_Z_SIZE))</Computed>
+  </DerivedParams>
+</Param>

@@ -3,6 +3,7 @@
 #include "../qsp/LymphCentral_wrapper.h"
 #include "../qsp/ode/QSP_enum.h"
 #include "../pde/pde_integration.cuh"
+#include "../abm/adhesion_matrix_loader.h"
 #include <nvtx3/nvToolsExt.h>
 #define QP(x) CancerVCT::ODE_system::get_class_param(x)
 
@@ -13,7 +14,9 @@ static int HOUR_PER_DAY = 24;
 
 namespace PDAC {
 
-void set_internal_params(flamegpu::ModelDescription& model, const PDAC::LymphCentralWrapper& lymph){
+void set_internal_params(flamegpu::ModelDescription& model,
+                         const PDAC::LymphCentralWrapper& lymph,
+                         const std::string& xml_path){
     flamegpu::EnvironmentDescription env = model.Environment();
 
     // Auto-generated derived parameters from DerivedParams section of param_all_test.xml

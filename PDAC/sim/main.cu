@@ -831,7 +831,7 @@ int main(int argc, const char** argv) {
         _lymph.set_presim_output_path(presim_qsp_path);
     }
     _lymph.initialize(param_file);
-    PDAC::set_internal_params(*model, _lymph);
+    PDAC::set_internal_params(*model, _lymph, param_file);
     PDAC::set_lymph_pointer(&_lymph);  // Set global pointer for QSP host functions
     init_lap("init_qsp");
 

@@ -234,6 +234,7 @@ add_executable(pdac
     ../core/ParamBase.cpp
     ../core/model_functions.cu
     ../abm/gpu_param.cu
+    ../abm/adhesion_matrix_loader.cpp
     set_healthy_populations.cpp
     evolve_to_diagnosis.cpp
 )
@@ -378,6 +379,7 @@ add_executable(pdac_test
     ../core/ParamBase.cpp
     ../core/model_functions.cu
     ../abm/gpu_param.cu
+    ../abm/adhesion_matrix_loader.cpp
 )
 
 target_link_libraries(pdac_test PRIVATE flamegpu)

@@ -152,7 +152,7 @@
       <Rc name="PARAM_VAS_RC" type="float" val="pr">4e-4</Rc>
       <sigma name="PARAM_VAS_SIGMA" type="float" val="pr">0.84</sigma>
       <branch_prob name="PARAM_VAS_BRANCH_PROB" type="float" val="pr">0.05</branch_prob>  <!-- PDAC slow angiogenesis; EC doubling 4-8 days -->
-      <min_neighbor name="PARAM_VAS_MIN_NEIGHBOR" type="float" val="pos">10</min_neighbor>  <!-- PDAC MVD 10-20/mm² → 160-224 um spacing -->
+      <min_neighbor name="PARAM_VAS_MIN_NEIGHBOR" type="float" val="pos">20</min_neighbor>  <!-- 2026-05-08: 10→20 (400µm spacing). Upper end of PDAC MVD literature; throttles TIP-migration over-sprouting that saturated the slab to 35% vas at min_n=10. -->
       <maturity_resistance name="PARAM_VAS_MATURITY_RESISTANCE" type="float" val="pr">0.04</maturity_resistance>      <!-- Mature vessels 5x resistant; pericyte coverage data -->
       <initial_maturity name="PARAM_VAS_INITIAL_MATURITY" type="float" val="pr">100</initial_maturity>             <!-- Maturity steps for pre-existing vessels -->
       <collapse_threshold name="PARAM_VAS_COLLAPSE_THRESHOLD" type="float" val="pr" units="nmol/mL">700</collapse_threshold>  <!-- Raw ECM density above which collapse possible (cap=1000) -->
@@ -235,16 +235,16 @@
       <crosslinkRate name="PARAM_ECM_CROSSLINK_RATE" type="float" val="pr" units="1/s">1e-6</crosslinkRate>     <!-- k_lox: LOX crosslink accumulation [1/s] -->
       <crosslinkResistance name="PARAM_ECM_CROSSLINK_RESISTANCE" type="float" val="pr">5.0</crosslinkResistance>  <!-- alpha: crosslink MMP resistance factor -->
       <baseline name="PARAM_ECM_BASELINE" type="float" val="pr" units="nmol/mL">10.0</baseline>              <!-- Floor density [nmol/mL] = 1% of saturation -->
-      <porosityCancer name="PARAM_ECM_POROSITY_CANCER" type="float" val="pr">0</porosityCancer>            <!-- BASELINE: 0 (was 0). Min porosity for cancer movement. -->
-      <porosityTcell name="PARAM_ECM_POROSITY_TCELL" type="float" val="pr">0</porosityTcell>              <!-- BASELINE: 0 (was 0.4). -->
-      <porosityTreg name="PARAM_ECM_POROSITY_TREG" type="float" val="pr">0</porosityTreg>               <!-- BASELINE: 0 (was 0.35). -->
-      <porosityTfh name="PARAM_ECM_POROSITY_TFH" type="float" val="pr">0</porosityTfh>                 <!-- BASELINE: 0 (was 0.35). -->
-      <porosityMDSC name="PARAM_ECM_POROSITY_MDSC" type="float" val="pr">0</porosityMDSC>                <!-- BASELINE: 0 (was 0.3). -->
-      <porosityMac name="PARAM_ECM_POROSITY_MAC" type="float" val="pr">0</porosityMac>                  <!-- BASELINE: 0 (was 0.3). -->
-      <porosityFib name="PARAM_ECM_POROSITY_FIB" type="float" val="pr">0</porosityFib>                 <!-- BASELINE: 0 (was 0.05). -->
-      <porosityBcell name="PARAM_ECM_POROSITY_BCELL" type="float" val="pr">0</porosityBcell>               <!-- BASELINE: 0 (was 0.35). -->
-      <porosityDC name="PARAM_ECM_POROSITY_DC" type="float" val="pr">0</porosityDC>                       <!-- BASELINE: 0 (was 0.3). -->
-      <porosityVasTip name="PARAM_ECM_POROSITY_VAS_TIP" type="float" val="pr">0</porosityVasTip>            <!-- BASELINE: 0 (was 0.2). -->
+      <porosityCancer name="PARAM_ECM_POROSITY_CANCER" type="float" val="pr">0</porosityCancer>            <!-- 0 — cancer EMT/amoeboid, not ECM-gated (Wolf & Friedl 2011). -->
+      <porosityTcell name="PARAM_ECM_POROSITY_TCELL" type="float" val="pr">0.15</porosityTcell>           <!-- 2026-05-07: Was 0.4 → too restrictive (T cells trapped at vasculature, ×0.86 patient ×0.06). 0.15 allows partial infiltration matching patient cyt×cancer ×0.55. -->
+      <porosityTreg name="PARAM_ECM_POROSITY_TREG" type="float" val="pr">0.15</porosityTreg>             <!-- 2026-05-07: Was 0.35 → 0.15. Same rationale as T cell. -->
+      <porosityTfh name="PARAM_ECM_POROSITY_TFH" type="float" val="pr">0.15</porosityTfh>               <!-- 2026-05-07: Was 0.35 → 0.15. -->
+      <porosityMDSC name="PARAM_ECM_POROSITY_MDSC" type="float" val="pr">0.15</porosityMDSC>            <!-- 2026-05-07: Was 0.3 → 0.15. -->
+      <porosityMac name="PARAM_ECM_POROSITY_MAC" type="float" val="pr">0.15</porosityMac>               <!-- 2026-05-07: Was 0.3 → 0.15. -->
+      <porosityFib name="PARAM_ECM_POROSITY_FIB" type="float" val="pr">0</porosityFib>                 <!-- 0 — fibroblasts traverse their own ECM freely. -->
+      <porosityBcell name="PARAM_ECM_POROSITY_BCELL" type="float" val="pr">0.15</porosityBcell>          <!-- 2026-05-07: Was 0.35 → 0.15. -->
+      <porosityDC name="PARAM_ECM_POROSITY_DC" type="float" val="pr">0.15</porosityDC>                  <!-- 2026-05-07: Was 0.3 → 0.15. -->
+      <porosityVasTip name="PARAM_ECM_POROSITY_VAS_TIP" type="float" val="pr">0.2</porosityVasTip>        <!-- Vas tips need to push through ECM during sprouting; literature ~0.2. -->
       <vasCompressK name="PARAM_VAS_ECM_COMPRESS_K" type="float" val="pr" units="nmol/mL">200.0</vasCompressK>  <!-- EC50 for ECM vascular compression. ~79% vessel loss at PDAC baseline (Chauhan2013, Stylianopoulos2013) -->
       <yapEC50 name="PARAM_ECM_YAP_EC50" type="float" val="pr" units="nmol/mL">800.0</yapEC50>               <!-- YAP/TAZ Hill ceiling: stiffness EC50 (density*(1+crosslink)) [nmol/mL] -->
       <!-- Fiber orientation (anisotropy) -->
@@ -267,7 +267,7 @@
       <ecm_tumor_density name="PARAM_DOMAIN_ECM_TUMOR_DENSITY" type="float" val="pr" units="nmol/mL">100.0</ecm_tumor_density>
       <!-- Cell densities from healthy pancreas IMC (cells/mm³, median of lognormal) -->
       <fibroblast_density name="PARAM_DOMAIN_FIB_DENSITY" type="float" val="pr" units="cells/mm3">10000</fibroblast_density>
-      <vascular_density name="PARAM_DOMAIN_VAS_DENSITY" type="float" val="pr" units="cells/mm3">9661</vascular_density>
+      <vascular_density name="PARAM_DOMAIN_VAS_DENSITY" type="float" val="pr" units="cells/mm3">5000</vascular_density>  <!-- 2026-05-08: 9661→5000. Old value was healthy-pancreas IMC; PDAC is hypovascular. Drift from TIP migration adds ~7-15k cells over 87 presim steps so 5000 lands the slab near patient target ~20k. -->
       <macrophage_density name="PARAM_DOMAIN_MAC_DENSITY" type="float" val="pr" units="cells/mm3">0</macrophage_density>   <!-- BASELINE: 0 (was 2846). Recruited only. -->
       <cd8_density name="PARAM_DOMAIN_CD8_DENSITY" type="float" val="pr" units="cells/mm3">0</cd8_density>                 <!-- BASELINE: 0 (was 1958). Recruited only. -->
       <cd4_density name="PARAM_DOMAIN_CD4_DENSITY" type="float" val="pr" units="cells/mm3">0</cd4_density>                 <!-- BASELINE: 0 (was 580). Recruited only. -->
@@ -308,7 +308,7 @@
         <tcell_sup_ci name="PARAM_CHEMO_CI_TCELL_SUP" type="float" val="pr">0.03</tcell_sup_ci>            <!-- Suppressed: minimal directed movement -->
         <mac_m1_ci name="PARAM_CHEMO_CI_MAC_M1" type="float" val="pr">0.106</mac_m1_ci>              <!-- MAPLE posterior 0.106. Lee2020 -->
         <mac_m2_ci name="PARAM_CHEMO_CI_MAC_M2" type="float" val="pr">0.276</mac_m2_ci>              <!-- MAPLE posterior 0.276. Lee2020, Cui2018 -->
-        <fib_mycaf_ci name="PARAM_CHEMO_CI_FIB_MYCAF" type="float" val="pr">0.0</fib_mycaf_ci>     <!-- 2026-05-06: Disabled. Established myCAFs in PDAC are sessile in dense desmoplastic matrix; cancer-boundary localization emerges from iCAF→myCAF state transition driven by cancer-secreted TGF-β, not active CAF migration. Was 0.17 → produced runaway autocrine TGF-β self-clustering distant from cancer. -->
+        <fib_mycaf_ci name="PARAM_CHEMO_CI_FIB_MYCAF" type="float" val="pr">0.05</fib_mycaf_ci>    <!-- 2026-05-07: best-config value after manual exploration. CI/adh/decay interactions are complex enough that further tuning needs a proper sweep. -->
         <vas_tip_ci name="PARAM_CHEMO_CI_VAS_TIP" type="float" val="pr">0.27</vas_tip_ci>
         <treg_reg_ci name="PARAM_CHEMO_CI_TREG_REG" type="float" val="pr">0.13</treg_reg_ci>
         <treg_tfh_ci name="PARAM_CHEMO_CI_TREG_TFH" type="float" val="pr">0.126</treg_tfh_ci>              <!-- MAPLE posterior 0.126. Liu2016 CXCL13 -->
@@ -326,7 +326,7 @@
       <!-- TEMPORARILY DISABLED (Apr 29 2026): adhesion turned off for parameter sweep.
            Tag renamed to AdhesionMatrix_DISABLED so codegen falls through to zeroed array.
            To re-enable: rename back to AdhesionMatrix (open and close) and rerun codegen. -->
-      <AdhesionMatrix_DISABLED>
+      <AdhesionMatrix>
         <!-- Cancer Stem (EMT, reduced E-cadherin) -->
         <cancer_stem>
           <cancer_stem>0.05</cancer_stem>  <!-- Krebs2017: Zeb1-KO EMT, reduced E-cad. Stem/prog ratio 3-5x; temp drop to 0.05 from 0.15-->
@@ -357,12 +357,16 @@
           <fib_mycaf>0.1</fib_mycaf>
           <fib_icaf>0.1</fib_icaf>
         </mac_m2>
-        <!-- Fibroblast myCAF (strong ECM anchorage, N-cadherin) -->
+        <!-- Fibroblast myCAF (strong ECM anchorage, N-cadherin)
+             2026-05-07: bumped self-adhesion 0.1 → 0.3 to drive desmoplastic clustering
+             (patient fib_myCAF×fib_myCAF=0.46, sim was 0.05). Lowered cancer adhesion
+             0.1 → 0.03 so myCAFs don't get spread across cancer-rich voxels — they
+             cluster with each other instead. -->
         <fib_mycaf>
-          <cancer_stem>0.1</cancer_stem>
-          <cancer_prog>0.1</cancer_prog>
+          <cancer_stem>0.03</cancer_stem>
+          <cancer_prog>0.03</cancer_prog>
           <fib_quiescent>0.1</fib_quiescent>
-          <fib_mycaf>0.1</fib_mycaf>
+          <fib_mycaf>0.3</fib_mycaf>
           <fib_icaf>0.1</fib_icaf>
           <fib_frc>0.1</fib_frc>
         </fib_mycaf>
@@ -378,10 +382,10 @@
         <!-- B cell Activated (homotypic adhesion in TLS) -->
         <bcell_act>
           <bcell_naive>0.0</bcell_naive>
-          <bcell_act>0.3</bcell_act>
-          <bcell_plasma>0.3</bcell_plasma>
+          <bcell_act>0.30</bcell_act>
+          <bcell_plasma>0.30</bcell_plasma>
         </bcell_act>
-      </AdhesionMatrix_DISABLED>
+      </AdhesionMatrix>
       <ContactGuidance>
         <!-- Per-type contact guidance strength: amplifies movement along fiber axis, suppresses perpendicular -->
         <cancer_stem name="PARAM_CONTACT_GUIDANCE_CANCER_STEM" type="float" val="pr">0</cancer_stem>     <!-- BASELINE: 0 (was 0.65) -->
@@ -989,7 +993,7 @@
       <k_IFNg_deg>7.68</k_IFNg_deg>
       <IFNg_50_ind>2.96</IFNg_50_ind>
       <k_TGFb_Tsec>1.2e-10</k_TGFb_Tsec>
-      <k_TGFb_deg>300</k_TGFb_deg>  <!-- 2026-05-06: Was 14.3→100→300. 100 reduced field max 10× but distant voxels (~0.08 nM) still > EC50 (0.07 nM), so myCAF activated everywhere. 300 = ~3-min half-life, L=85µm — drives empty-voxel TGFB well below EC50, restricting myCAF activation to cancer-adjacent. Lower bound of literature half-life range. -->
+      <k_TGFb_deg>300</k_TGFb_deg>  <!-- 2026-05-07 isolation test: revert to 300 with CI=0.10 (was CI=0.05). Tests whether decay or CI drives the regression. -->
       <TGFb_baseline>0.016</TGFb_baseline>
       <TGFb_50>0.07</TGFb_50>
       <TGFb_50_Teff>0.14</TGFb_50_Teff>
@@ -1028,7 +1032,7 @@
       <k_M1_pol>0.045</k_M1_pol>
       <IL10_50>8.0</IL10_50>
       <IL12_50>15.0</IL12_50>
-      <IFNg_50>1000.0</IFNg_50>
+      <IFNg_50>100.0</IFNg_50>  <!-- 2026-05-06: Was 1000 pM (high end of literature, transcription-readout assays). Tumor tissue IFN-γ is 0.6-60 pM, would put field mostly below EC50 → no M1 polarization. Dropped to 100 pM (mid-literature for functional M1 polarization, Murray 2006); enables IFN-γ-driven M1 at physiological field magnitudes. -->
       <k_M1_phago>0.33</k_M1_phago>
       <vol_Mcell>4849.04826081585</vol_Mcell>
       <kon_CD47_SIRPa>0.0625</kon_CD47_SIRPa>

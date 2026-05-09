@@ -447,7 +447,7 @@ int runTest(const TestConfig& config) {
     // 3. Initialize QSP (needed for derived params even if QSP layer is off)
     LymphCentralWrapper lymph;
     lymph.initialize(config.param_file);
-    set_internal_params(*model, lymph);
+    set_internal_params(*model, lymph, config.param_file);
 
     // 4. Initialize PDE solver
     float dt_abm = model->Environment().getProperty<float>("PARAM_SEC_PER_SLICE");

@@ -119,7 +119,7 @@
       <Rc name="PARAM_VAS_RC" type="float" val="pr">4e-4</Rc>
       <sigma name="PARAM_VAS_SIGMA" type="float" val="pr">0.84</sigma>
       <branch_prob name="PARAM_VAS_BRANCH_PROB" type="float" val="pr">0.05</branch_prob>  <!-- PDAC slow angiogenesis; EC doubling 4-8 days -->
-      <min_neighbor name="PARAM_VAS_MIN_NEIGHBOR" type="float" val="pos">10</min_neighbor>  <!-- PDAC MVD 10-20/mm² → 160-224 um spacing -->
+      <min_neighbor name="PARAM_VAS_MIN_NEIGHBOR" type="float" val="pos">20</min_neighbor>  <!-- 2026-05-08: 10→20 (400µm spacing). Upper end of PDAC MVD literature; throttles TIP-migration over-sprouting that saturated the slab to 35% vas at min_n=10. -->
       <maturity_resistance name="PARAM_VAS_MATURITY_RESISTANCE" type="float" val="pr">0.04</maturity_resistance>      <!-- Mature vessels 5x resistant; pericyte coverage data -->
       <initial_maturity name="PARAM_VAS_INITIAL_MATURITY" type="float" val="pr">100</initial_maturity>             <!-- Maturity steps for pre-existing vessels -->
       <collapse_threshold name="PARAM_VAS_COLLAPSE_THRESHOLD" type="float" val="pr" units="nmol/mL">700</collapse_threshold>  <!-- Raw ECM density above which collapse possible (cap=1000) -->
@@ -234,7 +234,7 @@
       <ecm_tumor_density name="PARAM_DOMAIN_ECM_TUMOR_DENSITY" type="float" val="pr" units="nmol/mL">100.0</ecm_tumor_density>
       <!-- Cell densities from healthy pancreas IMC (cells/mm³, median of lognormal) -->
       <fibroblast_density name="PARAM_DOMAIN_FIB_DENSITY" type="float" val="pr" units="cells/mm3">10000</fibroblast_density>
-      <vascular_density name="PARAM_DOMAIN_VAS_DENSITY" type="float" val="pr" units="cells/mm3">9661</vascular_density>
+      <vascular_density name="PARAM_DOMAIN_VAS_DENSITY" type="float" val="pr" units="cells/mm3">5000</vascular_density>  <!-- 2026-05-08: 9661→5000. Old value was healthy-pancreas IMC; PDAC is hypovascular. Drift from TIP migration adds ~7-15k cells over 87 presim steps so 5000 lands the slab near patient target ~20k. -->
       <macrophage_density name="PARAM_DOMAIN_MAC_DENSITY" type="float" val="pr" units="cells/mm3">2846</macrophage_density>
       <cd8_density name="PARAM_DOMAIN_CD8_DENSITY" type="float" val="pr" units="cells/mm3">1958</cd8_density>
       <cd4_density name="PARAM_DOMAIN_CD4_DENSITY" type="float" val="pr" units="cells/mm3">580</cd4_density>
@@ -275,7 +275,7 @@
         <tcell_sup_ci name="PARAM_CHEMO_CI_TCELL_SUP" type="float" val="pr">0.03</tcell_sup_ci>            <!-- Suppressed: minimal directed movement -->
         <mac_m1_ci name="PARAM_CHEMO_CI_MAC_M1" type="float" val="pr">0.106</mac_m1_ci>              <!-- MAPLE posterior 0.106. Lee2020 -->
         <mac_m2_ci name="PARAM_CHEMO_CI_MAC_M2" type="float" val="pr">0.276</mac_m2_ci>              <!-- MAPLE posterior 0.276. Lee2020, Cui2018 -->
-        <fib_mycaf_ci name="PARAM_CHEMO_CI_FIB_MYCAF" type="float" val="pr">0.0</fib_mycaf_ci>     <!-- 2026-05-06: Disabled. Established myCAFs in PDAC are sessile in dense desmoplastic matrix; cancer-boundary localization emerges from iCAF→myCAF state transition driven by cancer-secreted TGF-β, not active CAF migration. Was 0.17 → produced runaway autocrine TGF-β self-clustering distant from cancer. -->
+        <fib_mycaf_ci name="PARAM_CHEMO_CI_FIB_MYCAF" type="float" val="pr">0.05</fib_mycaf_ci>    <!-- 2026-05-07: best-config value after manual exploration. CI/adh/decay interactions are complex enough that further tuning needs a proper sweep. -->
         <vas_tip_ci name="PARAM_CHEMO_CI_VAS_TIP" type="float" val="pr">0.27</vas_tip_ci>
         <treg_reg_ci name="PARAM_CHEMO_CI_TREG_REG" type="float" val="pr">0.13</treg_reg_ci>
         <treg_tfh_ci name="PARAM_CHEMO_CI_TREG_TFH" type="float" val="pr">0.126</treg_tfh_ci>              <!-- MAPLE posterior 0.126. Liu2016 CXCL13 -->
@@ -293,7 +293,7 @@
       <!-- TEMPORARILY DISABLED (Apr 29 2026): adhesion turned off for parameter sweep.
            Tag renamed to AdhesionMatrix_DISABLED so codegen falls through to zeroed array.
            To re-enable: rename back to AdhesionMatrix (open and close) and rerun codegen. -->
-      <AdhesionMatrix_DISABLED>
+      <AdhesionMatrix>
         <!-- Cancer Stem (EMT, reduced E-cadherin) -->
         <cancer_stem>
           <cancer_stem>0.05</cancer_stem>  <!-- Krebs2017: Zeb1-KO EMT, reduced E-cad. Stem/prog ratio 3-5x; temp drop to 0.05 from 0.15-->
@@ -324,12 +324,16 @@
           <fib_mycaf>0.1</fib_mycaf>
           <fib_icaf>0.1</fib_icaf>
         </mac_m2>
-        <!-- Fibroblast myCAF (strong ECM anchorage, N-cadherin) -->
+        <!-- Fibroblast myCAF (strong ECM anchorage, N-cadherin)
+             2026-05-07: bumped self-adhesion 0.1 → 0.3 to drive desmoplastic clustering
+             (patient fib_myCAF×fib_myCAF=0.46, sim was 0.05). Lowered cancer adhesion
+             0.1 → 0.03 so myCAFs don't get spread across cancer-rich voxels — they
+             cluster with each other instead. -->
         <fib_mycaf>
-          <cancer_stem>0.1</cancer_stem>
-          <cancer_prog>0.1</cancer_prog>
+          <cancer_stem>0.03</cancer_stem>
+          <cancer_prog>0.03</cancer_prog>
           <fib_quiescent>0.1</fib_quiescent>
-          <fib_mycaf>0.1</fib_mycaf>
+          <fib_mycaf>0.3</fib_mycaf>
           <fib_icaf>0.1</fib_icaf>
           <fib_frc>0.1</fib_frc>
         </fib_mycaf>
@@ -345,10 +349,10 @@
         <!-- B cell Activated (homotypic adhesion in TLS) -->
         <bcell_act>
           <bcell_naive>0.0</bcell_naive>
-          <bcell_act>0.3</bcell_act>
-          <bcell_plasma>0.3</bcell_plasma>
+          <bcell_act>0.30</bcell_act>
+          <bcell_plasma>0.30</bcell_plasma>
         </bcell_act>
-      </AdhesionMatrix_DISABLED>
+      </AdhesionMatrix>
       <ContactGuidance>
         <!-- Per-type contact guidance strength: amplifies movement along fiber axis, suppresses perpendicular -->
         <cancer_stem name="PARAM_CONTACT_GUIDANCE_CANCER_STEM" type="float" val="pr">0.65</cancer_stem>
@@ -956,7 +960,7 @@
       <k_IFNg_deg>7.68</k_IFNg_deg>
       <IFNg_50_ind>2.96</IFNg_50_ind>
       <k_TGFb_Tsec>1.2e-10</k_TGFb_Tsec>
-      <k_TGFb_deg>300</k_TGFb_deg>  <!-- 2026-05-06: Was 14.3→100→300. 100 reduced field max 10× but distant voxels (~0.08 nM) still > EC50 (0.07 nM), so myCAF activated everywhere. 300 = ~3-min half-life, L=85µm — drives empty-voxel TGFB well below EC50, restricting myCAF activation to cancer-adjacent. Lower bound of literature half-life range. -->
+      <k_TGFb_deg>300</k_TGFb_deg>  <!-- 2026-05-07 isolation test: revert to 300 with CI=0.10 (was CI=0.05). Tests whether decay or CI drives the regression. -->
       <TGFb_baseline>0.016</TGFb_baseline>
       <TGFb_50>0.07</TGFb_50>
       <TGFb_50_Teff>0.14</TGFb_50_Teff>
@@ -995,7 +999,7 @@
       <k_M1_pol>0.045</k_M1_pol>
       <IL10_50>8.0</IL10_50>
       <IL12_50>15.0</IL12_50>
-      <IFNg_50>1000.0</IFNg_50>
+      <IFNg_50>100.0</IFNg_50>  <!-- 2026-05-06: Was 1000 pM (high end of literature, transcription-readout assays). Tumor tissue IFN-γ is 0.6-60 pM, would put field mostly below EC50 → no M1 polarization. Dropped to 100 pM (mid-literature for functional M1 polarization, Murray 2006); enables IFN-γ-driven M1 at physiological field magnitudes. -->
       <k_M1_phago>0.33</k_M1_phago>
       <vol_Mcell>4849.04826081585</vol_Mcell>
       <kon_CD47_SIRPa>0.0625</kon_CD47_SIRPa>
