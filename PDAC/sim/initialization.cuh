@@ -24,8 +24,17 @@ struct SimulationConfig {
     unsigned int steps;
     unsigned int random_seed;
 
-    // Initialization method (0 = QSP-seeded, only supported mode)
+    // Initialization method (0 = QSP-seeded, 1 = structured)
     int init_method;
+
+    // Scenario: bundles policy (auto-named output dir, mode forcing,
+    // immune-zero init). Orthogonal to init_method.
+    enum class Scenario { Default, SingleStemEdge };
+    Scenario scenario;
+
+    // For SingleStemEdge: which face of the domain to place the seed cell on.
+    // Accepts: x_low | x_high | y_low | y_high | z_low | z_high
+    std::string seed_position;
 
     // Vasculature initialization mode
     std::string vascular_mode;  // "random", "xml", "test"
@@ -161,6 +170,20 @@ void initializeToQSP(
 // Structured domain initialization with lobular architecture (-i 1)
 // Generates tissue structure, pre-seeds ECM, places cells by region
 void initializeStructuredDomain(
+    flamegpu::CUDASimulation& simulation,
+    flamegpu::ModelDescription& model,
+    const SimulationConfig& config,
+    const LymphCentralWrapper& lymph);
+
+// Single-stem-cell-at-edge diagnostic init.
+// Domain pre-populated with resident healthy cells only:
+//   - vasculature network (random sprouting, no tumor exclusion zone)
+//   - quiescent pancreatic stellate cells (PSCs) at fixed density
+// Then places exactly one cancer stem cell on the chosen domain face
+// (config.seed_position). No immune agents are placed; FLAMEGPU requires
+// setPopulationData on every agent type so empty populations are submitted.
+// Designed to be run with --presim-mode abm_only --main-mode abm_only.
+void initializeSingleStemEdge(
     flamegpu::CUDASimulation& simulation,
     flamegpu::ModelDescription& model,
     const SimulationConfig& config,

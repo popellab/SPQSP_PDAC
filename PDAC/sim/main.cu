@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <nvtx3/nvToolsExt.h>
 #include <chrono>
+#include <ctime>
 #include <filesystem>
 #include <thread>
 
@@ -52,11 +53,23 @@ namespace PDAC {
 // Output Directory Management
 // ============================================================================
 
+// Global output root. Default matches legacy behavior ("outputs"); may be
+// overridden by --output-root <path> or by the auto-naming scenario logic.
+// Parsed in a pre-pass before _lymph.initialize() so the presim QSP CSV
+// lands in the right place.
+static std::string g_output_root = "outputs";
+
+// Compose an output path: <output_root>/<rel>.
+static inline std::string out_path(const std::string& rel) {
+    return g_output_root + "/" + rel;
+}
+
 // Ensure output directories exist, creating them if necessary
 void ensureOutputDirectories() {
     try {
-        std::filesystem::create_directories("outputs/pde");
-        std::filesystem::create_directories("outputs/abm");
+        std::filesystem::create_directories(out_path("pde"));
+        std::filesystem::create_directories(out_path("abm"));
+        std::filesystem::create_directories(out_path("ecm"));
     } catch (const std::exception& e) {
         std::cerr << "Warning: Could not create output directories: " << e.what() << std::endl;
     }
@@ -223,7 +236,7 @@ void exportPDEData_step0(int grid_x, int grid_y, int grid_z) {
     ensureOutputDirectories();
     if (!PDAC::g_pde_solver) return;
     if (g_pde_io_thread.joinable()) g_pde_io_thread.join();
-    export_pde_async_no_join(grid_x, grid_y, grid_z, "outputs/pde/pde_step_000000.pde.lz4");
+    export_pde_async_no_join(grid_x, grid_y, grid_z, out_path("pde/pde_step_000000.pde.lz4"));
 }
 
 FLAMEGPU_STEP_FUNCTION(exportPDEData) {
@@ -247,9 +260,9 @@ FLAMEGPU_STEP_FUNCTION(exportPDEData) {
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
     char path_buf[256];
-    snprintf(path_buf, sizeof(path_buf), "outputs/pde/pde_step_%06d.pde.lz4",
+    snprintf(path_buf, sizeof(path_buf), "pde/pde_step_%06d.pde.lz4",
              static_cast<int>(main_step + 1));
-    export_pde_async_no_join(grid_x, grid_y, grid_z, std::string(path_buf));
+    export_pde_async_no_join(grid_x, grid_y, grid_z, out_path(path_buf));
 
     auto t2 = std::chrono::high_resolution_clock::now();
     PDAC::g_layer_timings.push_back({"io_pde_join",
@@ -336,11 +349,11 @@ static void collect_ecm_to_buf(std::vector<float>& buf, int grid_x, int grid_y, 
 }
 
 void exportECMData_step0(int grid_x, int grid_y, int grid_z) {
-    try { std::filesystem::create_directories("outputs/ecm"); } catch (...) {}
+    try { std::filesystem::create_directories(out_path("ecm")); } catch (...) {}
     if (g_ecm_io_thread.joinable()) g_ecm_io_thread.join();
     int bi = g_ecm_buf_idx;
     collect_ecm_to_buf(g_ecm_bufs[bi], grid_x, grid_y, grid_z);
-    std::string path = "outputs/ecm/ecm_step_000000.ecm.lz4";
+    std::string path = out_path("ecm/ecm_step_000000.ecm.lz4");
     g_ecm_io_thread = std::thread([bi, path, grid_x, grid_y, grid_z]() {
         write_ecm_lz4_buf(path.c_str(), grid_x, grid_y, grid_z, g_ecm_bufs[bi]);
     });
@@ -354,7 +367,7 @@ FLAMEGPU_STEP_FUNCTION(exportECMData) {
     const int interval = FLAMEGPU->environment.getProperty<int>("interval_out");
     if (main_step % interval != 0) return;
 
-    try { std::filesystem::create_directories("outputs/ecm"); } catch (...) {}
+    try { std::filesystem::create_directories(out_path("ecm")); } catch (...) {}
 
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
@@ -365,9 +378,9 @@ FLAMEGPU_STEP_FUNCTION(exportECMData) {
     collect_ecm_to_buf(g_ecm_bufs[bi], grid_x, grid_y, grid_z);
 
     char path_buf[256];
-    snprintf(path_buf, sizeof(path_buf), "outputs/ecm/ecm_step_%06d.ecm.lz4",
+    snprintf(path_buf, sizeof(path_buf), "ecm/ecm_step_%06d.ecm.lz4",
              static_cast<int>(main_step + 1));
-    std::string path = path_buf;
+    std::string path = out_path(path_buf);
     g_ecm_io_thread = std::thread([bi, path, grid_x, grid_y, grid_z]() {
         write_ecm_lz4_buf(path.c_str(), grid_x, grid_y, grid_z, g_ecm_bufs[bi]);
     });
@@ -641,7 +654,7 @@ void exportABMData_step0(flamegpu::CUDASimulation& sim, flamegpu::ModelDescripti
     if (g_abm_io_thread.joinable()) g_abm_io_thread.join();
     int bi = g_abm_buf_idx;
     collect_abm_step0(sim, model, g_abm_bufs[bi]);
-    std::string path = "outputs/abm/agents_step_000000.abm.lz4";
+    std::string path = out_path("abm/agents_step_000000.abm.lz4");
     g_abm_io_thread = std::thread([bi, path]() {
         write_abm_lz4(path.c_str(), g_abm_bufs[bi]);
     });
@@ -676,9 +689,9 @@ FLAMEGPU_STEP_FUNCTION(exportABMData) {
     auto t2 = std::chrono::high_resolution_clock::now();
 
     char path_buf[256];
-    snprintf(path_buf, sizeof(path_buf), "outputs/abm/agents_step_%06d.abm.lz4",
+    snprintf(path_buf, sizeof(path_buf), "abm/agents_step_%06d.abm.lz4",
              static_cast<int>(main_step + 1));
-    std::string path = path_buf;
+    std::string path = out_path(path_buf);
     int32_t* host_buf = g_abm_pinned[bi];
     int n_agents_copy = static_cast<int>(n_agents);
     g_abm_io_thread = std::thread([host_buf, n_agents_copy, path]() {
@@ -778,6 +791,42 @@ int main(int argc, const char** argv) {
         }
     }
 
+    // Pre-pass: --output-root must be resolved before _lymph.initialize() and
+    // the init_timing.csv open below, both of which write under g_output_root.
+    // Also pre-detect --scenario so auto-naming can be applied before any
+    // output-root-dependent file is touched.
+    bool scenario_single_stem_edge = false;
+    unsigned int scenario_seed = 12345;
+    for (int i = 1; i < argc; i++) {
+        std::string a = argv[i];
+        if (a == "--output-root" && i + 1 < argc) {
+            g_output_root = argv[++i];
+        } else if (a == "--scenario" && i + 1 < argc) {
+            std::string s = argv[++i];
+            if (s == "single_stem_edge") scenario_single_stem_edge = true;
+        } else if (a == "--seed" && i + 1 < argc) {
+            scenario_seed = static_cast<unsigned int>(std::atoi(argv[++i]));
+        }
+    }
+    if (scenario_single_stem_edge && g_output_root == "outputs") {
+        std::time_t now_t = std::time(nullptr);
+        std::tm tm_local{};
+        localtime_r(&now_t, &tm_local);
+        char ts[32];
+        std::strftime(ts, sizeof(ts), "%Y%m%d-%H%M%S", &tm_local);
+        char buf[256];
+        snprintf(buf, sizeof(buf), "results/single_stem_edge_%u_%s",
+                 scenario_seed, ts);
+        g_output_root = buf;
+    }
+    try {
+        std::filesystem::create_directories(g_output_root);
+    } catch (const std::exception& e) {
+        std::cerr << "Warning: could not create output root '" << g_output_root
+                  << "': " << e.what() << std::endl;
+    }
+    std::cout << "Output root: " << g_output_root << std::endl;
+
     // Load XML parameters
     std::cout << "Loading parameters from: " << param_file << std::endl;
     PDAC::GPUParam gpu_params;
@@ -792,13 +841,30 @@ int main(int argc, const char** argv) {
     // Parse configuration from command line
     PDAC::SimulationConfig config;
     config.parseCommandLine(argc, argv, gpu_params);
+
+    // Scenario policy: force ABM-only and pick a sane presim step count.
+    // Done before config.print() so the printed mode reflects what will run.
+    if (config.scenario == PDAC::SimulationConfig::Scenario::SingleStemEdge) {
+        if (config.presim_qsp_enabled || config.main_qsp_enabled) {
+            std::cerr << "[scenario:single_stem_edge] forcing --presim-mode abm_only --main-mode abm_only "
+                         "(QSP coupling is not meaningful for a single-cell seed)." << std::endl;
+        }
+        config.presim_qsp_enabled = false;
+        config.main_qsp_enabled   = false;
+        if (config.presim_steps < 0) {
+            config.presim_steps = 100;
+            std::cerr << "[scenario:single_stem_edge] defaulting --presim-steps to 100 "
+                         "(volume stopper not usable with frozen QSP)." << std::endl;
+        }
+    }
+
     config.print();
 
     // Seed random number generator
     srand(config.random_seed);
 
     // ========== INITIALIZATION TIMING ==========
-    std::ofstream init_file("outputs/init_timing.csv");
+    std::ofstream init_file(out_path("init_timing.csv"));
     init_file << "phase,ms\n";
     auto init_t0 = std::chrono::high_resolution_clock::now();
     auto init_lap = [&](const std::string& label) {
@@ -825,10 +891,9 @@ int main(int argc, const char** argv) {
     PDAC::LymphCentralWrapper _lymph;
     {
         // Set presim output path before initialize() so Phase 2 warmup writes per-step QSP CSV
-        char presim_qsp_path[256];
-        snprintf(presim_qsp_path, sizeof(presim_qsp_path),
-                 "outputs/qsp_presim_%u.csv", config.random_seed);
-        _lymph.set_presim_output_path(presim_qsp_path);
+        char rel[64];
+        snprintf(rel, sizeof(rel), "qsp_presim_%u.csv", config.random_seed);
+        _lymph.set_presim_output_path(out_path(rel));
     }
     _lymph.initialize(param_file);
     PDAC::set_internal_params(*model, _lymph, param_file);
@@ -918,10 +983,36 @@ int main(int argc, const char** argv) {
     // the only place they ever get populated, so ABM reads post-warmup values
     // instead of the 0.0 default.
     PDAC::seed_qsp_env_properties(simulation);
+
+    // For the single-stem-edge diagnostic, the post-warmup QSP state represents
+    // a fully grown tumor. If we leave those systemic pools (Teff/TH/Treg
+    // central) populated, vascular recruitment fires immediately from step 0
+    // and floods the "healthy" resident domain with immune cells. Zero them
+    // out so recruitment is driven purely by what the single seed cell
+    // produces locally (which is essentially nothing).
+    if (config.scenario == PDAC::SimulationConfig::Scenario::SingleStemEdge) {
+        const char* zero_props[] = {
+            "qsp_teff_central", "qsp_treg_central", "qsp_th_central",
+            "qsp_teff_tumor",   "qsp_treg_tumor",   "qsp_th_tumor",
+            "qsp_mdsc_tumor",   "qsp_m1_tumor",     "qsp_m2_tumor",
+            "qsp_caf_tumor",    "qsp_cc_tumor",     "qsp_cx_tumor",
+            "qsp_t_exh_tumor",  "qsp_nivo_tumor",   "qsp_cabo_tumor",
+            "qsp_ipi_tumor",
+        };
+        for (const char* p : zero_props) {
+            try { simulation.setEnvironmentProperty<float>(p, 0.0f); }
+            catch (const std::exception&) { /* property may not exist */ }
+        }
+        std::cerr << "[scenario:single_stem_edge] zeroed QSP-seeded env "
+                     "properties to suppress warmup-driven recruitment." << std::endl;
+    }
     init_lap("cuda_sim_create");
 
     // ========== INITIALIZE AGENTS ==========
-    if (config.init_method == 1) {
+    if (config.scenario == PDAC::SimulationConfig::Scenario::SingleStemEdge) {
+        std::cout << "Initializing single-stem-edge scenario (resident vasc+PSC + 1 stem cell)..." << std::endl;
+        PDAC::initializeSingleStemEdge(simulation, *model, config, _lymph);
+    } else if (config.init_method == 1) {
         std::cout << "Initializing structured domain (-i 1)..." << std::endl;
         PDAC::initializeStructuredDomain(simulation, *model, config, _lymph);
     } else {
@@ -1010,19 +1101,19 @@ int main(int argc, const char** argv) {
             if (config.grid_out & 2) {
                 // PDE snapshot
                 if (g_pde_io_thread.joinable()) g_pde_io_thread.join();
-                char pde_path[256];
-                snprintf(pde_path, sizeof(pde_path),
-                         "outputs/pde/pde_presim_%06u.pde.lz4", presim_step);
-                export_pde_async_no_join(gx, gy, gz, std::string(pde_path));
+                char pde_rel[64];
+                snprintf(pde_rel, sizeof(pde_rel),
+                         "pde/pde_presim_%06u.pde.lz4", presim_step);
+                export_pde_async_no_join(gx, gy, gz, out_path(pde_rel));
 
                 // ECM snapshot
                 if (g_ecm_io_thread.joinable()) g_ecm_io_thread.join();
                 int ecm_bi = g_ecm_buf_idx;
                 collect_ecm_to_buf(g_ecm_bufs[ecm_bi], gx, gy, gz);
                 std::string ecm_path = [&]() {
-                    char buf[256];
-                    snprintf(buf, sizeof(buf), "outputs/ecm/ecm_presim_%06u.ecm.lz4", presim_step);
-                    return std::string(buf);
+                    char buf[64];
+                    snprintf(buf, sizeof(buf), "ecm/ecm_presim_%06u.ecm.lz4", presim_step);
+                    return out_path(buf);
                 }();
                 g_ecm_io_thread = std::thread([ecm_bi, ecm_path, gx, gy, gz]() {
                     write_ecm_lz4_buf(ecm_path.c_str(), gx, gy, gz, g_ecm_bufs[ecm_bi]);
@@ -1036,10 +1127,10 @@ int main(int argc, const char** argv) {
                 int abm_bi = g_abm_buf_idx;
                 collect_abm_step0(simulation, *model, g_abm_bufs[abm_bi]);
                 std::string abm_path = [&]() {
-                    char buf[256];
+                    char buf[64];
                     snprintf(buf, sizeof(buf),
-                             "outputs/abm/agents_presim_%06u.abm.lz4", presim_step);
-                    return std::string(buf);
+                             "abm/agents_presim_%06u.abm.lz4", presim_step);
+                    return out_path(buf);
                 }();
                 g_abm_io_thread = std::thread([abm_bi, abm_path]() {
                     write_abm_lz4(abm_path.c_str(), g_abm_bufs[abm_bi]);
@@ -1069,10 +1160,13 @@ int main(int argc, const char** argv) {
     init_file.close();
 
     // ========== BUILD SEED-STAMPED FILE NAMES ==========
-    char stats_path[256], timing_path[256], qsp_seed_path[256];
-    snprintf(stats_path,    sizeof(stats_path),    "outputs/stats_%u.csv",  config.random_seed);
-    snprintf(timing_path,   sizeof(timing_path),   "outputs/timing_%u.csv", config.random_seed);
-    snprintf(qsp_seed_path, sizeof(qsp_seed_path), "outputs/qsp_%u.csv",    config.random_seed);
+    char rel_buf[64];
+    snprintf(rel_buf, sizeof(rel_buf), "stats_%u.csv",  config.random_seed);
+    std::string stats_path = out_path(rel_buf);
+    snprintf(rel_buf, sizeof(rel_buf), "timing_%u.csv", config.random_seed);
+    std::string timing_path = out_path(rel_buf);
+    snprintf(rel_buf, sizeof(rel_buf), "qsp_%u.csv",    config.random_seed);
+    std::string qsp_seed_path = out_path(rel_buf);
     PDAC::set_qsp_output_path(qsp_seed_path);
 
     // ========== EXPORT DAY-0 STATE (after presim, before first treatment step) ==========
@@ -1087,9 +1181,9 @@ int main(int argc, const char** argv) {
 
     // Write LZ4 format definition text files once at init
     {
-        std::filesystem::create_directories("outputs");
+        std::filesystem::create_directories(g_output_root);
         {
-            std::ofstream f("outputs/abm_lz4_def.txt");
+            std::ofstream f(out_path("abm_lz4_def.txt"));
             f << "ABM snapshot LZ4 definition (.abm.lz4)\n"
               << "Header (20 bytes): magic='ABM1', n_agents(i32), n_cols=8(i32), raw_bytes(i32), comp_bytes(i32)\n"
               << "Data: LZ4-compressed int32 array, shape (N_agents, 8)\n"
@@ -1116,7 +1210,7 @@ int main(int argc, const char** argv) {
               << "      data = data.reshape(n, nc)\n";
         }
         {
-            std::ofstream f("outputs/pde_lz4_def.txt");
+            std::ofstream f(out_path("pde_lz4_def.txt"));
             f << "PDE concentration LZ4 definition (.pde.lz4)\n"
               << "Header (28 bytes): magic='PDE1', grid_x(i32), grid_y(i32), grid_z(i32), n_substrates=10(i32), raw_bytes(i32), comp_bytes(i32)\n"
               << "Data: LZ4-compressed float32 array, shape (NUM_SUBSTRATES, grid_z, grid_y, grid_x)\n"
@@ -1141,7 +1235,7 @@ int main(int argc, const char** argv) {
               << "      data = data.reshape(ns, gz, gy, gx)\n";
         }
         {
-            std::ofstream f("outputs/ecm_lz4_def.txt");
+            std::ofstream f(out_path("ecm_lz4_def.txt"));
             f << "ECM snapshot LZ4 definition (.ecm.lz4)\n"
               << "Header (28 bytes): magic='ECM1', grid_x(i32), grid_y(i32), grid_z(i32), n_channels=2(i32), raw_bytes(i32), comp_bytes(i32)\n"
               << "Data: LZ4-compressed float32 array, shape (2, grid_z, grid_y, grid_x)\n"
@@ -1304,7 +1398,7 @@ int main(int argc, const char** argv) {
     timing_file << "step,total_ms,pde_ms,qsp_ms,abm_ms\n";
 
     // Open per-layer timing CSV (long format: step, layer_name, time_ms)
-    std::ofstream layer_file("outputs/layer_timing.csv");
+    std::ofstream layer_file(out_path("layer_timing.csv"));
     layer_file << "step,layer,ms\n";
 
     // Manual stepping loop with NVTX markers for profiling
@@ -1429,7 +1523,7 @@ int main(int argc, const char** argv) {
 
     if (layer_file.is_open()) {
         layer_file.close();
-        std::cout << "Created: outputs/layer_timing.csv" << std::endl;
+        std::cout << "Created: " << out_path("layer_timing.csv") << std::endl;
     }
 
     // ========== REPORT RESULTS ==========

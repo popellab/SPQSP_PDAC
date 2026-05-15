@@ -23,7 +23,7 @@ public:
     // so it is safe to allocate the SUNSparseMatrix with this nnz once per
     // solver instance. CSC format: col_ptrs has length neq+1, row_indices
     // has length nnz.
-    static constexpr sunindextype _jac_nnz = 1434;
+    static constexpr sunindextype _jac_nnz = 1450;
     static const sunindextype _jac_col_ptrs[];
     static const sunindextype _jac_row_indices[];
     static int jac(realtype t, N_Vector y, N_Vector fy,

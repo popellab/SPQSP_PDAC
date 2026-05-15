@@ -21,6 +21,8 @@ SimulationConfig::SimulationConfig()
     : steps(200)
     , random_seed(12345)
     , init_method(0)
+    , scenario(Scenario::Default)
+    , seed_position("x_low")
     , vascular_mode("random")
     , vascular_xml_file("")
     , grid_out(0)
@@ -92,6 +94,28 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             }
         } else if (arg == "--presim-steps" && i + 1 < argc) {
             presim_steps = std::atoi(argv[++i]);
+        } else if (arg == "--scenario" && i + 1 < argc) {
+            std::string s = argv[++i];
+            if (s == "default") {
+                scenario = Scenario::Default;
+            } else if (s == "single_stem_edge") {
+                scenario = Scenario::SingleStemEdge;
+            } else {
+                std::cerr << "ERROR: --scenario must be 'default' or 'single_stem_edge' (got: " << s << ")" << std::endl;
+                exit(1);
+            }
+        } else if (arg == "--seed-position" && i + 1 < argc) {
+            std::string s = argv[++i];
+            if (s != "x_low" && s != "x_high" && s != "y_low" &&
+                s != "y_high" && s != "z_low" && s != "z_high") {
+                std::cerr << "ERROR: --seed-position must be one of "
+                             "x_low|x_high|y_low|y_high|z_low|z_high (got: " << s << ")" << std::endl;
+                exit(1);
+            }
+            seed_position = s;
+        } else if (arg == "--output-root" && i + 1 < argc) {
+            // Consumed by main.cu pre-pass; skip the value so we don't error.
+            ++i;
         } else if (arg == "-h" || arg == "--help") {
             std::cout << "Usage: " << argv[0] << " [options]\n"
                       << "\nOptions:\n"
@@ -110,6 +134,11 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  --presim-mode MODE       Presim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
                       << "  --main-mode MODE         Main-sim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
                       << "  --presim-steps N         Presim step count (>=0 uses step stopper; <0 uses QSP volume) [default: -1]\n"
+                      << "  --scenario NAME          Scenario bundle: default | single_stem_edge [default: default]\n"
+                      << "                           single_stem_edge: resident vasc+PSC only, 1 stem cell at edge, ABM-only.\n"
+                      << "  --seed-position FACE     For single_stem_edge: x_low|x_high|y_low|y_high|z_low|z_high [default: x_low]\n"
+                      << "  --output-root PATH       Root directory for all output files [default: outputs]\n"
+                      << "                           Auto-named under results/ when --scenario single_stem_edge is set.\n"
                       << "  -h, --help               Show this help\n";
             exit(0);
         }
@@ -130,6 +159,12 @@ void SimulationConfig::print() const {
     std::cout << "Steps: " << steps << std::endl;
     std::cout << "Random seed: " << random_seed << std::endl;
     std::cout << "Init: " << (init_method == 1 ? "Structured domain (-i 1)" : "QSP-seeded (-i 0)") << std::endl;
+    std::cout << "Scenario: "
+              << (scenario == Scenario::SingleStemEdge ? "single_stem_edge" : "default");
+    if (scenario == Scenario::SingleStemEdge) {
+        std::cout << " (seed_position=" << seed_position << ")";
+    }
+    std::cout << std::endl;
 
     std::cout << "\nSimulation modes:" << std::endl;
     std::cout << "  Presim: " << (presim_qsp_enabled ? "qsp_abm" : "abm_only");
@@ -1386,7 +1421,7 @@ void initializeStructuredDomain(
     // bootstrap floor for step 0. Set to 0 to disable.
     {
         const float p1c1 = model.Environment().getProperty<float>("PARAM_ANTIGEN_DEPOSIT");
-        const float seed_frac = 0.1f;  // 10% of one cancer-death equivalent
+        const float seed_frac = model.Environment().getProperty<float>("PARAM_ANTIGEN_INIT_SEED_FRAC");
         const float seed_value = seed_frac * p1c1;
         seed_antigen_grid_voxels(tumor_voxels.data(),
                                  static_cast<int>(tumor_voxels.size()),
@@ -1681,6 +1716,127 @@ void initializeStructuredDomain(
     std::cout << "  PDE warmup: " << warmup_substeps << " substeps" << std::endl;
 
     std::cout << "Structured domain initialization complete\n" << std::endl;
+}
+
+// ============================================================================
+// Single-Stem-Edge Diagnostic Init (--scenario single_stem_edge)
+// ============================================================================
+//
+// Lay down a resident healthy domain (vasculature + quiescent PSCs only) and
+// place exactly one cancer stem cell on the chosen face of the domain. No
+// immune agents are placed at init — the scenario is designed to run with
+// QSP frozen so recruitment from systemic pools does not occur.
+//
+// FLAMEGPU requires setPopulationData for every agent type, including the
+// empty immune populations.
+// ============================================================================
+void initializeSingleStemEdge(
+    flamegpu::CUDASimulation& simulation,
+    flamegpu::ModelDescription& model,
+    const SimulationConfig& config,
+    const LymphCentralWrapper& /*lymph*/)
+{
+    std::cout << "\n=== Single-Stem-Edge Init ===" << std::endl;
+    const int gx = config.grid_x;
+    const int gy = config.grid_y;
+    const int gz = config.grid_z;
+    std::cout << "  Domain: " << gx << "x" << gy << "x" << gz << " voxels" << std::endl;
+
+    // ---- Lifecycle params from model env ----
+    const float stem_div        = model.Environment().getProperty<float>("PARAM_FLOAT_CANCER_CELL_STEM_DIV_INTERVAL_SLICE");
+    const float fib_life        = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
+    const float vas_branch_prob = model.Environment().getProperty<float>("PARAM_VAS_BRANCH_PROB");
+    const int   vas_min_neighbor = static_cast<int>(model.Environment().getProperty<float>("PARAM_VAS_MIN_NEIGHBOR"));
+
+    // ---- Vasculature: resident network, no central tumor exclusion ----
+    {
+        flamegpu::AgentVector vascular_vec(model.Agent(AGENT_VASCULAR));
+        int num_seg = std::max(4, std::min(1000,
+            static_cast<int>(0.03f * gx * gy)));
+        initializeVascularCellsRandom(
+            vascular_vec,
+            gx, gy, gz,
+            /*tumor_radius=*/0,  // no exclusion zone — entire domain is healthy
+            num_seg, vas_branch_prob,
+            config.random_seed);
+        assignInitialVascularTips(
+            vascular_vec,
+            gx, gy, gz,
+            vas_min_neighbor,
+            config.random_seed);
+        std::cout << "  Placed " << vascular_vec.size() << " vascular cells" << std::endl;
+        simulation.setPopulationData(vascular_vec);
+    }
+
+    // ---- Occupancy grid (cancer cluster builder uses this; we won't have a
+    //      cluster, but PSC placement should still avoid the seed voxel below) ----
+    const int total_voxels = gx * gy * gz;
+    std::vector<std::vector<int>> occupied(total_voxels, std::vector<int>(3, 0));
+
+    // ---- Quiescent PSCs at fixed density ----
+    // The QSP-derived p_fib is meaningless without QSP coupling. Use a sane
+    // fixed probability; matches the upper clamp in initializeToQSP.
+    {
+        flamegpu::AgentVector fib_pop(model.Agent(AGENT_FIBROBLAST));
+        const double p_fib_resident = 0.05;
+        initializeFibroblastsFromQSP(
+            fib_pop,
+            gx, gy, gz,
+            p_fib_resident, occupied,
+            fib_life);
+        std::cout << "  Placed " << fib_pop.size() << " quiescent PSCs (p="
+                  << p_fib_resident << ")" << std::endl;
+        simulation.setPopulationData(fib_pop);
+    }
+
+    // ---- Resolve seed position on the requested face ----
+    const int margin_x = std::max(2, gx / 30);
+    const int margin_y = std::max(2, gy / 30);
+    const int margin_z = std::max(2, gz / 30);
+    int seed_x = margin_x, seed_y = gy / 2, seed_z = gz / 2;
+    if      (config.seed_position == "x_low")  { seed_x = margin_x;            seed_y = gy / 2;            seed_z = gz / 2; }
+    else if (config.seed_position == "x_high") { seed_x = gx - 1 - margin_x;   seed_y = gy / 2;            seed_z = gz / 2; }
+    else if (config.seed_position == "y_low")  { seed_x = gx / 2;              seed_y = margin_y;          seed_z = gz / 2; }
+    else if (config.seed_position == "y_high") { seed_x = gx / 2;              seed_y = gy - 1 - margin_y; seed_z = gz / 2; }
+    else if (config.seed_position == "z_low")  { seed_x = gx / 2;              seed_y = gy / 2;            seed_z = margin_z; }
+    else if (config.seed_position == "z_high") { seed_x = gx / 2;              seed_y = gy / 2;            seed_z = gz - 1 - margin_z; }
+    std::cout << "  Seed cancer stem cell at (" << seed_x << "," << seed_y << "," << seed_z
+              << ")  [face=" << config.seed_position << "]" << std::endl;
+
+    // ---- Place exactly one cancer stem cell ----
+    // Build by hand (not via initializeCancerCellsRandom + cluster_radius=0,
+    // which samples a CDF and may produce a senescent or progenitor instead).
+    {
+        flamegpu::AgentVector cancer_pop(model.Agent(AGENT_CANCER_CELL));
+        cancer_pop.push_back();
+        flamegpu::AgentVector::Agent agent = cancer_pop.back();
+        const unsigned int id = agent.getID();
+        const float rand_frac = static_cast<float>(rand()) / (RAND_MAX + 1.0f);
+        const int   div_cd    = static_cast<int>(stem_div * rand_frac) + 1;
+        agent.setVariable<int>("x", seed_x);
+        agent.setVariable<int>("y", seed_y);
+        agent.setVariable<int>("z", seed_z);
+        agent.setVariable<int>("cell_state", CANCER_STEM);
+        agent.setVariable<int>("divideCD", div_cd);
+        agent.setVariable<int>("divideFlag", 1);
+        agent.setVariable<int>("divideCountRemaining", 0);
+        agent.setVariable<unsigned int>("stemID", id);
+        std::cout << "  Placed 1 cancer stem cell (id=" << id
+                  << ", divideCD=" << div_cd << ")" << std::endl;
+        simulation.setPopulationData(cancer_pop);
+    }
+
+    // ---- Empty populations for every other agent type ----
+    // FLAMEGPU requires every agent type to receive setPopulationData even
+    // when empty; otherwise the device-side state is uninitialized.
+    { flamegpu::AgentVector pop(model.Agent(AGENT_TCELL));      simulation.setPopulationData(pop); }
+    { flamegpu::AgentVector pop(model.Agent(AGENT_TREG));       simulation.setPopulationData(pop); }
+    { flamegpu::AgentVector pop(model.Agent(AGENT_MDSC));       simulation.setPopulationData(pop); }
+    { flamegpu::AgentVector pop(model.Agent(AGENT_MACROPHAGE)); simulation.setPopulationData(pop); }
+    { flamegpu::AgentVector pop(model.Agent(AGENT_BCELL));      simulation.setPopulationData(pop); }
+    { flamegpu::AgentVector pop(model.Agent(AGENT_DC));         simulation.setPopulationData(pop); }
+
+    std::cout << "Single-stem-edge initialization complete\n" << std::endl;
 }
 
 } // namespace PDAC

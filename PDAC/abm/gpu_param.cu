@@ -71,6 +71,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.CancerCell.hif_ccl2_boost", "", "pr"},  // PARAM_HIF_CCL2_BOOST
     {"Param.ABM.CancerCell.hif_pdl1_boost", "", "pr"},  // PARAM_HIF_PDL1_BOOST
     {"Param.ABM.CancerCell.hif_mhc_reduction", "", "pr"},  // PARAM_HIF_MHC_REDUCTION
+    {"Param.ABM.CancerCell.antigenInitSeedFrac", "", "pr"},  // PARAM_ANTIGEN_INIT_SEED_FRAC
     {"Param.ABM.Vas.maxPerVoxel", "", "pos"},  // PARAM_VAS_MAXPERVOXEL
     {"Param.ABM.Vas.O2_conc", "", "pr"},  // PARAM_VAS_O2_CONC
     {"Param.ABM.Vas.Rc", "", "pr"},  // PARAM_VAS_RC
@@ -387,6 +388,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_HIF_CCL2_BOOST", getFloat(PARAM_HIF_CCL2_BOOST));
     env.newProperty<float>("PARAM_HIF_PDL1_BOOST", getFloat(PARAM_HIF_PDL1_BOOST));
     env.newProperty<float>("PARAM_HIF_MHC_REDUCTION", getFloat(PARAM_HIF_MHC_REDUCTION));
+    env.newProperty<float>("PARAM_ANTIGEN_INIT_SEED_FRAC", getFloat(PARAM_ANTIGEN_INIT_SEED_FRAC));
     env.newProperty<float>("PARAM_VAS_MAXPERVOXEL", getFloat(PARAM_VAS_MAXPERVOXEL));
     env.newProperty<float>("PARAM_VAS_O2_CONC", getFloat(PARAM_VAS_O2_CONC));
     env.newProperty<float>("PARAM_VAS_RC", getFloat(PARAM_VAS_RC));

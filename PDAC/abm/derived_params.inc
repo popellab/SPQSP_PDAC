@@ -258,7 +258,7 @@
 
     // IFNg EC50 for macrophage [nM]
     env.newProperty<float>("PARAM_MAC_IFN_G_EC50", 
-                    QP(CancerVCT::P_IFNg_50) * 1e6);
+                    QP(CancerVCT::P_k_IFNg_response) * 1e6);
 
     // IL-12 EC50 for macrophage [nM]
     env.newProperty<float>("PARAM_MAC_IL_12_EC50", 
@@ -388,11 +388,11 @@
 
     // cDC1 recruitment rate per voxel per step
     env.newProperty<float>("PARAM_DC_RECRUIT_K_CDC1", 
-                    QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_APC0_cDC1_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
+                    QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC1_recruit_target_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
 
     // cDC2 recruitment rate per voxel per step
     env.newProperty<float>("PARAM_DC_RECRUIT_K_CDC2", 
-                    QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_APC0_cDC2_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
+                    QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC2_recruit_target_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
 
     // APC transmigration rate
     env.newProperty<float>("PARAM_APC_TRANSMIG", 

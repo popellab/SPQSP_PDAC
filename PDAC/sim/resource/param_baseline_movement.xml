@@ -145,6 +145,7 @@
       <hif_ccl2_boost name="PARAM_HIF_CCL2_BOOST" type="float" val="pr">3.20</hif_ccl2_boost>      <!-- MAPLE posterior 3.20 -->
       <hif_pdl1_boost name="PARAM_HIF_PDL1_BOOST" type="float" val="pr">0.41</hif_pdl1_boost>      <!-- MAPLE posterior 0.41. Barsoum2014, Noman2014 -->
       <hif_mhc_reduction name="PARAM_HIF_MHC_REDUCTION" type="float" val="pr">0.5</hif_mhc_reduction> <!-- Kill probability multiplier for HIF-active targets -->
+      <antigenInitSeedFrac name="PARAM_ANTIGEN_INIT_SEED_FRAC" type="float" val="pr">0.1</antigenInitSeedFrac>  <!-- Fraction of PARAM_ANTIGEN_DEPOSIT (= P1_C1) seeded into the antigen grid at every tumor voxel at init. Bootstraps DC maturation + B cell activation before any cancer death has happened. -->
     </CancerCell>
     <Vas>
       <maxPerVoxel name="PARAM_VAS_MAXPERVOXEL" type="float" val="pos">1</maxPerVoxel>
@@ -754,7 +755,7 @@
       <D_cell>17.0</D_cell>
       <vol_cell>2572.44078451444</vol_cell>
       <vol_Tcell>175.015709799539</vol_Tcell>
-      <Ve_T>1.0</Ve_T>
+      <Ve_T>0.37</Ve_T>
       <V_Tmin>1e-06</V_Tmin>
       <C_total>0.0</C_total>
       <T_total>0.0</T_total>
@@ -776,7 +777,7 @@
       <K_initial>10300.0</K_initial>
       <k_vas_growth>0.15</k_vas_growth>
       <k_vas_decay>0.004</k_vas_decay>
-      <k_vas_Csec>0.004</k_vas_Csec>
+      <k_vas_Csec>0.1</k_vas_Csec>
       <k_vas_deg>16.6</k_vas_deg>
       <VEGF_50>2410.0</VEGF_50>
       <div_Treg>1160000.0</div_Treg>
@@ -789,6 +790,7 @@
       <k_Treg_death>0.1</k_Treg_death>
       <k_Treg_pro_tumor>0.2</k_Treg_pro_tumor>
       <rho_Treg_max>10000000.0</rho_Treg_max>
+      <CD8_50_Tcap>100000.0</CD8_50_Tcap>
       <q_Treg_P_in>2.436</q_Treg_P_in>
       <q_Treg_P_out>24.0</q_Treg_P_out>
       <q_Treg_T_in>5.8e-05</q_Treg_T_in>
@@ -801,9 +803,9 @@
       <f_nTreg>0.25</f_nTreg>
       <k_Treg_CD8_exh>0.1</k_Treg_CD8_exh>
       <H_P0>1.0</H_P0>
-      <k_CCL5_sec>2e-12</k_CCL5_sec>
+      <k_CCL5_sec>1e-12</k_CCL5_sec>
       <k_CCL5_deg>1.5</k_CCL5_deg>
-      <CCL5_50_Treg>0.15</CCL5_50_Treg>
+      <CCL5_50_Treg>1.0</CCL5_50_Treg>
       <k_CCR5_Treg_rec>0.0001</k_CCR5_Treg_rec>
       <H_CCL5_Treg>1.0</H_CCL5_Treg>
       <div_CD8>1110000.0</div_CD8>
@@ -813,7 +815,9 @@
       <q_nCD8_LN_out>1.8</q_nCD8_LN_out>
       <k_CD8_act>23.0</k_CD8_act>
       <k_CD8_pro>1.0</k_CD8_pro>
-      <k_T_activation_per_APC>0.0001</k_T_activation_per_APC>
+      <k_CD8_T_pro>0.05</k_CD8_T_pro>
+      <rho_CD8_max>10000000.0</rho_CD8_max>
+      <k_T_activation_per_APC>1e-06</k_T_activation_per_APC>
       <n_T_expansion_burst>800.0</n_T_expansion_burst>
       <k_CD8_death>0.1</k_CD8_death>
       <q_CD8_P_in>2.436</q_CD8_P_in>
@@ -829,14 +833,14 @@
       <k_C_CD8>2.2</k_C_CD8>
       <k_stiff_CD8_exh>0.02</k_stiff_CD8_exh>
       <k_CD8_basal_exh>0.05</k_CD8_basal_exh>
-      <K_C_exh>1000000.0</K_C_exh>
+      <K_C_exh>100000000.0</K_C_exh>
       <k_CD8_exh_death>0.15</k_CD8_exh_death>
       <H_CXCL12_Texcl>0.0</H_CXCL12_Texcl>
       <H_P1>1.0</H_P1>
       <K_T_C>1.2</K_T_C>
       <R50_Treg>0.31</R50_Treg>
       <K_T_Treg>3.2258064516129</K_T_Treg>
-      <v_T_search_volume>1e-05</v_T_search_volume>
+      <v_T_search_volume>1e-06</v_T_search_volume>
       <p_T_kill_per_contact>0.45</p_T_kill_per_contact>
       <k_C_Tcell_eff>0.0</k_C_Tcell_eff>
       <k_APC_mat_cDC1>2.0</k_APC_mat_cDC1>
@@ -844,8 +848,8 @@
       <k_APC_mig>4.0</k_APC_mig>
       <k_APC_death>0.15</k_APC_death>
       <k_mAPC_death>0.3</k_mAPC_death>
-      <APC0_cDC1_T>540000.0</APC0_cDC1_T>
-      <APC0_cDC2_T>2160000.0</APC0_cDC2_T>
+      <cDC1_recruit_target_T>50000.0</cDC1_recruit_target_T>
+      <cDC2_recruit_target_T>200000.0</cDC2_recruit_target_T>
       <APC0_cDC1_LN>240000.0</APC0_cDC1_LN>
       <APC0_cDC2_LN>960000.0</APC0_cDC2_LN>
       <n_sites_APC>10.0</n_sites_APC>
@@ -879,8 +883,7 @@
       <pTCR_p0_MHC_tot>0.0</pTCR_p0_MHC_tot>
       <k_P1_up>14.4</k_P1_up>
       <k_xP1_deg>2.0</k_xP1_deg>
-      <k_P1_deg>3.0</k_P1_deg> <!-- Tissue antigen decay [1/day]. Slowed from 17.28 (1h t1/2 — too fast) to 3.0 (~5.5h t1/2) on 2026-04-23 so DCs have a multi-step window to sample cancer-death deposits. Literature supports 6-24h tissue persistence: Pape 2007 Immunity 26:491, Itano 2003 Immunity 19:47, Savill 2002 Nat Rev Immunol 2:965, Nair-Gupta 2014 Cell 158:506. -->
-
+      <k_P1_deg>17.28</k_P1_deg>
       <k_p1_deg>144.0</k_p1_deg>
       <k_P1_on>144000.0</k_P1_on>
       <k_P1_d1>1e-08</k_P1_d1>
@@ -958,13 +961,13 @@
       <CD8_CD28_total>184000.0</CD8_CD28_total>
       <CD8_CTLA4_syn>8000.0</CD8_CTLA4_syn>
       <CD8_PDL1_total>83700.0</CD8_PDL1_total>
-      <C1_PDL1_base>120000.0</C1_PDL1_base>
+      <C1_PDL1_base>4800.0</C1_PDL1_base>
       <r_PDL2C1>0.07</r_PDL2C1>
       <C1_CD80_total>80000.0</C1_CD80_total>
       <C1_CD86_total>860000.0</C1_CD86_total>
       <syn_CD8_C1_PDL1_total>0.0</syn_CD8_C1_PDL1_total>
       <syn_CD8_C1_PDL2_total>0.0</syn_CD8_C1_PDL2_total>
-      <APC_PDL1_base>120000.0</APC_PDL1_base>
+      <APC_PDL1_base>80000.0</APC_PDL1_base>
       <r_PDL2APC>0.07</r_PDL2APC>
       <APC_CD80_total>80000.0</APC_CD80_total>
       <APC_CD86_total>860000.0</APC_CD86_total>
@@ -975,33 +978,39 @@
       <k_CD4_pro>1.0</k_CD4_pro>
       <k_CD4_death>0.1</k_CD4_death>
       <K_C2_recruit>20200000.0</K_C2_recruit>
+      <k_Th_basal_exh>0.05</k_Th_basal_exh>
+      <k_TGFb_Th_exh>0.3</k_TGFb_Th_exh>
       <k_Th_pro_tumor>0.15</k_Th_pro_tumor>
       <rho_Th_max>5000000.0</rho_Th_max>
+      <alpha_Th_cap>5.0</alpha_Th_cap>
       <k_IL2_deg>0.0907984488525718</k_IL2_deg>
       <k_IL2_sec>1e-11</k_IL2_sec>
       <k_IL2_cons>5e-11</k_IL2_cons>
       <IL2_50>0.32</IL2_50>
-      <IL2_50_Treg>0.32</IL2_50_Treg>
+      <IL2_50_Treg>0.01</IL2_50_Treg>
       <w_IL2_CD8>1.0</w_IL2_CD8>
       <w_IL2_Treg>1.0</w_IL2_Treg>
       <N_div_base>2.0</N_div_base>
       <N_div_costim>3.0</N_div_costim>
       <N_IL2_CD8>11.0</N_IL2_CD8>
       <N_IL2_CD4>8.5</N_IL2_CD4>
-      <k_IFNg_Tsec>4e-12</k_IFNg_Tsec>
-      <k_IFNg_Thsec>802.952114266667</k_IFNg_Thsec>
+      <k_IFNg_Tsec>2e-13</k_IFNg_Tsec>
+      <k_IFNg_Thsec>40.1476057133333</k_IFNg_Thsec>
       <k_IFNg_deg>7.68</k_IFNg_deg>
       <IFNg_50_ind>2.96</IFNg_50_ind>
       <k_TGFb_Tsec>1.2e-10</k_TGFb_Tsec>
-      <k_TGFb_deg>300</k_TGFb_deg>  <!-- 2026-05-07 isolation test: revert to 300 with CI=0.10 (was CI=0.05). Tests whether decay or CI drives the regression. -->
+      <k_TGFb_deg>14.3</k_TGFb_deg>
       <TGFb_baseline>0.016</TGFb_baseline>
       <TGFb_50>0.07</TGFb_50>
       <TGFb_50_Teff>0.14</TGFb_50_Teff>
+      <TGFb_50_Th_exh>0.14</TGFb_50_Th_exh>
+      <f_active_TGFb>0.1</f_active_TGFb>
       <N_aT>1.0</N_aT>
       <N_aT0>1.0</N_aT0>
       <N_aTh>1.0</N_aTh>
       <H_TGFb>1.0</H_TGFb>
       <H_TGFb_Teff>1.0</H_TGFb_Teff>
+      <H_TGFb_Th_exh>1.0</H_TGFb_Th_exh>
       <k_CCL2_sec>2e-10</k_CCL2_sec>
       <k_CCL2_deg>0.06</k_CCL2_deg>
       <CCL2_50>0.23</CCL2_50>
@@ -1011,8 +1020,8 @@
       <k_ArgI_deg>0.173</k_ArgI_deg>
       <k_NO_sec>4.8e-07</k_NO_sec>
       <k_ArgI_sec>1.1e-10</k_ArgI_sec>
-      <ArgI_50_Teff>0.42</ArgI_50_Teff>
-      <NO_50_Teff>1.5</NO_50_Teff>
+      <ArgI_50_Teff>50.0</ArgI_50_Teff>
+      <NO_50_Teff>1500.0</NO_50_Teff>
       <ArgI_50_Treg>0.36</ArgI_50_Treg>
       <H_NO>1.0</H_NO>
       <H_ArgI_Teff>1.0</H_ArgI_Teff>
@@ -1020,9 +1029,9 @@
       <H_MDSC>1.0</H_MDSC>
       <H_IL6_MDSC>0.0</H_IL6_MDSC>
       <k_Mac_rec>450000.0</k_Mac_rec>
-      <k_Mac_death>0.02</k_Mac_death>
+      <k_Mac_death>0.05</k_Mac_death>
       <k_TGFb_Msec>2e-11</k_TGFb_Msec>
-      <k_vas_Msec>1.7e-05</k_vas_Msec>
+      <k_vas_Msec>0.05</k_vas_Msec>
       <k_IL12_sec>8.5e-12</k_IL12_sec>
       <k_IL12_Msec>5e-13</k_IL12_Msec>
       <k_IL12_deg>0.0231</k_IL12_deg>
@@ -1032,7 +1041,7 @@
       <k_M1_pol>0.045</k_M1_pol>
       <IL10_50>8.0</IL10_50>
       <IL12_50>15.0</IL12_50>
-      <IFNg_50>100.0</IFNg_50>  <!-- 2026-05-06: Was 1000 pM (high end of literature, transcription-readout assays). Tumor tissue IFN-γ is 0.6-60 pM, would put field mostly below EC50 → no M1 polarization. Dropped to 100 pM (mid-literature for functional M1 polarization, Murray 2006); enables IFN-γ-driven M1 at physiological field magnitudes. -->
+      <k_IFNg_response>0.2</k_IFNg_response>
       <k_M1_phago>0.33</k_M1_phago>
       <vol_Mcell>4849.04826081585</vol_Mcell>
       <kon_CD47_SIRPa>0.0625</kon_CD47_SIRPa>
@@ -1055,30 +1064,33 @@
       <H_IL6_M2>0.0</H_IL6_M2>
       <k_CAF_encounter>1000000.0</k_CAF_encounter>
       <k_CAF_const>2000000.0</k_CAF_const>
-      <k_PSC_to_myCAF>0.4</k_PSC_to_myCAF>
+      <k_PSC_to_myCAF>0.2</k_PSC_to_myCAF>
       <k_PSC_to_iCAF>0.2</k_PSC_to_iCAF>
-      <k_PSC_to_apCAF>0.01</k_PSC_to_apCAF>
+      <k_PSC_to_apCAF>0.05</k_PSC_to_apCAF>
       <k_iCAF_to_myCAF>0.1</k_iCAF_to_myCAF>
       <k_myCAF_to_iCAF>0.05</k_myCAF_to_iCAF>
-      <k_myCAF_prolif>0.0165</k_myCAF_prolif>  <!-- Dialed down to match k_myCAF_death (stable pop, turnover only). Uncapped cooldown-only division runs away without QSP carrying-cap term (RF247/248); revisit when ABM-side saturation gate exists. -->
-      <k_iCAF_prolif>0.0165</k_iCAF_prolif>    <!-- Matches k_iCAF_death — same rationale as myCAF. -->
-      <k_apCAF_prolif>0.0165</k_apCAF_prolif>  <!-- Matches k_apCAF_death — same rationale. -->
-
-      <f_stroma_max>3.0</f_stroma_max>
-      <k_col_myCAF_sec>5e-09</k_col_myCAF_sec>
-      <f_col_basal>0.5</f_col_basal>
+      <k_myCAF_prolif>0.15</k_myCAF_prolif>
+      <k_iCAF_prolif>0.1</k_iCAF_prolif>
+      <k_apCAF_prolif>0.05</k_apCAF_prolif>
+      <f_stroma_max>2.43</f_stroma_max>
+      <f_apCAF_of_total>0.1</f_apCAF_of_total>
+      <f_iCAF_of_non_apCAF>0.222</f_iCAF_of_non_apCAF>
+      <k_col_myCAF_sec>5e-08</k_col_myCAF_sec>
+      <f_col_basal>0.15</f_col_basal>
       <TGFb_50_CAF_act>0.07</TGFb_50_CAF_act>
       <TGFb_50_col_sec>0.07</TGFb_50_col_sec>
       <k_col_deg>0.007</k_col_deg>
       <k_MMP_M2>1e-08</k_MMP_M2>
-      <rho_collagen>0.025</rho_collagen>
+      <phi_cross_50>0.03</phi_cross_50>
+      <f_nascent>1.0</f_nascent>
+      <rho_collagen>0.103</rho_collagen>
       <phi_collagen>0.12</phi_collagen>
-      <k_qpsc_death>0.0165</k_qpsc_death>
-      <k_iCAF_death>0.0165</k_iCAF_death>
-      <k_myCAF_death>0.0165</k_myCAF_death>
-      <k_apCAF_death>0.0165</k_apCAF_death>
+      <k_qpsc_death>0.005</k_qpsc_death>
+      <k_iCAF_death>0.05</k_iCAF_death>
+      <k_myCAF_death>0.015</k_myCAF_death>
+      <k_apCAF_death>0.03</k_apCAF_death>
       <d_pore_ref>3.5</d_pore_ref>
-      <phi_col_ref>0.12</phi_col_ref>
+      <phi_col_ref>0.046</phi_col_ref>
       <d_crit_T>2.3</d_crit_T>
       <d_crit_APC>2.1</d_crit_APC>
       <n_pore>4.0</n_pore>
@@ -1096,16 +1108,16 @@
       <H_stiff_fib>0.0</H_stiff_fib>
       <phi_col_50_Kmax>2.0</phi_col_50_Kmax>
       <K_stiff_niche>100000.0</K_stiff_niche>
-      <k_stroma_support>1.0</k_stroma_support>
-      <vol_qPSCcell>1600.0</vol_qPSCcell>
-      <vol_iCAFcell>1600.0</vol_iCAFcell>
-      <vol_myCAFcell>1600.0</vol_myCAFcell>
-      <vol_apCAFcell>1600.0</vol_apCAFcell>
+      <k_stroma_support>1.05</k_stroma_support>
+      <vol_qPSCcell>1500.0</vol_qPSCcell>
+      <vol_iCAFcell>2000.0</vol_iCAFcell>
+      <vol_myCAFcell>3500.0</vol_myCAFcell>
+      <vol_apCAFcell>2500.0</vol_apCAFcell>
       <k_CXCL12_sec_iCAF>1e-10</k_CXCL12_sec_iCAF>
       <k_CXCL12_deg>2.0</k_CXCL12_deg>
       <CXCL12_50_Texcl>2.0</CXCL12_50_Texcl>
-      <k_IL6_sec_iCAF>4e-11</k_IL6_sec_iCAF>
-      <k_IL6_deg>10.0</k_IL6_deg>
+      <k_IL6_sec_iCAF>2e-11</k_IL6_sec_iCAF>
+      <k_IL6_deg>16.0</k_IL6_deg>
       <IL6_50_MDSC>0.015</IL6_50_MDSC>
       <IL6_50_M2>0.015</IL6_50_M2>
       <IL6_50_iCAF>0.015</IL6_50_iCAF>
@@ -1116,18 +1128,18 @@
       <IL1_50>0.01</IL1_50>
       <n_IL1>1.0</n_IL1>
       <TGFb_50_IL1R1>0.07</TGFb_50_IL1R1>
-      <Emax_IL1R1>9.0</Emax_IL1R1>
+      <Emax_IL1R1>5.0</Emax_IL1R1>
       <IL1_ratio>0.0</IL1_ratio>
       <H_IL1_eff>0.0</H_IL1_eff>
-      <k_vas_myCAF_sec>0.005</k_vas_myCAF_sec>
+      <k_vas_myCAF_sec>0.002</k_vas_myCAF_sec>
       <k_P1_up_apCAF>1.44</k_P1_up_apCAF>
       <k_apCAF_Treg>0.03</k_apCAF_Treg>
-      <K_apCAF_Treg>10000000.0</K_apCAF_Treg>
+      <K_apCAF_Treg>100000000.0</K_apCAF_Treg>
       <P1_50_apCAF>1e-09</P1_50_apCAF>
       <aPSC_total>0.0</aPSC_total>
-      <k_TGFb_sec_myCAF>1e-09</k_TGFb_sec_myCAF>
+      <k_TGFb_sec_myCAF>2e-10</k_TGFb_sec_myCAF>
       <k_CXCL12_sec_cancer>5e-11</k_CXCL12_sec_cancer>
-      <k_CCL5_sec_iCAF>1e-10</k_CCL5_sec_iCAF>
+      <k_CCL5_sec_iCAF>3e-11</k_CCL5_sec_iCAF>
       <H_P1_apCAF>0.0</H_P1_apCAF>
       <k_GVAX_clearance>0.1</k_GVAX_clearance>
       <V_ID_volume>0.0001</V_ID_volume>
@@ -1139,18 +1151,20 @@
       <k_APC_mig_ID_LN>0.7</k_APC_mig_ID_LN>
       <k_APC_death_ID>0.1</k_APC_death_ID>
       <sigma_P1_per_mAPC>1e-09</sigma_P1_per_mAPC>
-      <EC50_P1_mature>10.0</EC50_P1_mature>
+      <EC50_P1_mature>0.1</EC50_P1_mature>
       <K_APC_ID>1000000.0</K_APC_ID>
       <k_APC_recruit0>100.0</k_APC_recruit0>
       <k_mAPC_death_ID>0.7</k_mAPC_death_ID>
-      <y_Ag_per_cell>1.7e-08</y_Ag_per_cell>
+      <y_Ag_per_cell>1e-09</y_Ag_per_cell>
       <k_P1_deg_ID>10.0</k_P1_deg_ID>
       <K_APC_mig>100000.0</K_APC_mig>
+      <k_cDC1_Ag_transfer>1e-07</k_cDC1_Ag_transfer>
       <H_GMCSF_ID>0.0</H_GMCSF_ID>
       <J_mature_ID>0.0</J_mature_ID>
-      <k_Cy_clear>0.5</k_Cy_clear>
-      <k_Cy_Treg_deplete>0.5</k_Cy_Treg_deplete>
+      <k_Cy_clear>2.5</k_Cy_clear>
+      <k_Cy_Treg_deplete>0.15</k_Cy_Treg_deplete>
       <Cy_50_Treg>50.0</Cy_50_Treg>
+      <nucleated_total_T>0.0</nucleated_total_T>
     </Parameter>
   </init_value>
 </QSP>
@@ -1263,7 +1277,7 @@
     <D name="PARAM_TEFF_TGFB_EC50" type="float" comment="TGFb EC50 for Teff suppression [nM]"><![CDATA[QP(CancerVCT::P_TGFb_50_Teff) * 1e6]]></D>
     <D name="PARAM_MAC_IL_10_EC50" type="float" comment="IL-10 EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_IL10_50) * 1e6]]></D>
     <D name="PARAM_MAC_IL_10_HALF_PHAGO" type="float" comment="IL-10 half-max for phagocytosis [nM]"><![CDATA[QP(CancerVCT::P_IL10_50_phago) * 1e6]]></D>
-    <D name="PARAM_MAC_IFN_G_EC50" type="float" comment="IFNg EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_IFNg_50) * 1e6]]></D>
+    <D name="PARAM_MAC_IFN_G_EC50" type="float" comment="IFNg EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_k_IFNg_response) * 1e6]]></D>
     <D name="PARAM_MAC_IL_12_EC50" type="float" comment="IL-12 EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_IL12_50) * 1e6]]></D>
     <D name="PARAM_MAC_IL6_M2_EC50" type="float" comment="IL-6 EC50 for M1→M2 polarization [nM]"><![CDATA[QP(CancerVCT::P_IL6_50_M2) * 1e6]]></D>
 
@@ -1324,8 +1338,8 @@
     <D name="PARAM_MAC_RECRUIT_K" type="float" comment="macrophage recruitment rate constant"><![CDATA[QP(CancerVCT::P_k_Mac_rec) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
 
     <!-- DC recruitment: homeostatic rate = k_APC_death * APC0 * voxel_vol * Na * dt -->
-    <D name="PARAM_DC_RECRUIT_K_CDC1" type="float" comment="cDC1 recruitment rate per voxel per step"><![CDATA[QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_APC0_cDC1_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
-    <D name="PARAM_DC_RECRUIT_K_CDC2" type="float" comment="cDC2 recruitment rate per voxel per step"><![CDATA[QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_APC0_cDC2_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
+    <D name="PARAM_DC_RECRUIT_K_CDC1" type="float" comment="cDC1 recruitment rate per voxel per step"><![CDATA[QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC1_recruit_target_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
+    <D name="PARAM_DC_RECRUIT_K_CDC2" type="float" comment="cDC2 recruitment rate per voxel per step"><![CDATA[QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC2_recruit_target_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
     <D name="PARAM_APC_TRANSMIG" type="float" comment="APC transmigration rate"><![CDATA[QP(CancerVCT::P_k_APC_mig)]]></D>
     <D name="PARAM_T0_CLONE" type="float" comment="T0 clonality"><![CDATA[QP(CancerVCT::P_n_CD4_clones)]]></D>
     <D name="PARAM_T1_CLONE" type="float" comment="T1 clonality"><![CDATA[QP(CancerVCT::P_n_CD8_clones)]]></D>

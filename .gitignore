@@ -24,3 +24,6 @@ CLAUDE.md
 /calibration_targets/
 /results/
 /tmp/
+/qspio-pdac/
+/qsp-inference/
+/qsp-codegen/
