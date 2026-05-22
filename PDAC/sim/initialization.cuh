@@ -24,7 +24,10 @@ struct SimulationConfig {
     unsigned int steps;
     unsigned int random_seed;
 
-    // Initialization method (0 = QSP-seeded, 1 = structured)
+    // Initialization method:
+    //   0 = single stem cell at grid center (default)
+    //   1 = tumor cluster with radius PARAM_DOMAIN_TUMOR_RADIUS_FRAC × grid_x
+    //   2 = structured lobular domain (deprecated; kept for reference)
     int init_method;
 
     // Scenario: bundles policy (auto-named output dir, mode forcing,
@@ -59,8 +62,17 @@ struct SimulationConfig {
     bool presim_qsp_enabled;   // default: true (legacy behavior)
     bool main_qsp_enabled;     // default: true (legacy behavior)
 
-    // Presim stopping criterion: if >= 0, use step count; if < 0, use QSP volume (legacy).
-    int presim_steps;
+    // Presim duration. Resolved at runtime by precedence:
+    //   1. CLI --presim-steps N (presim_steps_from_cli=true, presim_steps>=0)
+    //   2. CLI --presim-volume V (presim_volume_from_cli=true, presim_volume_target>0)
+    //   3. XML <Simulation><PresimSteps> (xml_presim_steps>0)
+    //   4. XML <initial_tumour_diameter> → π/6 × D³ volume target
+    int    presim_steps;              // resolved step count (-1 if volume-based)
+    int    xml_presim_steps;          // raw XML default (0 = use volume fallback)
+    double presim_volume_target;      // cm³; >0 if either CLI vol or XML fallback
+    bool   presim_steps_from_cli;
+    bool   presim_volume_from_cli;
+    bool   main_steps_from_cli;
 
     // Constructor with defaults
     SimulationConfig();
@@ -174,6 +186,14 @@ void initializeStructuredDomain(
     flamegpu::ModelDescription& model,
     const SimulationConfig& config,
     const LymphCentralWrapper& lymph);
+
+// Seed exactly one cancer stem cell at the grid center.
+// Builds the agent by hand (not via initializeCancerCellsRandom + radius=0,
+// which samples a CDF and may produce a non-stem state).
+void seedSingleStemAtCenter(
+    flamegpu::AgentVector& cancer_pop,
+    int grid_x, int grid_y, int grid_z,
+    float stem_div_interval);
 
 // Single-stem-cell-at-edge diagnostic init.
 // Domain pre-populated with resident healthy cells only:

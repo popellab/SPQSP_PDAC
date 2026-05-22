@@ -528,7 +528,6 @@
     <t_steadystate>5000</t_steadystate>
     <use_resection>0</use_resection>
     <t_resection>1000</t_resection>
-    <presimulation_diam_frac>1.00</presimulation_diam_frac>
     <start>0</start>
     <step>1</step>
     <n_step>360</n_step>

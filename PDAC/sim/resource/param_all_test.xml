@@ -1,4 +1,14 @@
 <Param>
+  <Simulation>
+    <!--
+      Presim (drug-free coupled ABM+QSP) and main-sim (drugs on) durations.
+      PresimSteps > 0 → fixed step count. PresimSteps = 0 → fall back to
+      the volume target (π/6 × QSP initial_tumour_diameter³). CLI flags
+      --presim-steps / --presim-volume / -s override these.
+    -->
+    <PresimSteps>0</PresimSteps>
+    <MainSteps>500</MainSteps>
+  </Simulation>
   <ABM>
     <Environment>
       <SecPerSlice name="PARAM_SEC_PER_SLICE" type="float" val="pos" units="seconds">21600</SecPerSlice>
@@ -227,7 +237,7 @@
       <!-- Lobular structure -->
       <lobule_spacing name="PARAM_DOMAIN_LOBULE_SPACING" type="float" val="pr" units="voxels">70</lobule_spacing>                     <!-- voxels between lobule centers -->
       <septum_thickness name="PARAM_DOMAIN_SEPTUM_THICKNESS" type="float" val="pr" units="voxels">4</septum_thickness>                   <!-- voxels, Voronoi boundary width -->
-      <tumor_radius_fraction name="PARAM_DOMAIN_TUMOR_RADIUS_FRAC" type="float" val="pr">0.20</tumor_radius_fraction>     <!-- fraction of grid_x -->
+      <tumor_radius_fraction name="PARAM_DOMAIN_TUMOR_RADIUS_FRAC" type="float" val="pr">0.44</tumor_radius_fraction>     <!-- fraction of grid_x; used by -i 1 cluster init -->
       <!-- ECM initialization by region (septa are ECM-only, no persistent voxel types) -->
       <ecm_septum_density name="PARAM_DOMAIN_ECM_SEPTUM_DENSITY" type="float" val="pr" units="nmol/mL">700.0</ecm_septum_density>
       <ecm_septum_crosslink name="PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK" type="float" val="pr">0.3</ecm_septum_crosslink>
@@ -528,7 +538,6 @@
     <t_steadystate>5000</t_steadystate>
     <use_resection>0</use_resection>
     <t_resection>1000</t_resection>
-    <presimulation_diam_frac>1.00</presimulation_diam_frac>
     <start>0</start>
     <step>1</step>
     <n_step>360</n_step>

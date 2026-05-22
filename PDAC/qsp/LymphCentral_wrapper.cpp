@@ -1,7 +1,5 @@
 #include "LymphCentral_wrapper.h"
 #include <iostream>
-#include <fstream>
-#include <filesystem>
 #include <cmath>
 #include <stdexcept>
 #include <boost/property_tree/ptree.hpp>
@@ -27,11 +25,11 @@ LymphCentralWrapper::LymphCentralWrapper()
 }
 
 // Destructor
-LymphCentralWrapper::~LymphCentralWrapper() {
-    // Smart pointers will clean up automatically
-}
+LymphCentralWrapper::~LymphCentralWrapper() = default;
 
-// Initialize from parameter file, including QSP steady-state warmup
+// Initialize from parameter file (cold-start; no QSP-only warmup).
+// ABM and QSP are coupled from step 0; the simulator's presim phase
+// (drugs off) is what evolves the system to a pre-treatment state.
 bool LymphCentralWrapper::initialize(const std::string& param_filename) {
     try {
         std::cout << "Initializing QSP LymphCentral model from: " << param_filename << std::endl;
@@ -47,8 +45,6 @@ bool LymphCentralWrapper::initialize(const std::string& param_filename) {
         pt::ptree tree;
         pt::read_xml(param_filename, tree, pt::xml_parser::trim_whitespace);
 
-        double presim_frac = tree.get<double>(
-            "Param.QSP.simulation.presimulation_diam_frac", 0.95);
         double weight_qsp  = tree.get<double>(
             "Param.QSP.simulation.weight_qsp", 0.8);
         double dt          = tree.get<double>(
@@ -66,7 +62,6 @@ bool LymphCentralWrapper::initialize(const std::string& param_filename) {
         double cabo_days = tree.get<double>("Param.ABM.Pharmacokinetics.caboDoseIntervalTime", 1.0);
         _cabo_interval_s = cabo_days * SEC_PER_DAY;
 
-        std::cout << "  presimulation_diam_frac = " << presim_frac << std::endl;
         std::cout << "  weight_qsp              = " << weight_qsp  << std::endl;
         std::cout << "  dt (sec/slice)          = " << dt          << std::endl;
         std::cout << "  nivo dosing: on=" << _nivo_on
@@ -77,108 +72,29 @@ bool LymphCentralWrapper::initialize(const std::string& param_filename) {
                   << " interval=" << cabo_days << " days" << std::endl;
 
         // =====================================================================
-        // STEP 2: Steady-state warmup with a temporary QSP instance
-        // Run with use_steady_state=true and _QSP_weight=1 until tumor volume
-        // reaches π/6 * (presim_frac * initial_tumour_diameter)^3
-        // =====================================================================
-        CancerVCT::ODE_system::use_steady_state = true;
-        CancerVCT::ODE_system::_QSP_weight      = 1.0;
-        CancerVCT::ODE_system::setup_class_parameters(*_parameters);
-
-        // Compute target volume from initial tumour diameter (cm)
-        const double D = QP(CancerVCT::P_initial_tumour_diameter);
-        const double presim_diam = presim_frac * D;
-        const double target_vol  = (M_PI / 6.0) * presim_diam * presim_diam * presim_diam;
-        _full_target_vol         = (M_PI / 6.0) * D * D * D;  // 1.0× diameter target
-
-        std::cout << "QSP steady-state warmup:" << std::endl;
-        std::cout << "  initial_tumour_diameter = " << D << " cm" << std::endl;
-        std::cout << "  presim target diameter  = " << presim_diam << " cm" << std::endl;
-        std::cout << "  presim target volume    = " << target_vol  << " cm^3" << std::endl;
-
-        MolecularModelCVode<CancerVCT::ODE_system> ss_model;
-        ss_model.getSystem()->setup_instance_tolerance(*_parameters);
-        ss_model.getSystem()->setup_instance_variables(*_parameters);
-        ss_model.getSystem()->eval_init_assignment();
-
-        const unsigned int n_species = ss_model.getSystem()->get_num_variables();
-        std::vector<double> ss_val(n_species, 0.0);
-
-        double tt       = 0.0;
-        double tum_vol  = 0.0;
-        const double max_time = 5000.0 * 86400.0;  // 5000-day safety limit
-        unsigned int step_count = 0;
-
-        // Open per-step presim QSP CSV if a path was provided
-        std::ofstream presim_csv;
-        if (!_presim_output_path.empty()) {
-            std::filesystem::create_directories(
-                std::filesystem::path(_presim_output_path).parent_path().empty()
-                    ? "." : std::filesystem::path(_presim_output_path).parent_path().string());
-            presim_csv.open(_presim_output_path);
-            if (presim_csv.is_open()) {
-                presim_csv << "step," << CancerVCT::ODE_system::getHeader() << "\n";
-                presim_csv << 0 << *ss_model.getSystem() << "\n";  // step 0 = initial condition
-            }
-        }
-
-        // Check break condition BEFORE the first solve so presim_frac=1e-8 runs
-        // zero CVODE steps instead of one. A single stiff step was collapsing
-        // V_C.CD8 / V_C.Th by ~150x, which downstream throttled ABM recruitment.
-        tum_vol = _compute_tumor_volume(ss_model.getSystem());
-        while (tt < max_time && tum_vol < target_vol) {
-            ss_model.solve(tt, dt);
-            tt += dt;
-            step_count++;
-
-            tum_vol = _compute_tumor_volume(ss_model.getSystem());
-
-            if (presim_csv.is_open()) {
-                presim_csv << step_count << *ss_model.getSystem() << "\n";
-            }
-
-            if (step_count % 500 == 0) {
-                std::cout << "  t=" << tt / 86400.0 << " d  tum_vol=" << tum_vol
-                          << " cm^3  (target=" << target_vol << ")" << std::endl;
-            }
-        }
-
-        if (tum_vol < target_vol) {
-            std::cerr << "ERROR: QSP warmup did not reach target volume ("
-                      << tum_vol << " < " << target_vol << " cm^3)" << std::endl;
-            return false;
-        }
-
-        // Save steady-state species values (raw internal units)
-        for (unsigned int i = 0; i < n_species; i++) {
-            ss_val[i] = ss_model.getSystem()->getSpeciesVar(i);  // raw=true default
-        }
-
-        std::cout << "QSP steady-state warmup complete: t=" << tt / 86400.0
-                  << " d, tum_vol=" << tum_vol << " cm^3" << std::endl;
-        // =====================================================================
-        // STEP 3: Setup main QSP model in full simulation mode
+        // STEP 2: Build main QSP model directly in full simulation mode.
+        // Initial values come straight from XML; no time stepping here.
+        // The simulator's presim phase (drugs off) provides the warmup via
+        // coupled ABM+QSP stepping.
         // =====================================================================
         CancerVCT::ODE_system::use_steady_state = false;
         CancerVCT::ODE_system::_QSP_weight      = weight_qsp;
         CancerVCT::ODE_system::setup_class_parameters(*_parameters);
 
+        // Full-target volume kept as a reference for the volume-stopper fallback
+        const double D = QP(CancerVCT::P_initial_tumour_diameter);
+        _full_target_vol = (M_PI / 6.0) * D * D * D;
+        std::cout << "  full target tum_vol     = " << _full_target_vol << " cm^3 (D=" << D << " cm)" << std::endl;
+
         _qsp_model = std::make_unique<MolecularModelCVode<CancerVCT::ODE_system>>();
         _qsp_model->getSystem()->setup_instance_tolerance(*_parameters);
         _qsp_model->getSystem()->setup_instance_variables(*_parameters);
-
-        // Load steady-state solution into main model
-        for (unsigned int i = 0; i < n_species; i++) {
-            _qsp_model->getSystem()->setSpeciesVar(i, ss_val[i]);  // raw=true default
-        }
-
-        // Re-evaluate initial assignments with the loaded SS state
         _qsp_model->getSystem()->eval_init_assignment();
 
-        _current_time    = tt;   // begin main solve at end of warmup time
-        _is_initialized  = true;
+        _current_time   = 0.0;
+        _is_initialized = true;
 
-        std::cout << "QSP model initialization complete" << std::endl;
+        std::cout << "QSP model initialization complete (cold start, no warmup)" << std::endl;
         std::cout << "  Species count: " << _qsp_model->getSystem()->get_num_variables() << std::endl;
         std::cout << "  Parameters:   " << _qsp_model->getSystem()->get_num_params()    << std::endl;
         std::cout << "  Start time:   " << _current_time / 86400.0 << " d"              << std::endl;

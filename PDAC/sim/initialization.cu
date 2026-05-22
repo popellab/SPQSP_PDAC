@@ -18,9 +18,9 @@ namespace PDAC {
 // ============================================================================
 
 SimulationConfig::SimulationConfig()
-    : steps(200)
+    : steps(500)
     , random_seed(12345)
-    , init_method(0)
+    , init_method(0)  // 0 = single stem at center (new default)
     , scenario(Scenario::Default)
     , seed_position("x_low")
     , vascular_mode("random")
@@ -29,7 +29,12 @@ SimulationConfig::SimulationConfig()
     , interval_out(1)
     , presim_qsp_enabled(true)
     , main_qsp_enabled(true)
-    , presim_steps(-1)  // -1 = use QSP volume stopper (legacy)
+    , presim_steps(-1)
+    , xml_presim_steps(0)
+    , presim_volume_target(-1.0)
+    , presim_steps_from_cli(false)
+    , presim_volume_from_cli(false)
+    , main_steps_from_cli(false)
 {
 }
 
@@ -48,10 +53,10 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             ++i;  // already handled before parseCommandLine
         } else if ((arg == "--initialization" || arg == "-i") && i + 1 < argc) {
             int val = std::atoi(argv[++i]);
-            if (val == 0 || val == 1) {
+            if (val == 0 || val == 1 || val == 2) {
                 init_method = val;
             } else {
-                std::cerr << "WARNING: Only -i 0 (simple) and -i 1 (structured) are supported. Ignoring -i " << val << std::endl;
+                std::cerr << "WARNING: -i must be 0 (single_stem), 1 (cluster), or 2 (structured_deprecated). Ignoring -i " << val << std::endl;
             }
         } else if ((arg == "--grid-size" || arg == "-g") && i + 1 < argc) {
             int size = std::atoi(argv[++i]);
@@ -66,6 +71,7 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             grid_z = std::atoi(argv[++i]);
         } else if ((arg == "--steps" || arg == "-s") && i + 1 < argc) {
             steps = std::atoi(argv[++i]);
+            main_steps_from_cli = true;
         } else if ((arg == "--grid-output" || arg == "-G") && i + 1 < argc) {
             grid_out = std::atoi(argv[++i]);
         } else if ((arg == "--out_int" || arg == "-oi") && i + 1 < argc) {
@@ -94,6 +100,10 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             }
         } else if (arg == "--presim-steps" && i + 1 < argc) {
             presim_steps = std::atoi(argv[++i]);
+            presim_steps_from_cli = true;
+        } else if (arg == "--presim-volume" && i + 1 < argc) {
+            presim_volume_target = std::atof(argv[++i]);
+            presim_volume_from_cli = true;
         } else if (arg == "--scenario" && i + 1 < argc) {
             std::string s = argv[++i];
             if (s == "default") {
@@ -120,7 +130,7 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             std::cout << "Usage: " << argv[0] << " [options]\n"
                       << "\nOptions:\n"
                       << "  -p, --param-file FILE    Path to parameter XML file [default: param_all_test.xml]\n"
-                      << "  -i, --initialization N   initialization type: 0=QSP-seeded [default: 0]\n"
+                      << "  -i, --initialization N   Initialization type: 0=single_stem_center, 1=cluster_radius, 2=structured_deprecated [default: 0]\n"
                       << "  -g, --grid-size N        Grid dimensions NxNxN [default: from XML]\n"
                       << "  -gx, --grid-x N          Override grid X only (applied after -g)\n"
                       << "  -gy, --grid-y N          Override grid Y only (applied after -g)\n"
@@ -133,7 +143,8 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  -vx, --vascular-xml FILE XML file for vasculature (when mode=xml)\n"
                       << "  --presim-mode MODE       Presim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
                       << "  --main-mode MODE         Main-sim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
-                      << "  --presim-steps N         Presim step count (>=0 uses step stopper; <0 uses QSP volume) [default: -1]\n"
+                      << "  --presim-steps N         Presim step count override (>=0). Wins over --presim-volume and XML.\n"
+                      << "  --presim-volume V        Presim QSP tumor volume target (cm^3). Used if --presim-steps absent.\n"
                       << "  --scenario NAME          Scenario bundle: default | single_stem_edge [default: default]\n"
                       << "                           single_stem_edge: resident vasc+PSC only, 1 stem cell at edge, ABM-only.\n"
                       << "  --seed-position FACE     For single_stem_edge: x_low|x_high|y_low|y_high|z_low|z_high [default: x_low]\n"
@@ -158,7 +169,12 @@ void SimulationConfig::print() const {
     std::cout << "Voxel size: " << voxel_size << " µm" << std::endl;
     std::cout << "Steps: " << steps << std::endl;
     std::cout << "Random seed: " << random_seed << std::endl;
-    std::cout << "Init: " << (init_method == 1 ? "Structured domain (-i 1)" : "QSP-seeded (-i 0)") << std::endl;
+    std::cout << "Init: ";
+    if      (init_method == 0) std::cout << "single_stem_center (-i 0)";
+    else if (init_method == 1) std::cout << "cluster_radius (-i 1)";
+    else if (init_method == 2) std::cout << "structured_deprecated (-i 2)";
+    else                       std::cout << "unknown (-i " << init_method << ")";
+    std::cout << std::endl;
     std::cout << "Scenario: "
               << (scenario == Scenario::SingleStemEdge ? "single_stem_edge" : "default");
     if (scenario == Scenario::SingleStemEdge) {
@@ -168,8 +184,9 @@ void SimulationConfig::print() const {
 
     std::cout << "\nSimulation modes:" << std::endl;
     std::cout << "  Presim: " << (presim_qsp_enabled ? "qsp_abm" : "abm_only");
-    if (presim_steps >= 0) std::cout << "  (stopper: steps=" << presim_steps << ")";
-    else                   std::cout << "  (stopper: QSP volume)";
+    if (presim_steps >= 0)              std::cout << "  (stopper: steps=" << presim_steps << ")";
+    else if (presim_volume_target > 0)  std::cout << "  (stopper: tum_vol=" << presim_volume_target << " cm^3)";
+    else                                std::cout << "  (stopper: QSP-derived volume, resolved at runtime)";
     std::cout << std::endl;
     std::cout << "  Main:   " << (main_qsp_enabled ? "qsp_abm" : "abm_only") << std::endl;
 
@@ -534,6 +551,26 @@ static void buildOccupancyGrid(
         int z = agents[i].getVariable<int>("z");
         occupied[z * grid_x * grid_y + y * grid_x + x][0] = 1;
     }
+}
+
+void seedSingleStemAtCenter(
+    flamegpu::AgentVector& cancer_pop,
+    int grid_x, int grid_y, int grid_z,
+    float stem_div_interval)
+{
+    cancer_pop.push_back();
+    flamegpu::AgentVector::Agent agent = cancer_pop.back();
+    const unsigned int id = agent.getID();
+    const float rand_frac = static_cast<float>(rand()) / (RAND_MAX + 1.0f);
+    const int   div_cd    = static_cast<int>(stem_div_interval * rand_frac) + 1;
+    agent.setVariable<int>("x", grid_x / 2);
+    agent.setVariable<int>("y", grid_y / 2);
+    agent.setVariable<int>("z", grid_z / 2);
+    agent.setVariable<int>("cell_state", CANCER_STEM);
+    agent.setVariable<int>("divideCD", div_cd);
+    agent.setVariable<int>("divideFlag", 1);
+    agent.setVariable<int>("divideCountRemaining", 0);
+    agent.setVariable<unsigned int>("stemID", id);
 }
 
 void initializeCancerCellsRandom(
@@ -1099,22 +1136,13 @@ void initializeToQSP(
     std::cout << "  QSP Treg (SI)     : " << qsp.treg_tumor << std::endl;
     std::cout << "  QSP MDSC (SI)     : " << qsp.mdsc_tumor << std::endl;
 
-    // // -----------------------------------------------------------------------
-    // // Compute cluster_radius in voxels from QSP tumor volume
-    // //   Sphere volume: V = (4/3)π r³  →  r = cbrt(3V / 4π)
-    // // -----------------------------------------------------------------------
-    // const double voxel_size_cm = config.voxel_size * 1e-4;  // µm → cm
-    // const double tum_radius_cm = std::cbrt(3.0 * qsp.tum_vol / (4.0 * M_PI));
-    // int cluster_radius = static_cast<int>(std::round(tum_radius_cm / voxel_size_cm));
-
-    // // Clamp to fit within grid (at least 1 voxel, at most grid_half - 2)
-    // const int max_radius = std::min({config.grid_x, config.grid_y, config.grid_z}) / 2 - 2;
-    // if (cluster_radius < 1) cluster_radius = 1;
-    // if (cluster_radius > max_radius) cluster_radius = max_radius;
-
-    // Use arbitrary scalar to initialize tumor radius
-    int cluster_radius = static_cast<int>(0.44 * config.grid_x); 
-    std::cout << "  cluster_radius  = " << cluster_radius << " voxels" << std::endl;
+    // Cluster radius for -i 1 (cluster_radius mode). Read from XML so the
+    // user can tune the initial tumor size without rebuilding. For -i 0
+    // (single_stem_center) this value is unused.
+    const float radius_frac = model.Environment().getProperty<float>("PARAM_DOMAIN_TUMOR_RADIUS_FRAC");
+    int cluster_radius = static_cast<int>(std::round(radius_frac * config.grid_x));
+    std::cout << "  cluster_radius  = " << cluster_radius
+              << " voxels (frac=" << radius_frac << ")" << std::endl;
 
     // -----------------------------------------------------------------------
     // Immune cell placement probabilities (HCC pattern):
@@ -1183,10 +1211,22 @@ void initializeToQSP(
     std::vector<std::vector<int>> occupied(total_voxels, std::vector<int>(3, 0));
     {
         flamegpu::AgentVector cancer_pop(model.Agent(AGENT_CANCER_CELL));
-        initializeCancerCellsRandom(
-            cancer_pop,
-            config.grid_x, config.grid_y, config.grid_z,
-            cluster_radius, stem_div, prog_div, prog_max, cancer_sen_life, celltype_cdf);
+        if (config.init_method == 1) {
+            // -i 1: cluster of cancer cells (legacy default)
+            initializeCancerCellsRandom(
+                cancer_pop,
+                config.grid_x, config.grid_y, config.grid_z,
+                cluster_radius, stem_div, prog_div, prog_max, cancer_sen_life, celltype_cdf);
+            std::cout << "  Placed " << cancer_pop.size() << " cancer cells (cluster r="
+                      << cluster_radius << ")" << std::endl;
+        } else {
+            // -i 0 (default): single stem cell at grid center
+            seedSingleStemAtCenter(
+                cancer_pop,
+                config.grid_x, config.grid_y, config.grid_z,
+                stem_div);
+            std::cout << "  Placed " << cancer_pop.size() << " cancer stem cell (center)" << std::endl;
+        }
         buildOccupancyGrid(cancer_pop, occupied, config.grid_x, config.grid_y);
         simulation.setPopulationData(cancer_pop);
     }

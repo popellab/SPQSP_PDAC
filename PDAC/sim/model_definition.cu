@@ -729,8 +729,11 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<unsigned int>("next_agent_id", 1000u);
     env.newProperty<unsigned int>("sim_seed", 0u);  // Set from config.random_seed in main.cu
 
-    // Step counter that starts at 0 when the main simulation (Phase 4) begins
+    // Step counter that starts at 0 when the main simulation begins.
     env.newProperty<unsigned int>("main_sim_step", 0u);
+
+    // Step counter that increments during the drug-free presim phase only.
+    env.newProperty<unsigned int>("presim_step", 0u);
 
     // Simulation mode flag: 1 = step QSP normally, 0 = freeze QSP (ABM-only mode).
     // When 0, solve_qsp_step, aggregate_abm_events, and copy_abm_counters_to_environment

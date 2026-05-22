@@ -10,6 +10,8 @@
 // File-scope variables (accessible to exportQSPData step function outside PDAC namespace)
 static std::ofstream g_qsp_csv;
 static std::string g_qsp_output_path = "outputs/qsp.csv";
+static std::ofstream g_qsp_presim_csv;
+static std::string g_qsp_presim_output_path = "outputs/qsp_presim.csv";
 
 namespace PDAC{
 
@@ -33,6 +35,10 @@ LymphCentralWrapper* get_lymph_pointer() {
 
 void set_qsp_output_path(const std::string& path) {
     g_qsp_output_path = path;
+}
+
+void set_qsp_presim_output_path(const std::string& path) {
+    g_qsp_presim_output_path = path;
 }
 
 // Populate every qsp_* env property from the wrapper's current ODE state, plus
@@ -216,20 +222,29 @@ double get_last_qsp_ms() {
 FLAMEGPU_STEP_FUNCTION(exportQSPData) {
     PDAC::LymphCentralWrapper* lymph = PDAC::get_lymph_pointer();
     if (!lymph) return;
-    if (lymph->is_presimulation_mode()) return;
 
     CancerVCT::ODE_system* ode = lymph->get_ode_system();
     if (!ode) return;
 
-    const unsigned int main_step = FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
+    const bool in_presim = lymph->is_presimulation_mode();
 
-    // Open file and write header on first (main-sim) call
-    if (!g_qsp_csv.is_open()) {
-        std::filesystem::create_directories("outputs");
-        g_qsp_csv.open(g_qsp_output_path);
-        g_qsp_csv << "step," << CancerVCT::ODE_system::getHeader() << "\n";
+    if (in_presim) {
+        const unsigned int presim_step = FLAMEGPU->environment.getProperty<unsigned int>("presim_step");
+        if (!g_qsp_presim_csv.is_open()) {
+            const auto parent = std::filesystem::path(g_qsp_presim_output_path).parent_path();
+            if (!parent.empty()) std::filesystem::create_directories(parent);
+            g_qsp_presim_csv.open(g_qsp_presim_output_path);
+            g_qsp_presim_csv << "step," << CancerVCT::ODE_system::getHeader() << "\n";
+        }
+        g_qsp_presim_csv << (presim_step + 1) << *ode << "\n";
+    } else {
+        const unsigned int main_step = FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
+        if (!g_qsp_csv.is_open()) {
+            const auto parent = std::filesystem::path(g_qsp_output_path).parent_path();
+            if (!parent.empty()) std::filesystem::create_directories(parent);
+            g_qsp_csv.open(g_qsp_output_path);
+            g_qsp_csv << "step," << CancerVCT::ODE_system::getHeader() << "\n";
+        }
+        g_qsp_csv << (main_step + 1) << *ode << "\n";
     }
-
-    // Write step index followed by all ODE species (CVODEBase::operator<<)
-    g_qsp_csv << (main_step + 1) << *ode << "\n";
 }

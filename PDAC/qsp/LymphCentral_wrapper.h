@@ -184,12 +184,6 @@ public:
     bool is_presimulation_mode() const { return _presimulation_mode; }
 
     /**
-     * Set output path for per-step QSP presimulation CSV.
-     * Must be called before initialize(). If empty (default), no presim CSV is written.
-     */
-    void set_presim_output_path(const std::string& path) { _presim_output_path = path; }
-
-    /**
      * Get underlying ODE system (for advanced usage)
      */
     CancerVCT::ODE_system* get_ode_system() {
@@ -208,7 +202,6 @@ private:
     double _current_time;
     double _full_target_vol;    // π/6 × D³ (1.0× initial diameter), cm^3
     bool _presimulation_mode;   // true → no drug dosing in ODE step
-    std::string _presim_output_path;  // path for per-step presim QSP CSV (empty = no output)
 
     // Drug dosing schedule (read from XML Param.Pharmacokinetics)
     bool   _nivo_on;            // Nivolumab dosing enabled

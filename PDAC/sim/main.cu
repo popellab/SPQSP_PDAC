@@ -13,6 +13,9 @@
 
 #include "third_party/lz4/lz4.h"
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+
 #include "../core/common.cuh"
 #include "../core/layer_timing.h"
 #include "../pde/pde_integration.cuh"
@@ -37,6 +40,7 @@ extern flamegpu::FLAMEGPU_STEP_FUNCTION_POINTER exportQSPData;
 namespace PDAC {
     extern void exportQSPData_step0();
     extern void set_qsp_output_path(const std::string& path);
+    extern void set_qsp_presim_output_path(const std::string& path);
     extern void seed_qsp_env_properties(flamegpu::CUDASimulation& simulation);
 }
 
@@ -240,12 +244,14 @@ void exportPDEData_step0(int grid_x, int grid_y, int grid_z) {
 }
 
 FLAMEGPU_STEP_FUNCTION(exportPDEData) {
-    if (PDAC::is_presim_mode_active()) return;
     if (!PDAC::g_pde_solver) return;
 
-    const unsigned int main_step = FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
+    const bool in_presim = PDAC::is_presim_mode_active();
+    const unsigned int phase_step = in_presim
+        ? FLAMEGPU->environment.getProperty<unsigned int>("presim_step")
+        : FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
     const int interval = FLAMEGPU->environment.getProperty<int>("interval_out");
-    if (main_step % interval != 0) return;
+    if (phase_step % interval != 0) return;
 
     ensureOutputDirectories();
 
@@ -260,8 +266,10 @@ FLAMEGPU_STEP_FUNCTION(exportPDEData) {
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
     char path_buf[256];
-    snprintf(path_buf, sizeof(path_buf), "pde/pde_step_%06d.pde.lz4",
-             static_cast<int>(main_step + 1));
+    snprintf(path_buf, sizeof(path_buf), in_presim
+             ? "pde/pde_presim_%06d.pde.lz4"
+             : "pde/pde_step_%06d.pde.lz4",
+             static_cast<int>(phase_step + 1));
     export_pde_async_no_join(grid_x, grid_y, grid_z, out_path(path_buf));
 
     auto t2 = std::chrono::high_resolution_clock::now();
@@ -361,11 +369,12 @@ void exportECMData_step0(int grid_x, int grid_y, int grid_z) {
 }
 
 FLAMEGPU_STEP_FUNCTION(exportECMData) {
-    if (PDAC::is_presim_mode_active()) return;
-
-    const unsigned int main_step = FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
+    const bool in_presim = PDAC::is_presim_mode_active();
+    const unsigned int phase_step = in_presim
+        ? FLAMEGPU->environment.getProperty<unsigned int>("presim_step")
+        : FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
     const int interval = FLAMEGPU->environment.getProperty<int>("interval_out");
-    if (main_step % interval != 0) return;
+    if (phase_step % interval != 0) return;
 
     try { std::filesystem::create_directories(out_path("ecm")); } catch (...) {}
 
@@ -378,8 +387,10 @@ FLAMEGPU_STEP_FUNCTION(exportECMData) {
     collect_ecm_to_buf(g_ecm_bufs[bi], grid_x, grid_y, grid_z);
 
     char path_buf[256];
-    snprintf(path_buf, sizeof(path_buf), "ecm/ecm_step_%06d.ecm.lz4",
-             static_cast<int>(main_step + 1));
+    snprintf(path_buf, sizeof(path_buf), in_presim
+             ? "ecm/ecm_presim_%06d.ecm.lz4"
+             : "ecm/ecm_step_%06d.ecm.lz4",
+             static_cast<int>(phase_step + 1));
     std::string path = out_path(path_buf);
     g_ecm_io_thread = std::thread([bi, path, grid_x, grid_y, grid_z]() {
         write_ecm_lz4_buf(path.c_str(), grid_x, grid_y, grid_z, g_ecm_bufs[bi]);
@@ -633,13 +644,12 @@ static void collect_abm_step(flamegpu::HostAPI* FLAMEGPU, std::vector<int32_t>& 
 
 // Host function: prepare GPU buffer for ABM export (runs as a layer before pack_for_export)
 FLAMEGPU_HOST_FUNCTION(prepare_abm_export) {
-    if (PDAC::is_presim_mode_active()) {
-        FLAMEGPU->environment.setProperty<int>("do_abm_export", 0);
-        return;
-    }
-    const unsigned int main_step = FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
+    const bool in_presim = PDAC::is_presim_mode_active();
+    const unsigned int phase_step = in_presim
+        ? FLAMEGPU->environment.getProperty<unsigned int>("presim_step")
+        : FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
     const int interval = FLAMEGPU->environment.getProperty<int>("interval_out");
-    if (main_step % interval != 0) {
+    if (phase_step % interval != 0) {
         FLAMEGPU->environment.setProperty<int>("do_abm_export", 0);
         return;
     }
@@ -663,10 +673,12 @@ void exportABMData_step0(flamegpu::CUDASimulation& sim, flamegpu::ModelDescripti
 
 
 FLAMEGPU_STEP_FUNCTION(exportABMData) {
-    if (PDAC::is_presim_mode_active()) return;
-    const unsigned int main_step = FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
+    const bool in_presim = PDAC::is_presim_mode_active();
+    const unsigned int phase_step = in_presim
+        ? FLAMEGPU->environment.getProperty<unsigned int>("presim_step")
+        : FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
     const int interval = FLAMEGPU->environment.getProperty<int>("interval_out");
-    if (main_step % interval != 0) return;
+    if (phase_step % interval != 0) return;
     ensureOutputDirectories();
 
     auto t0 = std::chrono::high_resolution_clock::now();
@@ -689,8 +701,10 @@ FLAMEGPU_STEP_FUNCTION(exportABMData) {
     auto t2 = std::chrono::high_resolution_clock::now();
 
     char path_buf[256];
-    snprintf(path_buf, sizeof(path_buf), "abm/agents_step_%06d.abm.lz4",
-             static_cast<int>(main_step + 1));
+    snprintf(path_buf, sizeof(path_buf), in_presim
+             ? "abm/agents_presim_%06d.abm.lz4"
+             : "abm/agents_step_%06d.abm.lz4",
+             static_cast<int>(phase_step + 1));
     std::string path = out_path(path_buf);
     int32_t* host_buf = g_abm_pinned[bi];
     int n_agents_copy = static_cast<int>(n_agents);
@@ -709,15 +723,14 @@ FLAMEGPU_STEP_FUNCTION(exportABMData) {
 FLAMEGPU_STEP_FUNCTION(stepCounter) {
     unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
     FLAMEGPU->environment.setProperty<unsigned int>("current_step", step + 1);
-    
-    // Suppress output during Phase 3 pre-simulation warmup
-    if (PDAC::is_presim_mode_active()) return;
 
-    const unsigned int main_step = FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
+    const bool in_presim = PDAC::is_presim_mode_active();
+    const unsigned int phase_step = in_presim
+        ? FLAMEGPU->environment.getProperty<unsigned int>("presim_step")
+        : FLAMEGPU->environment.getProperty<unsigned int>("main_sim_step");
 
-    // Compute treatment day from main_sim_step (0 = start of Phase 4)
     const float dt_abm  = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
-    const float treat_day = static_cast<float>(main_step) * dt_abm / 86400.0f;
+    const float phase_day = static_cast<float>(phase_step) * dt_abm / 86400.0f;
 
     // Agent counts
     const unsigned int cancer_count = FLAMEGPU->agent(PDAC::AGENT_CANCER_CELL).count();
@@ -737,9 +750,10 @@ FLAMEGPU_STEP_FUNCTION(stepCounter) {
     const float treg_t   = FLAMEGPU->environment.getProperty<float>("qsp_treg_tumor");
     const float mdsc_t   = FLAMEGPU->environment.getProperty<float>("qsp_mdsc_tumor");
 
+    const char* tag = in_presim ? "PRESIM" : "MAIN";
     std::cout << std::fixed << std::setprecision(2)
-              << "[Day " << std::setw(7) << treat_day << "]" << std::endl;
-    std::cout << std::fixed << std::setprecision(2) << "[ABM] CC=" << cancer_count 
+              << "[" << tag << " Day " << std::setw(7) << phase_day << "]" << std::endl;
+    std::cout << std::fixed << std::setprecision(2) << "[ABM] CC=" << cancer_count
               << "  TC=" << tcell_count
               << "  TR=" << treg_count
               << "  MD=" << mdsc_count
@@ -757,7 +771,11 @@ FLAMEGPU_STEP_FUNCTION(stepCounter) {
               << " MDSC=" << mdsc_t
               << std::endl;
 
-    FLAMEGPU->environment.setProperty<unsigned int>("main_sim_step", main_step + 1);
+    if (in_presim) {
+        FLAMEGPU->environment.setProperty<unsigned int>("presim_step", phase_step + 1);
+    } else {
+        FLAMEGPU->environment.setProperty<unsigned int>("main_sim_step", phase_step + 1);
+    }
 }
 
 FLAMEGPU_EXIT_CONDITION(checkSimulationEnd) {
@@ -840,6 +858,20 @@ int main(int argc, const char** argv) {
 
     // Parse configuration from command line
     PDAC::SimulationConfig config;
+
+    // Load sim-control defaults from XML <Simulation> block (not in GPUParam).
+    // CLI flags below may override these.
+    try {
+        namespace pt = boost::property_tree;
+        pt::ptree tree;
+        pt::read_xml(param_file, tree, pt::xml_parser::trim_whitespace);
+        config.xml_presim_steps = tree.get<int>("Param.Simulation.PresimSteps", 0);
+        config.steps            = tree.get<unsigned int>("Param.Simulation.MainSteps", config.steps);
+    } catch (const std::exception& e) {
+        std::cerr << "Warning: failed to read <Simulation> block from XML: " << e.what()
+                  << " (using defaults)" << std::endl;
+    }
+
     config.parseCommandLine(argc, argv, gpu_params);
 
     // Scenario policy: force ABM-only and pick a sane presim step count.
@@ -851,12 +883,24 @@ int main(int argc, const char** argv) {
         }
         config.presim_qsp_enabled = false;
         config.main_qsp_enabled   = false;
-        if (config.presim_steps < 0) {
+        if (!config.presim_steps_from_cli && config.presim_steps < 0) {
             config.presim_steps = 100;
+            config.presim_steps_from_cli = true;  // treat as override
             std::cerr << "[scenario:single_stem_edge] defaulting --presim-steps to 100 "
                          "(volume stopper not usable with frozen QSP)." << std::endl;
         }
     }
+    // Precedence between CLI flags (volume target from XML diameter is resolved
+    // later, after _lymph.initialize() computes get_full_target_volume()).
+    if (config.presim_steps_from_cli) {
+        config.presim_volume_target = -1.0;
+    } else if (config.presim_volume_from_cli) {
+        config.presim_steps = -1;
+    } else if (config.xml_presim_steps > 0) {
+        config.presim_steps = config.xml_presim_steps;
+        config.presim_volume_target = -1.0;
+    }
+    // else: leave both at sentinels; the QSP-derived fallback is wired below.
 
     config.print();
 
@@ -887,18 +931,24 @@ int main(int argc, const char** argv) {
     init_lap("build_model");
 
     // ========== INITIALIZE QSP SOLVER ==========
-    // QSP must init before PDE so derived params (decay rates, EC50s) are available
+    // Cold-start: QSP loads from XML, no internal warmup. ABM and QSP are
+    // coupled from step 0 of the presim phase (drug dosing gated off).
+    // QSP must init before PDE so derived params (decay rates, EC50s) are available.
     PDAC::LymphCentralWrapper _lymph;
-    {
-        // Set presim output path before initialize() so Phase 2 warmup writes per-step QSP CSV
-        char rel[64];
-        snprintf(rel, sizeof(rel), "qsp_presim_%u.csv", config.random_seed);
-        _lymph.set_presim_output_path(out_path(rel));
-    }
     _lymph.initialize(param_file);
     PDAC::set_internal_params(*model, _lymph, param_file);
     PDAC::set_lymph_pointer(&_lymph);  // Set global pointer for QSP host functions
     init_lap("init_qsp");
+
+    // Resolve volume-target fallback now that _lymph knows the QSP target volume.
+    if (!config.presim_steps_from_cli &&
+        !config.presim_volume_from_cli &&
+        config.xml_presim_steps == 0) {
+        config.presim_steps = -1;
+        config.presim_volume_target = _lymph.get_full_target_volume();
+        std::cout << "Presim stopper fallback: tum_vol >= " << config.presim_volume_target
+                  << " cm^3 (from QSP initial_tumour_diameter)" << std::endl;
+    }
 
     // ========== INITIALIZE PDE SOLVER ==========
     // Reads both gpu_params (ABM-specific) and model env (QSP-derived) for config
@@ -1012,11 +1062,16 @@ int main(int argc, const char** argv) {
     if (config.scenario == PDAC::SimulationConfig::Scenario::SingleStemEdge) {
         std::cout << "Initializing single-stem-edge scenario (resident vasc+PSC + 1 stem cell)..." << std::endl;
         PDAC::initializeSingleStemEdge(simulation, *model, config, _lymph);
-    } else if (config.init_method == 1) {
-        std::cout << "Initializing structured domain (-i 1)..." << std::endl;
+    } else if (config.init_method == 2) {
+        std::cout << "Initializing structured domain (-i 2, deprecated)..." << std::endl;
         PDAC::initializeStructuredDomain(simulation, *model, config, _lymph);
     } else {
-        std::cout << "Initializing agents from QSP steady-state (-i 0)..." << std::endl;
+        // -i 0 (single_stem_center, default) and -i 1 (cluster_radius) share the
+        // same substrate (QSP-seeded immune/vasc/fib placement) — they differ only
+        // in how cancer cells are seeded. initializeToQSP branches on init_method.
+        std::cout << "Initializing agents (-i " << config.init_method
+                  << ", " << (config.init_method == 1 ? "cluster_radius" : "single_stem_center")
+                  << ")..." << std::endl;
         PDAC::initializeToQSP(simulation, *model, config, _lymph);
     }
     std::cout.flush();
@@ -1029,120 +1084,72 @@ int main(int argc, const char** argv) {
     std::cout << "[MEM] After agent init: " << (used_mem_2 / (1024*1024)) << " MB used / "
               << (total_mem_2 / (1024*1024)) << " MB total" << std::endl;
 
-    // ========== PHASE 3: PRE-SIMULATION ==========
-    // Step ABM (and optionally QSP) until either a target tumor volume or a
-    // fixed step count is reached. Drug dosing is always off during presim.
-    //
-    // Mode selection (per config):
-    //   presim_qsp_enabled=true  : full ABM+QSP coupling, no drugs
-    //   presim_qsp_enabled=false : ABM-only; QSP frozen at post-warmup state
-    //
-    // Stopping criterion:
-    //   presim_steps >= 0 : run exactly presim_steps iterations
-    //   presim_steps <  0 : run until QSP tumor volume >= full_target_vol (legacy)
-    const double full_target_vol = _lymph.get_full_target_volume();
+    // ========== SEED-STAMPED OUTPUT PATHS (used by both presim and main sim) ==========
+    char rel_buf[64];
+    snprintf(rel_buf, sizeof(rel_buf), "qsp_%u.csv",        config.random_seed);
+    std::string qsp_seed_path        = out_path(rel_buf);
+    snprintf(rel_buf, sizeof(rel_buf), "qsp_presim_%u.csv", config.random_seed);
+    std::string qsp_presim_path      = out_path(rel_buf);
+    PDAC::set_qsp_output_path(qsp_seed_path);
+    PDAC::set_qsp_presim_output_path(qsp_presim_path);
+
+    // ========== PRESIM PHASE (coupled ABM+QSP, drugs OFF) ==========
+    // ABM and QSP step together from t=0. Drug dosing is gated off via the
+    // wrapper's _presimulation_mode flag. Stopping criterion is the resolved
+    // step count or volume target from precedence rules above.
     double cur_vol = _lymph.get_tumor_volume();
 
-    // Set the per-phase QSP step flag BEFORE the loop so gated host functions
-    // see the correct mode starting on iteration 0.
+    // QSP coupling on for presim (always — single-stem scenarios may force off above).
     simulation.setEnvironmentProperty<int>("step_qsp", config.presim_qsp_enabled ? 1 : 0);
 
     // Misconfiguration guard: abm_only freezes QSP, so cur_vol never updates.
-    // The volume stopper would then loop until the safety cap (100k steps).
+    // The volume stopper would then loop until the safety cap.
     if (!config.presim_qsp_enabled && config.presim_steps < 0) {
         std::cerr << "ERROR: --presim-mode abm_only requires --presim-steps N "
                      "(QSP is frozen, so the volume stopper would never trigger)." << std::endl;
         return 1;
     }
 
-    std::cout << "\n=== Phase 3: Pre-simulation ("
+    std::cout << "\n=== Presim phase ("
               << (config.presim_qsp_enabled ? "ABM+QSP, no drugs" : "ABM only, QSP frozen")
               << ") ===" << std::endl;
     if (config.presim_steps >= 0) {
         std::cout << "  Stopper: fixed step count = " << config.presim_steps << std::endl;
     } else {
         std::cout << "  Stopper: QSP tumor volume" << std::endl;
-        std::cout << "  Target volume (1.0x diam): " << full_target_vol << " cm^3" << std::endl;
-        std::cout << "  Current QSP volume       : " << cur_vol         << " cm^3" << std::endl;
+        std::cout << "  Target volume         : " << config.presim_volume_target << " cm^3" << std::endl;
+        std::cout << "  Current QSP volume    : " << cur_vol                     << " cm^3" << std::endl;
     }
 
-    // Presim never doses drugs. This flag gates the wrapper's drug-bolus path;
-    // even when step_qsp=0 it's harmless (wrapper is never called).
+    // Drug dosing gated off for the presim phase.
     _lymph.set_presimulation_mode(true);
 
-    const unsigned int max_presim_steps = 100000;  // safety cap for volume stopper
-    unsigned int presim_step = 0;
-
-    auto presim_should_continue = [&]() -> bool {
-        if (config.presim_steps >= 0) {
-            return presim_step < static_cast<unsigned int>(config.presim_steps);
-        }
-        return cur_vol < full_target_vol && presim_step < max_presim_steps;
-    };
-
-    // Pre-create presim output dirs if needed (grid_out > 0 means we'll write files)
     if (config.grid_out != 0) {
         ensureOutputDirectories();
     }
 
+    const unsigned int max_presim_steps = 100000;  // safety cap for volume stopper
+    unsigned int presim_step_count = 0;
+
+    auto presim_should_continue = [&]() -> bool {
+        if (config.presim_steps >= 0) {
+            return presim_step_count < static_cast<unsigned int>(config.presim_steps);
+        }
+        return cur_vol < config.presim_volume_target && presim_step_count < max_presim_steps;
+    };
+
     while (presim_should_continue()) {
-        bool ok = simulation.step();
+        bool ok = simulation.step();  // step functions emit *_presim_NNNNNN.* files
         if (!ok) {
-            std::cout << "  Pre-simulation: ABM terminated early (all cancer cells gone)" << std::endl;
+            std::cout << "  Presim: ABM terminated early (all cancer cells gone)" << std::endl;
             break;
         }
         cur_vol = _lymph.get_tumor_volume();
-        presim_step++;
+        presim_step_count++;
 
-        // Export per-step presim snapshots if -G flag is set
-        if (config.grid_out != 0) {
-            const int gx = config.grid_x, gy = config.grid_y, gz = config.grid_z;
-
-            if (config.grid_out & 2) {
-                // PDE snapshot
-                if (g_pde_io_thread.joinable()) g_pde_io_thread.join();
-                char pde_rel[64];
-                snprintf(pde_rel, sizeof(pde_rel),
-                         "pde/pde_presim_%06u.pde.lz4", presim_step);
-                export_pde_async_no_join(gx, gy, gz, out_path(pde_rel));
-
-                // ECM snapshot
-                if (g_ecm_io_thread.joinable()) g_ecm_io_thread.join();
-                int ecm_bi = g_ecm_buf_idx;
-                collect_ecm_to_buf(g_ecm_bufs[ecm_bi], gx, gy, gz);
-                std::string ecm_path = [&]() {
-                    char buf[64];
-                    snprintf(buf, sizeof(buf), "ecm/ecm_presim_%06u.ecm.lz4", presim_step);
-                    return out_path(buf);
-                }();
-                g_ecm_io_thread = std::thread([ecm_bi, ecm_path, gx, gy, gz]() {
-                    write_ecm_lz4_buf(ecm_path.c_str(), gx, gy, gz, g_ecm_bufs[ecm_bi]);
-                });
-                g_ecm_buf_idx = 1 - ecm_bi;
-            }
-
-            if (config.grid_out & 1) {
-                // ABM snapshot
-                if (g_abm_io_thread.joinable()) g_abm_io_thread.join();
-                int abm_bi = g_abm_buf_idx;
-                collect_abm_step0(simulation, *model, g_abm_bufs[abm_bi]);
-                std::string abm_path = [&]() {
-                    char buf[64];
-                    snprintf(buf, sizeof(buf),
-                             "abm/agents_presim_%06u.abm.lz4", presim_step);
-                    return out_path(buf);
-                }();
-                g_abm_io_thread = std::thread([abm_bi, abm_path]() {
-                    write_abm_lz4(abm_path.c_str(), g_abm_bufs[abm_bi]);
-                });
-                g_abm_buf_idx = 1 - abm_bi;
-            }
-        }
-
-        if (presim_step % 50 == 0) {
-            std::cout << "  Presim step " << presim_step
-                      << ": QSP tum_vol=" << cur_vol
-                      << " cm^3  (target=" << full_target_vol << ")" << std::endl;
+        if (presim_step_count % 50 == 0) {
+            std::cout << "  Presim step " << presim_step_count
+                      << ": QSP tum_vol=" << cur_vol << " cm^3" << std::endl;
         }
     }
 
@@ -1151,7 +1158,7 @@ int main(int argc, const char** argv) {
     // Switch to main-sim mode flag (may differ from presim mode).
     simulation.setEnvironmentProperty<int>("step_qsp", config.main_qsp_enabled ? 1 : 0);
 
-    std::cout << "  Pre-simulation complete: " << presim_step << " steps, "
+    std::cout << "  Presim complete: " << presim_step_count << " steps, "
               << "QSP tum_vol=" << cur_vol << " cm^3" << std::endl;
     std::cout << "  Main-sim mode: "
               << (config.main_qsp_enabled ? "qsp_abm (drugs ON)" : "abm_only (QSP frozen)")
@@ -1159,15 +1166,11 @@ int main(int argc, const char** argv) {
     init_lap("presim");
     init_file.close();
 
-    // ========== BUILD SEED-STAMPED FILE NAMES ==========
-    char rel_buf[64];
+    // ========== STATS / TIMING PATHS (set after presim so the names exist) ==========
     snprintf(rel_buf, sizeof(rel_buf), "stats_%u.csv",  config.random_seed);
     std::string stats_path = out_path(rel_buf);
     snprintf(rel_buf, sizeof(rel_buf), "timing_%u.csv", config.random_seed);
     std::string timing_path = out_path(rel_buf);
-    snprintf(rel_buf, sizeof(rel_buf), "qsp_%u.csv",    config.random_seed);
-    std::string qsp_seed_path = out_path(rel_buf);
-    PDAC::set_qsp_output_path(qsp_seed_path);
 
     // ========== EXPORT DAY-0 STATE (after presim, before first treatment step) ==========
     if (config.grid_out & 2) exportPDEData_step0(config.grid_x, config.grid_y, config.grid_z);
