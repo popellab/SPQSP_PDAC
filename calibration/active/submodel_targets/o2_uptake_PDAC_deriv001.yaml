@@ -1,0 +1,201 @@
+target_id: o2_uptake
+
+inputs:
+  - name: PDAC_basal_OCR_mean
+    value: 9.67
+    units: picomole / minute / microgram
+    input_type: direct_measurement
+    source_ref: Cheng2014
+    source_location: "Figure 2B"
+    figure_excerpt:
+      figure_id: "Figure 2B"
+      description: "Cross-line mean basal OCR from 6 PDAC cell lines (AsPC-1, MiaPaCa-2, HPAF-II, PANC-1, Capan-1, Capan-2) in the Seahorse XF96 OCR vs PPR scatter plot"
+      value: "9.67"
+      context: "Y-axis Basal OCR (pmol min-1 per microgram protein), x-axis Basal PPR (pmol min-1 per microgram protein). Six PDAC cell lines fall in the range 7-12. Average of (AsPC-1 10, MiaPaCa-2 10, HPAF-II 10, PANC-1 12, Capan-1 7, Capan-2 9)."
+    rationale: "Cross-cell-line mean basal oxygen consumption rate per microgram cellular protein, computed from the six PDAC line means displayed in Figure 2B."
+
+  - name: PDAC_basal_OCR_sd
+    value: 1.63
+    units: picomole / minute / microgram
+    input_type: direct_measurement
+    source_ref: Cheng2014
+    source_location: "Figure 2B"
+    figure_excerpt:
+      figure_id: "Figure 2B"
+      description: "Cross-line SD of basal OCR across the six PDAC cell lines in Figure 2B"
+      value: "1.63"
+      context: "Sample standard deviation across the six line means (7, 9, 10, 10, 10, 12 pmol/min/microgram). Represents biological variability across PDAC genetic backgrounds, dominating over the within-line n=4-6 replicate SD shown as error bars in the panel."
+    rationale: "Cross-line SD reflects PDAC subtype variability (genetic background) and is the appropriate uncertainty for an ABM intended to model a generic PDAC line."
+
+  - name: PDAC_n_cell_lines
+    value: 6
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Cheng2014
+    source_location: "Figure 2B caption"
+    figure_excerpt:
+      figure_id: "Figure 2B"
+      description: "Number of pancreatic cancer cell lines profiled (cross-line bootstrap sample size)"
+      value: "6"
+      context: "Figure 2B caption: 'Two-dimensional map of oxygen consumption rate (OCR) and proton production rate (PPR) measured in six pancreatic cancer cell lines. Values are mean +/- s.d. (n = 4-6)'. The 'six' refers to AsPC-1, MiaPaCa-2, PANC-1, HPAF-II, Capan-1, Capan-2."
+    rationale: "Number of PDAC cell lines profiled in Figure 2B. Cross-line bootstrap sample size."
+
+  - name: O2_tissue_concentration
+    value: 5e-5
+    units: mole / liter
+    input_type: reference_value
+    source_ref: Cheng2014
+    source_location: "Conversion reference"
+    rationale: "Physiological tissue O2 concentration anchor used to convert empirical OCR (mass rate) to a first-order rate constant via k = OCR_per_cell / ([O2]_tissue * V_voxel). 50 micromolar (0.05 mM, ~10 mmHg pO2) is a standard reference for tissue normoxia, well below the Seahorse assay [O2] (~0.2 mM) but characteristic of in vivo tumor interstitium. This concentration choice defines the operating point at which the first-order PDE rate is calibrated."
+
+  - name: voxel_volume
+    value: 8.0
+    units: picoliter
+    input_type: reference_value
+    source_ref: Cheng2014
+    source_location: "ABM model coupling constant"
+    rationale: "PDAC ABM PDE solver voxel volume = (20 micrometer)^3 = 8000 cubic micrometer = 8 picoliter. This is the volume over which each agent's uptake rate is summed for the implicit-decay step. Fixed by the spatial discretization, not a literature value."
+
+  - name: PDAC_protein_per_cell
+    value: 0.3
+    units: nanogram / cell
+    input_type: reference_value
+    source_ref: Cheng2014
+    source_location: "Conversion reference"
+    rationale: "Typical cellular protein content for PDAC adenocarcinoma cell lines, ~0.2-0.5 ng/cell (Doskey 2016/2018, Daemen 2015 PNAS Dataset S7). Used to convert Cheng2014 OCR (pmol/min/microgram protein) to OCR per cell."
+
+  - name: seconds_per_minute
+    value: 60
+    units: second / minute
+    input_type: unit_conversion
+    source_ref: Cheng2014
+    source_location: "Units convention"
+    rationale: "SI unit conversion. Cheng reports OCR in pmol/min; ABM rate constant is in 1/s."
+
+calibration:
+  parameters:
+    - name: PARAM_O2_UPTAKE
+      units: 1/second
+
+  forward_model:
+    type: algebraic
+    formula: "OCR_per_microgram = PARAM_O2_UPTAKE * O2_tissue_concentration * voxel_volume * seconds_per_minute / PDAC_protein_per_cell (with unit reconciliation)"
+    data_rationale: "Cheng2014 Seahorse XF96 measurements give basal OCR for 6 PDAC cell lines in pmol O2 per minute per microgram cellular protein. These integrate over all O2-consuming pathways (mitochondrial respiration + non-mitochondrial). The cross-line mean and SD bracket plausible PDAC line bioenergetics."
+    submodel_rationale: "ABM applies PARAM_O2_UPTAKE [1/s] as a first-order rate constant per cancer cell. Each cell at a voxel atomicAdd's PARAM_O2_UPTAKE to the voxel uptake array (cancer_cell.cuh line 656, PDE_UPTAKE macro). The PDE then evolves dC/dt = -k_total*C where k_total sums contributions from N cells at that voxel. Per-cell mass uptake rate = PARAM_O2_UPTAKE * [O2]_local * V_voxel. Setting this equal to the empirical OCR per cell at the reference tissue [O2] yields k_uptake. The 60 factor converts pmol/min to pmol/s; conversions of mM to pmol/pL and pL to L cancel to give pmol/min/microgram in the output."
+    code: |
+      def compute(params, inputs):
+          k_uptake_per_s = params['PARAM_O2_UPTAKE']
+          O2_M = inputs['O2_tissue_concentration']
+          V_voxel_pL = inputs['voxel_volume']
+          protein_ng_per_cell = inputs['PDAC_protein_per_cell']
+          sec_per_min = inputs['seconds_per_minute']
+          # Unit reconciliation:
+          # [O2] in mol/L; V_voxel in pL = 1e-12 L
+          # [O2] * V_voxel = (mol/L) * pL = (mol/L) * (1e-12 L) = 1e-12 mol = 1 pmol per (mol/L * pL)
+          # So 1 (mol/L) * 1 (pL) = 1 pmol. Conversion factor = 1.
+          O2_pmol_per_pL = O2_M  # (mol/L) numerically equals (pmol/pL)
+          per_cell_pmol_per_s = k_uptake_per_s * O2_pmol_per_pL * V_voxel_pL
+          per_cell_pmol_per_min = per_cell_pmol_per_s * sec_per_min
+          # Convert per-cell to per-microgram (protein content in ng/cell, 1 microgram = 1000 ng)
+          per_microgram_pmol_per_min = per_cell_pmol_per_min * (1.0e3 / protein_ng_per_cell)
+          return per_microgram_pmol_per_min
+
+  error_model:
+    - name: PDAC_basal_OCR_observation
+      units: picomole / minute / microgram
+      uses_inputs: [PDAC_basal_OCR_mean, PDAC_basal_OCR_sd, PDAC_n_cell_lines]
+      sample_size_input: PDAC_n_cell_lines
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            mean = inputs['PDAC_basal_OCR_mean']
+            sd = inputs['PDAC_basal_OCR_sd']
+            cv = sd / mean
+            return rng.lognormal(np.log(mean), cv / np.sqrt(sample_size), n_bootstrap)
+
+  identifiability_notes: >
+    Single parameter PARAM_O2_UPTAKE constrained by one observable (mean OCR
+    across 6 PDAC cell lines). The forward model converts the empirical
+    pmol/min/microgram OCR to the model first-order rate constant via three
+    reference values (O2_tissue_concentration, voxel_volume, protein_per_cell).
+    These reference values are operating-point choices that define what physical
+    state of the cell the inferred k_uptake corresponds to. Changing them would
+    rescale the posterior median proportionally — they are NOT free parameters
+    of the model, just constants of the OCR-to-k mapping at tissue normoxia.
+
+experimental_context:
+  species: human
+  indication: cancer
+  system: in_vitro
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: >
+    Six commercial human pancreatic ductal adenocarcinoma (PDAC) cell lines
+    profiled — direct match to the PDAC ABM target indication. The lines
+    represent a range of differentiation states and genetic backgrounds
+    (KRAS mutant, p53 mutant) typical of clinical PDAC.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    Basal OCR measured before any drug treatment (2-DG, metformin).
+    Cells were in standard culture conditions (DMEM + 5.5 mM glucose +
+    4 mM L-glutamine, no pyruvate, no sodium bicarbonate, 1 h conditioning
+    in assay medium before measurement).
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    In vitro 2D monolayer culture in nutrient-rich DMEM does not capture
+    PDAC tumor microenvironment features (hypoxia, glucose deprivation,
+    stromal interactions). Actual in vivo tumor OCR is likely lower than
+    in vitro measurements due to metabolic adaptation to nutrient stress,
+    but the cross-line ordering of OCR values is expected to be preserved.
+    Cheng2014's Seahorse measurements at ambient air (~0.2 mM O2) represent
+    near-V_max conditions for most lines, but the back-calculation to a
+    first-order rate constant at the tissue normoxia reference (0.05 mM)
+    assumes Michaelis-Menten linearity, which may underestimate the true
+    low-[O2] effective rate constant when K_m is comparable to tissue [O2].
+  measurement_directness: single_inversion
+  temporal_resolution: snapshot_or_equilibrium
+  experimental_system: in_vitro_cell_line
+
+study_interpretation: >
+  Cheng et al. 2014 mapped basal OCR and PPR for six PDAC cell lines using
+  Seahorse XF96 extracellular flux analysis (n=4-6 replicates per line).
+  The cross-line mean basal OCR is approximately 9.67 pmol/min/microgram
+  cellular protein (SD 1.63 across lines, range 7-12). Converting to per-cell
+  rate using a typical PDAC protein content of 0.3 ng/cell yields approximately
+  0.05 pmol O2/s/cell (~50 amol/cell/s) — consistent with the XML default
+  derivation note "MIA PaCa-2: 57 amol/cell/s -> k=0.11/s". At tissue normoxia
+  reference (0.05 mM O2) and ABM voxel volume (8 pL), the first-order rate
+  constant maps to PARAM_O2_UPTAKE ~ 0.1 /s.
+
+key_assumptions:
+  - Per-cell OCR is approximately the same across the 6 PDAC lines for ABM modeling purposes (cross-line variability ~17% of mean is acceptable for an effective rate)
+  - First-order Michaelis-Menten kinetics on O2 at tissue normoxia (50 micromolar) — true K_m for cellular respiration is in the low micromolar range, so this is at best a moderate approximation
+  - Cellular protein content ~0.3 ng/cell is representative of PDAC; deviation by factor 2 directly scales the inferred k_uptake
+  - Voxel-volume-based normalization is correct (each cell's contribution is k_uptake × C_voxel × V_voxel = mass/s, with k_total = sum of all cells at the voxel)
+  - 2D monolayer baseline OCR generalizes to in vivo PDAC; in vivo cells in hypoxic regions will adapt metabolically (lower OCR), but ABM aims to model the cellular machinery capacity, not the actual metabolic rate
+
+key_study_limitations:
+  - In vitro 2D culture vs in vivo desmoplastic PDAC stroma — ~2-3x TME translation uncertainty
+  - 6 commercial cell lines vs full clinical PDAC heterogeneity — Masoud2020 PDX panel shows >10x range, suggesting cross-line SD here may underestimate true biological diversity
+  - Visual digitization from Figure 2B without supplementary tables — manual review recommended; future refinement via WebPlotDigitizer
+  - No direct PDAC oxygen kinetics measured in this paper; first-order calibration relies on Michaelis-Menten linearity assumption at tissue [O2]
+  - Protein content per cell is a literature estimate, not measured in Cheng2014 directly
+
+primary_data_source:
+  doi: "10.1038/bjc.2014.272"
+  source_tag: Cheng2014
+  title: "Profiling and targeting of cellular bioenergetics: inhibition of pancreatic cancer cell proliferation"
+  authors:
+    - "Cheng"
+    - "Zielonka"
+    - "McAllister"
+    - "Tsai"
+    - "Dwinell"
+    - "Kalyanaraman"
+  year: 2014
+
+tags: [O2, oxygen, OCR, uptake, cellular_respiration, bioenergetics, Seahorse, PDAC]

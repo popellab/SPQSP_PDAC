@@ -13,15 +13,13 @@
 /python/
 /outputs/
 /docs/
-/data/
 /memory/
 /.claude/
 /.vscode/
 /PDAC_QSP/
 CLAUDE.md
 .mcp.json
-/calibration/
-/calibration_targets/
+/calibration/archive/
 /results/
 /tmp/
 /qspio-pdac/

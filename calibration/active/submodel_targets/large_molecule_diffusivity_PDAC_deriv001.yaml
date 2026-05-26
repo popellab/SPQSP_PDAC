@@ -1,0 +1,311 @@
+target_id: large_molecule_diffusivity
+
+inputs:
+  - name: power_law_A_collagen
+    value: 3.1516e-6
+    units: centimeter^2 / second
+    input_type: direct_measurement
+    source_ref: Ramanujan2002
+    source_location: "Figure 2a"
+    figure_excerpt:
+      figure_id: "Figure 2a"
+      description: "Power law prefactor from least-squares fit to digitized FRAP data in 1% collagen gel"
+      value: "3.1516e-6"
+      context: "D = A * Rh^(-n) fit to 16 data points in 1% type I collagen gel at 37C"
+    rationale: "Power law prefactor for D(Rh) relationship in 1% collagen gel, units cm2/s when Rh in nm"
+
+  - name: power_law_n_collagen
+    value: 1.294
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Ramanujan2002
+    source_location: "Figure 2a"
+    figure_excerpt:
+      figure_id: "Figure 2a"
+      description: "Power law exponent from least-squares fit to digitized FRAP data in 1% collagen gel"
+      value: "1.294"
+      context: "D = A * Rh^(-n), n > 1 indicates gel hindrance beyond Stokes-Einstein (n=1)"
+    rationale: "Exponent exceeds Stokes-Einstein value of 1.0, reflecting size-dependent gel hindrance"
+
+  - name: fit_residual_std_collagen
+    value: 0.0549
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Ramanujan2002
+    source_location: "Figure 2a"
+    figure_excerpt:
+      figure_id: "Figure 2a"
+      description: "Residual scatter of power law fit to 16 FRAP data points in 1% collagen gel"
+      value: "0.0549"
+      context: "Standard deviation of log(D_observed) - log(D_predicted) over 16 data points from digitized Figure 2a"
+    rationale: "Standard deviation of log-space residuals from power law fit, captures measurement scatter"
+
+  - name: N_collagen_points
+    value: 16
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Ramanujan2002
+    source_location: "Figure 2a"
+    figure_excerpt:
+      figure_id: "Figure 2a"
+      description: "Number of distinct data points for 1% collagen gel series in FRAP diffusion measurements"
+      value: "16"
+      context: "Filled circles in Figure 2a represent D measurements at 16 different probe hydrodynamic radii in 1% type I collagen gel"
+    rationale: "Number of distinct probe sizes measured in 1% collagen gel FRAP experiments"
+
+  - name: tortuosity_lambda
+    value: 1.4
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Ramanujan2002
+    source_location: "Results, page 1221"
+    value_snippet: "numerical calculations have yielded the value 2^(1/2) for two-dimensional diffusion in arrays of cells"
+    rationale: "Tortuosity factor lambda. D_tissue = D_gel / lambda^2. Lambda ~ 1.4 is consensus for tumor interstitium"
+
+  - name: tortuosity_range_hw
+    value: 0.3
+    units: dimensionless
+    input_type: reference_value
+    source_ref: Ramanujan2002
+    source_location: "Results, page 1221"
+    rationale: "Half-width of uniform uncertainty on tortuosity lambda (1.1 to 1.7 range covers brain ECS to dense tumor)"
+
+  - name: Rh_IL10
+    value: 4.21
+    units: nanometer
+    input_type: direct_measurement
+    figure_excerpt:
+      figure_id: "Figure 2a"
+      description: "Hydrodynamic radius for IL10 placed on D vs Rh curve"
+      value: "4.21"
+      context: "Rh computed from MW using globular protein scaling Rh = 0.066 * MW^0.395 (nm)"
+    rationale: "Hydrodynamic radius from MW. IL-10 is 37 kDa homodimer (2x18.5 kDa)"
+    source_ref: Ramanujan2002
+    source_location: "Figure 2a x-axis"
+
+  - name: Rh_VEGFA
+    value: 4.27
+    units: nanometer
+    input_type: direct_measurement
+    figure_excerpt:
+      figure_id: "Figure 2a"
+      description: "Hydrodynamic radius for VEGFA placed on D vs Rh curve"
+      value: "4.27"
+      context: "Rh computed from MW using globular protein scaling Rh = 0.066 * MW^0.395 (nm)"
+    rationale: "Hydrodynamic radius from MW. VEGF-A is 38.4 kDa homodimer (2x19.2 kDa)"
+    source_ref: Ramanujan2002
+    source_location: "Figure 2a x-axis"
+
+  - name: Rh_IL12
+    value: 5.41
+    units: nanometer
+    input_type: direct_measurement
+    figure_excerpt:
+      figure_id: "Figure 2a"
+      description: "Hydrodynamic radius for IL12 placed on D vs Rh curve"
+      value: "5.41"
+      context: "Rh computed from MW using globular protein scaling Rh = 0.066 * MW^0.395 (nm)"
+    rationale: "Hydrodynamic radius from MW. IL-12 is 70 kDa heterodimer (p35 + p40)"
+    source_ref: Ramanujan2002
+    source_location: "Figure 2a x-axis"
+
+  - name: Rh_ARGI
+    value: 6.35
+    units: nanometer
+    input_type: direct_measurement
+    figure_excerpt:
+      figure_id: "Figure 2a"
+      description: "Hydrodynamic radius for ARGI placed on D vs Rh curve"
+      value: "6.35"
+      context: "Rh computed from MW using globular protein scaling Rh = 0.066 * MW^0.395 (nm)"
+    rationale: "Hydrodynamic radius from MW. Arginase I is 105 kDa homotrimer (3x35 kDa)"
+    source_ref: Ramanujan2002
+    source_location: "Figure 2a x-axis"
+
+calibration:
+  parameters:
+    - name: PARAM_IL10_DIFFUSIVITY
+      units: centimeter^2 / second
+    - name: PARAM_VEGFA_DIFFUSIVITY
+      units: centimeter^2 / second
+    - name: PARAM_IL12_DIFFUSIVITY
+      units: centimeter^2 / second
+    - name: PARAM_ARGI_DIFFUSIVITY
+      units: centimeter^2 / second
+
+  forward_model:
+    type: algebraic
+    formula: "D = PARAM_X_DIFFUSIVITY (each parameter used directly as diffusion coefficient)"
+    data_rationale: "FRAP measurements of size-dependent diffusion in 1% collagen I gel provide D(Rh) relationship. Tortuosity correction converts gel to tissue."
+    submodel_rationale: "Each parameter is used directly as diffusion coefficient D in PDE solver dC/dt = D*nabla^2(C) - lambda*C + S"
+    code: |
+      def compute(params, inputs):
+          return {
+              'PARAM_IL10_DIFFUSIVITY': params['PARAM_IL10_DIFFUSIVITY'],
+              'PARAM_VEGFA_DIFFUSIVITY': params['PARAM_VEGFA_DIFFUSIVITY'],
+              'PARAM_IL12_DIFFUSIVITY': params['PARAM_IL12_DIFFUSIVITY'],
+              'PARAM_ARGI_DIFFUSIVITY': params['PARAM_ARGI_DIFFUSIVITY'],
+          }
+
+  error_model:
+    - name: D_IL10_observation
+      units: centimeter^2 / second
+      uses_inputs: [power_law_A_collagen, power_law_n_collagen, fit_residual_std_collagen, N_collagen_points, tortuosity_lambda, tortuosity_range_hw, Rh_IL10]
+      sample_size_input: N_collagen_points
+      observable:
+        type: custom
+        code: |
+          def compute(t, y, y_start):
+              return y['PARAM_IL10_DIFFUSIVITY']
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            A = inputs['power_law_A_collagen']
+            n = inputs['power_law_n_collagen']
+            sigma = inputs['fit_residual_std_collagen']
+            lam2 = inputs['tortuosity_lambda'] ** 2
+            Rh = inputs['Rh_IL10']
+            log_D_gel = np.log(A) - n * np.log(Rh)
+            log_D_gel_samples = rng.normal(log_D_gel, sigma, n_bootstrap)
+            lam2_samples = rng.uniform(inputs['tortuosity_lambda'] - inputs['tortuosity_range_hw'], inputs['tortuosity_lambda'] + inputs['tortuosity_range_hw'], n_bootstrap) ** 2
+            return np.exp(log_D_gel_samples) / lam2_samples
+
+    - name: D_VEGFA_observation
+      units: centimeter^2 / second
+      uses_inputs: [power_law_A_collagen, power_law_n_collagen, fit_residual_std_collagen, N_collagen_points, tortuosity_lambda, tortuosity_range_hw, Rh_VEGFA]
+      sample_size_input: N_collagen_points
+      observable:
+        type: custom
+        code: |
+          def compute(t, y, y_start):
+              return y['PARAM_VEGFA_DIFFUSIVITY']
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            A = inputs['power_law_A_collagen']
+            n = inputs['power_law_n_collagen']
+            sigma = inputs['fit_residual_std_collagen']
+            lam2 = inputs['tortuosity_lambda'] ** 2
+            Rh = inputs['Rh_VEGFA']
+            log_D_gel = np.log(A) - n * np.log(Rh)
+            log_D_gel_samples = rng.normal(log_D_gel, sigma, n_bootstrap)
+            lam2_samples = rng.uniform(inputs['tortuosity_lambda'] - inputs['tortuosity_range_hw'], inputs['tortuosity_lambda'] + inputs['tortuosity_range_hw'], n_bootstrap) ** 2
+            return np.exp(log_D_gel_samples) / lam2_samples
+
+    - name: D_IL12_observation
+      units: centimeter^2 / second
+      uses_inputs: [power_law_A_collagen, power_law_n_collagen, fit_residual_std_collagen, N_collagen_points, tortuosity_lambda, tortuosity_range_hw, Rh_IL12]
+      sample_size_input: N_collagen_points
+      observable:
+        type: custom
+        code: |
+          def compute(t, y, y_start):
+              return y['PARAM_IL12_DIFFUSIVITY']
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            A = inputs['power_law_A_collagen']
+            n = inputs['power_law_n_collagen']
+            sigma = inputs['fit_residual_std_collagen']
+            lam2 = inputs['tortuosity_lambda'] ** 2
+            Rh = inputs['Rh_IL12']
+            log_D_gel = np.log(A) - n * np.log(Rh)
+            log_D_gel_samples = rng.normal(log_D_gel, sigma, n_bootstrap)
+            lam2_samples = rng.uniform(inputs['tortuosity_lambda'] - inputs['tortuosity_range_hw'], inputs['tortuosity_lambda'] + inputs['tortuosity_range_hw'], n_bootstrap) ** 2
+            return np.exp(log_D_gel_samples) / lam2_samples
+
+    - name: D_ARGI_observation
+      units: centimeter^2 / second
+      uses_inputs: [power_law_A_collagen, power_law_n_collagen, fit_residual_std_collagen, N_collagen_points, tortuosity_lambda, tortuosity_range_hw, Rh_ARGI]
+      sample_size_input: N_collagen_points
+      observable:
+        type: custom
+        code: |
+          def compute(t, y, y_start):
+              return y['PARAM_ARGI_DIFFUSIVITY']
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            A = inputs['power_law_A_collagen']
+            n = inputs['power_law_n_collagen']
+            sigma = inputs['fit_residual_std_collagen']
+            lam2 = inputs['tortuosity_lambda'] ** 2
+            Rh = inputs['Rh_ARGI']
+            log_D_gel = np.log(A) - n * np.log(Rh)
+            log_D_gel_samples = rng.normal(log_D_gel, sigma, n_bootstrap)
+            lam2_samples = rng.uniform(inputs['tortuosity_lambda'] - inputs['tortuosity_range_hw'], inputs['tortuosity_lambda'] + inputs['tortuosity_range_hw'], n_bootstrap) ** 2
+            return np.exp(log_D_gel_samples) / lam2_samples
+
+  identifiability_notes: >
+    Large molecule diffusivities constrained by FRAP in 1% collagen gels.
+    IL-10 and VEGF-A are homodimers (~37-38 kDa); IL-12 is a 70 kDa
+    heterodimer; ArgI is a 105 kDa homotrimer. These span the upper
+    range of the FRAP data (Rh 4.2-6.4 nm, within the measured range
+    of 2-52 nm). Larger molecules show greater gel hindrance (n=1.294 > 1),
+    so size-dependent corrections are important. VEGF-A has known
+    heparin-binding which may reduce effective D in heparan sulfate-rich
+    matrix beyond what collagen gel captures.
+    [2026-05-22: MMP-2 removed from this target after MMP module deactivated.]
+
+experimental_context:
+  species: in_vitro
+  indication: general_biophysics
+  system: in_vitro
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: >
+    FRAP in reconstituted collagen gel as proxy for tumor tissue diffusion.
+    Large molecules (>37 kDa) experience greater hindrance in dense ECM.
+    PDAC has particularly dense collagen-rich stroma.
+  species_source: in_vitro
+  species_target: human
+  source_quality: primary_human_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    Baseline biophysical diffusion measurement in collagen matrix at 37C.
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    1% collagen gel approximates ECM hindrance. For large molecules,
+    specific binding interactions become more important: VEGF-A binds
+    heparan sulfate proteoglycans, ArgI may aggregate, IL-12 may
+    bind ECM components. These binding effects would reduce effective
+    D beyond the gel measurement.
+  measurement_directness: proxy_observable
+  temporal_resolution: snapshot_or_equilibrium
+  experimental_system: in_vitro_cell_line
+
+study_interpretation: >
+  For large molecules (37-105 kDa), the Ramanujan2002 power law predicts
+  D_tumor in the 1.4-2.5e-7 cm2/s range. Current model values for
+  IL-10 (1.4e-8), IL-12 (2.4e-8) are ~10-17x too low; VEGF-A (2.9e-7)
+  is reasonable; ArgI (1e-6) is ~7x too high.
+  The most significant corrections needed are for IL-10 and IL-12.
+
+key_assumptions:
+  - Molecules diffuse as their native oligomeric form
+  - MW-based Rh estimate applies to these globular/multimeric proteins
+  - VEGF-A diffuses as homodimer without significant heparin-sulfate retardation
+  - ArgI diffuses as homotrimer (105 kDa functional form)
+
+key_study_limitations:
+  - In vitro gel, not tumor tissue
+  - Heparin-binding proteins (VEGF-A) may have lower effective D in vivo
+  - ArgI oligomeric state in tumor interstitium uncertain
+  - No MMP-specific diffusion data exists
+  - Extrapolation to 105 kDa at upper end of measured range
+
+primary_data_source:
+  doi: "10.1016/S0006-3495(02)73933-7"
+  source_tag: Ramanujan2002
+  title: "Diffusion and convection in collagen gels: implications for transport in the tumor interstitium"
+  authors:
+    - "Ramanujan"
+    - "Pluen"
+    - "McKee"
+    - "Brown"
+    - "Boucher"
+    - "Jain"
+  year: 2002
+
+tags: [molecular, diffusivity, cytokine, enzyme, FRAP, collagen, power_law, IL10, VEGFA, IL12, ARGI]

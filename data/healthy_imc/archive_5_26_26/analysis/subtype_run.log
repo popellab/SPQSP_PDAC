@@ -1,0 +1,319 @@
+Found 299 ROIs
+Loading existing thresholds from /home/chase/PDAC/healthy_imc/analysis/gating_thresholds.json
+  HPAP-004/Body of pancreas/ROI1: {'other_immune': 2341, 'epithelial': 998, 'unknown': 706, 'PP cell': 468, 'beta cell': 192, 'macrophage': 156, 'cd8_t': 23, 'cd4_t': 6, 'b_cell': 5}
+  HPAP-004/Body of pancreas/ROI3: {'other_immune': 2841, 'epithelial': 996, 'unknown': 517, 'beta cell': 211, 'macrophage': 76, 'cd8_t': 22, 'b_cell': 9, 'cd4_t': 5, 'mdsc': 4}
+  HPAP-004/Body of pancreas/ROI4: {'other_immune': 2349, 'unknown': 1114, 'PP cell': 532, 'beta cell': 245, 'macrophage': 129, 'fibroblast': 91, 'cd8_t': 26, 'alpha cell': 17, 'b_cell': 14, 'epithelial': 9, 'cd4_t': 4, 'mdsc': 1}
+  HPAP-004/Head of pancreas/ROI1: {'other_immune': 1054, 'fibroblast': 674, 'cd8_t': 281, 'beta cell': 107, 'unknown': 78, 'macrophage': 72, 'b_cell': 6, 'cd4_t': 3, 'mdsc': 1}
+  HPAP-004/Head of pancreas/ROI2: {'other_immune': 1392, 'epithelial': 743, 'unknown': 494, 'alpha cell': 416, 'macrophage': 133, 'beta cell': 128, 'cd8_t': 47, 'cd4_t': 11, 'b_cell': 4, 'mdsc': 1}
+  HPAP-004/Head of pancreas/ROI3: {'other_immune': 1280, 'epithelial': 672, 'beta cell': 507, 'cd8_t': 419, 'macrophage': 165, 'b_cell': 36, 'mdsc': 6, 'cd4_t': 5}
+  HPAP-004/Tail of pancreas/ROI1: {'epithelial': 1808, 'other_immune': 1648, 'unknown': 540, 'b_cell': 211, 'macrophage': 152, 'endothelial': 118, 'cd8_t': 97, 'cd4_t': 13, 'mdsc': 1}
+  HPAP-004/Tail of pancreas/ROI2: {'other_immune': 1387, 'epithelial': 849, 'unknown': 581, 'endothelial': 190, 'macrophage': 50, 'b_cell': 38, 'cd8_t': 15, 'cd4_t': 5}
+  HPAP-004/Tail of pancreas/ROI3: {'other_immune': 1470, 'unknown': 851, 'endothelial': 567, 'epithelial': 128, 'macrophage': 58, 'cd8_t': 18, 'b_cell': 12, 'cd4_t': 4}
+  HPAP-005/Body of pancreas/ROI1: {'other_immune': 452, 'epithelial': 415, 'unknown': 383, 'mdsc': 300, 'endothelial': 52, 'cd8_t': 32, 'macrophage': 30, 'cd4_t': 5, 'b_cell': 4}
+  HPAP-005/Body of pancreas/ROI2: {'epithelial': 641, 'unknown': 487, 'other_immune': 410, 'PP cell': 376, 'endothelial': 374, 'mdsc': 368, 'beta cell': 107, 'cd8_t': 5, 'macrophage': 2, 'b_cell': 2, 'cd4_t': 1}
+  HPAP-005/Body of pancreas/ROI3: {'other_immune': 611, 'epithelial': 474, 'endothelial': 461, 'beta cell': 307, 'mdsc': 175, 'macrophage': 24, 'cd8_t': 2, 'b_cell': 1}
+  HPAP-005/Head of pancreas/ROI1: {'epithelial': 2083, 'fibroblast': 1021, 'other_immune': 745, 'unknown': 704, 'beta cell': 173, 'macrophage': 63, 'mdsc': 33, 'b_cell': 10, 'cd8_t': 10}
+  HPAP-005/Head of pancreas/ROI2: {'other_immune': 1822, 'epithelial': 742, 'unknown': 600, 'endothelial': 248, 'macrophage': 44, 'mdsc': 27, 'cd8_t': 5, 'b_cell': 4, 'cd4_t': 1}
+  HPAP-005/Head of pancreas/ROI3: {'other_immune': 899, 'epithelial': 354, 'endothelial': 316, 'unknown': 223, 'mdsc': 118, 'beta cell': 49, 'cd8_t': 21, 'b_cell': 3, 'macrophage': 2, 'cd4_t': 2}
+  HPAP-005/Tail of pancreas/ROI1: {'mdsc': 185, 'epithelial': 84, 'unknown': 72, 'other_immune': 20, 'macrophage': 12, 'b_cell': 5, 'cd8_t': 5, 'cd4_t': 2}
+  HPAP-005/Tail of pancreas/ROI2: {'mdsc': 147, 'epithelial': 104, 'endothelial': 86, 'cd8_t': 6, 'other_immune': 5, 'macrophage': 5, 'cd4_t': 2, 'b_cell': 1}
+  HPAP-006/Body of pancreas/ROI4: {'epithelial': 370, 'other_immune': 212, 'unknown': 130, 'b_cell': 45, 'cd8_t': 37, 'macrophage': 27, 'cd4_t': 14, 'mdsc': 2}
+  HPAP-006/Body of pancreas/ROI5: {'other_immune': 530, 'epithelial': 391, 'unknown': 242, 'endothelial': 83, 'macrophage': 30, 'cd8_t': 19, 'cd4_t': 11, 'b_cell': 3, 'mdsc': 1}
+  HPAP-006/Body of pancreas/ROI6: {'other_immune': 560, 'epithelial': 289, 'unknown': 138, 'macrophage': 41, 'cd8_t': 30, 'b_cell': 13, 'endothelial': 12, 'cd4_t': 11, 'mdsc': 10}
+  HPAP-006/Head of pancreas/ROI1: {'other_immune': 1185, 'unknown': 461, 'fibroblast': 268, 'endothelial': 174, 'macrophage': 96, 'b_cell': 87, 'cd8_t': 56, 'cd4_t': 41, 'PP cell': 29, 'mdsc': 16}
+  HPAP-006/Head of pancreas/ROI2: {'other_immune': 773, 'epithelial': 716, 'unknown': 272, 'b_cell': 254, 'macrophage': 102, 'cd8_t': 31, 'cd4_t': 10, 'mdsc': 2}
+  HPAP-006/Head of pancreas/ROI3: {'other_immune': 929, 'epithelial': 506, 'unknown': 307, 'b_cell': 188, 'macrophage': 99, 'cd8_t': 30, 'cd4_t': 21, 'mdsc': 10}
+  HPAP-006/Tail of pancreas/ROI1: {'other_immune': 196, 'unknown': 191, 'epithelial': 181, 'b_cell': 36, 'macrophage': 11, 'cd8_t': 8, 'cd4_t': 2}
+  HPAP-006/Tail of pancreas/ROI2: {'other_immune': 411, 'epithelial': 262, 'unknown': 144, 'beta cell': 55, 'cd8_t': 14, 'macrophage': 14, 'b_cell': 8, 'mdsc': 2}
+  HPAP-006/Tail of pancreas/ROI3: {'other_immune': 386, 'unknown': 113, 'beta cell': 29, 'macrophage': 26, 'cd8_t': 5, 'b_cell': 1}
+  HPAP-011/Body of pancreas/ROI1: {'b_cell': 179, 'epithelial': 114, 'endothelial': 103, 'other_immune': 24, 'beta cell': 22, 'macrophage': 6, 'cd8_t': 5}
+  HPAP-011/Body of pancreas/ROI2: {'endothelial': 116, 'epithelial': 105, 'other_immune': 56, 'beta cell': 37, 'b_cell': 25, 'macrophage': 7}
+  HPAP-011/Body of pancreas/ROI3: {'b_cell': 181, 'epithelial': 74, 'beta cell': 70, 'other_immune': 27, 'macrophage': 9}
+  HPAP-011/Head of pancreas/ROI1: {'macrophage': 224, 'PP cell': 195, 'epithelial': 184, 'fibroblast': 101, 'cd8_t': 81}
+  HPAP-011/Head of pancreas/ROI2: {'epithelial': 281, 'macrophage': 209, 'endothelial': 60, 'cd8_t': 16, 'b_cell': 4}
+  HPAP-011/Head of pancreas/ROI3: {'macrophage': 238, 'cd8_t': 176, 'epithelial': 158, 'b_cell': 62, 'fibroblast': 41}
+  HPAP-011/Tail of pancreas/ROI1: {'b_cell': 192, 'beta cell': 189, 'epithelial': 158, 'other_immune': 78, 'macrophage': 40, 'mdsc': 2, 'cd8_t': 1, 'cd4_t': 1}
+  HPAP-011/Tail of pancreas/ROI2: {'epithelial': 342, 'b_cell': 167, 'beta cell': 160, 'macrophage': 117, 'other_immune': 109, 'cd8_t': 22, 'mdsc': 2}
+  HPAP-011/Tail of pancreas/ROI3: {'b_cell': 307, 'acinar': 272, 'other_immune': 269, 'macrophage': 234, 'epithelial': 111, 'endothelial': 59, 'cd8_t': 23, 'mdsc': 12, 'cd4_t': 3}
+  HPAP-012/Body of pancreas/ROI1: {'other_immune': 360, 'unknown': 306, 'epithelial': 252, 'endothelial': 24, 'macrophage': 19, 'b_cell': 13, 'cd8_t': 2, 'cd4_t': 1}
+  HPAP-012/Body of pancreas/ROI2: {'PP cell': 443, 'other_immune': 395, 'epithelial': 376, 'macrophage': 17, 'b_cell': 4}
+  HPAP-012/Body of pancreas/ROI3: {'PP cell': 648, 'epithelial': 560, 'fibroblast': 549, 'beta cell': 212, 'other_immune': 44, 'macrophage': 21, 'b_cell': 1}
+  HPAP-012/Head of pancreas/ROI1: {'unknown': 1364, 'epithelial': 1256, 'other_immune': 1065, 'fibroblast': 833, 'b_cell': 259, 'macrophage': 120, 'cd8_t': 7, 'cd4_t': 6, 'mdsc': 1}
+  HPAP-012/Head of pancreas/ROI2: {'fibroblast': 390, 'epithelial': 341, 'cd8_t': 318, 'unknown': 296, 'b_cell': 108, 'beta cell': 105, 'macrophage': 42}
+  HPAP-012/Head of pancreas/ROI3: {'other_immune': 2048, 'epithelial': 1916, 'fibroblast': 563, 'macrophage': 111, 'b_cell': 60, 'cd8_t': 13, 'cd4_t': 4}
+  HPAP-012/Tail of pancreas/ROI1: {'epithelial': 1446, 'other_immune': 1393, 'PP cell': 643, 'macrophage': 71, 'cd8_t': 12, 'b_cell': 6, 'cd4_t': 2}
+  HPAP-012/Tail of pancreas/ROI2: {'other_immune': 1015, 'epithelial': 495, 'unknown': 300, 'macrophage': 121, 'endothelial': 70, 'cd8_t': 9, 'cd4_t': 2, 'b_cell': 1}
+  HPAP-012/Tail of pancreas/ROI3: {'other_immune': 1454, 'epithelial': 866, 'unknown': 739, 'endothelial': 105, 'macrophage': 74, 'b_cell': 41, 'cd8_t': 7}
+  HPAP-014/Body of pancreas/ROI1: {'other_immune': 193, 'epithelial': 172, 'macrophage': 30, 'endothelial': 21, 'cd8_t': 6, 'cd4_t': 2}
+  HPAP-014/Body of pancreas/ROI2: {'other_immune': 1224, 'epithelial': 1181, 'macrophage': 81, 'beta cell': 75, 'cd8_t': 26, 'cd4_t': 5, 'b_cell': 3}
+  HPAP-014/Body of pancreas/ROI3: {'epithelial': 231, 'other_immune': 150, 'beta cell': 38, 'macrophage': 23, 'cd8_t': 9, 'cd4_t': 1}
+  HPAP-014/Head of pancreas/ROI1: {'epithelial': 476, 'other_immune': 422, 'endothelial': 32, 'macrophage': 29, 'cd8_t': 9, 'cd4_t': 3, 'b_cell': 2}
+  HPAP-014/Head of pancreas/ROI2: {'epithelial': 247, 'other_immune': 170, 'cd8_t': 11, 'macrophage': 10, 'b_cell': 1}
+  HPAP-014/Head of pancreas/ROI3: {'other_immune': 533, 'epithelial': 144, 'unknown': 129, 'fibroblast': 117, 'macrophage': 48, 'cd8_t': 14, 'b_cell': 7, 'cd4_t': 2}
+  HPAP-014/Tail of pancreas/ROI1: {'other_immune': 845, 'epithelial': 599, 'endothelial': 510, 'macrophage': 218, 'cd8_t': 49, 'cd4_t': 1, 'b_cell': 1}
+  HPAP-014/Tail of pancreas/ROI2: {'endothelial': 463, 'other_immune': 452, 'epithelial': 399, 'unknown': 325, 'macrophage': 72, 'cd8_t': 19, 'b_cell': 6}
+  HPAP-014/Tail of pancreas/ROI3: {'epithelial': 411, 'macrophage': 139, 'other_immune': 121, 'cd8_t': 80, 'cd4_t': 18, 'b_cell': 2}
+  HPAP-018/Body of pancreas/ROI1: {'other_immune': 2125, 'unknown': 949, 'epithelial': 284, 'beta cell': 68, 'macrophage': 38, 'cd8_t': 21, 'b_cell': 4}
+  HPAP-018/Body of pancreas/ROI2: {'other_immune': 1587, 'epithelial': 710, 'unknown': 461, 'beta cell': 45, 'macrophage': 32, 'cd8_t': 28, 'b_cell': 9}
+  HPAP-018/Body of pancreas/ROI3: {'epithelial': 771, 'unknown': 607, 'fibroblast': 155}
+  HPAP-018/Head of pancreas/ROI1: {'other_immune': 2929, 'unknown': 1048, 'epithelial': 104, 'cd8_t': 93, 'macrophage': 42, 'beta cell': 41, 'fibroblast': 35, 'b_cell': 19, 'cd4_t': 2}
+  HPAP-018/Head of pancreas/ROI2: {'other_immune': 2210, 'unknown': 982, 'epithelial': 296, 'beta cell': 187, 'cd8_t': 86, 'macrophage': 85, 'b_cell': 21, 'cd4_t': 2}
+  HPAP-018/Tail of pancreas/ROI4: {'epithelial': 1076, 'unknown': 394, 'other_immune': 187, 'beta cell': 143, 'cd8_t': 15, 'macrophage': 4, 'b_cell': 1}
+  HPAP-018/Tail of pancreas/ROI5: {'unknown': 721, 'other_immune': 506, 'epithelial': 438, 'beta cell': 133, 'cd8_t': 10, 'macrophage': 6}
+  HPAP-026/Head of pancreas/ROI1: {'epithelial': 307, 'macrophage': 183, 'other_immune': 3}
+  HPAP-026/Head of pancreas/ROI2: {'epithelial': 187, 'other_immune': 131, 'endothelial': 106, 'macrophage': 81, 'cd8_t': 10, 'b_cell': 6, 'cd4_t': 5}
+  HPAP-026/Head of pancreas/ROI3: {'epithelial': 902, 'other_immune': 626, 'macrophage': 394, 'unknown': 370, 'cd8_t': 27, 'b_cell': 22, 'cd4_t': 12}
+  HPAP-026/Tail of pancreas/ROI1: {'macrophage': 1530, 'unknown': 556, 'endothelial': 117, 'cd8_t': 76, 'other_immune': 71, 'epithelial': 47, 'cd4_t': 14, 'b_cell': 3}
+  HPAP-026/Tail of pancreas/ROI2: {'epithelial': 924, 'macrophage': 667, 'other_immune': 51, 'beta cell': 34, 'cd8_t': 3, 'cd4_t': 2, 'b_cell': 1}
+  HPAP-026/Tail of pancreas/ROI3: {'epithelial': 584, 'macrophage': 328, 'other_immune': 251, 'unknown': 96, 'endothelial': 64, 'cd8_t': 31, 'b_cell': 26, 'cd4_t': 20, 'PP cell': 11, 'mdsc': 1}
+  HPAP-027/Body of pancreas/ROI1: {'epithelial': 722, 'unknown': 522, 'macrophage': 364, 'other_immune': 302, 'beta cell': 151, 'mdsc': 74, 'b_cell': 59, 'cd8_t': 48, 'cd4_t': 9}
+  HPAP-027/Body of pancreas/ROI2: {'epithelial': 242, 'other_immune': 240, 'unknown': 221, 'macrophage': 116, 'b_cell': 71, 'cd8_t': 29, 'cd4_t': 4, 'mdsc': 3}
+  HPAP-027/Body of pancreas/ROI3: {'epithelial': 647, 'other_immune': 603, 'unknown': 272, 'endothelial': 142, 'macrophage': 132, 'beta cell': 114, 'b_cell': 47, 'cd8_t': 31, 'mdsc': 29, 'cd4_t': 5}
+  HPAP-027/Head of pancreas/ROI1: {'macrophage': 405, 'unknown': 248, 'cd8_t': 219, 'endothelial': 93, 'other_immune': 9, 'cd4_t': 4, 'b_cell': 2}
+  HPAP-027/Head of pancreas/ROI2: {'cd8_t': 286, 'epithelial': 190, 'fibroblast': 179, 'macrophage': 111, 'other_immune': 84, 'beta cell': 78, 'mdsc': 31, 'b_cell': 17, 'cd4_t': 14}
+  HPAP-027/Head of pancreas/ROI3: {'epithelial': 320, 'unknown': 282, 'cd8_t': 252, 'other_immune': 178, 'macrophage': 158, 'beta cell': 102, 'mdsc': 61, 'cd4_t': 55, 'b_cell': 29}
+  HPAP-034/Body of pancreas/ROI1: {'epithelial': 1047, 'PP cell': 674, 'other_immune': 446, 'unknown': 231, 'endothelial': 116, 'mdsc': 60, 'macrophage': 17, 'cd8_t': 8, 'cd4_t': 1}
+  HPAP-034/Body of pancreas/ROI2: {'epithelial': 1601, 'other_immune': 1133, 'unknown': 549, 'endothelial': 272, 'mdsc': 227, 'macrophage': 38, 'cd8_t': 23, 'cd4_t': 12}
+  HPAP-034/Body of pancreas/ROI3: {'epithelial': 1759, 'fibroblast': 761, 'unknown': 746, 'other_immune': 271, 'mdsc': 78, 'macrophage': 30, 'cd8_t': 18, 'cd4_t': 4}
+  HPAP-034/Head of pancreas/ROI1: {'epithelial': 850, 'other_immune': 768, 'mdsc': 604, 'unknown': 426, 'alpha cell': 357, 'macrophage': 26, 'cd8_t': 16, 'cd4_t': 9, 'b_cell': 1}
+  HPAP-034/Head of pancreas/ROI2: {'mdsc': 1269, 'other_immune': 953, 'unknown': 655, 'epithelial': 435, 'endothelial': 221, 'macrophage': 47, 'cd8_t': 15, 'cd4_t': 10}
+  HPAP-034/Head of pancreas/ROI3: {'mdsc': 1472, 'unknown': 634, 'PP cell': 504, 'other_immune': 493, 'epithelial': 461, 'endothelial': 187, 'macrophage': 34, 'cd8_t': 13, 'cd4_t': 6, 'b_cell': 1}
+  HPAP-034/Tail of pancreas/ROI1: {'mdsc': 488, 'unknown': 235, 'epithelial': 188, 'other_immune': 178, 'fibroblast': 129, 'macrophage': 39, 'cd4_t': 9, 'cd8_t': 6}
+  HPAP-034/Tail of pancreas/ROI2: {'other_immune': 1023, 'mdsc': 732, 'unknown': 719, 'epithelial': 492, 'fibroblast': 385, 'macrophage': 123, 'endothelial': 67, 'cd8_t': 22, 'cd4_t': 8}
+  HPAP-034/Tail of pancreas/ROI3: {'epithelial': 597, 'mdsc': 506, 'other_immune': 443, 'unknown': 351, 'fibroblast': 276, 'macrophage': 48, 'cd8_t': 11, 'cd4_t': 9}
+  HPAP-034/Tail of pancreas/ROI4: {'epithelial': 648, 'mdsc': 355, 'other_immune': 338, 'unknown': 151, 'endothelial': 56, 'macrophage': 52, 'cd8_t': 13, 'cd4_t': 7}
+  HPAP-035/Body of pancreas/ROI1: {'other_immune': 828, 'cd8_t': 664, 'unknown': 619, 'epithelial': 506, 'mdsc': 480, 'endothelial': 387, 'cd4_t': 291, 'beta cell': 185, 'macrophage': 74, 'b_cell': 47}
+  HPAP-035/Body of pancreas/ROI2: {'epithelial': 856, 'unknown': 817, 'cd8_t': 774, 'fibroblast': 609, 'beta cell': 362, 'macrophage': 158, 'other_immune': 92, 'cd4_t': 75, 'mdsc': 27, 'b_cell': 7}
+  HPAP-035/Body of pancreas/ROI3: {'epithelial': 892, 'other_immune': 798, 'fibroblast': 609, 'unknown': 550, 'endothelial': 364, 'mdsc': 284, 'cd8_t': 178, 'b_cell': 168, 'beta cell': 130, 'cd4_t': 52, 'macrophage': 12}
+  HPAP-035/Head of pancreas/ROI1: {'epithelial': 1873, 'other_immune': 871, 'unknown': 509, 'beta cell': 234, 'mdsc': 205, 'b_cell': 143, 'macrophage': 83, 'cd8_t': 79, 'cd4_t': 79}
+  HPAP-035/Head of pancreas/ROI2: {'epithelial': 1885, 'other_immune': 1126, 'b_cell': 318, 'endothelial': 297, 'unknown': 229, 'mdsc': 225, 'beta cell': 217, 'cd8_t': 105, 'cd4_t': 41, 'macrophage': 18}
+  HPAP-035/Head of pancreas/ROI3: {'epithelial': 1150, 'other_immune': 987, 'endothelial': 843, 'fibroblast': 512, 'beta cell': 268, 'b_cell': 206, 'mdsc': 120, 'cd8_t': 80, 'macrophage': 63, 'cd4_t': 14}
+  HPAP-035/Tail of pancreas/ROI1: {'beta cell': 270, 'epithelial': 166, 'other_immune': 125, 'fibroblast': 119, 'macrophage': 41, 'cd4_t': 25, 'cd8_t': 24, 'b_cell': 3}
+  HPAP-035/Tail of pancreas/ROI2: {'epithelial': 497, 'beta cell': 275, 'endothelial': 212, 'alpha cell': 112, 'other_immune': 50, 'cd4_t': 30, 'cd8_t': 24, 'macrophage': 21, 'b_cell': 2}
+  HPAP-035/Tail of pancreas/ROI3: {'epithelial': 357, 'beta cell': 306, 'other_immune': 220, 'alpha cell': 199, 'endothelial': 74, 'macrophage': 45, 'fibroblast': 38, 'cd8_t': 24, 'cd4_t': 21, 'b_cell': 2}
+  HPAP-036/Body of pancreas/ROI1: {'unknown': 1081, 'epithelial': 921, 'other_immune': 857, 'fibroblast': 277, 'b_cell': 200, 'macrophage': 179, 'beta cell': 157, 'mdsc': 49, 'cd8_t': 49, 'cd4_t': 38}
+  HPAP-036/Body of pancreas/ROI2: {'other_immune': 1475, 'epithelial': 1075, 'unknown': 787, 'b_cell': 229, 'macrophage': 206, 'mdsc': 84, 'cd8_t': 48, 'cd4_t': 37, 'fibroblast': 10}
+  HPAP-036/Body of pancreas/ROI3: {'other_immune': 1374, 'epithelial': 1141, 'unknown': 862, 'endothelial': 324, 'b_cell': 311, 'beta cell': 213, 'mdsc': 47, 'macrophage': 18, 'cd4_t': 8, 'cd8_t': 4}
+  HPAP-036/Head of pancreas/ROI1: {'other_immune': 1415, 'epithelial': 837, 'fibroblast': 750, 'macrophage': 145, 'beta cell': 102, 'endothelial': 49, 'b_cell': 41, 'cd4_t': 36, 'mdsc': 34, 'cd8_t': 9}
+  HPAP-036/Head of pancreas/ROI2: {'other_immune': 1416, 'epithelial': 867, 'fibroblast': 590, 'beta cell': 173, 'macrophage': 164, 'cd8_t': 32, 'cd4_t': 12, 'mdsc': 11, 'b_cell': 9}
+  HPAP-036/Head of pancreas/ROI3: {'other_immune': 1043, 'endothelial': 484, 'epithelial': 444, 'macrophage': 139, 'beta cell': 39, 'cd8_t': 14, 'b_cell': 10, 'cd4_t': 9, 'mdsc': 6}
+  HPAP-036/Tail of pancreas/ROI1: {'other_immune': 687, 'fibroblast': 587, 'unknown': 509, 'epithelial': 498, 'beta cell': 278, 'cd8_t': 121, 'macrophage': 93, 'b_cell': 82, 'mdsc': 6, 'cd4_t': 5}
+  HPAP-036/Tail of pancreas/ROI2: {'other_immune': 931, 'epithelial': 769, 'unknown': 531, 'endothelial': 313, 'beta cell': 261, 'cd8_t': 224, 'b_cell': 71, 'macrophage': 41, 'cd4_t': 19, 'mdsc': 9}
+  HPAP-036/Tail of pancreas/ROI3: {'other_immune': 1206, 'cd8_t': 948, 'unknown': 781, 'endothelial': 357, 'beta cell': 204, 'macrophage': 91, 'epithelial': 46, 'cd4_t': 26, 'b_cell': 22, 'mdsc': 19}
+  HPAP-037/Body of pancreas/ROI1: {'epithelial': 1501, 'unknown': 834, 'other_immune': 778, 'endothelial': 240, 'mdsc': 154, 'macrophage': 34, 'cd8_t': 22, 'cd4_t': 2}
+  HPAP-037/Body of pancreas/ROI2: {'other_immune': 942, 'epithelial': 871, 'unknown': 728, 'endothelial': 118, 'mdsc': 65, 'macrophage': 42, 'cd8_t': 26, 'cd4_t': 1}
+  HPAP-037/Body of pancreas/ROI3: {'epithelial': 2085, 'unknown': 895, 'fibroblast': 618, 'other_immune': 369, 'endothelial': 220, 'cd8_t': 40, 'macrophage': 30, 'mdsc': 20, 'cd4_t': 9}
+  HPAP-037/Head of pancreas/ROI1: {'other_immune': 1202, 'epithelial': 1112, 'unknown': 539, 'mdsc': 311, 'endothelial': 164, 'PP cell': 71, 'macrophage': 43, 'cd8_t': 26, 'cd4_t': 3}
+  HPAP-037/Head of pancreas/ROI2: {'epithelial': 2361, 'fibroblast': 919, 'unknown': 792, 'other_immune': 337, 'endothelial': 265, 'mdsc': 233, 'macrophage': 39, 'cd8_t': 31, 'cd4_t': 4}
+  HPAP-037/Head of pancreas/ROI3: {'epithelial': 725, 'unknown': 666, 'other_immune': 643, 'mdsc': 250, 'endothelial': 39, 'macrophage': 26, 'cd8_t': 19, 'cd4_t': 4}
+  HPAP-037/Tail of pancreas/ROI1: {'epithelial': 548, 'mdsc': 455, 'unknown': 245, 'fibroblast': 243, 'other_immune': 100, 'macrophage': 43, 'cd8_t': 21, 'cd4_t': 4}
+  HPAP-037/Tail of pancreas/ROI2: {'mdsc': 552, 'unknown': 298, 'other_immune': 191, 'endothelial': 153, 'epithelial': 135, 'macrophage': 55, 'cd8_t': 27, 'cd4_t': 2}
+  HPAP-037/Tail of pancreas/ROI3: {'mdsc': 914, 'other_immune': 682, 'unknown': 669, 'epithelial': 531, 'PP cell': 298, 'macrophage': 48, 'cd8_t': 31, 'cd4_t': 4, 'b_cell': 1}
+  HPAP-039/Body of pancreas/ROI3: {'epithelial': 2436, 'endothelial': 496, 'other_immune': 299, 'cd8_t': 123, 'cd4_t': 105, 'macrophage': 77, 'beta cell': 28, 'b_cell': 1}
+  HPAP-039/Body of pancreas/ROI4: {'epithelial': 879, 'endothelial': 346, 'unknown': 345, 'other_immune': 248, 'macrophage': 154, 'cd8_t': 142, 'cd4_t': 136, 'beta cell': 9, 'b_cell': 1}
+  HPAP-039/Body of pancreas/ROI5: {'epithelial': 1685, 'unknown': 1057, 'fibroblast': 718, 'endothelial': 487, 'cd8_t': 225, 'other_immune': 146, 'cd4_t': 134, 'macrophage': 71}
+  HPAP-039/Head of pancreas/ROI1: {'epithelial': 1085, 'other_immune': 591, 'macrophage': 363, 'cd8_t': 234, 'cd4_t': 149, 'endothelial': 34, 'b_cell': 7}
+  HPAP-039/Head of pancreas/ROI2: {'epithelial': 951, 'other_immune': 746, 'unknown': 322, 'macrophage': 247, 'fibroblast': 177, 'cd8_t': 128, 'cd4_t': 108, 'endothelial': 102}
+  HPAP-039/Head of pancreas/ROI4: {'epithelial': 1221, 'fibroblast': 383, 'PP cell': 291, 'other_immune': 198, 'macrophage': 164, 'beta cell': 98, 'cd4_t': 92, 'cd8_t': 82}
+  HPAP-039/Tail of pancreas/ROI1: {'other_immune': 894, 'unknown': 771, 'epithelial': 497, 'beta cell': 453, 'macrophage': 167, 'cd8_t': 134, 'cd4_t': 90, 'b_cell': 2}
+  HPAP-039/Tail of pancreas/ROI2: {'epithelial': 2015, 'unknown': 706, 'cd8_t': 212, 'cd4_t': 88, 'other_immune': 67, 'beta cell': 60, 'macrophage': 29, 'b_cell': 4}
+  HPAP-039/Tail of pancreas/ROI3: {'epithelial': 1202, 'unknown': 630, 'other_immune': 398, 'fibroblast': 391, 'cd8_t': 141, 'cd4_t': 114, 'macrophage': 106, 'b_cell': 6}
+  HPAP-040/Body of pancreas/ROI1: {'other_immune': 1247, 'epithelial': 1032, 'unknown': 568, 'mdsc': 171, 'endothelial': 62, 'macrophage': 53, 'cd8_t': 15}
+  HPAP-040/Body of pancreas/ROI2: {'unknown': 422, 'epithelial': 369, 'other_immune': 313, 'fibroblast': 289, 'mdsc': 149, 'macrophage': 36, 'cd8_t': 14, 'cd4_t': 6, 'b_cell': 1}
+  HPAP-040/Body of pancreas/ROI3: {'unknown': 326, 'other_immune': 309, 'epithelial': 282, 'fibroblast': 275, 'mdsc': 198, 'macrophage': 39, 'cd8_t': 18, 'cd4_t': 3}
+  HPAP-040/Head of pancreas/ROI1: {'epithelial': 1674, 'mdsc': 919, 'unknown': 653, 'other_immune': 215, 'macrophage': 59, 'cd8_t': 37, 'cd4_t': 2, 'b_cell': 1}
+  HPAP-040/Head of pancreas/ROI2: {'mdsc': 753, 'epithelial': 726, 'unknown': 634, 'acinar': 600, 'other_immune': 294, 'macrophage': 49, 'cd8_t': 37, 'cd4_t': 2}
+  HPAP-040/Head of pancreas/ROI3: {'mdsc': 1029, 'epithelial': 527, 'unknown': 497, 'other_immune': 422, 'endothelial': 177, 'macrophage': 68, 'cd8_t': 24}
+  HPAP-040/Tail of pancreas/ROI1: {'epithelial': 1772, 'unknown': 724, 'other_immune': 472, 'mdsc': 63, 'macrophage': 45, 'cd8_t': 18, 'cd4_t': 1}
+  HPAP-040/Tail of pancreas/ROI2: {'epithelial': 1519, 'other_immune': 776, 'unknown': 255, 'mdsc': 87, 'macrophage': 51, 'cd8_t': 45, 'cd4_t': 1}
+  HPAP-040/Tail of pancreas/ROI3: {'epithelial': 958, 'other_immune': 390, 'unknown': 259, 'endothelial': 112, 'mdsc': 94, 'macrophage': 50, 'cd8_t': 28, 'cd4_t': 2}
+  HPAP-042/Body of pancreas/ROI1: {'epithelial': 1192, 'alpha cell': 675, 'other_immune': 335, 'fibroblast': 317, 'endothelial': 36, 'macrophage': 20, 'mdsc': 5, 'b_cell': 3}
+  HPAP-042/Body of pancreas/ROI2: {'epithelial': 1148, 'endothelial': 396, 'PP cell': 355, 'alpha cell': 15}
+  HPAP-042/Body of pancreas/ROI3: {'other_immune': 380, 'epithelial': 322, 'alpha cell': 192, 'mdsc': 29, 'macrophage': 15, 'cd4_t': 3, 'b_cell': 2, 'cd8_t': 1}
+  HPAP-042/Tail of pancreas/ROI1: {'epithelial': 858, 'other_immune': 379, 'endothelial': 187, 'unknown': 160, 'macrophage': 18, 'mdsc': 13, 'cd8_t': 2, 'b_cell': 1, 'cd4_t': 1}
+  HPAP-042/Tail of pancreas/ROI2: {'epithelial': 956, 'other_immune': 544, 'PP cell': 324, 'macrophage': 27, 'b_cell': 11, 'mdsc': 11, 'cd8_t': 1}
+  HPAP-046/Body of pancreas/ROI1: {'unknown': 654, 'epithelial': 624, 'other_immune': 262, 'mdsc': 203, 'macrophage': 24, 'cd8_t': 5, 'cd4_t': 2, 'b_cell': 1}
+  HPAP-046/Body of pancreas/ROI2: {'epithelial': 1235, 'other_immune': 683, 'unknown': 630, 'mdsc': 144, 'macrophage': 78, 'cd8_t': 24, 'cd4_t': 15, 'b_cell': 2}
+  HPAP-046/Body of pancreas/ROI3: {'epithelial': 1095, 'unknown': 759, 'other_immune': 750, 'mdsc': 144, 'macrophage': 67, 'cd8_t': 10, 'cd4_t': 1}
+  HPAP-046/Head of pancreas/ROI1: {'other_immune': 1436, 'epithelial': 813, 'PP cell': 560, 'mdsc': 139, 'macrophage': 66, 'cd8_t': 23, 'cd4_t': 1}
+  HPAP-046/Head of pancreas/ROI3: {'fibroblast': 113, 'other_immune': 111, 'endothelial': 97, 'epithelial': 78, 'macrophage': 23, 'mdsc': 19, 'cd4_t': 6, 'cd8_t': 5}
+  HPAP-046/Tail of pancreas/ROI1: {'other_immune': 1243, 'epithelial': 1214, 'unknown': 872, 'PP cell': 567, 'mdsc': 161, 'macrophage': 70, 'cd8_t': 28, 'cd4_t': 2}
+  HPAP-046/Tail of pancreas/ROI2: {'epithelial': 2044, 'unknown': 823, 'other_immune': 435, 'endothelial': 136, 'macrophage': 61, 'mdsc': 23, 'cd8_t': 9, 'cd4_t': 2}
+  HPAP-046/Tail of pancreas/ROI3: {'epithelial': 1654, 'unknown': 643, 'other_immune': 550, 'endothelial': 154, 'macrophage': 28, 'mdsc': 24, 'cd8_t': 20, 'cd4_t': 2, 'b_cell': 1}
+  HPAP-047/Body of pancreas/ROI1: {'epithelial': 1333, 'other_immune': 1039, 'macrophage': 317, 'b_cell': 173, 'beta cell': 147, 'endothelial': 141, 'mdsc': 8, 'cd8_t': 3}
+  HPAP-047/Body of pancreas/ROI2: {'other_immune': 885, 'epithelial': 501, 'PP cell': 445, 'macrophage': 225, 'b_cell': 159, 'endothelial': 107, 'cd8_t': 3}
+  HPAP-047/Body of pancreas/ROI3: {'PP cell': 766, 'epithelial': 664, 'other_immune': 562, 'macrophage': 47, 'b_cell': 6, 'cd8_t': 3, 'mdsc': 1}
+  HPAP-052/Body of pancreas/ROI1: {'epithelial': 918, 'other_immune': 906, 'unknown': 470, 'mdsc': 164, 'macrophage': 80, 'PP cell': 65, 'cd8_t': 21, 'cd4_t': 2, 'b_cell': 1}
+  HPAP-052/Body of pancreas/ROI2: {'epithelial': 2698, 'other_immune': 595, 'macrophage': 220, 'mdsc': 56, 'endothelial': 53, 'cd8_t': 24, 'cd4_t': 2}
+  HPAP-052/Body of pancreas/ROI3: {'epithelial': 1263, 'PP cell': 841, 'other_immune': 660, 'fibroblast': 515, 'unknown': 439, 'mdsc': 192, 'macrophage': 168, 'endothelial': 76, 'cd8_t': 22, 'cd4_t': 3, 'b_cell': 2}
+  HPAP-052/Head of pancreas/ROI1: {'epithelial': 1951, 'other_immune': 1469, 'macrophage': 363, 'mdsc': 131, 'PP cell': 113, 'cd8_t': 30, 'cd4_t': 4}
+  HPAP-052/Head of pancreas/ROI2: {'other_immune': 1056, 'epithelial': 997, 'fibroblast': 707, 'unknown': 303, 'macrophage': 162, 'mdsc': 130, 'cd8_t': 16, 'cd4_t': 3}
+  HPAP-052/Head of pancreas/ROI3: {'epithelial': 1772, 'other_immune': 930, 'fibroblast': 696, 'macrophage': 246, 'endothelial': 162, 'mdsc': 100, 'cd8_t': 40, 'cd4_t': 2, 'b_cell': 2}
+  HPAP-052/Tail of pancreas/ROI1: {'other_immune': 1259, 'epithelial': 1119, 'endothelial': 554, 'unknown': 514, 'macrophage': 203, 'mdsc': 50, 'cd8_t': 29, 'b_cell': 3, 'cd4_t': 2}
+  HPAP-052/Tail of pancreas/ROI2: {'epithelial': 2037, 'other_immune': 806, 'alpha cell': 725, 'macrophage': 166, 'cd8_t': 33, 'mdsc': 6, 'cd4_t': 2}
+  HPAP-052/Tail of pancreas/ROI3: {'other_immune': 1750, 'unknown': 1088, 'epithelial': 987, 'endothelial': 473, 'macrophage': 257, 'mdsc': 53, 'cd8_t': 41, 'cd4_t': 4}
+  HPAP-053/Body of pancreas/ROI1: {'epithelial': 1707, 'other_immune': 1543, 'PP cell': 278, 'macrophage': 188, 'mdsc': 136, 'beta cell': 76, 'cd8_t': 46, 'cd4_t': 3, 'b_cell': 1}
+  HPAP-053/Body of pancreas/ROI2: {'other_immune': 1427, 'epithelial': 1330, 'unknown': 365, 'macrophage': 158, 'endothelial': 101, 'cd8_t': 55, 'mdsc': 44}
+  HPAP-053/Body of pancreas/ROI3: {'other_immune': 1674, 'unknown': 998, 'epithelial': 306, 'macrophage': 105, 'mdsc': 92, 'endothelial': 54, 'cd8_t': 32, 'b_cell': 1, 'cd4_t': 1}
+  HPAP-053/Head of pancreas/ROI1: {'other_immune': 2056, 'epithelial': 1184, 'unknown': 595, 'endothelial': 399, 'macrophage': 179, 'mdsc': 71, 'cd8_t': 34}
+  HPAP-053/Head of pancreas/ROI2: {'other_immune': 1455, 'epithelial': 1453, 'unknown': 953, 'macrophage': 159, 'beta cell': 130, 'cd8_t': 34, 'mdsc': 25, 'cd4_t': 5}
+  HPAP-053/Head of pancreas/ROI3: {'epithelial': 1703, 'other_immune': 925, 'unknown': 538, 'fibroblast': 211, 'macrophage': 137, 'beta cell': 128, 'endothelial': 90, 'cd8_t': 18, 'mdsc': 8, 'cd4_t': 2}
+  HPAP-053/Tail of pancreas/ROI1: {'other_immune': 464, 'unknown': 456, 'epithelial': 417, 'mdsc': 412, 'endothelial': 200, 'macrophage': 98, 'cd8_t': 23, 'cd4_t': 5, 'b_cell': 1}
+  HPAP-053/Tail of pancreas/ROI2: {'other_immune': 1617, 'PP cell': 736, 'epithelial': 587, 'unknown': 188, 'macrophage': 161, 'endothelial': 110, 'mdsc': 77, 'cd8_t': 49, 'cd4_t': 1}
+  HPAP-053/Tail of pancreas/ROI3: {'epithelial': 1226, 'other_immune': 951, 'fibroblast': 390, 'unknown': 274, 'macrophage': 205, 'endothelial': 91, 'mdsc': 86, 'cd8_t': 31, 'b_cell': 1}
+  HPAP-054/Body of pancreas/ROI1: {'epithelial': 1152, 'other_immune': 917, 'unknown': 551, 'endothelial': 203, 'macrophage': 75, 'mdsc': 46, 'cd8_t': 24, 'b_cell': 2, 'cd4_t': 1}
+  HPAP-054/Body of pancreas/ROI2: {'other_immune': 2053, 'PP cell': 715, 'epithelial': 390, 'unknown': 308, 'endothelial': 306, 'macrophage': 198, 'mdsc': 74, 'cd8_t': 33}
+  HPAP-054/Body of pancreas/ROI3: {'other_immune': 1184, 'epithelial': 817, 'unknown': 640, 'mdsc': 65, 'macrophage': 60, 'endothelial': 53, 'cd8_t': 16, 'cd4_t': 3, 'b_cell': 1}
+  HPAP-054/Head of pancreas/ROI1: {'epithelial': 950, 'other_immune': 460, 'unknown': 361, 'mdsc': 247, 'macrophage': 128, 'cd8_t': 15, 'beta cell': 12, 'cd4_t': 10, 'b_cell': 2}
+  HPAP-054/Head of pancreas/ROI2: {'other_immune': 1532, 'unknown': 991, 'epithelial': 891, 'macrophage': 97, 'mdsc': 44, 'cd8_t': 34, 'b_cell': 2, 'cd4_t': 1}
+  HPAP-054/Head of pancreas/ROI3: {'other_immune': 701, 'epithelial': 481, 'unknown': 338, 'mdsc': 302, 'endothelial': 124, 'macrophage': 78, 'cd8_t': 9, 'cd4_t': 3, 'b_cell': 1}
+  HPAP-054/Tail of pancreas/ROI1: {'epithelial': 910, 'PP cell': 774, 'mdsc': 385, 'unknown': 376, 'other_immune': 213, 'macrophage': 134, 'cd8_t': 40, 'cd4_t': 15}
+  HPAP-054/Tail of pancreas/ROI2: {'other_immune': 1318, 'unknown': 616, 'epithelial': 363, 'mdsc': 269, 'endothelial': 218, 'macrophage': 63, 'cd8_t': 30, 'cd4_t': 8}
+  HPAP-054/Tail of pancreas/ROI3: {'mdsc': 439, 'other_immune': 381, 'epithelial': 349, 'unknown': 129, 'macrophage': 56, 'endothelial': 47, 'cd8_t': 12, 'cd4_t': 6, 'b_cell': 5}
+  HPAP-056/Body of pancreas/ROI2: {'PP cell': 1132, 'macrophage': 1118, 'endothelial': 902, 'other_immune': 488, 'cd8_t': 28, 'cd4_t': 9, 'mdsc': 9, 'b_cell': 1}
+  HPAP-056/Body of pancreas/ROI3: {'endothelial': 942, 'unknown': 741, 'other_immune': 562, 'macrophage': 541, 'PP cell': 376, 'cd8_t': 36, 'mdsc': 24, 'b_cell': 10, 'cd4_t': 10}
+  HPAP-056/Body of pancreas/ROI5: {'PP cell': 1003, 'endothelial': 726, 'other_immune': 506, 'macrophage': 400, 'cd8_t': 25, 'mdsc': 9, 'cd4_t': 7, 'b_cell': 3}
+  HPAP-056/Head of pancreas/ROI1: {'PP cell': 3048, 'other_immune': 2052, 'macrophage': 1521, 'unknown': 958, 'mdsc': 167, 'endothelial': 126, 'cd8_t': 64, 'cd4_t': 10, 'b_cell': 5}
+  HPAP-056/Head of pancreas/ROI2: {'macrophage': 693, 'other_immune': 585, 'unknown': 372, 'PP cell': 290, 'endothelial': 29, 'mdsc': 13, 'cd8_t': 9, 'cd4_t': 7, 'b_cell': 5}
+  HPAP-056/Tail of pancreas/ROI1: {'PP cell': 1413, 'other_immune': 1041, 'macrophage': 484, 'endothelial': 163, 'beta cell': 144, 'cd8_t': 37, 'mdsc': 23, 'cd4_t': 11}
+  HPAP-056/Tail of pancreas/ROI2: {'other_immune': 1368, 'unknown': 690, 'macrophage': 383, 'PP cell': 329, 'endothelial': 197, 'beta cell': 82, 'cd8_t': 34, 'mdsc': 23, 'cd4_t': 9, 'b_cell': 3}
+  HPAP-056/Tail of pancreas/ROI3: {'other_immune': 1267, 'unknown': 804, 'macrophage': 325, 'PP cell': 289, 'endothelial': 211, 'beta cell': 171, 'cd8_t': 34, 'mdsc': 12, 'cd4_t': 8}
+  HPAP-059/Body of pancreas/ROI1: {'unknown': 662, 'other_immune': 498, 'acinar': 414, 'endothelial': 104, 'mdsc': 63, 'macrophage': 45, 'cd8_t': 2}
+  HPAP-059/Body of pancreas/ROI2: {'endothelial': 544, 'unknown': 472, 'PP cell': 326, 'other_immune': 268, 'macrophage': 39, 'mdsc': 31, 'cd8_t': 10}
+  HPAP-059/Body of pancreas/ROI3: {'unknown': 908, 'endothelial': 838, 'other_immune': 554, 'macrophage': 81, 'mdsc': 38, 'cd8_t': 10, 'b_cell': 1}
+  HPAP-059/Head of pancreas/ROI2: {'epithelial': 3421, 'mdsc': 443, 'macrophage': 361, 'other_immune': 272, 'endothelial': 159, 'cd8_t': 34, 'b_cell': 2}
+  HPAP-059/Head of pancreas/ROI3: {'mdsc': 834, 'epithelial': 823, 'unknown': 788, 'other_immune': 344, 'endothelial': 239, 'macrophage': 224, 'fibroblast': 47, 'cd8_t': 35}
+  HPAP-059/Head of pancreas/ROI4: {'epithelial': 4604, 'endothelial': 730, 'mdsc': 627, 'other_immune': 601, 'macrophage': 472, 'cd8_t': 70, 'cd4_t': 6}
+  HPAP-059/Tail of pancreas/ROI1: {'unknown': 1063, 'endothelial': 852, 'PP cell': 317, 'other_immune': 124, 'macrophage': 91, 'cd8_t': 21, 'mdsc': 6}
+  HPAP-059/Tail of pancreas/ROI2: {'endothelial': 609, 'unknown': 440, 'PP cell': 384, 'other_immune': 346, 'beta cell': 175, 'macrophage': 46, 'cd8_t': 20, 'mdsc': 11, 'cd4_t': 1}
+  HPAP-059/Tail of pancreas/ROI3: {'unknown': 1166, 'endothelial': 1086, 'PP cell': 239, 'beta cell': 96, 'macrophage': 72, 'other_immune': 45, 'cd8_t': 17, 'mdsc': 3}
+  HPAP-063/Body of pancreas/ROI1: {'epithelial': 1230, 'macrophage': 541, 'endothelial': 319, 'other_immune': 292, 'mdsc': 134, 'cd8_t': 22, 'cd4_t': 6}
+  HPAP-063/Body of pancreas/ROI2: {'epithelial': 935, 'other_immune': 453, 'macrophage': 409, 'unknown': 298, 'endothelial': 209, 'mdsc': 173, 'cd8_t': 33, 'cd4_t': 7}
+  HPAP-063/Body of pancreas/ROI3: {'other_immune': 544, 'epithelial': 326, 'macrophage': 255, 'unknown': 200, 'mdsc': 186, 'endothelial': 131, 'cd8_t': 16, 'cd4_t': 4, 'b_cell': 2}
+  HPAP-063/Head of pancreas/ROI1: {'epithelial': 1085, 'other_immune': 745, 'PP cell': 556, 'unknown': 309, 'macrophage': 283, 'endothelial': 125, 'mdsc': 51, 'cd8_t': 26, 'cd4_t': 8, 'b_cell': 1}
+  HPAP-063/Head of pancreas/ROI2: {'PP cell': 715, 'epithelial': 700, 'other_immune': 423, 'macrophage': 211, 'mdsc': 34, 'unknown': 33, 'cd4_t': 19, 'cd8_t': 14, 'b_cell': 1}
+  HPAP-063/Head of pancreas/ROI3: {'epithelial': 1174, 'other_immune': 1068, 'unknown': 726, 'macrophage': 249, 'endothelial': 75, 'cd8_t': 29, 'mdsc': 28, 'cd4_t': 5}
+  HPAP-063/Tail of pancreas/ROI1: {'epithelial': 1729, 'macrophage': 319, 'endothelial': 197, 'other_immune': 170, 'unknown': 141, 'mdsc': 80, 'cd8_t': 56, 'cd4_t': 6}
+  HPAP-063/Tail of pancreas/ROI2: {'other_immune': 999, 'epithelial': 910, 'endothelial': 273, 'macrophage': 246, 'beta cell': 195, 'mdsc': 164, 'cd8_t': 65, 'cd4_t': 9, 'b_cell': 1}
+  HPAP-063/Tail of pancreas/ROI3: {'epithelial': 1755, 'other_immune': 1222, 'unknown': 868, 'endothelial': 367, 'macrophage': 293, 'beta cell': 130, 'cd8_t': 72, 'mdsc': 55, 'cd4_t': 12, 'b_cell': 1}
+  HPAP-066/Head of pancreas/ROI3: {'epithelial': 2655, 'endothelial': 597, 'unknown': 293, 'fibroblast': 111, 'cd8_t': 13, 'macrophage': 4, 'other_immune': 2, 'b_cell': 1}
+  HPAP-066/Head of pancreas/ROI4: {'epithelial': 3281, 'endothelial': 824, 'unknown': 472, 'macrophage': 98, 'fibroblast': 58, 'cd8_t': 33, 'other_immune': 20, 'mdsc': 1}
+  HPAP-066/Head of pancreas/ROI5: {'epithelial': 3336, 'endothelial': 751, 'unknown': 418, 'fibroblast': 168, 'macrophage': 113, 'other_immune': 48, 'cd8_t': 30}
+  HPAP-066/Tail of pancreas/ROI2: {'epithelial': 1904, 'beta cell': 691, 'other_immune': 686, 'macrophage': 246, 'cd8_t': 34, 'cd4_t': 4, 'b_cell': 2, 'mdsc': 1}
+  HPAP-066/Tail of pancreas/ROI3: {'epithelial': 2059, 'PP cell': 876, 'other_immune': 447, 'beta cell': 386, 'macrophage': 203, 'endothelial': 151, 'cd8_t': 26, 'b_cell': 3, 'mdsc': 2, 'cd4_t': 1}
+  HPAP-066/Tail of pancreas/ROI5: {'epithelial': 1976, 'PP cell': 638, 'other_immune': 564, 'beta cell': 459, 'alpha cell': 452, 'macrophage': 150, 'fibroblast': 115, 'cd8_t': 29, 'mdsc': 2, 'b_cell': 1}
+  HPAP-067/Body of pancreas/ROI1: {'epithelial': 1719, 'unknown': 487, 'other_immune': 434, 'macrophage': 187, 'beta cell': 108, 'mdsc': 13, 'cd8_t': 5, 'cd4_t': 1}
+  HPAP-067/Body of pancreas/ROI2: {'epithelial': 2688, 'unknown': 670, 'other_immune': 348, 'endothelial': 232, 'macrophage': 179, 'beta cell': 81, 'cd8_t': 21, 'mdsc': 17, 'cd4_t': 6}
+  HPAP-067/Body of pancreas/ROI3: {'epithelial': 2896, 'fibroblast': 549, 'endothelial': 259, 'macrophage': 151, 'beta cell': 126, 'other_immune': 91, 'cd8_t': 23, 'mdsc': 10, 'cd4_t': 3}
+  HPAP-067/Head of pancreas/ROI1: {'epithelial': 2531, 'PP cell': 517, 'beta cell': 247, 'endothelial': 193, 'macrophage': 188, 'other_immune': 38, 'cd8_t': 21, 'mdsc': 13}
+  HPAP-067/Head of pancreas/ROI2: {'epithelial': 2740, 'fibroblast': 598, 'beta cell': 428, 'other_immune': 303, 'macrophage': 167, 'cd8_t': 22, 'mdsc': 18, 'cd4_t': 2}
+  HPAP-067/Head of pancreas/ROI3: {'epithelial': 2867, 'other_immune': 571, 'unknown': 434, 'endothelial': 270, 'beta cell': 240, 'macrophage': 145, 'cd8_t': 21, 'mdsc': 10, 'cd4_t': 6}
+  HPAP-067/Tail of pancreas/ROI1: {'epithelial': 1539, 'other_immune': 383, 'macrophage': 200, 'beta cell': 134, 'mdsc': 34, 'cd8_t': 12, 'cd4_t': 1}
+  HPAP-067/Tail of pancreas/ROI2: {'epithelial': 1668, 'unknown': 787, 'other_immune': 634, 'macrophage': 191, 'mdsc': 20, 'cd8_t': 13}
+  HPAP-067/Tail of pancreas/ROI3: {'epithelial': 1818, 'unknown': 719, 'other_immune': 612, 'beta cell': 244, 'macrophage': 222, 'mdsc': 13, 'cd8_t': 10, 'b_cell': 1}
+  HPAP-074/Body of pancreas/ROI1: {'epithelial': 1598, 'other_immune': 1028, 'endothelial': 509, 'macrophage': 373, 'mdsc': 284, 'cd8_t': 63, 'b_cell': 14, 'cd4_t': 3}
+  HPAP-074/Body of pancreas/ROI2: {'other_immune': 1161, 'epithelial': 547, 'macrophage': 287, 'unknown': 215, 'beta cell': 179, 'endothelial': 121, 'mdsc': 68, 'cd8_t': 34, 'b_cell': 13, 'cd4_t': 10}
+  HPAP-074/Body of pancreas/ROI3: {'other_immune': 882, 'epithelial': 709, 'unknown': 526, 'beta cell': 385, 'macrophage': 249, 'b_cell': 75, 'endothelial': 72, 'mdsc': 71, 'cd8_t': 56, 'cd4_t': 5}
+  HPAP-074/Head of pancreas/ROI3: {'epithelial': 1358, 'other_immune': 639, 'beta cell': 391, 'macrophage': 274, 'mdsc': 159, 'b_cell': 63, 'cd8_t': 28, 'cd4_t': 8}
+  HPAP-074/Head of pancreas/ROI4: {'other_immune': 1087, 'epithelial': 393, 'endothelial': 255, 'macrophage': 173, 'b_cell': 53, 'cd8_t': 41, 'mdsc': 20, 'fibroblast': 9, 'cd4_t': 3}
+  HPAP-074/Head of pancreas/ROI5: {'epithelial': 1773, 'other_immune': 633, 'unknown': 535, 'macrophage': 171, 'cd8_t': 37, 'b_cell': 28, 'mdsc': 14, 'cd4_t': 5}
+  HPAP-075/Body of pancreas/ROI1: {'epithelial': 2600, 'PP cell': 1026, 'fibroblast': 697, 'endothelial': 389, 'beta cell': 338, 'macrophage': 95, 'other_immune': 44, 'cd8_t': 21, 'mdsc': 7, 'cd4_t': 1}
+  HPAP-075/Body of pancreas/ROI3: {'epithelial': 3642, 'endothelial': 751, 'beta cell': 363, 'macrophage': 85, 'other_immune': 41, 'cd8_t': 25, 'mdsc': 8}
+  HPAP-075/Body of pancreas/ROI4: {'epithelial': 2554, 'alpha cell': 1148, 'endothelial': 687, 'beta cell': 235, 'macrophage': 94, 'PP cell': 86, 'other_immune': 47, 'cd8_t': 23, 'mdsc': 14}
+  HPAP-075/Head of pancreas/ROI1: {'epithelial': 3531, 'unknown': 729, 'beta cell': 260, 'other_immune': 231, 'macrophage': 117, 'mdsc': 51, 'cd8_t': 32}
+  HPAP-075/Head of pancreas/ROI2: {'epithelial': 2615, 'endothelial': 1074, 'unknown': 910, 'beta cell': 156, 'cd8_t': 23, 'other_immune': 13, 'macrophage': 2}
+  HPAP-075/Head of pancreas/ROI3: {'epithelial': 2596, 'unknown': 780, 'PP cell': 707, 'other_immune': 516, 'beta cell': 258, 'macrophage': 85, 'mdsc': 58, 'cd8_t': 26, 'cd4_t': 3}
+  HPAP-075/Tail of pancreas/ROI1: {'other_immune': 1443, 'epithelial': 889, 'unknown': 685, 'mdsc': 582, 'endothelial': 361, 'macrophage': 358, 'cd8_t': 43, 'cd4_t': 2}
+  HPAP-075/Tail of pancreas/ROI2: {'epithelial': 2791, 'endothelial': 2292, 'unknown': 1405, 'mdsc': 1350, 'other_immune': 766, 'macrophage': 625, 'cd8_t': 101}
+  HPAP-075/Tail of pancreas/ROI6: {'epithelial': 2843, 'other_immune': 2325, 'PP cell': 1629, 'beta cell': 721, 'macrophage': 433, 'mdsc': 161, 'cd8_t': 64, 'cd4_t': 6, 'b_cell': 1}
+  HPAP-080/Head of pancreas/ROI1: {'epithelial': 2455, 'PP cell': 1202, 'endothelial': 503, 'other_immune': 451, 'beta cell': 248, 'macrophage': 47, 'mdsc': 12, 'cd8_t': 9}
+  HPAP-080/Head of pancreas/ROI2: {'epithelial': 2877, 'unknown': 623, 'alpha cell': 479, 'beta cell': 312, 'other_immune': 294, 'macrophage': 53, 'mdsc': 11, 'cd4_t': 5, 'cd8_t': 3}
+  HPAP-080/Head of pancreas/ROI3: {'epithelial': 2612, 'PP cell': 889, 'endothelial': 550, 'beta cell': 380, 'unknown': 348}
+  HPAP-080/Tail of pancreas/ROI1: {'epithelial': 5927, 'endothelial': 1366, 'other_immune': 930, 'macrophage': 617, 'beta cell': 539, 'mdsc': 17, 'cd8_t': 13, 'cd4_t': 5}
+  HPAP-080/Tail of pancreas/ROI2: {'epithelial': 4998, 'PP cell': 1966, 'beta cell': 893, 'endothelial': 411, 'macrophage': 321, 'other_immune': 257, 'cd8_t': 10, 'cd4_t': 7, 'mdsc': 7}
+  HPAP-080/Tail of pancreas/ROI3: {'epithelial': 3158, 'endothelial': 1124, 'beta cell': 377, 'macrophage': 166, 'other_immune': 78, 'mdsc': 7, 'cd8_t': 5, 'cd4_t': 1}
+  HPAP-082/Body of pancreas/ROI1: {'unknown': 1181, 'macrophage': 1100, 'mdsc': 781, 'alpha cell': 440, 'beta cell': 345, 'other_immune': 92, 'b_cell': 71, 'cd8_t': 12, 'cd4_t': 7}
+  HPAP-082/Body of pancreas/ROI4: {'unknown': 1390, 'macrophage': 950, 'mdsc': 688, 'other_immune': 644, 'acinar': 335, 'beta cell': 101, 'alpha cell': 56, 'cd8_t': 28, 'b_cell': 19, 'cd4_t': 5}
+  HPAP-082/Head of pancreas/ROI1: {'alpha cell': 1380, 'PP cell': 1194, 'macrophage': 559, 'unknown': 375, 'mdsc': 330, 'beta cell': 246, 'other_immune': 90, 'cd8_t': 49, 'b_cell': 22, 'cd4_t': 11}
+  HPAP-082/Head of pancreas/ROI2: {'mdsc': 2054, 'unknown': 1095, 'macrophage': 566, 'beta cell': 220, 'b_cell': 183, 'other_immune': 109, 'cd8_t': 40, 'PP cell': 25, 'endothelial': 23, 'cd4_t': 5}
+  HPAP-082/Head of pancreas/ROI3: {'unknown': 1327, 'mdsc': 799, 'macrophage': 569, 'other_immune': 186, 'beta cell': 168, 'cd8_t': 31, 'b_cell': 18, 'cd4_t': 5}
+  HPAP-082/Tail of pancreas/ROI1: {'PP cell': 1782, 'mdsc': 912, 'macrophage': 486, 'other_immune': 417, 'alpha cell': 348, 'b_cell': 67, 'cd8_t': 28, 'cd4_t': 4}
+  HPAP-082/Tail of pancreas/ROI3: {'mdsc': 1236, 'other_immune': 867, 'endothelial': 680, 'PP cell': 584, 'unknown': 402, 'macrophage': 364, 'b_cell': 45, 'cd8_t': 33, 'cd4_t': 8}
+  HPAP-082/Tail of pancreas/ROI5: {'other_immune': 1895, 'mdsc': 732, 'acinar': 412, 'unknown': 391, 'beta cell': 241, 'macrophage': 217, 'cd8_t': 26, 'b_cell': 9, 'cd4_t': 3}
+  HPAP-093/Body of pancreas/ROI2: {'other_immune': 1858, 'epithelial': 926, 'unknown': 472, 'beta cell': 262, 'macrophage': 195, 'cd8_t': 19, 'mdsc': 8, 'cd4_t': 5, 'b_cell': 1}
+  HPAP-093/Body of pancreas/ROI3: {'other_immune': 1554, 'epithelial': 997, 'unknown': 479, 'beta cell': 219, 'macrophage': 110, 'mdsc': 39, 'cd8_t': 35, 'b_cell': 3, 'cd4_t': 2}
+  HPAP-093/Body of pancreas/ROI6: {'other_immune': 2402, 'unknown': 1067, 'beta cell': 337, 'macrophage': 212, 'epithelial': 162, 'cd8_t': 35, 'cd4_t': 10, 'mdsc': 8}
+  HPAP-093/Head of pancreas/ROI1: {'other_immune': 1787, 'epithelial': 614, 'beta cell': 295, 'macrophage': 263, 'unknown': 173, 'cd8_t': 44, 'mdsc': 32, 'cd4_t': 10}
+  HPAP-093/Head of pancreas/ROI3: {'other_immune': 974, 'epithelial': 835, 'beta cell': 367, 'macrophage': 364, 'cd8_t': 51, 'cd4_t': 25, 'mdsc': 9}
+  HPAP-093/Head of pancreas/ROI5: {'other_immune': 1585, 'epithelial': 1121, 'unknown': 909, 'beta cell': 257, 'macrophage': 172, 'cd8_t': 45, 'mdsc': 27, 'cd4_t': 3}
+  HPAP-093/Tail of pancreas/ROI1: {'epithelial': 914, 'unknown': 866, 'other_immune': 636, 'macrophage': 268, 'beta cell': 128, 'mdsc': 94, 'cd8_t': 39, 'b_cell': 5, 'cd4_t': 4}
+  HPAP-093/Tail of pancreas/ROI2: {'epithelial': 1855, 'other_immune': 1301, 'beta cell': 836, 'macrophage': 329, 'mdsc': 41, 'cd8_t': 35, 'cd4_t': 9}
+  HPAP-093/Tail of pancreas/ROI3: {'other_immune': 1576, 'unknown': 1143, 'epithelial': 1085, 'macrophage': 247, 'beta cell': 232, 'cd8_t': 44, 'cd4_t': 15, 'mdsc': 8}
+  HPAP-095/Body of pancreas/ROI1: {'other_immune': 1408, 'unknown': 1124, 'b_cell': 360, 'macrophage': 188, 'cd8_t': 35, 'epithelial': 20, 'mdsc': 11, 'cd4_t': 6}
+  HPAP-095/Body of pancreas/ROI3: {'other_immune': 1402, 'unknown': 1274, 'epithelial': 1065, 'macrophage': 307, 'beta cell': 215, 'endothelial': 85, 'b_cell': 18, 'cd8_t': 16, 'cd4_t': 11}
+  HPAP-095/Body of pancreas/ROI4: {'epithelial': 2559, 'unknown': 994, 'other_immune': 324, 'macrophage': 194, 'beta cell': 173, 'cd8_t': 17, 'cd4_t': 7, 'b_cell': 6}
+  HPAP-095/Head of pancreas/ROI1: {'epithelial': 1842, 'mdsc': 888, 'other_immune': 457, 'beta cell': 401, 'macrophage': 295, 'cd8_t': 20, 'b_cell': 16}
+  HPAP-095/Head of pancreas/ROI2: {'epithelial': 1217, 'mdsc': 1021, 'unknown': 824, 'macrophage': 544, 'other_immune': 512, 'beta cell': 150, 'cd8_t': 17, 'b_cell': 16, 'cd4_t': 8}
+  HPAP-095/Head of pancreas/ROI3: {'epithelial': 1809, 'unknown': 888, 'mdsc': 752, 'beta cell': 271, 'macrophage': 269, 'other_immune': 180, 'cd8_t': 25, 'b_cell': 10, 'cd4_t': 3}
+  HPAP-095/Tail of pancreas/ROI1: {'epithelial': 2077, 'other_immune': 1327, 'macrophage': 255, 'mdsc': 153, 'endothelial': 120, 'cd8_t': 23, 'b_cell': 20, 'cd4_t': 6}
+  HPAP-095/Tail of pancreas/ROI2: {'unknown': 1267, 'other_immune': 1239, 'epithelial': 695, 'macrophage': 339, 'beta cell': 241, 'mdsc': 66, 'b_cell': 30, 'cd8_t': 21, 'cd4_t': 7}
+  HPAP-095/Tail of pancreas/ROI5: {'other_immune': 1237, 'unknown': 1149, 'epithelial': 724, 'beta cell': 634, 'macrophage': 263, 'b_cell': 37, 'cd8_t': 22, 'mdsc': 7, 'cd4_t': 1}
+  HPAP-099/Body of pancreas/ROI1: {'other_immune': 1762, 'unknown': 820, 'epithelial': 689, 'macrophage': 489, 'beta cell': 219, 'mdsc': 24, 'cd8_t': 22, 'cd4_t': 16, 'b_cell': 16}
+  HPAP-099/Body of pancreas/ROI2: {'epithelial': 1891, 'other_immune': 1456, 'unknown': 988, 'macrophage': 822, 'beta cell': 198, 'cd4_t': 48, 'cd8_t': 32, 'b_cell': 15, 'mdsc': 11}
+  HPAP-099/Body of pancreas/ROI3: {'other_immune': 1357, 'unknown': 1041, 'epithelial': 815, 'macrophage': 397, 'endothelial': 207, 'beta cell': 174, 'cd8_t': 40, 'b_cell': 25, 'cd4_t': 20, 'mdsc': 4}
+  HPAP-099/Head of pancreas/ROI1: {'other_immune': 1827, 'PP cell': 846, 'epithelial': 765, 'endothelial': 261, 'macrophage': 251, 'beta cell': 240, 'cd8_t': 41, 'b_cell': 41, 'mdsc': 30, 'cd4_t': 20}
+  HPAP-099/Head of pancreas/ROI3: {'other_immune': 2040, 'unknown': 780, 'epithelial': 349, 'beta cell': 167, 'macrophage': 161, 'mdsc': 42, 'b_cell': 18, 'cd8_t': 15, 'cd4_t': 9}
+  HPAP-099/Head of pancreas/ROI4: {'other_immune': 1718, 'unknown': 781, 'epithelial': 443, 'beta cell': 141, 'macrophage': 116, 'b_cell': 15, 'mdsc': 14, 'cd8_t': 12, 'cd4_t': 10}
+  HPAP-099/Tail of pancreas/ROI1: {'other_immune': 1289, 'epithelial': 911, 'unknown': 634, 'beta cell': 352, 'macrophage': 210, 'cd8_t': 30, 'mdsc': 20, 'b_cell': 14, 'cd4_t': 7}
+  HPAP-099/Tail of pancreas/ROI2: {'other_immune': 1766, 'unknown': 486, 'epithelial': 467, 'beta cell': 412, 'macrophage': 202, 'cd8_t': 20, 'b_cell': 14, 'cd4_t': 9, 'mdsc': 8}
+  HPAP-099/Tail of pancreas/ROI3: {'epithelial': 1544, 'other_immune': 1309, 'PP cell': 677, 'macrophage': 421, 'beta cell': 99, 'cd8_t': 30, 'cd4_t': 21, 'b_cell': 14, 'mdsc': 2}
+  HPAP-105/Body of pancreas/ROI1: {'epithelial': 1706, 'unknown': 676, 'other_immune': 190, 'macrophage': 133, 'beta cell': 123, 'cd8_t': 17, 'cd4_t': 16}
+  HPAP-105/Body of pancreas/ROI4: {'epithelial': 1919, 'unknown': 1406, 'other_immune': 101, 'beta cell': 98, 'macrophage': 81, 'cd8_t': 9, 'cd4_t': 1}
+  HPAP-105/Body of pancreas/ROI5: {'epithelial': 2250, 'unknown': 823, 'beta cell': 204, 'macrophage': 168, 'other_immune': 137, 'cd8_t': 14, 'cd4_t': 5}
+  HPAP-105/Head of pancreas/ROI1: {'other_immune': 919, 'unknown': 632, 'macrophage': 579, 'beta cell': 452, 'epithelial': 418, 'mdsc': 42, 'cd8_t': 6, 'cd4_t': 1, 'b_cell': 1}
+  HPAP-105/Head of pancreas/ROI2: {'other_immune': 711, 'macrophage': 599, 'epithelial': 584, 'beta cell': 430, 'unknown': 423, 'mdsc': 21, 'cd8_t': 8, 'cd4_t': 1}
+  HPAP-105/Head of pancreas/ROI3: {'epithelial': 799, 'other_immune': 669, 'unknown': 575, 'macrophage': 370, 'beta cell': 130, 'cd8_t': 8, 'cd4_t': 4, 'mdsc': 1}
+  HPAP-105/Tail of pancreas/ROI2: {'other_immune': 1663, 'unknown': 675, 'beta cell': 569, 'macrophage': 454, 'endothelial': 355, 'mdsc': 22, 'cd8_t': 21, 'cd4_t': 1}
+  HPAP-105/Tail of pancreas/ROI3: {'other_immune': 1596, 'beta cell': 610, 'macrophage': 479, 'endothelial': 443, 'epithelial': 403, 'mdsc': 107, 'cd8_t': 23, 'b_cell': 6, 'cd4_t': 3}
+  HPAP-105/Tail of pancreas/ROI4: {'other_immune': 1588, 'beta cell': 1247, 'macrophage': 379, 'epithelial': 143, 'cd8_t': 18, 'mdsc': 13, 'cd4_t': 3}
+  HPAP-118/Body of pancreas/ROI1: {'other_immune': 1964, 'unknown': 1107, 'epithelial': 319, 'endothelial': 231, 'macrophage': 113, 'cd8_t': 34, 'b_cell': 9}
+  HPAP-118/Body of pancreas/ROI2: {'epithelial': 2483, 'unknown': 365, 'other_immune': 189, 'beta cell': 145, 'macrophage': 82, 'cd8_t': 32, 'cd4_t': 5, 'b_cell': 1}
+  HPAP-118/Body of pancreas/ROI3: {'epithelial': 1978, 'endothelial': 520, 'beta cell': 137, 'unknown': 61, 'macrophage': 52, 'other_immune': 42, 'cd8_t': 18, 'cd4_t': 2}
+  HPAP-118/Head of pancreas/ROI1: {'other_immune': 1301, 'epithelial': 811, 'unknown': 430, 'macrophage': 113, 'cd8_t': 34, 'cd4_t': 7, 'b_cell': 2}
+  HPAP-118/Head of pancreas/ROI2: {'epithelial': 771, 'other_immune': 504, 'unknown': 467, 'macrophage': 49, 'cd8_t': 13, 'cd4_t': 2, 'b_cell': 1}
+  HPAP-118/Head of pancreas/ROI4: {'other_immune': 1305, 'epithelial': 912, 'unknown': 329, 'endothelial': 95, 'macrophage': 67, 'cd8_t': 25, 'cd4_t': 8, 'b_cell': 3}
+  HPAP-118/Tail of pancreas/ROI1: {'other_immune': 1094, 'unknown': 486, 'epithelial': 436, 'beta cell': 160, 'macrophage': 116, 'cd8_t': 34, 'b_cell': 3, 'cd4_t': 2}
+  HPAP-118/Tail of pancreas/ROI2: {'other_immune': 1015, 'epithelial': 793, 'unknown': 394, 'beta cell': 205, 'macrophage': 66, 'cd8_t': 31, 'b_cell': 6, 'cd4_t': 1}
+  HPAP-118/Tail of pancreas/ROI3: {'other_immune': 1780, 'epithelial': 720, 'unknown': 282, 'beta cell': 172, 'macrophage': 148, 'cd8_t': 53, 'cd4_t': 10, 'b_cell': 2}
+  HPAP-136/Body of pancreas/ROI1: {'other_immune': 2301, 'unknown': 1197, 'epithelial': 1002, 'macrophage': 195, 'cd8_t': 30, 'cd4_t': 28, 'b_cell': 5}
+  HPAP-136/Body of pancreas/ROI2: {'other_immune': 3017, 'unknown': 1372, 'epithelial': 526, 'beta cell': 221, 'macrophage': 204, 'endothelial': 202, 'cd8_t': 31, 'cd4_t': 6}
+  HPAP-139/Tail of pancreas/ROI1: {'other_immune': 1747, 'epithelial': 1617, 'beta cell': 602, 'endothelial': 520, 'macrophage': 254, 'cd4_t': 25, 'cd8_t': 14, 'mdsc': 2}
+  HPAP-139/Tail of pancreas/ROI2: {'other_immune': 1972, 'epithelial': 1872, 'beta cell': 502, 'macrophage': 241, 'cd4_t': 21, 'cd8_t': 19, 'mdsc': 5}
+  HPAP-139/Tail of pancreas/ROI3: {'other_immune': 2388, 'unknown': 918, 'epithelial': 360, 'macrophage': 299, 'beta cell': 243, 'cd4_t': 35, 'cd8_t': 20, 'mdsc': 7, 'b_cell': 1}
+  HPAP-146/Body of pancreas/ROI1: {'epithelial': 2329, 'other_immune': 879, 'unknown': 608, 'macrophage': 272, 'beta cell': 183, 'cd8_t': 45, 'cd4_t': 8}
+  HPAP-146/Body of pancreas/ROI2: {'epithelial': 3773, 'other_immune': 210, 'beta cell': 170, 'macrophage': 154, 'cd8_t': 39, 'cd4_t': 1}
+  HPAP-146/Body of pancreas/ROI4: {'epithelial': 2836, 'other_immune': 793, 'unknown': 523, 'endothelial': 200, 'macrophage': 157, 'cd8_t': 43, 'cd4_t': 2}
+  HPAP-146/Head of pancreas/ROI3: {'epithelial': 1826, 'other_immune': 1322, 'unknown': 1015, 'macrophage': 264, 'endothelial': 109, 'cd8_t': 41, 'cd4_t': 8}
+  HPAP-146/Head of pancreas/ROI4: {'epithelial': 2221, 'other_immune': 1086, 'unknown': 1041, 'macrophage': 195, 'cd8_t': 38, 'cd4_t': 5}
+  HPAP-146/Head of pancreas/ROI5: {'other_immune': 2311, 'epithelial': 1497, 'unknown': 713, 'beta cell': 347, 'endothelial': 274, 'macrophage': 251, 'cd8_t': 30, 'cd4_t': 8, 'mdsc': 1}
+  HPAP-146/Tail of pancreas/ROI1: {'epithelial': 857, 'unknown': 778, 'PP cell': 756, 'other_immune': 678, 'macrophage': 577, 'endothelial': 350, 'cd4_t': 70, 'cd8_t': 39, 'mdsc': 2, 'b_cell': 1}
+  HPAP-146/Tail of pancreas/ROI2: {'other_immune': 2568, 'epithelial': 2220, 'unknown': 1071, 'macrophage': 1025, 'endothelial': 508, 'cd4_t': 312, 'cd8_t': 110, 'mdsc': 13, 'b_cell': 9}
+  HPAP-146/Tail of pancreas/ROI3: {'epithelial': 1724, 'other_immune': 1308, 'unknown': 469, 'macrophage': 404, 'endothelial': 349, 'cd8_t': 59, 'cd4_t': 45, 'mdsc': 2, 'b_cell': 2}
+
+Saved counts → /home/chase/PDAC/healthy_imc/analysis/subtype_counts.csv
+
+=== Mean counts per ROI ===
+other_immune     802.6
+epithelial      1043.6
+unknown          428.8
+PP cell          125.5
+beta cell        115.0
+macrophage       187.6
+cd8_t             45.5
+cd4_t             12.3
+b_cell            22.5
+mdsc             125.3
+fibroblast        66.8
+alpha cell        23.4
+endothelial      155.2
+acinar             6.8

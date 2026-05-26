@@ -1,0 +1,98 @@
+{
+  "cd4_t": {
+    "abm_agent": "TReg",
+    "cell_diameter_um": 8.0,
+    "density_2d_mean": 11.7,
+    "density_2d_std": 28.8,
+    "density_3d_mean": 901.5,
+    "density_3d_std": 2217.4,
+    "cells_per_abm_domain": 901.5,
+    "cells_per_voxel_mean": 0.0072,
+    "spatial_correlation_um": 100.0,
+    "n_rois": 299
+  },
+  "cd8_t": {
+    "abm_agent": "TCell",
+    "cell_diameter_um": 8.0,
+    "density_2d_mean": 44.1,
+    "density_2d_std": 92.8,
+    "density_3d_mean": 3393.6,
+    "density_3d_std": 7140.2,
+    "cells_per_abm_domain": 3393.6,
+    "cells_per_voxel_mean": 0.0271,
+    "spatial_correlation_um": 70.0,
+    "n_rois": 299
+  },
+  "b_cell": {
+    "abm_agent": "B_cell (future)",
+    "cell_diameter_um": 8.0,
+    "density_2d_mean": 22.2,
+    "density_2d_std": 56.4,
+    "density_3d_mean": 1710.5,
+    "density_3d_std": 4340.2,
+    "cells_per_abm_domain": 1710.5,
+    "cells_per_voxel_mean": 0.0137,
+    "spatial_correlation_um": 110.0,
+    "n_rois": 299
+  },
+  "macrophage": {
+    "abm_agent": "Macrophage",
+    "cell_diameter_um": 15.0,
+    "density_2d_mean": 176.0,
+    "density_2d_std": 190.7,
+    "density_3d_mean": 8801.8,
+    "density_3d_std": 9533.6,
+    "cells_per_abm_domain": 8801.8,
+    "cells_per_voxel_mean": 0.0704,
+    "spatial_correlation_um": 50.0,
+    "n_rois": 299
+  },
+  "mdsc": {
+    "abm_agent": "MDSC",
+    "cell_diameter_um": 10.0,
+    "density_2d_mean": 115.5,
+    "density_2d_std": 252.9,
+    "density_3d_mean": 7701.5,
+    "density_3d_std": 16860.6,
+    "cells_per_abm_domain": 7701.5,
+    "cells_per_voxel_mean": 0.0616,
+    "spatial_correlation_um": 90.0,
+    "n_rois": 299
+  },
+  "other_immune": {
+    "abm_agent": "(unassigned)",
+    "cell_diameter_um": 9.0,
+    "density_2d_mean": 762.9,
+    "density_2d_std": 618.0,
+    "density_3d_mean": 54489.5,
+    "density_3d_std": 44140.1,
+    "cells_per_abm_domain": 54489.5,
+    "cells_per_voxel_mean": 0.4359,
+    "spatial_correlation_um": 80.0,
+    "n_rois": 299
+  },
+  "fibroblast": {
+    "abm_agent": "Fibroblast",
+    "cell_diameter_um": 15.0,
+    "density_2d_mean": 64.5,
+    "density_2d_std": 175.1,
+    "density_3d_mean": 3224.3,
+    "density_3d_std": 8756.5,
+    "cells_per_abm_domain": 3224.3,
+    "cells_per_voxel_mean": 0.0258,
+    "spatial_correlation_um": 90.0,
+    "n_rois": 299
+  },
+  "endothelial": {
+    "abm_agent": "VascularCell",
+    "cell_diameter_um": 10.0,
+    "density_2d_mean": 141.0,
+    "density_2d_std": 224.1,
+    "density_3d_mean": 9402.2,
+    "density_3d_std": 14942.9,
+    "cells_per_abm_domain": 9402.2,
+    "cells_per_voxel_mean": 0.0752,
+    "spatial_correlation_um": 110.0,
+    "n_rois": 299
+  }
+}

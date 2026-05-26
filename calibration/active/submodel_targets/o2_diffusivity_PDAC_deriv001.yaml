@@ -1,0 +1,182 @@
+target_id: o2_diffusivity
+
+inputs:
+  - name: D_O2_tumor_37C_table
+    value: 1.75
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Grote1977
+    source_location: "Table 1 and Abstract"
+    value_snippet: "D = 1.75 * 10 -5 cm2/s"
+    rationale: "O2 diffusion coefficient in DS-Carcinosarcoma tumor tissue at 37C, in units of 10^-5 cm2/s"
+
+  - name: D_O2_rat_lung_table
+    value: 2.3
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Grote1977
+    source_location: "Table 2"
+    table_excerpt:
+      table_id: "Table 2"
+      column: "O2 diffusion coefficient D"
+      row: "Rat lung"
+      value: "2.3"
+      context: "O2 diffusion constants for different tissues, blood and water at 37C"
+
+  - name: D_O2_rat_cerebrum_table
+    value: 1.7
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Grote1977
+    source_location: "Table 2"
+    table_excerpt:
+      table_id: "Table 2"
+      column: "O2 diffusion coefficient D"
+      row: "Mouse- and rat cerebrum (gray matter)"
+      value: "1.7"
+      context: "O2 diffusion constants for different tissues at 37C"
+
+  - name: D_O2_rat_heart_table
+    value: 1.5
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Grote1977
+    source_location: "Table 2"
+    table_excerpt:
+      table_id: "Table 2"
+      column: "O2 diffusion coefficient D"
+      row: "Rat heart muscle"
+      value: "1.5"
+      context: "O2 diffusion constants for different tissues at 37C"
+
+  - name: D_O2_rabbit_cerebrum_table
+    value: 1.9
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Grote1977
+    source_location: "Table 2"
+    table_excerpt:
+      table_id: "Table 2"
+      column: "O2 diffusion coefficient D"
+      row: "Rabbit cerebrum (gray matter)"
+      value: "1.9"
+      context: "O2 diffusion constants for different tissues at 37C"
+
+  - name: D_O2_cat_cortex_table
+    value: 1.54
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Grote1977
+    source_location: "Table 2"
+    table_excerpt:
+      table_id: "Table 2"
+      column: "O2 diffusion coefficient D"
+      row: "Cat cerebral cortex"
+      value: "1.54"
+      context: "O2 diffusion constants for different tissues at 37C. Values not directly measured are given in parenthesis."
+
+  - name: unit_scale_factor
+    value: 1.0e-5
+    units: centimeter^2 / second
+    input_type: unit_conversion
+    source_ref: Grote1977
+    source_location: "Table 2 header"
+    rationale: "Table 2 reports D values in units of 10^-5 cm2/s. Multiply table values by 1e-5 to get cm2/s."
+
+calibration:
+  parameters:
+    - name: PARAM_O2_DIFFUSIVITY
+      units: centimeter^2 / second
+
+  forward_model:
+    type: algebraic
+    formula: "D = PARAM_O2_DIFFUSIVITY"
+    data_rationale: "Paper reports O2 diffusion coefficient directly measured in tumor and multiple tissue types at 37C"
+    submodel_rationale: "Parameter is used directly as diffusion coefficient D in PDE solver dC/dt = D*nabla^2(C) - lambda*C + S"
+    code: |
+      def compute(params, inputs):
+          return params['PARAM_O2_DIFFUSIVITY']
+
+  error_model:
+    - name: D_O2_observation
+      units: centimeter^2 / second
+      uses_inputs: [D_O2_tumor_37C_table, D_O2_rat_lung_table, D_O2_rat_cerebrum_table, D_O2_rat_heart_table, D_O2_rabbit_cerebrum_table, D_O2_cat_cortex_table, unit_scale_factor]
+      sample_size_input: D_O2_tumor_37C_table
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            scale = inputs['unit_scale_factor']
+            tissue_values = np.array([
+                inputs['D_O2_tumor_37C_table'],
+                inputs['D_O2_rat_lung_table'],
+                inputs['D_O2_rat_cerebrum_table'],
+                inputs['D_O2_rat_heart_table'],
+                inputs['D_O2_rabbit_cerebrum_table'],
+                inputs['D_O2_cat_cortex_table'],
+            ]) * scale
+            n = len(tissue_values)
+            idx = rng.integers(0, n, size=(n_bootstrap, n))
+            return np.mean(tissue_values[idx], axis=1)
+
+  identifiability_notes: >
+    O2 diffusivity in tissue is well-constrained by direct measurement across
+    multiple tissue types. Primary uncertainty is tissue composition (water
+    content, collagen density). PDAC desmoplastic stroma (82% water) has
+    comparable water content to the tumor tissue measured (82.1%).
+
+experimental_context:
+  species: rat
+  indication: tumor
+  system: ex_vivo
+
+source_relevance:
+  indication_match: related
+  indication_match_justification: >
+    DS-Carcinosarcoma in rat kidney is a solid tumor model with similar
+    tissue water content (82.1%) to PDAC. O2 diffusivity depends primarily
+    on water content rather than tumor type, so this is highly transferable.
+  species_source: rat
+  species_target: human
+  source_quality: primary_animal_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    Baseline biophysical measurement of O2 diffusion through excised tumor
+    tissue at 37C. No pharmacological or genetic perturbation.
+  tme_compatibility: high
+  tme_compatibility_notes: >
+    Tumor tissue measurement with 82% water content. PDAC stroma is
+    desmoplastic but water content is comparable. Table 2 shows O2
+    diffusivity correlates with water content across tissue types.
+  measurement_directness: direct
+  temporal_resolution: snapshot_or_equilibrium
+  experimental_system: ex_vivo
+
+study_interpretation: >
+  Grote et al. 1977 directly measured O2 diffusion coefficient in
+  DS-Carcinosarcoma tumor tissue at 37C using a modified Thews diffusion
+  chamber method. The tumor value (1.75e-5 cm2/s) fits within the range
+  of normal tissues with similar water content (1.5-2.3e-5 cm2/s),
+  confirming that insufficient O2 supply in tumors is due to poor
+  vascularization, not low O2 diffusivity.
+
+key_assumptions:
+  - O2 diffusivity depends primarily on tissue water content (biophysical property)
+  - DS-Carcinosarcoma tumor tissue is representative of solid tumors generally
+  - Cross-tissue comparison provides meaningful uncertainty estimate
+
+key_study_limitations:
+  - Measured in rat tumor tissue, not human PDAC specifically
+  - Excised tissue may differ from in vivo conditions
+  - Individual measurement SEM not extractable from Table 1 due to PDF formatting
+
+primary_data_source:
+  doi: "10.1007/BF00582204"
+  source_tag: Grote1977
+  title: "Oxygen diffusivity in tumor tissue (DS-Carcinosarcoma) under temperature conditions within the range of 20-40 degrees C"
+  authors:
+    - "Grote"
+    - "Susskind"
+    - "Vaupel"
+  year: 1977
+
+tags: [molecular, diffusivity, oxygen, biophysics, tumor]

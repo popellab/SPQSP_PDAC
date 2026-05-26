@@ -1,0 +1,351 @@
+metadata:
+  generated_by: maple.core.calibration.posterior_parameterizer
+  n_targets: 12
+  n_parameters: 23
+  n_samples: 20000
+  timestamp: '2026-05-22T21:17:02.529621+00:00'
+  num_warmup: 1000
+  num_samples: 5000
+  num_chains: 4
+parameters:
+- name: PARAM_ANTIBODY_DECAY_RATE
+  marginal:
+    distribution: lognormal
+    mu: -9.888541
+    sigma: 0.403341
+    median: 5.1e-05
+    cv: 0.420315
+  source_targets:
+  - antibody_decay
+- name: PARAM_ANTIBODY_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -16.1112
+    sigma: 0.353628
+    median: 0.0
+    cv: 0.364977
+  source_targets:
+  - antibody_diffusivity
+- name: PARAM_ARGI_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -14.81107
+    sigma: 0.549956
+    median: 0.0
+    cv: 0.594283
+  source_targets:
+  - large_molecule_diffusivity
+- name: PARAM_CCL21_DECAY_RATE
+  marginal:
+    distribution: lognormal
+    mu: -11.499126
+    sigma: 0.702679
+    median: 1e-05
+    cv: 0.799038
+  source_targets:
+  - ccl21_decay
+- name: PARAM_CCL21_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -15.389242
+    sigma: 0.552107
+    median: 0.0
+    cv: 0.596978
+  source_targets:
+  - ccl21_decay
+  - small_chemokine_diffusivity
+- name: PARAM_CCL2_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -16.355906
+    sigma: 0.555651
+    median: 0.0
+    cv: 0.601432
+  source_targets:
+  - small_chemokine_diffusivity
+- name: PARAM_CCL2_UPTAKE
+  marginal:
+    distribution: lognormal
+    mu: -6.592642
+    sigma: 0.453715
+    median: 0.00137
+    cv: 0.478098
+  source_targets:
+  - ccl2_uptake
+- name: PARAM_CCL5_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -15.029018
+    sigma: 0.5508
+    median: 0.0
+    cv: 0.595341
+  source_targets:
+  - small_chemokine_diffusivity
+- name: PARAM_CXCL12_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -15.040736
+    sigma: 0.557053
+    median: 0.0
+    cv: 0.603196
+  source_targets:
+  - small_chemokine_diffusivity
+- name: PARAM_CXCL13_DECAY_RATE
+  marginal:
+    distribution: lognormal
+    mu: -9.250054
+    sigma: 0.626878
+    median: 9.6e-05
+    cv: 0.693818
+  source_targets:
+  - cxcl13_decay
+- name: PARAM_CXCL13_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -15.291534
+    sigma: 0.552778
+    median: 0.0
+    cv: 0.597821
+  source_targets:
+  - small_chemokine_diffusivity
+- name: PARAM_IFNG_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -15.613254
+    sigma: 0.551982
+    median: 0.0
+    cv: 0.596822
+  source_targets:
+  - medium_cytokine_diffusivity
+- name: PARAM_IL10_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -16.600742
+    sigma: 0.557219
+    median: 0.0
+    cv: 0.603405
+  source_targets:
+  - large_molecule_diffusivity
+- name: PARAM_IL12_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -16.476807
+    sigma: 0.556125
+    median: 0.0
+    cv: 0.602028
+  source_targets:
+  - large_molecule_diffusivity
+- name: PARAM_IL1_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -15.46256
+    sigma: 0.55692
+    median: 0.0
+    cv: 0.603028
+  source_targets:
+  - medium_cytokine_diffusivity
+- name: PARAM_IL2_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -15.849504
+    sigma: 0.549895
+    median: 0.0
+    cv: 0.594206
+  source_targets:
+  - medium_cytokine_diffusivity
+- name: PARAM_IL6_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -15.488139
+    sigma: 0.550926
+    median: 0.0
+    cv: 0.595498
+  source_targets:
+  - medium_cytokine_diffusivity
+- name: PARAM_NO_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -10.970003
+    sigma: 0.512066
+    median: 1.7e-05
+    cv: 0.547542
+  source_targets:
+  - no_diffusivity
+- name: PARAM_O2_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -10.944302
+    sigma: 0.45459
+    median: 1.8e-05
+    cv: 0.479119
+  source_targets:
+  - o2_diffusivity
+- name: PARAM_O2_UPTAKE
+  marginal:
+    distribution: lognormal
+    mu: -2.170904
+    sigma: 0.372176
+    median: 0.114074
+    cv: 0.385443
+  source_targets:
+  - o2_uptake
+- name: PARAM_TGFB_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -15.087188
+    sigma: 0.552942
+    median: 0.0
+    cv: 0.598027
+  source_targets:
+  - medium_cytokine_diffusivity
+- name: PARAM_VEGFA_DECAY_RATE
+  marginal:
+    distribution: lognormal
+    mu: -9.058384
+    sigma: 0.616795
+    median: 0.000116
+    cv: 0.680383
+  source_targets:
+  - vegfa_decay
+- name: PARAM_VEGFA_DIFFUSIVITY
+  marginal:
+    distribution: lognormal
+    mu: -15.149309
+    sigma: 0.558842
+    median: 0.0
+    cv: 0.605451
+  source_targets:
+  - large_molecule_diffusivity
+translation_sigma:
+  antibody_decay:
+    total: 0.6964194138592059
+    breakdown:
+      indication: 0.5
+      species: 0.3
+      quality: 0.3
+      tme: 0.15
+      perturbation: 0.1
+      directness: 0.0
+      temporal: 0.0
+      system: 0.15
+  antibody_diffusivity:
+    total: 0.4031128874149275
+    breakdown:
+      indication: 0.2
+      species: 0.0
+      quality: 0.2
+      tme: 0.15
+      perturbation: 0.1
+      directness: 0.0
+      temporal: 0.2
+      system: 0.1
+  ccl21_decay:
+    total: 0.7778174593052023
+    breakdown:
+      indication: 0.5
+      species: 0.3
+      quality: 0.4
+      tme: 0.15
+      perturbation: 0.1
+      directness: 0.15
+      temporal: 0.2
+      system: 0.1
+  ccl2_uptake:
+    total: 0.5958187643906492
+    breakdown:
+      indication: 0.5
+      species: 0.0
+      quality: 0.1
+      tme: 0.15
+      perturbation: 0.1
+      directness: 0.15
+      temporal: 0.0
+      system: 0.2
+  cxcl13_decay:
+    total: 0.6041522986797286
+    breakdown:
+      indication: 0.5
+      species: 0.0
+      quality: 0.1
+      tme: 0.15
+      perturbation: 0.1
+      directness: 0.15
+      temporal: 0.2
+      system: 0.1
+  large_molecule_diffusivity:
+    total: 0.873212459828649
+    breakdown:
+      indication: 0.5
+      species: 0.3
+      quality: 0.1
+      tme: 0.15
+      perturbation: 0.1
+      directness: 0.5
+      temporal: 0.2
+      system: 0.3
+  medium_cytokine_diffusivity:
+    total: 0.873212459828649
+    breakdown:
+      indication: 0.5
+      species: 0.3
+      quality: 0.1
+      tme: 0.15
+      perturbation: 0.1
+      directness: 0.5
+      temporal: 0.2
+      system: 0.3
+  no_diffusivity:
+    total: 0.7632168761236874
+    breakdown:
+      indication: 0.5
+      species: 0.3
+      quality: 0.4
+      tme: 0.15
+      perturbation: 0.1
+      directness: 0.0
+      temporal: 0.2
+      system: 0.1
+  o2_diffusivity:
+    total: 0.5916079783099616
+    breakdown:
+      indication: 0.2
+      species: 0.3
+      quality: 0.4
+      tme: 0.0
+      perturbation: 0.1
+      directness: 0.0
+      temporal: 0.2
+      system: 0.1
+  o2_uptake:
+    total: 0.44158804331639234
+    breakdown:
+      indication: 0.0
+      species: 0.0
+      quality: 0.1
+      tme: 0.15
+      perturbation: 0.1
+      directness: 0.15
+      temporal: 0.2
+      system: 0.3
+  small_chemokine_diffusivity:
+    total: 0.873212459828649
+    breakdown:
+      indication: 0.5
+      species: 0.3
+      quality: 0.1
+      tme: 0.15
+      perturbation: 0.1
+      directness: 0.5
+      temporal: 0.2
+      system: 0.3
+  vegfa_decay:
+    total: 0.8573214099741123
+    breakdown:
+      indication: 0.5
+      species: 0.3
+      quality: 0.3
+      tme: 0.5
+      perturbation: 0.1
+      directness: 0.15
+      temporal: 0.0
+      system: 0.15

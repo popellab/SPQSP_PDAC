@@ -1,0 +1,202 @@
+target_id: antibody_decay
+
+inputs:
+  - name: skin_IgG_removal_rate_mean
+    value: 0.31
+    units: 1/hour
+    input_type: direct_measurement
+    source_ref: Eigenmann2017_JPhysiol
+    source_location: "Figure 7 + page 7322"
+    value_snippet: "Washout rates were 0.32 +/- 0.06, 0.31 +/- 0.09 and 0.36 +/- 0.05 1 h-1 in skin filled and 0.13 +/- 0.03, 0.11 +/- 0.05 and 0.14 +/- 0.04 1 h-1 in muscle for BSA, IgG and FcRn non-binding IgG, respectively"
+    rationale: "Mean lymphatic removal rate of anti-IL17 IgG from mouse skin interstitium, measured by fluorescent tracer washout from intradermal injection site (n=6 mice). One-way ANOVA P=0.5 across BSA/IgG/FcRn-KO confirms first-order tracer-independent removal."
+
+  - name: skin_IgG_removal_rate_sd
+    value: 0.09
+    units: 1/hour
+    input_type: direct_measurement
+    source_ref: Eigenmann2017_JPhysiol
+    source_location: "Figure 7 + page 7322"
+    value_snippet: "Washout rates were 0.32 +/- 0.06, 0.31 +/- 0.09 and 0.36 +/- 0.05 1 h-1 in skin filled and 0.13 +/- 0.03, 0.11 +/- 0.05 and 0.14 +/- 0.04 1 h-1 in muscle for BSA, IgG and FcRn non-binding IgG, respectively"
+    rationale: "SD across n=6 mice for skin anti-IL17 IgG washout rate. Paper Methods state 'Measured data are reported as the mean +/- SD'."
+
+  - name: skin_IgG_n
+    value: 6
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Eigenmann2017_JPhysiol
+    source_location: "Page 7314"
+    value_snippet: "the washout was assessed in six individuals"
+    rationale: "Number of mice per tracer per tissue for lymph flow measurements."
+
+  - name: muscle_IgG_removal_rate_mean
+    value: 0.11
+    units: 1/hour
+    input_type: direct_measurement
+    source_ref: Eigenmann2017_JPhysiol
+    source_location: "Figure 7 + page 7322"
+    value_snippet: "0.13 +/- 0.03, 0.11 +/- 0.05 and 0.14 +/- 0.04 h-1 in muscle for BSA, IgG and FcRn non-binding IgG, respectively"
+    rationale: "Mean lymphatic removal rate of anti-IL17 IgG from mouse muscle interstitium, measured by fluorescent tracer washout from intramuscular injection (n=6 mice). One-way ANOVA P=0.6 across tracers confirms first-order tracer-independent removal."
+
+  - name: muscle_IgG_removal_rate_sd
+    value: 0.05
+    units: 1/hour
+    input_type: direct_measurement
+    source_ref: Eigenmann2017_JPhysiol
+    source_location: "Figure 7 + page 7322"
+    value_snippet: "0.13 +/- 0.03, 0.11 +/- 0.05 and 0.14 +/- 0.04 h-1 in muscle for BSA, IgG and FcRn non-binding IgG, respectively"
+    rationale: "SD across n=6 mice for muscle anti-IL17 IgG washout rate."
+
+  - name: muscle_IgG_n
+    value: 6
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Eigenmann2017_JPhysiol
+    source_location: "Page 7314"
+    value_snippet: "the washout was assessed in six individuals"
+    rationale: "Number of mice per tracer per tissue for lymph flow measurements."
+
+  - name: seconds_per_hour
+    value: 3600
+    units: second / hour
+    input_type: unit_conversion
+    source_ref: Eigenmann2017_JPhysiol
+    source_location: "Units convention"
+    rationale: "SI unit conversion factor (1 h = 3600 s). Paper reports rates in 1/h; PARAM_ANTIBODY_DECAY_RATE is in 1/s."
+
+calibration:
+  parameters:
+    - name: PARAM_ANTIBODY_DECAY_RATE
+      units: 1/second
+
+  forward_model:
+    type: algebraic
+    formula: "k_per_h = PARAM_ANTIBODY_DECAY_RATE * seconds_per_hour"
+    data_rationale: "Eigenmann et al. report first-order lymphatic removal rate constants [1/h] from interstitial fluid of skin and muscle. These map directly to the PDE solver's first-order decay constant lambda for antibody clearance, after unit conversion to [1/s]. Skin and muscle are bracketing tissue measurements: PDAC tumor interstitium combines features of loose connective tissue (skin) and dense stroma (muscle)."
+    submodel_rationale: "ABM PDE solver clears antibody as dC/dt = -lambda*C in voxels (pde_integration.cu line 397, decay_rates[CHEM_ANTIBODY]). lambda = PARAM_ANTIBODY_DECAY_RATE. Skin and muscle washout rates from intramuscular/intradermal tracer injection are the most direct interstitial-removal-rate measurements available, capturing combined lymphatic drainage + non-specific endocytic loss."
+    code: |
+      def compute(params, inputs):
+          sec_per_hour = inputs['seconds_per_hour']
+          k_per_h = params['PARAM_ANTIBODY_DECAY_RATE'] * sec_per_hour
+          return {
+              'k_IgG_skin_per_h': k_per_h,
+              'k_IgG_muscle_per_h': k_per_h,
+          }
+
+  error_model:
+    - name: skin_IgG_removal_rate
+      units: 1/hour
+      uses_inputs: [skin_IgG_removal_rate_mean, skin_IgG_removal_rate_sd, skin_IgG_n]
+      sample_size_input: skin_IgG_n
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            mean = inputs['skin_IgG_removal_rate_mean']
+            sd = inputs['skin_IgG_removal_rate_sd']
+            return rng.normal(mean, sd / np.sqrt(sample_size), n_bootstrap)
+      observable:
+        type: custom
+        code: |
+          def compute(t, y, y_start):
+              return y['k_IgG_skin_per_h']
+
+    - name: muscle_IgG_removal_rate
+      units: 1/hour
+      uses_inputs: [muscle_IgG_removal_rate_mean, muscle_IgG_removal_rate_sd, muscle_IgG_n]
+      sample_size_input: muscle_IgG_n
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            mean = inputs['muscle_IgG_removal_rate_mean']
+            sd = inputs['muscle_IgG_removal_rate_sd']
+            return rng.normal(mean, sd / np.sqrt(sample_size), n_bootstrap)
+      observable:
+        type: custom
+        code: |
+          def compute(t, y, y_start):
+              return y['k_IgG_muscle_per_h']
+
+  identifiability_notes: >
+    Single parameter (PARAM_ANTIBODY_DECAY_RATE) bound by two tissue measurements
+    (skin and muscle). The MAPLE joint posterior median will land between the two
+    tissue rates, weighted by their inverse-variance (skin SEM 0.037/h, muscle SEM
+    0.020/h, so muscle gets slightly more weight). Both tissues' ANOVA show no
+    FcRn dependence, supporting the interpretation that this is a pure
+    interstitial removal rate (lymphatic + non-specific endocytic), not FcRn-
+    recycling-dominated serum clearance.
+
+experimental_context:
+  species: mouse
+  indication: physiological_baseline
+  system: in_vivo
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: >
+    Mouse skin and muscle interstitium used as proxy for PDAC tumor interstitium.
+    Interstitial-fluid dynamics (lymphatic drainage + non-specific endocytic
+    loss) generalize across tissues, but PDAC stroma is exceptionally dense and
+    desmoplastic with reduced lymphatic function relative to healthy tissue.
+    Skin (looser connective tissue, 0.31/h) and muscle (denser, 0.11/h) bracket
+    plausible PDAC interstitium clearance. Tumor interstitial fluid pressure
+    elevation in PDAC may further reduce convective clearance below muscle
+    values, but enhanced endocytosis by stromal cells partially compensates.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    Healthy mouse skin and muscle baseline interstitial clearance, no
+    pharmacological or pathological perturbation.
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    Healthy tissue interstitium vs. PDAC tumor microenvironment. PDAC has
+    elevated interstitial fluid pressure (IFP), compromised lymphatic vessels,
+    and dense collagen/HA matrix that may reduce convective clearance.
+    Conversely, increased stromal-cell endocytic activity in tumors may
+    compensate. Net effect: PDAC interstitial t1/2 likely within 2-3x of mouse
+    skin/muscle measurements.
+  measurement_directness: direct
+  temporal_resolution: timecourse
+  experimental_system: animal_in_vivo
+
+study_interpretation: >
+  Eigenmann et al. directly measured first-order interstitial removal rate
+  constants for IgG antibody in mouse skin (0.31 ± 0.09 /h) and muscle
+  (0.11 ± 0.05 /h) by intradermal/intramuscular fluorescent tracer injection
+  and longitudinal in vivo imaging of tracer washout. ANOVA showed no
+  significant difference between BSA, IgG with FcRn binding, and FcRn-KO IgG
+  in either tissue (P=0.5 skin, P=0.6 muscle), establishing that the measured
+  rate represents first-order interstitial removal (lymphatic + non-specific
+  endocytic loss), not FcRn-recycling-mediated serum-extension. These rates
+  map directly to the ABM PDE solver's antibody decay constant after [1/h]
+  to [1/s] unit conversion. Current XML default 5e-5 /s sits between the two
+  tissue rates (skin 8.6e-5 /s, muscle 3.1e-5 /s).
+
+key_assumptions:
+  - Lymphatic removal + non-specific endocytic uptake combine into a first-order rate constant from the interstitial space
+  - Tracer washout rate equals the first-order interstitial removal rate (single-compartment approximation valid because tracer is replenished continuously during washout phase)
+  - Mouse interstitial fluid biophysics generalize to human PDAC tumor stroma at the order-of-magnitude level
+  - PDAC stromal density falls between mouse skin (loose) and muscle (dense) — supported by literature on desmoplastic PDAC stroma matching dense ECM properties of muscle
+
+key_study_limitations:
+  - Mouse rather than human (~2x species translation uncertainty)
+  - Healthy tissue rather than PDAC tumor (~2-3x TME translation uncertainty)
+  - Skin and muscle do not match desmoplastic PDAC stroma exactly; the two tissues bracket plausible values but the central tendency between them may not equal PDAC's true value
+  - Anti-IL17 IgG used as model antibody; physicochemical differences between IL17 and PD-1/PD-L1/CTLA-4 antibodies (charge, glycosylation) may slightly modulate effective clearance but are small relative to tissue-driven variation
+  - Local injection followed by washout differs from systemic-administered antibody reaching tumor by extravasation; the rate constants measured are likely upper bounds because injection creates artificially high local concentration
+
+primary_data_source:
+  doi: "10.1113/JP274819"
+  source_tag: Eigenmann2017_JPhysiol
+  title: "Interstitial IgG antibody pharmacokinetics assessed by combined in vivo and physiologically-based pharmacokinetic modelling approaches"
+  authors:
+    - "Eigenmann"
+    - "Karlsen"
+    - "Krippendorff"
+    - "Tenstad"
+    - "Fronton"
+    - "Otteneder"
+    - "Wiig"
+  year: 2017
+
+tags: [antibody, IgG, decay, interstitial, clearance, PBPK, pharmacokinetics]

@@ -1,0 +1,9 @@
+subtype,abm_agent,density_2d_mean,density_2d_std,density_3d_mean,density_3d_std,cells_per_abm_domain,spatial_correlation_um,n_rois
+cd4_t,TReg,11.7,28.8,901.5,2217.4,901.5,100.0,299
+cd8_t,TCell,44.1,92.8,3393.6,7140.2,3393.6,70.0,299
+b_cell,B_cell (future),22.2,56.4,1710.5,4340.2,1710.5,110.0,299
+macrophage,Macrophage,176.0,190.7,8801.8,9533.6,8801.8,50.0,299
+mdsc,MDSC,115.5,252.9,7701.5,16860.6,7701.5,90.0,299
+other_immune,(unassigned),762.9,618.0,54489.5,44140.1,54489.5,80.0,299
+fibroblast,Fibroblast,64.5,175.1,3224.3,8756.5,3224.3,90.0,299
+endothelial,VascularCell,141.0,224.1,9402.2,14942.9,9402.2,110.0,299

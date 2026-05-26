@@ -1,0 +1,208 @@
+target_id: vegfa_decay
+
+inputs:
+  # ---- PARAM_VEGFA_DECAY_RATE inputs (Stefanini2011 Table 4 + Table 6) ----
+  - name: lymphatic_drainage_optimal_cm3_per_s
+    value: 7.0e-6
+    units: centimeter^3 / second
+    input_type: direct_measurement
+    source_ref: Stefanini2011
+    source_location: "Table 4 Lymphatic drainage row"
+    table_excerpt:
+      table_id: "Table 4"
+      column: "Value"
+      row: "Lymphatic drainage*"
+      value: "7.00 10^-6"
+      context: "Transport parameters of the VEGF two-compartment mouse model. Lymphatic drainage rate measured in mouse muscle. Asterisk indicates optimized parameter."
+    rationale: "Mouse muscle lymphatic drainage rate, optimal value from parameter fitting against PK data of VEGF Trap. Represents the dominant non-receptor-mediated mechanism removing free VEGF from interstitium back to blood."
+
+  - name: lymphatic_drainage_min_cm3_per_s
+    value: 7.0e-6
+    units: centimeter^3 / second
+    input_type: direct_measurement
+    source_ref: Stefanini2011
+    source_location: "Table 6"
+    table_excerpt:
+      table_id: "Table 6"
+      column: "Min"
+      row: "Lymphatic drainage"
+      value: "7.00 10-6"
+      context: "Summary of parameter optimization (n=20 trials with different random initial conditions). Min is the smallest value found across the 20 trials."
+    rationale: "Lower-bound lymphatic drainage from 20 parameter-optimization trials. Many trials converged to this lower bound, suggesting weak data constraint on the lower side."
+
+  - name: lymphatic_drainage_max_cm3_per_s
+    value: 2.73e-4
+    units: centimeter^3 / second
+    input_type: direct_measurement
+    source_ref: Stefanini2011
+    source_location: "Table 6"
+    table_excerpt:
+      table_id: "Table 6"
+      column: "Max"
+      row: "Lymphatic drainage"
+      value: "2.73 10-4"
+      context: "Summary of parameter optimization (n=20 trials)."
+    rationale: "Upper bound from 20 optimization trials, representing the natural cross-fit uncertainty in lymphatic drainage estimation."
+
+  - name: n_optimization_trials
+    value: 20
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Stefanini2011
+    source_location: "Table 6 header + page 9"
+    value_snippet: "twenty optimization trials were performed such that for each trial, the initial value of each of the free parameters was randomly generated"
+    rationale: "Number of independent parameter-optimization runs used to assess parameter uncertainty."
+
+  - name: tissue_volume_cm3
+    value: 21.93
+    units: centimeter^3
+    input_type: direct_measurement
+    source_ref: Stefanini2011
+    source_location: "Table 1 + page 5"
+    table_excerpt:
+      table_id: "Table 1"
+      column: "Value"
+      row: "Tissue volume"
+      value: "21.93"
+      context: "Whole-body mouse parameters for a 25-gram mouse"
+    rationale: "Total tissue volume for the 25-g mouse used in the Stefanini PK model. Required to convert lymphatic flow rate (cm^3/s) to a first-order rate constant (1/s)."
+
+  - name: available_volume_fraction_KAV
+    value: 0.113
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Stefanini2011
+    source_location: "Table 2"
+    table_excerpt:
+      table_id: "Table 2"
+      column: "Value"
+      row: "KAV"
+      value: "0.113117"
+      context: "Available volume fraction for VEGF (fraction of tissue accessible to free VEGF after accounting for cell volume + ECM exclusion). Computed via pore-fraction model."
+    rationale: "Fraction of tissue volume accessible to free VEGF. Used to convert lymph flow into a first-order rate constant on the available VEGF concentration."
+
+calibration:
+  parameters:
+    - name: PARAM_VEGFA_DECAY_RATE
+      units: 1/second
+
+  forward_model:
+    type: algebraic
+    formula: "k_decay = k_L / (V_tissue * KAV)"
+    data_rationale: "Stefanini2011 fit a 94-species PBPK model of VEGF distribution in mouse to in vivo PK data from VEGF Trap dosing studies. They optimized 5 free parameters across 20 runs from random initial conditions, with lymphatic drainage spanning 7e-6 to 2.73e-4 cm^3/s (Table 6). Lymphatic drainage is the dominant non-receptor-mediated tissue clearance mechanism for free VEGF; converted to a first-order rate constant by dividing by the available tissue volume."
+    submodel_rationale: "ABM PDE solver applies PARAM_VEGFA_DECAY_RATE as first-order decay in dC/dt = ... - lambda*C (pde_integration.cu line 392). lambda represents all non-vascular-cell tissue clearance: lymphatic drainage + extracellular proteolysis + non-specific binding. Stefanini2011's k_L provides the lymphatic component for mouse muscle, the dominant mechanism. PDAC tumor stroma differs (compromised lymphatics, enhanced proteolysis), but the lymphatic anchor at 1e-6 /s scale brackets the lower end of plausible PDAC values."
+    code: |
+      def compute(params, inputs):
+          k_decay_per_s = params['PARAM_VEGFA_DECAY_RATE']
+          V_tissue = inputs['tissue_volume_cm3']
+          KAV = inputs['available_volume_fraction_KAV']
+          V_avail = V_tissue * KAV
+          # Predicted lymphatic drainage rate [cm^3/s] given a candidate k_decay [1/s]
+          predicted_kL_cm3_per_s = k_decay_per_s * V_avail
+          return predicted_kL_cm3_per_s
+
+  error_model:
+    - name: lymphatic_drainage_observation
+      units: centimeter^3 / second
+      uses_inputs: [lymphatic_drainage_optimal_cm3_per_s, lymphatic_drainage_min_cm3_per_s, lymphatic_drainage_max_cm3_per_s, n_optimization_trials]
+      sample_size_input: n_optimization_trials
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            kL_opt = inputs['lymphatic_drainage_optimal_cm3_per_s']
+            kL_min = inputs['lymphatic_drainage_min_cm3_per_s']
+            kL_max = inputs['lymphatic_drainage_max_cm3_per_s']
+            # The optimization Min/Max bracket the natural cross-fit uncertainty
+            # Use log-uniform sampling between min and max as the bootstrap, since
+            # the optimization span ~2 decades suggests heavy-tailed uncertainty
+            log_min = np.log(kL_min)
+            log_max = np.log(kL_max)
+            return np.exp(rng.uniform(log_min, log_max, n_bootstrap))
+
+  identifiability_notes: >
+    Single parameter PARAM_VEGFA_DECAY_RATE constrained by Stefanini2011's
+    mouse-muscle lymphatic drainage. The 20-trial optimization spread (Min
+    7e-6, Max 2.73e-4 cm^3/s) provides the data-driven uncertainty. Note:
+    PARAM_VEGFA_UPTAKE is NOT bound by this target — Stefanini2011 reports
+    k_int = 2.8e-4 /s as a single point estimate with no measured spread,
+    so it cannot be MAPLE-inferred from this source. PARAM_VEGFA_UPTAKE
+    should be set to the literature consensus 2.8e-4 /s (Stefanini2011
+    Table 5; MacGabhann2006 Table 1 agrees) as a MANUAL_PRIOR with a
+    reference note in the v3 ledger.
+
+experimental_context:
+  species: mouse
+  indication: physiological_baseline
+  system: in_vivo
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: >
+    Mouse skeletal muscle used as proxy for PDAC tumor stroma. Muscle has
+    functional lymphatics whereas PDAC tumor has compromised/sparse
+    lymphatic vessels; this is a major translation difference. Healthy
+    muscle drainage may overestimate PDAC drainage by 3-10x. Enhanced
+    proteolysis in PDAC (high MMP) may partially compensate.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    Healthy mouse baseline, no perturbation. VEGF Trap PK data used for
+    fitting represents a normal physiological condition with anti-VEGF
+    drug bolus.
+  tme_compatibility: low
+  tme_compatibility_notes: >
+    PDAC tumor microenvironment substantially differs from healthy mouse
+    muscle: dense desmoplastic ECM, elevated interstitial fluid pressure
+    impedes convective lymph flow, dysfunctional and sparse lymphatic
+    vessels. Expect at least 3-10x lower effective lymphatic clearance in
+    PDAC vs muscle. Conversely, increased proteolysis (MMP) and HSPG
+    binding may shift the effective decay rate via non-lymphatic
+    mechanisms. Net PARAM_VEGFA_DECAY_RATE uncertainty is order-of-
+    magnitude in either direction.
+  measurement_directness: single_inversion
+  temporal_resolution: timecourse
+  experimental_system: animal_in_vivo
+
+study_interpretation: >
+  Stefanini et al. 2011 fit a 94-species PBPK model of VEGF distribution
+  in mouse to in vivo PK data from VEGF Trap dosing studies (Rudge et al.
+  2007). Lymphatic drainage was a free parameter optimized over 20 trials
+  with values ranging 7e-6 to 2.73e-4 cm^3/s. The optimal model uses
+  k_L = 7e-6 cm^3/s for a 25-g mouse with tissue volume 21.93 cm^3 and
+  KAV = 0.113. Converting to a first-order rate constant on the available
+  VEGF pool: k_decay_lymphatic = k_L / (V_tissue * KAV) = 7e-6 / 2.48 =
+  2.83e-6 /s. The current XML default for PARAM_VEGFA_DECAY_RATE is
+  1.92e-4 /s (BioFVM/PhysiCell tissue convention), about 60x faster than
+  the Stefanini lymphatic anchor. The discrepancy reflects the fact that
+  the BioFVM convention bundles multiple clearance mechanisms (lymphatic
+  + proteolysis + receptor uptake) while Stefanini isolates the lymphatic
+  component. MAPLE posterior expected to land between, accounting for
+  proteolysis + TME translation.
+
+key_assumptions:
+  - Lymphatic drainage is the dominant non-receptor tissue clearance mechanism for free VEGF in mouse muscle
+  - The 20-trial optimization Min/Max bracket meaningfully captures parameter uncertainty (most trials hit the lower bound, suggesting under-constraint at low values)
+  - Mouse muscle anatomy (gastrocnemius parameters in Table 2) is reasonable proxy for the integrated PDAC stromal compartment
+  - Linear conversion k_decay = k_L / V_available is correct for a well-mixed compartment approximation
+
+key_study_limitations:
+  - Mouse vs human (cross-species)
+  - Healthy muscle vs PDAC stroma (very different TME, compromised lymphatics)
+  - Stefanini PBPK is data-poor for lymphatic drainage (lower bound 7e-6 hit in most trials)
+  - Whole-tissue PK model averages over heterogeneous tumor regions
+  - Does not include extracellular proteolytic clearance (Vempati2010 estimates) which would add to total non-receptor decay
+
+primary_data_source:
+  doi: "10.1371/journal.pone.0027514"
+  source_tag: Stefanini2011
+  title: "A Two-Compartment Model of VEGF Distribution in the Mouse"
+  authors:
+    - "Yen"
+    - "Finley"
+    - "Engel-Stefanini"
+    - "Popel"
+  year: 2011
+
+tags: [VEGFA, decay, lymphatic, drainage, PBPK, tissue_clearance]

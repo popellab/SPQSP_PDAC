@@ -1,0 +1,9 @@
+subtype,abm_agent,density_2d_median,density_2d_sigma_ln,density_3d_median,density_3d_sigma_ln,cells_per_domain,septa_fraction_mean,septa_fraction_std,clustering_radius_um,nn_self_median_um,n_rois
+cd4_t,TReg,7.54,1.4644,579.91,1.4644,1694.5,0.207,0.206,120.0,115.46,107
+cd8_t,TCell,25.45,1.4491,1958.0,1.4491,5595.1,0.161,0.185,100.0,66.69,107
+b_cell,B_cell(future),10.4,1.9573,800.06,1.9573,5432.8,0.154,0.226,110.0,87.25,107
+dc_candidate,DC(future),35.95,1.2032,2567.69,1.2032,5295.7,0.141,0.183,,57.19,107
+macrophage,Macrophage,56.92,1.124,2845.87,1.124,5352.3,0.178,0.165,50.0,49.27,107
+mdsc,MDSC,48.33,2.0716,3221.96,2.0716,27541.9,0.131,0.178,90.0,42.11,107
+fibroblast,Fibroblast,320.36,0.8105,16018.23,0.8105,22246.8,0.165,0.174,90.0,18.97,107
+endothelial,VascularCell,144.91,0.8357,9660.62,0.8357,13697.9,0.114,0.153,110.0,18.5,107

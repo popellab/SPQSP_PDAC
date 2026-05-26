@@ -1,0 +1,147 @@
+target_id: no_diffusivity
+
+inputs:
+  - name: D_NO_aortic_wall_mean
+    value: 848.0
+    units: micrometer^2 / second
+    input_type: direct_measurement
+    source_ref: Liu2008
+    source_location: "Abstract and Results"
+    value_snippet: "D = 848 +/- 45 um2/s (n = 12)"
+    rationale: "NO diffusion coefficient in rat aortic wall at 37C, measured by modified Clark-type electrode"
+
+  - name: D_NO_aortic_wall_sd
+    value: 45.0
+    units: micrometer^2 / second
+    input_type: direct_measurement
+    source_ref: Liu2008
+    source_location: "Abstract and Results"
+    value_snippet: "D = 848 +/- 45 um2/s (n = 12)"
+    rationale: "Standard deviation of NO diffusion coefficient measurements"
+
+  - name: n_aorta_measurements
+    value: 12
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Liu2008
+    source_location: "Abstract"
+    value_snippet: "(n = 12)"
+    rationale: "Number of independent aorta preparations measured"
+
+  - name: D_NO_aortic_wall_cm2s
+    value: 8.48e-6
+    units: centimeter^2 / second
+    input_type: derived_arithmetic
+    source_inputs: [D_NO_aortic_wall_mean]
+    formula: "D_NO_aortic_wall_mean * 1e-8"
+    rationale: "Unit conversion from um2/s to cm2/s: 1 um2 = 1e-8 cm2"
+    source_ref: Liu2008
+    source_location: "Abstract"
+
+  - name: D_NO_aortic_wall_sd_cm2s
+    value: 4.5e-7
+    units: centimeter^2 / second
+    input_type: derived_arithmetic
+    source_inputs: [D_NO_aortic_wall_sd]
+    formula: "D_NO_aortic_wall_sd * 1e-8"
+    rationale: "Unit conversion from um2/s to cm2/s: 1 um2 = 1e-8 cm2"
+    source_ref: Liu2008
+    source_location: "Abstract"
+
+calibration:
+  parameters:
+    - name: PARAM_NO_DIFFUSIVITY
+      units: centimeter^2 / second
+
+  forward_model:
+    type: algebraic
+    formula: "D = PARAM_NO_DIFFUSIVITY"
+    data_rationale: "Paper directly measures NO diffusion coefficient in vascular wall tissue at 37C using electrochemical technique"
+    submodel_rationale: "Parameter is used directly as diffusion coefficient D in PDE solver dC/dt = D*nabla^2(C) - lambda*C + S"
+    code: |
+      def compute(params, inputs):
+          return params['PARAM_NO_DIFFUSIVITY']
+
+  error_model:
+    - name: D_NO_observation
+      units: centimeter^2 / second
+      uses_inputs: [D_NO_aortic_wall_cm2s, D_NO_aortic_wall_sd_cm2s, n_aorta_measurements]
+      sample_size_input: n_aorta_measurements
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            mean = inputs['D_NO_aortic_wall_cm2s']
+            sd = inputs['D_NO_aortic_wall_sd_cm2s']
+            cv = sd / mean
+            return rng.lognormal(np.log(mean), cv / np.sqrt(sample_size), n_bootstrap)
+
+  identifiability_notes: >
+    NO diffusivity in tissue is well-constrained by this direct electrochemical
+    measurement. The key finding is that tissue D is ~4x lower than water
+    (3.3e-5 cm2/s), indicating significant tissue impedance. This measurement
+    is in aortic wall, which may differ from tumor stroma in composition.
+
+experimental_context:
+  species: rat
+  indication: healthy_tissue
+  system: ex_vivo
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: >
+    NO diffusivity measured in rat aortic wall (smooth muscle, connective tissue)
+    as proxy for PDAC tumor tissue. Aortic wall is a dense tissue with
+    extracellular matrix, providing a reasonable tissue diffusion estimate.
+    NO diffusivity is a biophysical property dependent on tissue density
+    and composition rather than disease state.
+  species_source: rat
+  species_target: human
+  source_quality: primary_animal_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    Baseline biophysical measurement under anaerobic conditions at 37C.
+    Anaerobic conditions used to eliminate O2-dependent NO consumption,
+    isolating the pure diffusion coefficient.
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    Aortic wall is smooth muscle + connective tissue, different composition
+    from PDAC desmoplastic stroma. Both are dense tissues with significant
+    ECM, but collagen density and organization differ. Expect similar order
+    of magnitude but possibly 2-3x variation.
+  measurement_directness: direct
+  temporal_resolution: snapshot_or_equilibrium
+  experimental_system: ex_vivo
+
+study_interpretation: >
+  Liu et al. 2008 is the first direct measurement of NO diffusion coefficient
+  in vascular tissue. Using a modified Clark-type NO electrode with mathematical
+  modeling, they determined D = 848 +/- 45 um2/s (8.48e-6 cm2/s) in rat
+  aortic wall at 37C. This is nearly 4-fold lower than the water value
+  (~3.3e-5 cm2/s), demonstrating that NO diffusion in tissue is NOT free
+  but substantially impeded by tissue structure.
+
+key_assumptions:
+  - NO diffusivity is a biophysical property of tissue structure (not disease-specific)
+  - Aortic wall tissue provides reasonable proxy for tumor tissue diffusion
+  - Anaerobic measurement conditions isolate pure diffusion (no reactive consumption)
+
+key_study_limitations:
+  - Measured in aortic wall, not tumor tissue
+  - Tissue was opened flat (may alter structure slightly)
+  - Rat tissue, not human
+  - Single tissue type measured
+
+primary_data_source:
+  doi: "10.1529/biophysj.107.120626"
+  source_tag: Liu2008
+  title: "Nitric Oxide Diffusion Rate is Reduced in the Aortic Wall"
+  authors:
+    - "Liu"
+    - "Srinivasan"
+    - "Collard"
+    - "Grajdeanu"
+    - "Zweier"
+    - "Friedman"
+  year: 2008
+
+tags: [molecular, diffusivity, nitric_oxide, biophysics, tissue]

@@ -1,0 +1,208 @@
+target_id: ccl21_decay
+
+inputs:
+  - name: gradient_extent_distance_um
+    value: 90
+    units: micrometer
+    input_type: direct_measurement
+    source_ref: Weber2013
+    source_location: "Page 329 (Fig 1 description) + Fig 1C/D"
+    value_snippet: "Within minutes after addition of exogenous DCs onto exposed dermal tissue, the cells entered the interstitium and approached nearby LVs in a directed manner (Fig. 1, A to D, and movie S1). Single cell tracking within the almost planar anatomy of the mouse ear (fig. S1) revealed that cells switched from nondirectional to increasingly directional persistent movement toward the vessel at a distance of about 90 um from the vessel wall"
+    rationale: "Functional gradient detection distance: DCs switch from random to directional movement at 90 micrometer from lymphatic vessel, marking the operational range of the CCL21 chemokine gradient. This distance approximately equals the e-folding length L = sqrt(D/k) of the immobilized CCL21 gradient."
+
+  - name: signal_ratio_distal_to_vessel
+    value: 0.42
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Weber2013
+    source_location: "Fig 2D"
+    figure_excerpt:
+      figure_id: "Figure 2D"
+      description: "Normalized CCL21 fluorescence intensity at 100 micrometer from nearest lymphatic vessel margin"
+      value: "0.42"
+      context: "Red curve (cCCL21) in Fig 2D shows mean +/- SEM of CCL21 immunostaining as function of distance from LV. Signal starts ~0.95 near vessel, decays to ~0.42 at 100 micrometer. Y-axis is relative signal intensity (a.u.) normalized to max."
+    rationale: "Visually-digitized CCL21 signal intensity at 100 micrometer from the lymphatic vessel wall, normalized to the maximum (near-vessel) value. Provides the y-coordinate of the gradient at the gradient's functional range."
+
+  - name: signal_ratio_near_vessel
+    value: 0.95
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Weber2013
+    source_location: "Fig 2D"
+    figure_excerpt:
+      figure_id: "Figure 2D"
+      description: "Normalized CCL21 fluorescence intensity at vessel wall (distance ~0)"
+      value: "0.95"
+      context: "Red curve cCCL21 in Fig 2D near distance=0 shows mean ~0.95 +/- SEM."
+    rationale: "Visually-digitized CCL21 signal intensity at the vessel wall (distance = 0), providing the reference normalization for the gradient amplitude."
+
+  - name: signal_ratio_sem
+    value: 0.1
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Weber2013
+    source_location: "Fig 2D error bars"
+    figure_excerpt:
+      figure_id: "Figure 2D"
+      description: "Typical SEM error bar on normalized CCL21 signal in the 50-100 micrometer range"
+      value: "0.1"
+      context: "Error bars on red curve (cCCL21) span approximately +/- 0.1 (relative intensity) at distances 50-100 um. Caption: 'Means +/- SEM for n = 9 ear sheets'."
+    rationale: "Standard error of the mean for CCL21 signal intensity at each distance point in Fig 2D. Reflects the spread across 9 independent ear sheets."
+
+  - name: n_independent_ears
+    value: 9
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Weber2013
+    source_location: "Fig 2D caption"
+    value_snippet: "Means +/- SEM for n = 9 ear sheets from three independent experiments are shown"
+    rationale: "Number of independent ear-sheet experiments used to derive the CCL21 gradient profile in Fig 2D."
+
+  - name: distance_at_gradient_extent_cm
+    value: 0.009
+    units: centimeter
+    input_type: derived_arithmetic
+    source_inputs: [gradient_extent_distance_um]
+    formula: "gradient_extent_distance_um * 1e-4"
+    rationale: "Conversion of the 90 micrometer gradient extent to centimeters (1 um = 1e-4 cm) for consistency with the diffusivity unit cm^2/s in the forward model."
+    source_ref: Weber2013
+    source_location: "Unit conversion"
+
+calibration:
+  parameters:
+    - name: PARAM_CCL21_DECAY_RATE
+      units: 1/second
+    - name: PARAM_CCL21_DIFFUSIVITY
+      units: centimeter^2 / second
+
+  forward_model:
+    type: algebraic
+    formula: "signal_ratio(x) = exp(-x * sqrt(PARAM_CCL21_DECAY_RATE / PARAM_CCL21_DIFFUSIVITY))"
+    data_rationale: "Weber2013 directly imaged the steady-state CCL21 immunostaining gradient in mouse ear dermis, showing CCL21 immobilized to heparan sulfates along a decaying gradient from lymphatic vessels into the perilymphatic interstitium. The gradient is functional: DCs reorient toward the vessel at ~90 micrometer distance. Modeling the immobilized chemokine as a 1D diffusion-decay steady state from a planar lymphatic source: C(x) = C_0 * exp(-x/L) where L = sqrt(D/k). The signal ratio at 100 micrometer provides one constraint; the gradient extent at 90 micrometer (functional detection limit) provides a consistency check on L."
+    submodel_rationale: "ABM PDE solver evolves CCL21 with dC/dt = D*nabla^2*C - k*C + S, where k = PARAM_CCL21_DECAY_RATE and D = PARAM_CCL21_DIFFUSIVITY. At steady state from a lymphatic source, the spatial gradient is exp(-x/sqrt(D/k)), matching Weber's observation. The joint inference of (k, D) breaks the degeneracy that would otherwise exist with a single observable, by leveraging the Round-1 diffusivity prior on D."
+    code: |
+      def compute(params, inputs):
+          import numpy as np
+          k = params['PARAM_CCL21_DECAY_RATE']
+          D = params['PARAM_CCL21_DIFFUSIVITY']
+          x_cm = inputs['distance_at_gradient_extent_cm']
+          # 1D diffusion-decay steady-state gradient amplitude
+          L = np.sqrt(D / k)
+          ratio = np.exp(-x_cm / L)
+          return ratio
+
+  error_model:
+    - name: signal_ratio_at_gradient_extent_observation
+      units: dimensionless
+      uses_inputs: [signal_ratio_distal_to_vessel, signal_ratio_near_vessel, signal_ratio_sem, n_independent_ears]
+      sample_size_input: n_independent_ears
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            ratio_distal = inputs['signal_ratio_distal_to_vessel']
+            ratio_near = inputs['signal_ratio_near_vessel']
+            sem = inputs['signal_ratio_sem']
+            # Observable is the ratio (distal/near) normalized signal
+            obs_mean = ratio_distal / ratio_near
+            # SEM on the ratio (propagating SEM on numerator and denominator, treating them as independent)
+            # CV on ratio = sqrt(CV_num^2 + CV_den^2); SEM on ratio = mean_ratio * CV
+            cv_num = sem / ratio_distal
+            cv_den = sem / ratio_near
+            cv_ratio = np.sqrt(cv_num*cv_num + cv_den*cv_den)
+            sem_ratio = obs_mean * cv_ratio
+            # SEM is already the bootstrap-of-the-mean spread; do not divide further
+            return rng.normal(obs_mean, sem_ratio, n_bootstrap)
+
+  identifiability_notes: >
+    Two-parameter target: PARAM_CCL21_DECAY_RATE and PARAM_CCL21_DIFFUSIVITY
+    jointly inferred from a single gradient-shape observation. The pair is
+    degenerate from this datum alone (only k/D is determined), so MAPLE
+    must use the Round-1 diffusivity prior on PARAM_CCL21_DIFFUSIVITY to
+    break the degeneracy. This is the joint-inference value-add: Weber's
+    Fig 2D constraints sqrt(k/D), the Round-1 Ramanujan-derived D prior
+    constraints D directly, and together they yield independent posteriors
+    on both parameters.
+
+experimental_context:
+  species: mouse
+  indication: physiological_baseline
+  system: ex_vivo
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: >
+    Mouse ear dermis (loose connective tissue with sparse lymphatics) used
+    as proxy for PDAC tumor stroma. PDAC stroma is denser (collagen,
+    HSPG-rich) and has compromised lymphatics, but the immobilized
+    chemokine gradient mechanism via heparan sulfate binding is preserved.
+    The exact range and steepness of the gradient may differ in PDAC TLS
+    regions, but the order of magnitude of the decay rate is expected to
+    transfer. Heparan sulfate-bound CCL21 turnover dominates the effective
+    tissue decay regardless of tissue type.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    Healthy mouse ear baseline, no perturbation. Ear explant assay with
+    exogenous DCs added to image the endogenous CCL21 distribution and
+    the migratory response to it.
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    Mouse ear dermis has functional lymphatic vessels and homeostatic
+    HSPG-mediated CCL21 retention. PDAC TLS regions exhibit ectopic
+    lymphatic-like vessel structures with HEV markers and CCL21 expression,
+    so the mechanism is conserved. Quantitative differences likely come
+    from the denser desmoplastic ECM in PDAC slowing diffusion (reducing
+    L) and possibly altered HSPG turnover.
+  measurement_directness: single_inversion
+  temporal_resolution: snapshot_or_equilibrium
+  experimental_system: ex_vivo
+
+study_interpretation: >
+  Weber et al. 2013 directly imaged the CCL21 protein gradient in mouse
+  ear dermis using whole-mount immunostaining, demonstrating that the
+  steady-state gradient extends approximately 90 micrometer from lymphatic
+  vessels into the interstitium. The gradient is haptotactic - CCL21 is
+  immobilized to heparan sulfate proteoglycans rather than freely diffusing,
+  and depletion of HSPGs (heparitinase) abolishes the gradient. Modeling
+  this as a 1D diffusion-decay steady state from a planar lymphatic source,
+  the gradient amplitude C(x)/C_0 = exp(-x/L) with L = sqrt(D/k) approximately
+  matches the observed signal decay. Using Round-1 posterior D_CCL21 ~ 2.1e-7
+  cm^2/s and observed L ~ 100 micrometer yields k ~ 2e-3 /s, much faster
+  than the current XML default of 1e-5 /s. The MAPLE joint posterior on
+  (k_decay, D_diffusivity) is expected to favor this faster decay,
+  pulling the diffusivity prior slightly upward or accepting a faster decay
+  consistent with Round-1 D.
+
+key_assumptions:
+  - The CCL21 gradient is in steady-state during the 60-min observation window (HSPG-bound chemokine pool turns over slowly enough)
+  - 1D planar diffusion-decay from a lymphatic source approximates the radial geometry over the ~100 micrometer length scale (good for thin dermis)
+  - The fluorescence intensity ratio in immunostaining reflects local CCL21 concentration ratio (linear detection regime)
+  - HSPG-immobilized CCL21 has an effective diffusivity equal to free-CCL21 diffusivity at long timescales (turnover-mediated transport)
+  - Mouse ear dermis CCL21 turnover kinetics generalize to PDAC TLS at order of magnitude level
+
+key_study_limitations:
+  - Mouse vs human (cross-species)
+  - Healthy ear dermis vs PDAC tumor stroma (very different ECM density, lymphatic state)
+  - Visual digitization of Fig 2D rather than direct WPD extraction (manual review flagged)
+  - The "90 micrometer" gradient extent is a functional readout (DC response distance) rather than a precise e-folding length measurement
+  - Steady-state assumption may not hold during acute changes (e.g., inflammatory CCL21 induction in TLS formation)
+
+primary_data_source:
+  doi: "10.1126/science.1228456"
+  source_tag: Weber2013
+  title: "Interstitial Dendritic Cell Guidance by Haptotactic Chemokine Gradients"
+  authors:
+    - "Weber"
+    - "Hauschild"
+    - "Schwarz"
+    - "Moussion"
+    - "de Vries"
+    - "Legler"
+    - "Luther"
+    - "Bollenbach"
+    - "Sixt"
+  year: 2013
+
+tags: [CCL21, decay, gradient, heparan_sulfate, lymphatic, haptotaxis, immobilized_chemokine]
