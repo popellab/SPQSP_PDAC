@@ -295,6 +295,109 @@ static bool test_mass_conservation() {
     return p1 && p2 && p3;
 }
 
+// ---------------------------------------------------------------------------
+// Helper: max relative per-voxel difference between two device fields
+// ---------------------------------------------------------------------------
+static void field_diff(PDESolver& solver, int chem,
+                       const std::vector<float>& ref, float& max_abs, float& max_rel) {
+    int V = (int)ref.size();
+    std::vector<float> got(V);
+    solver.get_concentrations(got.data(), chem);
+    float peak = 0.0f;
+    for (float v : ref) peak = std::max(peak, std::fabs(v));
+    max_abs = 0.0f;
+    for (int i = 0; i < V; i++)
+        max_abs = std::max(max_abs, std::fabs(got[i] - ref[i]));
+    max_rel = (peak > 0.0f) ? max_abs / peak : 0.0f;
+}
+
+// ---------------------------------------------------------------------------
+// Test 5: Spectral (FFT/DCT) steady state == CG oracle, decay-only substrate
+// ---------------------------------------------------------------------------
+// D>0, λ>0, U=0, structured point sources. mode-2 FFT one-shot must match the
+// mode-1 CG elliptic solve (same linear system) to single-precision round-off.
+static bool test_spectral_vs_cg_decay() {
+    std::cout << "\nTest 5: Spectral FFT vs CG oracle (decay-only)\n";
+    const int N = 24;
+    const float D = 1e-7f, lambda = 6.5e-5f, dt = 600.0f;
+    PDEConfig cfg = make_config(N, N, N, D, lambda, 20.0f, dt);
+    cfg.solve_mode = 2;            // allocate FFT workspace (CG workspace always allocated)
+    cfg.cg_tol = 1e-7f; cfg.cg_maxiter = 2000;
+    PDESolver solver(cfg);
+    solver.initialize();
+    int V = N*N*N;
+
+    // Structured source: a few point sources to create real spatial gradients.
+    std::vector<float> h_src(V, 0.0f);
+    h_src[(N/2)*N*N + (N/2)*N + (N/2)] = 1e-6f;   // center
+    h_src[(2)*N*N    + (3)*N    + (4)]  = 5e-7f;   // off-corner
+    h_src[(N-3)*N*N  + (N-4)*N  + (N-5)] = 8e-7f;  // opposite region
+    cudaMemcpy(solver.get_device_source_ptr(CHEM_IFN), h_src.data(),
+               V*sizeof(float), cudaMemcpyHostToDevice);
+
+    // CG oracle
+    solver.reset_concentrations();
+    solver.solve_steadystate();
+    std::vector<float> cg(V);
+    solver.get_concentrations(cg.data(), CHEM_IFN);
+
+    // Spectral
+    solver.reset_concentrations();
+    solver.solve_spectral();
+    float max_abs, max_rel;
+    field_diff(solver, CHEM_IFN, cg, max_abs, max_rel);
+
+    std::cout << "  peak(CG)=" << *std::max_element(cg.begin(), cg.end())
+              << "  max_abs_diff=" << max_abs << "  max_rel_diff=" << max_rel
+              << "  (CG iters=" << solver.get_last_cg_iters(CHEM_IFN) << ")\n";
+    return check(max_rel < 1e-2f, "FFT matches CG elliptic solve to <1% (single precision)");
+}
+
+// ---------------------------------------------------------------------------
+// Test 6: Spectral FFT-preconditioned CG == CG oracle, with per-voxel uptake
+// ---------------------------------------------------------------------------
+static bool test_spectral_vs_cg_uptake() {
+    std::cout << "\nTest 6: Spectral FFT-PCG vs CG oracle (with per-voxel uptake)\n";
+    const int N = 24;
+    const float D = 2.8e-5f, lambda = 1e-5f, dt = 600.0f;   // O2-like
+    PDEConfig cfg = make_config(N, N, N, D, lambda, 20.0f, dt);
+    cfg.solve_mode = 2;
+    cfg.cg_tol = 1e-7f; cfg.cg_maxiter = 2000;
+    PDESolver solver(cfg);
+    solver.initialize();
+    int V = N*N*N;
+
+    // Source on a slab, uptake on a different slab → spatially varying U (the hard case).
+    std::vector<float> h_src(V, 0.0f), h_upt(V, 0.0f);
+    for (int z = 0; z < N; z++) for (int y = 0; y < N; y++) for (int x = 0; x < N; x++) {
+        int i = z*N*N + y*N + x;
+        if (x < 4)        h_src[i] = 1e-4f;     // source slab (vessels)
+        if (x > N/2)      h_upt[i] = 1e-3f;     // uptake slab (consuming cells)
+    }
+    cudaMemcpy(solver.get_device_source_ptr(CHEM_O2),  h_src.data(), V*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(solver.get_device_uptake_ptr(CHEM_O2),  h_upt.data(), V*sizeof(float), cudaMemcpyHostToDevice);
+
+    solver.reset_concentrations();
+    solver.solve_steadystate();
+    std::vector<float> cg(V);
+    solver.get_concentrations(cg.data(), CHEM_O2);
+    int cg_iters = solver.get_last_cg_iters(CHEM_O2);
+
+    solver.reset_concentrations();
+    solver.solve_spectral();
+    float max_abs, max_rel;
+    field_diff(solver, CHEM_O2, cg, max_abs, max_rel);
+
+    std::cout << "  peak(CG)=" << *std::max_element(cg.begin(), cg.end())
+              << "  max_abs_diff=" << max_abs << "  max_rel_diff=" << max_rel
+              << "  (CG iters=" << cg_iters
+              << ", FFT-PCG iters=" << solver.get_last_cg_iters(CHEM_O2) << ")\n";
+    bool p1 = check(max_rel < 2e-2f, "FFT-PCG matches CG oracle to <2% with per-voxel uptake");
+    bool p2 = check(solver.get_last_cg_iters(CHEM_O2) < cg_iters,
+                    "FFT-PCG converges in fewer iterations than diagonal-PCG");
+    return p1 && p2;
+}
+
 } // namespace PDAC
 
 // ---------------------------------------------------------------------------
@@ -304,12 +407,14 @@ static bool test_mass_conservation() {
 int main() {
     std::cout << "=== PDE Solver Validation Tests ===\n";
 
-    int passed = 0, total = 4;
+    int passed = 0, total = 6;
 
     if (PDAC::test_background_decay())        passed++;
     if (PDAC::test_agent_uptake())            passed++;
     if (PDAC::test_source_uptake_equilibrium()) passed++;
     if (PDAC::test_mass_conservation())       passed++;
+    if (PDAC::test_spectral_vs_cg_decay())    passed++;
+    if (PDAC::test_spectral_vs_cg_uptake())   passed++;
 
     std::cout << "\n=== Results: " << passed << "/" << total << " tests passed ===\n";
     return (passed == total) ? 0 : 1;

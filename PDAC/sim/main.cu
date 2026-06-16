@@ -940,14 +940,63 @@ int main(int argc, const char** argv) {
     PDAC::set_lymph_pointer(&_lymph);  // Set global pointer for QSP host functions
     init_lap("init_qsp");
 
-    // Resolve volume-target fallback now that _lymph knows the QSP target volume.
+    // ─── ABM-derived tumor volume (presim stopper when QSP is frozen) ───────────────
+    // QSP-only steps were removed, so in abm_only mode _lymph.get_tumor_volume() stays
+    // pinned and can't drive the stopper. Derive volume from the cancer census instead:
+    //   V_census      = N_cancer × V_cancer_cell / Ve_T          (gross tissue vol in-domain)
+    //   V_represented = V_census × (target_vol / domain_vol)     (extrapolated whole tumor)
+    // The representation scalar lets any domain shape (incl. flat-Z slabs) stand for a
+    // full-size tumor: smaller domains → larger scalar.
+    //
+    // INTERCHANGEABLE TARGET: the presim target diameter is the SAME single knob in both
+    // modes — the QSP's initial_tumour_diameter, read via get_full_target_volume(). So
+    // switching qsp_abm <-> abm_only keeps the identical target; only the way cur_vol is
+    // measured differs (QSP species vs ABM cancer census). All ABM volume math is in SI m³
+    // to match the QSP (it works in metres; its "cm³" printouts are mislabels). The QSP
+    // object is built in both modes, so get_full_target_volume() is valid even when frozen.
+    const double abm_target_vol_m3 = _lymph.get_full_target_volume();  // (π/6)·D³, D=initial_tumour_diameter
+    const double abm_voxel_m = static_cast<double>(config.voxel_size) * 1e-6;  // µm → m
+    const double abm_n_voxels = static_cast<double>(config.grid_x)
+                              * config.grid_y * config.grid_z;
+    const double abm_domain_vol_m3 = abm_n_voxels * abm_voxel_m * abm_voxel_m * abm_voxel_m;
+    const double abm_representation_scalar = abm_domain_vol_m3 > 0.0
+        ? abm_target_vol_m3 / abm_domain_vol_m3 : 0.0;
+    // Gross tissue volume one cancer cell contributes (progenitor as representative state).
+    const double abm_cell_gross_m3 =
+        static_cast<double>(gpu_params.getFloat(PDAC::PARAM_VOLUME_CANCER_PROG)) * 1e-18
+        / static_cast<double>(gpu_params.getFloat(PDAC::PARAM_VE_T));
+    // Max represented volume the domain can physically reach (≈ full cancer packing, 1/voxel).
+    const double abm_max_represented_m3 =
+        abm_n_voxels * abm_cell_gross_m3 * abm_representation_scalar;
+
+    // Resolve volume-target fallback now that _lymph knows the target volume. BOTH modes
+    // use the same target (get_full_target_volume from initial_tumour_diameter).
     if (!config.presim_steps_from_cli &&
         !config.presim_volume_from_cli &&
         config.xml_presim_steps == 0) {
         config.presim_steps = -1;
-        config.presim_volume_target = _lymph.get_full_target_volume();
+        config.presim_volume_target = abm_target_vol_m3;
         std::cout << "Presim stopper fallback: tum_vol >= " << config.presim_volume_target
-                  << " cm^3 (from QSP initial_tumour_diameter)" << std::endl;
+                  << " (from initial_tumour_diameter; "
+                  << (config.presim_qsp_enabled ? "QSP" : "ABM-represented") << " measure)"
+                  << std::endl;
+    }
+
+    // Capacity check for the ABM volume stopper: represented vol ≈ (cancer occupancy) ×
+    // target_vol, so a target near the full reference implies near-full cancer packing.
+    if (!config.presim_qsp_enabled && config.presim_volume_target > 0.0) {
+        if (config.presim_volume_target > abm_max_represented_m3) {
+            std::cerr << "WARNING: ABM presim target " << config.presim_volume_target
+                      << " m^3 exceeds the domain's max representable volume "
+                      << abm_max_represented_m3 << " m^3 (full cancer packing). Presim will "
+                      << "run to the safety cap — lower initial_tumour_diameter or enlarge the domain."
+                      << std::endl;
+        } else {
+            std::cout << "  ABM presim target requires ~"
+                      << (config.presim_volume_target / abm_max_represented_m3 * 100.0)
+                      << "% cancer voxel-occupancy (domain=" << abm_domain_vol_m3
+                      << " m^3, scalar=" << abm_representation_scalar << ")" << std::endl;
+        }
     }
 
     // ========== INITIALIZE PDE SOLVER ==========
@@ -1097,18 +1146,23 @@ int main(int argc, const char** argv) {
     // ABM and QSP step together from t=0. Drug dosing is gated off via the
     // wrapper's _presimulation_mode flag. Stopping criterion is the resolved
     // step count or volume target from precedence rules above.
-    double cur_vol = _lymph.get_tumor_volume();
+    // Presim volume: QSP-derived when coupled, ABM-cancer-census-derived when QSP frozen.
+    auto get_presim_volume = [&]() -> double {
+        if (config.presim_qsp_enabled) return _lymph.get_tumor_volume();
+        unsigned int n_cancer =
+            simulation.getEnvironmentProperty<unsigned int>("total_cancer_cells");
+        return static_cast<double>(n_cancer) * abm_cell_gross_m3 * abm_representation_scalar;
+    };
+    double cur_vol = get_presim_volume();
 
     // QSP coupling on for presim (always — single-stem scenarios may force off above).
     simulation.setEnvironmentProperty<int>("step_qsp", config.presim_qsp_enabled ? 1 : 0);
+    // Recruitment source tracks the coupling: qsp_abm → QSP-coupled (0),
+    // abm_only → PARAMETRIC (1, T-cell recruitment from XML, QSP never read).
+    simulation.setEnvironmentProperty<int>("recruitment_mode", config.presim_qsp_enabled ? 0 : 1);
 
-    // Misconfiguration guard: abm_only freezes QSP, so cur_vol never updates.
-    // The volume stopper would then loop until the safety cap.
-    if (!config.presim_qsp_enabled && config.presim_steps < 0) {
-        std::cerr << "ERROR: --presim-mode abm_only requires --presim-steps N "
-                     "(QSP is frozen, so the volume stopper would never trigger)." << std::endl;
-        return 1;
-    }
+    // (abm_only no longer requires --presim-steps: the volume stopper now uses the
+    //  ABM-derived represented volume via get_presim_volume().)
 
     std::cout << "\n=== Presim phase ("
               << (config.presim_qsp_enabled ? "ABM+QSP, no drugs" : "ABM only, QSP frozen")
@@ -1116,9 +1170,10 @@ int main(int argc, const char** argv) {
     if (config.presim_steps >= 0) {
         std::cout << "  Stopper: fixed step count = " << config.presim_steps << std::endl;
     } else {
-        std::cout << "  Stopper: QSP tumor volume" << std::endl;
+        std::cout << "  Stopper: " << (config.presim_qsp_enabled ? "QSP" : "ABM-represented")
+                  << " tumor volume" << std::endl;
         std::cout << "  Target volume         : " << config.presim_volume_target << " cm^3" << std::endl;
-        std::cout << "  Current QSP volume    : " << cur_vol                     << " cm^3" << std::endl;
+        std::cout << "  Current volume        : " << cur_vol                     << " cm^3" << std::endl;
     }
 
     // Drug dosing gated off for the presim phase.
@@ -1144,12 +1199,12 @@ int main(int argc, const char** argv) {
             std::cout << "  Presim: ABM terminated early (all cancer cells gone)" << std::endl;
             break;
         }
-        cur_vol = _lymph.get_tumor_volume();
+        cur_vol = get_presim_volume();
         presim_step_count++;
 
         if (presim_step_count % 50 == 0) {
             std::cout << "  Presim step " << presim_step_count
-                      << ": QSP tum_vol=" << cur_vol << " cm^3" << std::endl;
+                      << ": tum_vol=" << cur_vol << " cm^3" << std::endl;
         }
     }
 
@@ -1157,9 +1212,10 @@ int main(int argc, const char** argv) {
 
     // Switch to main-sim mode flag (may differ from presim mode).
     simulation.setEnvironmentProperty<int>("step_qsp", config.main_qsp_enabled ? 1 : 0);
+    simulation.setEnvironmentProperty<int>("recruitment_mode", config.main_qsp_enabled ? 0 : 1);
 
     std::cout << "  Presim complete: " << presim_step_count << " steps, "
-              << "QSP tum_vol=" << cur_vol << " cm^3" << std::endl;
+              << "tum_vol=" << cur_vol << " cm^3" << std::endl;
     std::cout << "  Main-sim mode: "
               << (config.main_qsp_enabled ? "qsp_abm (drugs ON)" : "abm_only (QSP frozen)")
               << std::endl;

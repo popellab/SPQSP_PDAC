@@ -315,15 +315,26 @@ FLAMEGPU_HOST_FUNCTION(solve_pde_step) {
 
     int substeps = FLAMEGPU->environment.getProperty<int>("PARAM_MOLECULAR_STEPS");
     auto pde_t0 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < substeps; i++) {
-        g_pde_solver->solve_timestep();
+    int mode = g_pde_solver->get_solve_mode();
+    if (mode == 2) {
+        // Quasi-steady-state via spectral (FFT/DCT) solve — exact elliptic field
+        g_pde_solver->solve_spectral();
+    } else if (mode == 1) {
+        // Quasi-steady-state via coupled CG (exact elliptic; slow reference/oracle)
+        g_pde_solver->solve_steadystate();
+    } else {
+        // Transient LOD: relax toward steady state over `substeps` substeps
+        for (int i = 0; i < substeps; i++) {
+            g_pde_solver->solve_timestep();
+        }
     }
     auto pde_t1 = std::chrono::high_resolution_clock::now();
     g_last_pde_ms = std::chrono::duration<double, std::milli>(pde_t1 - pde_t0).count();
 
     unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
     if (step % 50 == 0) {
-        std::cout << "PDE solved for step " << step << std::endl;
+        std::cout << "PDE solved for step " << step
+                  << " (mode=" << g_pde_solver->get_solve_mode() << ")" << std::endl;
     }
     nvtxRangePop();
 }
@@ -357,7 +368,14 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     config.dt_pde = dt_abm / molecular_steps;
     config.substeps_per_abm = molecular_steps;
     config.boundary_type = 0;  // Neumann (no-flux)
-    
+
+    // PDE solve mode + steady-state CG controls (quasi-steady-state path)
+    config.solve_mode = gpu_params.getInt(PARAM_PDE_SOLVE_MODE);
+    config.cg_tol     = gpu_params.getFloat(PARAM_PDE_CG_TOL);
+    config.cg_maxiter = gpu_params.getInt(PARAM_PDE_CG_MAXITER);
+    if (config.cg_tol     <= 0.0f) config.cg_tol = 1e-5f;   // guard against unset XML
+    if (config.cg_maxiter <= 0)    config.cg_maxiter = 500;
+
     // Set diffusion coefficients (cm²/s) from params file
     config.diffusion_coeffs[CHEM_O2]    = gpu_params.getFloat(PARAM_O2_DIFFUSIVITY);
     config.diffusion_coeffs[CHEM_IFN]   = gpu_params.getFloat(PARAM_IFNG_DIFFUSIVITY);
@@ -1216,13 +1234,28 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     RecruitKernelParams p;
     p.nx = nx; p.ny = ny; p.nz = nz;
 
-    // T cell recruitment probabilities
-    float qsp_teff = FLAMEGPU->environment.getProperty<float>("qsp_teff_central");
-    float qsp_treg = FLAMEGPU->environment.getProperty<float>("qsp_treg_central");
-    float qsp_th   = FLAMEGPU->environment.getProperty<float>("qsp_th_central");
-    p.p_teff = std::min(qsp_teff * FLAMEGPU->environment.getProperty<float>("PARAM_TEFF_RECRUIT_K"), 1.0f);
-    p.p_treg = std::min(qsp_treg * FLAMEGPU->environment.getProperty<float>("PARAM_TREG_RECRUIT_K"), 1.0f);
-    p.p_th   = std::min(qsp_th   * FLAMEGPU->environment.getProperty<float>("PARAM_TH_RECRUIT_K"),   1.0f);
+    // T cell recruitment probabilities — only the three T-cell types are coupled
+    // to the QSP central compartment. recruitment_mode selects the source:
+    //   0 = QSP-coupled : p = qsp_*_central × PARAM_*_RECRUIT_K (rate constant)
+    //   1 = PARAMETRIC  : p = PARAM_*_RECRUIT_P (direct XML probability, no QSP read)
+    // MDSC/MAC/B/DC recruitment below is already XML/PDE-driven and identical in
+    // both modes. See recruitment_mode declaration in model_definition.cu.
+    const int recruitment_mode = FLAMEGPU->environment.getProperty<int>("recruitment_mode");
+    // Declared at function scope so the diagnostics block below (g_recruit_stats.qsp_*)
+    // can read them; left at 0 in parametric mode (no QSP read).
+    float qsp_teff = 0.0f, qsp_treg = 0.0f, qsp_th = 0.0f;
+    if (recruitment_mode == 0) {
+        qsp_teff = FLAMEGPU->environment.getProperty<float>("qsp_teff_central");
+        qsp_treg = FLAMEGPU->environment.getProperty<float>("qsp_treg_central");
+        qsp_th   = FLAMEGPU->environment.getProperty<float>("qsp_th_central");
+        p.p_teff = std::min(qsp_teff * FLAMEGPU->environment.getProperty<float>("PARAM_TEFF_RECRUIT_K"), 1.0f);
+        p.p_treg = std::min(qsp_treg * FLAMEGPU->environment.getProperty<float>("PARAM_TREG_RECRUIT_K"), 1.0f);
+        p.p_th   = std::min(qsp_th   * FLAMEGPU->environment.getProperty<float>("PARAM_TH_RECRUIT_K"),   1.0f);
+    } else {
+        p.p_teff = std::min(FLAMEGPU->environment.getProperty<float>("PARAM_TEFF_RECRUIT_P"), 1.0f);
+        p.p_treg = std::min(FLAMEGPU->environment.getProperty<float>("PARAM_TREG_RECRUIT_P"), 1.0f);
+        p.p_th   = std::min(FLAMEGPU->environment.getProperty<float>("PARAM_TH_RECRUIT_P"),   1.0f);
+    }
 
     // Voxel caps
     // nr_t_voxel/nr_t_voxel_c removed — replaced by volume capacity

@@ -31,11 +31,14 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.TCell.hypoxia_factor2", "", "pr"},  // PARAM_TCELL_HYPOXIA_FACTOR2
     {"Param.ABM.TCell.hypoxia_factor3", "", "pr"},  // PARAM_TCELL_HYPOXIA_FACTOR3
     {"Param.ABM.TCell.eff_to_cyt_rate", "1/s", "pr"},  // PARAM_TCELL_EFF_TO_CYT_RATE
+    {"Param.ABM.TCell.recruit_p", "", "pr"},  // PARAM_TEFF_RECRUIT_P
     {"Param.ABM.TCD4.lifespanSD", "", "pos"},  // PARAM_TCD4_LIFESPAN_SD
     {"Param.ABM.TCD4.TGFB_release_time", "", "pos"},  // PARAM_TCD4_TGFB_RELEASE_TIME
     {"Param.ABM.TCD4.tfh_diff_k", "", "pr"},  // PARAM_TFH_DIFF_K
     {"Param.ABM.TCD4.tfh_ec50_il6", "", "pr"},  // PARAM_TFH_EC50_IL6
     {"Param.ABM.TCD4.cxcl13_release_tfh", "", "pr"},  // PARAM_TFH_CXCL13_RELEASE
+    {"Param.ABM.TCD4.treg_recruit_p", "", "pr"},  // PARAM_TREG_RECRUIT_P
+    {"Param.ABM.TCD4.th_recruit_p", "", "pr"},  // PARAM_TH_RECRUIT_P
     {"Param.ABM.MDSC.lifespanSD", "", "pos"},  // PARAM_MDSC_LIFESPAN_SD
     {"Param.ABM.BCell.lifespanMean", "", "pos"},  // PARAM_BCELL_LIFE_MEAN
     {"Param.ABM.BCell.lifespanSD", "", "pos"},  // PARAM_BCELL_LIFE_SD
@@ -99,6 +102,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Fib.frc_lymph_threshold", "", "pr"},  // PARAM_FIB_FRC_LYMPH_THRESHOLD
     {"Param.ABM.Fib.frc_dwell_steps", "", "pr"},  // PARAM_FIB_FRC_DWELL_STEPS
     {"Param.ABM.Occupancy.voxelCapacity", "um3", "pr"},  // PARAM_VOXEL_CAPACITY
+    {"Param.ABM.Occupancy.veT", "", "pr"},  // PARAM_VE_T
     {"Param.ABM.Occupancy.CancerCell.stemVolume", "um3", "pr"},  // PARAM_VOLUME_CANCER_STEM
     {"Param.ABM.Occupancy.CancerCell.progenitorVolume", "um3", "pr"},  // PARAM_VOLUME_CANCER_PROG
     {"Param.ABM.Occupancy.CancerCell.senescentVolume", "um3", "pr"},  // PARAM_VOLUME_CANCER_SEN
@@ -263,6 +267,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.CXCL12.molecularWeight", "", "pr"},  // PARAM_CXCL12_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.CCL5.diffusivity", "", "pr"},  // PARAM_CCL5_DIFFUSIVITY
     {"Param.Molecular.biofvm.CCL5.molecularWeight", "", "pr"},  // PARAM_CCL5_MOLECULAR_WEIGHT
+    {"Param.Molecular.pde_cg_tol", "", "pr"},  // PARAM_PDE_CG_TOL
     // Int parameters
     {"Param.ABM.Environment.Tumor.XSize", "microns", "pos"},  // PARAM_X_SIZE
     {"Param.ABM.Environment.Tumor.YSize", "microns", "pos"},  // PARAM_Y_SIZE
@@ -290,6 +295,8 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.DCPriming.naive_lifespan_steps", "", ""},  // PARAM_NAIVE_LIFESPAN_STEPS
     {"Param.ABM.DCPriming.prime_div_burst", "", ""},  // PARAM_PRIME_DIV_BURST
     {"Param.Molecular.stepPerSlice", "", "pos"},  // PARAM_MOLECULAR_STEPS
+    {"Param.Molecular.pde_solve_mode", "", "pos"},  // PARAM_PDE_SOLVE_MODE
+    {"Param.Molecular.pde_cg_maxiter", "", "pos"},  // PARAM_PDE_CG_MAXITER
     // Bool parameters
     {"Param.ABM.Pharmacokinetics.nivoOn", "", ""},  // PARAM_NIVO_ON
     {"Param.ABM.Pharmacokinetics.ipiOn", "", ""},  // PARAM_IPI_ON
@@ -348,11 +355,14 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR2", getFloat(PARAM_TCELL_HYPOXIA_FACTOR2));
     env.newProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR3", getFloat(PARAM_TCELL_HYPOXIA_FACTOR3));
     env.newProperty<float>("PARAM_TCELL_EFF_TO_CYT_RATE", getFloat(PARAM_TCELL_EFF_TO_CYT_RATE));
+    env.newProperty<float>("PARAM_TEFF_RECRUIT_P", getFloat(PARAM_TEFF_RECRUIT_P));
     env.newProperty<float>("PARAM_TCD4_LIFESPAN_SD", getFloat(PARAM_TCD4_LIFESPAN_SD));
     env.newProperty<float>("PARAM_TCD4_TGFB_RELEASE_TIME", getFloat(PARAM_TCD4_TGFB_RELEASE_TIME));
     env.newProperty<float>("PARAM_TFH_DIFF_K", getFloat(PARAM_TFH_DIFF_K));
     env.newProperty<float>("PARAM_TFH_EC50_IL6", getFloat(PARAM_TFH_EC50_IL6));
     env.newProperty<float>("PARAM_TFH_CXCL13_RELEASE", getFloat(PARAM_TFH_CXCL13_RELEASE));
+    env.newProperty<float>("PARAM_TREG_RECRUIT_P", getFloat(PARAM_TREG_RECRUIT_P));
+    env.newProperty<float>("PARAM_TH_RECRUIT_P", getFloat(PARAM_TH_RECRUIT_P));
     env.newProperty<float>("PARAM_MDSC_LIFESPAN_SD", getFloat(PARAM_MDSC_LIFESPAN_SD));
     env.newProperty<float>("PARAM_BCELL_LIFE_MEAN", getFloat(PARAM_BCELL_LIFE_MEAN));
     env.newProperty<float>("PARAM_BCELL_LIFE_SD", getFloat(PARAM_BCELL_LIFE_SD));
@@ -416,6 +426,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_FIB_FRC_LYMPH_THRESHOLD", getFloat(PARAM_FIB_FRC_LYMPH_THRESHOLD));
     env.newProperty<float>("PARAM_FIB_FRC_DWELL_STEPS", getFloat(PARAM_FIB_FRC_DWELL_STEPS));
     env.newProperty<float>("PARAM_VOXEL_CAPACITY", getFloat(PARAM_VOXEL_CAPACITY));
+    env.newProperty<float>("PARAM_VE_T", getFloat(PARAM_VE_T));
     env.newProperty<float>("PARAM_VOLUME_CANCER_STEM", getFloat(PARAM_VOLUME_CANCER_STEM));
     env.newProperty<float>("PARAM_VOLUME_CANCER_PROG", getFloat(PARAM_VOLUME_CANCER_PROG));
     env.newProperty<float>("PARAM_VOLUME_CANCER_SEN", getFloat(PARAM_VOLUME_CANCER_SEN));

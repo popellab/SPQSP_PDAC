@@ -242,6 +242,9 @@ add_executable(pdac
 # Link against FLAMEGPU2
 target_link_libraries(pdac PRIVATE flamegpu)
 
+# cuFFT for the spectral (FFT/DCT) steady-state PDE solver (pde_solver.cu)
+target_link_libraries(pdac PRIVATE cufft)
+
 # Link against yaml-cpp (healthy_state.yaml, scenario YAML)
 target_link_libraries(pdac PRIVATE yaml-cpp::yaml-cpp)
 target_compile_definitions(pdac PRIVATE FLAMEGPU_SEATBELTS=0)
@@ -343,6 +346,9 @@ target_compile_options(pde_test PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=1301>
 )
 
+# cuFFT for the spectral steady-state PDE solver (pde_solver.cu)
+target_link_libraries(pde_test PRIVATE cufft)
+
 # ============================================================================
 # Test Harness (full FLAMEGPU + PDE, scenario-driven)
 # ============================================================================
@@ -383,6 +389,7 @@ add_executable(pdac_test
 )
 
 target_link_libraries(pdac_test PRIVATE flamegpu)
+target_link_libraries(pdac_test PRIVATE cufft)
 target_compile_definitions(pdac_test PRIVATE FLAMEGPU_SEATBELTS=0)
 
 if(_SUNDIALS_READY)

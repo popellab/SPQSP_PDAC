@@ -742,6 +742,14 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     // the CSV schema matches across modes. Set per-phase by main.cu.
     env.newProperty<int>("step_qsp", 1);
 
+    // Recruitment coupling mode: 0 = QSP-coupled (T-cell recruitment probs come
+    // from the central-compartment pools qsp_{teff,treg,th}_central × PARAM_*_RECRUIT_K),
+    // 1 = PARAMETRIC (T-cell recruitment probs read straight from XML params
+    // PARAM_{TEFF,TREG,TH}_RECRUIT_P, no QSP read at all). Parametric mode is the
+    // QSP-free path for SBI: pair it with step_qsp=0 so the ODE is never stepped.
+    // Set per-phase by main.cu to track the qsp_abm/abm_only mode. See recruit_gpu.
+    env.newProperty<int>("recruitment_mode", 0);
+
     // Agent count tracking (updated each timestep by host function)
     env.newProperty<unsigned int>("total_cancer_cells", 0u);
     env.newProperty<unsigned int>("total_tcells", 0u);
