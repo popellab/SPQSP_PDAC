@@ -1,0 +1,175 @@
+target_id: mac_move_steps
+
+inputs:
+  - name: mac_mobile_speed
+    value: 0.07826
+    units: micron / second
+    input_type: direct_measurement
+    source_ref: Chen2019
+    source_location: "Results + Fig 4, mobile monocyte-derived BMDM population (intravital 2-photon glioma)"
+    value_snippet: "highly mobile (0.07826 um/s), reflecting the phenotype of newly"
+    rationale: "Instantaneous migration speed of the MOBILE (newly-infiltrating, monocyte-derived) macrophage subpopulation, reported as 0.07826 um/s (= 4.70 um/min after x60 conversion in the observation code). Intravital 2-photon tracking in mouse glioblastoma TME."
+
+  - name: mac_confined_speed
+    value: 0.003478
+    units: micron / second
+    input_type: direct_measurement
+    source_ref: Chen2019
+    source_location: "Results + Fig 4, stationary/differentiated BMDM population"
+    value_snippet: "BMDMs were observed to be stationary (0.003478 um/s),"
+    rationale: "Instantaneous migration speed of the CONFINED/stationary (differentiated, tissue-resident-like) macrophage subpopulation, reported as 0.003478 um/s (= 0.21 um/min after x60). Same intravital glioma dataset. No mobile:confined population fraction is reported, so the effective speed across the mix is treated as uncertain (log-uniform between the two)."
+
+  - name: n_subpopulations
+    value: 2
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Chen2019
+    source_location: "Fig 4 (two BMDM populations described)"
+    value_snippet: "2 populations of monocytic"
+    rationale: "Two phenotypically distinct BMDM motility populations (mobile, confined). The unreported mixing fraction is the dominant uncertainty, modeled as a log-uniform over [confined, mobile]."
+
+  - name: sec_per_min
+    value: 60
+    units: second / minute
+    input_type: unit_conversion
+    source_ref: Chen2019
+    source_location: "Standard SI time conversion (60 s = 1 min); Chen2019 reports speeds in um/s, the ABM forward model uses um/min."
+    rationale: "Conversion factor from the paper's reported per-second instantaneous speeds (um/s) to the per-minute speed convention used by the move-steps forward model (speed = move_steps/18 um/min)."
+
+calibration:
+  parameters:
+    - name: PARAM_MAC_MOVE_STEPS
+      units: dimensionless
+
+  forward_model:
+    type: algebraic
+    formula: "predicted_speed_um_per_min = PARAM_MAC_MOVE_STEPS * voxel_um / t_step_min = PARAM_MAC_MOVE_STEPS * 20 / 360 = PARAM_MAC_MOVE_STEPS / 18"
+    data_rationale: |
+      PARAM_MAC_MOVE_STEPS is the integer number of single-voxel move
+      attempts a macrophage makes per ABM step. Each successful attempt
+      advances one voxel (20 um); one ABM step = 21600 s = 360 min. Under
+      the ballistic-persistent assumption used for all ABM movement params,
+      effective speed[um/min] = move_steps * voxel_um / t_step_min =
+      move_steps * 20/360 = move_steps / 18 (the empirical ~18 steps per
+      um/min factor; cf TCELL 64=3.6, DC 38=2.1, MDSC 71=3.9). Macrophage
+      motility is genuinely bimodal (Chen2019: mobile 4.70 vs confined
+      0.21 um/min, 22x spread) with no reported population fraction, so the
+      effective speed is modeled as a log-uniform over [0.21, 4.70], whose
+      geometric mean is sqrt(0.21*4.70) = 0.99 ~ 1 um/min -> ~18 steps, with
+      a broad posterior spanning ~4 (confined) to ~85 (mobile) steps.
+    submodel_rationale: |
+      Recruited macrophages in the ABM read this move-step count to drive
+      CCL2-guided chemotactic migration (macrophage.cuh move + model_layers.cu
+      interleaved-movement layers). Because the model's macrophages are
+      recruited-then-actively-migrating, the effective speed spans the mobile
+      and confined modes; a single broad prior centered at the geometric
+      mean honestly represents the unconstrained mix.
+    code: |
+      def compute(params, inputs):
+          # voxel = 20 um, t_step = 360 min -> conversion factor 18
+          return params['PARAM_MAC_MOVE_STEPS'] * 20.0 / 360.0
+
+  error_model:
+    - name: effective_mac_speed
+      units: micron / minute
+      uses_inputs: [mac_mobile_speed, mac_confined_speed, n_subpopulations, sec_per_min]
+      sample_size_input: n_subpopulations
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            # Inputs are in um/s (matching the paper's verbatim values);
+            # convert to um/min for the move-steps forward model.
+            spm = inputs['sec_per_min']
+            lo = inputs['mac_confined_speed'] * spm   # 0.21 um/min
+            hi = inputs['mac_mobile_speed'] * spm     # 4.70 um/min
+            # Unreported mobile:confined fraction -> log-uniform over the two
+            # measured subpopulation speeds. Geometric mean ~0.99 um/min.
+            log_samples = rng.uniform(np.log(lo), np.log(hi), n_bootstrap)
+            return np.exp(log_samples)
+
+  identifiability_notes: |
+    Single parameter PARAM_MAC_MOVE_STEPS constrained by one bimodal-mix
+    observable. The forward model is a bijective linear scaling
+    (speed = steps/18). The dominant uncertainty is NOT sampling error but
+    the unreported mobile:confined fraction, represented as a log-uniform
+    over [0.21, 4.70] um/min. The posterior is therefore intentionally broad
+    (sigma ~1.0 in log space), median ~18 steps. Additional translation
+    uncertainty: Chen2019 is mouse GLIOMA (brain TME), not PDAC -- no
+    verified PDAC-specific intravital macrophage speed exists.
+
+experimental_context:
+  species: mouse
+  indication: other_cancer
+  system: in_vivo
+  cell_lines:
+    - name: mouse_BMDM_intravital
+      species: mouse
+      tissue_origin: bone_marrow
+      cell_type: macrophage_monocyte_derived
+      source: "Bone-marrow-derived / monocyte-derived macrophages tracked intravitally by 2-photon imaging in a mouse glioblastoma TME; mobile vs confined motility populations."
+  culture_conditions:
+    culture_type: "in_vivo_intravital_2photon"
+    duration: "time-lapse intravital tracking"
+    oxygen_level: "in_vivo"
+    notes: "Instantaneous speeds reported in um/s for two distinct BMDM motility populations; no mobile:confined fraction reported."
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: >
+    Chen2019 measures macrophage motility in mouse glioblastoma, not PDAC.
+    It is used as a proxy because it is the verified in-text source already
+    (mis)cited for this parameter and provides genuine intravital TME
+    macrophage tracking; no PDAC-specific intravital macrophage speed was
+    found. Cross-tissue (brain vs pancreas) and cross-species (mouse vs
+    human) translation is reflected in a broad prior sigma.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    Baseline (unperturbed) intravital macrophage locomotion in a tumor
+    microenvironment; the two motility modes are intrinsic phenotypic
+    states, not drug/pathway perturbations.
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    In-vivo TME tracking (good context match) but brain glioma stroma
+    differs from PDAC desmoplasia; macrophage motility may differ in the
+    denser pancreatic matrix. The bimodal-mix uncertainty dominates over
+    the tissue-translation gap.
+  measurement_directness: single_inversion
+  temporal_resolution: timecourse
+  experimental_system: animal_in_vivo
+
+study_interpretation: >
+  Chen et al. 2019 (PNAS) used intravital 2-photon imaging to show
+  glioma-associated BMDMs split into a highly mobile (0.07826 um/s = 4.70
+  um/min) and a stationary/confined (0.003478 um/s = 0.21 um/min)
+  population. This re-derivation REPLACES the prior anchor "Chen2019 BMDM
+  1.6 um/min", which the 2026-06-15 value-audit found is NOT in the paper
+  (the paper reports 4.70 and 0.21, not 1.6). Because no mobile:confined
+  fraction is reported, the effective speed is modeled as a log-uniform
+  over the two modes (geometric mean ~0.99 um/min -> ~18 move-steps), giving
+  a deliberately broad bimodal prior. The prior 30 (= "1.6 um/min" x ~18)
+  is superseded.
+
+key_assumptions:
+  - "Ballistic step->speed conversion: speed = move_steps * 20/360 = move_steps/18 (voxel=20um, t_step=6h)."
+  - "Unreported mobile:confined fraction -> log-uniform over [0.21, 4.70] um/min; geometric mean 0.99 um/min is the central anchor."
+  - "Mouse glioma intravital macrophage speed is a proxy for human PDAC TAM motility (broad sigma absorbs the gap)."
+
+key_study_limitations:
+  - "Mouse glioblastoma, not human PDAC; no verified PDAC-specific intravital macrophage speed exists."
+  - "No mobile:confined population fraction reported -> the effective single speed is fundamentally underdetermined (hence the broad prior)."
+  - "Instantaneous track speeds, not net displacement speed; consistent with how TCELL/DC/MDSC were anchored."
+
+primary_data_source:
+  doi: "10.1073/pnas.1902366116"
+  source_tag: Chen2019
+  title: "Intravital 2-photon imaging reveals distinct morphology and infiltrative properties of glioblastoma-associated macrophages"
+  authors:
+    - "Chen"
+    - "Ross"
+    - "Hambardzumyan"
+  year: 2019
+
+tags: [move_steps, migration_speed, macrophage, TAM, BMDM, intravital, bimodal, proxy, value_audit_rederivation]

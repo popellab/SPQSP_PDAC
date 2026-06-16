@@ -1,0 +1,170 @@
+target_id: fib_move_steps
+
+inputs:
+  - name: psc_speed_unstim_mean
+    value: 0.45
+    units: micron / minute
+    input_type: direct_measurement
+    source_ref: Storck2016
+    source_location: "Results 'PDAC cell supernatant accelerates PSC migration' + Fig 2C/2D, RLT-PSC unstimulated/control condition"
+    value_snippet: "supernatant of Colo357 cells more than doubles the speed and translocation (0.45 +/- 0.04 um/min and 48.8 +/- 10.2 um versus 0.98 +/- 0.09 um/min and 110.7 +/- 16.1 um)"
+    rationale: "Migration speed of human pancreatic stellate cells (RLT-PSC line; the PDAC CAF precursor) under control conditions, computed by the authors as a three-point difference quotient from live-cell time-lapse tracking. 0.45 um/min is the baseline (unstimulated); the higher 0.98 um/min is with Colo357 PDAC-tumor-cell-conditioned supernatant (activated, used here as the activated upper edge, not the central anchor)."
+
+  - name: psc_speed_unstim_sd
+    value: 0.04
+    units: micron / minute
+    input_type: direct_measurement
+    source_ref: Storck2016
+    source_location: "Results + Fig 2D, RLT-PSC control speed +/- error"
+    value_snippet: "0.45 +/- 0.04 um/min"
+    rationale: "Reported dispersion on the control PSC speed. The paper computes speed per cell over n >= 31 cells from multiple independent experiments; the +/- value is treated as the population spread for SEM derivation."
+
+  - name: n_cells
+    value: 31
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Storck2016
+    source_location: "Fig 2 caption / Methods (cell counts per condition)"
+    value_snippet: "n >= 31 cells from"
+    rationale: "Conservative lower bound on the number of tracked cells per condition (caption states 'n >= 31 cells'). Used to convert the reported SD to a standard error for the bootstrap."
+
+calibration:
+  parameters:
+    - name: PARAM_FIB_MOVE_STEPS
+      units: dimensionless
+
+  forward_model:
+    type: algebraic
+    formula: "predicted_speed_um_per_min = PARAM_FIB_MOVE_STEPS * voxel_um / t_step_min = PARAM_FIB_MOVE_STEPS * 20 / 360 = PARAM_FIB_MOVE_STEPS / 18"
+    data_rationale: |
+      PARAM_FIB_MOVE_STEPS is the integer number of single-voxel move
+      attempts a fibroblast makes within one ABM step. Each successful
+      attempt advances the cell one voxel (PARAM_VOXEL_SIZE = 20 um), and
+      one ABM step is PARAM_SEC_PER_SLICE = 21600 s = 6 h = 360 min. Under
+      the ballistic-persistent movement assumption used to calibrate all
+      other ABM movement params, the effective migration speed is
+      speed[um/min] = move_steps * voxel_um / t_step_min = move_steps * 20/360
+      = move_steps / 18. This is the exact origin of the empirical "~18
+      steps per um/min" factor consistent across the four prior validated
+      movement parameters (TCELL 64 steps = 3.6 um/min, DC 38 = 2.1,
+      MDSC 71 = 3.9, MAC 30 = 1.6). Inverting, move_steps = 18 * speed; the
+      Storck2016 control PSC speed 0.45 um/min implies 8.1 -> 8 steps.
+    submodel_rationale: |
+      In the ABM, fibroblasts (FIB_NORMAL / FIB_CAF) read this single
+      shared move-step count to drive their random-walk + TGF-beta
+      contact-guided migration (fibroblast.cuh move function, model_layers.cu
+      interleaved-movement layers). The RLT-PSC line is the human
+      pancreatic stellate cell -- the direct CAF precursor the model
+      represents. The control (unstimulated) speed 0.45 um/min anchors the
+      baseline; Colo357-conditioned (PDAC-activated) speed 0.98 um/min
+      (~18 steps) is the activated upper edge captured by the broad sigma.
+    code: |
+      def compute(params, inputs):
+          # voxel = 20 um, t_step = 360 min -> conversion factor 18
+          return params['PARAM_FIB_MOVE_STEPS'] * 20.0 / 360.0
+
+  error_model:
+    - name: psc_control_speed
+      units: micron / minute
+      uses_inputs: [psc_speed_unstim_mean, psc_speed_unstim_sd, n_cells]
+      sample_size_input: n_cells
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            mean = inputs['psc_speed_unstim_mean']
+            sd = inputs['psc_speed_unstim_sd']
+            sem = sd / np.sqrt(sample_size)
+            return rng.normal(mean, sem, n_bootstrap)
+
+  identifiability_notes: |
+    Single parameter PARAM_FIB_MOVE_STEPS constrained by one measured
+    observable (control PSC migration speed). The forward model is a
+    bijective linear scaling (speed = steps/18), so there is no
+    identifiability ambiguity. Uncertainty sources: (a) RLT-PSC is an
+    immortalized human line, not primary CAF; (b) 2D-coated-surface assay
+    vs 3D ABM context (3D is typically slower, so 0.45 um/min is a
+    slightly-high baseline anchor); (c) unstimulated control vs activated
+    CAF state (activated 0.98 um/min would imply ~18 steps -- captured by
+    the broad prior sigma); (d) the ballistic step->speed conversion is a
+    modeling idealization shared across all ABM movement params.
+
+experimental_context:
+  species: human
+  indication: PDAC
+  system: in_vitro_cell_line
+  cell_lines:
+    - name: RLT_PSC
+      species: human
+      tissue_origin: pancreas
+      cell_type: pancreatic_stellate_cell
+      source: "Immortalized human pancreatic stellate cell line (RLT-PSC), the activated-CAF precursor in PDAC; live-cell time-lapse migration on a coated 2D surface."
+  culture_conditions:
+    culture_type: "2D_coated_surface_live_tracking"
+    duration: "time-lapse migration assay"
+    oxygen_level: "normoxic"
+    notes: "Speed computed by the authors as a three-point difference quotient from single-cell time-lapse tracks; control vs Colo357-PDAC-supernatant-conditioned conditions."
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: >
+    Human pancreatic stellate cells are the direct precursor of PDAC
+    cancer-associated fibroblasts -- the exact cell population the ABM's
+    fibroblast agent represents. This is a PDAC-native source.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    Control (unstimulated) PSC migration is the baseline locomotor speed.
+    The Colo357-conditioned condition (0.98 um/min) is the tumor-activated
+    state, providing the activated upper edge for the prior.
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    2D-coated-surface tracking lacks the 3D desmoplastic collagen matrix
+    of the PDAC TME, which would slow migration; so 0.45 um/min is a
+    reasonable-to-slightly-high baseline anchor for a 3D model. Immortalized
+    line vs primary CAF adds modest uncertainty.
+  measurement_directness: single_inversion
+  temporal_resolution: timecourse
+  experimental_system: in_vitro_cell_line
+
+study_interpretation: >
+  Storck et al. 2016/2017 (Oncotarget) characterized ion-channel control
+  of pancreatic stellate cell migration, reporting RLT-PSC control speed
+  0.45 +/- 0.04 um/min and Colo357-PDAC-supernatant-stimulated speed
+  0.98 +/- 0.09 um/min from live-cell tracking. This re-derivation REPLACES
+  a fabricated prior anchor ("Liu2015 0.48 um/min") that the 2026-06-15
+  value-audit found to be a Liu2008 NO-diffusion dimensionless ID/IS ratio
+  (0.48 +/- 0.01), not a migration speed at all. The corrected anchor lands
+  PARAM_FIB_MOVE_STEPS at ~8 (0.45 um/min x 18), numerically close to the
+  prior 9 -- the value was approximately right by coincidence; the citation
+  is now real. Same Storck/Schwab-lab paper as R5-T10b (FIB_MYCAF chemotaxis).
+
+key_assumptions:
+  - "Ballistic step->speed conversion: speed[um/min] = move_steps * voxel_um / t_step_min = move_steps/18 (voxel=20um, t_step=21600s=6h). Consistent with all prior ABM movement-param calibrations."
+  - "RLT-PSC control speed (0.45 um/min) is a reasonable baseline for the ABM fibroblast; the activated CAF state (Colo357-conditioned 0.98 um/min) is captured by the broad prior sigma."
+  - "Reported +/- 0.04 is a population dispersion; SEM = SD/sqrt(n) with n>=31."
+
+key_study_limitations:
+  - "Immortalized RLT-PSC line, not primary patient CAF."
+  - "2D-coated-surface assay; 3D collagen migration (the ABM context) is typically slower, so the anchor may slightly overestimate in-tissue speed."
+  - "PARAM_FIB_MOVE_STEPS is a single shared value for FIB_NORMAL and FIB_CAF states; the measured control speed is used as the representative baseline."
+
+primary_data_source:
+  doi: "10.18632/oncotarget.13647"
+  source_tag: Storck2016
+  title: "Ion channels in control of pancreatic stellate cell migration"
+  authors:
+    - "Storck"
+    - "Hild"
+    - "Schimmelpfennig"
+    - "Sargin"
+    - "Nielsen"
+    - "Zaccagnino"
+    - "Budde"
+    - "Novak"
+    - "Kalthoff"
+    - "Schwab"
+  year: 2016
+
+tags: [move_steps, migration_speed, fibroblast, CAF, pancreatic_stellate_cell, PDAC, in_vitro, value_audit_rederivation]

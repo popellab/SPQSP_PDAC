@@ -1,0 +1,144 @@
+target_id: ecm_stress_decay
+
+inputs:
+  - name: tau_pdac_tumor_mean
+    value: 66.1
+    units: second
+    input_type: direct_measurement
+    source_ref: Rubiano2017
+    source_location: "Section 4.2 (p.336) + Fig 6C (Cancer group)"
+    value_snippet: "Similarly, characteristic decay times for pancreatitis (27.6 +/- 14.0 s) are significantly lower than both normal tissue (92.7 +/- 46.4 s) and tumors (66.1 +/- 20.8 s). For reference, 3 * s is the approximate time required for the sample to relax 95%."
+    rationale: "Characteristic stress-relaxation time constant tau of native resected human PDAC tumor tissue, from a single-exponential Standard Linear Solid (SLS) fit E(t)=E_SS+E_K*exp(-t/tau). This is the e-folding (1/e) relaxation time, which maps to the ABM stress-decay rate as k_decay = 1/tau."
+
+  - name: tau_pdac_tumor_sd
+    value: 20.8
+    units: second
+    input_type: direct_measurement
+    source_ref: Rubiano2017
+    source_location: "Section 4.2 (p.336) + abstract (Mean +/- SD convention)"
+    value_snippet: "Similarly, characteristic decay times for pancreatitis (27.6 +/- 14.0 s) are significantly lower than both normal tissue (92.7 +/- 46.4 s) and tumors (66.1 +/- 20.8 s). For reference, 3 * s is the approximate time required for the sample to relax 95%."
+    rationale: "Standard deviation of the PDAC tumor relaxation time across specimens. The abstract states the reporting convention 'Mean +/- SD' for all +/- metrics (e.g. tumor Steady-State Modulus 5.46 +/- 3.18 kPa, Mean +/- SD), so 20.8 s is a population SD, not SEM."
+
+  - name: n_pdac_specimens
+    value: 10
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Rubiano2017
+    source_location: "Fig 6C (Cancer column open-circle data points)"
+    figure_excerpt:
+      figure_id: "Figure 6C"
+      description: "Number of human PDAC tumor specimens contributing to the characteristic-time box plot (Cancer group)"
+      value: "10"
+      context: "Fig 6C plots Characteristic Time tau [sec] as box plots (mean, quartiles, range) per tissue group. The Cancer column shows ~10-12 open-circle specimen points (one high outlier near ~120 s plus a cluster of ~9-11). n is figure-derived; the paper does not print a per-group n. A conservative n=10 is used."
+    rationale: "Sample size for the tumor relaxation-time mean, used to convert the population SD to the standard error of the mean in the bootstrap. Figure-derived (manual-review flagged) because the paper reports no explicit per-group n."
+
+calibration:
+  parameters:
+    - name: PARAM_ECM_STRESS_DECAY
+      units: 1/second
+
+  forward_model:
+    type: algebraic
+    formula: "tau = 1 / PARAM_ECM_STRESS_DECAY"
+    data_rationale: "Rubiano 2018 fit the unconfined-compression stress-relaxation curve of native human PDAC tumor tissue to a single-exponential Standard Linear Solid model E(t)=E_SS+E_K*exp(-t/tau), reporting the characteristic time constant tau = 66.1 +/- 20.8 s. tau is the e-folding relaxation time."
+    submodel_rationale: "The ABM evolves an ECM mechanical-stress field that relaxes by first-order decay dS/dt = -k_decay*S (PARAM_ECM_STRESS_DECAY applied in pde_integration.cu:1649). The relaxation time constant of that first-order process is tau = 1/k_decay, so the measured PDAC tissue tau directly constrains k_decay."
+    code: |
+      def compute(params, inputs):
+          import numpy as np
+          k = params['PARAM_ECM_STRESS_DECAY']
+          return 1.0 / k
+
+  error_model:
+    - name: pdac_tumor_relaxation_time
+      units: second
+      uses_inputs: [tau_pdac_tumor_mean, tau_pdac_tumor_sd, n_pdac_specimens]
+      sample_size_input: n_pdac_specimens
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            mean = inputs['tau_pdac_tumor_mean']
+            sd = inputs['tau_pdac_tumor_sd']
+            # tau is strictly positive; bootstrap the population-mean relaxation time
+            # as a lognormal with spread = (CV)/sqrt(n) (SD -> SEM of the mean).
+            cv = sd / mean
+            return rng.lognormal(np.log(mean), cv / np.sqrt(sample_size), n_bootstrap)
+
+  identifiability_notes: >
+    Single-parameter, single-observable target with an exact algebraic identity
+    tau = 1/k_decay, so PARAM_ECM_STRESS_DECAY is fully identified from the
+    measured PDAC relaxation time. No degeneracy. The companion parameter
+    PARAM_ECM_STRESS_DEPOSIT (relative stress deposited per cancer move) is a
+    dimensionless model-tuning scalar with no mechanical-relaxation anchor and is
+    intentionally NOT included here (remains MANUAL_PRIOR).
+
+experimental_context:
+  species: human
+  indication: pathological_state
+  system: ex_vivo
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: >
+    Native resected human pancreatic ductal adenocarcinoma tumor tissue used to
+    constrain a human PDAC model. Same disease, same tissue, same species - the
+    measured bulk-tissue stress relaxation is exactly the quantity the ABM ECM
+    stress-decay term abstracts.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_clinical
+  perturbation_type: pathological_state
+  perturbation_relevance: >
+    No experimental perturbation - the measurement is of the native pathological
+    state itself (resected PDAC tumor tissue at its desmoplastic baseline). The
+    relaxation time constant is taken directly from untreated tumor specimens, so
+    it is the on-target value rather than an upper or lower bound.
+  tme_compatibility: high
+  tme_compatibility_notes: >
+    The measurement is of intact PDAC tumor tissue including its desmoplastic
+    stroma, so the mechanical microenvironment is the target TME itself. The only
+    caveat is ex vivo testing of resected specimens (devitalized, dehydration and
+    handling can shift absolute moduli) but the relaxation time constant is a
+    ratio property less sensitive to absolute calibration.
+  measurement_directness: single_inversion
+  temporal_resolution: timecourse
+  experimental_system: ex_vivo
+
+study_interpretation: >
+  Rubiano et al. 2018 performed unconfined-compression mechanical testing on
+  resected human pancreas specimens (normal, chronic pancreatitis, PDAC tumor)
+  and fit the relaxation phase to a single-exponential SLS model to extract the
+  characteristic decay time tau. PDAC tumors relax with tau = 66.1 +/- 20.8 s,
+  faster than normal pancreas (92.7 +/- 46.4 s) and slower than pancreatitis
+  (27.6 +/- 14.0 s); all resected tissues fall in the 10-160 s range. The ABM
+  default PARAM_ECM_STRESS_DECAY = 5e-4 /s (tau = 2000 s) was ~30x too slow and
+  was anchored to a collagen-gel value (Chaudhuri2016); this target re-anchors it
+  to k_decay = 1/66.1 ~ 1.51e-2 /s from the direct PDAC-tissue measurement.
+
+key_assumptions:
+  - The ABM ECM stress field relaxes by first-order kinetics, matching the single-exponential SLS form fit by Rubiano (tau = 1/k_decay)
+  - Bulk-tissue stress relaxation (Rubiano's observable) is the right macroscopic proxy for the per-voxel ECM mechanical-stress relaxation the ABM models
+  - The reported tumor SD reflects genuine inter-patient biological variability in PDAC tissue viscoelasticity
+
+key_study_limitations:
+  - Ex vivo resected tissue (devitalized); absolute moduli can shift with handling/dehydration, though the time constant is more robust
+  - Per-group sample size is figure-derived (n~10), not printed in the paper
+  - Single-exponential SLS captures the dominant relaxation mode; real tissue has a relaxation spectrum (the paper notes some samples needed care, MSE>0.9 fits retained)
+  - Unconfined compression probes bulk tissue; the ABM stress field is a coarse per-voxel abstraction without explicit poroelastic fluid flow
+
+primary_data_source:
+  doi: "10.1016/j.actbio.2017.11.037"
+  source_tag: Rubiano2017
+  title: "Viscoelastic properties of human pancreatic tumors and in vitro constructs to mimic mechanical properties"
+  authors:
+    - "Rubiano"
+    - "Delitto"
+    - "Han"
+    - "Gerber"
+    - "Galitz"
+    - "Trevino"
+    - "Hughes"
+    - "Simmons"
+    - "Hughes"
+  year: 2018
+
+tags: [ECM, stress_relaxation, viscoelastic, PDAC, mechanics, decay, SLS]

@@ -1,0 +1,271 @@
+target_id: tcell_eff_ci
+
+inputs:
+  - name: wt_cognate_fmi_mean
+    value: 0.27
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: GaleanoNino2020
+    source_location: "Figure 5A (Page 13 of PDF), WT polyclonal CD8+CD44+ T cells, cognate (SIINFEKL-pulsed EL4) condition"
+    figure_excerpt:
+      figure_id: "Figure 5A"
+      value: "~0.27"
+      description: "Box-and-whisker median (black line) and mean (red line) for the WT cognate FMI bar. Y-axis: FMI, range -1 to +1. The cognate WT bar shows median ≈ 0.27 with IQR ≈ 0.0 to 0.5. Three statistical labels above (ns | p<10^-4 | ns) indicate WT cognate is significantly different from both Empty and Non-cognate WT conditions."
+      context: "Fig 5A reports FMI of polyclonal CD8+/CD44+ T cells (effector/memory population) from WT vs Ccr5-/- mice, migrating toward tumouroids containing Empty (no tumour cells), Non-cognate (unpulsed EL4 tumour), or Cognate (SIINFEKL-pulsed EL4 tumour) targets. The cognate WT condition represents the canonical CCR5-driven swarming response to cognate-target-activated CCL3/CCL4/CCL5 secretion (the paper's central finding)."
+
+  - name: wt_cognate_fmi_sd
+    value: 0.40
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: GaleanoNino2020
+    source_location: "Figure 5A (Page 13 of PDF), WT cognate box width"
+    figure_excerpt:
+      figure_id: "Figure 5A"
+      value: "~0.40 SD"
+      description: "Derived from visual IQR ≈ 0.5 (box edges at ~0.0 and ~0.5). For approximately normal data SD ≈ IQR / 1.35 ≈ 0.37; rounded to 0.40 to span both visual readout and distribution-shape uncertainty."
+      context: "The WT cognate FMI distribution is skewed (the upper whisker extends to ~1.0 while the median sits at 0.27); SD is approximate. n=1133 tracks per the box, but biological n=3 experiments per caption."
+
+  - name: ccr5_cognate_fmi_mean
+    value: 0.08
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: GaleanoNino2020
+    source_location: "Figure 5A (Page 13 of PDF), Ccr5-/- polyclonal CD8+CD44+ T cells, cognate condition"
+    figure_excerpt:
+      figure_id: "Figure 5A"
+      value: "~0.08"
+      description: "Box median (black line) for the Ccr5-/- cognate FMI bar. Significantly lower than WT cognate (p<10^-4 vs WT cognate per the central statistical label). The 'ns' labels indicate Ccr5-/- cognate is statistically indistinguishable from Ccr5-/- Empty and Non-cognate conditions, confirming CCR5-KO ablates the cognate-driven recruitment."
+      context: "The Ccr5-/- residual FMI (~0.08) represents CCR5-INDEPENDENT chemotactic signals to the cognate tumouroid — possibly other chemokine receptors (CXCR3, CCR1) or non-chemotactic basal directed motility. Subtracting this from the WT cognate value yields the CCR5-DEPENDENT component, which is what the ABM's CCL5-CCR5 chemotaxis pathway models."
+
+  - name: ccr5_cognate_fmi_sd
+    value: 0.50
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: GaleanoNino2020
+    source_location: "Figure 5A (Page 13 of PDF), Ccr5-/- cognate box width"
+    figure_excerpt:
+      figure_id: "Figure 5A"
+      value: "~0.50 SD"
+      description: "Derived from visual IQR ≈ 0.7 (box edges roughly at -0.3 and 0.4). SD ≈ IQR / 1.35 ≈ 0.52; rounded to 0.50. Wider than WT box, reflecting the CCR5-KO loss of directional bias and increase in track variability."
+      context: "n=1000 tracks per the box, biological n=3 experiments."
+
+  - name: n_biological_experiments
+    value: 3
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: GaleanoNino2020
+    source_location: "Figure 5 caption (Page 13 of PDF)"
+    figure_excerpt:
+      figure_id: "Figure 5 caption"
+      value: "three independent experiments"
+      description: "Caption states: 'Red bars: mean of pooled data from three independent experiments'. n=3 biological replicates."
+      context: "Track-level n (1121, 1133, 1000) reflects within-experiment movie tracking and is much larger than the biological sample size. We use n=3 as the conservative biological replicate count for SEM derivation."
+
+  - name: ccr5_dependent_fmi_mean
+    value: 0.19
+    units: dimensionless
+    input_type: derived_arithmetic
+    source_inputs: [wt_cognate_fmi_mean, ccr5_cognate_fmi_mean]
+    formula: "wt_cognate_fmi_mean - ccr5_cognate_fmi_mean"
+    source_ref: GaleanoNino2020
+    source_location: "Derived: CCR5-dependent FMI = WT FMI − Ccr5-/- FMI"
+    rationale: "The ABM's PARAM_CHEMO_CI_TCELL_EFF parameter governs the CCR5-mediated CCL5 chemotaxis (t_cell.cuh:609-628 reads the CCL5 gradient via PDE_GRAD_CCL5 pointers and weights movement via ci_to_bias(CI)). The biologically-matched observable is therefore the CCR5-DEPENDENT FMI component, computed as WT minus Ccr5-knockout residual. WT cognate FMI 0.27 − Ccr5-/- cognate FMI 0.08 = 0.19."
+
+calibration:
+  parameters:
+    - name: PARAM_CHEMO_CI_TCELL_EFF
+      units: dimensionless
+
+  forward_model:
+    type: algebraic
+    formula: "predicted_ccr5_dependent_FMI = PARAM_CHEMO_CI_TCELL_EFF"
+    data_rationale: |
+      Galeano Niño et al. 2020 Fig 5A directly measures the forward
+      migration index (FMI) of polyclonal CD8+CD44+ effector/memory T
+      cells migrating toward a cognate tumouroid via 3D live-cell imaging.
+      WT cognate FMI ≈ 0.27 and Ccr5-/- cognate FMI ≈ 0.08 (Ccr5 KO
+      ablates the recruitment). The CCR5-DEPENDENT component, computed
+      as WT − Ccr5-/- ≈ 0.19, is the per-T-cell directional bias toward
+      a CCL5 source that the ABM's CCL5-CCR5 chemotaxis pathway models.
+
+      The ABM's `ci_to_bias()` function (common.cuh:712) converts CI to
+      bias_strength = 3 × CI in the linear regime (CI ≤ 1/3). The expected
+      CI of the resulting movement, E[Δgradient/Δstep_length], equals the
+      input CI by lattice-symmetry construction (documented at
+      common.cuh:708). For "typical experimental immune cell CIs of
+      0.05-0.40" (per the code-level docstring), no saturation occurs.
+
+      Forward model: predicted CCR5-dependent FMI = PARAM_CHEMO_CI_TCELL_EFF
+      (identity mapping). This is the canonical mapping for any
+      chemotaxis-index measurement to the ABM's bias-strength parameter
+      in the unsaturated regime.
+    submodel_rationale: |
+      In the PDAC ABM, every living CD8+ T cell in state T_CELL_EFF reads
+      the PDE_GRAD_CCL5_{X,Y,Z} gradient at its voxel and weights its
+      next movement step by bias_strength = 3 × PARAM_CHEMO_CI_TCELL_EFF
+      (t_cell.cuh:609-628 + common.cuh:712). T_CELL_CYT and T_CELL_SUP
+      use separate CI parameters (T7b, T7c) because cytotoxic engagement
+      and suppression both slow directed migration. The Galeano Niño 2020
+      polyclonal CD8+CD44+ population represents the "effector" T cell
+      state in the ABM's nomenclature: activated CD8+ T cells migrating
+      toward chemokine signals before terminal cytotoxic engagement with
+      a cognate target.
+    code: |
+      def compute(params, inputs):
+          ci = params['PARAM_CHEMO_CI_TCELL_EFF']
+          return ci
+
+  error_model:
+    - name: ccr5_dependent_cognate_fmi
+      units: dimensionless
+      uses_inputs: [wt_cognate_fmi_mean, wt_cognate_fmi_sd, ccr5_cognate_fmi_mean, ccr5_cognate_fmi_sd, n_biological_experiments]
+      sample_size_input: n_biological_experiments
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            wt_mean = inputs['wt_cognate_fmi_mean']
+            wt_sd = inputs['wt_cognate_fmi_sd']
+            ccr5_mean = inputs['ccr5_cognate_fmi_mean']
+            ccr5_sd = inputs['ccr5_cognate_fmi_sd']
+            # Independent bootstraps for WT and Ccr5-/-, then take difference.
+            # SEM_diff = sqrt((SD_WT^2 + SD_Ccr5^2) / n)
+            wt_sem = wt_sd / np.sqrt(sample_size)
+            ccr5_sem = ccr5_sd / np.sqrt(sample_size)
+            wt_samples = rng.normal(wt_mean, wt_sem, n_bootstrap)
+            ccr5_samples = rng.normal(ccr5_mean, ccr5_sem, n_bootstrap)
+            return wt_samples - ccr5_samples
+
+  identifiability_notes: |
+    Single parameter PARAM_CHEMO_CI_TCELL_EFF constrained by one derived
+    observation (CCR5-dependent FMI = WT_cognate − Ccr5_cognate). The
+    algebraic forward model is bijective (identity) so there is no
+    identifiability ambiguity. Inference quality is limited by (a) the
+    n=3 biological replicate count (SEM is the dominant uncertainty
+    source), (b) visual figure readout of WT and Ccr5-/- box medians
+    and IQR widths (~±0.05 on means, ~±0.10 on SDs), (c) mouse vs human
+    species translation, and (d) tumouroid in vitro vs PDAC in vivo TLS
+    context. The current XML 0.17 sits below the Galeano-implied 0.19 —
+    posterior expected to shift modestly upward.
+
+experimental_context:
+  species: mouse
+  indication: healthy_immune_cells
+  system: in_vitro_primary
+  cell_lines:
+    - name: mouse_polyclonal_CD8_CD44_T_cells_WT
+      species: mouse
+      tissue_origin: spleen
+      cell_type: T_cell_CD8_polyclonal_CD44_pos_memory_effector
+      source: "Polyclonal CD8+CD44+ effector/memory T cells from WT mouse spleen, ex vivo for 3D tumouroid embedding assay."
+    - name: mouse_polyclonal_CD8_CD44_T_cells_Ccr5_KO
+      species: mouse
+      tissue_origin: spleen
+      cell_type: T_cell_CD8_polyclonal_CD44_pos_memory_effector
+      source: "Polyclonal CD8+CD44+ effector/memory T cells from Ccr5-/- knockout mouse spleen — genetic control for the CCR5-CCL5 pathway."
+  culture_conditions:
+    medium: "Collagen-I 3D matrix supporting tumouroid (EL4 cells) and CTL co-embedding"
+    serum_concentration: 10
+    serum_concentration_units: "% FBS"
+    culture_type: "3D_collagen_tumouroid"
+    duration: "Up to 16 h live imaging"
+    oxygen_level: "normoxic"
+    notes: "3D 1 mg/mL collagen-I gel embedding of 50 μm EL4 lymphoma tumouroids (SIINFEKL-pulsed cognate or unpulsed non-cognate) with surrounding polyclonal CD8+CD44+ CTLs. Live-cell time-lapse imaging at 1 min intervals, manual single-cell tracking, FMI computed per track."
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: >
+    Mouse polyclonal CD8+CD44+ effector T cell chemotaxis toward a
+    cognate-antigen tumouroid is a reasonable proxy for PDAC TLS-recruited
+    effector T cells: both are activated CD8+ T cells responding to
+    tumor-derived chemokine signals (CCL5 in both). The major translation
+    gap is species (mouse vs human) and tissue context (3D collagen
+    tumouroid vs PDAC TLS surrounded by desmoplastic stroma).
+  species_source: mouse
+  species_target: human
+  source_quality: primary_human_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    Cognate antigen engagement (SIINFEKL-OVA peptide) drives CCL3/CCL4/CCL5
+    secretion in the tumouroid, which is the canonical in vivo
+    activation mechanism for CCR5-driven T cell recruitment. The Ccr5-/-
+    KO control directly isolates the CCR5-dependent component of the
+    response, which maps precisely to the ABM's CCL5-CCR5 chemotaxis
+    pathway. No drug or pathway perturbation beyond the genetic KO.
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    Three translation factors: (1) species — mouse polyclonal CD8 vs human
+    PDAC TLS CD8. Both share CCR5 expression and CCL5 responsiveness; the
+    cross-species translation is moderate (~1.5× possible variation in CI).
+    (2) Tissue context — 3D collagen gel tumouroid lacks PDAC's dense
+    desmoplastic stroma, hypoxia, and TGF-β-rich TME, which can suppress
+    CD8 migration in vivo. The in vitro FMI is therefore likely an upper
+    bound on the in vivo PDAC CI. (3) Activation state — Galeano polyclonal
+    CD8+CD44+ effector/memory cells match the ABM's T_CELL_EFF effector
+    state well (pre-cytotoxic-engagement phase). translation_uncertainty
+    in the inference is moderate but not extreme.
+  measurement_directness: direct
+  temporal_resolution: timecourse
+  experimental_system: in_vitro_primary
+
+study_interpretation: >
+  Galeano Niño et al. 2020 was the first quantitative characterization of
+  the autocrine CCL3/CCL4/CCL5 → CCR5 "homotypic chemokine signaling" loop
+  that enables CD8+ T cells to swarm cognate tumour targets. Figure 5A
+  isolates the CCR5-dependent component by comparing FMI of WT and Ccr5-/-
+  polyclonal CD8+CD44+ T cells in the cognate-tumouroid condition: WT FMI
+  ≈ 0.27, Ccr5-/- FMI ≈ 0.08, CCR5-dependent component ≈ 0.19. The ABM
+  models this CCR5-driven CCL5 chemotaxis pathway for the T_CELL_EFF state
+  via the PARAM_CHEMO_CI_TCELL_EFF parameter and the CCL5 PDE gradient.
+  The current XML value 0.17 sits slightly below the Galeano-implied 0.19,
+  consistent with a prior MAPLE calibration that may have allowed
+  conservative tightening; the posterior is expected to land near 0.18-0.20.
+  This is a re-validation of an already-calibrated parameter under the
+  current MAPLE schema — analogous to T6a TFH_CXCL13 (Ukita2022). UNLIKE
+  the BCELL_*_RELEASE family in T5, this parameter has NO unit-conversion
+  history; both legacy and Galeano values sit at the same scale.
+
+key_assumptions:
+  - "FMI as measured in 3D live-cell tracking equals the ABM's directional-bias CI in the linear regime. The ABM's ci_to_bias() conversion (CI → 3×CI bias_strength) preserves the expected CI = 1/3 × bias_strength relationship for typical immune-cell CIs of 0.05-0.40 (well within the unsaturated regime per common.cuh:708-714 docstring)."
+  - "CCR5-dependent FMI = WT − Ccr5-/-. The subtraction assumes that the residual Ccr5-/- FMI (~0.08) reflects CCR5-INDEPENDENT directed motility (other chemokine receptors, basal taxis), and that this residual is approximately the same magnitude in vivo. If CCR5 dependence varies between in vivo and in vitro, the subtraction may over- or under-correct."
+  - "Mouse polyclonal CD8+CD44+ effector T cells are a reasonable proxy for human PDAC-TLS-recruited effector T cells. CCR5 is expressed by both species' effector T cells, and CCL5 is the dominant CCR5 ligand in both. Cross-species CI variation is captured in translation_uncertainty."
+  - "Visual figure readout of the box-and-whisker median and IQR. Medians (0.27 WT, 0.08 Ccr5-/-) are readable to ~±0.05; IQR widths used to derive SD are approximate (~±0.10 on SD)."
+  - "n=3 biological replicates per the caption ('three independent experiments'). Track-level n=1121/1133/1000 reflects per-movie sampling, which substantially overrepresents the biological replicate count for SEM purposes."
+
+key_study_limitations:
+  - "Mouse cells; species translation to human PDAC TLS introduces uncertainty in both the absolute CI magnitude (CCR5 affinity and ligand isoform mix may differ) and the CCR5 vs CCR1 vs CXCR3 contribution mix."
+  - "EL4 lymphoma tumouroid is a simple 3D in vitro model that does not reproduce PDAC's dense desmoplastic stroma, hypoxia gradient, immune-suppressive cytokine milieu (TGF-β-rich), or TLS organization. The in vivo PDAC CI may be lower due to these confounding factors."
+  - "Polyclonal CD8+CD44+ effector/memory pool includes both freshly-activated effector and central-memory subsets, which may differ in CCR5 expression density (memory cells typically higher). The ABM's T_CELL_EFF state averages over these subpopulations."
+  - "FMI is computed from 2D-projected tracks in a 3D matrix. Z-dimension migration components are not separately captured, potentially underestimating true 3D CI by a √(2/3) factor."
+  - "n=3 biological replicates is a small sample; biological FMI variance across mouse cohorts could be larger than the within-experiment track variance suggests."
+
+primary_data_source:
+  doi: "10.7554/eLife.56554"
+  source_tag: GaleanoNino2020
+  title: "Cytotoxic T cells swarm by homotypic chemokine signalling"
+  authors:
+    - "Galeano-Niño"
+    - "Pageon"
+    - "Tay"
+    - "Colakoglu"
+    - "Kempe"
+    - "Larsen"
+    - "Tran"
+    - "Khuu"
+    - "Fournier"
+    - "Lwin"
+    - "Mazalo"
+    - "Coombs"
+    - "Croft"
+    - "Murray"
+    - "Mueller"
+    - "Roediger"
+    - "Wells"
+    - "Beck"
+    - "Tikoo"
+    - "Cavanagh"
+    - "Weninger"
+    - "Britton"
+    - "Biro"
+  year: 2020
+
+tags: [FMI, chemotaxis_index, CD8_T_cell, T_CELL_EFF, CCR5, CCL5, swarming, tumouroid, mouse, in_vitro, PDAC_proxy]

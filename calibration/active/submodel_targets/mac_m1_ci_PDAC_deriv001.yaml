@@ -1,0 +1,254 @@
+target_id: mac_m1_ci
+
+inputs:
+  - name: ccl2_alone_directedness_mean
+    value: 0.60
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Lee2020
+    source_location: "Results §'Saturating concentrations...' + Figure 5a (Page 16 of PDF), MDM monoculture + CCL2 only condition"
+    value_snippet: "or only CCL2 (D = 0.60 ± 0.07, S = 22 ± 4 µm/h) to a macrophage monoculture substantially"
+    rationale: "Lee2020 Fig 5a reports D = 0.60 ± 0.07 SEM (n ≥ 3) for MDM monoculture exposed to a saturating 100 ng/mL CCL2 gradient in 3D collagen-fibrin gel microfluidic chip. This is the cleanest isolated CCL2-only chemotaxis measurement: no IF flow, no other tumor factors, no co-culture confounders."
+
+  - name: ccl2_alone_directedness_sem
+    value: 0.07
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Lee2020
+    source_location: "Results §'Saturating concentrations...' + Figure 5a"
+    value_snippet: "or only CCL2 (D = 0.60 ± 0.07, S = 22 ± 4 µm/h) to a macrophage monoculture substantially"
+    rationale: "SEM as reported by Lee. n ≥ 3 per Figure 5 caption."
+
+  - name: control_directedness_mean
+    value: 0.31
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Lee2020
+    source_location: "Results §'IF or TSF substantially modulates...' + Figure 2c (Page 12 of PDF), untreated control monoculture"
+    value_snippet: "migration was D = 0.31 ± 0.04 and S = 8.3 ± 1.2 µm/h, respectively"
+    rationale: "Lee2020 Fig 2c reports control (untreated MDM monoculture) directedness D = 0.31 ± 0.04 SEM. This represents intrinsic directional persistence in the 3D collagen-fibrin gel with no chemotactic gradient — the baseline non-chemotactic component."
+
+  - name: control_directedness_sem
+    value: 0.04
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Lee2020
+    source_location: "Results §'IF or TSF substantially modulates...' + Figure 2c"
+    value_snippet: "migration was D = 0.31 ± 0.04 and S = 8.3 ± 1.2 µm/h"
+    rationale: "SEM as reported by Lee2020 for the control condition. Used to compute the error of the derived CCL2-specific component."
+
+  - name: n_biological_replicates
+    value: 3
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Lee2020
+    source_location: "Figure 5 caption (Page 53 of PDF)"
+    figure_excerpt:
+      figure_id: "Figure 5 caption"
+      value: "n ≥ 3"
+      description: "Caption states 'Data are shown as the mean ± SEM (n ≥ 3)'. We adopt the lower bound n=3 as the conservative interpretation."
+      context: "n=3 microfluidic chip biological replicates with ~150 macrophages per ROI per chip."
+
+  - name: ccl2_specific_directedness_mean
+    value: 0.29
+    units: dimensionless
+    input_type: derived_arithmetic
+    source_inputs: [ccl2_alone_directedness_mean, control_directedness_mean]
+    formula: "ccl2_alone_directedness_mean - control_directedness_mean"
+    source_ref: Lee2020
+    source_location: "Derived: CCL2-specific directedness = CCL2-alone D − Control D"
+    rationale: "The ABM's PARAM_CHEMO_CI_MAC_M1 governs the CCL2-CCR2-mediated chemotaxis component specifically — i.e., the directed migration component driven by the CCL2 gradient ABOVE the random/baseline directional persistence in 3D matrix. Computing this as Lee's CCL2-only directedness minus the matched control directedness yields the CCL2-specific component: 0.60 − 0.31 = 0.29. The legacy XML 0.276 was anchored on essentially this same calculation by a prior MAPLE pass (XML comment cites 'Lee2020, Cui2018')."
+
+calibration:
+  parameters:
+    - name: PARAM_CHEMO_CI_MAC_M1
+      units: dimensionless
+
+  forward_model:
+    type: algebraic
+    formula: "predicted_ccl2_specific_directedness = PARAM_CHEMO_CI_MAC_M1"
+    data_rationale: |
+      Lee et al. 2020 Fig 5a directly measures the migration directedness
+      (D) of monocyte-derived macrophages (MDMs) in a 3D collagen-fibrin
+      gel microfluidic chip exposed to a saturating 100 ng/mL CCL2
+      gradient alone. D = 0.60 ± 0.07 (n ≥ 3 chips, ~150 macrophages
+      per ROI). Subtracting the matched 3D-gel control directedness D =
+      0.31 ± 0.04 isolates the CCL2-CCR2-driven component: D_CCL2_specific
+      = 0.29 ± SEM_propagated.
+
+      The ABM's `ci_to_bias()` function converts CI to bias_strength
+      = 3 × CI in the linear regime (CI ≤ 1/3, per common.cuh:712).
+      For typical experimental immune cell CIs of 0.05-0.40 (per the
+      code-level docstring), the expected migration CI equals the input
+      CI by lattice-symmetry construction. Forward model: identity
+      predicted_D = PARAM_CHEMO_CI_MAC_M1.
+    submodel_rationale: |
+      In the PDAC ABM, every living macrophage in state MAC_M2 reads
+      the PDE_GRAD_CCL2_{X,Y,Z} gradient at its voxel and weights its
+      next movement step by bias_strength = 3 × PARAM_CHEMO_CI_MAC_M1
+      (macrophage.cuh:223-225 + common.cuh:712). MAC_M1 macrophages
+      use a separate CI parameter (PARAM_CHEMO_CI_MAC_M1) that is
+      mirrored to this posterior post-inference per Cui 2018 Front
+      Immunol (DOI 10.3389/fimmu.2018.02650) finding that 3D M1/M2
+      migration differences are integrin-adhesion-mediated, NOT
+      chemotaxis-receptor-mediated (M1 and M2 have similar CCR2
+      expression and CCL2 chemotaxis rates; the 3D speed/directedness
+      hierarchy that Cui observed is due to αDβ2 / αMβ2 adhesion-
+      mediated haptokinesis, captured separately by the ABM's
+      adhesion matrix). MDSC uses a separate CI parameter
+      (PARAM_CHEMO_CI_MDSC) that is also mirrored to this posterior
+      via the CCR2+ myeloid lineage proxy argument (MDSCs and MDMs
+      both express CCR2 and respond to CCL2 similarly).
+    code: |
+      def compute(params, inputs):
+          ci = params['PARAM_CHEMO_CI_MAC_M1']
+          return ci
+
+  error_model:
+    - name: ccl2_specific_macrophage_directedness
+      units: dimensionless
+      uses_inputs: [ccl2_alone_directedness_mean, ccl2_alone_directedness_sem, control_directedness_mean, control_directedness_sem, n_biological_replicates]
+      sample_size_input: n_biological_replicates
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            ccl2_mean = inputs['ccl2_alone_directedness_mean']
+            ccl2_sem = inputs['ccl2_alone_directedness_sem']
+            ctrl_mean = inputs['control_directedness_mean']
+            ctrl_sem = inputs['control_directedness_sem']
+            # Independent bootstrap samples for CCL2 and control conditions, take difference.
+            # Lee reports SEM directly so no SD-to-SEM conversion needed.
+            ccl2_samples = rng.normal(ccl2_mean, ccl2_sem, n_bootstrap)
+            ctrl_samples = rng.normal(ctrl_mean, ctrl_sem, n_bootstrap)
+            return ccl2_samples - ctrl_samples
+
+  identifiability_notes: |
+    Single parameter PARAM_CHEMO_CI_MAC_M1 constrained by one derived
+    observation (CCL2-specific directedness = CCL2-alone D − Control D).
+    The algebraic forward model is bijective (identity). Inference
+    quality is limited by (a) the n ≥ 3 sample SEMs reported by Lee
+    (relatively tight: ~12% relative on each), (b) the 3D collagen-fibrin
+    gel + microfluidic chip context vs PDAC TME translation, (c) the
+    species mismatch (Lee used human MDMs — strong match to PDAC), and
+    (d) the CCL2-saturating 100 ng/mL dose vs in vivo physiological CCL2
+    levels (which may be sub-saturating, reducing in vivo CI). The
+    current XML 0.276 sits very close to the Lee-implied 0.29 — posterior
+    expected to land at 0.27-0.30, a small refinement of the prior MAPLE
+    calibration. This is a re-validation under the current MAPLE schema,
+    analogous to T7a/T7b TCELL CIs.
+
+experimental_context:
+  species: human
+  indication: healthy_immune_cells
+  system: in_vitro_primary
+  cell_lines:
+    - name: human_MDM_monocyte_derived_macrophages
+      species: human
+      tissue_origin: peripheral_blood
+      cell_type: monocyte_derived_macrophage_unpolarized
+      source: "Human peripheral blood monocytes differentiated in vitro for 5-7 days with GM-CSF or M-CSF into unpolarized monocyte-derived macrophages (MDMs). Standard MDM protocol — no explicit M1/M2 polarization step in this assay."
+  culture_conditions:
+    medium: "Collagen-fibrin 3D microfluidic gel matrix"
+    serum_concentration: 10
+    serum_concentration_units: "% FBS"
+    culture_type: "3D_microfluidic_chip"
+    duration: "Live imaging over several hours"
+    oxygen_level: "normoxic"
+    notes: "3D collagen-fibrin gel in a microfluidic platform with controlled CCL2 gradient (100 ng/mL saturating concentration); manual single-cell tracking, directedness D = (Δgradient / step length) computed per track, averaged over ~150 macrophages per ROI."
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: >
+    Lee 2020 studied human MDM chemotaxis in a 3D microfluidic Panc1-MDM
+    co-culture and isolated-cytokine system — the most PDAC-relevant
+    in vitro context available. The MDMs are not explicitly M1/M2 polarized
+    (baseline differentiated MDM phenotype), but PDAC tumor-associated
+    macrophages are predominantly M2-polarized in the in vivo TLS, so the
+    Lee MDM phenotype is reasonably proxy for the M2 polarization state.
+    Cui 2018 confirmed that M1 vs M2 chemotaxis rates are similar (the
+    integrin-mediated adhesion is what differs in 3D), so the same
+    Lee-derived rate applies to both M1 and M2 ABM states.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_in_vitro
+  perturbation_type: pharmacological
+  perturbation_relevance: >
+    Saturating CCL2 concentration (100 ng/mL) is the standard in vitro
+    canonical chemotaxis dose. In vivo PDAC TME has lower physiological
+    CCL2 levels but with sustained chronic exposure; the in vitro CI
+    represents the upper-bound saturating-stimulus response, which is the
+    maximum sustainable chemotaxis rate that the ABM's flat-rate
+    abstraction models. Sub-saturating in vivo concentrations would
+    reduce CI proportionally to local CCL2 (Hill activation) — but the
+    ABM applies a constant CI multiplied by the local gradient direction,
+    which captures this dose-response implicitly via the gradient
+    magnitude.
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    Three translation factors: (1) cell-type — human MDM is a reasonable
+    proxy for PDAC TAM (both differentiate from blood monocytes; the M2
+    polarization difference is captured by adhesion, not chemotaxis, per
+    Cui 2018). (2) Tissue context — 3D collagen-fibrin microfluidic chip
+    vs PDAC desmoplastic stroma. The chip captures the CCL2 gradient
+    well but lacks the dense fibrotic matrix and hypoxia of PDAC, which
+    could reduce in vivo CI by ~1.3-1.5× via mechanical confinement.
+    (3) Dose — 100 ng/mL CCL2 is saturating; in vivo TME CCL2 is likely
+    sub-saturating but sustained. translation_uncertainty in the
+    inference is moderate.
+  measurement_directness: direct
+  temporal_resolution: timecourse
+  experimental_system: in_vitro_primary
+
+study_interpretation: >
+  Lee et al. 2020 developed an integrated 3D microfluidic + mathematical
+  model of human macrophage migration in the PDAC tumor microenvironment.
+  Figure 5a isolates the contribution of individual cytokines (IL-8 vs
+  CCL2) at saturating 100 ng/mL doses to MDM monoculture chemotaxis,
+  demonstrating that CCL2 alone produces directedness D = 0.60 ± 0.07
+  (comparable to IL-8 alone at D = 0.61 and to the IF condition at D =
+  0.61, supporting the paper's central finding that IL-8 and CCL2 act
+  through a common downstream regulator). The CCL2-specific directedness
+  component (CCL2 − Control) = 0.29 maps directly to the ABM's
+  PARAM_CHEMO_CI_MAC_M1. The current XML 0.276 sits very close to this
+  value, confirming the prior MAPLE calibration was correctly anchored
+  on Lee 2020. The posterior is expected to land at 0.27-0.30, a small
+  re-validation refinement. Cui 2018 Front Immunol (DOI
+  10.3389/fimmu.2018.02650) provides the M1=M2 chemotaxis-rate finding
+  that justifies post-inference mirroring of this posterior to
+  PARAM_CHEMO_CI_MAC_M1; MDSC uses the same posterior via CCR2+ myeloid
+  proxy.
+
+key_assumptions:
+  - "CCL2-specific directedness = CCL2-alone D − Control D. The subtraction assumes that the residual control directedness (~0.31) reflects intrinsic 3D-matrix directional persistence that is not driven by CCL2 and that this baseline is approximately matched between in vitro and in vivo."
+  - "Lee MDM monoculture (unpolarized) is a reasonable proxy for PDAC TLS M2 macrophages. The polarization-specific component is captured in translation_uncertainty rather than corrected pre-inference."
+  - "FMI/directedness as measured in 3D microfluidic tracking equals the ABM's directional-bias CI in the linear regime (CI ≤ 0.40 per common.cuh:708-714). This is the canonical FMI-to-CI mapping used in T7a/T7b and other CI targets."
+  - "MAC_M1 chemotaxis rate = MAC_M2 chemotaxis rate per Cui 2018 finding that M1/M2 3D migration differences are integrin-adhesion-mediated rather than chemotaxis-rate-mediated. Post-inference mirroring is a defensible biology-grounded pooling pattern."
+  - "MDSC chemotaxis rate ≈ MAC_M2 rate via CCR2+ myeloid lineage proxy. Both MDM and M-MDSC express CCR2 and respond to CCL2 chemotactically (Huang 2007 J Immunol confirms CCL2-CCR2 MDSC recruitment); cell-type translation σ should be moderate."
+
+key_study_limitations:
+  - "MDM monoculture in Lee is not explicitly M1/M2-polarized; the polarization-specific component requires the Cui 2018 cross-paper argument for proper interpretation."
+  - "Saturating 100 ng/mL CCL2 dose may overestimate the in vivo physiological response. PDAC TME CCL2 is on the order of 0.1-10 ng/mL chronic exposure."
+  - "3D collagen-fibrin microfluidic gel is a softer matrix than PDAC desmoplastic stroma; mechanical confinement effects on CI not fully captured."
+  - "Manual cell tracking + averaging over ~150 macrophages per ROI may introduce subjective bias; automated tracking analysis would be more reproducible."
+  - "n ≥ 3 microfluidic chip replicates is the formal sample size; cross-donor monocyte variability not separately quantified."
+
+primary_data_source:
+  doi: "10.1093/intbio/zyaa007"
+  source_tag: Lee2020
+  title: "Integrated in silico and 3D in vitro model of macrophage migration in response to physical and chemical factors in the tumor microenvironment"
+  authors:
+    - "Lee"
+    - "Seager"
+    - "Litvak"
+    - "Spill"
+    - "Sieow"
+    - "Leong"
+    - "Kumar"
+    - "Tan"
+    - "Wong"
+    - "Adriani"
+    - "Zaman"
+    - "Kamm"
+  year: 2020
+
+tags: [directedness, FMI, chemotaxis_index, macrophage, MAC_M1, MDM, CCR2, CCL2, microfluidic, PDAC, in_vitro_primary, M1_M2_pooling, Cui2018]

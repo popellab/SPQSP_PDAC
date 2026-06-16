@@ -1,0 +1,217 @@
+target_id: tcell_cyt_ci
+
+inputs:
+  - name: cognate_1to1_fmi_mean
+    value: 0.15
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: GaleanoNino2020
+    source_location: "Figure 2B (Page 7 of PDF), FMI panel, Cognate condition with 1:1 CTL:tumour cell pre-embedded ratio"
+    figure_excerpt:
+      figure_id: "Figure 2B"
+      value: "~0.15"
+      description: "Box-and-whisker median (black line) for the cognate orange bar with CTLs pre-embedded at 1:1 ratio with tumour cells. Y-axis: FMI, range -1 to +1. The bar shows median ≈ 0.15 with IQR ≈ -0.1 to 0.5. Highly significant (p<10^-4) vs Empty and Non-cognate controls."
+      context: "Fig 2B FMI panel reports forward migration index of external CTLs migrating toward a tumouroid containing pre-embedded tumour-reactive CTLs at a CTL:tumour-cell ratio of 1:1. The pre-embedded CTLs are actively engaging cognate (SIINFEKL-pulsed EL4) tumour cells and releasing CCL3/CCL4/CCL5 — the homotypic recruitment signal that the ABM models as CCL5-CCR5 chemotaxis. The 1:1 ratio represents the canonical cytotoxic engagement condition. Median ~0.15 sits slightly above the legacy XML 0.129; within visual figure-readout precision."
+
+  - name: cognate_1to1_fmi_sd
+    value: 0.40
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: GaleanoNino2020
+    source_location: "Figure 2B (Page 7 of PDF), Cognate 1:1 box width"
+    figure_excerpt:
+      figure_id: "Figure 2B"
+      value: "~0.40 SD"
+      description: "Derived from visual IQR ≈ 0.5 (box edges at ~-0.1 and ~0.4). For approximately normal data SD ≈ IQR / 1.35 ≈ 0.37; rounded to 0.40."
+      context: "Track-level n=463 per the box, biological n=3 experiments per Fig 2 caption ('mean of pooled data from three independent experiments')."
+
+  - name: n_biological_experiments
+    value: 3
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: GaleanoNino2020
+    source_location: "Figure 2 caption (Page 8 of PDF)"
+    figure_excerpt:
+      figure_id: "Figure 2 caption"
+      value: "three independent experiments"
+      description: "Caption states: 'Red bars: mean of pooled data from three independent experiments. Data points: mean of each individual experiment.' n=3 biological replicates."
+      context: "Track-level n=463 reflects within-movie sampling and substantially overrepresents the biological replicate count."
+
+calibration:
+  parameters:
+    - name: PARAM_CHEMO_CI_TCELL_CYT
+      units: dimensionless
+
+  forward_model:
+    type: algebraic
+    formula: "predicted_cognate_1to1_FMI = PARAM_CHEMO_CI_TCELL_CYT"
+    data_rationale: |
+      Galeano Niño et al. 2020 Fig 2B directly measures the forward
+      migration index (FMI) of external CTLs migrating toward a cognate-
+      antigen-presenting tumouroid containing pre-embedded tumour-reactive
+      CTLs at a 1:1 CTL:tumour cell ratio (the canonical cytotoxic-
+      engagement condition where pre-embedded CTLs are actively killing
+      cognate targets and releasing the homotypic CCL3/CCL4/CCL5 signal).
+      Median FMI ≈ 0.15, statistically significant (p<10^-4) vs Empty and
+      Non-cognate controls.
+
+      The ABM's `ci_to_bias()` function converts CI to bias_strength
+      = 3 × CI in the linear regime (CI ≤ 1/3, per common.cuh:708-714).
+      The expected migration CI equals the input CI for CIs in the
+      0.05-0.40 range, so the forward model is the identity:
+
+      predicted CI = PARAM_CHEMO_CI_TCELL_CYT (algebraic mapping)
+    submodel_rationale: |
+      In the PDAC ABM, every living CD8+ T cell in state T_CELL_CYT
+      (cytotoxic, actively engaging cancer targets) reads the
+      PDE_GRAD_CCL5_{X,Y,Z} gradient at its voxel and weights its
+      next movement step by bias_strength = 3 × PARAM_CHEMO_CI_TCELL_CYT
+      (t_cell.cuh:609-628 + common.cuh:712). T_CELL_CYT cells have a
+      LOWER CI than T_CELL_EFF (T7a) because active killing engagement
+      slows directed migration — cells need to stop and synapse with
+      targets rather than continuously chase chemokine gradients.
+      Galeano's 1:1 CTL:tumour pre-embedded condition mirrors this
+      ABM state: external CTLs are migrating toward a tumour mass that
+      contains actively-engaged CTLs (killing in progress).
+    code: |
+      def compute(params, inputs):
+          ci = params['PARAM_CHEMO_CI_TCELL_CYT']
+          return ci
+
+  error_model:
+    - name: cognate_1to1_cytotoxic_fmi
+      units: dimensionless
+      uses_inputs: [cognate_1to1_fmi_mean, cognate_1to1_fmi_sd, n_biological_experiments]
+      sample_size_input: n_biological_experiments
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            mean = inputs['cognate_1to1_fmi_mean']
+            sd = inputs['cognate_1to1_fmi_sd']
+            sem = sd / np.sqrt(sample_size)
+            return rng.normal(mean, sem, n_bootstrap)
+
+  identifiability_notes: |
+    Single parameter PARAM_CHEMO_CI_TCELL_CYT constrained by one direct
+    observation (cognate 1:1 CTL:tumour pre-embedded FMI). The algebraic
+    forward model is bijective (identity) so there is no identifiability
+    ambiguity. Inference quality is limited by (a) the n=3 biological
+    replicate count, (b) visual figure readout of the box median (~±0.03
+    on the mean and ~±0.05 on the SD), (c) mouse vs human species
+    translation, and (d) EL4 lymphoma tumouroid vs PDAC TME. The current
+    XML 0.129 sits slightly below the Galeano-implied 0.15 — posterior
+    expected to shift modestly upward toward ~0.14-0.16, consistent with
+    the visual readout precision.
+
+experimental_context:
+  species: mouse
+  indication: healthy_immune_cells
+  system: in_vitro_primary
+  cell_lines:
+    - name: mouse_OT1_CTLs
+      species: mouse
+      tissue_origin: spleen
+      cell_type: T_cell_CD8_TCR_transgenic_OT1
+      source: "Tumour-reactive OT1 CTLs ex vivo activated for the EL4-SIINFEKL co-culture assay."
+  culture_conditions:
+    medium: "Collagen-I 3D matrix supporting tumouroid + CTL co-embedding"
+    serum_concentration: 10
+    serum_concentration_units: "% FBS"
+    culture_type: "3D_collagen_tumouroid"
+    duration: "Live imaging over several hours"
+    oxygen_level: "normoxic"
+    notes: "3D 1 mg/mL collagen-I gel; EL4 lymphoma tumouroids (SIINFEKL-pulsed cognate) pre-embedded with OT1 CTLs at 1:1 ratio; external CTLs (matching specificity) migrating toward the tumouroid tracked via time-lapse imaging. FMI computed per track."
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: >
+    Mouse OT1 CTL chemotaxis toward a cognate-antigen tumouroid with
+    active cytotoxic engagement (1:1 pre-embedded CTL:tumour) is a
+    reasonable proxy for PDAC TLS cytotoxic T cells: both involve
+    activated CD8 T cells engaging cognate targets and being recruited
+    via CCL5. The translation gaps are species (mouse → human) and
+    tissue context (collagen tumouroid → PDAC desmoplastic stroma).
+  species_source: mouse
+  species_target: human
+  source_quality: primary_human_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    SIINFEKL-OVA cognate engagement is the canonical TCR activation
+    signal driving CCL3/CCL4/CCL5 secretion by engaged CTLs. The 1:1
+    pre-embedded ratio matches the in vivo TLS situation where multiple
+    CTLs are engaging cognate cancer cells; the migrating external CTL
+    is responding to the homotypic chemokine signal as in vivo.
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    Same three translation gaps as T7a (species, in vitro tumouroid vs in
+    vivo PDAC stroma, ratio dynamics). Specific to T7b cytotoxic state:
+    the 1:1 pre-embedded ratio represents an active killing context that
+    likely matches in vivo TLS Tfh-supported cytotoxic engagement
+    reasonably well; the in vitro speed of cytotoxic killing may differ
+    from in vivo due to ECM mechanics, but the FMI (directional
+    preference) should be conserved.
+  measurement_directness: direct
+  temporal_resolution: timecourse
+  experimental_system: in_vitro_primary
+
+study_interpretation: >
+  Galeano Niño et al. 2020 Fig 2B-G systematically demonstrates that
+  cytotoxic T cells recruit additional CTLs via a homotypic chemokine
+  signaling loop dependent on cognate antigen engagement and pre-
+  embedded CTL density. Figure 2B specifically shows that the 1:1 CTL:
+  tumour cell ratio produces a robust FMI of ~0.15 (median) for
+  external CTLs migrating toward the tumouroid — the canonical
+  "cytotoxic engagement" CI that the ABM applies to T_CELL_CYT-state
+  cells. The XML default 0.129 sits slightly below this visual readout
+  but within figure-precision tolerance; posterior is expected to land
+  near 0.13-0.15, validating the prior MAPLE calibration. Cytotoxic
+  CTLs migrate more slowly than effector CTLs (T7a EFF ~0.19, T7b CYT
+  ~0.15) because active killing engagement and synapse formation slow
+  directed motion — a feature the ABM's separate-state parameterization
+  captures explicitly.
+
+key_assumptions:
+  - "FMI as measured in 3D live-cell tracking equals the ABM's directional-bias CI in the linear regime (CI ≤ 0.40 per common.cuh:708-714)."
+  - "The 1:1 CTL:tumour cell pre-embedded ratio condition represents canonical cytotoxic engagement and maps to the ABM's T_CELL_CYT state. The mapping is implicit (the ABM does not explicitly model pre-embedded CTL density)."
+  - "Mouse OT1 CTLs are a reasonable proxy for human PDAC TLS cytotoxic T cells; cross-species CI variation is captured in translation_uncertainty."
+  - "Visual figure readout: median ~0.15 ± ~0.03, SD ~0.40 ± ~0.05. n=3 biological replicates per caption."
+  - "T_CELL_CYT cells in the ABM are actively engaged in cancer-cell killing, so the CI value should be lower than T_CELL_EFF (which is the activated pre-engagement migration state). The 0.15 vs 0.19 hierarchy is consistent with this biology."
+
+key_study_limitations:
+  - "Mouse cells, species translation to human PDAC introduces uncertainty in CI magnitude."
+  - "EL4 lymphoma tumouroid is a simple 3D in vitro model; PDAC desmoplastic stroma is much denser and CI may be lower in vivo due to mechanical constraints."
+  - "OT1 TCR-transgenic CTLs are monoclonal; PDAC TLS polyclonal repertoire may have different CCR5 expression distribution per clone."
+  - "FMI is 2D-projected from 3D tracks; potential √(2/3) underestimation of true 3D CI."
+  - "n=3 biological replicates is a small sample; cross-experiment FMI variance may exceed within-experiment track variance."
+
+primary_data_source:
+  doi: "10.7554/eLife.56554"
+  source_tag: GaleanoNino2020
+  title: "Cytotoxic T cells swarm by homotypic chemokine signalling"
+  authors:
+    - "Galeano-Niño"
+    - "Pageon"
+    - "Tay"
+    - "Colakoglu"
+    - "Kempe"
+    - "Larsen"
+    - "Tran"
+    - "Khuu"
+    - "Fournier"
+    - "Lwin"
+    - "Mazalo"
+    - "Coombs"
+    - "Croft"
+    - "Murray"
+    - "Mueller"
+    - "Roediger"
+    - "Wells"
+    - "Beck"
+    - "Tikoo"
+    - "Cavanagh"
+    - "Weninger"
+    - "Britton"
+    - "Biro"
+  year: 2020
+
+tags: [FMI, chemotaxis_index, CD8_T_cell, T_CELL_CYT, cytotoxic_engagement, CCR5, CCL5, mouse, in_vitro, PDAC_proxy]

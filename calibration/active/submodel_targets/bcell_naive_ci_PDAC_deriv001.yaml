@@ -1,0 +1,194 @@
+target_id: bcell_naive_ci
+
+inputs:
+  - name: moderate_gradient_fmi_mean
+    value: 0.075
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Liu2016
+    source_location: "Figure 4B (Page 4 of PDF), Moderate gradient (M.) condition, mean FMI"
+    figure_excerpt:
+      figure_id: "Figure 4B"
+      value: "~0.075"
+      description: "Red marker showing the mean FMI for the moderate gradient (M.) condition. Y-axis: FMI, range -0.05 to +0.10 with visible gridlines at 0, 0.05, 0.10. The M. marker sits between 0.05 and 0.10, visually at ~0.075."
+      context: "Fig 4B reports the mean FMI for each gradient steepness category: random control (Ctrl), shallow (Sh.), moderate (M.), and steep (S.). Anti-IgM (20 μg/mL) + anti-CD40 (2 μg/mL) activated mouse B cells on a glass-surface haptotactic CXCL13/BLC/BCA-1 gradient. n=24 experiments in the M. category, 268 total cells."
+
+  - name: moderate_gradient_ci_halfwidth
+    value: 0.025
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Liu2016
+    source_location: "Figure 4B (Page 4 of PDF), Moderate gradient M. 95% CI"
+    figure_excerpt:
+      figure_id: "Figure 4B"
+      value: "±0.025 (95% CI half-width)"
+      description: "Vertical error bar extending from ~0.05 to ~0.10 on the M. marker, half-width ≈ 0.025. Visible against the linear y-axis gridlines."
+      context: "Caption: 'Error bars: 95% confidence intervals'. Half-width 0.025 corresponds to SEM ≈ 0.025/1.96 = 0.0128."
+
+  - name: n_experiments
+    value: 24
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Liu2016
+    source_location: "Figure 4 caption / Results §'The tactic coefficient...'"
+    value_snippet: "moderate (n = 24, total number of cells = 268)"
+
+  - name: moderate_gradient_fmi_sem
+    value: 0.0128
+    units: dimensionless
+    input_type: derived_arithmetic
+    source_inputs: [moderate_gradient_ci_halfwidth]
+    formula: "moderate_gradient_ci_halfwidth / 1.96"
+    source_ref: Liu2016
+    source_location: "Derived: 95% CI half-width → SEM (z-score 1.96)"
+    rationale: "Convert reported 95% CI half-width 0.025 to SEM via division by 1.96 (standard normal z-score for 95% CI). SEM = 0.0128."
+
+calibration:
+  parameters:
+    - name: PARAM_CHEMO_CI_BCELL_NAIVE
+      units: dimensionless
+
+  forward_model:
+    type: algebraic
+    formula: "predicted_FMI = PARAM_CHEMO_CI_BCELL_NAIVE"
+    data_rationale: |
+      Liu et al. 2016 Fig 4B directly measures the forward migration
+      index (FMI) of anti-IgM + anti-CD40 activated mouse splenic B cells
+      on a haptotactic glass-surface CXCL13/BLC/BCA-1 gradient. The
+      moderate-gradient (M.) condition produces mean FMI ≈ 0.075 (95% CI
+      ±0.025, n=24 experiments, 268 cells). The ABM's PARAM_CHEMO_CI_BCELL_NAIVE
+      governs the activated B cell CXCR5-CXCL13 chemotaxis, which maps
+      directly to Liu's measurement. Forward model: identity predicted FMI
+      = PARAM_CHEMO_CI_BCELL_NAIVE.
+    submodel_rationale: |
+      In the PDAC ABM, every living B cell in state BCELL_ACTIVATED reads
+      the PDE_GRAD_CXCL13_{X,Y,Z} gradient at its voxel and weights its
+      next movement step by bias_strength = 3 × PARAM_CHEMO_CI_BCELL_NAIVE
+      (b_cell.cuh CXCL13 chemotaxis branch + common.cuh:712). Liu's
+      anti-IgM/anti-CD40 activated mouse B cells are the closest
+      experimental analog to the ABM's BCELL_ACTIVATED state: both
+      represent BCR-engaged + CD40-licensed B cells with upregulated
+      CXCR5 expression and active CXCL13 chemotaxis. The "moderate
+      gradient" Liu condition is the canonical chemotaxis dose-response
+      sweet spot (shallow underestimates rate, steep saturates).
+      BCELL_NAIVE (T9b) and TREG_TFH (T9c) are mirrored to this posterior
+      with additional translation σ for naive-vs-activated and B-cell-vs-Tfh
+      differences respectively.
+    code: |
+      def compute(params, inputs):
+          ci = params['PARAM_CHEMO_CI_BCELL_NAIVE']
+          return ci
+
+  error_model:
+    - name: activated_bcell_cxcl13_fmi
+      units: dimensionless
+      uses_inputs: [moderate_gradient_fmi_mean, moderate_gradient_fmi_sem, n_experiments]
+      sample_size_input: n_experiments
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            mean = inputs['moderate_gradient_fmi_mean']
+            sem = inputs['moderate_gradient_fmi_sem']
+            return rng.normal(mean, sem, n_bootstrap)
+
+  identifiability_notes: |
+    Single parameter PARAM_CHEMO_CI_BCELL_NAIVE constrained by one
+    direct observation (Liu 2016 Fig 4B M. condition FMI). The algebraic
+    forward model is bijective (identity). Inference quality is limited
+    by (a) the n=24 experiment SEM (~0.013, relatively tight), (b)
+    visual figure readout of FMI median (~±0.01) and 95% CI half-width
+    (~±0.005), (c) mouse vs human species translation, and (d) glass-
+    surface haptotaxis vs in vivo TLS CXCL13 chemotaxis context. The
+    current XML 0.079 sits very close to the Liu-implied 0.075 — posterior
+    expected to land at 0.075-0.085. Re-validation, not a major
+    re-anchoring.
+
+experimental_context:
+  species: mouse
+  indication: healthy_immune_cells
+  system: in_vitro_primary
+  cell_lines:
+    - name: mouse_anti_IgM_anti_CD40_activated_B_cells
+      species: mouse
+      tissue_origin: spleen
+      cell_type: B_cell_activated_anti_IgM_anti_CD40
+      source: "C57BL/6 mouse splenic B cells, MACS-purified, activated for 18-24h with 20 μg/mL anti-IgM + 2 μg/mL anti-CD40 in culture before the haptotaxis assay."
+  culture_conditions:
+    medium: "Standard B cell migration medium (defined in paper Methods)"
+    serum_concentration: 10
+    serum_concentration_units: "% FBS"
+    culture_type: "2D_glass_surface_haptotaxis"
+    duration: "Time-lapse imaging over several hours"
+    oxygen_level: "normoxic"
+    notes: "2D haptotactic assay: glass surface with adsorbed recombinant mouse CXCL13/BLC/BCA-1 gradients (R&D Systems). Activated mouse B cells migrate on the 2D surface; manual single-cell tracking, FMI computed per track. n=24 experiments in moderate-gradient category, 268 total cells."
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: >
+    Mouse anti-IgM/anti-CD40 activated splenic B cells on glass-surface
+    haptotactic CXCL13 gradient is a defensible proxy for PDAC TLS-resident
+    activated B cells. The cellular phenotype (BCR-engaged + CD40-licensed,
+    CXCR5+) maps to the ABM's BCELL_ACTIVATED state. Translation gaps:
+    species (mouse → human) and assay format (2D glass haptotaxis → 3D
+    in vivo TLS chemotaxis with soluble + bound CXCL13).
+  species_source: mouse
+  species_target: human
+  source_quality: primary_human_in_vitro
+  perturbation_type: pharmacological
+  perturbation_relevance: >
+    Anti-IgM + anti-CD40 in vitro stimulation mimics in vivo cognate
+    antigen + Tfh-CD40L licensing, the canonical TLS B cell activation
+    pathway. The activated phenotype is well-matched to the ABM's
+    BCELL_ACTIVATED state.
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    Three translation factors: (1) species — mouse splenic B cells vs
+    human PDAC TLS B cells. (2) Assay format — 2D glass-surface
+    haptotaxis with adsorbed CXCL13 vs 3D in vivo soluble + bound
+    CXCL13 in TLS. The 2D haptotactic format may underestimate 3D in
+    vivo chemotaxis due to mechanical constraints; conversely it may
+    overestimate due to higher local ligand density. Net direction
+    uncertain. (3) Tissue context — purified B cells in defined medium
+    vs PDAC desmoplastic stroma + chronic inflammation. translation
+    uncertainty is moderate.
+  measurement_directness: direct
+  temporal_resolution: timecourse
+  experimental_system: in_vitro_primary
+
+study_interpretation: >
+  Liu et al. 2016 quantitatively characterized B-lymphocyte directional
+  migration on haptotactic CXCL13/BLC/BCA-1 surface gradients. Figure 4B
+  reports mean FMI grouped by gradient steepness category, with moderate
+  gradients producing FMI ≈ 0.075 (95% CI ±0.025, n=24 experiments).
+  The ABM's PARAM_CHEMO_CI_BCELL_NAIVE models the same activated B cell
+  CXCR5-CXCL13 chemotaxis pathway. The current XML 0.079 sits very close
+  to the Liu-implied 0.075, confirming the prior MAPLE calibration was
+  correctly anchored. The posterior is expected to land at 0.075-0.085,
+  a small re-validation. BCELL_NAIVE (T9b) and TREG_TFH (T9c) share the
+  same CXCR5-CXCL13 chemotaxis biology and are mirrored to this posterior
+  with additional translation σ.
+
+key_assumptions:
+  - "FMI as measured in 2D glass-surface haptotaxis equals the ABM's directional-bias CI in the linear regime (CI ≤ 0.40 per common.cuh:708-714 docstring)."
+  - "Anti-IgM/anti-CD40 activated mouse B cells are a reasonable proxy for human PDAC TLS BCELL_ACTIVATED state. Cross-species CI variation is captured in translation_uncertainty."
+  - "The Moderate gradient (M.) condition represents the canonical chemotaxis dose-response sweet spot, not the saturating peak. The Steep (S.) gradient gives ~0.080 (similar), so the M./S. choice doesn't substantially shift the anchor."
+  - "95% CI half-width to SEM conversion uses the standard normal z-score 1.96. Liu's caption explicitly notes 95% CI error bars."
+
+key_study_limitations:
+  - "Mouse B cells; species translation to human PDAC introduces uncertainty."
+  - "2D glass-surface haptotaxis is a constrained assay vs in vivo 3D chemotaxis. Liu themselves note that 2D haptotaxis with surface-bound chemokine is the most physiologically relevant for CXCL13 in vivo (which is heparan-sulfate-bound), but the absolute CI magnitude transfer is not validated."
+  - "Visual figure readout of mean and 95% CI half-width (~±0.005 precision)."
+  - "n=24 experiments at the M. condition; cross-donor mouse variability may exceed within-experiment cell tracking variance."
+
+primary_data_source:
+  doi: "10.1039/c6ib00128a"
+  source_tag: Liu2016
+  title: "Quantitative analysis of B-lymphocyte migration directed by CXCL13"
+  authors:
+    - "Liu"
+    - "Asokan"
+    - "Bear"
+    - "Haugh"
+  year: 2016
+
+tags: [FMI, chemotaxis_index, B_cell, BCELL_ACTIVATED, CXCR5, CXCL13, haptotaxis, mouse, in_vitro, PDAC_proxy]

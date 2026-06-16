@@ -3,8 +3,8 @@
     <!--
       Presim (drug-free coupled ABM+QSP) and main-sim (drugs on) durations.
       PresimSteps > 0 → fixed step count. PresimSteps = 0 → fall back to
-      the volume target (π/6 × QSP initial_tumour_diameter³). CLI flags
-      --presim-steps / --presim-volume / -s override these.
+      the volume target (π/6 × QSP initial_tumour_diameter³). The CLI flags
+      presim-steps / presim-volume / -s (each dash-prefixed) override these.
     -->
     <PresimSteps>0</PresimSteps>
     <MainSteps>500</MainSteps>
@@ -13,7 +13,12 @@
     <Environment>
       <SecPerSlice name="PARAM_SEC_PER_SLICE" type="float" val="pos" units="seconds">21600</SecPerSlice>
       <recSiteFactor name="PARAM_REC_SITE_FACTOR" type="float" val="pos">1e5</recSiteFactor>
-      <adhSiteDens name="PARAM_ADH_SITE_DENSITY" type="float" val="pos">1000</adhSiteDens>  
+      <adhSiteDens name="PARAM_ADH_SITE_DENSITY" type="float" val="pos">1000</adhSiteDens>
+      <!-- NOTE: the presim target tumor diameter is the single QSP param
+           initial_tumour_diameter (see QSP block / pdac_qsp_priors.csv). Both qsp_abm and
+           abm_only presim grow to that diameter; the ABM-only path reads it via
+           get_full_target_volume() and the representation scalar (see main.cu). No
+           separate ABM target-diameter param is needed. -->
       <Tumor>
         <XSize name="PARAM_X_SIZE" type="int" val="pos" units="microns">50</XSize>
         <YSize name="PARAM_Y_SIZE" type="int" val="pos" units="microns">50</YSize>
@@ -47,17 +52,20 @@
       <hypoxia_recovery name="PARAM_TCELL_HYPOXIA_RECOVERY" type="float" val="pr">1</hypoxia_recovery>        <!-- Recovery decrement per normoxic step (int) -->
       <hypoxia_factor1 name="PARAM_TCELL_HYPOXIA_FACTOR1" type="float" val="pr">0.7</hypoxia_factor1>        <!-- Multiplier: low tier -->
       <hypoxia_factor2 name="PARAM_TCELL_HYPOXIA_FACTOR2" type="float" val="pr">0.4</hypoxia_factor2>        <!-- Multiplier: medium tier -->
-      <hypoxia_factor3 name="PARAM_TCELL_HYPOXIA_FACTOR3" type="float" val="pr">0.12</hypoxia_factor3>        <!-- MAPLE posterior 0.12. Doedens2013 (VHL-KO exhaustion) -->
+      <hypoxia_factor3 name="PARAM_TCELL_HYPOXIA_FACTOR3" type="float" val="pr">0.12</hypoxia_factor3>        <!-- MANUAL model-design (value-audit 2026-06-16): 0.12 hypoxia killing-impairment, NO lit anchor. Doedens2013 DROPPED (0.12 not in paper + hypoxia ENHANCES CD8, opposite direction). -->
       <eff_to_cyt_rate name="PARAM_TCELL_EFF_TO_CYT_RATE" type="float" val="pr" units="1/s">1e-6</eff_to_cyt_rate>  <!-- EFF→CYT rate per second when cancer-progenitor in Moore neighborhood. Was deterministic on first contact (over-converted to CYT — IMC PDAC patients show ~0% cytotoxic). 1e-6/s ≈ 12d timescale → ~2% conversion per ABM step. Sweepable. -->
+      <recruit_p name="PARAM_TEFF_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- PARAMETRIC recruitment_mode ONLY: per-T-source per-step (6h) Teff recruitment probability, read straight from XML with no QSP coupling. Default 0.03 = prior median (steady-state recruitment-death balance; SBI calibration target, lognormal sigma=1.0 in pdac_abm_priors.csv). Unused in QSP mode (p_teff = qsp_teff_central * PARAM_TEFF_RECRUIT_K). -->
     </TCell>
     <TCD4>
       <lifespanSD name="PARAM_TCD4_LIFESPAN_SD" type="float" val="pos">10</lifespanSD>
-      <TGFB_release_time name="PARAM_TCD4_TGFB_RELEASE_TIME" type="float" val="pos">705000</TGFB_release_time> <!-- MAPLE posterior ~705000s (8.2 days). Nakamura2001 -->
+      <TGFB_release_time name="PARAM_TCD4_TGFB_RELEASE_TIME" type="float" val="pos">705000</TGFB_release_time> <!-- MANUAL model-design (value-audit 2026-06-16): 705000s (8.16d) secretion window, NO lit anchor. Nakamura2001 Fig6D DROPPED (=%surface-TGFb+ peaking day3, no 8.2d value). -->
       <div_limit name="PARAM_TCD4_DIV_LIMIT" type="int" val="pos">4</div_limit>
       <!-- Tfh differentiation: TH → Tfh requires mature DC contact + IL-6 -->
       <tfh_diff_k name="PARAM_TFH_DIFF_K" type="float" val="pr">0.078</tfh_diff_k> <!-- MAPLE posterior 0.078. Gao2019 -->
       <tfh_ec50_il6 name="PARAM_TFH_EC50_IL6" type="float" val="pr">0.46</tfh_ec50_il6> <!-- MAPLE posterior 0.46 nM. Gao2019 -->
       <cxcl13_release_tfh name="PARAM_TFH_CXCL13_RELEASE" type="float" val="pr">4.97e-11</cxcl13_release_tfh>  <!-- MAPLE posterior 4.97e-11 (~100x down). Ukita2022 -->
+      <treg_recruit_p name="PARAM_TREG_RECRUIT_P" type="float" val="pr">0.03</treg_recruit_p>  <!-- PARAMETRIC recruitment_mode ONLY: per-T-source per-step (6h) Treg recruitment probability (no QSP coupling). Default 0.03 = prior median (SBI calibration target, lognormal sigma=1.0). Unused in QSP mode (p_treg = qsp_treg_central * PARAM_TREG_RECRUIT_K). -->
+      <th_recruit_p name="PARAM_TH_RECRUIT_P" type="float" val="pr">0.03</th_recruit_p>  <!-- PARAMETRIC recruitment_mode ONLY: per-T-source per-step (6h) Th recruitment probability (no QSP coupling). Default 0.03 = prior median (SBI calibration target, lognormal sigma=1.0). Unused in QSP mode (p_th = qsp_th_central * PARAM_TH_RECRUIT_K). -->
     </TCD4>
     <MDSC>
       <lifespanSD name="PARAM_MDSC_LIFESPAN_SD" type="float" val="pos">1</lifespanSD>
@@ -69,7 +77,7 @@
       <moveSteps name="PARAM_BCELL_MOVE_STEPS" type="int" val="pos">30</moveSteps>
       <recruit_k name="PARAM_BCELL_RECRUIT_K" type="float" val="pr">3.4e-6</recruit_k>             <!-- Recruitment probability scalar (calibrated 2026-05-06: ÷14500 from 0.05 to land near patient B cell density) -->
       <ec50_cxcl13_rec name="PARAM_BCELL_EC50_CXCL13_REC" type="float" val="pr">10.0</ec50_cxcl13_rec> <!-- CXCL13 EC50 for source marking [nM] -->
-      <div_interval name="PARAM_BCELL_DIV_CD" type="int" val="pos">2</div_interval>                <!-- ~12h GC centroblast cycle (Victora2010, Gitlin2014) -->
+      <div_interval name="PARAM_BCELL_DIV_CD" type="int" val="pos">2</div_interval>                <!-- 2 steps x 6h = 12h, within 6-12h centroblast cycle (tight measured 6-7h=1 step). Zhang1988 Immunol Lett "6 to 7 hours" + Liu1991 EJI BrdU. Victora2010/Gitlin2014 DROPPED (their "6hr" = imaging window, not cycle). -->
       <div_limit name="PARAM_BCELL_DIV_LIMIT" type="int" val="pos">6</div_limit>                   <!-- Max clonal expansion rounds -->
       <activation_timer_base name="PARAM_BCELL_ACTIVATION_TIMER" type="int" val="pos">40</activation_timer_base>  <!-- Steps before plasma differentiation (~10 days GC transit; TFH speedup halves to 5 days) -->
       <tls_speedup name="PARAM_BCELL_TLS_SPEEDUP" type="float" val="pr">1.0</tls_speedup>           <!-- Neutral: GC pathway slower than EF, not faster (Elsner2020). Tfh handles acceleration. -->
@@ -95,20 +103,20 @@
       <lifeImmatureSD name="PARAM_DC_LIFE_IMMATURE_SD" type="float" val="pos">40</lifeImmatureSD>
       <lifeMatureSD name="PARAM_DC_LIFE_MATURE_SD" type="float" val="pos">4</lifeMatureSD>
       <moveSteps name="PARAM_DC_MOVE_STEPS" type="int" val="pos">38</moveSteps> <!-- MAPLE posterior 38 (2.1 um/min). Lindquist2004 -->
-      <presentation_capacity name="PARAM_DC_PRESENTATION_CAPACITY" type="int" val="pos">25</presentation_capacity>  <!-- MAPLE posterior 25. Mempel2004 + Miller2004 -->
+      <presentation_capacity name="PARAM_DC_PRESENTATION_CAPACITY" type="int" val="pos">25</presentation_capacity>  <!-- MANUAL model-design (value-audit 2026-06-16): 25 max DC:T conjugates, order-of-magnitude only. Mempel2004 anchor DROPPED (no "~25 conjugates/DC" in paper). -->
       <!-- Antibody immune complex boost on DC maturation -->
       <antibody_maturation_50 name="PARAM_DC_ANTIBODY_50" type="float" val="pr">29.3</antibody_maturation_50>    <!-- MAPLE posterior 29.3 nM. FcgRI KD (Bruhns2009) -->
       <antibody_maturation_boost name="PARAM_DC_ANTIBODY_BOOST" type="float" val="pr">3.95</antibody_maturation_boost>  <!-- MAPLE posterior 3.95. Regnault1999 -->
     </DC>
     <Mac>
       <lifespanSD>1</lifespanSD>
-      <moveSteps name="PARAM_MAC_MOVE_STEPS" type="int" val="pos">30</moveSteps> <!-- MAPLE posterior 30 (1.6 um/min). Chen2019 BMDM -->
+      <moveSteps name="PARAM_MAC_MOVE_STEPS" type="int" val="pos">18</moveSteps> <!-- MAPLE re-derive 2026-06-16: geo-mean of Chen2019 PNAS BMDM mobile 4.7 / confined 0.21 um/min = ~1 um/min x18 = 18 steps (broad bimodal prior). Was 30 ("1.6 um/min" not in paper). -->
       <hypoxia_threshold name="PARAM_MAC_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>  <!-- O2 mM below which M2 bias activates -->
       <m2_bias_strength name="PARAM_MAC_M2_BIAS_STRENGTH" type="float" val="pr">0.75</m2_bias_strength>     <!-- MAPLE posterior 0.75. Raggi2017, Leblond2016 -->
     </Mac>
     <CancerCell>
-      <progGrowthRate name="PARAM_PROG_GROWTH_RATE" type="float" val="pr">0.3</progGrowthRate> <!-- TEMP bump (from MAPLE posterior 0.071): 52h DT ≈ 0.32/day restores prog-faster-than-stem hierarchy. Stem formula gives 0.2/day from k_C1_growth/(1-asym_div_prob); with PROG=0.071 the hierarchy was inverted. Revisit: either raise asym_div_prob→0.99 or drop k_C1_growth so stem DT>10d, and recalibrate PROG to clinical TVDT via MAPLE. -->
-      <senescentDeathRate name="PARAM_SEN_DEATH_RATE" type="float" val="pr">0.1</senescentDeathRate> <!-- MAPLE posterior (~40x down). BCL-2 resistance. Campisi2007; Temp bump to 0.1 from 0.026 --> 
+      <progGrowthRate name="PARAM_PROG_GROWTH_RATE" type="float" val="pr">0.3</progGrowthRate> <!-- 0.3/day: DT=ln2/0.3=2.31d=55h ~ Lieber1975 PANC-1 52h doubling (value-audit 2026-06-16, Furukawa2001 159d DOI DROPPED = wrong paper). Model-design: 0.3 restores PROG>STEM hierarchy (stem k_C1_growth/(1-asym_div_prob)=0.2/day). Full fix needs joint MAPLE on PROG_GROWTH_RATE+ASYM_DIV_PROB+k_C1_growth. -->
+      <senescentDeathRate name="PARAM_SEN_DEATH_RATE" type="float" val="pr">0.1</senescentDeathRate> <!-- MANUAL model-design (value-audit 2026-06-16): 0.1/day (~10d mean life) TEMP bump from legacy 0.026. Campisi2007 quantitative-rate anchor DROPPED (review = qualitative "viable many weeks"); BCL-2 apoptosis-resistance is directional only. -->
       <asymmetricDivProb name="PARAM_ASYM_DIV_PROB" type="float" val="pr">.95</asymmetricDivProb>
       <progenitorDivMax name="PARAM_PROG_DIV_MAX" type="int" val="pos">10</progenitorDivMax>
       <stuckSenescenceSteps name="PARAM_CANCER_STUCK_SENESCENCE_STEPS" type="int" val="pos">20</stuckSenescenceSteps>  <!-- Contact-inhibited senescence: proliferative cells (STEM + PROGENITOR) whose cancer_divide finds n_cands==0 for N consecutive steps (in their wave) are forced to senesce. Prevents interior trapped-progenitor deadlock (proliferating edge ends up senescent, interior progenitors stay locked). Default 20 slices ≈ 5 days at SEC_PER_SLICE=21600, ~2.2× PROG div interval at PROG_GROWTH_RATE=0.3. Lower → more aggressive turnover, higher → longer dormancy tolerance. -->
@@ -146,7 +154,7 @@
       <hev_revert_ccl21_th name="PARAM_VAS_HEV_REVERT_CCL21_TH" type="float" val="pr">0.5</hev_revert_ccl21_th> <!-- CCL21 nM below this → HEV reverts to PHALANX -->
     </Vas>
     <Fib>
-      <moveSteps name="PARAM_FIB_MOVE_STEPS" type="int" val="pos">9</moveSteps> <!-- MAPLE posterior 9 (0.48 um/min). Liu2015 -->
+      <moveSteps name="PARAM_FIB_MOVE_STEPS" type="int" val="pos">8</moveSteps> <!-- MAPLE re-derive 2026-06-16: Storck2016 RLT-PSC 0.45 um/min x18 = 8 steps. Was 9 (fabricated "Liu2015 0.48um/min" = Liu2008 NO-diffusion ratio, not a speed). -->
       <!-- ECM deposition (myCAF only) -->
       <ECM_radius name="PARAM_FIB_ECM_RADIUS" type="float" val="pr">3</ECM_radius>                            <!-- Gaussian kernel radius [voxels] -->
       <ECM_variance name="PARAM_FIB_ECM_VARIANCE" type="float" val="pr">2.0</ECM_variance>                      <!-- Gaussian σ² -->
@@ -165,6 +173,7 @@
     </Fib>
     <Occupancy>
       <voxelCapacity name="PARAM_VOXEL_CAPACITY" type="float" val="pr" units="um3">8000.0</voxelCapacity>             <!-- um3, = voxel_size^3 (20^3) -->
+      <veT name="PARAM_VE_T" type="float" val="pr">0.37</veT>                                                       <!-- Tumor cell-volume fraction (interstitium-excluded). Mirrors QSP P_Ve_T=0.37. Used to convert cancer cell census to gross tissue volume: V_gross = N_cancer * V_cell / Ve_T (matches LymphCentral _compute_tumor_volume). -->
       <CancerCell>
         <stemVolume name="PARAM_VOLUME_CANCER_STEM" type="float" val="pr" units="um3">3053.0</stemVolume>                  <!-- MAPLE. Mendelaar2020 PANC-1 18-22 um -->
         <progenitorVolume name="PARAM_VOLUME_CANCER_PROG" type="float" val="pr" units="um3">3018.0</progenitorVolume> <!-- MAPLE. Mendelaar2020 -->
@@ -287,7 +296,7 @@
         <mac_m1_ci name="PARAM_CHEMO_CI_MAC_M1" type="float" val="pr">0.106</mac_m1_ci>              <!-- MAPLE posterior 0.106. Lee2020 -->
         <mac_m2_ci name="PARAM_CHEMO_CI_MAC_M2" type="float" val="pr">0.276</mac_m2_ci>              <!-- MAPLE posterior 0.276. Lee2020, Cui2018 -->
         <fib_mycaf_ci name="PARAM_CHEMO_CI_FIB_MYCAF" type="float" val="pr">0.05</fib_mycaf_ci>    <!-- 2026-05-07: best-config value after manual exploration. CI/adh/decay interactions are complex enough that further tuning needs a proper sweep. -->
-        <vas_tip_ci name="PARAM_CHEMO_CI_VAS_TIP" type="float" val="pr">0.27</vas_tip_ci>
+        <vas_tip_ci name="PARAM_CHEMO_CI_VAS_TIP" type="float" val="pr">0.12</vas_tip_ci> <!-- MANUAL re-anchor 2026-06-16: no clean VEGF-A endothelial FMI exists. Zengel2011 HUVEC FMI=0.10 (FCS gradient) + Barkefors2008 (VEGF qual). Was 0.27 (Shamloo2008 has no CI). -->
         <treg_reg_ci name="PARAM_CHEMO_CI_TREG_REG" type="float" val="pr">0.13</treg_reg_ci>
         <treg_tfh_ci name="PARAM_CHEMO_CI_TREG_TFH" type="float" val="pr">0.126</treg_tfh_ci>              <!-- MAPLE posterior 0.126. Liu2016 CXCL13 -->
         <mdsc_ci name="PARAM_CHEMO_CI_MDSC" type="float" val="pr">0.17</mdsc_ci>
@@ -404,6 +413,12 @@
   </ABM>
   <Molecular>
     <stepPerSlice name="PARAM_MOLECULAR_STEPS" type="int" val="pos">36</stepPerSlice>  <!-- 36 substeps per ABM step, matching HCC (dt_pde = dt_abm/36 = 600s) -->
+    <!-- PDE solve mode: 0 = transient LOD (stepPerSlice substeps), 1 = quasi-steady-state (single Jacobi-PCG screened-Poisson solve per substrate). Steady mode is valid because the 6h ABM step >> chemical diffusion/decay timescales, so only the equilibrium field matters. -->
+    <pde_solve_mode name="PARAM_PDE_SOLVE_MODE" type="int" val="pos">0</pde_solve_mode>
+    <!-- Steady-state CG relative-residual tolerance (only used when pde_solve_mode=1) -->
+    <pde_cg_tol name="PARAM_PDE_CG_TOL" type="float" val="pr">1e-5</pde_cg_tol>
+    <!-- Steady-state CG iteration cap (only used when pde_solve_mode=1) -->
+    <pde_cg_maxiter name="PARAM_PDE_CG_MAXITER" type="int" val="pos">500</pde_cg_maxiter>
     <biofvm>
       <IFNg>
         <diffusivity name="PARAM_IFNG_DIFFUSIVITY" type="float" val="pr">1.26e-7</diffusivity> <!-- MAPLE. Ramanujan2002 -->
