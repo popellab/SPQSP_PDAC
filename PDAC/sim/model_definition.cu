@@ -1,6 +1,7 @@
 #include "flamegpu/flamegpu.h"
 #include <memory>
 #include <limits>
+#include <cstdlib>
 
 #include "../core/common.cuh"
 #include "../agents/cancer_cell.cuh"
@@ -155,6 +156,7 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     tcell.newVariable<int>("divide_wave", 0);   // Wave assignment for interleaved division
 
     // Movement state (unified movement framework)
+    tcell.newVariable<int>("moves_remaining", 0);
     tcell.newVariable<int>("persist_dir_x", 0);
     tcell.newVariable<int>("persist_dir_y", 0);
     tcell.newVariable<int>("persist_dir_z", 0);
@@ -252,6 +254,7 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     treg.newVariable<int>("divide_wave", 0);   // Wave assignment for interleaved division
 
     // Movement state (unified movement framework)
+    treg.newVariable<int>("moves_remaining", 0);
     treg.newVariable<int>("persist_dir_x", 0);
     treg.newVariable<int>("persist_dir_y", 0);
     treg.newVariable<int>("persist_dir_z", 0);
@@ -328,6 +331,7 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state) {
     mdsc.newVariable<int>("z");
 
     // Movement state (unified movement framework)
+    mdsc.newVariable<int>("moves_remaining", 0);
     mdsc.newVariable<int>("persist_dir_x", 0);
     mdsc.newVariable<int>("persist_dir_y", 0);
     mdsc.newVariable<int>("persist_dir_z", 0);
@@ -447,6 +451,7 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
     fib.newVariable<int>("cell_state", FIB_QUIESCENT);
 
     // Movement state (unified movement framework)
+    fib.newVariable<int>("moves_remaining", 0);
     fib.newVariable<int>("persist_dir_x", 0);
     fib.newVariable<int>("persist_dir_y", 0);
     fib.newVariable<int>("persist_dir_z", 0);
@@ -560,6 +565,7 @@ void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     bcell.newVariable<int>("cell_state", BCELL_NAIVE);
 
     // Movement state (unified movement framework)
+    bcell.newVariable<int>("moves_remaining", 0);
     bcell.newVariable<int>("persist_dir_x", 0);
     bcell.newVariable<int>("persist_dir_y", 0);
     bcell.newVariable<int>("persist_dir_z", 0);
@@ -626,6 +632,7 @@ void defineDCAgent(flamegpu::ModelDescription& model, bool include_state) {
     dc.newVariable<int>("dc_subtype", DC_CDC1);
 
     // Movement state (unified movement framework)
+    dc.newVariable<int>("moves_remaining", 0);
     dc.newVariable<int>("persist_dir_x", 0);
     dc.newVariable<int>("persist_dir_y", 0);
     dc.newVariable<int>("persist_dir_z", 0);
@@ -671,7 +678,16 @@ void defineCellLocationMessage(flamegpu::ModelDescription& model, float voxel_si
 
     message.setMin(env_min, env_min, env_min);
     message.setMax(env_max, env_max, env_max);
-    message.setRadius(1.98f * voxel_size);
+    // Bin size = radius. All readers filter to the Moore (|d|<=1 voxel) neighborhood. With a
+    // 1-voxel radius the 3x3x3 spatial bins are EXACTLY the 27-voxel Moore block — no over-read.
+    // Verified safe: the regular MessageSpatial3D::In iterator returns ALL messages in the 3x3x3
+    // bins WITHOUT distance-filtering (only the .wrap() iterator filters by radius — see
+    // MessageSpatial3DDevice.cuh), so the sqrt(3)≈1.73 corner neighbor (in the +1,+1,+1 bin) is
+    // returned, and readers' own |d|<=1 check keeps it. (Was 1.98 → ~2-voxel bins → ~8x over-read;
+    // cut broadcast_scan from 8.4 to 3.1 ms.) Tunable via env PDAC_MSG_RADIUS for experiments.
+    float radius_mult = 1.0f;
+    if (const char* rm = std::getenv("PDAC_MSG_RADIUS")) { float v = atof(rm); if (v > 0.0f) radius_mult = v; }
+    message.setRadius(radius_mult * voxel_size);
 
     // Message variables (shared by all agent types)
     message.newVariable<int>("agent_type");

@@ -904,6 +904,43 @@ __device__ __forceinline__ MoveResult move_cell(
     return result;
 }
 
+// ============================================================================
+// Batched movement: do `n_moves` voxel-moves in one kernel call, re-reading the
+// gradient + ECM orientation at each new voxel and atomically claiming/releasing
+// volume on every move (so the occupancy grid is read+written per voxel-move,
+// exactly as the single-move path). Lets the layer graph use K rounds instead of
+// one layer per substep — collapsing FLAMEGPU per-layer overhead — while keeping
+// agents within `n_moves` voxels of each other between rounds (interleaving).
+// `gax/gay/gaz` are the chemotaxis gradient arrays (only read when bias>0).
+// Position + persistence direction are updated in place.
+// ============================================================================
+template<typename API>
+__device__ __forceinline__ void run_move_batch(
+    API FLAMEGPU, MoveParams& mp, int n_moves,
+    const float* gax, const float* gay, const float* gaz,
+    float bias, float w_cg,
+    int& x, int& y, int& z, int& pdx, int& pdy, int& pdz)
+{
+    const int GXY = mp.grid_x * mp.grid_y;
+    for (int k = 0; k < n_moves; k++) {
+        const int vidx = z * GXY + y * mp.grid_x + x;
+        float g0 = 0.0f, g1 = 0.0f, g2 = 0.0f;
+        if (bias > 0.0f) { g0 = gax[vidx]; g1 = gay[vidx]; g2 = gaz[vidx]; }
+        const float ox = mp.orient_x[vidx], oy = mp.orient_y[vidx], oz = mp.orient_z[vidx];
+        if (bias > 0.0f) apply_contact_guidance(g0, g1, g2, ox, oy, oz, w_cg);
+        else             apply_contact_guidance_persist(g0, g1, g2, mp.bias_strength, ox, oy, oz, w_cg, pdx, pdy, pdz);
+        mp.grad_x = g0; mp.grad_y = g1; mp.grad_z = g2;
+        MoveResult r = move_cell(mp, x, y, z, pdx, pdy, pdz,
+            FLAMEGPU->random.template uniform<float>(),
+            FLAMEGPU->random.template uniform<float>(),
+            FLAMEGPU->random.template uniform<float>());
+        if (r.moved) {
+            x = r.new_x; y = r.new_y; z = r.new_z;
+            pdx = r.persist_dx; pdy = r.persist_dy; pdz = r.persist_dz;
+        }
+    }
+}
+
 } // namespace PDAC
 
 #endif // PDAC_COMMON_CUH

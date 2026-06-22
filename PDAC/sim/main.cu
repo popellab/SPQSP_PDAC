@@ -883,7 +883,7 @@ int main(int argc, const char** argv) {
         }
         config.presim_qsp_enabled = false;
         config.main_qsp_enabled   = false;
-        if (!config.presim_steps_from_cli && config.presim_steps < 0) {
+        if (!config.presim_areal_from_cli && !config.presim_steps_from_cli && config.presim_steps < 0) {
             config.presim_steps = 100;
             config.presim_steps_from_cli = true;  // treat as override
             std::cerr << "[scenario:single_stem_edge] defaulting --presim-steps to 100 "
@@ -892,7 +892,11 @@ int main(int argc, const char** argv) {
     }
     // Precedence between CLI flags (volume target from XML diameter is resolved
     // later, after _lymph.initialize() computes get_full_target_volume()).
-    if (config.presim_steps_from_cli) {
+    if (config.presim_areal_from_cli) {
+        // Areal-fraction stopper wins over all others; disable step/volume targets.
+        config.presim_steps = -1;
+        config.presim_volume_target = -1.0;
+    } else if (config.presim_steps_from_cli) {
         config.presim_volume_target = -1.0;
     } else if (config.presim_volume_from_cli) {
         config.presim_steps = -1;
@@ -1167,7 +1171,11 @@ int main(int argc, const char** argv) {
     std::cout << "\n=== Presim phase ("
               << (config.presim_qsp_enabled ? "ABM+QSP, no drugs" : "ABM only, QSP frozen")
               << ") ===" << std::endl;
-    if (config.presim_steps >= 0) {
+    if (config.presim_areal_from_cli) {
+        const double n_vox = static_cast<double>(config.grid_x) * config.grid_y * config.grid_z;
+        std::cout << "  Stopper: cancer areal fraction >= " << config.presim_areal_target
+                  << "  (N_cancer / " << static_cast<long long>(n_vox) << " voxels)" << std::endl;
+    } else if (config.presim_steps >= 0) {
         std::cout << "  Stopper: fixed step count = " << config.presim_steps << std::endl;
     } else {
         std::cout << "  Stopper: " << (config.presim_qsp_enabled ? "QSP" : "ABM-represented")
@@ -1187,6 +1195,14 @@ int main(int argc, const char** argv) {
     unsigned int presim_step_count = 0;
 
     auto presim_should_continue = [&]() -> bool {
+        if (config.presim_areal_from_cli) {
+            const double n_vox = static_cast<double>(config.grid_x)
+                               * config.grid_y * config.grid_z;
+            unsigned int n_cancer =
+                simulation.getEnvironmentProperty<unsigned int>("total_cancer_cells");
+            double areal = (n_vox > 0.0) ? static_cast<double>(n_cancer) / n_vox : 0.0;
+            return areal < config.presim_areal_target && presim_step_count < max_presim_steps;
+        }
         if (config.presim_steps >= 0) {
             return presim_step_count < static_cast<unsigned int>(config.presim_steps);
         }

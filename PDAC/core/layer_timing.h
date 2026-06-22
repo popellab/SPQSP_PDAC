@@ -2,6 +2,8 @@
 #include <chrono>
 #include <string>
 #include <vector>
+#include <cstdlib>
+#include <cuda_runtime.h>
 
 // ============================================================================
 // Per-Layer Timing Infrastructure
@@ -36,8 +38,17 @@ extern std::vector<LayerTime> g_layer_timings;
 // Rolling checkpoint time — reset at start of each step, advanced after each phase.
 extern ClockPoint g_checkpoint_t;
 
+// Opt-in (env PDAC_PROFILE_SYNC=1): cudaDeviceSynchronize at each checkpoint so the
+// recorded host wall-time reflects each phase's TRUE GPU time (resolves async
+// mis-attribution). Default off → zero production impact. Checked once.
+inline bool profile_sync_enabled() {
+    static int e = []{ const char* v = std::getenv("PDAC_PROFILE_SYNC"); return (v && v[0] == '1') ? 1 : 0; }();
+    return e != 0;
+}
+
 // Record elapsed time since last checkpoint under `name`, then reset checkpoint.
 inline void record_checkpoint(const char* name) {
+    if (profile_sync_enabled()) cudaDeviceSynchronize();
     auto now = std::chrono::high_resolution_clock::now();
     double ms = std::chrono::duration<double, std::milli>(now - g_checkpoint_t).count();
     g_layer_timings.push_back({name, ms});
@@ -46,6 +57,7 @@ inline void record_checkpoint(const char* name) {
 
 // Reset checkpoint timer (call at very start of each step).
 inline void reset_step_timer() {
+    if (profile_sync_enabled()) cudaDeviceSynchronize();
     g_checkpoint_t = std::chrono::high_resolution_clock::now();
 }
 

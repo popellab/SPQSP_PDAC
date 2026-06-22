@@ -1898,6 +1898,18 @@ FLAMEGPU_HOST_FUNCTION(timing_after_ecm) {
     nvtxRangePop();
 }
 
+FLAMEGPU_HOST_FUNCTION(timing_after_occ) {
+    nvtxRangePush("Timing Checkpoint: occupancy");
+    record_checkpoint("occupancy");
+    nvtxRangePop();
+}
+
+FLAMEGPU_HOST_FUNCTION(timing_after_bcast_out) {
+    nvtxRangePush("Timing Checkpoint: bcast_out");
+    record_checkpoint("bcast_out");
+    nvtxRangePop();
+}
+
 FLAMEGPU_HOST_FUNCTION(timing_after_movement) {
     nvtxRangePush("Timing Checkpoint: movement");
     record_checkpoint("movement");

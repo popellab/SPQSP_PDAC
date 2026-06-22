@@ -62,7 +62,7 @@
       <div_limit name="PARAM_TCD4_DIV_LIMIT" type="int" val="pos">4</div_limit>
       <!-- Tfh differentiation: TH → Tfh requires mature DC contact + IL-6 -->
       <tfh_diff_k name="PARAM_TFH_DIFF_K" type="float" val="pr">0.078</tfh_diff_k> <!-- MAPLE posterior 0.078. Gao2019 -->
-      <tfh_ec50_il6 name="PARAM_TFH_EC50_IL6" type="float" val="pr">0.46</tfh_ec50_il6> <!-- MAPLE posterior 0.46 nM. Gao2019 -->
+      <tfh_ec50_il6 name="PARAM_TFH_EC50_IL6" type="float" val="pr">5e-4</tfh_ec50_il6> <!-- MAPLE posterior 0.46 nM. Gao2019 -->
       <cxcl13_release_tfh name="PARAM_TFH_CXCL13_RELEASE" type="float" val="pr">4.97e-11</cxcl13_release_tfh>  <!-- MAPLE posterior 4.97e-11 (~100x down). Ukita2022 -->
       <treg_recruit_p name="PARAM_TREG_RECRUIT_P" type="float" val="pr">0.03</treg_recruit_p>  <!-- PARAMETRIC recruitment_mode ONLY: per-T-source per-step (6h) Treg recruitment probability (no QSP coupling). Default 0.03 = prior median (SBI calibration target, lognormal sigma=1.0). Unused in QSP mode (p_treg = qsp_treg_central * PARAM_TREG_RECRUIT_K). -->
       <th_recruit_p name="PARAM_TH_RECRUIT_P" type="float" val="pr">0.03</th_recruit_p>  <!-- PARAMETRIC recruitment_mode ONLY: per-T-source per-step (6h) Th recruitment probability (no QSP coupling). Default 0.03 = prior median (SBI calibration target, lognormal sigma=1.0). Unused in QSP mode (p_th = qsp_th_central * PARAM_TH_RECRUIT_K). -->
@@ -72,7 +72,7 @@
       <moveSteps name="PARAM_MDSC_MOVE_STEPS" type="int" val="pos">71</moveSteps> <!-- MAPLE posterior 71 (3.9 um/min). Kreisel2010 neutrophil proxy -->
     </MDSC>
     <BCell>
-      <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           <!-- ABM steps (~15 days) -->
+      <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           <!-- 60 steps x6h = 15d, mixed-pool mean (R8 2026-06-16): plasmablast 3-5d (Tellier2019) to naive ~42d (Fulcher1997). Manz2002 "3-8d" DROPPED (misattributed; Manz argues plasma long-lived). -->
       <lifespanSD name="PARAM_BCELL_LIFE_SD" type="float" val="pos">10</lifespanSD>
       <moveSteps name="PARAM_BCELL_MOVE_STEPS" type="int" val="pos">30</moveSteps>
       <recruit_k name="PARAM_BCELL_RECRUIT_K" type="float" val="pr">3.4e-6</recruit_k>             <!-- Recruitment probability scalar (calibrated 2026-05-06: ÷14500 from 0.05 to land near patient B cell density) -->
@@ -131,6 +131,7 @@
       <hif_pdl1_boost name="PARAM_HIF_PDL1_BOOST" type="float" val="pr">0.41</hif_pdl1_boost>      <!-- MAPLE posterior 0.41. Barsoum2014, Noman2014 -->
       <hif_mhc_reduction name="PARAM_HIF_MHC_REDUCTION" type="float" val="pr">0.5</hif_mhc_reduction> <!-- Kill probability multiplier for HIF-active targets -->
       <antigenInitSeedFrac name="PARAM_ANTIGEN_INIT_SEED_FRAC" type="float" val="pr">0.1</antigenInitSeedFrac>  <!-- Fraction of PARAM_ANTIGEN_DEPOSIT (= P1_C1) seeded into the antigen grid at every tumor voxel at init. Bootstraps DC maturation + B cell activation before any cancer death has happened. Default 0.1 = 10% of one cancer-death equivalent. Raise to push more antigen at step 0. -->
+      <antigenShedFrac name="PARAM_ANTIGEN_SHED_FRAC" type="float" val="pr">0.2</antigenShedFrac>  <!-- Fraction of PARAM_ANTIGEN_DEPOSIT (= P1_C1) shed per step by each LIVING cancer cell into its voxel (cancer_cell_state_step). Tumors continuously shed antigen, not only on death; fills the tumor mass so infiltrating/marginal DCs can mature (death-only deposition left DCs antigen-starved). 0.2 = validated TLS-enabling value. -->
     </CancerCell>
     <Vas>
       <maxPerVoxel name="PARAM_VAS_MAXPERVOXEL" type="float" val="pos">1</maxPerVoxel>
@@ -150,7 +151,7 @@
       <!-- HEV (High Endothelial Venule) differentiation -->
       <hev_ccl21_threshold name="PARAM_VAS_HEV_CCL21_TH" type="float" val="pr">5.0</hev_ccl21_threshold>         <!-- Unbound CCL21 min ~5 nM in LN paracortex -->
       <hev_lymph_density_th name="PARAM_VAS_HEV_LYMPH_DENSITY_TH" type="float" val="pr">8000.0</hev_lymph_density_th> <!-- ~1 cell in Moore neighborhood (1 voxel = 8000 um³) -->
-      <hev_recruit_boost name="PARAM_VAS_HEV_RECRUIT_BOOST" type="float" val="pr">5.0</hev_recruit_boost>           <!-- Recruitment probability multiplier for HEV vs PHALANX -->
+      <hev_recruit_boost name="PARAM_VAS_HEV_RECRUIT_BOOST" type="float" val="pr">5.0</hev_recruit_boost>           <!-- Recruitment multiplier HEV vs PHALANX. 5x conservative model-design (R8 2026-06-16): Martinet2011 reports HEV-density/TIL CORRELATION (not 10x fold); comparator TLS-rich/free CD8 ~6.2x. Range [3,10]. -->
       <hev_revert_ccl21_th name="PARAM_VAS_HEV_REVERT_CCL21_TH" type="float" val="pr">0.5</hev_revert_ccl21_th> <!-- CCL21 nM below this → HEV reverts to PHALANX -->
     </Vas>
     <Fib>
@@ -265,6 +266,13 @@
     </DomainInit>
     <!-- Unified movement framework: persistence, chemotaxis bias, adhesion -->
     <Movement>
+      <!-- Batched-round movement: voxel-moves done per agent per round (structural knob).
+           Each round is one FLAMEGPU layer; K = ceil(max move_steps / move_batch) rounds replace
+           the old per-substep layers, collapsing per-layer overhead. Occupancy is still read+written
+           on EVERY voxel-move; types interleave at round boundaries (no type gets > move_batch voxels
+           ahead). move_batch=1 = old behavior (max fidelity); larger = fewer layers/faster, coarser
+           interleaving. Default 10. -->
+      <move_batch name="PARAM_MOVE_BATCH" type="int" val="pos">10</move_batch>
       <Persistence>
         <!-- Probability of continuing previous direction each substep -->
         <tcell_eff name="PARAM_PERSIST_TCELL_EFF" type="float" val="pr">0.4</tcell_eff>
@@ -403,18 +411,18 @@
     </Movement>
     <DCPriming>
       <!-- Naive T cell recruitment rate as fraction of existing effector/Th recruitment -->
-      <naive_cd8_recruit_frac name="PARAM_NAIVE_CD8_RECRUIT_FRAC" type="float">0.05</naive_cd8_recruit_frac> <!-- <5% naive CD8 in PDAC TIL (Schalck2022), trafficking bias 5-20x (Masopust2013) -->
-      <naive_cd4_recruit_frac name="PARAM_NAIVE_CD4_RECRUIT_FRAC" type="float">0.05</naive_cd4_recruit_frac> <!-- <5-10% naive CD4 in PDAC TIL (Pearce2023), HEV-dependent entry (Hang2019) -->
-      <!-- Naive cell lifespan in ABM steps (~4 days at 21600s/step) -->
-      <naive_lifespan_steps name="PARAM_NAIVE_LIFESPAN_STEPS" type="int">16</naive_lifespan_steps>
+      <naive_cd8_recruit_frac name="PARAM_NAIVE_CD8_RECRUIT_FRAC" type="float">0.03</naive_cd8_recruit_frac> <!-- 0.03 (R8 2026-06-16): Pearce2023 "near complete exclusion of naive" CD8 in PDAC TIL (qualitative; CD8 naive rarer than CD4). Schalck2022 "<5%" UNVERIFIED (paywalled). -->
+      <naive_cd4_recruit_frac name="PARAM_NAIVE_CD4_RECRUIT_FRAC" type="float">0.05</naive_cd4_recruit_frac> <!-- 0.05 (R8 2026-06-16): Pearce2023 (10.1158/2326-6066.CIR-22-0121) "very few naive cells" in CD4 TIL - qualitative, no exact %. -->
+      <!-- Naive cell single-pass tissue dwell in ABM steps (R8: ~1d; was 16=4d) -->
+      <naive_lifespan_steps name="PARAM_NAIVE_LIFESPAN_STEPS" type="int">4</naive_lifespan_steps> <!-- MAPLE re-anchor 16->4 (posterior 3.53): Caucheteux2013 naive CD4 lung transit ~14h /6h-step. Thompson2010 "2-7d" DROPPED (wrong timescale). -->
       <!-- Extra divisions granted upon DC priming. Base DIV_LIMIT=4 + burst → 7-10 total (Kaech2001, Lanzavecchia2002) -->
       <prime_div_burst name="PARAM_PRIME_DIV_BURST" type="int">4</prime_div_burst>
     </DCPriming>
   </ABM>
   <Molecular>
     <stepPerSlice name="PARAM_MOLECULAR_STEPS" type="int" val="pos">36</stepPerSlice>  <!-- 36 substeps per ABM step, matching HCC (dt_pde = dt_abm/36 = 600s) -->
-    <!-- PDE solve mode: 0 = transient LOD (stepPerSlice substeps), 1 = quasi-steady-state (single Jacobi-PCG screened-Poisson solve per substrate). Steady mode is valid because the 6h ABM step >> chemical diffusion/decay timescales, so only the equilibrium field matters. -->
-    <pde_solve_mode name="PARAM_PDE_SOLVE_MODE" type="int" val="pos">0</pde_solve_mode>
+    <!-- PDE solve mode (DEFAULT 2): 0 = transient LOD (stepPerSlice substeps); 1 = quasi-steady-state Jacobi-PCG (exact reference, slow); 2 = quasi-steady-state 3D-DCT spectral solve (Makhoul, batched; decay-only one-shot + mean-shifted defect-correction for O2/CCL2/VEGFA uptake). Mode 2 is exact (matches CG oracle to ~1e-6), gives un-smoothed gradients, and is 8-11x faster than transient. Valid because the 6h ABM step >> chemical diffusion/decay timescales, so only the equilibrium field matters. -->
+    <pde_solve_mode name="PARAM_PDE_SOLVE_MODE" type="int" val="pos">2</pde_solve_mode>
     <!-- Steady-state CG relative-residual tolerance (only used when pde_solve_mode=1) -->
     <pde_cg_tol name="PARAM_PDE_CG_TOL" type="float" val="pr">1e-5</pde_cg_tol>
     <!-- Steady-state CG iteration cap (only used when pde_solve_mode=1) -->
@@ -839,8 +847,8 @@
       <k_APC_mig>4.0</k_APC_mig>
       <k_APC_death>0.15</k_APC_death>
       <k_mAPC_death>0.3</k_mAPC_death>
-      <cDC1_recruit_target_T>50000.0</cDC1_recruit_target_T>
-      <cDC2_recruit_target_T>200000.0</cDC2_recruit_target_T>
+      <cDC1_recruit_target_T>500000.0</cDC1_recruit_target_T>
+      <cDC2_recruit_target_T>2000000.0</cDC2_recruit_target_T>
       <APC0_cDC1_LN>240000.0</APC0_cDC1_LN>
       <APC0_cDC2_LN>960000.0</APC0_cDC2_LN>
       <n_sites_APC>10.0</n_sites_APC>
@@ -1341,7 +1349,7 @@
     <D name="PARAM_ANTIGEN_DEPOSIT" type="float" comment="antigen deposited per cancer death [molecules/cell] = P1_C1"><![CDATA[QP(CancerVCT::P_P1_C1)]]></D>
     <D name="PARAM_ANTIGEN_DECAY_RATE" type="float" comment="antigen decay rate [1/s] from k_P1_deg"><![CDATA[QP(CancerVCT::P_k_P1_deg)]]></D>
     <D name="PARAM_ANTIGEN_CAPTURE_THRESHOLD" type="float" comment="min antigen for B cell capture [molecules] = 0.1 * P1_C1 (deprecated; kept for legacy uptake path)"><![CDATA[0.1 * QP(CancerVCT::P_P1_C1)]]></D>
-    <D name="PARAM_BCELL_ACTIVATION_ANTIGEN_MIN" type="float" comment="min antigen for B cell NAIVE→ACT activation [molecules] = 0.01 * P1_C1"><![CDATA[0.01 * QP(CancerVCT::P_P1_C1)]]></D>
+    <D name="PARAM_BCELL_ACTIVATION_ANTIGEN_MIN" type="float" comment="min antigen for B cell NAIVE→ACT activation [molecules]. DECOUPLED from P_P1_C1 (0.01*P1_C1=3.25e9 exceeded the achievable spatial antigen ~1e9): a small minimum on the spatial Moore-avg scale, paired with Tfh/Th help. TODO tune/parameterize."><![CDATA[1e7]]></D>
 
     <!-- DC lifespans from ODE turnover rates -->
     <D name="PARAM_DC_LIFE_IMMATURE_MEAN" type="float" comment="Immature DC lifespan [timesteps] from k_APC_death"><![CDATA[1.0 / (QP(CancerVCT::P_k_APC_death) * t_step_sec)]]></D>
@@ -1359,7 +1367,7 @@
     <!-- ODE: k_APC_mat * cDC * [1-(1-H_DAMP)*(1-H_IL12)] * (1-H_IL10) * (1-H_TGFb_APC) -->
     <D name="PARAM_DC_K_MAT_CDC1" type="float" comment="cDC1 maturation rate [prob/step] from k_APC_mat_cDC1"><![CDATA[QP(CancerVCT::P_k_APC_mat_cDC1) * t_step_sec]]></D>
     <D name="PARAM_DC_K_MAT_CDC2" type="float" comment="cDC2 maturation rate [prob/step] from k_APC_mat_cDC2"><![CDATA[QP(CancerVCT::P_k_APC_mat_cDC2) * t_step_sec]]></D>
-    <D name="PARAM_DC_ANTIGEN_50" type="float" comment="antigen EC50 for maturation [molecules/voxel] = P1_C1 (1 death equiv)"><![CDATA[QP(CancerVCT::P_P1_C1)]]></D>
+    <D name="PARAM_DC_ANTIGEN_50" type="float" comment="antigen EC50 for maturation [molecules/voxel]. DECOUPLED from per-cell P_P1_C1 (=3.25e11): spatial Moore-averaged antigen runs ~1e3-1e4x below a whole-cell molecule count, so DCs near shedding tumor reach H~0.9 while marginal DCs stay low. TODO tune/parameterize."><![CDATA[1e8]]></D>
     <D name="PARAM_DC_IL12_50" type="float" comment="IL-12 EC50 for maturation boost [nM]"><![CDATA[QP(CancerVCT::P_IL12_50) * 1e6]]></D>
     <D name="PARAM_DC_IL10_50" type="float" comment="IL-10 EC50 for maturation suppression [nM]"><![CDATA[QP(CancerVCT::P_IL10_50) * 1e6]]></D>
     <!-- PARAM_DC_TGFB_50: decoupled from QSP P_TGFb_50_APC (Apr 23 2026). Direct

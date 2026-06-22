@@ -120,6 +120,8 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_sources;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_pde;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_gradients;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_ecm;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_occ;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_bcast_out;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_movement;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_division;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER reset_divide_wave;

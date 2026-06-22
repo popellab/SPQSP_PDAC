@@ -1,9 +1,9 @@
 metadata:
   generated_by: maple.core.calibration.posterior_parameterizer
-  n_targets: 30
-  n_parameters: 41
+  n_targets: 31
+  n_parameters: 42
   n_samples: 20000
-  timestamp: '2026-06-16T13:56:14.793353+00:00'
+  timestamp: '2026-06-16T19:06:58.700484+00:00'
   num_warmup: 1000
   num_samples: 5000
   num_chains: 4
@@ -11,371 +11,380 @@ parameters:
 - name: PARAM_ANTIBODY_DECAY_RATE
   marginal:
     distribution: lognormal
-    mu: -9.888206
-    sigma: 0.404109
+    mu: -9.887239
+    sigma: 0.407006
     median: 5.1e-05
-    cv: 0.421183
+    cv: 0.424458
   source_targets:
   - antibody_decay
 - name: PARAM_ANTIBODY_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -16.112507
-    sigma: 0.351028
+    mu: -16.113449
+    sigma: 0.354686
     median: 0.0
-    cv: 0.362125
+    cv: 0.366139
   source_targets:
   - antibody_diffusivity
 - name: PARAM_ARGI_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -14.808981
-    sigma: 0.556821
+    mu: -14.807265
+    sigma: 0.55663
     median: 0.0
-    cv: 0.602904
+    cv: 0.602664
   source_targets:
   - large_molecule_diffusivity
 - name: PARAM_BCELL_ANTIBODY_RELEASE
   marginal:
     distribution: lognormal
-    mu: -19.537432
-    sigma: 0.45792
+    mu: -19.536875
+    sigma: 0.456044
     median: 0.0
-    cv: 0.483008
+    cv: 0.480815
   source_targets:
   - bcell_antibody_secretion
 - name: PARAM_BCELL_IL10_RELEASE
   marginal:
     distribution: lognormal
-    mu: -30.66671
-    sigma: 0.680728
+    mu: -30.667234
+    sigma: 0.684058
     median: 0.0
-    cv: 0.76776
+    cv: 0.77246
   source_targets:
   - bcell_breg_il10_secretion
 - name: PARAM_BCELL_IL6_RELEASE
   marginal:
     distribution: lognormal
-    mu: -28.807888
-    sigma: 0.713691
+    mu: -28.805868
+    sigma: 0.712451
     median: 0.0
-    cv: 0.814996
+    cv: 0.81319
   source_targets:
   - bcell_il6_secretion
 - name: PARAM_CCL21_DECAY_RATE
   marginal:
     distribution: lognormal
-    mu: -11.488162
-    sigma: 0.697743
+    mu: -11.491896
+    sigma: 0.69917
     median: 1e-05
-    cv: 0.791944
+    cv: 0.793991
   source_targets:
   - ccl21_decay
 - name: PARAM_CCL21_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -15.392209
-    sigma: 0.550002
+    mu: -15.390121
+    sigma: 0.55137
     median: 0.0
-    cv: 0.594341
+    cv: 0.596055
   source_targets:
   - ccl21_decay
   - small_chemokine_diffusivity
 - name: PARAM_CCL2_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -16.353796
-    sigma: 0.561687
+    mu: -16.354107
+    sigma: 0.561167
     median: 0.0
-    cv: 0.609044
+    cv: 0.608386
   source_targets:
   - small_chemokine_diffusivity
 - name: PARAM_CCL2_UPTAKE
   marginal:
     distribution: lognormal
-    mu: -6.587123
-    sigma: 0.457885
-    median: 0.001378
-    cv: 0.482967
+    mu: -6.588275
+    sigma: 0.458756
+    median: 0.001376
+    cv: 0.483986
   source_targets:
   - ccl2_uptake
 - name: PARAM_CCL5_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -15.021932
-    sigma: 0.555572
+    mu: -15.022941
+    sigma: 0.557137
     median: 0.0
-    cv: 0.601332
+    cv: 0.603301
   source_targets:
   - small_chemokine_diffusivity
 - name: PARAM_CHEMO_CI_BCELL_ACT
   marginal:
     distribution: lognormal
-    mu: -2.565549
-    sigma: 0.500416
-    median: 0.076877
-    cv: 0.533442
+    mu: -2.566992
+    sigma: 0.496595
+    median: 0.076766
+    cv: 0.528844
   source_targets:
   - bcell_act_ci
 - name: PARAM_CHEMO_CI_BCELL_NAIVE
   marginal:
     distribution: lognormal
-    mu: -2.413018
-    sigma: 0.49973
-    median: 0.089545
-    cv: 0.532616
+    mu: -2.419229
+    sigma: 0.500401
+    median: 0.08899
+    cv: 0.533424
   source_targets:
   - bcell_naive_ci
 - name: PARAM_CHEMO_CI_MAC_M1
   marginal:
     distribution: lognormal
-    mu: -1.751099
-    sigma: 0.489058
-    median: 0.173583
-    cv: 0.519812
+    mu: -1.748228
+    sigma: 0.492874
+    median: 0.174082
+    cv: 0.524378
   source_targets:
   - mac_m1_ci
 - name: PARAM_CHEMO_CI_MAC_M2
   marginal:
     distribution: lognormal
-    mu: -1.277382
-    sigma: 0.491915
-    median: 0.278766
-    cv: 0.52323
+    mu: -1.276719
+    sigma: 0.493905
+    median: 0.278951
+    cv: 0.525615
   source_targets:
   - mac_m2_ci
 - name: PARAM_CHEMO_CI_MDSC
   marginal:
     distribution: lognormal
-    mu: -1.517651
-    sigma: 0.482366
-    median: 0.219226
-    cv: 0.511834
+    mu: -1.517973
+    sigma: 0.489143
+    median: 0.219156
+    cv: 0.519914
   source_targets:
   - mdsc_ci
 - name: PARAM_CHEMO_CI_TCELL_CYT
   marginal:
     distribution: lognormal
-    mu: -1.883921
-    sigma: 0.561118
-    median: 0.151993
-    cv: 0.608324
+    mu: -1.887115
+    sigma: 0.564949
+    median: 0.151508
+    cv: 0.613173
   source_targets:
   - tcell_cyt_ci
 - name: PARAM_CHEMO_CI_TCELL_EFF
   marginal:
     distribution: lognormal
-    mu: -1.579448
-    sigma: 0.56885
-    median: 0.206089
-    cv: 0.618127
+    mu: -1.5799
+    sigma: 0.571814
+    median: 0.205996
+    cv: 0.621901
   source_targets:
   - tcell_eff_ci
 - name: PARAM_CHEMO_CI_TREG_TFH
   marginal:
     distribution: lognormal
-    mu: -2.33149
-    sigma: 0.499086
-    median: 0.097151
-    cv: 0.53184
+    mu: -2.332025
+    sigma: 0.500547
+    median: 0.097099
+    cv: 0.5336
   source_targets:
   - treg_tfh_ci
 - name: PARAM_CXCL12_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -15.038581
-    sigma: 0.548555
+    mu: -15.042925
+    sigma: 0.553447
     median: 0.0
-    cv: 0.592529
+    cv: 0.59866
   source_targets:
   - small_chemokine_diffusivity
 - name: PARAM_CXCL13_DECAY_RATE
   marginal:
     distribution: lognormal
-    mu: -9.248331
-    sigma: 0.626201
+    mu: -9.253679
+    sigma: 0.62459
     median: 9.6e-05
-    cv: 0.692912
+    cv: 0.690758
   source_targets:
   - cxcl13_decay
 - name: PARAM_CXCL13_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -15.288553
-    sigma: 0.543488
+    mu: -15.293558
+    sigma: 0.547157
     median: 0.0
-    cv: 0.586205
+    cv: 0.590782
   source_targets:
   - small_chemokine_diffusivity
 - name: PARAM_ECM_STRESS_DECAY
   marginal:
     distribution: lognormal
-    mu: -4.188513
-    sigma: 0.199416
-    median: 0.015169
-    cv: 0.201416
+    mu: -4.18796
+    sigma: 0.198274
+    median: 0.015177
+    cv: 0.200238
   source_targets:
   - ecm_stress_decay
 - name: PARAM_FIB_FRC_CXCL12_RELEASE
   marginal:
     distribution: lognormal
-    mu: -26.624937
-    sigma: 0.800038
+    mu: -26.628357
+    sigma: 0.79268
     median: 0.0
-    cv: 0.946887
+    cv: 0.935146
   source_targets:
   - frc_cxcl12_secretion
 - name: PARAM_FIB_MOVE_STEPS
   marginal:
     distribution: lognormal
-    mu: 2.088917
-    sigma: 0.344027
-    median: 8.076164
-    cv: 0.354462
+    mu: 2.089369
+    sigma: 0.343063
+    median: 8.079814
+    cv: 0.353409
   source_targets:
   - fib_move_steps
 - name: PARAM_IFNG_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -15.611483
-    sigma: 0.561061
+    mu: -15.615672
+    sigma: 0.558935
     median: 0.0
-    cv: 0.608252
+    cv: 0.605568
   source_targets:
   - medium_cytokine_diffusivity
 - name: PARAM_IL10_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -16.600233
-    sigma: 0.560159
+    mu: -16.598368
+    sigma: 0.558439
     median: 0.0
-    cv: 0.607113
+    cv: 0.604942
   source_targets:
   - large_molecule_diffusivity
 - name: PARAM_IL12_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -16.478848
-    sigma: 0.557243
+    mu: -16.480673
+    sigma: 0.553015
     median: 0.0
-    cv: 0.603435
+    cv: 0.598119
   source_targets:
   - large_molecule_diffusivity
 - name: PARAM_IL1_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -15.462284
-    sigma: 0.555358
+    mu: -15.465997
+    sigma: 0.559044
     median: 0.0
-    cv: 0.601063
+    cv: 0.605706
   source_targets:
   - medium_cytokine_diffusivity
 - name: PARAM_IL2_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -15.849834
-    sigma: 0.556362
+    mu: -15.850195
+    sigma: 0.555212
     median: 0.0
-    cv: 0.602325
+    cv: 0.600879
   source_targets:
   - medium_cytokine_diffusivity
 - name: PARAM_IL6_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -15.4925
-    sigma: 0.558234
+    mu: -15.493294
+    sigma: 0.558314
     median: 0.0
-    cv: 0.604684
+    cv: 0.604785
   source_targets:
   - medium_cytokine_diffusivity
 - name: PARAM_MAC_M1_IL1_RELEASE
   marginal:
     distribution: lognormal
-    mu: -28.617241
-    sigma: 0.571718
+    mu: -28.617853
+    sigma: 0.567136
     median: 0.0
-    cv: 0.621779
+    cv: 0.615948
   source_targets:
   - mac_m1_il1_secretion
 - name: PARAM_MAC_MOVE_STEPS
   marginal:
     distribution: lognormal
-    mu: 2.878467
-    sigma: 0.7499
-    median: 17.786991
-    cv: 0.868788
+    mu: 2.874253
+    sigma: 0.756861
+    median: 17.712189
+    cv: 0.879372
   source_targets:
   - mac_move_steps
+- name: PARAM_NAIVE_LIFESPAN_STEPS
+  marginal:
+    distribution: lognormal
+    mu: 1.247257
+    sigma: 0.411151
+    median: 3.480782
+    cv: 0.429155
+  source_targets:
+  - naive_lifespan
 - name: PARAM_NO_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -10.977103
-    sigma: 0.522106
+    mu: -10.975108
+    sigma: 0.512584
     median: 1.7e-05
-    cv: 0.559792
+    cv: 0.548171
   source_targets:
   - no_diffusivity
 - name: PARAM_O2_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -10.945724
-    sigma: 0.45516
+    mu: -10.943436
+    sigma: 0.458305
     median: 1.8e-05
-    cv: 0.479784
+    cv: 0.483458
   source_targets:
   - o2_diffusivity
 - name: PARAM_O2_UPTAKE
   marginal:
     distribution: lognormal
-    mu: -2.165378
-    sigma: 0.376801
-    median: 0.114707
-    cv: 0.39058
+    mu: -2.167984
+    sigma: 0.37718
+    median: 0.114408
+    cv: 0.391001
   source_targets:
   - o2_uptake
 - name: PARAM_STEM_TGFB_RELEASE
   marginal:
     distribution: lognormal
-    mu: -29.853178
-    sigma: 0.600414
+    mu: -29.846775
+    sigma: 0.610929
     median: 0.0
-    cv: 0.658819
+    cv: 0.672624
   source_targets:
   - cancer_tgfb_secretion
 - name: PARAM_TFH_CXCL13_RELEASE
   marginal:
     distribution: lognormal
-    mu: -23.807457
-    sigma: 0.572817
+    mu: -23.812281
+    sigma: 0.572398
     median: 0.0
-    cv: 0.623181
+    cv: 0.622646
   source_targets:
   - tfh_cxcl13_secretion
 - name: PARAM_TGFB_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -15.088894
-    sigma: 0.552639
+    mu: -15.077911
+    sigma: 0.55597
     median: 0.0
-    cv: 0.597647
+    cv: 0.601833
   source_targets:
   - medium_cytokine_diffusivity
 - name: PARAM_VEGFA_DECAY_RATE
   marginal:
     distribution: lognormal
-    mu: -9.058045
-    sigma: 0.624851
+    mu: -9.062097
+    sigma: 0.623477
     median: 0.000116
-    cv: 0.691106
+    cv: 0.689272
   source_targets:
   - vegfa_decay
 - name: PARAM_VEGFA_DIFFUSIVITY
   marginal:
     distribution: lognormal
-    mu: -15.159603
-    sigma: 0.554905
+    mu: -15.149272
+    sigma: 0.55941
     median: 0.0
-    cv: 0.600493
+    cv: 0.606168
   source_targets:
   - large_molecule_diffusivity
 translation_sigma:
@@ -610,6 +619,17 @@ translation_sigma:
       directness: 0.5
       temporal: 0.2
       system: 0.3
+  naive_lifespan:
+    total: 0.7123903424387503
+    breakdown:
+      indication: 0.5
+      species: 0.3
+      quality: 0.3
+      tme: 0.15
+      perturbation: 0.1
+      directness: 0.15
+      temporal: 0.0
+      system: 0.15
   no_diffusivity:
     total: 0.7632168761236874
     breakdown:

@@ -112,6 +112,8 @@ FLAMEGPU_AGENT_FUNCTION(fib_scan_neighbors, flamegpu::MessageSpatial3D, flamegpu
 // Fibroblast: Write volume to occupancy grid
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(fib_write_to_occ_grid, flamegpu::MessageNone, flamegpu::MessageNone) {
+    FLAMEGPU->setVariable<int>("moves_remaining",
+        FLAMEGPU->environment.getProperty<int>("PARAM_FIB_MOVE_STEPS"));
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
@@ -204,44 +206,32 @@ FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, fla
 // myCAF: TGF-β chemotaxis + persistence. iCAF: random walk + weak persistence.
 // Quiescent: no movement. Activated: adhesion-gated via neighbor counts + ECM.
 FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) {
-    const int x = FLAMEGPU->getVariable<int>("x");
-    const int y = FLAMEGPU->getVariable<int>("y");
-    const int z = FLAMEGPU->getVariable<int>("z");
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
-
     // Quiescent + FRC fibroblasts are sessile (preserve tissue architecture / TLS scaffold)
     if (cs == FIB_QUIESCENT || cs == FIB_FRC) return flamegpu::ALIVE;
 
-    // Adhesion-based movement probability (ECM anchorage + cell-cell)
+    int moves_remaining = FLAMEGPU->getVariable<int>("moves_remaining");
+    if (moves_remaining <= 0) return flamegpu::ALIVE;
+    const int move_K = FLAMEGPU->environment.getProperty<int>("MOVE_K");
+    const int per_round = (FLAMEGPU->environment.getProperty<int>("PARAM_FIB_MOVE_STEPS") + move_K - 1) / move_K;
+    const int n_moves = min(per_round, moves_remaining);
+
+    int x = FLAMEGPU->getVariable<int>("x");
+    int y = FLAMEGPU->getVariable<int>("y");
+    int z = FLAMEGPU->getVariable<int>("z");
 
     float my_vol = (cs == FIB_MYCAF) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
-
     float p_persist = (cs == FIB_MYCAF) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_FIB_MYCAF") :
         FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_FIB_ICAF");
-
     float bias = (cs == FIB_MYCAF) ?
         ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_FIB_MYCAF")) : 0.0f;
 
-    // Read TGF-β gradient for myCAF chemotaxis
-    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
-    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    const int vidx = z * (grid_x * grid_y) + y * grid_x + x;
-    float gx = 0.0f, gy = 0.0f, gz = 0.0f;
-    if (cs == FIB_MYCAF) {
-        gx = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_X))[vidx];
-        gy = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Y))[vidx];
-        gz = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Z))[vidx];
-    }
-
     MoveParams mp;
-    mp.grid_x = grid_x;
-    mp.grid_y = grid_y;
+    mp.grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    mp.grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     mp.grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
     mp.vol_used = VOL_PTR(FLAMEGPU);
     mp.my_vol = my_vol;
@@ -250,54 +240,36 @@ FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) 
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
     mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_FIB");
-    // Adhesion: pre-computed from matrix in scan_neighbors
     mp.p_move = FLAMEGPU->getVariable<float>("adh_p_move");
     mp.p_persist = p_persist;
     mp.bias_strength = bias;
-    mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
     mp.orient_x = ECM_ORIENT_X_PTR(FLAMEGPU);
     mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
     mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
     mp.barrier_strength = (cs == FIB_MYCAF) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_FIB_MYCAF") :
         FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_FIB_ICAF");
+    const float w_cg = (cs == FIB_MYCAF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_FIB_MYCAF") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_FIB_ICAF");
 
-    // Contact guidance
-    {
-        float w_cg = (cs == FIB_MYCAF) ?
-            FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_FIB_MYCAF") :
-            FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_FIB_ICAF");
-        float ox = ECM_ORIENT_X_PTR(FLAMEGPU)[vidx];
-        float oy = ECM_ORIENT_Y_PTR(FLAMEGPU)[vidx];
-        float oz = ECM_ORIENT_Z_PTR(FLAMEGPU)[vidx];
-        if (bias > 0.0f) {
-            apply_contact_guidance(mp.grad_x, mp.grad_y, mp.grad_z, ox, oy, oz, w_cg);
-        } else {
-            apply_contact_guidance_persist(mp.grad_x, mp.grad_y, mp.grad_z, mp.bias_strength,
-                ox, oy, oz, w_cg,
-                FLAMEGPU->getVariable<int>("persist_dir_x"),
-                FLAMEGPU->getVariable<int>("persist_dir_y"),
-                FLAMEGPU->getVariable<int>("persist_dir_z"));
-        }
-    }
+    const float* gax = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_X));
+    const float* gay = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Y));
+    const float* gaz = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Z));
 
-    MoveResult r = move_cell(mp, x, y, z,
-        FLAMEGPU->getVariable<int>("persist_dir_x"),
-        FLAMEGPU->getVariable<int>("persist_dir_y"),
-        FLAMEGPU->getVariable<int>("persist_dir_z"),
-        FLAMEGPU->random.uniform<float>(),
-        FLAMEGPU->random.uniform<float>(),
-        FLAMEGPU->random.uniform<float>());
+    int pdx = FLAMEGPU->getVariable<int>("persist_dir_x");
+    int pdy = FLAMEGPU->getVariable<int>("persist_dir_y");
+    int pdz = FLAMEGPU->getVariable<int>("persist_dir_z");
 
-    if (r.moved) {
-        FLAMEGPU->setVariable<int>("x", r.new_x);
-        FLAMEGPU->setVariable<int>("y", r.new_y);
-        FLAMEGPU->setVariable<int>("z", r.new_z);
-        FLAMEGPU->setVariable<int>("persist_dir_x", r.persist_dx);
-        FLAMEGPU->setVariable<int>("persist_dir_y", r.persist_dy);
-        FLAMEGPU->setVariable<int>("persist_dir_z", r.persist_dz);
-    }
+    run_move_batch(FLAMEGPU, mp, n_moves, gax, gay, gaz, bias, w_cg, x, y, z, pdx, pdy, pdz);
 
+    FLAMEGPU->setVariable<int>("x", x);
+    FLAMEGPU->setVariable<int>("y", y);
+    FLAMEGPU->setVariable<int>("z", z);
+    FLAMEGPU->setVariable<int>("persist_dir_x", pdx);
+    FLAMEGPU->setVariable<int>("persist_dir_y", pdy);
+    FLAMEGPU->setVariable<int>("persist_dir_z", pdz);
+    FLAMEGPU->setVariable<int>("moves_remaining", moves_remaining - n_moves);
     return flamegpu::ALIVE;
 }
 

@@ -32,8 +32,10 @@ SimulationConfig::SimulationConfig()
     , presim_steps(-1)
     , xml_presim_steps(0)
     , presim_volume_target(-1.0)
+    , presim_areal_target(-1.0)
     , presim_steps_from_cli(false)
     , presim_volume_from_cli(false)
+    , presim_areal_from_cli(false)
     , main_steps_from_cli(false)
 {
 }
@@ -104,6 +106,9 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
         } else if (arg == "--presim-volume" && i + 1 < argc) {
             presim_volume_target = std::atof(argv[++i]);
             presim_volume_from_cli = true;
+        } else if (arg == "--presim-areal" && i + 1 < argc) {
+            presim_areal_target = std::atof(argv[++i]);
+            presim_areal_from_cli = true;
         } else if (arg == "--scenario" && i + 1 < argc) {
             std::string s = argv[++i];
             if (s == "default") {
@@ -143,6 +148,7 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  -vx, --vascular-xml FILE XML file for vasculature (when mode=xml)\n"
                       << "  --presim-mode MODE       Presim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
                       << "  --main-mode MODE         Main-sim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
+                      << "  --presim-areal F         Presim stop at cancer areal fraction F=N_cancer/(gx*gy*gz). Top precedence (section/SBI stopper).\n"
                       << "  --presim-steps N         Presim step count override (>=0). Wins over --presim-volume and XML.\n"
                       << "  --presim-volume V        Presim QSP tumor volume target (cm^3). Used if --presim-steps absent.\n"
                       << "  --scenario NAME          Scenario bundle: default | single_stem_edge [default: default]\n"
@@ -184,7 +190,8 @@ void SimulationConfig::print() const {
 
     std::cout << "\nSimulation modes:" << std::endl;
     std::cout << "  Presim: " << (presim_qsp_enabled ? "qsp_abm" : "abm_only");
-    if (presim_steps >= 0)              std::cout << "  (stopper: steps=" << presim_steps << ")";
+    if (presim_areal_from_cli)          std::cout << "  (stopper: cancer areal frac=" << presim_areal_target << ")";
+    else if (presim_steps >= 0)         std::cout << "  (stopper: steps=" << presim_steps << ")";
     else if (presim_volume_target > 0)  std::cout << "  (stopper: tum_vol=" << presim_volume_target << " cm^3)";
     else                                std::cout << "  (stopper: QSP-derived volume, resolved at runtime)";
     std::cout << std::endl;

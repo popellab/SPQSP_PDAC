@@ -646,3 +646,23 @@ Second pass of the value-vs-citation check (do the cited NUMBERS appear in the p
   - **Levental2009 (ECM_ORIENT_CROSSLINK_RESIST):** LOX-isolated 1.5-1.7x is figure-only; overall 140-400->5000-10000 Pa stiffening is text-verbatim. CROSSLINK_RESIST=2.0 stands as LOX-specific model-design.
 
 **Net:** 0 FLAG, 0 re-derivations needed; 28 ledger rows annotated with verbatim/figure-only provenance + 5 metric/tissue/control-label corrections (Sadjadi metric, Erdogan blebbistatin, Riching cone=10deg, Bougherara=ovarian, Salmon=lung). The R7 cluster is now value-audited and provenance-hardened. **Value-audit COMPLETE for all round-validated numeric params (Phase-3 batch of 18 + this batch of 28 + 10 FLAGGED re-derived = full coverage of the 48+10 surface).**
+
+---
+
+## Round 8 — Agent lifespans + recruitment scalars (2026-06-16)
+
+Last planned cluster (cadence doc R6 = "agent lifespans + recruitment scalars"). 5 candidate params; the `*_RECRUIT_P` scalars stay SBI free params, `*_SD` are model-tuning. 4 research agents fetched + verified anchors. Like R6, the cluster is **mostly MANUAL-territory and surfaced 4 citation problems** in the existing anchors.
+
+**1 MAPLE posterior + 4 MANUAL_PRIOR_VALIDATED.** (MAPLE assignment moved from BCELL_LIFE_MEAN to NAIVE_LIFESPAN_STEPS: MAPLE targets are single-source by schema, and BCELL_LIFE_MEAN is a 2-source mixed-pool composite with no single measured observable, whereas NAIVE_LIFESPAN has a clean single-source staged anchor.)
+
+- **NAIVE_LIFESPAN_STEPS 16 -> 4 -> MAPLE.** `naive_lifespan_PDAC_deriv001.yaml`. Caucheteux2013 PNAS (10.1073/pnas.1221306110) naive CD4 single-pass LUNG transit ~14h (FTY720 egress-block; depletion observed 18h) -> forward model steps = transit_h/6 (6h step). Corrob Mandl2012 (10.1073/pnas.1211717109) LN transit CD4 12.2h/CD8 21.2h. Re-anchored priors CSV 16->4 first (re-anchoring pattern), posterior median 3.48 (~0.88d), CV 0.43, transl-sigma 0.712, r_hat 1.004, contraction 0.55. CITATION FIX: DROPPED Thompson2010 "2-7d" (unverifiable; circulating homeostatic lifespan = wrong timescale). The ABM uses this as an unprimed-naive death timer with no recirculation, so single-pass dwell is the matched observable; the prior 4d was a multi-pass aggregate.
+- **BCELL_LIFE_MEAN 60 (kept) -> MANUAL_PRIOR_VALIDATED.** Mixed-pool composite (15d), no single-source MAPLE observable. CITATION FIX: "Manz2002 plasma 3-8d" was MISATTRIBUTED (Manz2002 argues plasma cells are LONG-lived, months). Correct short-lived anchor = Tellier2019 Front Immunol (10.3389/fimmu.2019.00721) plasmablast "life span of 3-5 days" (STAGED, verbatim); naive bound = Fulcher1997 EJI (10.1002/eji.1830270521) "half-life of about 6 weeks" (~42d). 15d sits between; sigma 0.4->0.6.
+- **NAIVE_CD4_RECRUIT_FRAC 0.05 (kept) -> MANUAL_PRIOR_VALIDATED.** Pearce2023 Cancer Immunol Res (DOI CORRECTED 10.1158/2326-6066.CIR-22-0121, STAGED): "very few naive cells (CD45RA+CCR7+)" in CD4 TIL - qualitative, NO numeric %. Prior "<5-10%" overstated; sigma widened uniform [0.01,0.10].
+- **NAIVE_CD8_RECRUIT_FRAC 0.05 -> 0.03 -> MANUAL_PRIOR_VALIDATED.** Pearce2023: CD8 TIL shows "near complete exclusion of naive" (TRM-dominated) -> naive CD8 rarer than CD4 -> re-anchored down. Schalck2022 (10.1158/2159-8290.CD-21-1248, paywalled, NOT staged) "<5%" UNVERIFIED in-text. sigma uniform [0.01,0.08].
+- **VAS_HEV_RECRUIT_BOOST 5.0 (kept) -> MANUAL_PRIOR_VALIDATED.** CITATION FIX: Martinet2011 Cancer Res (10.1158/0008-5472.CAN-11-0431, paywalled) reports a CORRELATION (HEV density "strong predictor" of CD3+/CD8+/B infiltration), NOT a "10x fold" (that was an extrapolation). Comparator (PMC8976767) TLS-rich vs TLS-free CD8 836 vs 135 cells/mm2 = ~6.2x. 5x conservative; range [3,10]; sigma 0.7->0.8.
+
+**Citation corrections this round (4):** Manz2002 misattribution (->Tellier2019+Fulcher1997); Thompson2010 dropped (wrong timescale); Pearce2023 DOI + qualitative-only; Martinet2011 correlation-not-fold. PDFs staged: Caucheteux2013, Mandl2012, Tellier2019, Pearce2023 (4); paywalled/unstaged: Schalck2022, Martinet2011, Fulcher1997.
+
+**Joint inference:** 31 targets / 42 params, 20000 samples, clean (naive_lifespan r_hat 1.004, 0 divergences; all 30 prior posteriors stable). `submodel_priors.yaml` regenerated.
+
+**Round 8 COMPLETE.** This closes the planned Phase-3 round cadence (R1-R8). MAPLE coverage: ~31 targets / 42 params with data-driven posteriors; remaining ABM params survive as manual priors (`pdac_abm_priors.csv`) or SBI free params (RECRUIT_P). Next: SBI priors-loader wiring (`abm-inference/priors.py`), or targeted re-MAPLE if new PDFs surface (Schalck2022/Martinet2011/Fulcher1997 would upgrade R8's MANUAL trio).

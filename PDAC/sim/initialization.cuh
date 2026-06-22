@@ -63,6 +63,8 @@ struct SimulationConfig {
     bool main_qsp_enabled;     // default: true (legacy behavior)
 
     // Presim duration. Resolved at runtime by precedence:
+    //   0. CLI --presim-areal F (presim_areal_from_cli=true): stop at cancer
+    //      areal fraction F = N_cancer/(gx·gy·gz). Section-domain / SBI stopper.
     //   1. CLI --presim-steps N (presim_steps_from_cli=true, presim_steps>=0)
     //   2. CLI --presim-volume V (presim_volume_from_cli=true, presim_volume_target>0)
     //   3. XML <Simulation><PresimSteps> (xml_presim_steps>0)
@@ -70,8 +72,10 @@ struct SimulationConfig {
     int    presim_steps;              // resolved step count (-1 if volume-based)
     int    xml_presim_steps;          // raw XML default (0 = use volume fallback)
     double presim_volume_target;      // cm³; >0 if either CLI vol or XML fallback
+    double presim_areal_target;       // cancer areal fraction [0,1]; -1 if unused
     bool   presim_steps_from_cli;
     bool   presim_volume_from_cli;
+    bool   presim_areal_from_cli;
     bool   main_steps_from_cli;
 
     // Constructor with defaults

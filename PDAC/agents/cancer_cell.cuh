@@ -346,6 +346,12 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
     float* antigen_grid = ANTIGEN_GRID_PTR(FLAMEGPU);
     const float antigen_deposit = FLAMEGPU->environment.getProperty<float>("PARAM_ANTIGEN_DEPOSIT");
 
+    // [TLS] Live tumor cells continuously SHED antigen (not only on death), so antigen
+    // fills the tumor mass and infiltrating/marginal DCs encounter it (death-only deposition
+    // + non-diffusing grid left DCs antigen-starved). Rate = PARAM_ANTIGEN_SHED_FRAC × deposit.
+    const float antigen_shed_frac = FLAMEGPU->environment.getProperty<float>("PARAM_ANTIGEN_SHED_FRAC");
+    atomicAdd(&antigen_grid[voxel], antigen_deposit * antigen_shed_frac);
+
     // Senescent cells: countdown to death
     if (cell_state == CANCER_SENESCENT) {
         int life = FLAMEGPU->getVariable<int>("life");

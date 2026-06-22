@@ -143,44 +143,56 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_BCELL,       "write_to_occ_grid");
         layer.addAgentFunction(AGENT_DC,          "write_to_occ_grid");
     }
+    // ── Timing checkpoint: after occupancy grid (zero + write) ──
+    {
+        flamegpu::LayerDescription layer = model.newLayer("timing_after_occ");
+        layer.addHostFunction(timing_after_occ);
+    }
     {
         flamegpu::LayerDescription layer = model.newLayer("reset_moves_cancer");
         layer.addAgentFunction(AGENT_CANCER_CELL, "reset_moves");
     }
     {
-        const int cancer_steps = model.Environment().getProperty<int>("PARAM_CANCER_MOVE_STEPS_STEM");
+        // Batched-round movement (PARAM_MOVE_BATCH = voxel-moves per agent per round).
+        // Each round is ONE layer containing every mobile type; each agent's move kernel
+        // does up to M voxel-moves in an internal loop (reading+writing the volume
+        // occupancy on every move via run_move_batch), draining its moves_remaining budget
+        // (reset in write_to_occ_grid / cancer_reset_moves). K = ceil(max move_steps / M)
+        // round-layers REPLACE the old per-substep layers (71 → ~8), collapsing FLAMEGPU
+        // per-layer overhead while keeping types interleaved to within M voxels per round.
+        // Cancer is unbatched (1 voxel/call + stress deposit), so it occupies the first
+        // `cancer_steps` rounds (1 move each).
+        const int M = std::max(1, model.Environment().getProperty<int>("PARAM_MOVE_BATCH"));
+        const int cancer_steps = std::max(
+            model.Environment().getProperty<int>("PARAM_CANCER_MOVE_STEPS"),
+            model.Environment().getProperty<int>("PARAM_CANCER_MOVE_STEPS_STEM"));
         const int tcell_steps  = model.Environment().getProperty<int>("PARAM_TCELL_MOVE_STEPS");
-        const int treg_steps   = model.Environment().getProperty<int>("PARAM_TCELL_MOVE_STEPS");
         const int mdsc_steps   = model.Environment().getProperty<int>("PARAM_MDSC_MOVE_STEPS");
         const int mac_steps    = model.Environment().getProperty<int>("PARAM_MAC_MOVE_STEPS");
         const int fib_steps    = model.Environment().getProperty<int>("PARAM_FIB_MOVE_STEPS");
         const int bcell_steps  = model.Environment().getProperty<int>("PARAM_BCELL_MOVE_STEPS");
         const int dc_steps     = model.Environment().getProperty<int>("PARAM_DC_MOVE_STEPS");
 
-        // Interleaved movement: all mobile agent types compete for voxels in the
-        // same layer each substep. Each type's moves are spread evenly across the
-        // full substep range so slower types (cancer, MDSC, MAC) aren't front-loaded.
-        // Cancer uses moves_remaining (stem=5, progenitor=1) and returns early when
-        // exhausted; immune agents run for their full step count.
-        const int max_steps = std::max({cancer_steps, tcell_steps, treg_steps, mdsc_steps, mac_steps, fib_steps, bcell_steps, dc_steps});
-        const auto cancer_on = spread_steps(cancer_steps, max_steps);
-        const auto tcell_on  = spread_steps(tcell_steps,  max_steps);
-        const auto treg_on   = spread_steps(treg_steps,   max_steps);
-        const auto mdsc_on   = spread_steps(mdsc_steps,   max_steps);
-        const auto mac_on    = spread_steps(mac_steps,     max_steps);
-        const auto fib_on    = spread_steps(fib_steps,     max_steps);
-        const auto bcell_on  = spread_steps(bcell_steps,   max_steps);
-        const auto dc_on     = spread_steps(dc_steps,      max_steps);
-        for (int i = 0; i < max_steps; i++) {
-            flamegpu::LayerDescription layer = model.newLayer("move_interleaved_" + std::to_string(i));
-            if (cancer_on.count(i)) layer.addAgentFunction(AGENT_CANCER_CELL, "move");
-            if (tcell_on.count(i))  layer.addAgentFunction(AGENT_TCELL, "move");
-            if (treg_on.count(i))   layer.addAgentFunction(AGENT_TREG, "move");
-            if (mdsc_on.count(i))   layer.addAgentFunction(AGENT_MDSC, "move");
-            if (mac_on.count(i))    layer.addAgentFunction(AGENT_MACROPHAGE, "move");
-            if (fib_on.count(i))    layer.addAgentFunction(AGENT_FIBROBLAST, "move");
-            if (bcell_on.count(i))  layer.addAgentFunction(AGENT_BCELL, "move");
-            if (dc_on.count(i))     layer.addAgentFunction(AGENT_DC, "move");
+        // K = number of rounds (set by the fastest type / move_batch). Each type spreads its
+        // moves PROPORTIONALLY across all K rounds (per_round = ceil(its_steps / K), computed
+        // in the move fn from env "MOVE_K"), so slow types (e.g. fib, 8 steps) move 1/round
+        // across all rounds rather than racing to their final position in round 0. All types
+        // appear in every round and early-return once their moves_remaining is drained.
+        const int max_steps = std::max({tcell_steps, mdsc_steps, mac_steps, fib_steps,
+                                        bcell_steps, dc_steps, cancer_steps});
+        const int K = std::max(1, (max_steps + M - 1) / M);  // ceil(max_steps / move_batch)
+        model.Environment().newProperty<int>("MOVE_K", K);
+
+        for (int r = 0; r < K; r++) {
+            flamegpu::LayerDescription layer = model.newLayer("move_round_" + std::to_string(r));
+            layer.addAgentFunction(AGENT_CANCER_CELL, "move");  // unbatched: 1 voxel/round
+            layer.addAgentFunction(AGENT_TCELL, "move");
+            layer.addAgentFunction(AGENT_TREG, "move");
+            layer.addAgentFunction(AGENT_MDSC, "move");
+            layer.addAgentFunction(AGENT_MACROPHAGE, "move");
+            layer.addAgentFunction(AGENT_FIBROBLAST, "move");
+            layer.addAgentFunction(AGENT_BCELL, "move");
+            layer.addAgentFunction(AGENT_DC, "move");
         }
         {
             flamegpu::LayerDescription layer = model.newLayer("move_vascular");
@@ -232,6 +244,11 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     {
         flamegpu::LayerDescription layer = model.newLayer("final_broadcast_dc");
         layer.addAgentFunction(AGENT_DC, "broadcast_location");
+    }
+    // ── Timing checkpoint: after the 9 broadcast-output layers, before the scan ──
+    {
+        flamegpu::LayerDescription layer = model.newLayer("timing_after_bcast_out");
+        layer.addHostFunction(timing_after_bcast_out);
     }
     {
         flamegpu::LayerDescription layer = model.newLayer("final_scan_neighbors");

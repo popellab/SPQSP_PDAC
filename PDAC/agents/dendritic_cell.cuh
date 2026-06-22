@@ -241,6 +241,9 @@ FLAMEGPU_AGENT_FUNCTION(dc_state_step, flamegpu::MessageNone, flamegpu::MessageN
 // DC: Write to occupancy grid (volume-based)
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(dc_write_to_occ_grid, flamegpu::MessageNone, flamegpu::MessageNone) {
+    // Reset this step's move budget (batched-round movement; drained by dc_move).
+    FLAMEGPU->setVariable<int>("moves_remaining",
+        FLAMEGPU->environment.getProperty<int>("PARAM_DC_MOVE_STEPS"));
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
@@ -303,32 +306,19 @@ FLAMEGPU_AGENT_FUNCTION(dc_compute_chemical_sources, flamegpu::MessageNone, flam
 // DC: Movement — Immature: CCL2 chemotaxis; Mature: CCL21 chemotaxis
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(dc_move, flamegpu::MessageNone, flamegpu::MessageNone) {
-    const int x = FLAMEGPU->getVariable<int>("x");
-    const int y = FLAMEGPU->getVariable<int>("y");
-    const int z = FLAMEGPU->getVariable<int>("z");
+    int moves_remaining = FLAMEGPU->getVariable<int>("moves_remaining");
+    if (moves_remaining <= 0) return flamegpu::ALIVE;
+    const int move_K = FLAMEGPU->environment.getProperty<int>("MOVE_K");
+    const int per_round = (FLAMEGPU->environment.getProperty<int>("PARAM_DC_MOVE_STEPS") + move_K - 1) / move_K;
+    const int n_moves = min(per_round, moves_remaining);
+
+    int x = FLAMEGPU->getVariable<int>("x");
+    int y = FLAMEGPU->getVariable<int>("y");
+    int z = FLAMEGPU->getVariable<int>("z");
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
 
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    const int vidx = z * (grid_x * grid_y) + y * grid_x + x;
-
-    // State-dependent gradient: Immature→CCL2, Mature→CCL21
-    float gx_val, gy_val, gz_val;
-    if (cs == DC_IMMATURE) {
-        gx_val = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_X))[vidx];
-        gy_val = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Y))[vidx];
-        gz_val = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Z))[vidx];
-    } else {
-        gx_val = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL21_X))[vidx];
-        gy_val = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL21_Y))[vidx];
-        gz_val = reinterpret_cast<const float*>(
-            FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL21_Z))[vidx];
-    }
 
     // State-dependent volume
     float my_vol = (cs == DC_IMMATURE)
@@ -346,39 +336,52 @@ FLAMEGPU_AGENT_FUNCTION(dc_move, flamegpu::MessageNone, flamegpu::MessageNone) {
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
     mp.min_porosity = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_POROSITY_DC");
-    mp.grad_x = gx_val; mp.grad_y = gy_val; mp.grad_z = gz_val;
 
     // Adhesion: pre-computed from matrix in scan_neighbors
     mp.p_move = FLAMEGPU->getVariable<float>("adh_p_move");
+    float bias;
     if (cs == DC_IMMATURE) {
         mp.p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_DC_IMMATURE");
-        mp.bias_strength = ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_DC_IMMATURE"));
+        bias = ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_DC_IMMATURE"));
     } else {
         mp.p_persist = FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_DC_MATURE");
-        mp.bias_strength = ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_DC_MATURE"));
+        bias = ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_DC_MATURE"));
     }
+    mp.bias_strength = bias;
     mp.orient_x = ECM_ORIENT_X_PTR(FLAMEGPU);
     mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
     mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
     mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_DC");
+    // DC move had no contact-guidance block; w_cg=0 makes the helper's blend a no-op.
+    const float w_cg = 0.0f;
 
-    MoveResult r = move_cell(mp, x, y, z,
-        FLAMEGPU->getVariable<int>("persist_dir_x"),
-        FLAMEGPU->getVariable<int>("persist_dir_y"),
-        FLAMEGPU->getVariable<int>("persist_dir_z"),
-        FLAMEGPU->random.uniform<float>(),
-        FLAMEGPU->random.uniform<float>(),
-        FLAMEGPU->random.uniform<float>());
-
-    if (r.moved) {
-        FLAMEGPU->setVariable<int>("x", r.new_x);
-        FLAMEGPU->setVariable<int>("y", r.new_y);
-        FLAMEGPU->setVariable<int>("z", r.new_z);
-        FLAMEGPU->setVariable<int>("persist_dir_x", r.persist_dx);
-        FLAMEGPU->setVariable<int>("persist_dir_y", r.persist_dy);
-        FLAMEGPU->setVariable<int>("persist_dir_z", r.persist_dz);
+    // State-dependent gradient: Immature→CCL2, Mature→CCL21
+    const float* gax;
+    const float* gay;
+    const float* gaz;
+    if (cs == DC_IMMATURE) {
+        gax = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_X));
+        gay = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Y));
+        gaz = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Z));
+    } else {
+        gax = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL21_X));
+        gay = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL21_Y));
+        gaz = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL21_Z));
     }
 
+    int pdx = FLAMEGPU->getVariable<int>("persist_dir_x");
+    int pdy = FLAMEGPU->getVariable<int>("persist_dir_y");
+    int pdz = FLAMEGPU->getVariable<int>("persist_dir_z");
+
+    run_move_batch(FLAMEGPU, mp, n_moves, gax, gay, gaz, bias, w_cg, x, y, z, pdx, pdy, pdz);
+
+    FLAMEGPU->setVariable<int>("x", x);
+    FLAMEGPU->setVariable<int>("y", y);
+    FLAMEGPU->setVariable<int>("z", z);
+    FLAMEGPU->setVariable<int>("persist_dir_x", pdx);
+    FLAMEGPU->setVariable<int>("persist_dir_y", pdy);
+    FLAMEGPU->setVariable<int>("persist_dir_z", pdz);
+    FLAMEGPU->setVariable<int>("moves_remaining", moves_remaining - n_moves);
     return flamegpu::ALIVE;
 }
 

@@ -1,0 +1,164 @@
+target_id: naive_lifespan
+
+inputs:
+  - name: naive_cd4_lung_transit_hours
+    value: 14
+    units: hour
+    input_type: direct_measurement
+    source_ref: Caucheteux2013
+    source_location: "Results + Fig (FTY720 egress-block lung transit of naive-phenotype CD4 T cells)"
+    value_snippet: "This result implies that a period of ~14 h is required for naive phenotype CD4 T cells to transit the lung"
+    rationale: "Single-pass transit/dwell time of naive-phenotype CD4 T cells through a peripheral non-lymphoid tissue (lung parenchyma), measured by FTY720 egress blockade (comparable depletion at 18 h; ~14 h transit). This is the closest direct analog to the ABM's unprimed-naive-cell tissue dwell time (the cell is created at recruitment, persists, and either gets primed -> fresh effector lifespan, or dies; no recirculation is modeled). Corroborated by Mandl2012 lymph-node single-pass transit (CD4 12.2 h, CD8 21.2 h), bracketing ~12-21 h."
+
+  - name: hours_per_step
+    value: 6
+    units: hour
+    input_type: unit_conversion
+    source_ref: Caucheteux2013
+    source_location: "ABM time discretization (PARAM_SEC_PER_SLICE = 21600 s = 6 h)"
+    rationale: "ABM step duration. One ABM step = 21600 s = 6 h, so naive dwell in steps = transit_hours / 6. Used to convert the measured transit time into the integer step count PARAM_NAIVE_LIFESPAN_STEPS."
+
+  - name: naive_cd4_lung_depletion_hours
+    value: 18
+    units: hour
+    input_type: direct_measurement
+    source_ref: Caucheteux2013
+    source_location: "Results (FTY720 egress-block lung depletion timepoint)"
+    value_snippet: "comparable depletion of naive CD4 T cells from the lung was observed at 18 h"
+    rationale: "Experimental timepoint at which naive CD4 depletion from the lung was complete under egress block; the transit estimate (~14 h) and this 18 h observation window bound the single-pass transit. Used as the upper edge of the observable range."
+
+calibration:
+  parameters:
+    - name: PARAM_NAIVE_LIFESPAN_STEPS
+      units: dimensionless
+
+  forward_model:
+    type: algebraic
+    formula: "predicted_transit_hours = PARAM_NAIVE_LIFESPAN_STEPS * hours_per_step (= steps * 6 h)"
+    data_rationale: |
+      PARAM_NAIVE_LIFESPAN_STEPS is the in-sim survival/dwell time (in 6 h
+      ABM steps) of an unprimed naive T cell after recruitment. In the ABM
+      there is no recirculation: a naive cell created at a recruitment site
+      persists for NAIVE_LIFESPAN_STEPS steps and either gets primed (then
+      receives a fresh effector lifespan, t_cell.cuh:178 / t_reg.cuh:224) or
+      dies. The biologically matched observable is therefore the single-pass
+      transit/dwell time of a naive T cell through a peripheral tissue,
+      which Caucheteux2013 measures at ~14 h for naive CD4 in lung (Mandl2012
+      gives 12-21 h in lymph node). Forward model: predicted dwell hours =
+      steps * 6; inverting, steps = transit_hours / 6 ~ 14/6 ~ 2.3.
+      This REPLACES the prior 16-step (4 day) value, which over-stated the
+      tissue dwell by ~6x; the prior cited Thompson2010 for a "2-7 day"
+      range that the value-audit (2026-06-16) could not verify (Thompson2010
+      appears to report circulating homeostatic lifespan, the wrong
+      timescale).
+    submodel_rationale: |
+      Recruited naive T cells (CD4 and CD8) in the ABM read this single
+      shared step count as their lifespan (pde_integration.cu:938,1013,1346:
+      nreq.life = naive_lifespan). A shorter, measurement-anchored dwell
+      means unprimed naive cells clear faster, so priming must occur within
+      the single-pass window - consistent with the biology that naive T
+      cells transit tissue quickly unless they encounter cognate antigen.
+    code: |
+      def compute(params, inputs):
+          # 1 ABM step = 6 h; observable is single-pass transit in hours
+          return params['PARAM_NAIVE_LIFESPAN_STEPS'] * 6.0
+
+  error_model:
+    - name: naive_tissue_transit_hours
+      units: hour
+      uses_inputs: [naive_cd4_lung_transit_hours, naive_cd4_lung_depletion_hours, hours_per_step]
+      sample_size_input: hours_per_step
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            # Single-pass transit bounded by Caucheteux's ~14 h transit
+            # estimate and 18 h depletion-observation window. Log-uniform
+            # over [14, 18] h (median ~15.9 h ~ 2.6 ABM steps).
+            lo = inputs['naive_cd4_lung_transit_hours']
+            hi = inputs['naive_cd4_lung_depletion_hours']
+            return np.exp(rng.uniform(np.log(lo), np.log(hi), n_bootstrap))
+
+  identifiability_notes: |
+    Single parameter constrained by one measured single-pass transit time.
+    Forward model is a bijective linear scaling (hours = steps * 6). The
+    posterior is expected near 14/6 ~ 2.3 steps (~0.6 day), well below the
+    prior 16 steps (4 day). Uncertainty: cross-tissue (lung vs PDAC tumor),
+    cross-species (mouse vs human), and CD4 vs CD8 (Mandl CD8 ~21 h > CD4
+    ~12 h) - captured by the lognormal spread + translation sigma. The 4-day
+    prior was a multi-pass aggregate; the ABM models no recirculation, so the
+    single-pass dwell is the correct mapping.
+
+experimental_context:
+  species: mouse
+  indication: healthy_immune_cells
+  system: in_vivo
+  cell_lines:
+    - name: mouse_naive_CD4_T_cell
+      species: mouse
+      tissue_origin: lung
+      cell_type: T_cell_CD4_naive
+      source: "Naive-phenotype CD4 T cells transiting mouse lung parenchyma; single-pass transit measured by FTY720 egress blockade."
+  culture_conditions:
+    culture_type: "in_vivo_FTY720_egress_block"
+    duration: "transit measured over ~18 h"
+    oxygen_level: "in_vivo"
+    notes: "Naive CD4 depletion from lung after FTY720-mediated egress block implies ~14 h single-pass transit; peripheral non-lymphoid tissue analog of tumor dwell."
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: >
+    Healthy mouse lung naive-CD4 transit is a proxy for naive T-cell dwell
+    in the PDAC tumor/tissue. Both capture the single-pass residence of an
+    unprimed naive T cell in a peripheral non-lymphoid tissue before egress
+    or (in the ABM) priming/death. The major gaps are tissue (lung vs
+    desmoplastic pancreas) and species (mouse vs human).
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: physiological_baseline
+  perturbation_relevance: >
+    FTY720 blocks lymphocyte egress to reveal the baseline transit time; it
+    does not alter intrinsic motility, so the ~14 h reflects physiological
+    single-pass dwell.
+  tme_compatibility: moderate
+  tme_compatibility_notes: >
+    In-vivo tissue transit (good context match) but lung parenchyma differs
+    from dense PDAC stroma, which could lengthen dwell; the lognormal spread
+    + translation sigma absorb this. CD4-specific; CD8 transit is ~1.5x
+    longer (Mandl2012), bracketed by the spread.
+  measurement_directness: single_inversion
+  temporal_resolution: timecourse
+  experimental_system: animal_in_vivo
+
+study_interpretation: >
+  Caucheteux et al. 2013 (PNAS) used FTY720 egress blockade to show naive
+  CD4 T cells transit the lung in ~14 h, the closest direct measurement of
+  naive T-cell single-pass dwell in a peripheral non-lymphoid tissue
+  (Mandl2012 gives 12-21 h in lymph node). The ABM's PARAM_NAIVE_LIFESPAN_STEPS
+  is the dwell of an unprimed recruited naive T cell (no recirculation
+  modeled), so the single-pass transit is the matched observable. This
+  re-derivation (value-audit 2026-06-16) re-anchors the prior 16 steps
+  (4 day) to ~2-3 steps (~0.6-0.9 day) and DROPS the unverifiable Thompson2010
+  "2-7 day" citation (wrong timescale: circulating homeostatic lifespan).
+
+key_assumptions:
+  - "ABM step = 6 h (PARAM_SEC_PER_SLICE=21600 s); naive dwell in steps = transit_hours / 6."
+  - "Single-pass tissue transit (~14 h) is the correct mapping for the ABM's non-recirculating naive-cell dwell, not the multi-pass 4-day aggregate."
+  - "Caucheteux CD4 lung ~14 h is representative; CD4/CD8 and lung/LN/tumor variation (12-21 h) captured by the lognormal spread."
+
+key_study_limitations:
+  - "Mouse lung, not human PDAC tumor; dense pancreatic stroma could lengthen dwell."
+  - "CD4-specific point anchor; CD8 single-pass transit is ~1.5x longer (Mandl2012)."
+  - "FTY720 egress-block inference of transit time, not a direct single-cell residence measurement."
+
+primary_data_source:
+  doi: "10.1073/pnas.1221306110"
+  source_tag: Caucheteux2013
+  title: "Analysis of naive lung CD4 T cells provides evidence of functional lung to lymph node migration"
+  authors:
+    - "Caucheteux"
+    - "Torabi-Parizi"
+    - "Paul"
+  year: 2013
+
+tags: [naive_lifespan, tissue_dwell, transit_time, T_cell, naive, value_audit_rederivation, R8]

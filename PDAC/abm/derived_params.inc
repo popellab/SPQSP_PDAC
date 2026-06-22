@@ -426,9 +426,9 @@
     env.newProperty<float>("PARAM_ANTIGEN_CAPTURE_THRESHOLD", 
                     0.1 * QP(CancerVCT::P_P1_C1));
 
-    // min antigen for B cell NAIVE→ACT activation [molecules] = 0.01 * P1_C1
+    // min antigen for B cell NAIVE→ACT activation [molecules]. DECOUPLED from P_P1_C1 (0.01*P1_C1=3.25e9 exceeded the achievable spatial antigen ~1e9): a small minimum on the spatial Moore-avg scale, paired with Tfh/Th help. TODO tune/parameterize.
     env.newProperty<float>("PARAM_BCELL_ACTIVATION_ANTIGEN_MIN", 
-                    0.01 * QP(CancerVCT::P_P1_C1));
+                    1e7);
 
     // Immature DC lifespan [timesteps] from k_APC_death
     env.newProperty<float>("PARAM_DC_LIFE_IMMATURE_MEAN", 
@@ -470,9 +470,9 @@
     env.newProperty<float>("PARAM_DC_K_MAT_CDC2", 
                     QP(CancerVCT::P_k_APC_mat_cDC2) * t_step_sec);
 
-    // antigen EC50 for maturation [molecules/voxel] = P1_C1 (1 death equiv)
+    // antigen EC50 for maturation [molecules/voxel]. DECOUPLED from per-cell P_P1_C1 (=3.25e11): spatial Moore-averaged antigen runs ~1e3-1e4x below a whole-cell molecule count, so DCs near shedding tumor reach H~0.9 while marginal DCs stay low. TODO tune/parameterize.
     env.newProperty<float>("PARAM_DC_ANTIGEN_50", 
-                    QP(CancerVCT::P_P1_C1));
+                    1e8);
 
     // IL-12 EC50 for maturation boost [nM]
     env.newProperty<float>("PARAM_DC_IL12_50", 

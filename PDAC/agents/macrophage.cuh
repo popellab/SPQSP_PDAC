@@ -42,6 +42,9 @@ FLAMEGPU_AGENT_FUNCTION(mac_broadcast_location, flamegpu::MessageNone, flamegpu:
 // Macrophage: Write volume to occupancy grid
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(mac_write_to_occ_grid, flamegpu::MessageNone, flamegpu::MessageNone) {
+    // Reset this step's move budget (batched-round movement; drained by mac_move).
+    FLAMEGPU->setVariable<int>("moves_remaining",
+        FLAMEGPU->environment.getProperty<int>("PARAM_MAC_MOVE_STEPS"));
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
     const int z = FLAMEGPU->getVariable<int>("z");
@@ -207,9 +210,15 @@ FLAMEGPU_AGENT_FUNCTION(mac_compute_chemical_sources, flamegpu::MessageNone, fla
 // Macrophage movement via unified movement framework.
 // CCL2 chemotaxis with state-dependent persistence and bias.
 FLAMEGPU_AGENT_FUNCTION(mac_move, flamegpu::MessageNone, flamegpu::MessageNone) {
-    const int x = FLAMEGPU->getVariable<int>("x");
-    const int y = FLAMEGPU->getVariable<int>("y");
-    const int z = FLAMEGPU->getVariable<int>("z");
+    int moves_remaining = FLAMEGPU->getVariable<int>("moves_remaining");
+    if (moves_remaining <= 0) return flamegpu::ALIVE;
+    const int move_K = FLAMEGPU->environment.getProperty<int>("MOVE_K");
+    const int per_round = (FLAMEGPU->environment.getProperty<int>("PARAM_MAC_MOVE_STEPS") + move_K - 1) / move_K;
+    const int n_moves = min(per_round, moves_remaining);
+
+    int x = FLAMEGPU->getVariable<int>("x");
+    int y = FLAMEGPU->getVariable<int>("y");
+    int z = FLAMEGPU->getVariable<int>("z");
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
 
     float my_vol = (cell_state == MAC_M1) ?
@@ -224,16 +233,8 @@ FLAMEGPU_AGENT_FUNCTION(mac_move, flamegpu::MessageNone, flamegpu::MessageNone) 
         ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_MAC_M1")) :
         ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_MAC_M2"));
 
-    // Read CCL2 gradient at current voxel
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    const int vidx = z * (grid_x * grid_y) + y * grid_x + x;
-    const float gx = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_X))[vidx];
-    const float gy = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Y))[vidx];
-    const float gz = reinterpret_cast<const float*>(
-        FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Z))[vidx];
 
     MoveParams mp;
     mp.grid_x = grid_x;
@@ -250,38 +251,29 @@ FLAMEGPU_AGENT_FUNCTION(mac_move, flamegpu::MessageNone, flamegpu::MessageNone) 
     mp.p_move = FLAMEGPU->getVariable<float>("adh_p_move");
     mp.p_persist = p_persist;
     mp.bias_strength = bias;
-    mp.grad_x = gx; mp.grad_y = gy; mp.grad_z = gz;
     mp.orient_x = ECM_ORIENT_X_PTR(FLAMEGPU);
     mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
     mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
     mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_MAC");
+    const float w_cg = FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_MAC");
 
-    // Contact guidance: blend chemotaxis with fiber orientation
-    {
-        float w_cg = FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_MAC");
-        float ox = ECM_ORIENT_X_PTR(FLAMEGPU)[vidx];
-        float oy = ECM_ORIENT_Y_PTR(FLAMEGPU)[vidx];
-        float oz = ECM_ORIENT_Z_PTR(FLAMEGPU)[vidx];
-        apply_contact_guidance(mp.grad_x, mp.grad_y, mp.grad_z, ox, oy, oz, w_cg);
-    }
+    const float* gax = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_X));
+    const float* gay = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Y));
+    const float* gaz = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Z));
 
-    MoveResult r = move_cell(mp, x, y, z,
-        FLAMEGPU->getVariable<int>("persist_dir_x"),
-        FLAMEGPU->getVariable<int>("persist_dir_y"),
-        FLAMEGPU->getVariable<int>("persist_dir_z"),
-        FLAMEGPU->random.uniform<float>(),
-        FLAMEGPU->random.uniform<float>(),
-        FLAMEGPU->random.uniform<float>());
+    int pdx = FLAMEGPU->getVariable<int>("persist_dir_x");
+    int pdy = FLAMEGPU->getVariable<int>("persist_dir_y");
+    int pdz = FLAMEGPU->getVariable<int>("persist_dir_z");
 
-    if (r.moved) {
-        FLAMEGPU->setVariable<int>("x", r.new_x);
-        FLAMEGPU->setVariable<int>("y", r.new_y);
-        FLAMEGPU->setVariable<int>("z", r.new_z);
-        FLAMEGPU->setVariable<int>("persist_dir_x", r.persist_dx);
-        FLAMEGPU->setVariable<int>("persist_dir_y", r.persist_dy);
-        FLAMEGPU->setVariable<int>("persist_dir_z", r.persist_dz);
-    }
+    run_move_batch(FLAMEGPU, mp, n_moves, gax, gay, gaz, bias, w_cg, x, y, z, pdx, pdy, pdz);
 
+    FLAMEGPU->setVariable<int>("x", x);
+    FLAMEGPU->setVariable<int>("y", y);
+    FLAMEGPU->setVariable<int>("z", z);
+    FLAMEGPU->setVariable<int>("persist_dir_x", pdx);
+    FLAMEGPU->setVariable<int>("persist_dir_y", pdy);
+    FLAMEGPU->setVariable<int>("persist_dir_z", pdz);
+    FLAMEGPU->setVariable<int>("moves_remaining", moves_remaining - n_moves);
     return flamegpu::ALIVE;
 }
 

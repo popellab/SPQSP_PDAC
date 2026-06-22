@@ -75,6 +75,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.CancerCell.hif_pdl1_boost", "", "pr"},  // PARAM_HIF_PDL1_BOOST
     {"Param.ABM.CancerCell.hif_mhc_reduction", "", "pr"},  // PARAM_HIF_MHC_REDUCTION
     {"Param.ABM.CancerCell.antigenInitSeedFrac", "", "pr"},  // PARAM_ANTIGEN_INIT_SEED_FRAC
+    {"Param.ABM.CancerCell.antigenShedFrac", "", "pr"},  // PARAM_ANTIGEN_SHED_FRAC
     {"Param.ABM.Vas.maxPerVoxel", "", "pos"},  // PARAM_VAS_MAXPERVOXEL
     {"Param.ABM.Vas.O2_conc", "", "pr"},  // PARAM_VAS_O2_CONC
     {"Param.ABM.Vas.Rc", "", "pr"},  // PARAM_VAS_RC
@@ -214,6 +215,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Movement.FiberBarrier.bcell", "", "pr"},  // PARAM_FIBER_BARRIER_BCELL
     {"Param.ABM.DCPriming.naive_cd8_recruit_frac", "", ""},  // PARAM_NAIVE_CD8_RECRUIT_FRAC
     {"Param.ABM.DCPriming.naive_cd4_recruit_frac", "", ""},  // PARAM_NAIVE_CD4_RECRUIT_FRAC
+    {"Param.Molecular.pde_cg_tol", "", "pr"},  // PARAM_PDE_CG_TOL
     {"Param.Molecular.biofvm.IFNg.diffusivity", "", "pr"},  // PARAM_IFNG_DIFFUSIVITY
     {"Param.Molecular.biofvm.IFNg.molecularWeight", "", "pr"},  // PARAM_IFNG_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.IL_2.diffusivity", "", "pr"},  // PARAM_IL2_DIFFUSIVITY
@@ -267,7 +269,6 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.CXCL12.molecularWeight", "", "pr"},  // PARAM_CXCL12_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.CCL5.diffusivity", "", "pr"},  // PARAM_CCL5_DIFFUSIVITY
     {"Param.Molecular.biofvm.CCL5.molecularWeight", "", "pr"},  // PARAM_CCL5_MOLECULAR_WEIGHT
-    {"Param.Molecular.pde_cg_tol", "", "pr"},  // PARAM_PDE_CG_TOL
     // Int parameters
     {"Param.ABM.Environment.Tumor.XSize", "microns", "pos"},  // PARAM_X_SIZE
     {"Param.ABM.Environment.Tumor.YSize", "microns", "pos"},  // PARAM_Y_SIZE
@@ -292,6 +293,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.CancerCell.moveSteps_csc", "", "pos"},  // PARAM_CANCER_MOVE_STEPS_STEM
     {"Param.ABM.Fib.moveSteps", "", "pos"},  // PARAM_FIB_MOVE_STEPS
     {"Param.ABM.DomainInit.pde_warmup_substeps", "", "pos"},  // PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS
+    {"Param.ABM.Movement.move_batch", "", "pos"},  // PARAM_MOVE_BATCH
     {"Param.ABM.DCPriming.naive_lifespan_steps", "", ""},  // PARAM_NAIVE_LIFESPAN_STEPS
     {"Param.ABM.DCPriming.prime_div_burst", "", ""},  // PARAM_PRIME_DIV_BURST
     {"Param.Molecular.stepPerSlice", "", "pos"},  // PARAM_MOLECULAR_STEPS
@@ -399,6 +401,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_HIF_PDL1_BOOST", getFloat(PARAM_HIF_PDL1_BOOST));
     env.newProperty<float>("PARAM_HIF_MHC_REDUCTION", getFloat(PARAM_HIF_MHC_REDUCTION));
     env.newProperty<float>("PARAM_ANTIGEN_INIT_SEED_FRAC", getFloat(PARAM_ANTIGEN_INIT_SEED_FRAC));
+    env.newProperty<float>("PARAM_ANTIGEN_SHED_FRAC", getFloat(PARAM_ANTIGEN_SHED_FRAC));
     env.newProperty<float>("PARAM_VAS_MAXPERVOXEL", getFloat(PARAM_VAS_MAXPERVOXEL));
     env.newProperty<float>("PARAM_VAS_O2_CONC", getFloat(PARAM_VAS_O2_CONC));
     env.newProperty<float>("PARAM_VAS_RC", getFloat(PARAM_VAS_RC));
@@ -538,6 +541,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_FIBER_BARRIER_BCELL", getFloat(PARAM_FIBER_BARRIER_BCELL));
     env.newProperty<float>("PARAM_NAIVE_CD8_RECRUIT_FRAC", getFloat(PARAM_NAIVE_CD8_RECRUIT_FRAC));
     env.newProperty<float>("PARAM_NAIVE_CD4_RECRUIT_FRAC", getFloat(PARAM_NAIVE_CD4_RECRUIT_FRAC));
+    env.newProperty<float>("PARAM_PDE_CG_TOL", getFloat(PARAM_PDE_CG_TOL));
     env.newProperty<float>("PARAM_IFNG_DIFFUSIVITY", getFloat(PARAM_IFNG_DIFFUSIVITY));
     env.newProperty<float>("PARAM_IFNG_MOLECULAR_WEIGHT", getFloat(PARAM_IFNG_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_IL2_DIFFUSIVITY", getFloat(PARAM_IL2_DIFFUSIVITY));
@@ -615,9 +619,12 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<int>("PARAM_CANCER_MOVE_STEPS_STEM", getInt(PARAM_CANCER_MOVE_STEPS_STEM));
     env.newProperty<int>("PARAM_FIB_MOVE_STEPS", getInt(PARAM_FIB_MOVE_STEPS));
     env.newProperty<int>("PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS", getInt(PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS));
+    env.newProperty<int>("PARAM_MOVE_BATCH", getInt(PARAM_MOVE_BATCH));
     env.newProperty<int>("PARAM_NAIVE_LIFESPAN_STEPS", getInt(PARAM_NAIVE_LIFESPAN_STEPS));
     env.newProperty<int>("PARAM_PRIME_DIV_BURST", getInt(PARAM_PRIME_DIV_BURST));
     env.newProperty<int>("PARAM_MOLECULAR_STEPS", getInt(PARAM_MOLECULAR_STEPS));
+    env.newProperty<int>("PARAM_PDE_SOLVE_MODE", getInt(PARAM_PDE_SOLVE_MODE));
+    env.newProperty<int>("PARAM_PDE_CG_MAXITER", getInt(PARAM_PDE_CG_MAXITER));
 
     env.newProperty<bool>("PARAM_NIVO_ON", getBool(PARAM_NIVO_ON));
     env.newProperty<bool>("PARAM_IPI_ON", getBool(PARAM_IPI_ON));
