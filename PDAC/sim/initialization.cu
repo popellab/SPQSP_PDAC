@@ -23,7 +23,7 @@ SimulationConfig::SimulationConfig()
     , init_method(0)  // 0 = single stem at center (new default)
     , scenario(Scenario::Default)
     , seed_position("x_low")
-    , vascular_mode("random")
+    , vascular_mode("none")  // ABM rebuild Step 3b: vascular agents removed; O2+entry via Vvas field
     , vascular_xml_file("")
     , grid_out(0)
     , interval_out(1)
@@ -144,7 +144,7 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  -G, --grid-output N      Grid output: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both [default: 0]\n"
                       << "  -oi, --out_int N         Output interval frequency [default: 1]\n"
                       << "  --seed N                 Random seed [default: 12345]\n"
-                      << "  -vm, --vascular-mode STR Vasculature initialization: random, xml, test [default: random]\n"
+                      << "  -vm, --vascular-mode STR Vasculature initialization: none, random, xml, test [default: none]\n"
                       << "  -vx, --vascular-xml FILE XML file for vasculature (when mode=xml)\n"
                       << "  --presim-mode MODE       Presim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
                       << "  --main-mode MODE         Main-sim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
@@ -1300,7 +1300,11 @@ void initializeToQSP(
     // Initialize vascular cells (same logic as initializeAllAgents)
     {
         flamegpu::AgentVector vascular_vec(model.Agent(AGENT_VASCULAR));
-        if (config.vascular_mode == "random") {
+        if (config.vascular_mode == "none") {
+            // ABM rebuild Step 3b: no vascular agents. O2 delivery + immune entry
+            // points are now the Vvas field (compute_vvas_and_o2 / mark_entry_points).
+            // All vascular agent layers no-op on the empty population.
+        } else if (config.vascular_mode == "random") {
             // Scale segments with grid volume to maintain ~3% vessel density.
             // Each segment places ~grid_size vessels along a line, so for a grid^3
             // domain we need 0.03 * grid^2 segments. Clamp to [4, 1000].
@@ -1796,7 +1800,9 @@ void initializeSingleStemEdge(
     const int   vas_min_neighbor = static_cast<int>(model.Environment().getProperty<float>("PARAM_VAS_MIN_NEIGHBOR"));
 
     // ---- Vasculature: resident network, no central tumor exclusion ----
-    {
+    // ABM rebuild Step 3b: skipped in "none" mode (default). O2 + immune entry
+    // points are now the Vvas field; vascular agent layers no-op on empty pop.
+    if (config.vascular_mode != "none") {
         flamegpu::AgentVector vascular_vec(model.Agent(AGENT_VASCULAR));
         int num_seg = std::max(4, std::min(1000,
             static_cast<int>(0.03f * gx * gy)));
