@@ -878,6 +878,12 @@ __device__ bool try_find_open_neighbor(
     return false;
 }
 
+// CXCL13-independent B-cell seeding floor for the soft TLS gate (see BCell block).
+// Bootstrap constant: CXCL13 is Tfh/activated-B-derived only, so a pure CXCL13 gate
+// deadlocks cold-start. floor ∈ (0,1]; B recruit rate = p_bcell·(floor + (1-floor)·H_cxcl13).
+// Candidate SBI param (TLS-seeding rate) — promote to PARAM_* if calibration needs it.
+__device__ constexpr float BCELL_CXCL13_GATE_FLOOR = 0.1f;
+
 // ============================================================================
 // GPU Recruitment Kernel: One thread per voxel. Checks recruitment source flags,
 // rolls probabilities, finds open neighbors, writes compact RecruitRequest buffer.
@@ -1142,16 +1148,24 @@ __global__ void recruit_all_kernel(
         }
     }
 
-    // ── BCell source (bit 3) — baseline + CXCL13 boost ──
+    // ── BCell source (bit 3) — Vvas entry × CXCL13 Hill SOFT-GATE (TLS localization) ──
     if (flags & 8) {
         atomicAdd(&diag->bcell_sources, 1);
-        // CXCL13 from TFH/B cells amplifies recruitment locally (not a gate)
-        float p_bcell_eff = p.p_bcell;
+        // B cells home via CXCR5 to CXCL13. Recruitment is GATED by local CXCL13 so
+        // B cells localize to TLS/follicle sites. p_entry (Vvas) already gated WHERE B
+        // may enter (bit 8); the CXCL13 Hill gates the TLS-forming subset on top.
+        // A small floor (BCELL_CXCL13_GATE_FLOOR) permits CXCL13-independent seeding so
+        // nascent TLS can self-organize (CXCL13 is Tfh/activated-B-derived only — see
+        // XML CXCL13 block, O'Connor2023 — so a pure gate would deadlock cold-start:
+        // no B → no plasma B → no CXCL13 → no B). gate ∈ [floor, 1].
+        const float floor_cx = BCELL_CXCL13_GATE_FLOOR;
+        float gate = floor_cx;
         if (p.cxcl13_conc) {
             float cxcl13 = p.cxcl13_conc[idx];
             float H_cxcl13 = cxcl13 / (cxcl13 + p.cxcl13_ec50_bcell + 1e-30f);
-            p_bcell_eff *= (1.0f + H_cxcl13);
+            gate = floor_cx + (1.0f - floor_cx) * H_cxcl13;
         }
+        float p_bcell_eff = p.p_bcell * gate;
         if (rng_uniform(rng) < p_bcell_eff) {
             atomicAdd(&diag->bcell_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,

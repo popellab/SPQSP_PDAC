@@ -75,7 +75,7 @@
       <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           <!-- 60 steps x6h = 15d, mixed-pool mean (R8 2026-06-16): plasmablast 3-5d (Tellier2019) to naive ~42d (Fulcher1997). Manz2002 "3-8d" DROPPED (misattributed; Manz argues plasma long-lived). -->
       <lifespanSD name="PARAM_BCELL_LIFE_SD" type="float" val="pos">10</lifespanSD>
       <moveSteps name="PARAM_BCELL_MOVE_STEPS" type="int" val="pos">30</moveSteps>
-      <recruit_k name="PARAM_BCELL_RECRUIT_K" type="float" val="pr">3.4e-6</recruit_k>             <!-- Recruitment probability scalar (calibrated 2026-05-06: ÷14500 from 0.05 to land near patient B cell density) -->
+      <recruit_k name="PARAM_BCELL_RECRUIT_K" type="float" val="pr">1e-3</recruit_k>               <!-- Recruitment probability scalar. Recalibrated 2026-06-29 for the Vvas entry-point + CXCL13 soft-gate scheme (rebuild Step 4): per-entry rate = recruit_k·(floor + (1-floor)·H_cxcl13). Old 3.4e-6 was for the legacy dense source-marking and gave B≈0 under entry-point density. 1e-3 → B~1e3 minority (vs T~1.6e4) on 50³ abm_only. SBI free param. -->
       <ec50_cxcl13_rec name="PARAM_BCELL_EC50_CXCL13_REC" type="float" val="pr">10.0</ec50_cxcl13_rec> <!-- CXCL13 EC50 for source marking [nM] -->
       <div_interval name="PARAM_BCELL_DIV_CD" type="int" val="pos">2</div_interval>                <!-- 2 steps x 6h = 12h, within 6-12h centroblast cycle (tight measured 6-7h=1 step). Zhang1988 Immunol Lett "6 to 7 hours" + Liu1991 EJI BrdU. Victora2010/Gitlin2014 DROPPED (their "6hr" = imaging window, not cycle). -->
       <div_limit name="PARAM_BCELL_DIV_LIMIT" type="int" val="pos">6</div_limit>                   <!-- Max clonal expansion rounds -->
