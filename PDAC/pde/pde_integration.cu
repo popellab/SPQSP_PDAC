@@ -785,6 +785,10 @@ struct RecruitKernelParams {
     // CXCL9/10 (CXCR3 ligand) positive effector (Teff/Th) recruitment gate — CAF-sourced
     const float* cxcl9_conc;
     float cxcl9_ec50;
+    // CCL2 (CCR2) primary myeloid recruitment gate — MDSC + MAC (moved from marking to roll)
+    const float* ccl2_conc;
+    float ccl2_ec50_mdsc;
+    float ccl2_ec50_mac;
     // Volume-based occupancy
     float voxel_capacity;
     float vol_teff, vol_treg, vol_th;
@@ -894,6 +898,12 @@ __device__ constexpr float BCELL_CXCL13_GATE_FLOOR = 0.1f;
 // brief pre-CAF window. floor ∈ (0,1]; effector rate ∝ (floor + (1-floor)·H_cxcl9).
 // gate-vs-probability-roll semantics for each cytokine to be reviewed after the rebuild.
 __device__ constexpr float TEFF_CXCL9_GATE_FLOOR = 0.1f;
+
+// CCL2 (CCR2) myeloid recruitment soft-gate floor (MDSC + MAC). Gate-vs-roll review outcome:
+// CCL2 promoted from a Stage-A binary marking threshold to a Stage-B soft gate, unifying the
+// myeloid axis with the lymphoid pattern. CCL2 is cancer/CAF-sourced (present early → no
+// bootstrap deadlock); floor=0.1 = universal floor policy. floor ∈ (0,1]; rate ∝ floor+(1-floor)·H_ccl2.
+__device__ constexpr float MYELOID_CCL2_GATE_FLOOR = 0.1f;
 
 // ============================================================================
 // GPU Recruitment Kernel: One thread per voxel. Checks recruitment source flags,
@@ -1070,8 +1080,14 @@ __global__ void recruit_all_kernel(
     if (flags & 2) {
         atomicAdd(&diag->mdsc_sources, 1);
         // ODE: k_MDSC_rec * V_T * H_CCL2 * (1 + H_IL6_MDSC)
-        // CCL2 gating already done in vascular_mark_sources; apply IL-6 boost here
+        // CCL2/CCR2 SOFT GATE (primary myeloid axis) — promoted from Stage-A marking to the roll
+        // here, then IL-6 BOOST on top (gate-vs-roll review: CCL2=gate, IL-6=boost).
         float p_mdsc_eff = p.p_mdsc;
+        if (p.ccl2_conc) {
+            float c = p.ccl2_conc[idx];
+            float H_ccl2 = c / (c + p.ccl2_ec50_mdsc + 1e-30f);
+            p_mdsc_eff *= MYELOID_CCL2_GATE_FLOOR + (1.0f - MYELOID_CCL2_GATE_FLOOR) * H_ccl2;
+        }
         if (p.il6_conc) {
             float il6 = p.il6_conc[idx];
             float H_IL6 = il6 / (il6 + p.il6_ec50_mdsc + 1e-30f);
@@ -1106,7 +1122,14 @@ __global__ void recruit_all_kernel(
     // ── MAC source (bit 2) ──
     if (flags & 4) {
         atomicAdd(&diag->mac_sources, 1);
-        if (rng_uniform(rng) < p.p_mac) {
+        // CCL2/CCR2 SOFT GATE (primary myeloid axis) — promoted from Stage-A marking to the roll.
+        float p_mac_eff = p.p_mac;
+        if (p.ccl2_conc) {
+            float c = p.ccl2_conc[idx];
+            float H_ccl2 = c / (c + p.ccl2_ec50_mac + 1e-30f);
+            p_mac_eff *= MYELOID_CCL2_GATE_FLOOR + (1.0f - MYELOID_CCL2_GATE_FLOOR) * H_ccl2;
+        }
+        if (rng_uniform(rng) < p_mac_eff) {
             atomicAdd(&diag->mac_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_mac_m1, p.voxel_capacity,
@@ -1381,6 +1404,11 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     p.cxcl9_conc = g_pde_solver ? reinterpret_cast<const float*>(
         g_pde_solver->get_device_concentration_ptr(CHEM_CXCL9_10)) : nullptr;
     p.cxcl9_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_TEFF_EC50_CXCL9_REC");
+    // CCL2 myeloid recruitment gate (CCR2) — promoted from Stage-A marking to Stage-B roll
+    p.ccl2_conc = g_pde_solver ? reinterpret_cast<const float*>(
+        g_pde_solver->get_device_concentration_ptr(CHEM_CCL2)) : nullptr;
+    p.ccl2_ec50_mdsc = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_EC50_CCL2_REC");
+    p.ccl2_ec50_mac  = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_EC50_CCL2_REC");
 
     // Volume-based occupancy params
     p.voxel_capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
@@ -1748,15 +1776,15 @@ FLAMEGPU_HOST_FUNCTION(compute_vvas_and_o2) {
 // ============================================================================
 // Recruitment entry points from Vvas (media-2 Eq.4): replaces vascular-agent marking.
 //   p_entry(voxel) = clamp(Vvas * PARAM_ENTRY_ADHESION_SCALE, 1)   [ = Vvas*rho_adh*Vvox/n_adh ]
-// At an entry point, set immune-type bits in d_recruitment_sources (T=1,MDSC=2,MAC=4,B=8,DC=16);
-// MDSC/MAC additionally CCL2-Hill gated (media-2 Eq.6-7). recruit_all_kernel consumes unchanged.
+// At an entry point, set ALL immune-type bits in d_recruitment_sources (T=1,MDSC=2,MAC=4,B=8,DC=16).
+// Per-type cytokine gating (CXCL9/CXCL12 for effectors, CXCL13 for B, CCL2/IL-6 for MDSC, CCL2 for
+// MAC, CCL5 for Treg) is applied as continuous soft gates in the Stage-B recruit_all_kernel roll.
 // ============================================================================
 __global__ void mark_entry_points_kernel(
     int* recruit_sources,
     const float* __restrict__ vvas,
-    const float* __restrict__ ccl2,
     int nx, int ny, int nz,
-    float entry_scale, float ec50_ccl2_mdsc, float ec50_ccl2_mac,
+    float entry_scale,
     unsigned int seed)
 {
     const int tx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1773,10 +1801,9 @@ __global__ void mark_entry_points_kernel(
     xorshift32(rng);  // warm up
     if (rng_uniform(rng) >= p_entry) return;  // not an entry point this step
 
-    int bits = 1 | 8 | 16;  // T (entry-gated), B (baseline), DC (homeostatic) — matches prior marking
-    const float c = ccl2[idx];
-    if (rng_uniform(rng) < c / (c + ec50_ccl2_mdsc + 1e-30f)) bits |= 2;  // MDSC: CCL2 Hill
-    if (rng_uniform(rng) < c / (c + ec50_ccl2_mac  + 1e-30f)) bits |= 4;  // MAC:  CCL2 Hill
+    // All immune types are Vvas-entry-gated here; cytokine gating (incl. CCL2/CCR2 for MDSC/MAC)
+    // now lives in the Stage-B recruit roll as continuous soft gates (gate-vs-roll review).
+    const int bits = 1 | 2 | 4 | 8 | 16;  // T, MDSC, MAC, B, DC
     atomicOr(&recruit_sources[idx], bits);
 }
 
@@ -1791,19 +1818,17 @@ FLAMEGPU_HOST_FUNCTION(mark_entry_points) {
     const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
     const float entry_scale = FLAMEGPU->environment.getProperty<float>("PARAM_ENTRY_ADHESION_SCALE");
-    const float ec50_mdsc   = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_EC50_CCL2_REC");
-    const float ec50_mac    = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_EC50_CCL2_REC");
     const unsigned int base_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
     // distinct salt from recruit_all_kernel to decorrelate the two stochastic passes
     const unsigned int seed = base_seed ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 40503u + 0x9E3779B9u);
 
-    const float* ccl2 = g_pde_solver->get_device_concentration_ptr(CHEM_CCL2);
+    // CCL2 myeloid gating moved to the Stage-B recruit roll (gate-vs-roll review) — not needed here.
     int* recruit_sources = g_pde_solver->get_device_recruitment_sources_ptr();
 
     dim3 block(8, 8, 8);
     dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
-    mark_entry_points_kernel<<<grid, block>>>(recruit_sources, d_vvas_field, ccl2, nx, ny, nz,
-                                              entry_scale, ec50_mdsc, ec50_mac, seed);
+    mark_entry_points_kernel<<<grid, block>>>(recruit_sources, d_vvas_field, nx, ny, nz,
+                                              entry_scale, seed);
     cudaDeviceSynchronize();
     nvtxRangePop();
 }
