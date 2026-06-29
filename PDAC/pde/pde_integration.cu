@@ -67,6 +67,11 @@ static float* d_fib_density_field = nullptr;
 // Replaces the old per-type occ_grid MacroProperty + flat arrays (d_t_occ, d_mac_occ, d_mdsc_occ).
 static float* d_volume_used = nullptr;
 
+// Deterministic voxel-claim ownership buffer (Step-5 determinism). One uint64 per voxel,
+// reset to ULLONG_MAX before each reserve pass; contenders atomicMin their packed
+// (source-voxel, agent-id) priority; the confirm pass commits the unique winner.
+static unsigned long long* d_voxel_owner = nullptr;
+
 // Antigen grid: persistent per-voxel antigen signal deposited by dying cancer cells.
 // DCs and B cells read this to capture antigen (replaces dead-neighbor scanning).
 // Decays exponentially each ABM step via decay_antigen_grid host function.
@@ -460,6 +465,10 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     CUDA_CHECK(cudaMalloc(&d_volume_used, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_volume_used, 0, total_voxels * sizeof(float)));
 
+    // Allocate deterministic voxel-claim ownership buffer (init to ULLONG_MAX = 0xFF bytes)
+    CUDA_CHECK(cudaMalloc(&d_voxel_owner, total_voxels * sizeof(unsigned long long)));
+    CUDA_CHECK(cudaMemset(d_voxel_owner, 0xFF, total_voxels * sizeof(unsigned long long)));
+
     // Allocate antigen grid (persistent per-voxel antigen from dying cancer)
     CUDA_CHECK(cudaMalloc(&d_antigen_grid, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_antigen_grid, 0, total_voxels * sizeof(float)));
@@ -560,6 +569,10 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
     // Volume-based occupancy grid pointer
     model.Environment().newProperty<unsigned long long>("volume_used_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_volume_used)));
+
+    // Deterministic voxel-claim ownership buffer pointer
+    model.Environment().newProperty<unsigned long long>("voxel_owner_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_voxel_owner)));
 
     // Antigen grid pointer (persistent antigen from dying cancer cells)
     model.Environment().newProperty<unsigned long long>("antigen_grid_ptr",
@@ -829,11 +842,16 @@ __device__ __forceinline__ int sample_exp_life_gpu(float mean, unsigned int& rng
     return life > 0 ? life : 1;
 }
 
-// Device helper: try to place a cell at one of the 26 Moore neighbors of (sx, sy, sz).
-// Uses Fisher-Yates shuffle with thread-local RNG. Claims voxel via volume-based
-// occupancy (atomicAdd + capacity check + undo on overflow).
-// Returns true + sets (out_x, out_y, out_z) on success.
-__device__ bool try_find_open_neighbor(
+// Device helper: claim the cell's OWN (marked/source) voxel (sx, sy, sz) — no Moore
+// neighbor search. The recruit kernel runs one thread per voxel, so each voxel's
+// volume-claim has a SINGLE writer per kernel launch → race-free and deterministic at
+// fixed seed (Step-5 determinism fix: the old neighbor-search + cross-thread atomicAdd
+// claim into shared neighbors was the immune-cell placement race). Recruits now land at
+// the entry voxel where they extravasate; movement spreads them afterward.
+// rng is retained for call-site signature compatibility but no longer consumed (placement
+// is deterministic), so the RNG stream is unchanged by placement.
+// Returns true + sets (out_x, out_y, out_z) on success; false if the voxel is full.
+__device__ bool try_claim_voxel(
     int sx, int sy, int sz,
     int nx, int ny, int nz,
     float* d_vol_used,
@@ -842,49 +860,24 @@ __device__ bool try_find_open_neighbor(
     unsigned int& rng,
     int& out_x, int& out_y, int& out_z)
 {
-    // Build 26 Moore neighbor offsets
-    int offsets[26][3];
-    int n = 0;
-    for (int dz = -1; dz <= 1; dz++) {
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0 && dz == 0) continue;
-                offsets[n][0] = dx; offsets[n][1] = dy; offsets[n][2] = dz;
-                n++;
-            }
-        }
+    (void)rng;  // placement no longer consumes RNG
+    if (sx < 0 || sx >= nx || sy < 0 || sy >= ny || sz < 0 || sz >= nz) return false;
+
+    int vidx = sz * (nx * ny) + sy * nx + sx;
+
+    // Volume-based occupancy check (primary gate)
+    if (d_vol_used[vidx] + cell_volume > voxel_capacity) return false;
+
+    // Volume claim (single writer per voxel in this kernel → deterministic; atomicAdd
+    // kept for safety/consistency with the multi-cell-type sequential claims in one thread).
+    float old_vol = atomicAdd(&d_vol_used[vidx], cell_volume);
+    if (old_vol + cell_volume > voxel_capacity) {
+        atomicAdd(&d_vol_used[vidx], -cell_volume);  // undo overcommit
+        return false;
     }
 
-    // Fisher-Yates shuffle
-    for (int i = n - 1; i > 0; i--) {
-        int j = xorshift32(rng) % (i + 1);
-        int tmp0 = offsets[i][0]; offsets[i][0] = offsets[j][0]; offsets[j][0] = tmp0;
-        int tmp1 = offsets[i][1]; offsets[i][1] = offsets[j][1]; offsets[j][1] = tmp1;
-        int tmp2 = offsets[i][2]; offsets[i][2] = offsets[j][2]; offsets[j][2] = tmp2;
-    }
-
-    for (int i = 0; i < n; i++) {
-        int cx = sx + offsets[i][0];
-        int cy = sy + offsets[i][1];
-        int cz = sz + offsets[i][2];
-        if (cx < 0 || cx >= nx || cy < 0 || cy >= ny || cz < 0 || cz >= nz) continue;
-
-        int vidx = cz * (nx * ny) + cy * nx + cx;
-
-        // Volume-based occupancy check (primary gate)
-        if (d_vol_used[vidx] + cell_volume > voxel_capacity) continue;
-
-        // Atomic volume claim
-        float old_vol = atomicAdd(&d_vol_used[vidx], cell_volume);
-        if (old_vol + cell_volume > voxel_capacity) {
-            atomicAdd(&d_vol_used[vidx], -cell_volume);  // undo
-            continue;
-        }
-
-        out_x = cx; out_y = cy; out_z = cz;
-        return true;
-    }
-    return false;
+    out_x = sx; out_y = sy; out_z = sz;
+    return true;
 }
 
 // CXCL13-independent B-cell seeding floor for the soft TLS gate (see BCell block).
@@ -954,7 +947,7 @@ __global__ void recruit_all_kernel(
         // Try Teff (CXCR3 CXCL9/10 gate × CXCL12 exclusion)
         if (rng_uniform(rng) < p.p_teff * cxcl9_gate * (1.0f - cxcl12_inhib)) {
             atomicAdd(&diag->teff_roll_pass, 1);
-            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+            if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_teff, p.voxel_capacity,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->teff_place_ok, 1);
@@ -976,7 +969,7 @@ __global__ void recruit_all_kernel(
                 // Also try to recruit a naive CD8 alongside (TLS priming pathway)
                 if (p.naive_cd8_frac > 0.0f && rng_uniform(rng) < p.naive_cd8_frac) {
                     int npx, npy, npz;
-                    if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                    if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
                             d_vol_used, p.vol_teff, p.voxel_capacity,
                             rng, npx, npy, npz)) {
                         int nslot = atomicAdd(d_request_count, 1);
@@ -1003,7 +996,7 @@ __global__ void recruit_all_kernel(
         // Try TReg (boosted by CCL5 via CCR5, ratio = k_CCR5/q_Treg)
         if (rng_uniform(rng) < fminf(p.p_treg * (1.0f + p.ccl5_ratio * ccl5_boost), 1.0f)) {
             atomicAdd(&diag->treg_roll_pass, 1);
-            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+            if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_treg, p.voxel_capacity,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->treg_place_ok, 1);
@@ -1029,7 +1022,7 @@ __global__ void recruit_all_kernel(
         // Try TH (CXCR3 CXCL9/10 gate × CXCL12 exclusion, same as Teff)
         if (rng_uniform(rng) < p.p_th * cxcl9_gate * (1.0f - cxcl12_inhib)) {
             atomicAdd(&diag->th_roll_pass, 1);
-            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+            if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_th, p.voxel_capacity,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->th_place_ok, 1);
@@ -1051,7 +1044,7 @@ __global__ void recruit_all_kernel(
                 // Also try to recruit a naive CD4 alongside (TLS priming pathway)
                 if (p.naive_cd4_frac > 0.0f && rng_uniform(rng) < p.naive_cd4_frac) {
                     int npx, npy, npz;
-                    if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+                    if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
                             d_vol_used, p.vol_th, p.voxel_capacity,
                             rng, npx, npy, npz)) {
                         int nslot = atomicAdd(d_request_count, 1);
@@ -1095,7 +1088,7 @@ __global__ void recruit_all_kernel(
         }
         if (rng_uniform(rng) < p_mdsc_eff) {
             atomicAdd(&diag->mdsc_roll_pass, 1);
-            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+            if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_mdsc, p.voxel_capacity,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->mdsc_place_ok, 1);
@@ -1131,7 +1124,7 @@ __global__ void recruit_all_kernel(
         }
         if (rng_uniform(rng) < p_mac_eff) {
             atomicAdd(&diag->mac_roll_pass, 1);
-            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+            if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_mac_m1, p.voxel_capacity,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->mac_place_ok, 1);
@@ -1208,7 +1201,7 @@ __global__ void recruit_all_kernel(
         float p_bcell_eff = p.p_bcell * gate;
         if (rng_uniform(rng) < p_bcell_eff) {
             atomicAdd(&diag->bcell_roll_pass, 1);
-            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+            if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_bcell, p.voxel_capacity,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->bcell_place_ok, 1);
@@ -1237,7 +1230,7 @@ __global__ void recruit_all_kernel(
         atomicAdd(&diag->dc_sources, 1);
         // Try cDC1 recruitment
         if (rng_uniform(rng) < p.p_dc_cdc1) {
-            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+            if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_dc, p.voxel_capacity,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->dc_roll_pass, 1);
@@ -1261,7 +1254,7 @@ __global__ void recruit_all_kernel(
         }
         // Try cDC2 recruitment
         if (rng_uniform(rng) < p.p_dc_cdc2) {
-            if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
+            if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_dc, p.voxel_capacity,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->dc_roll_pass, 1);
@@ -1649,6 +1642,17 @@ FLAMEGPU_HOST_FUNCTION(zero_occupancy_grid) {
         if (d_cancer_occ)      cudaMemset(d_cancer_occ,      0, total_voxels * sizeof(unsigned int));
         if (d_vas_tip_id_grid) cudaMemset(d_vas_tip_id_grid, 0, total_voxels * sizeof(unsigned int));
         if (d_volume_used)     cudaMemset(d_volume_used,     0, total_voxels * sizeof(float));
+    }
+    nvtxRangePop();
+}
+
+// Reset the deterministic voxel-claim ownership buffer to ULLONG_MAX (0xFF bytes).
+// Placed as a layer before each reserve pass (per-step for division, per-round for movement).
+FLAMEGPU_HOST_FUNCTION(reset_voxel_owner) {
+    nvtxRangePush("Reset Voxel Owner");
+    if (g_pde_solver && d_voxel_owner) {
+        int total_voxels = g_pde_solver->get_total_voxels();
+        cudaMemset(d_voxel_owner, 0xFF, total_voxels * sizeof(unsigned long long));
     }
     nvtxRangePop();
 }

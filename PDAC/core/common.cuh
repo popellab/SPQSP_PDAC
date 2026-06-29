@@ -632,6 +632,35 @@ __device__ __forceinline__ void volume_release(float* vol_used, int voxel_idx, f
 }
 
 // ============================================================
+// Deterministic voxel-claim primitive (Step-5 determinism fix)
+// ============================================================
+// Contested voxel claims (movement targets, division offspring) were resolved by
+// volume_try_claim's atomicAdd "first arrival wins" → winner depended on GPU thread
+// schedule → nondeterministic at fixed seed. These helpers replace that with an
+// order-INDEPENDENT atomicMin "lowest priority wins" reservation:
+//   priority = pack(source voxel index, agent id)
+//   - lowest source-voxel-index contender wins a contested target (deterministic given
+//     positions; composes with the movement fix that makes positions deterministic);
+//   - ties (two cells sharing a source voxel — possible since a voxel holds ~2 cells)
+//     are broken by lowest agent id → a UNIQUE winner, so no double-claim / duplication.
+// Two-pass usage: a RESERVE pass calls reserve_voxel() (atomicMin into d_voxel_owner,
+// pre-set to ULLONG_MAX); a later CONFIRM pass calls won_voxel() then does the actual
+// volume_try_claim + commit. The reserve/confirm split needs the global sync of separate
+// kernels (layers) — you cannot resolve cross-thread contention within one kernel.
+__device__ __forceinline__ unsigned long long make_claim_priority(int source_vidx, unsigned int agent_id) {
+    return (static_cast<unsigned long long>(static_cast<unsigned int>(source_vidx)) << 32)
+           | static_cast<unsigned long long>(agent_id);
+}
+__device__ __forceinline__ void reserve_voxel(unsigned long long* owner, int target_vidx,
+                                              unsigned long long priority) {
+    atomicMin(&owner[target_vidx], priority);
+}
+__device__ __forceinline__ bool won_voxel(const unsigned long long* owner, int target_vidx,
+                                          unsigned long long priority) {
+    return owner[target_vidx] == priority;
+}
+
+// ============================================================
 // Contact Guidance Helper
 // ============================================================
 // Blends a chemotaxis gradient with local fiber orientation.

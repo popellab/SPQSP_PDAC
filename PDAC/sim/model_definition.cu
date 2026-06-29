@@ -72,6 +72,7 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     cancer_cell.newVariable<unsigned int>("stemID", 0);
     cancer_cell.newVariable<int>("divide_wave", 0);   // Wave assignment for interleaved division
     cancer_cell.newVariable<int>("stuck_steps", 0);   // Consecutive ABM steps where cancer_divide found n_cands==0 (contact inhibition → senescence)
+    cancer_cell.newVariable<int>("div_target_vidx", -1);  // Step-5 deterministic division: reserved target voxel (reserve→confirm)
 
     // Molecular state (affects behavior)
     cancer_cell.newVariable<float>("PDL1_syn", 0.0f);
@@ -127,7 +128,9 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
             .setAllowAgentDeath(true);
 
         {
-            flamegpu::AgentFunctionDescription fn = cancer_cell.newFunction("divide", cancer_divide);
+            // Step-5 deterministic division: reserve (atomicMin owner) then confirm (birth).
+            cancer_cell.newFunction("divide_reserve", cancer_divide_reserve);
+            flamegpu::AgentFunctionDescription fn = cancer_cell.newFunction("divide_confirm", cancer_divide_confirm);
             fn.setAgentOutput(cancer_cell);
         }
     }

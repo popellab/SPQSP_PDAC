@@ -90,6 +90,9 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_vasculature_count;
 // Occupancy grid: zero before agents write their positions each step
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_occupancy_grid;
 
+// Reset deterministic voxel-claim ownership buffer (Step-5 determinism); layer before each reserve pass.
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER reset_voxel_owner;
+
 // ECM grid: decay ECM each step after fibroblasts have deposited
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_grid;
 

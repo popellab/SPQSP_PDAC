@@ -333,12 +333,22 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         flamegpu::LayerDescription layer = model.newLayer("reset_divide_wave");
         layer.addHostFunction(reset_divide_wave);
     }
+    // Cancer division — Step-5 deterministic reserve/confirm (priority claim into d_voxel_owner).
+    // Pulled out of the wave loop (cancer no longer uses the wave gate). reset → reserve → confirm.
+    {
+        flamegpu::LayerDescription layer = model.newLayer("reset_voxel_owner_divide");
+        layer.addHostFunction(reset_voxel_owner);
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("divide_cancer_reserve");
+        layer.addAgentFunction(AGENT_CANCER_CELL, "divide_reserve");
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("divide_cancer_confirm");
+        layer.addAgentFunction(AGENT_CANCER_CELL, "divide_confirm");
+    }
     for (int w = 0; w < N_DIVIDE_WAVES; w++) {
         const std::string ws = std::to_string(w);
-        {
-            flamegpu::LayerDescription layer = model.newLayer("divide_cancer_w" + ws);
-            layer.addAgentFunction(AGENT_CANCER_CELL, "divide");
-        }
         {
             flamegpu::LayerDescription layer = model.newLayer("divide_tcell_w" + ws);
             layer.addAgentFunction(AGENT_TCELL, "divide");

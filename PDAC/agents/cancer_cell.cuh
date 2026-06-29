@@ -161,18 +161,18 @@ FLAMEGPU_AGENT_FUNCTION(cancer_write_to_occ_grid, flamegpu::MessageNone, flamegp
 // Replaces the two-phase select_divide_target + execute_divide pair.
 // Scans Von Neumann neighbors, shuffles candidates, tries atomicCAS until
 // one succeeds or all are exhausted (reroll on contention).
-FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageNone) {
+// Cancer division — RESERVE pass (Step-5 deterministic placement). Picks ONE target
+// neighbor and atomicMin-reserves it in d_voxel_owner by (source-voxel, id) priority.
+// No claim, no birth — cancer_divide_confirm commits the unique winner. Replaces the
+// single-phase cancer_divide whose cross-thread volume_try_claim order was nondeterministic.
+FLAMEGPU_AGENT_FUNCTION(cancer_divide_reserve, flamegpu::MessageNone, flamegpu::MessageNone) {
+    FLAMEGPU->setVariable<int>("div_target_vidx", -1);  // reset reservation each step
+
     const int divideFlag = FLAMEGPU->getVariable<int>("divideFlag");
     const int divideCD   = FLAMEGPU->getVariable<int>("divideCD");
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-
     if (FLAMEGPU->getVariable<int>("dead") == 1 ||
         divideFlag == 0 || divideCD > 0 || cell_state == CANCER_SENESCENT) {
-        return flamegpu::ALIVE;
-    }
-    // Wave gate: only execute in the assigned wave round
-    if (FLAMEGPU->getVariable<int>("divide_wave") !=
-        FLAMEGPU->environment.getProperty<int>("divide_current_wave")) {
         return flamegpu::ALIVE;
     }
 
@@ -183,10 +183,8 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
     const int size_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int size_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    // Volume-based occupancy: daughter volume for candidate pre-filter
     float* vol_used = VOL_PTR(FLAMEGPU);
     const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    // Daughter volume depends on division outcome but use progenitor as conservative estimate
     float daughter_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG");
 
     // Collect Moore (26-direction) neighbors with enough volume capacity
@@ -206,36 +204,65 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
         }
     }
 
-    // Track whether we successfully divided this call; if not, bump stuck_steps.
-    // Covers both "no candidates at all" and "all candidates lost volume contention".
-    bool divided = false;
-
     if (n_cands == 0) {
+        // No room → contact-inhibited; count toward senescence (matches old behavior).
         const int stuck = FLAMEGPU->getVariable<int>("stuck_steps");
         FLAMEGPU->setVariable<int>("stuck_steps", stuck + 1);
         return flamegpu::ALIVE;
     }
 
-    // Fisher-Yates partial shuffle: try candidates in random order until volume claim wins.
+    // Single-candidate: pick one deterministically (seeded RNG) and reserve it by priority.
+    int pick = static_cast<int>(FLAMEGPU->random.uniform<float>() * n_cands);
+    if (pick >= n_cands) pick = n_cands - 1;
+    const int tvidx   = cand_z[pick] * (size_x * size_y) + cand_y[pick] * size_x + cand_x[pick];
+    const int my_vidx = my_z       * (size_x * size_y) + my_y       * size_x + my_x;
+    unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+        FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+    reserve_voxel(owner, tvidx, make_claim_priority(my_vidx, static_cast<unsigned int>(FLAMEGPU->getID())));
+    FLAMEGPU->setVariable<int>("div_target_vidx", tvidx);
+    return flamegpu::ALIVE;
+}
+
+// Cancer division — CONFIRM pass. Commits the unique winner of each reserved voxel
+// (lowest source-voxel/id), then runs the original asymmetric/symmetric birth logic.
+FLAMEGPU_AGENT_FUNCTION(cancer_divide_confirm, flamegpu::MessageNone, flamegpu::MessageNone) {
+    const int tvidx = FLAMEGPU->getVariable<int>("div_target_vidx");
+    if (tvidx < 0) return flamegpu::ALIVE;  // no reservation (gate-fail or no candidate)
+
+    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    const int my_x  = FLAMEGPU->getVariable<int>("x");
+    const int my_y  = FLAMEGPU->getVariable<int>("y");
+    const int my_z  = FLAMEGPU->getVariable<int>("z");
+    const int size_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int size_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+
+    const int my_vidx = my_z * (size_x * size_y) + my_y * size_x + my_x;
+    unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+        FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+    // Lost the deterministic contention → don't divide this step; count as stuck.
+    if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, static_cast<unsigned int>(FLAMEGPU->getID())))) {
+        const int stuck = FLAMEGPU->getVariable<int>("stuck_steps");
+        FLAMEGPU->setVariable<int>("stuck_steps", stuck + 1);
+        return flamegpu::ALIVE;
+    }
+
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float daughter_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG");
+    // Sole winner of this voxel → claim is race-free; guard against pre-existing fill.
+    if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) {
+        const int stuck = FLAMEGPU->getVariable<int>("stuck_steps");
+        FLAMEGPU->setVariable<int>("stuck_steps", stuck + 1);
+        return flamegpu::ALIVE;
+    }
+
     const float asymmetric_div_prob = FLAMEGPU->environment.getProperty<float>("PARAM_ASYM_DIV_PROB");
     const int divMax = FLAMEGPU->environment.getProperty<int>("PARAM_PROG_DIV_MAX");
     const unsigned int stem_id = FLAMEGPU->getVariable<unsigned int>("stemID");
-
-    for (int i = 0; i < n_cands; i++) {
-        // Swap with a random remaining candidate
-        const int j = i + static_cast<int>(FLAMEGPU->random.uniform<float>() * (n_cands - i));
-        int tx = cand_x[i]; cand_x[i] = cand_x[j]; cand_x[j] = tx;
-        int ty = cand_y[i]; cand_y[i] = cand_y[j]; cand_y[j] = ty;
-        int tz = cand_z[i]; cand_z[i] = cand_z[j]; cand_z[j] = tz;
-
-        // Atomically claim volume for daughter cell
-        int tvidx = cand_z[i] * (size_x * size_y) + cand_y[i] * size_x + cand_x[i];
-        if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) continue;
-
-        // Won the voxel — execute division
-        const int target_x = cand_x[i];
-        const int target_y = cand_y[i];
-        const int target_z = cand_z[i];
+    const int target_x = tvidx % size_x;
+    const int target_y = (tvidx / size_x) % size_y;
+    const int target_z = tvidx / (size_x * size_y);
+    {
 
         if (cell_state == CANCER_STEM) {
             float cabo = FLAMEGPU->environment.getProperty<float>("qsp_cabo_tumor");
@@ -314,14 +341,6 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide, flamegpu::MessageNone, flamegpu::MessageN
         atomicAdd(&evts[cell_state == CANCER_STEM ? EVT_PROLIF_CANCER_STEM : EVT_PROLIF_CANCER_PROG], 1u);
 
         FLAMEGPU->setVariable<int>("stuck_steps", 0);  // Divided successfully → not stuck
-        divided = true;
-        break;  // Division done; stop trying candidates
-    }
-
-    // All candidates lost volume contention → count as stuck for contact-inhibited senescence.
-    if (!divided) {
-        const int stuck = FLAMEGPU->getVariable<int>("stuck_steps");
-        FLAMEGPU->setVariable<int>("stuck_steps", stuck + 1);
     }
 
     return flamegpu::ALIVE;
