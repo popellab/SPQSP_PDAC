@@ -152,6 +152,7 @@
       <hev_ccl21_threshold name="PARAM_VAS_HEV_CCL21_TH" type="float" val="pr">5.0</hev_ccl21_threshold>         <!-- Unbound CCL21 min ~5 nM in LN paracortex -->
       <hev_lymph_density_th name="PARAM_VAS_HEV_LYMPH_DENSITY_TH" type="float" val="pr">8000.0</hev_lymph_density_th> <!-- ~1 cell in Moore neighborhood (1 voxel = 8000 um³) -->
       <hev_recruit_boost name="PARAM_VAS_HEV_RECRUIT_BOOST" type="float" val="pr">5.0</hev_recruit_boost>           <!-- Recruitment multiplier HEV vs PHALANX. 5x conservative model-design (R8 2026-06-16): Martinet2011 reports HEV-density/TIL CORRELATION (not 10x fold); comparator TLS-rich/free CD8 ~6.2x. Range [3,10]. -->
+      <entry_adhesion_scale name="PARAM_ENTRY_ADHESION_SCALE" type="float" val="pr">0.05</entry_adhesion_scale>       <!-- media-2 Eq.4 collapsed: p_entry = Vvas * this (= rho_adhesion*Vvoxel/n_adhesion). Per-voxel immune extravasation entry-point probability per step. SBI-tunable knob; 0.05 ~ matches old ~few-percent vascular source density. Flagged for sensitivity analysis. -->
       <hev_revert_ccl21_th name="PARAM_VAS_HEV_REVERT_CCL21_TH" type="float" val="pr">0.5</hev_revert_ccl21_th> <!-- CCL21 nM below this → HEV reverts to PHALANX -->
     </Vas>
     <Fib>

@@ -98,13 +98,12 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addHostFunction(update_vasculature_count);
     }
 
-    // 3. Mark recruitment sources.
-    //    Matches HCC update_vas() which marks T/MDSC/MAC source voxels before recruitment.
+    // 3. Mark recruitment entry points from the Vvas field (media-2 Eq.4).
+    //    Replaces per-vascular-agent marking: p_entry = Vvas * PARAM_ENTRY_ADHESION_SCALE,
+    //    decoupled from vascular agent positions/counts (no vas_scaler). MDSC/MAC CCL2-gated.
     {
-        // All immune recruitment sources marked at vascular locations (PHALANX/HEV).
-        // T cells: IFN-γ gated. MAC/MDSC/DC: CCL2 gated. B cells: CXCL13 gated.
-        flamegpu::LayerDescription layer = model.newLayer("mark_vascular_sources");
-        layer.addAgentFunction(AGENT_VASCULAR, "mark_sources");
+        flamegpu::LayerDescription layer = model.newLayer("mark_entry_points");
+        layer.addHostFunction(mark_entry_points);
     }
 
     // 4. Recruitment: GPU kernel decides placement, thin host fn creates agents.

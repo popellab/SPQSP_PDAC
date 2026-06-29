@@ -1711,6 +1711,69 @@ FLAMEGPU_HOST_FUNCTION(compute_vvas_and_o2) {
 }
 
 // ============================================================================
+// Recruitment entry points from Vvas (media-2 Eq.4): replaces vascular-agent marking.
+//   p_entry(voxel) = clamp(Vvas * PARAM_ENTRY_ADHESION_SCALE, 1)   [ = Vvas*rho_adh*Vvox/n_adh ]
+// At an entry point, set immune-type bits in d_recruitment_sources (T=1,MDSC=2,MAC=4,B=8,DC=16);
+// MDSC/MAC additionally CCL2-Hill gated (media-2 Eq.6-7). recruit_all_kernel consumes unchanged.
+// ============================================================================
+__global__ void mark_entry_points_kernel(
+    int* recruit_sources,
+    const float* __restrict__ vvas,
+    const float* __restrict__ ccl2,
+    int nx, int ny, int nz,
+    float entry_scale, float ec50_ccl2_mdsc, float ec50_ccl2_mac,
+    unsigned int seed)
+{
+    const int tx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int ty = blockIdx.y * blockDim.y + threadIdx.y;
+    const int tz = blockIdx.z * blockDim.z + threadIdx.z;
+    if (tx >= nx || ty >= ny || tz >= nz) return;
+    const int idx = tz * (nx * ny) + ty * nx + tx;
+
+    const float vv = vvas[idx];
+    if (vv <= 0.0f) return;
+    const float p_entry = fminf(vv * entry_scale, 1.0f);
+
+    unsigned int rng = seed ^ (idx * 2654435761u + 1u);
+    xorshift32(rng);  // warm up
+    if (rng_uniform(rng) >= p_entry) return;  // not an entry point this step
+
+    int bits = 1 | 8 | 16;  // T (entry-gated), B (baseline), DC (homeostatic) — matches prior marking
+    const float c = ccl2[idx];
+    if (rng_uniform(rng) < c / (c + ec50_ccl2_mdsc + 1e-30f)) bits |= 2;  // MDSC: CCL2 Hill
+    if (rng_uniform(rng) < c / (c + ec50_ccl2_mac  + 1e-30f)) bits |= 4;  // MAC:  CCL2 Hill
+    atomicOr(&recruit_sources[idx], bits);
+}
+
+// Host layer: mark Vvas-driven recruitment entry points into the bitmask the recruit
+// kernel consumes. Replaces vascular_mark_sources; runs after reset_recruitment_sources,
+// before recruit_gpu. Reads d_vvas_field (computed previous step's PDE phase; 1-step lag).
+FLAMEGPU_HOST_FUNCTION(mark_entry_points) {
+    nvtxRangePush("Mark Entry Points");
+    if (!g_pde_solver || !d_vvas_field) { nvtxRangePop(); return; }
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+
+    const float entry_scale = FLAMEGPU->environment.getProperty<float>("PARAM_ENTRY_ADHESION_SCALE");
+    const float ec50_mdsc   = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_EC50_CCL2_REC");
+    const float ec50_mac    = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_EC50_CCL2_REC");
+    const unsigned int base_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    // distinct salt from recruit_all_kernel to decorrelate the two stochastic passes
+    const unsigned int seed = base_seed ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 40503u + 0x9E3779B9u);
+
+    const float* ccl2 = g_pde_solver->get_device_concentration_ptr(CHEM_CCL2);
+    int* recruit_sources = g_pde_solver->get_device_recruitment_sources_ptr();
+
+    dim3 block(8, 8, 8);
+    dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
+    mark_entry_points_kernel<<<grid, block>>>(recruit_sources, d_vvas_field, ccl2, nx, ny, nz,
+                                              entry_scale, ec50_mdsc, ec50_mac, seed);
+    cudaDeviceSynchronize();
+    nvtxRangePop();
+}
+
+// ============================================================================
 // ECM Grid: decay + myCAF deposition + MMP degradation + crosslink accumulation.
 // Operates entirely on device arrays — no MacroProperty D2H/H2D.
 // ============================================================================

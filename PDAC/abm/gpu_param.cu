@@ -93,6 +93,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Vas.hev_ccl21_threshold", "", "pr"},  // PARAM_VAS_HEV_CCL21_TH
     {"Param.ABM.Vas.hev_lymph_density_th", "", "pr"},  // PARAM_VAS_HEV_LYMPH_DENSITY_TH
     {"Param.ABM.Vas.hev_recruit_boost", "", "pr"},  // PARAM_VAS_HEV_RECRUIT_BOOST
+    {"Param.ABM.Vas.entry_adhesion_scale", "", "pr"},  // PARAM_ENTRY_ADHESION_SCALE
     {"Param.ABM.Vas.hev_revert_ccl21_th", "", "pr"},  // PARAM_VAS_HEV_REVERT_CCL21_TH
     {"Param.ABM.Fib.ECM_radius", "", "pr"},  // PARAM_FIB_ECM_RADIUS
     {"Param.ABM.Fib.ECM_variance", "", "pr"},  // PARAM_FIB_ECM_VARIANCE
@@ -419,6 +420,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_VAS_HEV_CCL21_TH", getFloat(PARAM_VAS_HEV_CCL21_TH));
     env.newProperty<float>("PARAM_VAS_HEV_LYMPH_DENSITY_TH", getFloat(PARAM_VAS_HEV_LYMPH_DENSITY_TH));
     env.newProperty<float>("PARAM_VAS_HEV_RECRUIT_BOOST", getFloat(PARAM_VAS_HEV_RECRUIT_BOOST));
+    env.newProperty<float>("PARAM_ENTRY_ADHESION_SCALE", getFloat(PARAM_ENTRY_ADHESION_SCALE));
     env.newProperty<float>("PARAM_VAS_HEV_REVERT_CCL21_TH", getFloat(PARAM_VAS_HEV_REVERT_CCL21_TH));
     env.newProperty<float>("PARAM_FIB_ECM_RADIUS", getFloat(PARAM_FIB_ECM_RADIUS));
     env.newProperty<float>("PARAM_FIB_ECM_VARIANCE", getFloat(PARAM_FIB_ECM_VARIANCE));

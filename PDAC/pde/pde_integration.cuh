@@ -97,6 +97,10 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_grid;
 // phase after compute_chemical_sources, before solve_pde. Replaces vascular-agent O2.
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER compute_vvas_and_o2;
 
+// Mark recruitment entry points from the Vvas field (media-2 Eq.4). Replaces vascular
+// agent source-marking; runs after reset_recruitment_sources, before recruit_gpu.
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER mark_entry_points;
+
 // Antigen grid: exponential decay of persistent antigen from dying cancer cells
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER decay_antigen_grid;
 
