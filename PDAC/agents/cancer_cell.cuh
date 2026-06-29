@@ -211,14 +211,18 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_reserve, flamegpu::MessageNone, flamegpu::
         return flamegpu::ALIVE;
     }
 
-    // Single-candidate: pick one deterministically (seeded RNG) and reserve it by priority.
-    int pick = static_cast<int>(FLAMEGPU->random.uniform<float>() * n_cands);
+    // Single-candidate: pick one deterministically (lineage-tag-seeded RNG, not FLAMEGPU->random
+    // which is nondeterministic for born cells) and reserve it by priority.
+    const int my_vidx = my_z * (size_x * size_y) + my_y * size_x + my_x;
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    unsigned int drs = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0xD1Du, sim_seed);
+    int pick = static_cast<int>(det_rng_uniform(drs) * n_cands);
     if (pick >= n_cands) pick = n_cands - 1;
     const int tvidx   = cand_z[pick] * (size_x * size_y) + cand_y[pick] * size_x + cand_x[pick];
-    const int my_vidx = my_z       * (size_x * size_y) + my_y       * size_x + my_x;
     unsigned long long* owner = reinterpret_cast<unsigned long long*>(
         FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
-    reserve_voxel(owner, tvidx, make_claim_priority(my_vidx, static_cast<unsigned int>(FLAMEGPU->getID())));
+    reserve_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag));
     FLAMEGPU->setVariable<int>("div_target_vidx", tvidx);
     return flamegpu::ALIVE;
 }
@@ -236,11 +240,12 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_confirm, flamegpu::MessageNone, flamegpu::
     const int size_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int size_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
 
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
     const int my_vidx = my_z * (size_x * size_y) + my_y * size_x + my_x;
     unsigned long long* owner = reinterpret_cast<unsigned long long*>(
         FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
     // Lost the deterministic contention → don't divide this step; count as stuck.
-    if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, static_cast<unsigned int>(FLAMEGPU->getID())))) {
+    if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag))) {
         const int stuck = FLAMEGPU->getVariable<int>("stuck_steps");
         FLAMEGPU->setVariable<int>("stuck_steps", stuck + 1);
         return flamegpu::ALIVE;
@@ -262,6 +267,8 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_confirm, flamegpu::MessageNone, flamegpu::
     const int target_x = tvidx % size_x;
     const int target_y = (tvidx / size_x) % size_y;
     const int target_z = tvidx / (size_x * size_y);
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    unsigned int crs = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0xC0Fu, sim_seed);
     {
 
         if (cell_state == CANCER_STEM) {
@@ -270,7 +277,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_confirm, flamegpu::MessageNone, flamegpu::
             float cabo_prolif_factor = 1 - (FLAMEGPU->environment.getProperty<float>("PARAM_LAMBDA_C_CABO") * 
                                             cabo / (cabo + FLAMEGPU->environment.getProperty<float>("PARAM_IC50_MET"))) * R_cabo;
 
-            if (FLAMEGPU->random.uniform<float>() < asymmetric_div_prob) {
+            if (det_rng_uniform(crs) < asymmetric_div_prob) {
                 // Asymmetric: daughter is progenitor
                 const float div_int = FLAMEGPU->environment.getProperty<float>(
                     "PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE");
@@ -309,7 +316,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_confirm, flamegpu::MessageNone, flamegpu::
             // during PanIN progression — Matsuda2019). Applied pre-write so both copies inherit
             // the boosted count.
             const float p_react = FLAMEGPU->environment.getProperty<float>("PARAM_TELOMERASE_REACTIVATION_PROB");
-            if (p_react > 0.0f && FLAMEGPU->random.uniform<float>() < p_react) {
+            if (p_react > 0.0f && det_rng_uniform(crs) < p_react) {
                 divideCountRemaining = divMax;
             }
             FLAMEGPU->setVariable<int>("divideCountRemaining", divideCountRemaining);
@@ -341,6 +348,12 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_confirm, flamegpu::MessageNone, flamegpu::
         atomicAdd(&evts[cell_state == CANCER_STEM ? EVT_PROLIF_CANCER_STEM : EVT_PROLIF_CANCER_PROG], 1u);
 
         FLAMEGPU->setVariable<int>("stuck_steps", 0);  // Divided successfully → not stuck
+
+        // Child lineage tag: deterministic + distinct per birth, independent of FLAMEGPU birth
+        // order (parent's already-deterministic tag + the deterministic target voxel + step).
+        FLAMEGPU->agent_out.setVariable<unsigned int>("det_tag",
+            det_rng_hash(det_tag ^ (static_cast<unsigned int>(tvidx) * 0x9E3779B1U)
+                         ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 0x85EBCA77U)));
     }
 
     return flamegpu::ALIVE;
@@ -702,7 +715,10 @@ FLAMEGPU_AGENT_FUNCTION(cancer_reset_moves, flamegpu::MessageNone, flamegpu::Mes
 
 // Cancer cell movement via unified movement framework.
 // No persistence, no chemotaxis (bias=0, p_persist=0). Pure random walk.
-FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNone) {
+// Cancer movement — PROPOSE pass (Step-5 deterministic). Picks the next voxel and
+// atomicMin-reserves it by (source-voxel, id); cancer_move_commit moves the unique winner.
+FLAMEGPU_AGENT_FUNCTION(cancer_move_propose, flamegpu::MessageNone, flamegpu::MessageNone) {
+    FLAMEGPU->setVariable<int>("move_target_vidx", -1);  // reset proposal each round
     if (FLAMEGPU->getVariable<int>("dead") == 1) return flamegpu::ALIVE;
 
     int moves_remaining = FLAMEGPU->getVariable<int>("moves_remaining");
@@ -768,46 +784,97 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move, flamegpu::MessageNone, flamegpu::MessageNon
         }
     }
 
-    MoveResult r = move_cell(mp, x, y, z,
+    // Deterministic: lineage-tag-seeded RNG for the move draws (not FLAMEGPU->random, which is
+    // nondeterministic for born cells), pick the target (no claim) then reserve by priority.
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    unsigned int rs = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(),
+                                   static_cast<unsigned int>(moves_remaining), sim_seed);
+    const float r_move = det_rng_uniform(rs);
+    const float r_persist = det_rng_uniform(rs);
+    const float r_dir = det_rng_uniform(rs);
+    MoveResult r = move_cell_pick(mp, x, y, z,
         FLAMEGPU->getVariable<int>("persist_dir_x"),
         FLAMEGPU->getVariable<int>("persist_dir_y"),
         FLAMEGPU->getVariable<int>("persist_dir_z"),
-        FLAMEGPU->random.uniform<float>(),
-        FLAMEGPU->random.uniform<float>(),
-        FLAMEGPU->random.uniform<float>());
+        r_move, r_persist, r_dir);
 
     if (r.moved) {
-        FLAMEGPU->setVariable<int>("x", r.new_x);
-        FLAMEGPU->setVariable<int>("y", r.new_y);
-        FLAMEGPU->setVariable<int>("z", r.new_z);
-        FLAMEGPU->setVariable<int>("persist_dir_x", r.persist_dx);
-        FLAMEGPU->setVariable<int>("persist_dir_y", r.persist_dy);
-        FLAMEGPU->setVariable<int>("persist_dir_z", r.persist_dz);
+        const int tvidx   = r.new_z * (mp.grid_x * mp.grid_y) + r.new_y * mp.grid_x + r.new_x;
+        const int my_vidx = z       * (mp.grid_x * mp.grid_y) + y       * mp.grid_x + x;
+        unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+            FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+        reserve_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag));
+        FLAMEGPU->setVariable<int>("move_target_vidx", tvidx);
+    }
+    return flamegpu::ALIVE;
+}
 
-        // Deposit mechanical stress in movement direction (drives TACS-3 fiber reorientation)
-        float stress_deposit = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_STRESS_DEPOSIT");
-        if (stress_deposit > 0.0f) {
-            float* sx = STRESS_X_PTR(FLAMEGPU);
-            float* sy = STRESS_Y_PTR(FLAMEGPU);
-            float* sz = STRESS_Z_PTR(FLAMEGPU);
-            float move_dx = static_cast<float>(r.persist_dx);
-            float move_dy = static_cast<float>(r.persist_dy);
-            float move_dz = static_cast<float>(r.persist_dz);
-            float inv_len = rsqrtf(move_dx * move_dx + move_dy * move_dy + move_dz * move_dz + 1e-30f);
-            move_dx *= inv_len * stress_deposit;
-            move_dy *= inv_len * stress_deposit;
-            move_dz *= inv_len * stress_deposit;
-            int old_vidx = z * (mp.grid_x * mp.grid_y) + y * mp.grid_x + x;
-            int new_vidx = r.new_z * (mp.grid_x * mp.grid_y) + r.new_y * mp.grid_x + r.new_x;
-            atomicAdd(&sx[old_vidx], move_dx);
-            atomicAdd(&sy[old_vidx], move_dy);
-            atomicAdd(&sz[old_vidx], move_dz);
-            atomicAdd(&sx[new_vidx], move_dx);
-            atomicAdd(&sy[new_vidx], move_dy);
-            atomicAdd(&sz[new_vidx], move_dz);
-        }
+// Cancer movement — COMMIT pass. Moves the unique winner of each reserved voxel
+// (lowest source-voxel/id); losers stay. Race-free: one claimer per target voxel.
+FLAMEGPU_AGENT_FUNCTION(cancer_move_commit, flamegpu::MessageNone, flamegpu::MessageNone) {
+    const int tvidx = FLAMEGPU->getVariable<int>("move_target_vidx");
+    if (tvidx < 0) return flamegpu::ALIVE;
+
+    const int x = FLAMEGPU->getVariable<int>("x");
+    const int y = FLAMEGPU->getVariable<int>("y");
+    const int z = FLAMEGPU->getVariable<int>("z");
+    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    const int my_vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+        FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+    if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag))) {
+        return flamegpu::ALIVE;  // lost the deterministic contention → stay
     }
 
+    float my_vol = (cell_state == CANCER_STEM) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_STEM") :
+        (cell_state == CANCER_PROGENITOR) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_SEN");
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float* vol_used = VOL_PTR(FLAMEGPU);
+
+    // Sole winner of this voxel → claim is race-free; guard against a pre-existing fill.
+    if (!volume_try_claim(vol_used, tvidx, my_vol, capacity)) return flamegpu::ALIVE;
+    volume_release(vol_used, my_vidx, my_vol);
+
+    const int target_x = tvidx % grid_x;
+    const int target_y = (tvidx / grid_x) % grid_y;
+    const int target_z = tvidx / (grid_x * grid_y);
+    const int sel_dx = target_x - x, sel_dy = target_y - y, sel_dz = target_z - z;
+
+    FLAMEGPU->setVariable<int>("x", target_x);
+    FLAMEGPU->setVariable<int>("y", target_y);
+    FLAMEGPU->setVariable<int>("z", target_z);
+    FLAMEGPU->setVariable<int>("persist_dir_x", sel_dx);
+    FLAMEGPU->setVariable<int>("persist_dir_y", sel_dy);
+    FLAMEGPU->setVariable<int>("persist_dir_z", sel_dz);
+
+    // Deposit mechanical stress in movement direction (drives TACS-3 fiber reorientation)
+    float stress_deposit = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_STRESS_DEPOSIT");
+    if (stress_deposit > 0.0f) {
+        float* sx = STRESS_X_PTR(FLAMEGPU);
+        float* sy = STRESS_Y_PTR(FLAMEGPU);
+        float* sz = STRESS_Z_PTR(FLAMEGPU);
+        float move_dx = static_cast<float>(sel_dx);
+        float move_dy = static_cast<float>(sel_dy);
+        float move_dz = static_cast<float>(sel_dz);
+        float inv_len = rsqrtf(move_dx * move_dx + move_dy * move_dy + move_dz * move_dz + 1e-30f);
+        move_dx *= inv_len * stress_deposit;
+        move_dy *= inv_len * stress_deposit;
+        move_dz *= inv_len * stress_deposit;
+        atomicAdd(&sx[my_vidx], move_dx);
+        atomicAdd(&sy[my_vidx], move_dy);
+        atomicAdd(&sz[my_vidx], move_dz);
+        atomicAdd(&sx[tvidx], move_dx);
+        atomicAdd(&sy[tvidx], move_dy);
+        atomicAdd(&sz[tvidx], move_dz);
+    }
     return flamegpu::ALIVE;
 }
 

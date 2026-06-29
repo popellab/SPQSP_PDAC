@@ -660,6 +660,31 @@ __device__ __forceinline__ bool won_voxel(const unsigned long long* owner, int t
     return owner[target_vidx] == priority;
 }
 
+// ------------------------------------------------------------
+// Deterministic stateless RNG (Step-5): position-hash randomness.
+// FLAMEGPU's per-agent RNG is seeded from the agent's buffer slot/id, which is
+// assigned in thread-schedule (nondeterministic) order for BORN agents — so a
+// proliferating population's draws differ run-to-run. Seeding instead from
+// (voxel index, step, round-salt, sim seed) makes the draws deterministic given
+// position (which the priority-claim makes deterministic). Murmur3 finalizer mix.
+// Caveat: two cells sharing a voxel get the same stream (resolve via the claim /
+// a per-cell discriminator); risk of spatial artifacts if the hash mixes poorly.
+__device__ __forceinline__ unsigned int det_rng_hash(unsigned int h) {
+    h ^= h >> 16; h *= 0x85ebca6bU; h ^= h >> 13; h *= 0xc2b2ae35U; h ^= h >> 16;
+    return h;
+}
+__device__ __forceinline__ unsigned int det_rng_seed(int voxel_idx, unsigned int step,
+                                                      unsigned int salt, unsigned int sim_seed) {
+    return det_rng_hash(static_cast<unsigned int>(voxel_idx) * 0x9E3779B1U
+                        ^ (step + 0x9E3779B9U) * 0x85EBCA77U
+                        ^ (salt + 1U)          * 0xC2B2AE3DU
+                        ^ sim_seed);
+}
+__device__ __forceinline__ float det_rng_uniform(unsigned int& s) {
+    s = det_rng_hash(s);
+    return (s >> 8) * (1.0f / 16777216.0f);  // 24-bit → [0,1)
+}
+
 // ============================================================
 // Contact Guidance Helper
 // ============================================================
@@ -799,9 +824,12 @@ struct MoveResult {
     bool moved;
 };
 
-// Unified movement: adhesion check → build candidates → persistence → gradient-biased select → claim.
+// Unified movement PICK: adhesion check → build candidates → persistence → gradient-biased
+// select. Returns the SELECTED target in result.new_x/y/z with moved=true (NOT yet claimed),
+// or moved=false if the cell stays (adhesion fail / no open candidate). The volume claim is
+// done by the caller (move_cell wrapper for the racy path, or reserve/commit for deterministic).
 // Caller provides 3 pre-rolled uniform [0,1) random floats.
-__device__ __forceinline__ MoveResult move_cell(
+__device__ __forceinline__ MoveResult move_cell_pick(
     const MoveParams& p,
     int x, int y, int z,
     int persist_dx, int persist_dy, int persist_dz,
@@ -920,19 +948,37 @@ __device__ __forceinline__ MoveResult move_cell(
         }
     }
 
-    // --- Step 5: Attempt atomic volume claim ---
-    int nx = x + sel_dx, ny = y + sel_dy, nz = z + sel_dz;
-    int target_vidx = nz * (p.grid_x * p.grid_y) + ny * p.grid_x + nx;
-    int old_vidx = z * (p.grid_x * p.grid_y) + y * p.grid_x + x;
+    // --- Pick complete: return the selected target (caller performs the claim) ---
+    result.new_x = x + sel_dx; result.new_y = y + sel_dy; result.new_z = z + sel_dz;
+    result.persist_dx = sel_dx; result.persist_dy = sel_dy; result.persist_dz = sel_dz;
+    result.moved = true;   // a target was selected (not yet claimed)
+    return result;
+}
 
+// Unified movement (racy path, unchanged behavior): pick a target then claim it via
+// volume_try_claim. Used by the immune/fib/vas move functions (deterministic split is
+// applied per-type as needed — cancer uses move_cell_pick + reserve/commit instead).
+__device__ __forceinline__ MoveResult move_cell(
+    const MoveParams& p,
+    int x, int y, int z,
+    int persist_dx, int persist_dy, int persist_dz,
+    float r_move, float r_persist, float r_direction)
+{
+    MoveResult r = move_cell_pick(p, x, y, z, persist_dx, persist_dy, persist_dz,
+                                  r_move, r_persist, r_direction);
+    if (!r.moved) return r;  // stayed (adhesion / no candidate)
+
+    int target_vidx = r.new_z * (p.grid_x * p.grid_y) + r.new_y * p.grid_x + r.new_x;
+    int old_vidx    = z       * (p.grid_x * p.grid_y) + y       * p.grid_x + x;
     if (volume_try_claim(p.vol_used, target_vidx, p.my_vol, p.capacity)) {
         volume_release(p.vol_used, old_vidx, p.my_vol);
-        result.new_x = nx; result.new_y = ny; result.new_z = nz;
-        result.persist_dx = sel_dx; result.persist_dy = sel_dy; result.persist_dz = sel_dz;
-        result.moved = true;
+        // r already carries target + selected persist + moved=true
+    } else {
+        // Claim lost → stay put, restore persistence to the incoming direction.
+        r.new_x = x; r.new_y = y; r.new_z = z; r.moved = false;
+        r.persist_dx = persist_dx; r.persist_dy = persist_dy; r.persist_dz = persist_dz;
     }
-
-    return result;
+    return r;
 }
 
 // ============================================================================

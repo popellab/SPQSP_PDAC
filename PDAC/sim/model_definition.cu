@@ -73,6 +73,8 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     cancer_cell.newVariable<int>("divide_wave", 0);   // Wave assignment for interleaved division
     cancer_cell.newVariable<int>("stuck_steps", 0);   // Consecutive ABM steps where cancer_divide found n_cands==0 (contact inhibition → senescence)
     cancer_cell.newVariable<int>("div_target_vidx", -1);  // Step-5 deterministic division: reserved target voxel (reserve→confirm)
+    cancer_cell.newVariable<int>("move_target_vidx", -1);  // Step-5 deterministic movement: reserved target voxel (propose→commit)
+    cancer_cell.newVariable<unsigned int>("det_tag", 1u);  // Step-5 deterministic lineage tag: seeds det_rng + breaks co-located ties (replaces unstable getID)
 
     // Molecular state (affects behavior)
     cancer_cell.newVariable<float>("PDL1_syn", 0.0f);
@@ -122,7 +124,8 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     // Movement, state, division, and volume occupancy functions only in main model
     if (include_state_divide) {
         cancer_cell.newFunction("write_to_occ_grid", cancer_write_to_occ_grid);
-        cancer_cell.newFunction("move", cancer_move);
+        cancer_cell.newFunction("move_propose", cancer_move_propose);  // Step-5 deterministic movement
+        cancer_cell.newFunction("move_commit", cancer_move_commit);
 
         cancer_cell.newFunction("state_step", cancer_cell_state_step)
             .setAllowAgentDeath(true);

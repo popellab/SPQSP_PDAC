@@ -152,6 +152,29 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_CANCER_CELL, "reset_moves");
     }
     {
+        // Cancer movement — Step-5 deterministic propose/commit, pulled OUT of the shared
+        // batched move rounds below. Per round: reset owner → propose (pick + reserve_voxel)
+        // → commit (unique winner moves). Owner reset each round (cheap on the SBI grid).
+        const int cancer_steps = std::max(
+            model.Environment().getProperty<int>("PARAM_CANCER_MOVE_STEPS"),
+            model.Environment().getProperty<int>("PARAM_CANCER_MOVE_STEPS_STEM"));
+        for (int r = 0; r < cancer_steps; r++) {
+            const std::string rs = std::to_string(r);
+            {
+                flamegpu::LayerDescription layer = model.newLayer("reset_voxel_owner_cmove_" + rs);
+                layer.addHostFunction(reset_voxel_owner);
+            }
+            {
+                flamegpu::LayerDescription layer = model.newLayer("cancer_move_propose_" + rs);
+                layer.addAgentFunction(AGENT_CANCER_CELL, "move_propose");
+            }
+            {
+                flamegpu::LayerDescription layer = model.newLayer("cancer_move_commit_" + rs);
+                layer.addAgentFunction(AGENT_CANCER_CELL, "move_commit");
+            }
+        }
+    }
+    {
         // Batched-round movement (PARAM_MOVE_BATCH = voxel-moves per agent per round).
         // Each round is ONE layer containing every mobile type; each agent's move kernel
         // does up to M voxel-moves in an internal loop (reading+writing the volume
@@ -184,7 +207,7 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
 
         for (int r = 0; r < K; r++) {
             flamegpu::LayerDescription layer = model.newLayer("move_round_" + std::to_string(r));
-            layer.addAgentFunction(AGENT_CANCER_CELL, "move");  // unbatched: 1 voxel/round
+            // Cancer moved deterministically above (propose/commit); not in the shared round.
             layer.addAgentFunction(AGENT_TCELL, "move");
             layer.addAgentFunction(AGENT_TREG, "move");
             layer.addAgentFunction(AGENT_MDSC, "move");
