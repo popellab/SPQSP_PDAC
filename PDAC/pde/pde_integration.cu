@@ -400,6 +400,7 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     config.diffusion_coeffs[CHEM_CCL21]    = gpu_params.getFloat(PARAM_CCL21_DIFFUSIVITY);
     config.diffusion_coeffs[CHEM_CXCL12]   = gpu_params.getFloat(PARAM_CXCL12_DIFFUSIVITY);
     config.diffusion_coeffs[CHEM_CCL5]     = gpu_params.getFloat(PARAM_CCL5_DIFFUSIVITY);
+    config.diffusion_coeffs[CHEM_CXCL9_10] = 1.47e-7f;  // small chemokine ~10-12 kDa (≈CXCL13); promote to PARAM if SBI needs it
 
     // Set decay rates (1/s) — QSP-derived read from model env, ABM-only from gpu_params
     const auto env = model.Environment();
@@ -421,6 +422,7 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     config.decay_rates[CHEM_CCL21]    = gpu_params.getFloat(PARAM_CCL21_DECAY_RATE);   // ABM-only
     config.decay_rates[CHEM_CXCL12]   = env.getProperty<float>("PARAM_CXCL12_DECAY_RATE");
     config.decay_rates[CHEM_CCL5]     = env.getProperty<float>("PARAM_CCL5_DECAY_RATE");
+    config.decay_rates[CHEM_CXCL9_10] = 1e-4f;  // ABM-only chemokine decay (≈CXCL13); promote to PARAM if SBI needs it
 
     g_pde_solver = new PDESolver(config);
     g_pde_solver->initialize();
@@ -780,6 +782,9 @@ struct RecruitKernelParams {
     const float* ccl5_conc;
     float ccl5_ec50;
     float ccl5_ratio;  // k_CCR5_Treg_rec / q_Treg_T_in — scales CCL5 boost relative to base
+    // CXCL9/10 (CXCR3 ligand) positive effector (Teff/Th) recruitment gate — CAF-sourced
+    const float* cxcl9_conc;
+    float cxcl9_ec50;
     // Volume-based occupancy
     float voxel_capacity;
     float vol_teff, vol_treg, vol_th;
@@ -884,6 +889,12 @@ __device__ bool try_find_open_neighbor(
 // Candidate SBI param (TLS-seeding rate) — promote to PARAM_* if calibration needs it.
 __device__ constexpr float BCELL_CXCL13_GATE_FLOOR = 0.1f;
 
+// CXCL9/10-independent effector (Teff/Th) seeding floor for the soft CXCR3 gate (Step 4b).
+// CAFs source CXCL9/10 from ~step 0 (TGFβ-driven myCAF), so this floor mostly covers the
+// brief pre-CAF window. floor ∈ (0,1]; effector rate ∝ (floor + (1-floor)·H_cxcl9).
+// gate-vs-probability-roll semantics for each cytokine to be reviewed after the rebuild.
+__device__ constexpr float TEFF_CXCL9_GATE_FLOOR = 0.1f;
+
 // ============================================================================
 // GPU Recruitment Kernel: One thread per voxel. Checks recruitment source flags,
 // rolls probabilities, finds open neighbors, writes compact RecruitRequest buffer.
@@ -923,9 +934,15 @@ __global__ void recruit_all_kernel(
         // Local CCL5 boost: enhances Treg CCR5 recruitment
         float ccl5_local = (p.ccl5_conc && p.ccl5_ec50 > 0.0f) ? p.ccl5_conc[idx] : 0.0f;
         float ccl5_boost = (p.ccl5_ec50 > 0.0f) ? ccl5_local / (ccl5_local + p.ccl5_ec50) : 0.0f;
+        // Local CXCL9/10 positive gate (CXCR3): enhances effector (Teff/TH) recruitment toward
+        // CAF-rich stroma. Soft gate: floor + (1-floor)·H_cxcl9 (effector-specific; not Treg).
+        float cxcl9_local = (p.cxcl9_conc && p.cxcl9_ec50 > 0.0f) ? p.cxcl9_conc[idx] : 0.0f;
+        float cxcl9_gate = (p.cxcl9_ec50 > 0.0f)
+            ? TEFF_CXCL9_GATE_FLOOR + (1.0f - TEFF_CXCL9_GATE_FLOOR) * (cxcl9_local / (cxcl9_local + p.cxcl9_ec50))
+            : 1.0f;
 
-        // Try Teff (reduced by CXCL12)
-        if (rng_uniform(rng) < p.p_teff * (1.0f - cxcl12_inhib)) {
+        // Try Teff (CXCR3 CXCL9/10 gate × CXCL12 exclusion)
+        if (rng_uniform(rng) < p.p_teff * cxcl9_gate * (1.0f - cxcl12_inhib)) {
             atomicAdd(&diag->teff_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_teff, p.voxel_capacity,
@@ -999,8 +1016,8 @@ __global__ void recruit_all_kernel(
             }
         }
 
-        // Try TH (reduced by CXCL12, same as Teff)
-        if (rng_uniform(rng) < p.p_th * (1.0f - cxcl12_inhib)) {
+        // Try TH (CXCR3 CXCL9/10 gate × CXCL12 exclusion, same as Teff)
+        if (rng_uniform(rng) < p.p_th * cxcl9_gate * (1.0f - cxcl12_inhib)) {
             atomicAdd(&diag->th_roll_pass, 1);
             if (try_find_open_neighbor(x, y, z, p.nx, p.ny, p.nz,
                     d_vol_used, p.vol_th, p.voxel_capacity,
@@ -1360,6 +1377,10 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
         g_pde_solver->get_device_concentration_ptr(CHEM_CCL5)) : nullptr;
     p.ccl5_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_CCL5_EC50_TREG");
     p.ccl5_ratio = FLAMEGPU->environment.getProperty<float>("PARAM_CCL5_TREG_RATIO");
+    // CXCL9/10 effector recruitment gate (CAF-sourced CXCR3 ligand)
+    p.cxcl9_conc = g_pde_solver ? reinterpret_cast<const float*>(
+        g_pde_solver->get_device_concentration_ptr(CHEM_CXCL9_10)) : nullptr;
+    p.cxcl9_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_TEFF_EC50_CXCL9_REC");
 
     // Volume-based occupancy params
     p.voxel_capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");

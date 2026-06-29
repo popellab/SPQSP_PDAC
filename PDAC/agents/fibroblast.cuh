@@ -177,18 +177,24 @@ FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, fla
         const float ccl2_rate  = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_RELEASE");
         const float vegfa_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_VEGFA_RELEASE");
         float eff_boost = hif_boost * metabolic_factor;
+        const float cxcl9_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_CXCL9_RELEASE");
         PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB,  voxel, tgfb_rate  * eff_boost / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL2,  voxel, ccl2_rate  * eff_boost / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_VEGFA, voxel, vegfa_rate * eff_boost / voxel_volume);
+        // CXCL9/10 (CXCR3 ligand) — CAF-density-sourced effector recruitment cue (Step 4b)
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL9_10, voxel, cxcl9_rate * eff_boost / voxel_volume);
     } else if (cs == FIB_ICAF) {
         const float il6_rate    = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_IL6_RELEASE");
         const float ccl2_rate   = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_RELEASE");
         const float cxcl12_rate = FLAMEGPU->environment.getProperty<float>("PARAM_CXCL12_ICAF_RELEASE");
         const float ccl5_rate   = FLAMEGPU->environment.getProperty<float>("PARAM_CCL5_ICAF_RELEASE");
+        const float cxcl9_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_CXCL9_RELEASE");
         PDE_SECRETE(FLAMEGPU, PDE_SRC_IL6,    voxel, il6_rate / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL2,   voxel, ccl2_rate / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL12, voxel, cxcl12_rate / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL5,   voxel, ccl5_rate / voxel_volume);
+        // CXCL9/10 (CXCR3 ligand) — CAF-density-sourced effector recruitment cue (Step 4b)
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL9_10, voxel, cxcl9_rate / voxel_volume);
     } else {  // FIB_FRC — TLS T-zone scaffold, CCL21 source (Luther2000, Link2007)
         const float ccl21_rate  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_FRC_CCL21_RELEASE");
         const float cxcl12_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_FRC_CXCL12_RELEASE");

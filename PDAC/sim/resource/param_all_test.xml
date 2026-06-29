@@ -153,6 +153,7 @@
       <hev_lymph_density_th name="PARAM_VAS_HEV_LYMPH_DENSITY_TH" type="float" val="pr">8000.0</hev_lymph_density_th> <!-- ~1 cell in Moore neighborhood (1 voxel = 8000 um³) -->
       <hev_recruit_boost name="PARAM_VAS_HEV_RECRUIT_BOOST" type="float" val="pr">5.0</hev_recruit_boost>           <!-- Recruitment multiplier HEV vs PHALANX. 5x conservative model-design (R8 2026-06-16): Martinet2011 reports HEV-density/TIL CORRELATION (not 10x fold); comparator TLS-rich/free CD8 ~6.2x. Range [3,10]. -->
       <entry_adhesion_scale name="PARAM_ENTRY_ADHESION_SCALE" type="float" val="pr">0.05</entry_adhesion_scale>       <!-- media-2 Eq.4 collapsed: p_entry = Vvas * this (= rho_adhesion*Vvoxel/n_adhesion). Per-voxel immune extravasation entry-point probability per step. SBI-tunable knob; 0.05 ~ matches old ~few-percent vascular source density. Flagged for sensitivity analysis. -->
+      <teff_ec50_cxcl9 name="PARAM_TEFF_EC50_CXCL9_REC" type="float" val="pr">10.0</teff_ec50_cxcl9>             <!-- rebuild Step 4b: CXCL9/10 (CXCR3-ligand) EC50 [nM] for the effector (CD8/Th) recruitment gate at Vvas entry points. CAF-density-sourced positive term (D1: avoids IFN-γ bistability). Soft-gate floor is hardcoded (TEFF_CXCL9_GATE_FLOOR constexpr). SBI free param; EC50-vs-field to be calibrated. gate-vs-roll semantics under review. -->
       <hev_revert_ccl21_th name="PARAM_VAS_HEV_REVERT_CCL21_TH" type="float" val="pr">0.5</hev_revert_ccl21_th> <!-- CCL21 nM below this → HEV reverts to PHALANX -->
     </Vas>
     <Fib>
@@ -539,6 +540,8 @@
         <diffusivity name="PARAM_CCL5_DIFFUSIVITY" type="float" val="pr">2.06e-7</diffusivity>           <!-- MAPLE. Ramanujan2002 -->
         <molecularWeight name="PARAM_CCL5_MOLECULAR_WEIGHT" type="float" val="pr">8</molecularWeight>    <!-- CCL5/RANTES ~8 kDa -->
       </CCL5>
+      <CXCL9>
+        <fibRelease name="PARAM_FIB_CXCL9_RELEASE" type="float" val="pr">2e-9</fibRelease>             <!-- rebuild Step 4b: CXCL9/10/11 (CXCR3-ligand) secretion by CAFs (myCAF+iCAF) [pmol/(cell*s)]. CAF-density-sourced (D1: NOT IFN-γ-induced → avoids re-bistability). ~matches FRC CXCL12 (2e-9). Diffusivity 1.47e-7 / decay 1e-4 hardcoded in pde_integration. SBI free param. --></CXCL9>
     </biofvm>
     <allMolecularOff>0</allMolecularOff>
     <diffusionOff>0</diffusionOff>

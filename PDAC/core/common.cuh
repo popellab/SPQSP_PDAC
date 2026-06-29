@@ -284,6 +284,7 @@ enum ABMEventCounterIndex : int {
 #define PDE_CONC_CCL21 "pde_concentration_ptr_15"
 #define PDE_CONC_CXCL12 "pde_concentration_ptr_16"
 #define PDE_CONC_CCL5  "pde_concentration_ptr_17"
+#define PDE_CONC_CXCL9_10 "pde_concentration_ptr_18"
 
 // Source pointers (atomicAdd secretion rate / voxel_volume → [conc/s])
 #define PDE_SRC_O2    "pde_source_ptr_0"
@@ -304,6 +305,7 @@ enum ABMEventCounterIndex : int {
 #define PDE_SRC_CCL21 "pde_source_ptr_15"
 #define PDE_SRC_CXCL12 "pde_source_ptr_16"
 #define PDE_SRC_CCL5  "pde_source_ptr_17"
+#define PDE_SRC_CXCL9_10 "pde_source_ptr_18"
 
 // Uptake pointers (atomicAdd first-order decay rate [1/s], no volume scaling)
 #define PDE_UPT_O2    "pde_uptake_ptr_0"

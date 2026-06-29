@@ -33,6 +33,7 @@ enum ChemicalSubstrate {
     CHEM_CCL21,     // [nM] — CCL21 (mature DC secretion, TLS T-zone homing)
     CHEM_CXCL12,    // [nM] — CXCL12/SDF-1 (iCAF + cancer, T cell exclusion)
     CHEM_CCL5,      // [nM] — CCL5/RANTES (cancer + iCAF, Treg CCR5 recruitment)
+    CHEM_CXCL9_10,  // [nM] — CXCL9/10/11 (CXCR3 ligand, CAF-derived; effector CD8/Th recruitment gate)
     NUM_SUBSTRATES
 };
 
