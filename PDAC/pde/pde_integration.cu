@@ -44,6 +44,11 @@ RecruitStats get_last_recruit_stats() { return g_recruit_stats; }
 // Used by recruitment source-marking kernels to skip tumor-dense voxels.
 static unsigned int* d_cancer_occ = nullptr;
 
+// Per-voxel vascular volume fraction field Vvas = Hill(VEGF)*(1-f_cancer_moore)*cabo_term
+// (media-2 Eq.1). Drives O2 delivery (Krogh) + immune recruitment entry points,
+// replacing explicit vascular agents. Computed each step by compute_vvas_and_o2.
+static float* d_vvas_field = nullptr;
+
 // Per-voxel vascular tip_id map.
 // Written by vascular_write_to_occ_grid (PHALANX/STALK cells write their tip_id).
 // Zeroed by zero_occupancy_grid. Read by vascular_state_step for neighbor check.
@@ -430,6 +435,10 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     CUDA_CHECK(cudaMalloc(&d_cancer_occ, total_voxels * sizeof(unsigned int)));
     CUDA_CHECK(cudaMemset(d_cancer_occ, 0, total_voxels * sizeof(unsigned int)));
 
+    // Vvas field (vascular volume fraction; media-2). Persists across steps; recomputed each step.
+    CUDA_CHECK(cudaMalloc(&d_vvas_field, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_vvas_field, 0, total_voxels * sizeof(float)));
+
     // Allocate vascular tip_id grid for efficient neighbor check in vascular_state_step
     CUDA_CHECK(cudaMalloc(&d_vas_tip_id_grid, total_voxels * sizeof(unsigned int)));
     CUDA_CHECK(cudaMemset(d_vas_tip_id_grid, 0, total_voxels * sizeof(unsigned int)));
@@ -528,6 +537,10 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
     model.Environment().newProperty<unsigned long long>("cancer_occ_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_cancer_occ)));
 
+    // Vvas field pointer (read by recruitment marking; media-2 entry points).
+    model.Environment().newProperty<unsigned long long>("vvas_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_vvas_field)));
+
     // Store vascular tip_id grid pointer (for efficient neighbor check in vascular_state_step)
     model.Environment().newProperty<unsigned long long>("vas_tip_id_grid_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_vas_tip_id_grid)));
@@ -589,6 +602,10 @@ void cleanup_pde_solver() {
     if (d_cancer_occ) {
         cudaFree(d_cancer_occ);
         d_cancer_occ = nullptr;
+    }
+    if (d_vvas_field) {
+        cudaFree(d_vvas_field);
+        d_vvas_field = nullptr;
     }
     if (d_ecm_density) {
         cudaFree(d_ecm_density);
@@ -1583,6 +1600,113 @@ FLAMEGPU_HOST_FUNCTION(zero_fib_density_field) {
         int total_voxels = g_pde_solver->get_total_voxels();
         cudaMemset(d_fib_density_field, 0, total_voxels * sizeof(float));
     }
+    nvtxRangePop();
+}
+
+// ============================================================================
+// Vvas field + Krogh O2 (media-2 Eq.1-3). Replaces vascular-agent O2 sourcing.
+//   Vvas = Hill(VEGF) * (1 - f_cancer_moore_n2) * cabo_term   (per voxel)
+//   O2 sourced from Vvas via Krogh implicit-split (drives O2 -> C_blood where Vvas high).
+// f_cancer_moore_n2 = fraction of cancer-occupied voxels in the 5x5x5 (n=2) neighborhood.
+// ============================================================================
+__global__ void compute_vvas_kernel(
+    float* vvas,
+    const float* __restrict__ vegf,
+    const unsigned int* __restrict__ cancer_occ,
+    int nx, int ny, int nz,
+    float vegf_ec50, float cabo_term)
+{
+    const int tx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int ty = blockIdx.y * blockDim.y + threadIdx.y;
+    const int tz = blockIdx.z * blockDim.z + threadIdx.z;
+    if (tx >= nx || ty >= ny || tz >= nz) return;
+    const int idx = tz * (nx * ny) + ty * nx + tx;
+
+    // Hill(VEGF) — angiogenic drive (EC50 reuses PARAM_VAS_50, the sprouting VEGF EC50)
+    const float v = vegf[idx];
+    const float hill = v / (v + vegf_ec50 + 1e-30f);
+
+    // cancer Moore fraction, n=2 (5x5x5, up to 124 closest), edge-corrected
+    int box_total = 0, box_cancer = 0;
+    for (int dz = -2; dz <= 2; dz++)
+    for (int dy = -2; dy <= 2; dy++)
+    for (int dx = -2; dx <= 2; dx++) {
+        int cx = tx + dx, cy = ty + dy, cz = tz + dz;
+        if (cx < 0 || cx >= nx || cy < 0 || cy >= ny || cz < 0 || cz >= nz) continue;
+        box_total++;
+        box_cancer += (cancer_occ[cz * (nx * ny) + cy * nx + cx] > 0u) ? 1 : 0;
+    }
+    const float f_cancer = (box_total > 0) ? (float)box_cancer / (float)box_total : 0.0f;
+
+    vvas[idx] = hill * (1.0f - f_cancer) * cabo_term;
+}
+
+__global__ void source_o2_from_vvas_kernel(
+    const float* __restrict__ vvas,
+    const float* __restrict__ o2_conc,
+    float* o2_src, float* o2_upt,
+    int nx, int ny, int nz,
+    float KvLv_base, float C_blood, float voxel_volume)
+{
+    const int tx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int ty = blockIdx.y * blockDim.y + threadIdx.y;
+    const int tz = blockIdx.z * blockDim.z + threadIdx.z;
+    if (tx >= nx || ty >= ny || tz >= nz) return;
+    const int idx = tz * (nx * ny) + ty * nx + tx;
+
+    const float vv = vvas[idx];
+    if (vv <= 0.0f) return;
+    // implicit-split gate: only deliver where local O2 below blood (drives up to C_blood)
+    if (o2_conc[idx] >= C_blood) return;
+
+    const float G = KvLv_base * vv;  // effective Krogh transport coeff [cm^3/s], scaled by vascular fraction
+    // Additive into reset buffers (reset_pde_buffers + cancer O2 uptake already applied this step)
+    atomicAdd(&o2_src[idx], G * C_blood / voxel_volume);  // [conc/s]
+    atomicAdd(&o2_upt[idx], G / voxel_volume);            // [1/s]
+}
+
+// Host layer: compute Vvas, then source O2 from it. Runs after compute_chemical_sources,
+// before solve_pde. d_vvas_field persists for recruitment entry-point marking (Step 3).
+FLAMEGPU_HOST_FUNCTION(compute_vvas_and_o2) {
+    nvtxRangePush("Vvas + O2");
+    if (!g_pde_solver || !d_vvas_field || !d_cancer_occ) { nvtxRangePop(); return; }
+
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+
+    const float vegf_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_50");
+    // cabo term (media-2 Eq.1): (1 - k_cabo*cabo/(cabo+IC50_VEGFR2)). cabo=0 pre-treatment -> 1.0.
+    // TODO Step 4 (therapy): wire PARAM_K_CABO + PARAM_IC50_VEGFR2 for the anti-angiogenic arm.
+    const float cabo_term = 1.0f;
+
+    // Krogh transport coefficient — constants only; mirrors vascular_cell.cuh O2 block exactly.
+    const float pi      = 3.1415926f;
+    const float sigma   = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_SIGMA");
+    const float RC      = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_RC");
+    const float C_blood = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_O2_CONC");
+    const float D_O2    = FLAMEGPU->environment.getProperty<float>("PARAM_O2_DIFFUSIVITY");
+    const float vs_cm   = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
+    const float voxel_volume = vs_cm * vs_cm * vs_cm;
+    const float Lv     = voxel_volume / (RC * RC * pi);
+    const float Rt     = 1.0f / std::sqrt(Lv * pi);
+    const float w      = RC / Rt;
+    const float lambda = 1.0f - w * w;
+    const float Kv = 2.0f * pi * D_O2
+                     * (lambda / (sigma * lambda - (2.0f + lambda) / 4.0f + (1.0f / lambda) * std::log(1.0f / w)));
+    const float KvLv_base = Kv * Lv;
+
+    const float* vegf   = g_pde_solver->get_device_concentration_ptr(CHEM_VEGFA);
+    const float* o2conc = g_pde_solver->get_device_concentration_ptr(CHEM_O2);
+    float* o2_src = g_pde_solver->get_device_source_ptr(CHEM_O2);
+    float* o2_upt = g_pde_solver->get_device_uptake_ptr(CHEM_O2);
+
+    dim3 block(8, 8, 8);
+    dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
+    compute_vvas_kernel<<<grid, block>>>(d_vvas_field, vegf, d_cancer_occ, nx, ny, nz, vegf_ec50, cabo_term);
+    source_o2_from_vvas_kernel<<<grid, block>>>(d_vvas_field, o2conc, o2_src, o2_upt, nx, ny, nz,
+                                                KvLv_base, C_blood, voxel_volume);
+    cudaDeviceSynchronize();
     nvtxRangePop();
 }
 

@@ -81,9 +81,7 @@ FLAMEGPU_AGENT_FUNCTION(vascular_update_chemicals, flamegpu::MessageNone, flameg
 
 // Compute O2 source and VEGF-A sink rates — atomicAdd directly to PDE arrays
 FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
-    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-
-    // Compute voxel index and volume
+    // Compute voxel index (O2 sourcing now handled by the Vvas field; this fn only does VEGF uptake)
     const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int ax = FLAMEGPU->getVariable<int>("x");
@@ -91,52 +89,9 @@ FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone
     const int az = FLAMEGPU->getVariable<int>("z");
     const int voxel = az * ny*nx + ay * nx + ax;
 
-    const float vs_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
-    const float voxel_volume = vs_cm * vs_cm * vs_cm;
-
-    // === O2 SECRETION via Krogh cylinder model (PHALANX + HEV) ===
-    // Collapsed vessels produce no O2. Dysfunctional sprouts produce reduced O2.
-    // Maturity modulates ECM compression resistance.
-    if (cell_state == VAS_PHALANX || cell_state == VAS_HEV) {
-        const float pi = 3.1415926f;
-        const float sigma = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_SIGMA");
-        const float RC    = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_RC");
-        const float C_blood = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_O2_CONC");
-
-        const float C_local = PDE_READ(FLAMEGPU, PDE_CONC_O2, voxel);
-
-        if (C_local < C_blood) {
-            // Identical to HCC Tumor.cpp
-            float Lv     = voxel_volume / (RC * RC * pi);           // [cm]  (vessel length)
-            float Rt     = 1.0f / std::sqrt(Lv * pi);              // [cm^-0.5] (Krogh cylinder radius)
-            float w      = RC / Rt;
-            float lambda = 1.0f - w * w;
-            float Kv = 2.0f * pi * FLAMEGPU->environment.getProperty<float>("PARAM_O2_DIFFUSIVITY")
-                       * (lambda / (sigma * lambda - (2.0f + lambda) / 4.0f
-                                    + (1.0f / lambda) * std::log(1.0f / w)));
-            float KvLv = Kv * Lv;  // O2 transport coefficient [cm^3/s]
-
-            // ECM compression: dense stroma compresses vessels → reduced O2 delivery
-            // Mature vessels resist compression better than new sprouts
-            const float* ecm_d_o2 = ECM_DENSITY_PTR(FLAMEGPU);
-            float ecm_local_o2 = ecm_d_o2[voxel];
-            float K_compress = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_ECM_COMPRESS_K");
-            const float mat_res = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_MATURITY_RESISTANCE");
-            const int mat_val = FLAMEGPU->getVariable<int>("maturity");
-            float eff_compress_k = K_compress * (1.0f + mat_res * static_cast<float>(mat_val));
-            float compression = ecm_local_o2 / (ecm_local_o2 + eff_compress_k + 1e-30f);
-            KvLv *= (1.0f - compression);
-
-            // Dysfunctional sprouts: permanently reduced O2 delivery
-            if (FLAMEGPU->getVariable<int>("is_dysfunctional") == 1) {
-                KvLv *= FLAMEGPU->environment.getProperty<float>("PARAM_VAS_KVL_DYSFUNCTIONAL");
-            }
-
-            // Implicit split: stable at large dt, drives C_local toward C_blood from below.
-            PDE_SECRETE(FLAMEGPU, PDE_SRC_O2, voxel, KvLv * C_blood / voxel_volume);
-            PDE_UPTAKE(FLAMEGPU,  PDE_UPT_O2, voxel, KvLv / voxel_volume);
-        }
-    }
+    // === O2 SECRETION moved to the Vvas field (media-2; pde_integration.cu compute_vvas_and_o2). ===
+    // Vascular agents no longer source O2 — O2 is delivered per-voxel ∝ Vvas (vascular volume
+    // fraction) via the same Krogh implicit-split, decoupled from explicit vessel agents.
 
     // === VEGF-A UPTAKE (ALL STATES) ===
     // VEGFA_uptake is a rate constant [1/s]; atomicAdd to uptake array (no volume scaling)

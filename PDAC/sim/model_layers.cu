@@ -372,6 +372,15 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addHostFunction(timing_after_division);
     }
 
+    // 8b. Vvas field + Krogh O2 sourcing (media-2). Computes vascular volume fraction
+    //     Vvas = Hill(VEGF)*(1-f_cancer_moore)*cabo, then adds O2 source/uptake from it.
+    //     Runs after cancer O2-uptake (compute_chemical_sources) + after division, before solve.
+    //     d_vvas_field persists for recruitment entry-point marking (Step 3).
+    {
+        flamegpu::LayerDescription layer = model.newLayer("compute_vvas_and_o2");
+        layer.addHostFunction(compute_vvas_and_o2);
+    }
+
     // 9. PDE solve + gradient computation.
     //    Matches HCC time_slice_molecular() which runs last, after all cellular events.
     //    Agents wrote sources/uptake in phase 7; solve advances concentrations one timestep.

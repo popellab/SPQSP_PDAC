@@ -220,8 +220,8 @@
       <!-- PARAM_ECM_DEPOSITION_RATE, PARAM_ECM_DECAY_RATE, PARAM_ECM_TGFB_EC50 are QSP-derived (see DerivedParams) -->
       <densityCap name="PARAM_ECM_DENSITY_CAP" type="float" val="pr" units="nmol/mL">1000.0</densityCap>       <!-- Maximum ECM density per voxel [nmol/mL] -->
       <mmpDegradeRate name="PARAM_ECM_MMP_DEGRADE_RATE" type="float" val="pr" units="1/(s*uM)">0</mmpDegradeRate>  <!-- k_mmp: MMP degradation rate [1/(s·µM)]. Zeroed 2026-04-23: PDAC immune exclusion is dominated by CXCL12 (Feig 2013) + interstitial pressure (Provenzano 2012), not MMP tunneling. MMP-mediated ECM degradation was opening immune infiltration paths through the desmoplastic ring; cancer now passes regardless of ECM via amoeboid/protease-independent migration (see PARAM_ECM_POROSITY_CANCER). -->
-      <crosslinkRate name="PARAM_ECM_CROSSLINK_RATE" type="float" val="pr" units="1/s">1e-6</crosslinkRate>     <!-- k_lox: LOX crosslink accumulation [1/s] -->
-      <crosslinkResistance name="PARAM_ECM_CROSSLINK_RESISTANCE" type="float" val="pr">5.0</crosslinkResistance>  <!-- alpha: crosslink MMP resistance factor -->
+      <crosslinkRate name="PARAM_ECM_CROSSLINK_RATE" type="float" val="pr" units="1/s">0</crosslinkRate>     <!-- k_lox: LOX crosslink accumulation [1/s]. Zeroed 2026-06-29 (ECM strip to density-only, rebuild plan §6-E): crosslink frozen at 0 → porosity is pure-density. -->
+      <crosslinkResistance name="PARAM_ECM_CROSSLINK_RESISTANCE" type="float" val="pr">0</crosslinkResistance>  <!-- alpha: crosslink MMP resistance factor. Zeroed 2026-06-29 (ECM strip §6-E). -->
       <baseline name="PARAM_ECM_BASELINE" type="float" val="pr" units="nmol/mL">10.0</baseline>              <!-- Floor density [nmol/mL] = 1% of saturation -->
       <porosityCancer name="PARAM_ECM_POROSITY_CANCER" type="float" val="pr">0</porosityCancer>            <!-- Min porosity for cancer movement. Zeroed 2026-04-23: PDAC cancer cells use EMT + amoeboid migration (Wolf & Friedl 2011), pass through dense matrix regardless of density. ECM gate now exclusive to immune cells so desmoplastic ring is a one-way exclusion zone. -->
       <porosityTcell name="PARAM_ECM_POROSITY_TCELL" type="float" val="pr">0.4</porosityTcell>              <!-- Min porosity for T cell movement -->
@@ -235,13 +235,15 @@
       <porosityVasTip name="PARAM_ECM_POROSITY_VAS_TIP" type="float" val="pr">0.2</porosityVasTip>            <!-- Min porosity for vascular TIP movement -->
       <vasCompressK name="PARAM_VAS_ECM_COMPRESS_K" type="float" val="pr" units="nmol/mL">200.0</vasCompressK>  <!-- EC50 for ECM vascular compression. ~79% vessel loss at PDAC baseline (Chauhan2013, Stylianopoulos2013) -->
       <yapEC50 name="PARAM_ECM_YAP_EC50" type="float" val="pr" units="nmol/mL">800.0</yapEC50>               <!-- YAP/TAZ Hill ceiling: stiffness EC50 (density*(1+crosslink)) [nmol/mL] -->
-      <!-- Fiber orientation (anisotropy) -->
-      <stressDeposit name="PARAM_ECM_STRESS_DEPOSIT" type="float" val="pr">1.0</stressDeposit>          <!-- Stress magnitude deposited per cancer move event -->
-      <stressDecayRate name="PARAM_ECM_STRESS_DECAY" type="float" val="pr" units="1/s">5e-4</stressDecayRate>  <!-- Stress field exponential decay rate -->
-      <orientUpdateRate name="PARAM_ECM_ORIENT_RATE" type="float" val="pr">0.001</orientUpdateRate>      <!-- Base fiber reorientation rate -->
-      <orientTractionWeight name="PARAM_ECM_ORIENT_TRACTION_W" type="float" val="pr">0.5</orientTractionWeight>  <!-- myCAF traction force weight (TACS-2 driver) -->
-      <orientStressWeight name="PARAM_ECM_ORIENT_STRESS_W" type="float" val="pr">0.3</orientStressWeight>    <!-- Mechanical stress force weight (TACS-3 driver) -->
-      <orientCrosslinkResist name="PARAM_ECM_ORIENT_CROSSLINK_RESIST" type="float" val="pr">2.0</orientCrosslinkResist>  <!-- Crosslinked ECM resists reorientation -->
+      <!-- Fiber orientation (anisotropy) — DISABLED 2026-06-29 (ECM strip to density-only, rebuild plan §6-E).
+           All R7 anisotropy zeroed: no stress deposit, no fiber reorientation (TACS-2/3), no crosslink resistance.
+           Consumers (ContactGuidance, FiberBarrier) also zeroed below. Density field + porosity retained. -->
+      <stressDeposit name="PARAM_ECM_STRESS_DEPOSIT" type="float" val="pr">0</stressDeposit>          <!-- Stress magnitude deposited per cancer move event. Zeroed §6-E. -->
+      <stressDecayRate name="PARAM_ECM_STRESS_DECAY" type="float" val="pr" units="1/s">5e-4</stressDecayRate>  <!-- Stress field exponential decay rate. Left nonzero so any stray stress decays (deposit=0 → no stress anyway). -->
+      <orientUpdateRate name="PARAM_ECM_ORIENT_RATE" type="float" val="pr">0</orientUpdateRate>      <!-- Base fiber reorientation rate. Zeroed §6-E → fibers stay isotropic. -->
+      <orientTractionWeight name="PARAM_ECM_ORIENT_TRACTION_W" type="float" val="pr">0</orientTractionWeight>  <!-- myCAF traction force weight (TACS-2 driver). Zeroed §6-E. -->
+      <orientStressWeight name="PARAM_ECM_ORIENT_STRESS_W" type="float" val="pr">0</orientStressWeight>    <!-- Mechanical stress force weight (TACS-3 driver). Zeroed §6-E. -->
+      <orientCrosslinkResist name="PARAM_ECM_ORIENT_CROSSLINK_RESIST" type="float" val="pr">0</orientCrosslinkResist>  <!-- Crosslinked ECM resists reorientation. Zeroed §6-E. -->
     </ECM>
     <DomainInit>
       <!-- Lobular structure -->
@@ -250,7 +252,7 @@
       <tumor_radius_fraction name="PARAM_DOMAIN_TUMOR_RADIUS_FRAC" type="float" val="pr">0.44</tumor_radius_fraction>     <!-- fraction of grid_x; used by -i 1 cluster init -->
       <!-- ECM initialization by region (septa are ECM-only, no persistent voxel types) -->
       <ecm_septum_density name="PARAM_DOMAIN_ECM_SEPTUM_DENSITY" type="float" val="pr" units="nmol/mL">700.0</ecm_septum_density>
-      <ecm_septum_crosslink name="PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK" type="float" val="pr">0.3</ecm_septum_crosslink>
+      <ecm_septum_crosslink name="PARAM_DOMAIN_ECM_SEPTUM_CROSSLINK" type="float" val="pr">0</ecm_septum_crosslink>  <!-- Zeroed 2026-06-29 (ECM strip §6-E): initial crosslink 0 everywhere → porosity pure-density. Septa still restrict via high density (700 nmol/mL). -->
       <ecm_lobule_density name="PARAM_DOMAIN_ECM_LOBULE_DENSITY" type="float" val="pr" units="nmol/mL">50.0</ecm_lobule_density>
       <ecm_tumor_density name="PARAM_DOMAIN_ECM_TUMOR_DENSITY" type="float" val="pr" units="nmol/mL">100.0</ecm_tumor_density>
       <!-- Cell densities from healthy pancreas IMC (cells/mm³, median of lognormal) -->
@@ -322,6 +324,9 @@
            Tag renamed to AdhesionMatrix_DISABLED so codegen falls through to zeroed array.
            To re-enable: rename back to AdhesionMatrix (open and close) and rerun codegen. -->
       <AdhesionMatrix>
+        <!-- ⚠️ KEPT ON 2026-06-29 (rebuild plan §6): drives desmoplastic clustering + cancer-nest cohesion (high-ICC).
+             FLAGGED FOR SENSITIVITY ANALYSIS (plan §5a): these values are HAND-SET, not data-informed priors,
+             and are NOT yet SBI free params. Run SA → promote load-bearing entries to proper priors before trusting. -->
         <!-- Cancer Stem (EMT, reduced E-cadherin) -->
         <cancer_stem>
           <cancer_stem>0.05</cancer_stem>  <!-- Krebs2017: Zeb1-KO EMT, reduced E-cad. Stem/prog ratio 3-5x; temp drop to 0.05 from 0.15-->
@@ -383,30 +388,32 @@
       </AdhesionMatrix>
       <ContactGuidance>
         <!-- Per-type contact guidance strength: amplifies movement along fiber axis, suppresses perpendicular -->
-        <cancer_stem name="PARAM_CONTACT_GUIDANCE_CANCER_STEM" type="float" val="pr">0.65</cancer_stem>
-        <cancer_prog name="PARAM_CONTACT_GUIDANCE_CANCER_PROG" type="float" val="pr">0.25</cancer_prog>
-        <tcell name="PARAM_CONTACT_GUIDANCE_TCELL" type="float" val="pr">0.45</tcell>
-        <treg name="PARAM_CONTACT_GUIDANCE_TREG" type="float" val="pr">0.35</treg>
-        <mac name="PARAM_CONTACT_GUIDANCE_MAC" type="float" val="pr">0.30</mac>
-        <fib_mycaf name="PARAM_CONTACT_GUIDANCE_FIB_MYCAF" type="float" val="pr">0.4</fib_mycaf>
-        <fib_icaf name="PARAM_CONTACT_GUIDANCE_FIB_ICAF" type="float" val="pr">0.1</fib_icaf>
+        <!-- All zeroed 2026-06-29 (ECM strip to density-only, §6-E): no contact guidance (anisotropy off). -->
+        <cancer_stem name="PARAM_CONTACT_GUIDANCE_CANCER_STEM" type="float" val="pr">0</cancer_stem>
+        <cancer_prog name="PARAM_CONTACT_GUIDANCE_CANCER_PROG" type="float" val="pr">0</cancer_prog>
+        <tcell name="PARAM_CONTACT_GUIDANCE_TCELL" type="float" val="pr">0</tcell>
+        <treg name="PARAM_CONTACT_GUIDANCE_TREG" type="float" val="pr">0</treg>
+        <mac name="PARAM_CONTACT_GUIDANCE_MAC" type="float" val="pr">0</mac>
+        <fib_mycaf name="PARAM_CONTACT_GUIDANCE_FIB_MYCAF" type="float" val="pr">0</fib_mycaf>
+        <fib_icaf name="PARAM_CONTACT_GUIDANCE_FIB_ICAF" type="float" val="pr">0</fib_icaf>
       </ContactGuidance>
       <FiberBarrier>
         <!-- Per-type fiber barrier strength: penalizes perpendicular movement through aligned fibers -->
         <!-- 0 = no barrier (isotropic porosity only), 1 = full perpendicular block at max alignment -->
         <!-- Multiplies CDF weight: w_barrier = 1 - barrier * fiber_mag * sin^2(angle_to_fiber) -->
         <!-- Uses DESTINATION voxel fiber orientation (barrier you cross into, not where you are) -->
-        <cancer_stem name="PARAM_FIBER_BARRIER_CANCER_STEM" type="float" val="pr">0.40</cancer_stem>
-        <cancer_prog name="PARAM_FIBER_BARRIER_CANCER_PROG" type="float" val="pr">0.55</cancer_prog>
-        <tcell name="PARAM_FIBER_BARRIER_TCELL" type="float" val="pr">0.55</tcell>
-        <treg name="PARAM_FIBER_BARRIER_TREG" type="float" val="pr">0.5</treg>
-        <mac name="PARAM_FIBER_BARRIER_MAC" type="float" val="pr">0.30</mac>
-        <fib_mycaf name="PARAM_FIBER_BARRIER_FIB_MYCAF" type="float" val="pr">0.1</fib_mycaf>
-        <fib_icaf name="PARAM_FIBER_BARRIER_FIB_ICAF" type="float" val="pr">0.1</fib_icaf>
-        <vas_tip name="PARAM_FIBER_BARRIER_VAS_TIP" type="float" val="pr">0.3</vas_tip>
-        <mdsc name="PARAM_FIBER_BARRIER_MDSC" type="float" val="pr">0.4</mdsc>
-        <dc name="PARAM_FIBER_BARRIER_DC" type="float" val="pr">0.50</dc>
-        <bcell name="PARAM_FIBER_BARRIER_BCELL" type="float" val="pr">0.5</bcell>
+        <!-- All zeroed 2026-06-29 (ECM strip to density-only, §6-E): no fiber barrier (anisotropy off). Movement = random-walk + chemotaxis + density-porosity only. -->
+        <cancer_stem name="PARAM_FIBER_BARRIER_CANCER_STEM" type="float" val="pr">0</cancer_stem>
+        <cancer_prog name="PARAM_FIBER_BARRIER_CANCER_PROG" type="float" val="pr">0</cancer_prog>
+        <tcell name="PARAM_FIBER_BARRIER_TCELL" type="float" val="pr">0</tcell>
+        <treg name="PARAM_FIBER_BARRIER_TREG" type="float" val="pr">0</treg>
+        <mac name="PARAM_FIBER_BARRIER_MAC" type="float" val="pr">0</mac>
+        <fib_mycaf name="PARAM_FIBER_BARRIER_FIB_MYCAF" type="float" val="pr">0</fib_mycaf>
+        <fib_icaf name="PARAM_FIBER_BARRIER_FIB_ICAF" type="float" val="pr">0</fib_icaf>
+        <vas_tip name="PARAM_FIBER_BARRIER_VAS_TIP" type="float" val="pr">0</vas_tip>
+        <mdsc name="PARAM_FIBER_BARRIER_MDSC" type="float" val="pr">0</mdsc>
+        <dc name="PARAM_FIBER_BARRIER_DC" type="float" val="pr">0</dc>
+        <bcell name="PARAM_FIBER_BARRIER_BCELL" type="float" val="pr">0</bcell>
       </FiberBarrier>
     </Movement>
     <DCPriming>

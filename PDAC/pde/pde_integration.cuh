@@ -93,6 +93,10 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_occupancy_grid;
 // ECM grid: decay ECM each step after fibroblasts have deposited
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_grid;
 
+// Vvas field (vascular volume fraction) + Krogh O2 sourcing (media-2). Runs in the PDE
+// phase after compute_chemical_sources, before solve_pde. Replaces vascular-agent O2.
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER compute_vvas_and_o2;
+
 // Antigen grid: exponential decay of persistent antigen from dying cancer cells
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER decay_antigen_grid;
 
