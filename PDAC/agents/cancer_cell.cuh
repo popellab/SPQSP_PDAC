@@ -427,6 +427,15 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
         atomicAdd(&evts[EVT_PDL1_COUNT], 1u);
     }
 
+    // Deterministic RNG for the state_step draws below (kill rolls, wave, senescent lifespan).
+    // FLAMEGPU->random is nondeterministic for BORN cells (slot-seeded in thread-schedule order),
+    // so a proliferating tumor's kill/senescence draws differ run-to-run → growth trajectory
+    // diverges and amplifies. det_tag-seeded streams (distinct salt per decision) are stable.
+    // Completes the Step-5 cancer RNG migration (move + divide were already converted).
+    const unsigned int cs_sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int cs_det_tag  = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    const unsigned int cs_step     = FLAMEGPU->getStepCounter();
+
     // === T CELL KILLING ===
     float neighbor_Teff = FLAMEGPU->getVariable<float>("neighbor_Teff_count");  // Weighted by hypoxia_kill_factor
     if (neighbor_Teff > 0) {
@@ -477,7 +486,8 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
             p_kill *= FLAMEGPU->environment.getProperty<float>("PARAM_HIF_MHC_REDUCTION");
         }
 
-        if (FLAMEGPU->random.uniform<float>() < p_kill) {
+        unsigned int rk = det_rng_seed(static_cast<int>(cs_det_tag), cs_step, 0x7C1u, cs_sim_seed);
+        if (det_rng_uniform(rk) < p_kill) {
             FLAMEGPU->setVariable<int>("dead", 1);
             FLAMEGPU->setVariable<int>("death_reason", 1);  // 1 = T cell killing
             auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
@@ -540,7 +550,8 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
             p_kill *= (1.0 + ab_max * h_ab);  // boost: 1x (no Ab) to (1+ab_max)x (saturating Ab)
         }
 
-        if (FLAMEGPU->random.uniform<float>() < p_kill) {
+        unsigned int rk = det_rng_seed(static_cast<int>(cs_det_tag), cs_step, 0x7C2u, cs_sim_seed);
+        if (det_rng_uniform(rk) < p_kill) {
             FLAMEGPU->setVariable<int>("dead", 1);
             FLAMEGPU->setVariable<int>("death_reason", 2);  // 2 = macrophage killing
             auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
@@ -565,7 +576,8 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
     {
         const int divideFlag = FLAMEGPU->getVariable<int>("divideFlag");
         if (divideFlag == 1 && divideCD <= 0 && cell_state != CANCER_SENESCENT) {
-            const int w = static_cast<int>(FLAMEGPU->random.uniform<float>() * N_DIVIDE_WAVES);
+            unsigned int rw = det_rng_seed(static_cast<int>(cs_det_tag), cs_step, 0x7C3u, cs_sim_seed);
+            const int w = static_cast<int>(det_rng_uniform(rw) * N_DIVIDE_WAVES);
             FLAMEGPU->setVariable<int>("divide_wave", w < N_DIVIDE_WAVES ? w : N_DIVIDE_WAVES - 1);
         }
     }
@@ -579,7 +591,8 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
             FLAMEGPU->setVariable<int>("divideCD", -1);
             FLAMEGPU->setVariable<int>("divideFlag", 0);
             const float mean_life = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_SENESCENT_MEAN_LIFE");
-            const float rand_val  = FLAMEGPU->random.uniform<float>();
+            unsigned int rl = det_rng_seed(static_cast<int>(cs_det_tag), cs_step, 0x7C4u, cs_sim_seed);
+            const float rand_val  = det_rng_uniform(rl);
             const int life = static_cast<int>(-mean_life * logf(rand_val + 0.0001f) + 0.5f);
             FLAMEGPU->setVariable<int>("life", life > 0 ? life : 1);
         }
@@ -599,7 +612,8 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
             FLAMEGPU->setVariable<int>("divideCD", -1);
             FLAMEGPU->setVariable<int>("divideFlag", 0);
             const float mean_life = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_SENESCENT_MEAN_LIFE");
-            const float rand_val  = FLAMEGPU->random.uniform<float>();
+            unsigned int rl = det_rng_seed(static_cast<int>(cs_det_tag), cs_step, 0x7C5u, cs_sim_seed);
+            const float rand_val  = det_rng_uniform(rl);
             const int life = static_cast<int>(-mean_life * logf(rand_val + 0.0001f) + 0.5f);
             FLAMEGPU->setVariable<int>("life", life > 0 ? life : 1);
         }
