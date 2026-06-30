@@ -516,9 +516,11 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
         std::string source_key = "pde_source_ptr_" + std::to_string(sub);
         std::string uptake_key = "pde_uptake_ptr_" + std::to_string(sub);
 
+        // Agents write to the fixed-point STAGING buffers (deterministic atomicAdd of scaled
+        // ints); decode_pde_sources adds the decoded sum onto d_src_/d_upt_ before the solve.
         uintptr_t conc_ptr = reinterpret_cast<uintptr_t>(g_pde_solver->get_device_concentration_ptr(sub));
-        uintptr_t src_ptr  = reinterpret_cast<uintptr_t>(g_pde_solver->get_device_source_ptr(sub));
-        uintptr_t upt_ptr  = reinterpret_cast<uintptr_t>(g_pde_solver->get_device_uptake_ptr(sub));
+        uintptr_t src_ptr  = reinterpret_cast<uintptr_t>(g_pde_solver->get_device_source_fp_ptr(sub));
+        uintptr_t upt_ptr  = reinterpret_cast<uintptr_t>(g_pde_solver->get_device_uptake_fp_ptr(sub));
 
         model.Environment().newProperty<unsigned long long>(concentration_key, static_cast<unsigned long long>(conc_ptr));
         model.Environment().newProperty<unsigned long long>(source_key,        static_cast<unsigned long long>(src_ptr));
@@ -1730,6 +1732,14 @@ __global__ void source_o2_from_vvas_kernel(
     // Additive into reset buffers (reset_pde_buffers + cancer O2 uptake already applied this step)
     atomicAdd(&o2_src[idx], G * C_blood / voxel_volume);  // [conc/s]
     atomicAdd(&o2_upt[idx], G / voxel_volume);            // [1/s]
+}
+
+// Host layer: decode the fixed-point agent source/uptake staging buffers onto the float
+// d_src_/d_upt_ the solver reads. Runs AFTER compute_chemical_sources (agents accumulate FP)
+// and BEFORE compute_vvas_and_o2 (Krogh adds float O2 on top) and solve_pde. Makes the source
+// accumulation deterministic (exact integer sum) — see PDE_SECRETE in common.cuh.
+FLAMEGPU_HOST_FUNCTION(decode_pde_sources) {
+    if (g_pde_solver) g_pde_solver->decode_sources_from_fp();
 }
 
 // Host layer: compute Vvas, then source O2 from it. Runs after compute_chemical_sources,

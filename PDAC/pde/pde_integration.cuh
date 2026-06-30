@@ -100,6 +100,10 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_grid;
 // phase after compute_chemical_sources, before solve_pde. Replaces vascular-agent O2.
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER compute_vvas_and_o2;
 
+// Decode fixed-point agent source/uptake staging onto d_src_/d_upt_. Runs after
+// compute_chemical_sources, before compute_vvas_and_o2 + solve_pde (determinism).
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER decode_pde_sources;
+
 // Mark recruitment entry points from the Vvas field (media-2 Eq.4). Replaces vascular
 // agent source-marking; runs after reset_recruitment_sources, before recruit_gpu.
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER mark_entry_points;

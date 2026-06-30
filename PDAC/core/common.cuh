@@ -363,11 +363,26 @@ enum ABMEventCounterIndex : int {
 #define PDE_READ(fgpu, name, voxel) \
     (reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>(name))[(voxel)])
 
+// Fixed-point accumulation for PDE source/uptake (determinism). Agents atomicAdd NON-integer
+// rates whose float sum is order-dependent (GPU schedule) → run-to-run noise in concentrations
+// → flips downstream Hill/chemotaxis decisions. The "pde_source_ptr_N"/"pde_uptake_ptr_N" env
+// pointers now address unsigned-long-long STAGING buffers; agents accumulate scaled integers
+// (exact + order-independent), and a decode pass adds the decoded sum onto the float d_src_/d_upt_
+// the solver reads. Scale = 2^40 (exact in float): source/uptake values are ~1e-4..1e0 after
+// /voxel_volume, so peak encoded ~1e11 << ULL max with ~1e-9 absolute resolution.
+__device__ __host__ __forceinline__ double pde_fp_scale() { return 1099511627776.0; }  // 2^40
+__device__ __forceinline__ unsigned long long pde_fp_encode(float v) {
+    return (v > 0.0f) ? static_cast<unsigned long long>(llround(static_cast<double>(v) * pde_fp_scale())) : 0ULL;
+}
+__device__ __host__ __forceinline__ float pde_fp_decode(unsigned long long v) {
+    return static_cast<float>(static_cast<double>(v) / pde_fp_scale());
+}
+
 #define PDE_SECRETE(fgpu, name, voxel, rate_per_vol) \
-    atomicAdd(&reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>(name))[(voxel)], (rate_per_vol))
+    atomicAdd(&reinterpret_cast<unsigned long long*>((fgpu)->environment.getProperty<uint64_t>(name))[(voxel)], PDAC::pde_fp_encode(rate_per_vol))
 
 #define PDE_UPTAKE(fgpu, name, voxel, rate_per_sec) \
-    atomicAdd(&reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>(name))[(voxel)], (rate_per_sec))
+    atomicAdd(&reinterpret_cast<unsigned long long*>((fgpu)->environment.getProperty<uint64_t>(name))[(voxel)], PDAC::pde_fp_encode(rate_per_sec))
 
 // Helper device function to check grid bounds
 __device__ __forceinline__ bool is_in_bounds(int x, int y, int z, int size_x, int size_y, int size_z) {

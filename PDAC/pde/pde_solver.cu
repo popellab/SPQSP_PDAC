@@ -392,6 +392,8 @@ PDESolver::~PDESolver() {
     if (d_conc_)          CUDA_CHECK(cudaFree(d_conc_));
     if (d_src_)           CUDA_CHECK(cudaFree(d_src_));
     if (d_upt_)           CUDA_CHECK(cudaFree(d_upt_));
+    if (d_src_fp_)        CUDA_CHECK(cudaFree(d_src_fp_));
+    if (d_upt_fp_)        CUDA_CHECK(cudaFree(d_upt_fp_));
     if (d_grad_)          CUDA_CHECK(cudaFree(d_grad_));
     if (d_recruitment_)   CUDA_CHECK(cudaFree(d_recruitment_));
     if (d_thomas_denom_x_) CUDA_CHECK(cudaFree(d_thomas_denom_x_));
@@ -442,6 +444,10 @@ void PDESolver::initialize() {
     CUDA_CHECK(cudaMalloc(&d_conc_,        sz_sv));  CUDA_CHECK(cudaMemset(d_conc_, 0, sz_sv));
     CUDA_CHECK(cudaMalloc(&d_src_,         sz_sv));  CUDA_CHECK(cudaMemset(d_src_,  0, sz_sv));
     CUDA_CHECK(cudaMalloc(&d_upt_,         sz_sv));  CUDA_CHECK(cudaMemset(d_upt_,  0, sz_sv));
+    // Fixed-point staging buffers (agents accumulate scaled integers → deterministic).
+    size_t sz_fp = (size_t)NUM_SUBSTRATES * V * sizeof(unsigned long long);
+    CUDA_CHECK(cudaMalloc(&d_src_fp_,      sz_fp));  CUDA_CHECK(cudaMemset(d_src_fp_, 0, sz_fp));
+    CUDA_CHECK(cudaMalloc(&d_upt_fp_,      sz_fp));  CUDA_CHECK(cudaMemset(d_upt_fp_, 0, sz_fp));
 
     size_t sz_grad = (size_t)NUM_GRAD_SUBSTRATES * 3 * V * sizeof(float);
     CUDA_CHECK(cudaMalloc(&d_grad_,        sz_grad)); CUDA_CHECK(cudaMemset(d_grad_, 0, sz_grad));
@@ -1142,13 +1148,15 @@ void PDESolver::compute_gradients() {
 // ============================================================================
 
 void PDESolver::reset_sources() {
-    size_t sz = (size_t)NUM_SUBSTRATES * get_total_voxels() * sizeof(float);
-    CUDA_CHECK(cudaMemset(d_src_, 0, sz));
+    size_t V = (size_t)NUM_SUBSTRATES * get_total_voxels();
+    CUDA_CHECK(cudaMemset(d_src_, 0, V * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_src_fp_, 0, V * sizeof(unsigned long long)));  // agents accumulate here
 }
 
 void PDESolver::reset_uptakes() {
-    size_t sz = (size_t)NUM_SUBSTRATES * get_total_voxels() * sizeof(float);
-    CUDA_CHECK(cudaMemset(d_upt_, 0, sz));
+    size_t V = (size_t)NUM_SUBSTRATES * get_total_voxels();
+    CUDA_CHECK(cudaMemset(d_upt_, 0, V * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_upt_fp_, 0, V * sizeof(unsigned long long)));
 }
 
 void PDESolver::reset_recruitment_sources() {
@@ -1175,6 +1183,35 @@ float* PDESolver::get_device_source_ptr(int s) {
 
 float* PDESolver::get_device_uptake_ptr(int s) {
     return d_upt_ + (size_t)s * get_total_voxels();
+}
+
+unsigned long long* PDESolver::get_device_source_fp_ptr(int s) {
+    return d_src_fp_ + (size_t)s * get_total_voxels();
+}
+
+unsigned long long* PDESolver::get_device_uptake_fp_ptr(int s) {
+    return d_upt_fp_ + (size_t)s * get_total_voxels();
+}
+
+// Decode fixed-point staging → add onto float d_src_/d_upt_ (zeroed by reset_*). Single thread
+// per element → deterministic. Adds (not overwrites) so it composes with float writers that run
+// after it (Krogh O2 source_o2_from_vvas_kernel) and with direct-float test harnesses.
+__global__ void decode_fp_kernel(float* __restrict__ d_src, float* __restrict__ d_upt,
+                                 const unsigned long long* __restrict__ src_fp,
+                                 const unsigned long long* __restrict__ upt_fp, size_t n) {
+    size_t i = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= n) return;
+    // 1/2^40 — MUST match PDAC::pde_fp_scale() in common.cuh (where agents encode).
+    const double inv_scale = 1.0 / 1099511627776.0;
+    if (src_fp[i]) d_src[i] += static_cast<float>(static_cast<double>(src_fp[i]) * inv_scale);
+    if (upt_fp[i]) d_upt[i] += static_cast<float>(static_cast<double>(upt_fp[i]) * inv_scale);
+}
+
+void PDESolver::decode_sources_from_fp() {
+    size_t n = (size_t)NUM_SUBSTRATES * get_total_voxels();
+    int block = 256;
+    int grid = (int)((n + block - 1) / block);
+    decode_fp_kernel<<<grid, block>>>(d_src_, d_upt_, d_src_fp_, d_upt_fp_, n);
 }
 
 float* PDESolver::get_device_gradx_ptr(int g) {

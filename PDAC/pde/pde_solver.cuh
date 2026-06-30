@@ -145,6 +145,13 @@ public:
     float* get_device_concentration_ptr(int substrate_idx);
     float* get_device_source_ptr(int substrate_idx);
     float* get_device_uptake_ptr(int substrate_idx);
+    // Fixed-point STAGING buffers agents accumulate into (deterministic). Decoded onto
+    // d_src_/d_upt_ by decode_sources_from_fp() before the solve. See PDE_SECRETE in common.cuh.
+    unsigned long long* get_device_source_fp_ptr(int substrate_idx);
+    unsigned long long* get_device_uptake_fp_ptr(int substrate_idx);
+    // Adds the decoded fixed-point agent sources/uptakes onto d_src_/d_upt_ (which reset_sources/
+    // reset_uptakes zeroed). Must run after agents write and before any float source writer (Krogh O2).
+    void decode_sources_from_fp();
     // Gradient pointers: grad_substrate_idx in [0, NUM_GRAD_SUBSTRATES)
     float* get_device_gradx_ptr(int grad_substrate_idx);
     float* get_device_grady_ptr(int grad_substrate_idx);
@@ -171,6 +178,8 @@ private:
     float* d_conc_;        // Concentrations:   [NUM_SUBSTRATES * V]
     float* d_src_;         // Sources [conc/s]:  [NUM_SUBSTRATES * V]
     float* d_upt_;         // Uptakes [1/s]:     [NUM_SUBSTRATES * V]
+    unsigned long long* d_src_fp_ = nullptr;  // fixed-point source staging (agent atomicAdd target)
+    unsigned long long* d_upt_fp_ = nullptr;  // fixed-point uptake staging (agent atomicAdd target)
     // Gradients: layout [grad_s * 3 * V + dim * V + voxel_idx]
     //   dim 0=x, 1=y, 2=z; grad_s ∈ GradientSubstrate enum
     float* d_grad_;        // [NUM_GRAD_SUBSTRATES * 3 * V]

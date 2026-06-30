@@ -346,6 +346,14 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_DC,          "compute_chemical_sources");
     }
 
+    // Decode fixed-point agent source/uptake staging → float d_src_/d_upt_ (deterministic).
+    // Must run after compute_chemical_sources (agents wrote FP) and before compute_vvas_and_o2
+    // (Krogh adds float O2 on top) + solve_pde. See decode_pde_sources / PDE_SECRETE.
+    {
+        flamegpu::LayerDescription layer = model.newLayer("decode_pde_sources");
+        layer.addHostFunction(decode_pde_sources);
+    }
+
     // ── Timing checkpoint: after state transitions + chemical sources ──
     {
         flamegpu::LayerDescription layer = model.newLayer("timing_after_sources");
