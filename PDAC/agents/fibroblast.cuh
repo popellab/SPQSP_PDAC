@@ -640,7 +640,10 @@ FLAMEGPU_AGENT_FUNCTION(fib_build_density_field, flamegpu::MessageNone, flamegpu
     // Normalizer for 3D Gaussian: 1 / ((2π σ²)^(3/2))
     const float normalizer = ecm_multiplier / (powf(2.0f * 3.14159265f * variance, 1.5f));
 
-    float* field_ptr = reinterpret_cast<float*>(
+    // Fixed-point accumulation: the field is an unsigned-long-long buffer of scaled deposits,
+    // so the atomicAdd sum is exact + order-independent (deterministic). Decoded back to float
+    // in update_ecm_grid_kernel. See ecm_fp_encode/decode in common.cuh.
+    unsigned long long* field_ptr = reinterpret_cast<unsigned long long*>(
         FLAMEGPU->environment.getProperty<uint64_t>("fib_density_field_ptr"));
 
     for (int dx = -radius; dx <= radius; dx++) {
@@ -654,7 +657,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_build_density_field, flamegpu::MessageNone, flamegpu
                 if (nz < 0 || nz >= grid_z) continue;
                 float dist_sq = static_cast<float>(dx * dx + dy * dy + dz * dz);
                 float kernel_val = normalizer * expf(-dist_sq / (2.0f * variance));
-                atomicAdd(&field_ptr[nz * (grid_x * grid_y) + ny * grid_x + nx], kernel_val);
+                atomicAdd(&field_ptr[nz * (grid_x * grid_y) + ny * grid_x + nx], ecm_fp_encode(kernel_val));
             }
         }
     }

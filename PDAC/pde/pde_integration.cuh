@@ -61,7 +61,7 @@ void set_ecm_orient_from_host(const float* ox, const float* oy, const float* oz,
 // Return device pointers for ECM arrays (for output)
 float* get_ecm_density_device_ptr();
 float* get_ecm_crosslink_device_ptr();
-float* get_fib_density_field_device_ptr();
+unsigned long long* get_fib_density_field_device_ptr();  // fixed-point ECM density buffer
 
 // Return device pointer for vascular tip_id grid (for output/debug)
 unsigned int* get_vas_tip_id_grid_device_ptr();

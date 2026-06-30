@@ -345,12 +345,19 @@ static void collect_ecm_to_buf(std::vector<float>& buf, int grid_x, int grid_y, 
     const int total_voxels = grid_x * grid_y * grid_z;
     buf.resize(static_cast<size_t>(5) * total_voxels);
     float* d_ecm = PDAC::get_ecm_density_device_ptr();
-    float* d_fib = PDAC::get_fib_density_field_device_ptr();
+    unsigned long long* d_fib = PDAC::get_fib_density_field_device_ptr();  // fixed-point buffer
     float* d_ox  = PDAC::get_ecm_orient_x_device_ptr();
     float* d_oy  = PDAC::get_ecm_orient_y_device_ptr();
     float* d_oz  = PDAC::get_ecm_orient_z_device_ptr();
     if (d_ecm) cudaMemcpy(buf.data(),                      d_ecm, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
-    if (d_fib) cudaMemcpy(buf.data() + total_voxels,       d_fib, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    if (d_fib) {
+        // Decode fixed-point ECM density to float for the diagnostic export (÷2^30 = ecm_fp_scale).
+        std::vector<unsigned long long> fib_fp(total_voxels);
+        cudaMemcpy(fib_fp.data(), d_fib, total_voxels * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+        const double inv_scale = 1.0 / 1073741824.0;
+        for (int i = 0; i < total_voxels; ++i)
+            buf[total_voxels + i] = static_cast<float>(fib_fp[i] * inv_scale);
+    }
     if (d_ox)  cudaMemcpy(buf.data() + 2 * total_voxels,   d_ox, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
     if (d_oy)  cudaMemcpy(buf.data() + 3 * total_voxels,   d_oy, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
     if (d_oz)  cudaMemcpy(buf.data() + 4 * total_voxels,   d_oz, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);

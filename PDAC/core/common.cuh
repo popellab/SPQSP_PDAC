@@ -614,6 +614,22 @@ __device__ __forceinline__ float ecm_porosity(const float* ecm_density, const fl
     return fmaxf(0.0f, 1.0f - (d / density_cap) * (1.0f + c));
 }
 
+// Fixed-point scale for the fibroblast ECM density field. The field accumulates NON-integer
+// Gaussian deposits via atomicAdd, whose float sum is order-dependent (GPU thread schedule) →
+// run-to-run nondeterminism that flips downstream porosity/movement decisions. Accumulating
+// scaled integers instead makes the sum exact + order-independent (atomicAdd on unsigned long
+// long is associative). 2^30 is exactly representable in float (so encode/decode round-trips
+// cleanly) and leaves ample headroom: peak deposit ~0.02 → ~2e7; per-voxel sums stay << ULL max.
+// (vol_used is NOT fixed-point: cell volumes are whole µm³ and per-voxel sums stay < 2^24, so its
+// float atomicAdd is already exact — see determinism notes.)
+__device__ __host__ __forceinline__ float ecm_fp_scale() { return 1073741824.0f; }  // 2^30
+__device__ __forceinline__ unsigned long long ecm_fp_encode(float v) {
+    return (v > 0.0f) ? static_cast<unsigned long long>(llroundf(v * ecm_fp_scale())) : 0ULL;
+}
+__device__ __forceinline__ float ecm_fp_decode(unsigned long long v) {
+    return static_cast<float>(v) / ecm_fp_scale();
+}
+
 // Attempt to claim volume in a target voxel via atomicAdd.
 // Returns true if the claim succeeded (total <= capacity), false otherwise (undo performed).
 __device__ __forceinline__ bool volume_try_claim(float* vol_used, int voxel_idx, float my_volume, float capacity) {

@@ -61,7 +61,7 @@ static unsigned int* d_vas_tip_id_grid = nullptr;
 static float* d_ecm_density = nullptr;
 static float* d_ecm_crosslink = nullptr;   // Per-voxel crosslink accumulator (LOX-driven)
 static float* d_ecm_floor = nullptr;       // Per-voxel density floor (passive decay clamped here; MMP bypasses)
-static float* d_fib_density_field = nullptr;
+static unsigned long long* d_fib_density_field = nullptr;  // fixed-point ECM density (ecm_fp_encode/decode)
 
 // Volume-based occupancy: single float per voxel tracking total cell volume (µm³).
 // Replaces the old per-type occ_grid MacroProperty + flat arrays (d_t_occ, d_mac_occ, d_mdsc_occ).
@@ -131,7 +131,7 @@ static RecruitDiag* d_recruit_diag = nullptr;
 __global__ void update_ecm_grid_kernel(
     float* ecm_density, float* ecm_crosslink,
     const float* ecm_floor,
-    const float* fib_field, const float* tgfb_conc, const float* mmp_conc,
+    const unsigned long long* fib_field, const float* tgfb_conc, const float* mmp_conc,
     int nx, int ny, int nz,
     float voxel_vol_cm3, float dt,
     float k_decay, float k_depo, float density_cap,
@@ -148,7 +148,7 @@ __global__ void update_ecm_grid_kernel(
 
     float density   = ecm_density[idx];
     float crosslink = ecm_crosslink[idx];
-    float fib       = fib_field[idx];
+    float fib       = ecm_fp_decode(fib_field[idx]);  // fixed-point → float (deterministic)
     float tgfb      = tgfb_conc[idx];
     float mmp       = mmp_conc[idx];
 
@@ -227,7 +227,7 @@ __global__ void decay_stress_kernel(float* stress_x, float* stress_y, float* str
 __global__ void update_ecm_orient_kernel(
     float* orient_x, float* orient_y, float* orient_z,
     const float* stress_x, const float* stress_y, const float* stress_z,
-    const float* fib_field, const float* ecm_crosslink,
+    const unsigned long long* fib_field, const float* ecm_crosslink,
     const float* tgfb_grad_x, const float* tgfb_grad_y, const float* tgfb_grad_z,
     int nx, int ny, int nz,
     float dt, float base_rate,
@@ -249,7 +249,7 @@ __global__ void update_ecm_orient_kernel(
     float effective_rate = base_rate / (1.0f + alpha_crosslink * crosslink);
 
     // Force 1: myCAF traction (TACS-2) — align fibers perpendicular to TGF-β gradient
-    float fib = fib_field[idx];
+    float fib = ecm_fp_decode(fib_field[idx]);  // fixed-point → float (deterministic)
     float fx_trac = 0.0f, fy_trac = 0.0f, fz_trac = 0.0f;
     if (fib > 0.0f) {
         float tg_x = tgfb_grad_x[idx];
@@ -458,8 +458,8 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     CUDA_CHECK(cudaMemset(d_ecm_crosslink, 0, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMalloc(&d_ecm_floor, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_ecm_floor, 0, total_voxels * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&d_fib_density_field, total_voxels * sizeof(float)));
-    CUDA_CHECK(cudaMemset(d_fib_density_field, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_fib_density_field, total_voxels * sizeof(unsigned long long)));
+    CUDA_CHECK(cudaMemset(d_fib_density_field, 0, total_voxels * sizeof(unsigned long long)));
 
     // Allocate volume-based occupancy grid
     CUDA_CHECK(cudaMalloc(&d_volume_used, total_voxels * sizeof(float)));
@@ -693,7 +693,7 @@ void set_ecm_orient_from_host(const float* ox, const float* oy, const float* oz,
 
 float* get_ecm_density_device_ptr() { return d_ecm_density; }
 float* get_ecm_crosslink_device_ptr() { return d_ecm_crosslink; }
-float* get_fib_density_field_device_ptr() { return d_fib_density_field; }
+unsigned long long* get_fib_density_field_device_ptr() { return d_fib_density_field; }
 unsigned int* get_vas_tip_id_grid_device_ptr() { return d_vas_tip_id_grid; }
 float* get_ecm_orient_x_device_ptr() { return d_ecm_orient_x; }
 float* get_ecm_orient_y_device_ptr() { return d_ecm_orient_y; }
@@ -1665,7 +1665,7 @@ FLAMEGPU_HOST_FUNCTION(zero_fib_density_field) {
     nvtxRangePush("Zero Fib Density");
     if (d_fib_density_field && g_pde_solver) {
         int total_voxels = g_pde_solver->get_total_voxels();
-        cudaMemset(d_fib_density_field, 0, total_voxels * sizeof(float));
+        cudaMemset(d_fib_density_field, 0, total_voxels * sizeof(unsigned long long));
     }
     nvtxRangePop();
 }
