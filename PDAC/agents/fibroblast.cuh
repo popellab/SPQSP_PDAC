@@ -211,16 +211,20 @@ FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, fla
 // Fibroblast movement via unified movement framework.
 // myCAF: TGF-β chemotaxis + persistence. iCAF: random walk + weak persistence.
 // Quiescent: no movement. Activated: adhesion-gated via neighbor counts + ECM.
-FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) {
+// Fibroblast movement — Step-5 deterministic propose/commit (mirrors cancer). One
+// voxel-move per round: PROPOSE picks the target (det_rng, not FLAMEGPU->random which is
+// nondeterministic for born cells) and atomicMin-reserves it by (source-voxel, det_tag);
+// COMMIT moves the unique winner. Replaces the racy batched fib_move (volume_try_claim
+// "first arrival wins" was thread-schedule dependent). Sessile states early-return.
+FLAMEGPU_AGENT_FUNCTION(fib_move_propose, flamegpu::MessageNone, flamegpu::MessageNone) {
+    FLAMEGPU->setVariable<int>("move_target_vidx", -1);  // reset proposal each round
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
     // Quiescent + FRC fibroblasts are sessile (preserve tissue architecture / TLS scaffold)
     if (cs == FIB_QUIESCENT || cs == FIB_FRC) return flamegpu::ALIVE;
 
     int moves_remaining = FLAMEGPU->getVariable<int>("moves_remaining");
     if (moves_remaining <= 0) return flamegpu::ALIVE;
-    const int move_K = FLAMEGPU->environment.getProperty<int>("MOVE_K");
-    const int per_round = (FLAMEGPU->environment.getProperty<int>("PARAM_FIB_MOVE_STEPS") + move_K - 1) / move_K;
-    const int n_moves = min(per_round, moves_remaining);
+    FLAMEGPU->setVariable<int>("moves_remaining", moves_remaining - 1);
 
     int x = FLAMEGPU->getVariable<int>("x");
     int y = FLAMEGPU->getVariable<int>("y");
@@ -259,23 +263,86 @@ FLAMEGPU_AGENT_FUNCTION(fib_move, flamegpu::MessageNone, flamegpu::MessageNone) 
         FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_FIB_MYCAF") :
         FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_FIB_ICAF");
 
-    const float* gax = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_X));
-    const float* gay = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Y));
-    const float* gaz = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Z));
-
     int pdx = FLAMEGPU->getVariable<int>("persist_dir_x");
     int pdy = FLAMEGPU->getVariable<int>("persist_dir_y");
     int pdz = FLAMEGPU->getVariable<int>("persist_dir_z");
 
-    run_move_batch(FLAMEGPU, mp, n_moves, gax, gay, gaz, bias, w_cg, x, y, z, pdx, pdy, pdz);
+    // Read TGF-β gradient + blend with fiber orientation at the current voxel — the same
+    // per-move setup run_move_batch did internally (single move here, not batched).
+    const int GXY = mp.grid_x * mp.grid_y;
+    const int vidx = z * GXY + y * mp.grid_x + x;
+    float g0 = 0.0f, g1 = 0.0f, g2 = 0.0f;
+    if (bias > 0.0f) {
+        g0 = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_X))[vidx];
+        g1 = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Y))[vidx];
+        g2 = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Z))[vidx];
+    }
+    const float ox = mp.orient_x[vidx], oy = mp.orient_y[vidx], oz = mp.orient_z[vidx];
+    if (bias > 0.0f) apply_contact_guidance(g0, g1, g2, ox, oy, oz, w_cg);
+    else             apply_contact_guidance_persist(g0, g1, g2, mp.bias_strength, ox, oy, oz, w_cg, pdx, pdy, pdz);
+    mp.grad_x = g0; mp.grad_y = g1; mp.grad_z = g2;
 
-    FLAMEGPU->setVariable<int>("x", x);
-    FLAMEGPU->setVariable<int>("y", y);
-    FLAMEGPU->setVariable<int>("z", z);
-    FLAMEGPU->setVariable<int>("persist_dir_x", pdx);
-    FLAMEGPU->setVariable<int>("persist_dir_y", pdy);
-    FLAMEGPU->setVariable<int>("persist_dir_z", pdz);
-    FLAMEGPU->setVariable<int>("moves_remaining", moves_remaining - n_moves);
+    // Deterministic: lineage-tag-seeded RNG for the move draws, pick (no claim), then reserve.
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    unsigned int rs = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(),
+                                   static_cast<unsigned int>(moves_remaining), sim_seed);
+    const float r_move = det_rng_uniform(rs);
+    const float r_persist = det_rng_uniform(rs);
+    const float r_dir = det_rng_uniform(rs);
+    MoveResult r = move_cell_pick(mp, x, y, z, pdx, pdy, pdz, r_move, r_persist, r_dir);
+
+    if (r.moved) {
+        const int tvidx = r.new_z * GXY + r.new_y * mp.grid_x + r.new_x;
+        unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+            FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+        reserve_voxel(owner, tvidx, make_claim_priority(vidx, det_tag));
+        FLAMEGPU->setVariable<int>("move_target_vidx", tvidx);
+    }
+    return flamegpu::ALIVE;
+}
+
+// Fibroblast movement — COMMIT pass. Moves the unique winner of each reserved voxel
+// (lowest source-voxel/det_tag); losers stay. Race-free: one claimer per target voxel.
+FLAMEGPU_AGENT_FUNCTION(fib_move_commit, flamegpu::MessageNone, flamegpu::MessageNone) {
+    const int tvidx = FLAMEGPU->getVariable<int>("move_target_vidx");
+    if (tvidx < 0) return flamegpu::ALIVE;
+
+    const int x = FLAMEGPU->getVariable<int>("x");
+    const int y = FLAMEGPU->getVariable<int>("y");
+    const int z = FLAMEGPU->getVariable<int>("z");
+    const int cs = FLAMEGPU->getVariable<int>("cell_state");
+    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    const int my_vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+        FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+    if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag))) {
+        return flamegpu::ALIVE;  // lost the deterministic contention → stay
+    }
+
+    float my_vol = (cs == FIB_MYCAF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float* vol_used = VOL_PTR(FLAMEGPU);
+
+    // Sole winner of this voxel → claim is race-free; guard against a pre-existing fill.
+    if (!volume_try_claim(vol_used, tvidx, my_vol, capacity)) return flamegpu::ALIVE;
+    volume_release(vol_used, my_vidx, my_vol);
+
+    const int target_x = tvidx % grid_x;
+    const int target_y = (tvidx / grid_x) % grid_y;
+    const int target_z = tvidx / (grid_x * grid_y);
+
+    FLAMEGPU->setVariable<int>("x", target_x);
+    FLAMEGPU->setVariable<int>("y", target_y);
+    FLAMEGPU->setVariable<int>("z", target_z);
+    FLAMEGPU->setVariable<int>("persist_dir_x", target_x - x);
+    FLAMEGPU->setVariable<int>("persist_dir_y", target_y - y);
+    FLAMEGPU->setVariable<int>("persist_dir_z", target_z - z);
     return flamegpu::ALIVE;
 }
 
@@ -320,13 +387,20 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
     const float H_IL6 = IL6 / (IL6 + il6_ec50 + 1e-30f);
     const float il6_boost = 1.0f + f_IL6 * H_IL6;
 
+    // Deterministic RNG stream for the activation/interconversion draws below (FLAMEGPU->random
+    // is nondeterministic for born cells; det_tag-seeded is stable given lineage). A cell is in
+    // exactly one state, so only one branch draws — seed once, draw sequentially.
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    unsigned int srs = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0x57A7Eu, sim_seed);
+
     // Activation: only quiescent fibroblasts can activate
     if (cs == FIB_QUIESCENT) {
         // myCAF activation (ODE RF242): k_myCAF * H_TGFb(TGFb_50_CAF_act)
         const float k_mycaf = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_ACTIVATION");
         const float p_mycaf = k_mycaf * H_TGFb;
 
-        if (FLAMEGPU->random.uniform<float>() < p_mycaf) {
+        if (det_rng_uniform(srs) < p_mycaf) {
             FLAMEGPU->setVariable<int>("cell_state", FIB_MYCAF);
             return flamegpu::ALIVE;
         }
@@ -342,7 +416,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
                             * (1.0f - hill_equation(TGFB, supp_ec50, supp_n))
                             * il6_boost;
 
-        if (FLAMEGPU->random.uniform<float>() < p_icaf) {
+        if (det_rng_uniform(srs) < p_icaf) {
             FLAMEGPU->setVariable<int>("cell_state", FIB_ICAF);
             return flamegpu::ALIVE;
         }
@@ -371,7 +445,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
 
         // iCAF → myCAF: k_iCAF_to_myCAF * H_TGFb(TGFb_50_CAF_act)
         const float k_i2m = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_TO_MYCAF");
-        if (FLAMEGPU->random.uniform<float>() < k_i2m * H_TGFb) {
+        if (det_rng_uniform(srs) < k_i2m * H_TGFb) {
             FLAMEGPU->setVariable<int>("cell_state", FIB_MYCAF);
         }
     } else if (cs == FIB_MYCAF) {
@@ -380,7 +454,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
         const float icaf_ec50  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_IL1_EC50");
         const float icaf_n     = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_IL1_HILL_N");
         float H_IL1 = hill_equation(IL1, icaf_ec50, icaf_n);
-        if (FLAMEGPU->random.uniform<float>() < k_m2i * H_IL1 * il6_boost) {
+        if (det_rng_uniform(srs) < k_m2i * H_IL1 * il6_boost) {
             FLAMEGPU->setVariable<int>("cell_state", FIB_ICAF);
         }
     }
@@ -407,12 +481,16 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
 }
 
 // ============================================================================
-// Fibroblast: Division — device-side local mitosis
-// Daughter placed in adjacent free Von Neumann voxel
+// Fibroblast: Division — Step-5 deterministic reserve/confirm (mirrors cancer).
+// RESERVE picks one free Von Neumann neighbor (det_rng, not FLAMEGPU->random) and
+// atomicMin-reserves it by (source-voxel, det_tag); CONFIRM commits the unique winner
+// and births the daughter. Replaces the racy single-pass fib_divide (Fisher-Yates +
+// volume_try_claim "first arrival wins" was thread-schedule dependent).
 // ============================================================================
-FLAMEGPU_AGENT_FUNCTION(fib_divide, flamegpu::MessageNone, flamegpu::MessageNone) {
+FLAMEGPU_AGENT_FUNCTION(fib_divide_reserve, flamegpu::MessageNone, flamegpu::MessageNone) {
+    FLAMEGPU->setVariable<int>("div_target_vidx", -1);  // reset reservation each step
     if (FLAMEGPU->getVariable<int>("divide_flag") == 0) return flamegpu::ALIVE;
-    FLAMEGPU->setVariable<int>("divide_flag", 0);
+    FLAMEGPU->setVariable<int>("divide_flag", 0);  // consume intent (re-set next step if eligible)
 
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
     if (cs == FIB_QUIESCENT || cs == FIB_FRC) return flamegpu::ALIVE;
@@ -424,63 +502,105 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide, flamegpu::MessageNone, flamegpu::MessageNone
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    // Volume-based occupancy
     float* vol_used = VOL_PTR(FLAMEGPU);
     const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
     float daughter_vol = (cs == FIB_MYCAF) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
 
-    // Try Von Neumann neighbors (6 face-adjacent) in random order
-    int dx6[6] = {1, -1, 0, 0, 0, 0};
-    int dy6[6] = {0, 0, 1, -1, 0, 0};
-    int dz6[6] = {0, 0, 0, 0, 1, -1};
-    // Fisher-Yates shuffle
-    for (int i = 5; i > 0; i--) {
-        int j = static_cast<int>(FLAMEGPU->random.uniform<float>() * (i + 1));
-        if (j > i) j = i;
-        int tx = dx6[i]; dx6[i] = dx6[j]; dx6[j] = tx;
-        int ty = dy6[i]; dy6[i] = dy6[j]; dy6[j] = ty;
-        int tz = dz6[i]; dz6[i] = dz6[j]; dz6[j] = tz;
-    }
-
+    // Collect Von Neumann (6 face-adjacent) neighbors with enough volume capacity.
+    const int dx6[6] = {1, -1, 0, 0, 0, 0};
+    const int dy6[6] = {0, 0, 1, -1, 0, 0};
+    const int dz6[6] = {0, 0, 0, 0, 1, -1};
+    int cand_vidx[6];
+    int n_cands = 0;
     for (int d = 0; d < 6; d++) {
-        int nx = x + dx6[d], ny = y + dy6[d], nz = z + dz6[d];
+        const int nx = x + dx6[d], ny = y + dy6[d], nz = z + dz6[d];
         if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z) continue;
-        int tvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
-        if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) continue;
+        const int nvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
+        if (vol_used[nvidx] + daughter_vol <= capacity) cand_vidx[n_cands++] = nvidx;
+    }
+    if (n_cands == 0) return flamegpu::ALIVE;
 
-        // Success — create daughter (per-subtype cooldown from QSP k_prolif)
-        const int cd = static_cast<int>((cs == FIB_MYCAF) ?
-            FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN_MYCAF") :
-            FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN_ICAF"));
+    // Pick one candidate deterministically and reserve it by priority.
+    const int my_vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    unsigned int drs = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0xF1Bu, sim_seed);
+    int pick = static_cast<int>(det_rng_uniform(drs) * n_cands);
+    if (pick >= n_cands) pick = n_cands - 1;
+    const int tvidx = cand_vidx[pick];
+    unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+        FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+    reserve_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag));
+    FLAMEGPU->setVariable<int>("div_target_vidx", tvidx);
+    return flamegpu::ALIVE;
+}
 
-        // Update parent
-        FLAMEGPU->setVariable<int>("divide_cooldown", cd);
-        FLAMEGPU->setVariable<int>("divide_count", FLAMEGPU->getVariable<int>("divide_count") + 1);
+// Fibroblast division — CONFIRM pass. Commits the unique winner of each reserved voxel,
+// then births the daughter (inherits parent state; gets a deterministic child det_tag).
+FLAMEGPU_AGENT_FUNCTION(fib_divide_confirm, flamegpu::MessageNone, flamegpu::MessageNone) {
+    const int tvidx = FLAMEGPU->getVariable<int>("div_target_vidx");
+    if (tvidx < 0) return flamegpu::ALIVE;
 
-        // Create daughter agent
-        auto daughter = FLAMEGPU->agent_out;
-        daughter.setVariable<int>("x", nx);
-        daughter.setVariable<int>("y", ny);
-        daughter.setVariable<int>("z", nz);
-        daughter.setVariable<int>("cell_state", cs);  // inherits parent state
-        daughter.setVariable<int>("life", FLAMEGPU->getVariable<int>("life"));
-        daughter.setVariable<int>("divide_flag", 0);
-        daughter.setVariable<int>("divide_cooldown", cd);
-        daughter.setVariable<int>("divide_count", 0);
-        daughter.setVariable<int>("persist_dir_x", 0);
-        daughter.setVariable<int>("persist_dir_y", 0);
-        daughter.setVariable<int>("persist_dir_z", 0);
+    const int cs = FLAMEGPU->getVariable<int>("cell_state");
+    const int x = FLAMEGPU->getVariable<int>("x");
+    const int y = FLAMEGPU->getVariable<int>("y");
+    const int z = FLAMEGPU->getVariable<int>("z");
+    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
 
-        // Record proliferation event
-        auto* ec = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
-        int prolif_idx = (cs == FIB_MYCAF) ? EVT_PROLIF_FIB_MYCAF : EVT_PROLIF_FIB_ICAF;
-        atomicAdd(&ec[prolif_idx], 1u);
-
-        break;  // only one daughter per step
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    const int my_vidx = z * (grid_x * grid_y) + y * grid_x + x;
+    unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+        FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+    if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag))) {
+        return flamegpu::ALIVE;  // lost the deterministic contention → don't divide this step
     }
 
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float daughter_vol = (cs == FIB_MYCAF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
+    // Sole winner of this voxel → claim is race-free; guard against a pre-existing fill.
+    if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) return flamegpu::ALIVE;
+
+    const int nx = tvidx % grid_x;
+    const int ny = (tvidx / grid_x) % grid_y;
+    const int nz = tvidx / (grid_x * grid_y);
+
+    // Per-subtype cooldown from QSP k_prolif
+    const int cd = static_cast<int>((cs == FIB_MYCAF) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN_MYCAF") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN_ICAF"));
+
+    // Update parent
+    FLAMEGPU->setVariable<int>("divide_cooldown", cd);
+    FLAMEGPU->setVariable<int>("divide_count", FLAMEGPU->getVariable<int>("divide_count") + 1);
+
+    // Create daughter agent
+    auto daughter = FLAMEGPU->agent_out;
+    daughter.setVariable<int>("x", nx);
+    daughter.setVariable<int>("y", ny);
+    daughter.setVariable<int>("z", nz);
+    daughter.setVariable<int>("cell_state", cs);  // inherits parent state
+    daughter.setVariable<int>("life", FLAMEGPU->getVariable<int>("life"));
+    daughter.setVariable<int>("divide_flag", 0);
+    daughter.setVariable<int>("divide_cooldown", cd);
+    daughter.setVariable<int>("divide_count", 0);
+    daughter.setVariable<int>("persist_dir_x", 0);
+    daughter.setVariable<int>("persist_dir_y", 0);
+    daughter.setVariable<int>("persist_dir_z", 0);
+    // Child lineage tag: deterministic + distinct per birth, independent of FLAMEGPU birth order.
+    daughter.setVariable<unsigned int>("det_tag",
+        det_rng_hash(det_tag ^ (static_cast<unsigned int>(tvidx) * 0x9E3779B1U)
+                     ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 0x85EBCA77U)));
+
+    // Record proliferation event
+    auto* ec = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+    int prolif_idx = (cs == FIB_MYCAF) ? EVT_PROLIF_FIB_MYCAF : EVT_PROLIF_FIB_ICAF;
+    atomicAdd(&ec[prolif_idx], 1u);
     return flamegpu::ALIVE;
 }
 

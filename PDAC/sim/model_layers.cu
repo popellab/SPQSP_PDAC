@@ -175,6 +175,29 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         }
     }
     {
+        // Fibroblast movement — Step-5 deterministic propose/commit, pulled OUT of the shared
+        // batched move rounds below (it feeds the ECM density field that gates cancer movement,
+        // so its determinism is the dominant residual after the cancer fix). One voxel-move per
+        // round: reset owner → propose (pick + reserve_voxel) → commit (unique winner moves).
+        // moves_remaining (= PARAM_FIB_MOVE_STEPS) is set in fib write_to_occ_grid above.
+        const int fib_steps = model.Environment().getProperty<int>("PARAM_FIB_MOVE_STEPS");
+        for (int r = 0; r < fib_steps; r++) {
+            const std::string rs = std::to_string(r);
+            {
+                flamegpu::LayerDescription layer = model.newLayer("reset_voxel_owner_fmove_" + rs);
+                layer.addHostFunction(reset_voxel_owner);
+            }
+            {
+                flamegpu::LayerDescription layer = model.newLayer("fib_move_propose_" + rs);
+                layer.addAgentFunction(AGENT_FIBROBLAST, "move_propose");
+            }
+            {
+                flamegpu::LayerDescription layer = model.newLayer("fib_move_commit_" + rs);
+                layer.addAgentFunction(AGENT_FIBROBLAST, "move_commit");
+            }
+        }
+    }
+    {
         // Batched-round movement (PARAM_MOVE_BATCH = voxel-moves per agent per round).
         // Each round is ONE layer containing every mobile type; each agent's move kernel
         // does up to M voxel-moves in an internal loop (reading+writing the volume
@@ -212,7 +235,7 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
             layer.addAgentFunction(AGENT_TREG, "move");
             layer.addAgentFunction(AGENT_MDSC, "move");
             layer.addAgentFunction(AGENT_MACROPHAGE, "move");
-            layer.addAgentFunction(AGENT_FIBROBLAST, "move");
+            // Fibroblast moved deterministically (propose/commit rounds below), like cancer.
             layer.addAgentFunction(AGENT_BCELL, "move");
             layer.addAgentFunction(AGENT_DC, "move");
         }
@@ -393,9 +416,19 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         flamegpu::LayerDescription layer = model.newLayer("divide_vascular");
         layer.addAgentFunction(AGENT_VASCULAR, "vascular_divide");
     }
+    // Fibroblast division — Step-5 deterministic reserve/confirm (priority claim into
+    // d_voxel_owner), mirroring cancer. reset → reserve → confirm.
     {
-        flamegpu::LayerDescription layer = model.newLayer("fib_divide");
-        layer.addAgentFunction(AGENT_FIBROBLAST, "divide");
+        flamegpu::LayerDescription layer = model.newLayer("reset_voxel_owner_fib_divide");
+        layer.addHostFunction(reset_voxel_owner);
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("fib_divide_reserve");
+        layer.addAgentFunction(AGENT_FIBROBLAST, "divide_reserve");
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("fib_divide_confirm");
+        layer.addAgentFunction(AGENT_FIBROBLAST, "divide_confirm");
     }
 
     // ── Timing checkpoint: after division ──

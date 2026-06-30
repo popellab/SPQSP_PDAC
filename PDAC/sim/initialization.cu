@@ -896,6 +896,9 @@ void initializeFibroblastsFromQSP(
                 agent.setVariable<int>("life", life);
                 agent.setVariable<int>("divide_cooldown", 0);
                 agent.setVariable<int>("divide_count", 0);
+                // Step-5 determinism: unique non-zero lineage tag per founder (one fib per voxel
+                // here, so the voxel index is a unique key). Seeds det_rng + breaks co-located ties.
+                agent.setVariable<unsigned int>("det_tag", static_cast<unsigned int>(idx0) + 1u);
 
                 placed++;
             }

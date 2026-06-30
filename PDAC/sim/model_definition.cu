@@ -478,6 +478,13 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
     fib.newVariable<int>("divide_cooldown", 0);
     fib.newVariable<int>("divide_count", 0);
 
+    // Step-5 determinism: reserved-target voxels (reserve→confirm) + lineage tag (seeds det_rng
+    // + breaks co-located ties). det_tag is overwritten with a unique value per founder at init
+    // (initialization.cu) and per child at division; the default is just a non-zero placeholder.
+    fib.newVariable<int>("div_target_vidx", -1);
+    fib.newVariable<int>("move_target_vidx", -1);
+    fib.newVariable<unsigned int>("det_tag", 1u);
+
     // Define agent functions
     fib.newFunction("broadcast_location", fib_broadcast_location)
         .setMessageOutput(MSG_CELL_LOCATION);
@@ -489,11 +496,15 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
 
     if (include_state) {
         fib.newFunction("write_to_occ_grid", fib_write_to_occ_grid);
-        fib.newFunction("move", fib_move);
+        fib.newFunction("move_propose", fib_move_propose);  // Step-5 deterministic movement
+        fib.newFunction("move_commit", fib_move_commit);
         fib.newFunction("state_step", fib_state_step)
             .setAllowAgentDeath(true);
-        fib.newFunction("divide", fib_divide)
-            .setAgentOutput(fib);
+        fib.newFunction("divide_reserve", fib_divide_reserve);  // Step-5 deterministic division
+        {
+            flamegpu::AgentFunctionDescription fn = fib.newFunction("divide_confirm", fib_divide_confirm);
+            fn.setAgentOutput(fib);
+        }
         fib.newFunction("build_density_field", fib_build_density_field);
     }
 }
