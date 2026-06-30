@@ -225,16 +225,23 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_compute_chemical_sources, flamegpu::MessageNone, fl
 // Chemotaxis biased toward CCL2 gradient.
 // MDSC movement via unified movement framework.
 // CCL2 chemotaxis with persistence.
-FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone) {
+// MDSC movement — Step-5 deterministic WAVE propose/commit (snapshot per wave). Each wave the
+// cell walks up to per_round steps READ-ONLY (run_move_batch_pick, no claim) from its current
+// voxel, then reserves the wave's landing voxel by (source-voxel, det_tag); the commit moves the
+// unique winner. A loser forfeits only this wave's per_round steps (not the whole 6h budget) and
+// retries next wave from where it is — that's why this is waved rather than one big snapshot.
+FLAMEGPU_AGENT_FUNCTION(mdsc_move_propose, flamegpu::MessageNone, flamegpu::MessageNone) {
+    FLAMEGPU->setVariable<int>("move_target_vidx", -1);  // reset proposal each wave
     int moves_remaining = FLAMEGPU->getVariable<int>("moves_remaining");
     if (moves_remaining <= 0) return flamegpu::ALIVE;
     const int move_K = FLAMEGPU->environment.getProperty<int>("MOVE_K");
     const int per_round = (FLAMEGPU->environment.getProperty<int>("PARAM_MDSC_MOVE_STEPS") + move_K - 1) / move_K;
     const int n_moves = min(per_round, moves_remaining);
 
-    int x = FLAMEGPU->getVariable<int>("x");
-    int y = FLAMEGPU->getVariable<int>("y");
-    int z = FLAMEGPU->getVariable<int>("z");
+    const int sx = FLAMEGPU->getVariable<int>("x");
+    const int sy = FLAMEGPU->getVariable<int>("y");
+    const int sz = FLAMEGPU->getVariable<int>("z");
+    int x = sx, y = sy, z = sz;
 
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
@@ -258,7 +265,6 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone)
     mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
     mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
     mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_MDSC");
-    // MDSC move had no contact-guidance block; w_cg=0 makes the helper's blend a no-op.
     const float w_cg = 0.0f;
 
     const float* gax = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_X));
@@ -269,15 +275,59 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move, flamegpu::MessageNone, flamegpu::MessageNone)
     int pdy = FLAMEGPU->getVariable<int>("persist_dir_y");
     int pdz = FLAMEGPU->getVariable<int>("persist_dir_z");
 
-    run_move_batch(FLAMEGPU, mp, n_moves, gax, gay, gaz, bias, w_cg, x, y, z, pdx, pdy, pdz);
-
-    FLAMEGPU->setVariable<int>("x", x);
-    FLAMEGPU->setVariable<int>("y", y);
-    FLAMEGPU->setVariable<int>("z", z);
-    FLAMEGPU->setVariable<int>("persist_dir_x", pdx);
-    FLAMEGPU->setVariable<int>("persist_dir_y", pdy);
-    FLAMEGPU->setVariable<int>("persist_dir_z", pdz);
+    // Read-only snapshot walk (no claim) → wave landing voxel.
+    run_move_batch_pick(FLAMEGPU, mp, n_moves, gax, gay, gaz, bias, w_cg, x, y, z, pdx, pdy, pdz);
     FLAMEGPU->setVariable<int>("moves_remaining", moves_remaining - n_moves);
+
+    if (x != sx || y != sy || z != sz) {
+        const int tvidx = z * (grid_x * grid_y) + y * grid_x + x;
+        const int my_vidx = sz * (grid_x * grid_y) + sy * grid_x + sx;
+        unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+            FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+        reserve_voxel(owner, tvidx, make_claim_priority(my_vidx, FLAMEGPU->getVariable<unsigned int>("det_tag")));
+        FLAMEGPU->setVariable<int>("move_target_vidx", tvidx);
+    }
+    return flamegpu::ALIVE;
+}
+
+// MDSC movement — COMMIT pass. Unique winner of each reserved landing voxel moves (claim final,
+// release source); losers stay (retry next wave). Race-free: one claimer per target voxel.
+FLAMEGPU_AGENT_FUNCTION(mdsc_move_commit, flamegpu::MessageNone, flamegpu::MessageNone) {
+    const int tvidx = FLAMEGPU->getVariable<int>("move_target_vidx");
+    if (tvidx < 0) return flamegpu::ALIVE;
+
+    const int sx = FLAMEGPU->getVariable<int>("x");
+    const int sy = FLAMEGPU->getVariable<int>("y");
+    const int sz = FLAMEGPU->getVariable<int>("z");
+    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int my_vidx = sz * (grid_x * grid_y) + sy * grid_x + sx;
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+        FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+    if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag))) return flamegpu::ALIVE;
+
+    const float my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MDSC");
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    // Snapshot capacity was verified in the propose walk + reserve gives a UNIQUE winner per
+    // target voxel, so claim unconditionally. Integer atomicAdd sums are order-independent and
+    // there is no capacity CHECK to flip on a concurrent claim/release (when target == another
+    // cell's source) → the commit is fully deterministic. (void)capacity keeps it referenced.
+    (void)capacity;
+    atomicAdd(&vol_used[tvidx], my_vol);
+    volume_release(vol_used, my_vidx, my_vol);
+
+    const int tx = tvidx % grid_x;
+    const int ty = (tvidx / grid_x) % grid_y;
+    const int tz = tvidx / (grid_x * grid_y);
+    FLAMEGPU->setVariable<int>("x", tx);
+    FLAMEGPU->setVariable<int>("y", ty);
+    FLAMEGPU->setVariable<int>("z", tz);
+    // Persistence = net wave displacement, clamped to a unit direction per axis.
+    FLAMEGPU->setVariable<int>("persist_dir_x", (tx > sx) - (tx < sx));
+    FLAMEGPU->setVariable<int>("persist_dir_y", (ty > sy) - (ty < sy));
+    FLAMEGPU->setVariable<int>("persist_dir_z", (tz > sz) - (tz < sz));
     return flamegpu::ALIVE;
 }
 

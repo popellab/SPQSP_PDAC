@@ -216,6 +216,7 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     // reserved division target voxel (reserve→confirm). det_tag seeded uniquely at init/recruit/birth.
     tcell.newVariable<unsigned int>("det_tag", 1u);
     tcell.newVariable<int>("div_target_vidx", -1);
+    tcell.newVariable<int>("move_target_vidx", -1);  // Step-5 deterministic wave movement
 
     // Define agent functions - movement functions always needed
     tcell.newFunction("broadcast_location", tcell_broadcast_location)
@@ -232,7 +233,8 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     // Movement, state, division, and occupancy grid functions only in main model
     if (include_state_divide) {
         tcell.newFunction("write_to_occ_grid", tcell_write_to_occ_grid);
-        tcell.newFunction("move", tcell_move);
+        tcell.newFunction("move_propose", tcell_move_propose);  // Step-5 deterministic wave movement
+        tcell.newFunction("move_commit", tcell_move_commit);
 
         tcell.newFunction("state_step", tcell_state_step)
             .setAllowAgentDeath(true);
@@ -306,6 +308,7 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     // Step-5 determinism: lineage tag + reserved division target voxel.
     treg.newVariable<unsigned int>("det_tag", 1u);
     treg.newVariable<int>("div_target_vidx", -1);
+    treg.newVariable<int>("move_target_vidx", -1);  // Step-5 deterministic wave movement
 
     // Define agent functions - movement functions always needed
     treg.newFunction("broadcast_location", treg_broadcast_location)
@@ -322,7 +325,8 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     // Movement, state, division, and occupancy grid functions only in main model
     if (include_state_divide) {
         treg.newFunction("write_to_occ_grid", treg_write_to_occ_grid);
-        treg.newFunction("move", treg_move);
+        treg.newFunction("move_propose", treg_move_propose);  // Step-5 deterministic wave movement
+        treg.newFunction("move_commit", treg_move_commit);
 
         treg.newFunction("state_step", treg_state_step)
             .setAllowAgentDeath(true);
@@ -378,6 +382,7 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state) {
 
     // Step-5 determinism: lineage tag (seeds det_rng / movement direction). MDSC does not divide.
     mdsc.newVariable<unsigned int>("det_tag", 1u);
+    mdsc.newVariable<int>("move_target_vidx", -1);  // Step-5 deterministic wave movement
 
     // Define agent functions - movement functions always needed
     mdsc.newFunction("broadcast_location", mdsc_broadcast_location)
@@ -394,7 +399,8 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state) {
     // Movement and state functions only in main model (MDSCs don't divide)
     if (include_state) {
         mdsc.newFunction("write_to_occ_grid", mdsc_write_to_occ_grid);
-        mdsc.newFunction("move", mdsc_move);
+        mdsc.newFunction("move_propose", mdsc_move_propose);  // Step-5 deterministic wave movement
+        mdsc.newFunction("move_commit", mdsc_move_commit);
 
         mdsc.newFunction("state_step", mdsc_state_step)
             .setAllowAgentDeath(true);
@@ -439,6 +445,7 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
 
     // Step-5 determinism: lineage tag (seeds det_rng / movement direction). Macrophage does not divide.
     mac.newVariable<unsigned int>("det_tag", 1u);
+    mac.newVariable<int>("move_target_vidx", -1);  // Step-5 deterministic wave movement
 
     // Define agent functions
     mac.newFunction("broadcast_location", mac_broadcast_location)
@@ -455,7 +462,8 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
     // Movement and state functions only in main model
     if (include_state) {
         mac.newFunction("write_to_occ_grid", mac_write_to_occ_grid);
-        mac.newFunction("move", mac_move);
+        mac.newFunction("move_propose", mac_move_propose);  // Step-5 deterministic wave movement
+        mac.newFunction("move_commit", mac_move_commit);
 
         mac.newFunction("state_step", mac_state_step)
             .setAllowAgentDeath(true);
@@ -630,6 +638,7 @@ void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     // Step-5 determinism: lineage tag + reserved division target voxel.
     bcell.newVariable<unsigned int>("det_tag", 1u);
     bcell.newVariable<int>("div_target_vidx", -1);
+    bcell.newVariable<int>("move_target_vidx", -1);  // Step-5 deterministic wave movement
 
     // Agent functions
     bcell.newFunction("broadcast_location", bcell_broadcast_location)
@@ -643,7 +652,8 @@ void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
 
     if (include_state_divide) {
         bcell.newFunction("write_to_occ_grid", bcell_write_to_occ_grid);
-        bcell.newFunction("move", bcell_move);
+        bcell.newFunction("move_propose", bcell_move_propose);  // Step-5 deterministic wave movement
+        bcell.newFunction("move_commit", bcell_move_commit);
 
         bcell.newFunction("state_step", bcell_state_step)
             .setAllowAgentDeath(true);
@@ -690,6 +700,7 @@ void defineDCAgent(flamegpu::ModelDescription& model, bool include_state) {
 
     // Step-5 determinism: lineage tag (seeds det_rng / movement direction). DC does not divide.
     dc.newVariable<unsigned int>("det_tag", 1u);
+    dc.newVariable<int>("move_target_vidx", -1);  // Step-5 deterministic wave movement
 
     // Agent functions
     dc.newFunction("broadcast_location", dc_broadcast_location)
@@ -703,7 +714,8 @@ void defineDCAgent(flamegpu::ModelDescription& model, bool include_state) {
 
     if (include_state) {
         dc.newFunction("write_to_occ_grid", dc_write_to_occ_grid);
-        dc.newFunction("move", dc_move);
+        dc.newFunction("move_propose", dc_move_propose);  // Step-5 deterministic wave movement
+        dc.newFunction("move_commit", dc_move_commit);
 
         dc.newFunction("state_step", dc_state_step)
             .setAllowAgentDeath(true);

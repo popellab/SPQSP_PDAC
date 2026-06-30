@@ -228,16 +228,37 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         const int K = std::max(1, (max_steps + M - 1) / M);  // ceil(max_steps / move_batch)
         model.Environment().newProperty<int>("MOVE_K", K);
 
+        // Immune movement — Step-5 deterministic WAVE propose/commit (snapshot per wave),
+        // replacing the racy batched volume_try_claim. Each of K waves: reset owner → all 6 types
+        // propose (read-only per_round-step walk + reserve landing voxel by (source,det_tag)) →
+        // all 6 types commit (unique winner claims/moves). Shared rounds (one owner buffer) are
+        // safe because immune det_tags are type-offset-unique across types (init + recruitment).
+        // A cell that loses a wave forfeits only that wave's per_round steps and retries next wave
+        // from where it got to (cancer/fib have their own deterministic rounds above).
         for (int r = 0; r < K; r++) {
-            flamegpu::LayerDescription layer = model.newLayer("move_round_" + std::to_string(r));
-            // Cancer moved deterministically above (propose/commit); not in the shared round.
-            layer.addAgentFunction(AGENT_TCELL, "move");
-            layer.addAgentFunction(AGENT_TREG, "move");
-            layer.addAgentFunction(AGENT_MDSC, "move");
-            layer.addAgentFunction(AGENT_MACROPHAGE, "move");
-            // Fibroblast moved deterministically (propose/commit rounds below), like cancer.
-            layer.addAgentFunction(AGENT_BCELL, "move");
-            layer.addAgentFunction(AGENT_DC, "move");
+            const std::string rs = std::to_string(r);
+            {
+                flamegpu::LayerDescription layer = model.newLayer("reset_voxel_owner_imove_" + rs);
+                layer.addHostFunction(reset_voxel_owner);
+            }
+            {
+                flamegpu::LayerDescription layer = model.newLayer("imove_propose_" + rs);
+                layer.addAgentFunction(AGENT_TCELL,      "move_propose");
+                layer.addAgentFunction(AGENT_TREG,       "move_propose");
+                layer.addAgentFunction(AGENT_MDSC,       "move_propose");
+                layer.addAgentFunction(AGENT_MACROPHAGE, "move_propose");
+                layer.addAgentFunction(AGENT_BCELL,      "move_propose");
+                layer.addAgentFunction(AGENT_DC,         "move_propose");
+            }
+            {
+                flamegpu::LayerDescription layer = model.newLayer("imove_commit_" + rs);
+                layer.addAgentFunction(AGENT_TCELL,      "move_commit");
+                layer.addAgentFunction(AGENT_TREG,       "move_commit");
+                layer.addAgentFunction(AGENT_MDSC,       "move_commit");
+                layer.addAgentFunction(AGENT_MACROPHAGE, "move_commit");
+                layer.addAgentFunction(AGENT_BCELL,      "move_commit");
+                layer.addAgentFunction(AGENT_DC,         "move_commit");
+            }
         }
         {
             flamegpu::LayerDescription layer = model.newLayer("move_vascular");

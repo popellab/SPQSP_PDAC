@@ -1515,9 +1515,22 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
 
     for (int i = 0; i < count; i++) {
         const auto& r = requests[i];
-        unsigned int rec_dt = det_rng_seed(r.z * (rec_gx * rec_gy) + r.y * rec_gx + r.x,
-                                           rec_step, 0x5EC0u + static_cast<unsigned int>(r.cell_type), rec_seed);
-        if (rec_dt == 0u) rec_dt = 1u;
+        // High nibble = type (matches the init type-offsets: mac=1,T=2,treg=3,dc=4,bcell=5,mdsc=6)
+        // so det_tags are unique ACROSS types — required since immune share the deterministic wave
+        // movement rounds (one voxel_owner buffer); low 28 bits = identity hash (voxel,step,type).
+        unsigned int type_nibble;
+        switch (r.cell_type) {
+            case CELL_TYPE_MAC:   type_nibble = 1u; break;
+            case CELL_TYPE_T:     type_nibble = 2u; break;
+            case CELL_TYPE_TREG:  type_nibble = 3u; break;
+            case CELL_TYPE_DC:    type_nibble = 4u; break;
+            case CELL_TYPE_BCELL: type_nibble = 5u; break;
+            case CELL_TYPE_MDSC:  type_nibble = 6u; break;
+            default:              type_nibble = 7u; break;
+        }
+        unsigned int rec_hash = det_rng_seed(r.z * (rec_gx * rec_gy) + r.y * rec_gx + r.x,
+                                             rec_step, 0x5EC0u + static_cast<unsigned int>(r.cell_type), rec_seed);
+        unsigned int rec_dt = (type_nibble << 28) | (rec_hash & 0x0FFFFFFFu);
 
         if (r.cell_type == CELL_TYPE_T) {
             auto a = tcell_api.newAgent();

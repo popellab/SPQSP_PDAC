@@ -326,11 +326,12 @@ FLAMEGPU_AGENT_FUNCTION(fib_move_commit, flamegpu::MessageNone, flamegpu::Messag
     float my_vol = (cs == FIB_MYCAF) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
     float* vol_used = VOL_PTR(FLAMEGPU);
 
-    // Sole winner of this voxel → claim is race-free; guard against a pre-existing fill.
-    if (!volume_try_claim(vol_used, tvidx, my_vol, capacity)) return flamegpu::ALIVE;
+    // Unconditional claim: move_cell_pick verified snapshot capacity in propose + reserve gives a
+    // unique winner per target → integer atomicAdd sums are order-independent, no capacity CHECK to
+    // flip on a concurrent claim/release (target == another cell's source) → deterministic commit.
+    atomicAdd(&vol_used[tvidx], my_vol);
     volume_release(vol_used, my_vidx, my_vol);
 
     const int target_x = tvidx % grid_x;

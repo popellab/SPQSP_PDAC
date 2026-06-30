@@ -209,16 +209,23 @@ FLAMEGPU_AGENT_FUNCTION(mac_compute_chemical_sources, flamegpu::MessageNone, fla
 // ============================================================================
 // Macrophage movement via unified movement framework.
 // CCL2 chemotaxis with state-dependent persistence and bias.
-FLAMEGPU_AGENT_FUNCTION(mac_move, flamegpu::MessageNone, flamegpu::MessageNone) {
+// Macrophage movement — Step-5 deterministic WAVE propose/commit (snapshot per wave). Each wave
+// the cell walks up to per_round steps READ-ONLY (run_move_batch_pick, no claim) from its current
+// voxel, reserves the wave's landing voxel by (source-voxel, det_tag); the commit moves the unique
+// winner. A loser forfeits only this wave's per_round steps and retries next wave. Mirrors
+// mdsc_move_propose/commit. (state-dependent my_vol: MAC_M1 vs MAC_M2 — computed identically in both.)
+FLAMEGPU_AGENT_FUNCTION(mac_move_propose, flamegpu::MessageNone, flamegpu::MessageNone) {
+    FLAMEGPU->setVariable<int>("move_target_vidx", -1);  // reset proposal each wave
     int moves_remaining = FLAMEGPU->getVariable<int>("moves_remaining");
     if (moves_remaining <= 0) return flamegpu::ALIVE;
     const int move_K = FLAMEGPU->environment.getProperty<int>("MOVE_K");
     const int per_round = (FLAMEGPU->environment.getProperty<int>("PARAM_MAC_MOVE_STEPS") + move_K - 1) / move_K;
     const int n_moves = min(per_round, moves_remaining);
 
-    int x = FLAMEGPU->getVariable<int>("x");
-    int y = FLAMEGPU->getVariable<int>("y");
-    int z = FLAMEGPU->getVariable<int>("z");
+    const int sx = FLAMEGPU->getVariable<int>("x");
+    const int sy = FLAMEGPU->getVariable<int>("y");
+    const int sz = FLAMEGPU->getVariable<int>("z");
+    int x = sx, y = sy, z = sz;
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
 
     float my_vol = (cell_state == MAC_M1) ?
@@ -265,15 +272,60 @@ FLAMEGPU_AGENT_FUNCTION(mac_move, flamegpu::MessageNone, flamegpu::MessageNone) 
     int pdy = FLAMEGPU->getVariable<int>("persist_dir_y");
     int pdz = FLAMEGPU->getVariable<int>("persist_dir_z");
 
-    run_move_batch(FLAMEGPU, mp, n_moves, gax, gay, gaz, bias, w_cg, x, y, z, pdx, pdy, pdz);
-
-    FLAMEGPU->setVariable<int>("x", x);
-    FLAMEGPU->setVariable<int>("y", y);
-    FLAMEGPU->setVariable<int>("z", z);
-    FLAMEGPU->setVariable<int>("persist_dir_x", pdx);
-    FLAMEGPU->setVariable<int>("persist_dir_y", pdy);
-    FLAMEGPU->setVariable<int>("persist_dir_z", pdz);
+    // Read-only snapshot walk (no claim) → wave landing voxel.
+    run_move_batch_pick(FLAMEGPU, mp, n_moves, gax, gay, gaz, bias, w_cg, x, y, z, pdx, pdy, pdz);
     FLAMEGPU->setVariable<int>("moves_remaining", moves_remaining - n_moves);
+
+    if (x != sx || y != sy || z != sz) {
+        const int tvidx = z * (grid_x * grid_y) + y * grid_x + x;
+        const int my_vidx = sz * (grid_x * grid_y) + sy * grid_x + sx;
+        unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+            FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+        reserve_voxel(owner, tvidx, make_claim_priority(my_vidx, FLAMEGPU->getVariable<unsigned int>("det_tag")));
+        FLAMEGPU->setVariable<int>("move_target_vidx", tvidx);
+    }
+    return flamegpu::ALIVE;
+}
+
+// Macrophage movement — COMMIT pass. Unique winner of each reserved landing voxel moves (claim
+// final, release source); losers stay (retry next wave). my_vol matches the propose expression.
+FLAMEGPU_AGENT_FUNCTION(mac_move_commit, flamegpu::MessageNone, flamegpu::MessageNone) {
+    const int tvidx = FLAMEGPU->getVariable<int>("move_target_vidx");
+    if (tvidx < 0) return flamegpu::ALIVE;
+
+    const int sx = FLAMEGPU->getVariable<int>("x");
+    const int sy = FLAMEGPU->getVariable<int>("y");
+    const int sz = FLAMEGPU->getVariable<int>("z");
+    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int my_vidx = sz * (grid_x * grid_y) + sy * grid_x + sx;
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+        FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+    if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag))) return flamegpu::ALIVE;
+
+    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    const float my_vol = (cell_state == MAC_M1) ?
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M1") :
+        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M2");
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    // Unconditional claim: snapshot capacity verified in propose + reserve gives a unique winner
+    // per target → integer atomicAdd sums are order-independent, no check to flip → deterministic.
+    (void)capacity;
+    atomicAdd(&vol_used[tvidx], my_vol);
+    volume_release(vol_used, my_vidx, my_vol);
+
+    const int tx = tvidx % grid_x;
+    const int ty = (tvidx / grid_x) % grid_y;
+    const int tz = tvidx / (grid_x * grid_y);
+    FLAMEGPU->setVariable<int>("x", tx);
+    FLAMEGPU->setVariable<int>("y", ty);
+    FLAMEGPU->setVariable<int>("z", tz);
+    // Persistence = net wave displacement, clamped to a unit direction per axis.
+    FLAMEGPU->setVariable<int>("persist_dir_x", (tx > sx) - (tx < sx));
+    FLAMEGPU->setVariable<int>("persist_dir_y", (ty > sy) - (ty < sy));
+    FLAMEGPU->setVariable<int>("persist_dir_z", (tz > sz) - (tz < sz));
     return flamegpu::ALIVE;
 }
 

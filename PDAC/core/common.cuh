@@ -1061,6 +1061,50 @@ __device__ __forceinline__ void run_move_batch(
     }
 }
 
+// ============================================================================
+// Deterministic snapshot walk (Step-5): identical to run_move_batch BUT uses move_cell_pick
+// (NO volume claim, vol_used read READ-ONLY) so the whole walk is order-INDEPENDENT given a
+// frozen occupancy snapshot. The caller (an immune *_move_propose) runs this to compute the
+// cell's final landing voxel, then reserve_voxel()s it by (source-voxel, det_tag); a later
+// *_move_commit moves the unique winner (volume_try_claim at the final voxel, release source).
+// Resolves the immune-movement claim race WITHOUT a per-voxel-move layer triple (immune move
+// steps are 18-71). Approximation: cells walk through the start-of-phase snapshot, not seeing
+// each other's intra-step moves — negligible for sparse immune; conflicts resolved at the final
+// reserve. Position + persistence updated in place to the walked-final values.
+// ============================================================================
+template<typename API>
+__device__ __forceinline__ void run_move_batch_pick(
+    API FLAMEGPU, MoveParams& mp, int n_moves,
+    const float* gax, const float* gay, const float* gaz,
+    float bias, float w_cg,
+    int& x, int& y, int& z, int& pdx, int& pdy, int& pdz)
+{
+    const int GXY = mp.grid_x * mp.grid_y;
+    unsigned int rs = det_rng_seed(
+        static_cast<int>(FLAMEGPU->template getVariable<unsigned int>("det_tag")),
+        FLAMEGPU->getStepCounter(),
+        static_cast<unsigned int>(FLAMEGPU->template getVariable<int>("moves_remaining")),
+        FLAMEGPU->environment.template getProperty<unsigned int>("sim_seed"));
+    for (int k = 0; k < n_moves; k++) {
+        const int vidx = z * GXY + y * mp.grid_x + x;
+        float g0 = 0.0f, g1 = 0.0f, g2 = 0.0f;
+        if (bias > 0.0f) { g0 = gax[vidx]; g1 = gay[vidx]; g2 = gaz[vidx]; }
+        const float ox = mp.orient_x[vidx], oy = mp.orient_y[vidx], oz = mp.orient_z[vidx];
+        if (bias > 0.0f) apply_contact_guidance(g0, g1, g2, ox, oy, oz, w_cg);
+        else             apply_contact_guidance_persist(g0, g1, g2, mp.bias_strength, ox, oy, oz, w_cg, pdx, pdy, pdz);
+        mp.grad_x = g0; mp.grad_y = g1; mp.grad_z = g2;
+        const float r_move = det_rng_uniform(rs);
+        const float r_persist = det_rng_uniform(rs);
+        const float r_dir = det_rng_uniform(rs);
+        // move_cell_pick: picks target + checks capacity against vol_used READ-ONLY (no atomicAdd).
+        MoveResult r = move_cell_pick(mp, x, y, z, pdx, pdy, pdz, r_move, r_persist, r_dir);
+        if (r.moved) {
+            x = r.new_x; y = r.new_y; z = r.new_z;
+            pdx = r.persist_dx; pdy = r.persist_dy; pdz = r.persist_dz;
+        }
+    }
+}
+
 } // namespace PDAC
 
 #endif // PDAC_COMMON_CUH

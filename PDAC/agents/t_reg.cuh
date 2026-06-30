@@ -588,7 +588,13 @@ FLAMEGPU_AGENT_FUNCTION(treg_compute_chemical_sources, flamegpu::MessageNone, fl
 // TReg movement using run-tumble chemotaxis toward IFN-γ
 // TReg movement via unified movement framework.
 // TReg: TGF-β chemotaxis + persistence. TH: persistent random walk (no chemotaxis).
-FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone) {
+// TReg movement — Step-5 deterministic WAVE propose/commit (snapshot per wave; mirrors
+// mdsc_move_propose/commit). Each wave: read-only walk up to per_round steps from current voxel
+// (run_move_batch_pick, no claim) → reserve the landing voxel by (source-voxel, det_tag);
+// commit moves the unique winner. A loser forfeits only this wave's steps and retries next wave.
+// State-dependent my_vol/gradient/porosity preserved (TREG→CXCL12, Tfh→CXCL13, TH→none).
+FLAMEGPU_AGENT_FUNCTION(treg_move_propose, flamegpu::MessageNone, flamegpu::MessageNone) {
+    FLAMEGPU->setVariable<int>("move_target_vidx", -1);  // reset proposal each wave
     if (FLAMEGPU->getVariable<int>("dead") == 1) return flamegpu::ALIVE;
 
     int moves_remaining = FLAMEGPU->getVariable<int>("moves_remaining");
@@ -597,9 +603,10 @@ FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone)
     const int per_round = (FLAMEGPU->environment.getProperty<int>("PARAM_TCELL_MOVE_STEPS") + move_K - 1) / move_K;
     const int n_moves = min(per_round, moves_remaining);
 
-    int x = FLAMEGPU->getVariable<int>("x");
-    int y = FLAMEGPU->getVariable<int>("y");
-    int z = FLAMEGPU->getVariable<int>("z");
+    const int sx = FLAMEGPU->getVariable<int>("x");
+    const int sy = FLAMEGPU->getVariable<int>("y");
+    const int sz = FLAMEGPU->getVariable<int>("z");
+    int x = sx, y = sy, z = sz;
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
 
     float my_vol, p_persist, bias;
@@ -617,7 +624,6 @@ FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone)
         bias = 0.0f;
     }
 
-    // Read gradient: TReg→CXCL12 (CXCR4-mediated, Iellem 2001), Tfh→CXCL13, TH→none
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
 
@@ -643,7 +649,6 @@ FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone)
     mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_TREG");
     const float w_cg = FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_TREG");
 
-    // State-dependent gradient: TReg→CXCL12, Tfh→CXCL13, TH→none (bias=0, unused)
     const float* gax;
     const float* gay;
     const float* gaz;
@@ -661,15 +666,59 @@ FLAMEGPU_AGENT_FUNCTION(treg_move, flamegpu::MessageNone, flamegpu::MessageNone)
     int pdy = FLAMEGPU->getVariable<int>("persist_dir_y");
     int pdz = FLAMEGPU->getVariable<int>("persist_dir_z");
 
-    run_move_batch(FLAMEGPU, mp, n_moves, gax, gay, gaz, bias, w_cg, x, y, z, pdx, pdy, pdz);
-
-    FLAMEGPU->setVariable<int>("x", x);
-    FLAMEGPU->setVariable<int>("y", y);
-    FLAMEGPU->setVariable<int>("z", z);
-    FLAMEGPU->setVariable<int>("persist_dir_x", pdx);
-    FLAMEGPU->setVariable<int>("persist_dir_y", pdy);
-    FLAMEGPU->setVariable<int>("persist_dir_z", pdz);
+    run_move_batch_pick(FLAMEGPU, mp, n_moves, gax, gay, gaz, bias, w_cg, x, y, z, pdx, pdy, pdz);
     FLAMEGPU->setVariable<int>("moves_remaining", moves_remaining - n_moves);
+
+    if (x != sx || y != sy || z != sz) {
+        const int tvidx = z * (grid_x * grid_y) + y * grid_x + x;
+        const int my_vidx = sz * (grid_x * grid_y) + sy * grid_x + sx;
+        unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+            FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+        reserve_voxel(owner, tvidx, make_claim_priority(my_vidx, FLAMEGPU->getVariable<unsigned int>("det_tag")));
+        FLAMEGPU->setVariable<int>("move_target_vidx", tvidx);
+    }
+    return flamegpu::ALIVE;
+}
+
+// TReg movement — COMMIT pass. Unique winner moves (claim final, release source); losers stay.
+FLAMEGPU_AGENT_FUNCTION(treg_move_commit, flamegpu::MessageNone, flamegpu::MessageNone) {
+    const int tvidx = FLAMEGPU->getVariable<int>("move_target_vidx");
+    if (tvidx < 0) return flamegpu::ALIVE;
+
+    const int sx = FLAMEGPU->getVariable<int>("x");
+    const int sy = FLAMEGPU->getVariable<int>("y");
+    const int sz = FLAMEGPU->getVariable<int>("z");
+    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
+    const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int my_vidx = sz * (grid_x * grid_y) + sy * grid_x + sx;
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+        FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+    if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag))) return flamegpu::ALIVE;
+
+    // Must match propose my_vol exactly (state-dependent).
+    float my_vol;
+    if (cell_state == TCD4_TREG)      my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG");
+    else if (cell_state == TCD4_TFH)  my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TFH");
+    else                              my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    // Unconditional claim: snapshot capacity verified in propose + reserve gives a unique winner
+    // per target → integer atomicAdd sums are order-independent, no check to flip → deterministic.
+    (void)capacity;
+    atomicAdd(&vol_used[tvidx], my_vol);
+    volume_release(vol_used, my_vidx, my_vol);
+
+    const int tx = tvidx % grid_x;
+    const int ty = (tvidx / grid_x) % grid_y;
+    const int tz = tvidx / (grid_x * grid_y);
+    FLAMEGPU->setVariable<int>("x", tx);
+    FLAMEGPU->setVariable<int>("y", ty);
+    FLAMEGPU->setVariable<int>("z", tz);
+    FLAMEGPU->setVariable<int>("persist_dir_x", (tx > sx) - (tx < sx));
+    FLAMEGPU->setVariable<int>("persist_dir_y", (ty > sy) - (ty < sy));
+    FLAMEGPU->setVariable<int>("persist_dir_z", (tz > sz) - (tz < sz));
     return flamegpu::ALIVE;
 }
 

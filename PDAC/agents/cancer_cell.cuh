@@ -850,11 +850,13 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move_commit, flamegpu::MessageNone, flamegpu::Mes
         (cell_state == CANCER_PROGENITOR) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG") :
         FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_SEN");
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
     float* vol_used = VOL_PTR(FLAMEGPU);
 
-    // Sole winner of this voxel → claim is race-free; guard against a pre-existing fill.
-    if (!volume_try_claim(vol_used, tvidx, my_vol, capacity)) return flamegpu::ALIVE;
+    // Unconditional claim: move_cell_pick verified snapshot capacity in propose + reserve gives a
+    // unique winner per target voxel → integer atomicAdd sums are order-independent and there is no
+    // capacity CHECK to flip on a concurrent claim/release (target == another cell's source). The
+    // old checked volume_try_claim raced exactly there, diverging at scale (deterministic now).
+    atomicAdd(&vol_used[tvidx], my_vol);
     volume_release(vol_used, my_vidx, my_vol);
 
     const int target_x = tvidx % grid_x;
