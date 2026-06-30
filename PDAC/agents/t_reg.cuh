@@ -188,6 +188,13 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
     const int found_progenitor = FLAMEGPU->getVariable<int>("found_progenitor");
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
 
+    // Deterministic RNG for the state_step draws below (priming, fate, conversions, lifespan,
+    // wave). FLAMEGPU->random is nondeterministic for BORN/recruited cells (slot-seeded in
+    // thread-schedule order); det_tag-seeded streams (distinct salt per decision) are stable.
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int det_tag  = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    const unsigned int ds_step  = FLAMEGPU->getStepCounter();
+
     // ── NAIVE CD4: DC priming only, skip all other logic ──
     if (cell_state == TCD4_NAIVE) {
         const int dc_cdc2 = FLAMEGPU->getVariable<int>("neighbor_dc_mature_count");
@@ -201,11 +208,13 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
             const float k_th = FLAMEGPU->environment.getProperty<float>("PARAM_DC_PRIME_K_TH");
             const float k_treg = FLAMEGPU->environment.getProperty<float>("PARAM_DC_PRIME_K_TREG");
             const float p = 1.0f - expf(-(k_th + k_treg) * H * sec_per_slice_n);
-            if (FLAMEGPU->random.uniform<float>() < p) {
+            unsigned int rs_pr = det_rng_seed(static_cast<int>(det_tag), ds_step, 0x77001u, sim_seed);
+            if (det_rng_uniform(rs_pr) < p) {
                 auto* evts_n = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
                 // Fate decision: f_nTreg → Treg, else → TH
                 const float f_treg = FLAMEGPU->environment.getProperty<float>("PARAM_F_NTREG");
-                if (FLAMEGPU->random.uniform<float>() < f_treg) {
+                unsigned int rs_ft = det_rng_seed(static_cast<int>(det_tag), ds_step, 0x77002u, sim_seed);
+                if (det_rng_uniform(rs_ft) < f_treg) {
                     FLAMEGPU->setVariable<int>("cell_state", TCD4_TREG);
                     FLAMEGPU->setVariable<int>("divide_cd", FLAMEGPU->environment.getProperty<int>("PARAM_TREG_DIV_INTERVAL"));
                     FLAMEGPU->setVariable<float>("CTLA4", FLAMEGPU->environment.getProperty<float>("PARAM_CTLA4_TREG"));
@@ -224,7 +233,10 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
                 // Extend lifespan: naive→differentiated gets a fresh lifespan
                 const float life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
                 const float life_sd = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFESPAN_SD");
-                int new_life = static_cast<int>(life_mean + FLAMEGPU->random.normal<float>() * life_sd + 0.5f);
+                unsigned int rs_nl = det_rng_seed(static_cast<int>(det_tag), ds_step, 0x77003u, sim_seed);
+                const float u1n = det_rng_uniform(rs_nl), u2n = det_rng_uniform(rs_nl);
+                const float nrm = sqrtf(-2.0f * logf(u1n + 1e-7f)) * cosf(6.2831853f * u2n);  // Box-Muller
+                int new_life = static_cast<int>(life_mean + nrm * life_sd + 0.5f);
                 FLAMEGPU->setVariable<int>("life", new_life > 1 ? new_life : 1);
             }
         }
@@ -261,7 +273,8 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
         float alpha = K_TH_TREG * H_TGFb * H_ArgI_Treg;
         float p_th_treg = 1.0f - std::exp(-alpha);
         //convert TH to TREG
-        if (FLAMEGPU->random.uniform<float>() < p_th_treg) {
+        unsigned int rs_t2r = det_rng_seed(static_cast<int>(det_tag), ds_step, 0x77004u, sim_seed);
+        if (det_rng_uniform(rs_t2r) < p_th_treg) {
             FLAMEGPU->setVariable<int>("cell_state", TCD4_TREG);
             FLAMEGPU->setVariable<int>("divide_cd", FLAMEGPU->environment.getProperty<int>("PARAM_TREG_DIV_INTERVAL"));
             FLAMEGPU->setVariable<float>("CTLA4", CTLA4);
@@ -276,7 +289,8 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
             float k_tfh = FLAMEGPU->environment.getProperty<float>("PARAM_TFH_DIFF_K");
             float H_IL6 = IL6 / (IL6 + ec50_il6);
             float p_tfh = 1.0f - expf(-k_tfh * H_IL6);
-            if (FLAMEGPU->random.uniform<float>() < p_tfh) {
+            unsigned int rs_tfh = det_rng_seed(static_cast<int>(det_tag), ds_step, 0x77005u, sim_seed);
+            if (det_rng_uniform(rs_tfh) < p_tfh) {
                 FLAMEGPU->setVariable<int>("cell_state", TCD4_TFH);
                 return flamegpu::ALIVE;
             }
@@ -334,7 +348,8 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
 
     // === WAVE ASSIGNMENT ===
     if (divide_flag == 1 && divide_cd <= 0) {
-        const int w = static_cast<int>(FLAMEGPU->random.uniform<float>() * N_DIVIDE_WAVES);
+        unsigned int rs_w = det_rng_seed(static_cast<int>(det_tag), ds_step, 0x77006u, sim_seed);
+        const int w = static_cast<int>(det_rng_uniform(rs_w) * N_DIVIDE_WAVES);
         FLAMEGPU->setVariable<int>("divide_wave", w < N_DIVIDE_WAVES ? w : N_DIVIDE_WAVES - 1);
     }
 
@@ -373,18 +388,17 @@ FLAMEGPU_AGENT_FUNCTION(treg_write_to_occ_grid, flamegpu::MessageNone, flamegpu:
 }
 
 // Single-phase TReg division using occupancy grid.
-FLAMEGPU_AGENT_FUNCTION(treg_divide, flamegpu::MessageNone, flamegpu::MessageNone) {
+// TReg/TH/Tfh division — Step-5 deterministic reserve/confirm (mirrors fib/cancer). RESERVE picks
+// one capacity-OK Moore neighbor (det_rng) and atomicMin-reserves it by (source-voxel, det_tag);
+// CONFIRM commits the unique winner and births the daughter. Replaces the racy Fisher-Yates +
+// volume_try_claim "first arrival wins" path. Runs OUTSIDE the wave loop (wave gate removed).
+FLAMEGPU_AGENT_FUNCTION(treg_divide_reserve, flamegpu::MessageNone, flamegpu::MessageNone) {
+    FLAMEGPU->setVariable<int>("div_target_vidx", -1);  // reset reservation each step
     const int divide_flag  = FLAMEGPU->getVariable<int>("divide_flag");
     const int divide_cd    = FLAMEGPU->getVariable<int>("divide_cd");
     const int divide_limit = FLAMEGPU->getVariable<int>("divide_limit");
-
     if (FLAMEGPU->getVariable<int>("dead") == 1 ||
         divide_flag == 0 || divide_cd > 0 || divide_limit <= 0) {
-        return flamegpu::ALIVE;
-    }
-    // Wave gate: only execute in the assigned wave round
-    if (FLAMEGPU->getVariable<int>("divide_wave") !=
-        FLAMEGPU->environment.getProperty<int>("divide_current_wave")) {
         return flamegpu::ALIVE;
     }
 
@@ -395,85 +409,115 @@ FLAMEGPU_AGENT_FUNCTION(treg_divide, flamegpu::MessageNone, flamegpu::MessageNon
     const int size_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int size_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    // Volume-based occupancy
     float* vol_used = VOL_PTR(FLAMEGPU);
     const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    const int cell_state     = FLAMEGPU->getVariable<int>("cell_state");
+    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
     float daughter_vol = (cell_state == TCD4_TREG) ? FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG") :
                          (cell_state == TCD4_TFH)  ? FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TFH") :
                                                       FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
 
-    int cand_x[26], cand_y[26], cand_z[26];
+    // Collect Moore (26-direction) neighbors with enough volume capacity.
+    int cand_vidx[26];
     int n_cands = 0;
     for (int i = 0; i < 26; i++) {
         int dx, dy, dz;
         get_moore_direction(i, dx, dy, dz);
         const int nx = my_x + dx, ny = my_y + dy, nz = my_z + dz;
         if (!is_in_bounds(nx, ny, nz, size_x, size_y, size_z)) continue;
-        int nvidx = nz * (size_x * size_y) + ny * size_x + nx;
-        if (vol_used[nvidx] + daughter_vol <= capacity) {
-            cand_x[n_cands] = nx;
-            cand_y[n_cands] = ny;
-            cand_z[n_cands] = nz;
-            n_cands++;
-        }
+        const int nvidx = nz * (size_x * size_y) + ny * size_x + nx;
+        if (vol_used[nvidx] + daughter_vol <= capacity) cand_vidx[n_cands++] = nvidx;
     }
-
     if (n_cands == 0) return flamegpu::ALIVE;
 
-    const int div_interval   = (cell_state == TCD4_TREG)
+    const int my_vidx = my_z * (size_x * size_y) + my_y * size_x + my_x;
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    unsigned int drs = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0x7701Du, sim_seed);
+    int pick = static_cast<int>(det_rng_uniform(drs) * n_cands);
+    if (pick >= n_cands) pick = n_cands - 1;
+    const int tvidx = cand_vidx[pick];
+    unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+        FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+    reserve_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag));
+    FLAMEGPU->setVariable<int>("div_target_vidx", tvidx);
+    return flamegpu::ALIVE;
+}
+
+FLAMEGPU_AGENT_FUNCTION(treg_divide_confirm, flamegpu::MessageNone, flamegpu::MessageNone) {
+    const int tvidx = FLAMEGPU->getVariable<int>("div_target_vidx");
+    if (tvidx < 0) return flamegpu::ALIVE;
+
+    const int my_x  = FLAMEGPU->getVariable<int>("x");
+    const int my_y  = FLAMEGPU->getVariable<int>("y");
+    const int my_z  = FLAMEGPU->getVariable<int>("z");
+    const int size_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int size_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int cell_state  = FLAMEGPU->getVariable<int>("cell_state");
+    const int divide_limit = FLAMEGPU->getVariable<int>("divide_limit");
+
+    const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    const int my_vidx = my_z * (size_x * size_y) + my_y * size_x + my_x;
+    unsigned long long* owner = reinterpret_cast<unsigned long long*>(
+        FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
+    if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag))) {
+        return flamegpu::ALIVE;  // lost the deterministic contention → don't divide this step
+    }
+
+    float* vol_used = VOL_PTR(FLAMEGPU);
+    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    float daughter_vol = (cell_state == TCD4_TREG) ? FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG") :
+                         (cell_state == TCD4_TFH)  ? FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TFH") :
+                                                      FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
+    // Sole winner of this voxel → claim is race-free; guard against a pre-existing fill.
+    if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) return flamegpu::ALIVE;
+
+    const int nx = tvidx % size_x;
+    const int ny = (tvidx / size_x) % size_y;
+    const int nz = tvidx / (size_x * size_y);
+
+    const int div_interval = (cell_state == TCD4_TREG)
         ? FLAMEGPU->environment.getProperty<int>("PARAM_TREG_DIV_INTERVAL")
         : FLAMEGPU->environment.getProperty<int>("PARAM_TH_DIV_INTERVAL");
     const float treg_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
+    const float treg_life_sd   = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    unsigned int rs_dl = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0x7701Eu, sim_seed);
+    const float u1 = det_rng_uniform(rs_dl), u2 = det_rng_uniform(rs_dl);
+    const float nrm = sqrtf(-2.0f * logf(u1 + 1e-7f)) * cosf(6.2831853f * u2);  // Box-Muller
+    int daughter_life = static_cast<int>(treg_life_mean + nrm * treg_life_sd + 0.5f);
+    daughter_life = (daughter_life > 0) ? daughter_life : 1;
 
-    for (int i = 0; i < n_cands; i++) {
-        const int j = i + static_cast<int>(FLAMEGPU->random.uniform<float>() * (n_cands - i));
-        int tx = cand_x[i]; cand_x[i] = cand_x[j]; cand_x[j] = tx;
-        int ty = cand_y[i]; cand_y[i] = cand_y[j]; cand_y[j] = ty;
-        int tz = cand_z[i]; cand_z[i] = cand_z[j]; cand_z[j] = tz;
+    auto daughter = FLAMEGPU->agent_out;
+    daughter.setVariable<int>("x", nx);
+    daughter.setVariable<int>("y", ny);
+    daughter.setVariable<int>("z", nz);
+    daughter.setVariable<int>("cell_state", cell_state);
+    daughter.setVariable<int>("divide_flag", 1);
+    daughter.setVariable<int>("divide_cd", div_interval);
+    daughter.setVariable<int>("divide_limit", divide_limit - 1);
+    daughter.setVariable<int>("life", daughter_life);
+    daughter.setVariable<int>("persist_dir_x", 0);
+    daughter.setVariable<int>("persist_dir_y", 0);
+    daughter.setVariable<int>("persist_dir_z", 0);
+    // Child lineage tag: deterministic + distinct per birth, independent of FLAMEGPU birth order.
+    daughter.setVariable<unsigned int>("det_tag",
+        det_rng_hash(det_tag ^ (static_cast<unsigned int>(tvidx) * 0x9E3779B1U)
+                     ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 0x85EBCA77U)));
 
-        // Atomically claim volume for daughter
-        int tvidx = cand_z[i] * (size_x * size_y) + cand_y[i] * size_x + cand_x[i];
-        if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) continue;
+    // Update parent: division state only (life continues counting down)
+    FLAMEGPU->setVariable<int>("divide_flag", 1);
+    FLAMEGPU->setVariable<int>("divide_limit", divide_limit - 1);
+    FLAMEGPU->setVariable<int>("divide_cd", div_interval);
 
-        const float treg_life_sd = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
-        float tLifeD = treg_life_mean + FLAMEGPU->random.normal<float>() * treg_life_sd;
-        int daughter_life = static_cast<int>(tLifeD + 0.5f);
-        daughter_life = (daughter_life > 0) ? daughter_life : 1;
-
-        FLAMEGPU->agent_out.setVariable<int>("x", cand_x[i]);
-        FLAMEGPU->agent_out.setVariable<int>("y", cand_y[i]);
-        FLAMEGPU->agent_out.setVariable<int>("z", cand_z[i]);
-        FLAMEGPU->agent_out.setVariable<int>("cell_state", cell_state);
-        FLAMEGPU->agent_out.setVariable<int>("divide_flag", 1);
-        FLAMEGPU->agent_out.setVariable<int>("divide_cd", div_interval);
-        FLAMEGPU->agent_out.setVariable<int>("divide_limit", divide_limit - 1);
-        FLAMEGPU->agent_out.setVariable<int>("life", daughter_life > 0 ? daughter_life : 1);
-        FLAMEGPU->agent_out.setVariable<int>("persist_dir_x", 0);
-        FLAMEGPU->agent_out.setVariable<int>("persist_dir_y", 0);
-        FLAMEGPU->agent_out.setVariable<int>("persist_dir_z", 0);
-
-        // Update parent: division state only (life continues counting down)
-        FLAMEGPU->setVariable<int>("divide_flag", 1);
-        FLAMEGPU->setVariable<int>("divide_limit", divide_limit - 1);
-        FLAMEGPU->setVariable<int>("divide_cd", div_interval);
-
-        // Track TH/TReg/Tfh proliferation event
-        {
-            auto* evts_div = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
-            const int prolif_slot = (cell_state == TCD4_TH) ? EVT_PROLIF_TH : (cell_state == TCD4_TREG) ? EVT_PROLIF_TREG : EVT_PROLIF_TFH;
-            atomicAdd(&evts_div[prolif_slot], 1u);
-        }
-
-        break;
-    }
+    auto* evts_div = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+    const int prolif_slot = (cell_state == TCD4_TH) ? EVT_PROLIF_TH : (cell_state == TCD4_TREG) ? EVT_PROLIF_TREG : EVT_PROLIF_TFH;
+    atomicAdd(&evts_div[prolif_slot], 1u);
 
     // Clear parent intent
     FLAMEGPU->setVariable<int>("intent_action", INTENT_NONE);
     FLAMEGPU->setVariable<int>("target_x", -1);
     FLAMEGPU->setVariable<int>("target_y", -1);
     FLAMEGPU->setVariable<int>("target_z", -1);
-
     return flamegpu::ALIVE;
 }
 

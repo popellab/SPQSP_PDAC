@@ -777,6 +777,7 @@ void initializeTRegCellsFromQSP(
                 agent.setVariable<int>("divide_cd", div_cd);
                 agent.setVariable<int>("divide_limit", div_limit);
                 agent.setVariable<int>("life", life);
+                agent.setVariable<unsigned int>("det_tag", 0x30000000u + static_cast<unsigned int>(z*grid_x*grid_y + y*grid_x + x));
 
                 placed++;
             }
@@ -817,6 +818,7 @@ void initializeMDSCsFromQSP(
                 agent.setVariable<int>("target_x", -1);
                 agent.setVariable<int>("target_y", -1);
                 agent.setVariable<int>("target_z", -1);
+                agent.setVariable<unsigned int>("det_tag", 0x60000000u + static_cast<unsigned int>(z*grid_x*grid_y + y*grid_x + x));
 
                 placed++;
             }
@@ -852,6 +854,7 @@ void initializeMacsFromQSP(
                 agent.setVariable<int>("z", z);
                 agent.setVariable<int>("life", life);
                 agent.setVariable<int>("cell_state", MAC_M2);
+                agent.setVariable<unsigned int>("det_tag", 0x10000000u + static_cast<unsigned int>(z*grid_x*grid_y + y*grid_x + x));
 
                 placed++;
             }
@@ -1646,6 +1649,7 @@ void initializeStructuredDomain(
         auto positions = sample_positions(nontumor_voxels, N_mac, gx, gy, rng);
 
         flamegpu::AgentVector mac_pop(model.Agent(AGENT_MACROPHAGE));
+        unsigned int mac_dt = 0x10000000u;  // Step-5: unique per-cell lineage tag (type-offset)
         for (auto& pos : positions) {
             mac_pop.push_back();
             flamegpu::AgentVector::Agent agent = mac_pop.back();
@@ -1654,6 +1658,7 @@ void initializeStructuredDomain(
             agent.setVariable<int>("z", pos[2]);
             agent.setVariable<int>("cell_state", MAC_M2);
             agent.setVariable<int>("life", random_exp_life(mac_life, rng));
+            agent.setVariable<unsigned int>("det_tag", ++mac_dt);
         }
         simulation.setPopulationData(mac_pop);
         std::cout << "  Macrophages: " << positions.size() << " (target " << N_mac
@@ -1668,6 +1673,7 @@ void initializeStructuredDomain(
         auto positions = sample_positions(nontumor_voxels, N_cd8, gx, gy, rng);
 
         flamegpu::AgentVector tcell_pop(model.Agent(AGENT_TCELL));
+        unsigned int tcell_dt = 0x20000000u;  // Step-5: unique per-cell lineage tag (type-offset)
         for (auto& pos : positions) {
             tcell_pop.push_back();
             flamegpu::AgentVector::Agent agent = tcell_pop.back();
@@ -1677,6 +1683,7 @@ void initializeStructuredDomain(
             agent.setVariable<int>("cell_state", T_CELL_EFF);
             agent.setVariable<int>("life", random_normal_life(tcell_life, tcell_life_sd, rng));
             agent.setVariable<int>("divide_limit", tcell_div_limit);
+            agent.setVariable<unsigned int>("det_tag", ++tcell_dt);
         }
         simulation.setPopulationData(tcell_pop);
         std::cout << "  CD8 T cells: " << positions.size() << " (target " << N_cd8
@@ -1691,6 +1698,7 @@ void initializeStructuredDomain(
         auto positions = sample_positions(nontumor_voxels, N_cd4, gx, gy, rng);
 
         flamegpu::AgentVector treg_pop(model.Agent(AGENT_TREG));
+        unsigned int th_dt = 0x30000000u;  // Step-5: unique per-cell lineage tag (type-offset)
         for (auto& pos : positions) {
             treg_pop.push_back();
             flamegpu::AgentVector::Agent agent = treg_pop.back();
@@ -1702,6 +1710,7 @@ void initializeStructuredDomain(
             agent.setVariable<int>("divide_flag", 0);
             agent.setVariable<int>("divide_cd", treg_div_interval);
             agent.setVariable<int>("divide_limit", treg_div_limit);
+            agent.setVariable<unsigned int>("det_tag", ++th_dt);
         }
         simulation.setPopulationData(treg_pop);
         std::cout << "  CD4 TH cells: " << positions.size() << " (target " << N_cd4
@@ -1716,6 +1725,7 @@ void initializeStructuredDomain(
         auto positions = sample_positions(nontumor_voxels, N_dc, gx, gy, rng);
 
         flamegpu::AgentVector dc_pop(model.Agent(AGENT_DC));
+        unsigned int dc_dt = 0x40000000u;  // Step-5: unique per-cell lineage tag (type-offset)
         for (auto& pos : positions) {
             dc_pop.push_back();
             flamegpu::AgentVector::Agent agent = dc_pop.back();
@@ -1725,6 +1735,7 @@ void initializeStructuredDomain(
             agent.setVariable<int>("cell_state", DC_IMMATURE);
             agent.setVariable<int>("dc_subtype", DC_CDC1);
             agent.setVariable<int>("life", random_normal_life(dc_life_imm, dc_life_imm_sd, rng));
+            agent.setVariable<unsigned int>("det_tag", ++dc_dt);
         }
         simulation.setPopulationData(dc_pop);
         std::cout << "  DCs: " << positions.size() << " (target " << N_dc
@@ -1739,6 +1750,7 @@ void initializeStructuredDomain(
         auto positions = sample_positions(nontumor_voxels, N_bcell, gx, gy, rng);
 
         flamegpu::AgentVector bcell_pop(model.Agent(AGENT_BCELL));
+        unsigned int bcell_dt = 0x50000000u;  // Step-5: unique per-cell lineage tag (type-offset)
         for (auto& pos : positions) {
             bcell_pop.push_back();
             flamegpu::AgentVector::Agent agent = bcell_pop.back();
@@ -1747,6 +1759,7 @@ void initializeStructuredDomain(
             agent.setVariable<int>("z", pos[2]);
             agent.setVariable<int>("cell_state", BCELL_NAIVE);
             agent.setVariable<int>("life", random_normal_life(bcell_life, bcell_life_sd, rng));
+            agent.setVariable<unsigned int>("det_tag", ++bcell_dt);
         }
         simulation.setPopulationData(bcell_pop);
         std::cout << "  B cells: " << positions.size() << " (target " << N_bcell

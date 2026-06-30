@@ -296,6 +296,13 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
     }
     FLAMEGPU->setVariable<int>("life", life);
 
+    // Deterministic RNG for the polarization draws below (FLAMEGPU->random is nondeterministic
+    // for recruited/born macs — slot-seeded in thread-schedule order). det_tag-seeded streams
+    // (distinct salt per decision) are stable. A mac is in exactly one state at step start, so
+    // only one branch draws — but distinct salts keep them independent regardless.
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int det_tag  = FLAMEGPU->getVariable<unsigned int>("det_tag");
+
     // M1/M2 polarization dynamics — read chemicals directly from PDE
     const int nx_ss = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int ny_ss = FLAMEGPU->environment.getProperty<int>("grid_size_y");
@@ -329,7 +336,8 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
 
         double p_M2_polar = 1 - std::exp(-alpha);
 
-        if (FLAMEGPU->random.uniform<float>() < p_M2_polar) {
+        unsigned int rs = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0xAC1u, sim_seed);
+        if (det_rng_uniform(rs) < p_M2_polar) {
             FLAMEGPU->setVariable<int>("cell_state", MAC_M2);
         }
     }
@@ -347,7 +355,8 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
 
         double p_M1_polar = 1 - std::exp(-alpha);
 
-        if (FLAMEGPU->random.uniform<float>() < p_M1_polar) {
+        unsigned int rs = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0xAC2u, sim_seed);
+        if (det_rng_uniform(rs) < p_M1_polar) {
             FLAMEGPU->setVariable<int>("cell_state", MAC_M1);
         }
     }

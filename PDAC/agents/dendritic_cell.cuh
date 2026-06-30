@@ -143,6 +143,11 @@ FLAMEGPU_AGENT_FUNCTION(dc_state_step, flamegpu::MessageNone, flamegpu::MessageN
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
     const int subtype = FLAMEGPU->getVariable<int>("dc_subtype");
 
+    // Deterministic lineage-seeded RNG (FLAMEGPU->random is nondeterministic for born/recruited
+    // cells). Distinct salt per decision. Mirrors fib_state_step / cancer_cell_state_step.
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int det_tag  = FLAMEGPU->getVariable<unsigned int>("det_tag");
+
     if (cs == DC_IMMATURE) {
         // Maturation: probabilistic per-step, driven by local antigen + cytokine milieu
         // ODE: k_APC_mat * cDC * [1-(1-H_DAMP)*(1-H_IL12)] * (1-H_IL10) * (1-H_TGFb_APC)
@@ -197,14 +202,16 @@ FLAMEGPU_AGENT_FUNCTION(dc_state_step, flamegpu::MessageNone, flamegpu::MessageN
         // Maturation probability: rate × signal × suppression
         const float p_mature = k_mat * H_signal * (1.0f - H_IL10) * (1.0f - H_TGFb);
 
-        if (p_mature > 0.0f && FLAMEGPU->random.uniform<float>() < p_mature) {
+        unsigned int rmat = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0xDC1u, sim_seed);
+        if (p_mature > 0.0f && det_rng_uniform(rmat) < p_mature) {
             FLAMEGPU->setVariable<int>("cell_state", DC_MATURE);
 
             // Reset life to mature lifespan
             const float mature_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_DC_LIFE_MATURE_MEAN");
             const float mature_life_sd = FLAMEGPU->environment.getProperty<float>("PARAM_DC_LIFE_MATURE_SD");
-            float u1 = FLAMEGPU->random.uniform<float>() + 1e-10f;
-            float u2 = FLAMEGPU->random.uniform<float>();
+            unsigned int rlife = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0xDC2u, sim_seed);
+            float u1 = det_rng_uniform(rlife) + 1e-10f;
+            float u2 = det_rng_uniform(rlife);
             float z = sqrtf(-2.0f * logf(u1)) * cosf(2.0f * 3.14159265f * u2);
             int mature_life = __float2int_rn(mature_life_mean + z * mature_life_sd);
             if (mature_life < 1) mature_life = 1;

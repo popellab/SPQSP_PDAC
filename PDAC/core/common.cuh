@@ -700,18 +700,20 @@ __device__ __forceinline__ bool won_voxel(const unsigned long long* owner, int t
 // position (which the priority-claim makes deterministic). Murmur3 finalizer mix.
 // Caveat: two cells sharing a voxel get the same stream (resolve via the claim /
 // a per-cell discriminator); risk of spatial artifacts if the hash mixes poorly.
-__device__ __forceinline__ unsigned int det_rng_hash(unsigned int h) {
+__host__ __device__ __forceinline__ unsigned int det_rng_hash(unsigned int h) {
     h ^= h >> 16; h *= 0x85ebca6bU; h ^= h >> 13; h *= 0xc2b2ae35U; h ^= h >> 16;
     return h;
 }
-__device__ __forceinline__ unsigned int det_rng_seed(int voxel_idx, unsigned int step,
+// __host__ __device__ so recruitment (host) can mint deterministic lineage tags for recruited
+// cells keyed on (voxel, step, type) — independent of the nondeterministic request-buffer order.
+__host__ __device__ __forceinline__ unsigned int det_rng_seed(int voxel_idx, unsigned int step,
                                                       unsigned int salt, unsigned int sim_seed) {
     return det_rng_hash(static_cast<unsigned int>(voxel_idx) * 0x9E3779B1U
                         ^ (step + 0x9E3779B9U) * 0x85EBCA77U
                         ^ (salt + 1U)          * 0xC2B2AE3DU
                         ^ sim_seed);
 }
-__device__ __forceinline__ float det_rng_uniform(unsigned int& s) {
+__host__ __device__ __forceinline__ float det_rng_uniform(unsigned int& s) {
     s = det_rng_hash(s);
     return (s >> 8) * (1.0f / 16777216.0f);  // 24-bit → [0,1)
 }
@@ -1030,6 +1032,16 @@ __device__ __forceinline__ void run_move_batch(
     int& x, int& y, int& z, int& pdx, int& pdy, int& pdz)
 {
     const int GXY = mp.grid_x * mp.grid_y;
+    // Deterministic direction RNG (Step-5): det_tag-seeded instead of FLAMEGPU->random, which is
+    // nondeterministic for born/recruited cells. Salt = moves_remaining so each batched round of
+    // the same step gets a distinct stream (the caller decrements moves_remaining AFTER this call).
+    // NOTE: the volume_try_claim occupancy race inside move_cell is still order-dependent — that
+    // (the immune-movement claim) is a separate, deferred fix; this only de-randomizes direction.
+    unsigned int rs = det_rng_seed(
+        static_cast<int>(FLAMEGPU->template getVariable<unsigned int>("det_tag")),
+        FLAMEGPU->getStepCounter(),
+        static_cast<unsigned int>(FLAMEGPU->template getVariable<int>("moves_remaining")),
+        FLAMEGPU->environment.template getProperty<unsigned int>("sim_seed"));
     for (int k = 0; k < n_moves; k++) {
         const int vidx = z * GXY + y * mp.grid_x + x;
         float g0 = 0.0f, g1 = 0.0f, g2 = 0.0f;
@@ -1038,10 +1050,10 @@ __device__ __forceinline__ void run_move_batch(
         if (bias > 0.0f) apply_contact_guidance(g0, g1, g2, ox, oy, oz, w_cg);
         else             apply_contact_guidance_persist(g0, g1, g2, mp.bias_strength, ox, oy, oz, w_cg, pdx, pdy, pdz);
         mp.grad_x = g0; mp.grad_y = g1; mp.grad_z = g2;
-        MoveResult r = move_cell(mp, x, y, z, pdx, pdy, pdz,
-            FLAMEGPU->random.template uniform<float>(),
-            FLAMEGPU->random.template uniform<float>(),
-            FLAMEGPU->random.template uniform<float>());
+        const float r_move = det_rng_uniform(rs);
+        const float r_persist = det_rng_uniform(rs);
+        const float r_dir = det_rng_uniform(rs);
+        MoveResult r = move_cell(mp, x, y, z, pdx, pdy, pdz, r_move, r_persist, r_dir);
         if (r.moved) {
             x = r.new_x; y = r.new_y; z = r.new_z;
             pdx = r.persist_dx; pdy = r.persist_dy; pdz = r.persist_dz;

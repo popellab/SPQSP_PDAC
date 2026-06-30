@@ -212,6 +212,11 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     tcell.newVariable<int>("target_y", -1);
     tcell.newVariable<int>("target_z", -1);
 
+    // Step-5 determinism: lineage tag (seeds det_rng + breaks co-located priority ties) +
+    // reserved division target voxel (reserve→confirm). det_tag seeded uniquely at init/recruit/birth.
+    tcell.newVariable<unsigned int>("det_tag", 1u);
+    tcell.newVariable<int>("div_target_vidx", -1);
+
     // Define agent functions - movement functions always needed
     tcell.newFunction("broadcast_location", tcell_broadcast_location)
         .setMessageOutput(MSG_CELL_LOCATION);
@@ -232,8 +237,9 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
         tcell.newFunction("state_step", tcell_state_step)
             .setAllowAgentDeath(true);
 
+        tcell.newFunction("divide_reserve", tcell_divide_reserve);  // Step-5 deterministic division
         {
-            flamegpu::AgentFunctionDescription fn = tcell.newFunction("divide", tcell_divide);
+            flamegpu::AgentFunctionDescription fn = tcell.newFunction("divide_confirm", tcell_divide_confirm);
             fn.setAgentOutput(tcell);
         }
     }
@@ -297,6 +303,10 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     treg.newVariable<int>("target_y", -1);
     treg.newVariable<int>("target_z", -1);
 
+    // Step-5 determinism: lineage tag + reserved division target voxel.
+    treg.newVariable<unsigned int>("det_tag", 1u);
+    treg.newVariable<int>("div_target_vidx", -1);
+
     // Define agent functions - movement functions always needed
     treg.newFunction("broadcast_location", treg_broadcast_location)
         .setMessageOutput(MSG_CELL_LOCATION);
@@ -318,7 +328,8 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
             .setAllowAgentDeath(true);
 
         {
-            flamegpu::AgentFunctionDescription fn = treg.newFunction("divide", treg_divide);
+            treg.newFunction("divide_reserve", treg_divide_reserve);  // Step-5 deterministic division
+            flamegpu::AgentFunctionDescription fn = treg.newFunction("divide_confirm", treg_divide_confirm);
             fn.setAgentOutput(treg);
         }
     }
@@ -364,6 +375,9 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state) {
     mdsc.newVariable<int>("target_x", -1);
     mdsc.newVariable<int>("target_y", -1);
     mdsc.newVariable<int>("target_z", -1);
+
+    // Step-5 determinism: lineage tag (seeds det_rng / movement direction). MDSC does not divide.
+    mdsc.newVariable<unsigned int>("det_tag", 1u);
 
     // Define agent functions - movement functions always needed
     mdsc.newFunction("broadcast_location", mdsc_broadcast_location)
@@ -422,6 +436,9 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
     // Lifecycle
     mac.newVariable<int>("life", 0);
     mac.newVariable<int>("dead", 0);
+
+    // Step-5 determinism: lineage tag (seeds det_rng / movement direction). Macrophage does not divide.
+    mac.newVariable<unsigned int>("det_tag", 1u);
 
     // Define agent functions
     mac.newFunction("broadcast_location", mac_broadcast_location)
@@ -610,6 +627,10 @@ void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     bcell.newVariable<int>("life", 0);
     bcell.newVariable<int>("dead", 0);
 
+    // Step-5 determinism: lineage tag + reserved division target voxel.
+    bcell.newVariable<unsigned int>("det_tag", 1u);
+    bcell.newVariable<int>("div_target_vidx", -1);
+
     // Agent functions
     bcell.newFunction("broadcast_location", bcell_broadcast_location)
         .setMessageOutput(MSG_CELL_LOCATION);
@@ -627,8 +648,9 @@ void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
         bcell.newFunction("state_step", bcell_state_step)
             .setAllowAgentDeath(true);
 
+        bcell.newFunction("divide_reserve", bcell_divide_reserve);  // Step-5 deterministic division
         {
-            flamegpu::AgentFunctionDescription fn = bcell.newFunction("divide", bcell_divide);
+            flamegpu::AgentFunctionDescription fn = bcell.newFunction("divide_confirm", bcell_divide_confirm);
             fn.setAgentOutput(bcell);
         }
     }
@@ -665,6 +687,9 @@ void defineDCAgent(flamegpu::ModelDescription& model, bool include_state) {
     // Lifecycle
     dc.newVariable<int>("life", 0);
     dc.newVariable<int>("dead", 0);
+
+    // Step-5 determinism: lineage tag (seeds det_rng / movement direction). DC does not divide.
+    dc.newVariable<unsigned int>("det_tag", 1u);
 
     // Agent functions
     dc.newFunction("broadcast_location", dc_broadcast_location)

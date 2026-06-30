@@ -1505,8 +1505,19 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
     int mdsc_recruited = 0, mac_recruited = 0, mac_m1_recruited = 0, mac_m2_recruited = 0;
     int bcell_recruited = 0, dc_recruited = 0;
 
+    // Step-5 determinism: mint each recruit's lineage tag from its IDENTITY (voxel, step, type),
+    // NOT its buffer index i — the compact request buffer order is nondeterministic (atomic
+    // compaction), but (voxel,step,type) is deterministic and unique (≤1 recruit/voxel/type/step).
+    const int rec_gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int rec_gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const unsigned int rec_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int rec_step = FLAMEGPU->getStepCounter();
+
     for (int i = 0; i < count; i++) {
         const auto& r = requests[i];
+        unsigned int rec_dt = det_rng_seed(r.z * (rec_gx * rec_gy) + r.y * rec_gx + r.x,
+                                           rec_step, 0x5EC0u + static_cast<unsigned int>(r.cell_type), rec_seed);
+        if (rec_dt == 0u) rec_dt = 1u;
 
         if (r.cell_type == CELL_TYPE_T) {
             auto a = tcell_api.newAgent();
@@ -1523,6 +1534,7 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("persist_dir_z", 0);
             a.setVariable<int>("hypoxia_exposure", 0);
             a.setVariable<float>("hypoxia_kill_factor", 1.0f);
+            a.setVariable<unsigned int>("det_tag", rec_dt);
             teff_recruited++;
         }
         else if (r.cell_type == CELL_TYPE_TREG) {
@@ -1539,6 +1551,7 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("persist_dir_x", 0);
             a.setVariable<int>("persist_dir_y", 0);
             a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<unsigned int>("det_tag", rec_dt);
             if (r.cell_state == TCD4_TREG) treg_recruited++;
             else th_recruited++;
         }
@@ -1551,6 +1564,7 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("persist_dir_x", 0);
             a.setVariable<int>("persist_dir_y", 0);
             a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<unsigned int>("det_tag", rec_dt);
             mdsc_recruited++;
         }
         else if (r.cell_type == CELL_TYPE_MAC) {
@@ -1563,6 +1577,7 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("persist_dir_x", 0);
             a.setVariable<int>("persist_dir_y", 0);
             a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<unsigned int>("det_tag", rec_dt);
             mac_recruited++;
             if (r.cell_state == MAC_M1) mac_m1_recruited++;
             else                        mac_m2_recruited++;
@@ -1589,6 +1604,7 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("neighbor_th_count", 0);
             a.setVariable<int>("neighbor_bcell_count", 0);
             a.setVariable<int>("neighbor_fib_count", 0);
+            a.setVariable<unsigned int>("det_tag", rec_dt);
             bcell_recruited++;
         }
         else if (r.cell_type == CELL_TYPE_DC) {
@@ -1606,6 +1622,7 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("persist_dir_z", 0);
             a.setVariable<int>("neighbor_tcell_count", 0);
             a.setVariable<int>("neighbor_bcell_count", 0);
+            a.setVariable<unsigned int>("det_tag", rec_dt);
             dc_recruited++;
         }
     }

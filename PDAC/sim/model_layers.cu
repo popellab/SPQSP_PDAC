@@ -401,24 +401,45 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         flamegpu::LayerDescription layer = model.newLayer("divide_cancer_confirm");
         layer.addAgentFunction(AGENT_CANCER_CELL, "divide_confirm");
     }
-    for (int w = 0; w < N_DIVIDE_WAVES; w++) {
-        const std::string ws = std::to_string(w);
-        {
-            flamegpu::LayerDescription layer = model.newLayer("divide_tcell_w" + ws);
-            layer.addAgentFunction(AGENT_TCELL, "divide");
-        }
-        {
-            flamegpu::LayerDescription layer = model.newLayer("divide_treg_w" + ws);
-            layer.addAgentFunction(AGENT_TREG, "divide");
-        }
-        {
-            flamegpu::LayerDescription layer = model.newLayer("divide_bcell_w" + ws);
-            layer.addAgentFunction(AGENT_BCELL, "divide");
-        }
-        {
-            flamegpu::LayerDescription layer = model.newLayer("increment_divide_wave_" + ws);
-            layer.addHostFunction(increment_divide_wave);
-        }
+    // Immune division — Step-5 deterministic reserve/confirm (replaces the wave-interleaved
+    // racy divide). Each type gets its own reset_owner → reserve → confirm so priorities never
+    // collide across types (det_tag spaces are per-type). Pulled out of the wave loop; the
+    // divide_wave assignment in state_step is now vestigial.
+    {
+        flamegpu::LayerDescription layer = model.newLayer("reset_voxel_owner_tcell_divide");
+        layer.addHostFunction(reset_voxel_owner);
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("divide_tcell_reserve");
+        layer.addAgentFunction(AGENT_TCELL, "divide_reserve");
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("divide_tcell_confirm");
+        layer.addAgentFunction(AGENT_TCELL, "divide_confirm");
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("reset_voxel_owner_treg_divide");
+        layer.addHostFunction(reset_voxel_owner);
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("divide_treg_reserve");
+        layer.addAgentFunction(AGENT_TREG, "divide_reserve");
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("divide_treg_confirm");
+        layer.addAgentFunction(AGENT_TREG, "divide_confirm");
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("reset_voxel_owner_bcell_divide");
+        layer.addHostFunction(reset_voxel_owner);
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("divide_bcell_reserve");
+        layer.addAgentFunction(AGENT_BCELL, "divide_reserve");
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("divide_bcell_confirm");
+        layer.addAgentFunction(AGENT_BCELL, "divide_confirm");
     }
     {
         flamegpu::LayerDescription layer = model.newLayer("divide_vascular");
