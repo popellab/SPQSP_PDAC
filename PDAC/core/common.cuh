@@ -222,6 +222,11 @@ struct RecruitRequest {
     float TGFB_release_remain;  // TReg/TH only
     float CTLA4;                // TReg only
     int subtype;            // DC subtype: DC_CDC1=0, DC_CDC2=1 (DC only)
+    int seq;                // Globally-unique deterministic request index (systematic-resampling
+                            // path): seeds the det_tag hash. Needed because systematic resampling
+                            // can place >1 same-type cell in one voxel, breaking the old
+                            // (voxel,step,type) det_tag uniqueness. Legacy Bernoulli kernel path
+                            // leaves this unset (that path is not wired into the layer list).
 };
 
 // Action types for intent messages

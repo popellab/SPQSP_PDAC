@@ -67,6 +67,27 @@ static unsigned long long* d_fib_density_field = nullptr;  // fixed-point ECM de
 // Replaces the old per-type occ_grid MacroProperty + flat arrays (d_t_occ, d_mac_occ, d_mdsc_occ).
 static float* d_volume_used = nullptr;
 
+// Systematic-resampling recruitment: per-voxel expected-recruitment field, N_QPLANE planes
+// (8 stream q-fields + 1 mac M1/M2 polarization plane), plane-major. Filled each step by
+// compute_qfields_kernel, read host-side by recruit_systematic. Allocated in
+// initialize_pde_solver alongside d_vvas_field.
+static float* d_qfields = nullptr;
+
+// ── Systematic-resampling recruitment: q-field layout ──
+// One expected-count plane per recruitment stream + one M1/M2 polarization plane, packed
+// plane-major into a single [N_QPLANE*nvox] buffer for a single D2H.
+//   q_type[v] = p_entry[v] · gate_type[v]   (expected recruits of `type` at voxel v)
+// Replaces the two independent Bernoulli rolls (mark_entry_points ⊗ recruit_all_kernel): their
+// product is exactly this expected field, so the mean rate is unchanged and the per-voxel
+// Bernoulli realization noise (the ICC-killing term) is removed. See
+// project-recruitment-systematic-resampling.
+enum QStream : int {
+    QS_TEFF = 0, QS_TREG, QS_TH, QS_MDSC, QS_MAC, QS_BCELL, QS_DC1, QS_DC2,
+    N_QSTREAM        // = 8
+};
+constexpr int QPLANE_PM2 = N_QSTREAM;          // plane 8: mac M1/M2 spawn polarization P(M2)
+constexpr int N_QPLANE   = N_QSTREAM + 1;      // = 9
+
 // Deterministic voxel-claim ownership buffer (Step-5 determinism). One uint64 per voxel,
 // reset to ULLONG_MAX before each reserve pass; contenders atomicMin their packed
 // (source-voxel, agent-id) priority; the confirm pass commits the unique winner.
@@ -446,6 +467,11 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     CUDA_CHECK(cudaMalloc(&d_vvas_field, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_vvas_field, 0, total_voxels * sizeof(float)));
 
+    // Systematic-resampling q-fields: N_QPLANE planes (8 stream expected-recruitment fields +
+    // 1 mac M1/M2 polarization plane), plane-major. Recomputed each step by compute_qfields_kernel.
+    CUDA_CHECK(cudaMalloc(&d_qfields, static_cast<size_t>(N_QPLANE) * total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_qfields, 0, static_cast<size_t>(N_QPLANE) * total_voxels * sizeof(float)));
+
     // Allocate vascular tip_id grid for efficient neighbor check in vascular_state_step
     CUDA_CHECK(cudaMalloc(&d_vas_tip_id_grid, total_voxels * sizeof(unsigned int)));
     CUDA_CHECK(cudaMemset(d_vas_tip_id_grid, 0, total_voxels * sizeof(unsigned int)));
@@ -623,6 +649,10 @@ void cleanup_pde_solver() {
     if (d_vvas_field) {
         cudaFree(d_vvas_field);
         d_vvas_field = nullptr;
+    }
+    if (d_qfields) {
+        cudaFree(d_qfields);
+        d_qfields = nullptr;
     }
     if (d_ecm_density) {
         cudaFree(d_ecm_density);
@@ -899,6 +929,97 @@ __device__ constexpr float TEFF_CXCL9_GATE_FLOOR = 0.1f;
 // myeloid axis with the lymphoid pattern. CCL2 is cancer/CAF-sourced (present early → no
 // bootstrap deadlock); floor=0.1 = universal floor policy. floor ∈ (0,1]; rate ∝ floor+(1-floor)·H_ccl2.
 __device__ constexpr float MYELOID_CCL2_GATE_FLOOR = 0.1f;
+
+// One thread per voxel. Writes the expected-recruitment field for every stream (no roll).
+// Mirrors the per-type gate math in recruit_all_kernel exactly, minus the rng_uniform() rolls.
+__global__ void compute_qfields_kernel(
+    float* __restrict__ qf,                    // [N_QPLANE * nvox], plane-major
+    const float* __restrict__ vvas,
+    float entry_scale,
+    RecruitKernelParams p)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int z = blockIdx.z * blockDim.z + threadIdx.z;
+    if (x >= p.nx || y >= p.ny || z >= p.nz) return;
+
+    const int nvox = p.nx * p.ny * p.nz;
+    const int idx  = z * (p.nx * p.ny) + y * p.nx + x;
+
+    const float vv = vvas[idx];
+    const float p_entry = fminf(vv * entry_scale, 1.0f);
+    if (p_entry <= 0.0f) {
+        for (int s = 0; s < N_QPLANE; ++s) qf[s * nvox + idx] = 0.0f;
+        return;
+    }
+
+    // ── Effector (Teff/TH) gates: CXCL9/10 positive (CXCR3) × CXCL12 exclusion ──
+    float cxcl12_local = (p.cxcl12_conc && p.cxcl12_ec50 > 0.0f) ? p.cxcl12_conc[idx] : 0.0f;
+    float cxcl12_inhib = (p.cxcl12_ec50 > 0.0f) ? cxcl12_local / (cxcl12_local + p.cxcl12_ec50) : 0.0f;
+    float cxcl9_local  = (p.cxcl9_conc && p.cxcl9_ec50 > 0.0f) ? p.cxcl9_conc[idx] : 0.0f;
+    float cxcl9_gate   = (p.cxcl9_ec50 > 0.0f)
+        ? TEFF_CXCL9_GATE_FLOOR + (1.0f - TEFF_CXCL9_GATE_FLOOR) * (cxcl9_local / (cxcl9_local + p.cxcl9_ec50))
+        : 1.0f;
+    const float eff_gate = cxcl9_gate * (1.0f - cxcl12_inhib);
+
+    // Each per-type factor is a Bernoulli probability in the old two-roll path, so it is capped
+    // at 1 there (a coin flip can't exceed certainty). Clamp the gate to ≤1 before multiplying by
+    // p_entry so Σq equals the OLD expected recruit count exactly (mean rate unchanged). Matters
+    // for MDSC, whose (1+H_IL6) boost can exceed 1.
+    qf[QS_TEFF * nvox + idx] = p_entry * fminf(p.p_teff * eff_gate, 1.0f);
+    qf[QS_TH   * nvox + idx] = p_entry * fminf(p.p_th   * eff_gate, 1.0f);
+
+    // ── Treg: CCL5/CCR5 boost ──
+    float ccl5_local = (p.ccl5_conc && p.ccl5_ec50 > 0.0f) ? p.ccl5_conc[idx] : 0.0f;
+    float ccl5_boost = (p.ccl5_ec50 > 0.0f) ? ccl5_local / (ccl5_local + p.ccl5_ec50) : 0.0f;
+    qf[QS_TREG * nvox + idx] = p_entry * fminf(p.p_treg * (1.0f + p.ccl5_ratio * ccl5_boost), 1.0f);
+
+    // ── MDSC: CCL2/CCR2 soft gate × IL-6 boost ──
+    float p_mdsc_eff = p.p_mdsc;
+    if (p.ccl2_conc) {
+        float c = p.ccl2_conc[idx];
+        float H = c / (c + p.ccl2_ec50_mdsc + 1e-30f);
+        p_mdsc_eff *= MYELOID_CCL2_GATE_FLOOR + (1.0f - MYELOID_CCL2_GATE_FLOOR) * H;
+    }
+    if (p.il6_conc) {
+        float il6 = p.il6_conc[idx];
+        float H = il6 / (il6 + p.il6_ec50_mdsc + 1e-30f);
+        p_mdsc_eff *= (1.0f + H);
+    }
+    qf[QS_MDSC * nvox + idx] = p_entry * fminf(p_mdsc_eff, 1.0f);
+
+    // ── MAC: CCL2/CCR2 soft gate ──
+    float p_mac_eff = p.p_mac;
+    if (p.ccl2_conc) {
+        float c = p.ccl2_conc[idx];
+        float H = c / (c + p.ccl2_ec50_mac + 1e-30f);
+        p_mac_eff *= MYELOID_CCL2_GATE_FLOOR + (1.0f - MYELOID_CCL2_GATE_FLOOR) * H;
+    }
+    qf[QS_MAC * nvox + idx] = p_entry * fminf(p_mac_eff, 1.0f);
+
+    // ── MAC spawn polarization P(M2) — mirrors recruit_all_kernel / state-step formula ──
+    //   H_M1 = H(IFN-γ)+H(IL-12);  H_M2 = H(TGF-β)+H(IL-10)+H(IL-6);  default M2 if no signal.
+    float h_m1 = 0.0f, h_m2 = 0.0f;
+    if (p.mac_ifng_conc) { float c = p.mac_ifng_conc[idx]; h_m1 += c / (c + p.mac_ifng_ec50 + 1e-30f); }
+    if (p.mac_il12_conc) { float c = p.mac_il12_conc[idx]; h_m1 += c / (c + p.mac_il12_ec50 + 1e-30f); }
+    if (p.mac_tgfb_conc) { float c = p.mac_tgfb_conc[idx]; h_m2 += c / (c + p.mac_tgfb_ec50 + 1e-30f); }
+    if (p.mac_il10_conc) { float c = p.mac_il10_conc[idx]; h_m2 += c / (c + p.mac_il10_ec50 + 1e-30f); }
+    if (p.il6_conc)      { float c = p.il6_conc[idx];      h_m2 += c / (c + p.mac_il6_ec50  + 1e-30f); }
+    qf[QPLANE_PM2 * nvox + idx] = (h_m1 + h_m2 < 1e-9f) ? 1.0f : h_m2 / (h_m1 + h_m2);
+
+    // ── B cell: CXCL13/CXCR5 soft gate (TLS localization, floor for cold-start seeding) ──
+    float bgate = BCELL_CXCL13_GATE_FLOOR;
+    if (p.cxcl13_conc) {
+        float c = p.cxcl13_conc[idx];
+        float H = c / (c + p.cxcl13_ec50_bcell + 1e-30f);
+        bgate = BCELL_CXCL13_GATE_FLOOR + (1.0f - BCELL_CXCL13_GATE_FLOOR) * H;
+    }
+    qf[QS_BCELL * nvox + idx] = p_entry * fminf(p.p_bcell * bgate, 1.0f);
+
+    // ── DC: homeostatic per-subtype (no cytokine gate) ──
+    qf[QS_DC1 * nvox + idx] = p_entry * fminf(p.p_dc_cdc1, 1.0f);
+    qf[QS_DC2 * nvox + idx] = p_entry * fminf(p.p_dc_cdc2, 1.0f);
+}
 
 // ============================================================================
 // GPU Recruitment Kernel: One thread per voxel. Checks recruitment source flags,
@@ -1282,21 +1403,15 @@ __global__ void recruit_all_kernel(
 }
 
 // ============================================================================
-// Host Function: Launch GPU recruitment kernel
+// Build the recruitment parameter struct from the FLAMEGPU environment.
+// Shared by the legacy Bernoulli recruit_gpu path and the systematic-resampling
+// path (compute_qfields_kernel + recruit_systematic). Returns the QSP central
+// counts (or 0 in parametric mode) via the out-params for stats/logging.
 // ============================================================================
-FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
-    nvtxRangePush("Recruit GPU");
-    if (!g_pde_solver) { nvtxRangePop(); return; }
-
-    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
-    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
-    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-
-    // Reset atomic counter and diagnostics
-    CUDA_CHECK(cudaMemset(d_recruit_count, 0, sizeof(int)));
-    CUDA_CHECK(cudaMemset(d_recruit_diag, 0, sizeof(RecruitDiag)));
-
-    // Build parameter struct
+static RecruitKernelParams build_recruit_kernel_params(
+    flamegpu::HostAPI* FLAMEGPU, int nx, int ny, int nz,
+    float& qsp_teff, float& qsp_treg, float& qsp_th)
+{
     RecruitKernelParams p;
     p.nx = nx; p.ny = ny; p.nz = nz;
 
@@ -1304,12 +1419,9 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     // to the QSP central compartment. recruitment_mode selects the source:
     //   0 = QSP-coupled : p = qsp_*_central × PARAM_*_RECRUIT_K (rate constant)
     //   1 = PARAMETRIC  : p = PARAM_*_RECRUIT_P (direct XML probability, no QSP read)
-    // MDSC/MAC/B/DC recruitment below is already XML/PDE-driven and identical in
-    // both modes. See recruitment_mode declaration in model_definition.cu.
+    // MDSC/MAC/B/DC recruitment below is already XML/PDE-driven and identical in both modes.
     const int recruitment_mode = FLAMEGPU->environment.getProperty<int>("recruitment_mode");
-    // Declared at function scope so the diagnostics block below (g_recruit_stats.qsp_*)
-    // can read them; left at 0 in parametric mode (no QSP read).
-    float qsp_teff = 0.0f, qsp_treg = 0.0f, qsp_th = 0.0f;
+    qsp_teff = 0.0f; qsp_treg = 0.0f; qsp_th = 0.0f;
     if (recruitment_mode == 0) {
         qsp_teff = FLAMEGPU->environment.getProperty<float>("qsp_teff_central");
         qsp_treg = FLAMEGPU->environment.getProperty<float>("qsp_treg_central");
@@ -1322,9 +1434,6 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
         p.p_treg = std::min(FLAMEGPU->environment.getProperty<float>("PARAM_TREG_RECRUIT_P"), 1.0f);
         p.p_th   = std::min(FLAMEGPU->environment.getProperty<float>("PARAM_TH_RECRUIT_P"),   1.0f);
     }
-
-    // Voxel caps
-    // nr_t_voxel/nr_t_voxel_c removed — replaced by volume capacity
 
     // T cell life/division params
     p.t_life_mean   = FLAMEGPU->environment.getProperty<float>("PARAM_T_CELL_LIFE_MEAN_SLICE");
@@ -1419,6 +1528,29 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     p.naive_cd8_frac = FLAMEGPU->environment.getProperty<float>("PARAM_NAIVE_CD8_RECRUIT_FRAC");
     p.naive_cd4_frac = FLAMEGPU->environment.getProperty<float>("PARAM_NAIVE_CD4_RECRUIT_FRAC");
     p.naive_lifespan = FLAMEGPU->environment.getProperty<int>("PARAM_NAIVE_LIFESPAN_STEPS");
+
+    return p;
+}
+
+// ============================================================================
+// Host Function: Launch GPU recruitment kernel
+// ============================================================================
+FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
+    nvtxRangePush("Recruit GPU");
+    if (!g_pde_solver) { nvtxRangePop(); return; }
+
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+
+    // Reset atomic counter and diagnostics
+    CUDA_CHECK(cudaMemset(d_recruit_count, 0, sizeof(int)));
+    CUDA_CHECK(cudaMemset(d_recruit_diag, 0, sizeof(RecruitDiag)));
+
+    // Build parameter struct (shared with the systematic-resampling path)
+    float qsp_teff = 0.0f, qsp_treg = 0.0f, qsp_th = 0.0f;
+    RecruitKernelParams p = build_recruit_kernel_params(FLAMEGPU, nx, ny, nz,
+                                                        qsp_teff, qsp_treg, qsp_th);
 
     // Launch kernel
     dim3 block(8, 8, 8);
@@ -1528,8 +1660,11 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             case CELL_TYPE_MDSC:  type_nibble = 6u; break;
             default:              type_nibble = 7u; break;
         }
-        unsigned int rec_hash = det_rng_seed(r.z * (rec_gx * rec_gy) + r.y * rec_gx + r.x,
-                                             rec_step, 0x5EC0u + static_cast<unsigned int>(r.cell_type), rec_seed);
+        // Seed from the globally-unique deterministic request index r.seq (set by
+        // recruit_systematic) rather than (voxel,step,type): systematic resampling can place
+        // multiple same-type cells in one voxel, so the voxel key is no longer unique.
+        unsigned int rec_hash = det_rng_seed(r.seq, rec_step,
+                                             0x5EC0u + static_cast<unsigned int>(r.cell_type), rec_seed);
         unsigned int rec_dt = (type_nibble << 28) | (rec_hash & 0x0FFFFFFFu);
 
         if (r.cell_type == CELL_TYPE_T) {
@@ -1660,6 +1795,282 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
     counters[ABM_COUNT_MAC_REC]  += mac_recruited;
     counters[ABM_COUNT_BCELL_REC] += bcell_recruited;
     counters[ABM_COUNT_DC_REC] += dc_recruited;
+
+    nvtxRangePop();
+}
+
+// ============================================================================
+// Host Function: systematic-resampling recruitment.
+//
+// Replaces the two-stage per-voxel Bernoulli path (mark_entry_points ⊗ recruit_all_kernel).
+// Rationale (project-recruitment-systematic-resampling): the Bernoulli realization of a
+// low-probability entry field, re-drawn every step, is the dominant immune spatial noise that
+// keeps ICC seed-bound. Here we instead draw a deterministic STRATIFIED sample from the
+// reproducible expected-recruitment field q_type[v] = p_entry·gate, so the mean rate is
+// unchanged but the per-voxel coin-flip noise is removed.
+//
+// Per stream: Σq = Σ_v q[v];  N = round(Σq·(1 + CV·𝒩(0,1)));  systematic resample with a single
+// offset u∈[0,1) → each of N cells targets the voxel whose cumulative q crosses (k+u)·Σq/N.
+// Capacity-skip: if the target voxel is full, advance forward (cumulative/index order) to the
+// next voxel with room; if none, skip the cell. All RNG is det_rng seeded from (stream,step,seed)
+// → bit-reproducible at fixed seed, decorrelated across seeds. Emits RecruitRequests consumed
+// unchanged by place_recruited_agents.
+//
+// d_volume_used is read (stale post-movement occupancy) only to gate intra-recruitment packing;
+// it is NOT written back — the later zero_occ_grid layer wipes it and write_to_occ_grid rebuilds
+// it from the actual agent population (including these recruits). Mirrors the old kernel's
+// transient try_claim_voxel writes.
+// ============================================================================
+FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
+    nvtxRangePush("Recruit Systematic");
+    if (!g_pde_solver || !d_qfields || !d_vvas_field) { nvtxRangePop(); return; }
+
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    const int nxy = nx * ny;
+    const int nvox = nxy * nz;
+
+    // place_recruited_agents reads d_recruit_count; reset before we (re)populate it.
+    CUDA_CHECK(cudaMemset(d_recruit_count, 0, sizeof(int)));
+
+    // Shared param struct (same env reads as the legacy path).
+    float qsp_teff = 0.0f, qsp_treg = 0.0f, qsp_th = 0.0f;
+    RecruitKernelParams p = build_recruit_kernel_params(FLAMEGPU, nx, ny, nz,
+                                                        qsp_teff, qsp_treg, qsp_th);
+    const float entry_scale = FLAMEGPU->environment.getProperty<float>("PARAM_ENTRY_ADHESION_SCALE");
+
+    // 1) Compute the expected-recruitment q-fields on device (no roll).
+    dim3 block(8, 8, 8);
+    dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
+    compute_qfields_kernel<<<grid, block>>>(d_qfields, d_vvas_field, entry_scale, p);
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    // 2) D2H the q-fields + current occupancy (for capacity gating; not written back).
+    std::vector<float> qf(static_cast<size_t>(N_QPLANE) * nvox);
+    CUDA_CHECK(cudaMemcpy(qf.data(), d_qfields, qf.size() * sizeof(float), cudaMemcpyDeviceToHost));
+    std::vector<float> vol_used(nvox);
+    CUDA_CHECK(cudaMemcpy(vol_used.data(), d_volume_used, nvox * sizeof(float), cudaMemcpyDeviceToHost));
+
+    const float cap = p.voxel_capacity;
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+    const unsigned int step = static_cast<unsigned int>(FLAMEGPU->getStepCounter());
+    const float count_cv = 0.10f;  // per-stream count CV; TODO promote to PARAM if calibration needs it
+
+    // ── Deterministic host RNG helpers (det_rng is __host__ __device__) ──
+    auto det_normal = [](unsigned int& s) -> float {
+        float u1 = det_rng_uniform(s) + 1e-10f;
+        float u2 = det_rng_uniform(s);
+        return std::sqrt(-2.0f * std::log(u1)) * std::cos(2.0f * 3.14159265f * u2);
+    };
+    auto det_normal_life = [&](unsigned int& s, float mean, float sd) -> int {
+        int life = static_cast<int>(std::lround(mean + det_normal(s) * sd));
+        return life > 0 ? life : 1;
+    };
+    auto det_exp_life = [](unsigned int& s, float mean) -> int {
+        float u = det_rng_uniform(s) + 1e-4f;
+        int life = static_cast<int>(std::lround(mean * std::log(1.0f / u)));
+        return life > 0 ? life : 1;
+    };
+    auto decode = [&](int vidx, int& x, int& y, int& z) {
+        x = vidx % nx; y = (vidx / nx) % ny; z = vidx / nxy;
+    };
+
+    std::vector<RecruitRequest> requests;
+    int req_seq = 0;
+
+    // Capacity-skip placement: target voxel, else advance forward to the next voxel with room.
+    auto place_one = [&](int target_vox, float cell_vol) -> int {
+        for (int v = target_vox; v < nvox; ++v) {
+            if (vol_used[v] + cell_vol <= cap) { vol_used[v] += cell_vol; return v; }
+        }
+        return -1;  // no capacity downstream → skip
+    };
+
+    // Emit one cell of stream `s` targeting voxel `tvox` (+ any coupled naive cell).
+    auto emit_cell = [&](int s, int tvox, unsigned int& crng) {
+        RecruitRequest req{};
+        switch (s) {
+        case QS_TEFF: {
+            int pv = place_one(tvox, p.vol_teff);
+            if (pv < 0) return;
+            decode(pv, req.x, req.y, req.z);
+            req.cell_type = CELL_TYPE_T; req.cell_state = T_CELL_EFF;
+            req.life = det_normal_life(crng, p.t_life_mean, p.t_life_sd);
+            req.divide_cd = p.t_divide_cd; req.divide_limit = p.t_divide_limit;
+            req.IL2_release_remain = p.t_IL2_release;
+            req.seq = req_seq++;
+            requests.push_back(req);
+            if (p.naive_cd8_frac > 0.0f && det_rng_uniform(crng) < p.naive_cd8_frac) {
+                int npv = place_one(tvox, p.vol_teff);
+                if (npv >= 0) {
+                    RecruitRequest nr{};
+                    decode(npv, nr.x, nr.y, nr.z);
+                    nr.cell_type = CELL_TYPE_T; nr.cell_state = T_CELL_NAIVE;
+                    nr.life = p.naive_lifespan;
+                    nr.seq = req_seq++;
+                    requests.push_back(nr);
+                }
+            }
+            break;
+        }
+        case QS_TREG: {
+            int pv = place_one(tvox, p.vol_treg);
+            if (pv < 0) return;
+            decode(pv, req.x, req.y, req.z);
+            req.cell_type = CELL_TYPE_TREG; req.cell_state = TCD4_TREG;
+            req.life = det_normal_life(crng, p.tcd4_life_mean, p.tcd4_life_sd);
+            req.divide_cd = p.tcd4_divide_cd; req.divide_limit = p.tcd4_divide_limit;
+            req.TGFB_release_remain = p.tcd4_TGFB_release;
+            req.CTLA4 = p.ctla4_treg;
+            req.seq = req_seq++;
+            requests.push_back(req);
+            break;
+        }
+        case QS_TH: {
+            int pv = place_one(tvox, p.vol_th);
+            if (pv < 0) return;
+            decode(pv, req.x, req.y, req.z);
+            req.cell_type = CELL_TYPE_TREG; req.cell_state = TCD4_TH;
+            req.life = det_normal_life(crng, p.tcd4_life_mean, p.tcd4_life_sd);
+            req.divide_cd = p.tcd4_divide_cd; req.divide_limit = p.tcd4_divide_limit;
+            req.TGFB_release_remain = p.tcd4_TGFB_release;
+            req.CTLA4 = 0.0f;
+            req.seq = req_seq++;
+            requests.push_back(req);
+            if (p.naive_cd4_frac > 0.0f && det_rng_uniform(crng) < p.naive_cd4_frac) {
+                int npv = place_one(tvox, p.vol_th);
+                if (npv >= 0) {
+                    RecruitRequest nr{};
+                    decode(npv, nr.x, nr.y, nr.z);
+                    nr.cell_type = CELL_TYPE_TREG; nr.cell_state = TCD4_NAIVE;
+                    nr.life = p.naive_lifespan;
+                    nr.seq = req_seq++;
+                    requests.push_back(nr);
+                }
+            }
+            break;
+        }
+        case QS_MDSC: {
+            int pv = place_one(tvox, p.vol_mdsc);
+            if (pv < 0) return;
+            decode(pv, req.x, req.y, req.z);
+            req.cell_type = CELL_TYPE_MDSC; req.cell_state = 0;
+            req.life = det_exp_life(crng, p.mdsc_life_mean);
+            req.seq = req_seq++;
+            requests.push_back(req);
+            break;
+        }
+        case QS_MAC: {
+            // M1/M2 polarization from the precomputed P(M2) plane at the TARGET voxel
+            // (matches the local-cytokine spawn polarization of the old kernel).
+            float p_m2 = qf[static_cast<size_t>(QPLANE_PM2) * nvox + tvox];
+            bool is_m2 = det_rng_uniform(crng) < p_m2;
+            int pv = place_one(tvox, is_m2 ? p.vol_mac_m2 : p.vol_mac_m1);
+            if (pv < 0) return;
+            decode(pv, req.x, req.y, req.z);
+            req.cell_type = CELL_TYPE_MAC;
+            req.cell_state = is_m2 ? MAC_M2 : MAC_M1;
+            req.life = det_exp_life(crng, p.mac_life_mean);
+            req.seq = req_seq++;
+            requests.push_back(req);
+            break;
+        }
+        case QS_BCELL: {
+            int pv = place_one(tvox, p.vol_bcell);
+            if (pv < 0) return;
+            decode(pv, req.x, req.y, req.z);
+            req.cell_type = CELL_TYPE_BCELL; req.cell_state = BCELL_NAIVE;
+            req.life = det_normal_life(crng, p.bcell_life_mean, p.bcell_life_sd);
+            req.seq = req_seq++;
+            requests.push_back(req);
+            break;
+        }
+        case QS_DC1:
+        case QS_DC2: {
+            int pv = place_one(tvox, p.vol_dc);
+            if (pv < 0) return;
+            decode(pv, req.x, req.y, req.z);
+            req.cell_type = CELL_TYPE_DC; req.cell_state = DC_IMMATURE;
+            req.subtype = (s == QS_DC1) ? DC_CDC1 : DC_CDC2;
+            req.life = det_normal_life(crng, p.dc_life_immature_mean, p.dc_life_immature_sd);
+            req.seq = req_seq++;
+            requests.push_back(req);
+            break;
+        }
+        default: break;
+        }
+    };
+
+    int drawnN[N_QSTREAM] = {0};
+
+    // ── Per-stream systematic (stratified) resampling ──
+    for (int s = 0; s < N_QSTREAM; ++s) {
+        const float* q = &qf[static_cast<size_t>(s) * nvox];
+        double Sigma = 0.0;
+        for (int v = 0; v < nvox; ++v) Sigma += q[v];
+        if (Sigma <= 0.0) continue;
+
+        // N ~ Σq·(1 + CV·𝒩), deterministic per (stream, step, seed).
+        // STOCHASTIC rounding of the fractional part (NOT round-to-nearest): a sparse stream with
+        // per-step Σq < 0.5 would otherwise round to 0 EVERY step and never recruit — that zeroed
+        // MDSC and B cells (per-step expectation <1) in validation. Stochastic rounding preserves
+        // E[N] = Σq for sparse streams. It's a single per-STREAM coin on the fraction, NOT the
+        // per-voxel Bernoulli that caused the spatial ICC noise → spatial reproducibility intact.
+        unsigned int nrng = det_rng_seed(s, step, 0x7100u, sim_seed);
+        double x = Sigma * (1.0 + count_cv * det_normal(nrng));
+        if (x <= 0.0) continue;
+        double xfloor = std::floor(x);
+        int N = static_cast<int>(xfloor) + (det_rng_uniform(nrng) < (x - xfloor) ? 1 : 0);
+        if (N <= 0) continue;
+        drawnN[s] = N;
+        const float u = det_rng_uniform(nrng);           // single systematic offset in [0,1)
+
+        // Distinct per-cell RNG stream for life/state/naive rolls.
+        unsigned int crng = det_rng_seed(s, step, 0x7200u, sim_seed);
+
+        const double step_size = Sigma / static_cast<double>(N);
+        double thr = u * step_size;                       // first stratum crossing
+        double cum = 0.0;
+        int k = 0;
+        // Σ accumulated in the SAME order as above → cum ends bit-identical to Sigma, and
+        // thr_max = (N-1+u)/N·Σ < Σ, so all N strata fire.
+        for (int v = 0; v < nvox && k < N; ++v) {
+            cum += q[v];
+            while (k < N && thr < cum) {
+                emit_cell(s, v, crng);
+                ++k;
+                thr += step_size;
+            }
+        }
+    }
+
+    // ── Stats (diagnostic; *_rec counts filled later by place_recruited_agents) ──
+    g_recruit_stats.p_teff = p.p_teff;
+    g_recruit_stats.p_treg = p.p_treg;
+    g_recruit_stats.p_th   = p.p_th;
+    g_recruit_stats.qsp_teff = qsp_teff;
+    g_recruit_stats.qsp_treg = qsp_treg;
+    g_recruit_stats.qsp_th   = qsp_th;
+    g_recruit_stats.t_sources     = drawnN[QS_TEFF] + drawnN[QS_TREG] + drawnN[QS_TH];
+    g_recruit_stats.mdsc_sources  = drawnN[QS_MDSC];
+    g_recruit_stats.mac_sources   = drawnN[QS_MAC];
+    g_recruit_stats.bcell_sources = drawnN[QS_BCELL];
+    g_recruit_stats.dc_sources    = drawnN[QS_DC1] + drawnN[QS_DC2];
+
+    // ── Upload requests for place_recruited_agents ──
+    int count = static_cast<int>(requests.size());
+    if (count > MAX_RECRUITS_PER_STEP) {
+        std::cerr << "[WARN] recruit_systematic: " << count << " requests > cap "
+                  << MAX_RECRUITS_PER_STEP << " (truncating). Raise MAX_RECRUITS_PER_STEP."
+                  << std::endl;
+        count = MAX_RECRUITS_PER_STEP;
+    }
+    if (count > 0) {
+        CUDA_CHECK(cudaMemcpy(d_recruit_requests, requests.data(),
+            count * sizeof(RecruitRequest), cudaMemcpyHostToDevice));
+    }
+    CUDA_CHECK(cudaMemcpy(d_recruit_count, &count, sizeof(int), cudaMemcpyHostToDevice));
 
     nvtxRangePop();
 }

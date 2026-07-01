@@ -98,19 +98,15 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addHostFunction(update_vasculature_count);
     }
 
-    // 3. Mark recruitment entry points from the Vvas field (media-2 Eq.4).
-    //    Replaces per-vascular-agent marking: p_entry = Vvas * PARAM_ENTRY_ADHESION_SCALE,
-    //    decoupled from vascular agent positions/counts (no vas_scaler). MDSC/MAC CCL2-gated.
+    // 3+4. Recruitment via systematic (stratified) resampling of the expected-recruitment field.
+    //    Replaces the two-stage per-voxel Bernoulli path (mark_entry_points ⊗ recruit_gpu): the
+    //    q-field kernel builds q_type[v] = p_entry(Vvas)·gate, and recruit_systematic draws a
+    //    deterministic stratified sample from it (mean rate unchanged, per-voxel coin-flip noise
+    //    removed → immune spatial reproducibility). Thin host fn then creates the agents.
+    //    See project-recruitment-systematic-resampling.
     {
-        flamegpu::LayerDescription layer = model.newLayer("mark_entry_points");
-        layer.addHostFunction(mark_entry_points);
-    }
-
-    // 4. Recruitment: GPU kernel decides placement, thin host fn creates agents.
-    //    Matches HCC time_slice_recruitment(). All occupancy checking runs on GPU.
-    {
-        flamegpu::LayerDescription layer = model.newLayer("recruit_gpu");
-        layer.addHostFunction(recruit_gpu);
+        flamegpu::LayerDescription layer = model.newLayer("recruit_systematic");
+        layer.addHostFunction(recruit_systematic);
     }
     {
         flamegpu::LayerDescription layer = model.newLayer("place_recruited_agents");

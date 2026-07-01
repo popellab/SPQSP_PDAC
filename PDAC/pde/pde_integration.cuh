@@ -79,6 +79,10 @@ void cleanup_pde_solver();
 
 // GPU recruitment: kernel decides placement, host fn creates agents
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER recruit_gpu;
+// Systematic-resampling recruitment: computes the per-voxel expected-recruitment field and
+// draws a deterministic stratified sample from it (replaces mark_entry_points + recruit_gpu's
+// per-voxel Bernoulli rolls). Emits RecruitRequests consumed by place_recruited_agents.
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER recruit_systematic;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER place_recruited_agents;
 
 // Reset recruitment sources (call at start of each step)
