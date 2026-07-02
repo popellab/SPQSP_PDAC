@@ -28,6 +28,9 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Species.V_C_aPDL1",
     "Param.QSP.init_value.Species.V_C_aCTLA4",
     "Param.QSP.init_value.Species.V_C_Th",
+    "Param.QSP.init_value.Species.V_C_Tfh",
+    "Param.QSP.init_value.Species.V_C_nB",
+    "Param.QSP.init_value.Species.V_C_B",
     "Param.QSP.init_value.Species.V_C_Cy",
     "Param.QSP.init_value.Species.V_P_nCD4",
     "Param.QSP.init_value.Species.V_P_Treg",
@@ -37,6 +40,8 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Species.V_P_aPDL1",
     "Param.QSP.init_value.Species.V_P_aCTLA4",
     "Param.QSP.init_value.Species.V_P_Th",
+    "Param.QSP.init_value.Species.V_P_Tfh",
+    "Param.QSP.init_value.Species.V_P_B",
     "Param.QSP.init_value.Species.V_T_C_x",
     "Param.QSP.init_value.Species.V_T_CD8_exh",
     "Param.QSP.init_value.Species.V_T_Th_exh",
@@ -58,6 +63,9 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Species.V_T_Th",
     "Param.QSP.init_value.Species.V_T_IFNg",
     "Param.QSP.init_value.Species.V_T_TGFb",
+    "Param.QSP.init_value.Species.V_T_Tfh",
+    "Param.QSP.init_value.Species.V_T_B",
+    "Param.QSP.init_value.Species.V_T_Plasma",
     "Param.QSP.init_value.Species.V_T_MDSC",
     "Param.QSP.init_value.Species.V_T_NO",
     "Param.QSP.init_value.Species.V_T_ArgI",
@@ -90,6 +98,11 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Species.V_LN_aTh",
     "Param.QSP.init_value.Species.V_LN_Th",
     "Param.QSP.init_value.Species.V_LN_IL2",
+    "Param.QSP.init_value.Species.V_LN_aTfh",
+    "Param.QSP.init_value.Species.V_LN_Tfh",
+    "Param.QSP.init_value.Species.V_LN_nB",
+    "Param.QSP.init_value.Species.V_LN_aB",
+    "Param.QSP.init_value.Species.V_LN_B",
     "Param.QSP.init_value.Species.V_e_P0",
     "Param.QSP.init_value.Species.V_e_p0",
     "Param.QSP.init_value.Species.V_e_P1",
@@ -447,6 +460,15 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Parameter.H_TGFb",
     "Param.QSP.init_value.Parameter.H_TGFb_Teff",
     "Param.QSP.init_value.Parameter.H_TGFb_Th_exh",
+    "Param.QSP.init_value.Parameter.k_Tfh_act",
+    "Param.QSP.init_value.Parameter.k_nB_in",
+    "Param.QSP.init_value.Parameter.k_B_act",
+    "Param.QSP.init_value.Parameter.n_B_clones",
+    "Param.QSP.init_value.Parameter.k_B_pro",
+    "Param.QSP.init_value.Parameter.k_B_death",
+    "Param.QSP.init_value.Parameter.k_B_to_plasma",
+    "Param.QSP.init_value.Parameter.k_plasma_death",
+    "Param.QSP.init_value.Parameter.Tfh_50_B",
     "Param.QSP.init_value.Parameter.k_CCL2_sec",
     "Param.QSP.init_value.Parameter.k_CCL2_deg",
     "Param.QSP.init_value.Parameter.CCL2_50",
@@ -603,7 +625,7 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Parameter.nucleated_total_T",
 };
 
-QSPParam::QSPParam() :_param(591, 0) {}
+QSPParam::QSPParam() :_param(613, 0) {}
 
 double QSPParam::getVal(int n) const { return _param[n]; }
 
@@ -611,7 +633,7 @@ void QSPParam::_readParameters(const std::string& filename){
     namespace pt = boost::property_tree;
     pt::ptree tree;
     pt::read_xml(filename, tree, pt::xml_parser::trim_whitespace);
-    for (int i = 0; i < 591; i++){
+    for (int i = 0; i < 613; i++){
         try { _param[i] = tree.get<double>(_xml_paths[i]); }
         catch (const pt::ptree_bad_path&) {
             std::cerr << "WARNING: QSP param not found: "
@@ -621,7 +643,7 @@ void QSPParam::_readParameters(const std::string& filename){
 }
 
 void QSPParam::printParam(void) const {
-    for (int i = 0; i < 591; i++)
+    for (int i = 0; i < 613; i++)
         std::cout << _xml_paths[i] << " = " << _param[i] << std::endl;
 }
 

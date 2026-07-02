@@ -572,6 +572,7 @@
     <t_steadystate>5000</t_steadystate>
     <use_resection>0</use_resection>
     <t_resection>1000</t_resection>
+    <presimulation_diam_frac>1.00</presimulation_diam_frac>
     <start>0</start>
     <step>1</step>
     <n_step>360</n_step>
@@ -601,6 +602,9 @@
       <V_C_aPDL1>0.0</V_C_aPDL1>
       <V_C_aCTLA4>0.0</V_C_aCTLA4>
       <V_C_Th>0.0</V_C_Th>
+      <V_C_Tfh>0.0</V_C_Tfh>
+      <V_C_nB>100000000.0</V_C_nB>
+      <V_C_B>0.0</V_C_B>
       <V_C_Cy>0.0</V_C_Cy>
       <V_P_nCD4>185344.827586207</V_P_nCD4>
       <V_P_Treg>0.0</V_P_Treg>
@@ -610,6 +614,8 @@
       <V_P_aPDL1>0.0</V_P_aPDL1>
       <V_P_aCTLA4>0.0</V_P_aCTLA4>
       <V_P_Th>0.0</V_P_Th>
+      <V_P_Tfh>0.0</V_P_Tfh>
+      <V_P_B>0.0</V_P_B>
       <V_T_C_x>0.0</V_T_C_x>
       <V_T_CD8_exh>0.0</V_T_CD8_exh>
       <V_T_Th_exh>0.0</V_T_Th_exh>
@@ -631,6 +637,9 @@
       <V_T_Th>0.0</V_T_Th>
       <V_T_IFNg>0.0</V_T_IFNg>
       <V_T_TGFb>0.0</V_T_TGFb>
+      <V_T_Tfh>0.0</V_T_Tfh>
+      <V_T_B>0.0</V_T_B>
+      <V_T_Plasma>0.0</V_T_Plasma>
       <V_T_MDSC>0.0</V_T_MDSC>
       <V_T_NO>0.0</V_T_NO>
       <V_T_ArgI>0.0</V_T_ArgI>
@@ -663,6 +672,11 @@
       <V_LN_aTh>0.0</V_LN_aTh>
       <V_LN_Th>0.0</V_LN_Th>
       <V_LN_IL2>0.00019</V_LN_IL2>
+      <V_LN_aTfh>0.0</V_LN_aTfh>
+      <V_LN_Tfh>0.0</V_LN_Tfh>
+      <V_LN_nB>10000000.0</V_LN_nB>
+      <V_LN_aB>0.0</V_LN_aB>
+      <V_LN_B>0.0</V_LN_B>
       <V_e_P0>1e-18</V_e_P0>
       <V_e_p0>1e-18</V_e_p0>
       <V_e_P1>1e-18</V_e_P1>
@@ -858,8 +872,8 @@
       <k_APC_mig>4.0</k_APC_mig>
       <k_APC_death>0.15</k_APC_death>
       <k_mAPC_death>0.3</k_mAPC_death>
-      <cDC1_recruit_target_T>500000.0</cDC1_recruit_target_T>
-      <cDC2_recruit_target_T>2000000.0</cDC2_recruit_target_T>
+      <cDC1_recruit_target_T>50000.0</cDC1_recruit_target_T>
+      <cDC2_recruit_target_T>200000.0</cDC2_recruit_target_T>
       <APC0_cDC1_LN>240000.0</APC0_cDC1_LN>
       <APC0_cDC2_LN>960000.0</APC0_cDC2_LN>
       <n_sites_APC>10.0</n_sites_APC>
@@ -1021,6 +1035,15 @@
       <H_TGFb>1.0</H_TGFb>
       <H_TGFb_Teff>1.0</H_TGFb_Teff>
       <H_TGFb_Th_exh>1.0</H_TGFb_Th_exh>
+      <k_Tfh_act>10.0</k_Tfh_act>
+      <k_nB_in>1000000.0</k_nB_in>
+      <k_B_act>5.0</k_B_act>
+      <n_B_clones>120.0</n_B_clones>
+      <k_B_pro>1.0</k_B_pro>
+      <k_B_death>0.1</k_B_death>
+      <k_B_to_plasma>0.5</k_B_to_plasma>
+      <k_plasma_death>0.1</k_plasma_death>
+      <Tfh_50_B>100000.0</Tfh_50_B>
       <k_CCL2_sec>2e-10</k_CCL2_sec>
       <k_CCL2_deg>0.06</k_CCL2_deg>
       <CCL2_50>0.23</CCL2_50>
