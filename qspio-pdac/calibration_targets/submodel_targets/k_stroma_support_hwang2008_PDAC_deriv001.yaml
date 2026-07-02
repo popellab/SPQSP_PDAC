@@ -1,0 +1,437 @@
+target_id: k_stroma_support_hwang2008_PDAC_deriv001
+study_interpretation: |
+  Hwang et al. 2008 performed orthotopic co-injection experiments
+  combining BxPC3 PDAC cells and human pancreatic stellate cells
+  (HPSCs) at varying tumor:stroma ratios, measuring tumor mass at
+  8 weeks (Fig 6C). At a fixed cancer cell input of 0.5e6 BxPC3, varying
+  HPSC content from 0 to 5x the cancer cell number produced a clear
+  dose-response in pancreatic mass:
+
+    cancer:stroma  HPSC count   pancreas weight (g, mean +/- SE)
+    1:0            0            0.22 +/- 0.01    (baseline pancreas, 0% tumor formation)
+    1:1            0.5e6        0.46 +/- 0.18    (57% tumor formation)
+    1:5            2.5e6        0.82 +/- 0.22    (100% tumor formation)
+
+  In the QSP-IO PDAC model, k_stroma_support is the per-CAF
+  contribution to cancer carrying capacity:
+
+    C_max = (V_T.K + k_stroma_support * aPSC_total) * (1 - phi/(phi+phi_50))
+
+  In an orthotopic model with no pre-existing vasculature
+  (V_T.K_eff ~ 0; supported by the 0% tumor incidence at 0.5e6 BxPC3
+  alone) and minimal initial collagen accumulation (ECM saturation
+  factor ~ 1), C_max simplifies to k_stroma_support * HPSC_count.
+  Hwang's tumor-mass dose-response therefore directly anchors the
+  product (k_stroma_support * tissue_density_per_cell) — combined
+  with the standard cancer cell volume and tumor tissue density,
+  this constrains k_stroma_support.
+key_assumptions:
+- |
+  Cancer cells reach carrying capacity by 8 weeks. BxPC3 doubling
+  time in vitro is ~30 h; in 56 days, even with 50%-of-in-vitro
+  effective doubling time and ECM constraints, multiple doublings
+  occur. Pancreatic mass plateauing at ~0.5-0.8 g consistent with
+  a saturated carrying-cap regime.
+- |
+  V_T.K_eff = 0 in this orthotopic model. Supported by 0% tumor
+  formation at 0.5e6 BxPC3 alone; cancer requires HPSC support to
+  establish in nude mouse pancreas. (At 1.0e6 BxPC3 alone, 43%
+  formation suggests V_T.K_eff scales with cancer cell number, but
+  the dominant signal at 0.5e6 BxPC3 is HPSC-mediated.)
+- |
+  Initial collagen mass is negligible at injection time (no ECM in
+  cell suspension), so phi_collagen << phi_col_50_Kmax for the
+  early growth phase. By 8 weeks, ECM has accumulated, so the
+  ECM-saturation factor (1 - phi/(phi+phi_50)) attenuates C_max.
+  Assumed factor 0.75 (geometric mean from a model phi range 0.3-0.7
+  saturating against phi_col_50_Kmax ~ 2.0).
+- |
+  Tumor mass is dominated by cell + ECM volume; assume tissue density
+  ~1.0 g/mL. Cancer cell volume = 2.572e-9 mL (17 um diameter sphere).
+  CAF cell volume averaged over subtypes ~3000 um^3 = 3e-9 mL.
+- |
+  HPSC count is preserved from injection to endpoint. HPSCs are
+  generally non-proliferative in the model (k_X_prolif rates are
+  bounded by carrying caps that themselves depend on cancer count);
+  in the early orthotopic phase, HPSC count ~ HPSC_injected.
+- |
+  Standard error converts to standard deviation via SD = SE * sqrt(n).
+  Sample size per arm not exhaustively reported in main text;
+  Methods describe ~14 mice per group based on figure scatter.
+key_study_limitations:
+- |
+  BxPC3 is a poorly differentiated PDAC line; growth dynamics may
+  differ from primary PDAC. Cell-line tumors are typically more
+  aggressive than patient-derived equivalents.
+- |
+  HPSCs are immortalized via SV40 + hTERT for repeated passaging;
+  the immortalized cells may differ from primary CAFs in stromal
+  support function. Hwang noted similar in vitro behavior but in
+  vivo equivalence is not formally established.
+- |
+  Pancreas weight includes pre-existing pancreatic tissue (host
+  parenchyma); the 0.22 g baseline subtracts approximately for this
+  but the orthotopic technique doesn't allow exact tumor-only mass.
+- |
+  Two informative data points (1:1 and 1:5) — supports a single-parameter
+  fit but cannot resolve nonlinearity (Hwang shows sublinear scaling
+  consistent with carrying-cap saturation, but the QSP model's linear
+  C_max formula will be biased under joint inference with other targets).
+experimental_context:
+  species: mouse
+  system: animal_in_vivo
+  cell_lines:
+  - name: BxPC3
+    source: ATCC
+  - name: HPSC (human pancreatic stellate cells)
+    source: resected human PDAC primary tissue, immortalized with SV40 + hTERT
+  cell_types:
+  - name: BxPC3 (cancer)
+    source: ATCC
+    isolation_method: in vitro adherent culture
+  - name: HPSC (stromal)
+    source: human PDAC explants, immortalized
+    isolation_method: outgrowth + immortalization
+  culture_conditions:
+    medium: DMEM + 10% FCS for HPSC; standard for BxPC3
+    duration: 8 weeks orthotopic in nude mice (athymic)
+  indication: PDAC
+primary_data_source:
+  doi: 10.1158/0008-5472.CAN-07-5714
+  source_tag: Hwang2008
+  title: |
+    Cancer-Associated Stromal Fibroblasts Promote Pancreatic Tumor
+    Progression
+  authors:
+  - Hwang
+  year: 2008
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: |
+      Mouse orthotopic xenograft of human PDAC cells + HPSCs; closest
+      experimental design available for measuring cancer-cell
+      carrying-capacity dependence on CAF abundance with controlled
+      ratios. Translates to PDAC mechanism but inherits in vivo / in
+      vitro / cell-line differences from primary human PDAC.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: physiological_baseline
+    perturbation_relevance: |
+      No drug perturbation. Engineered tumor:stroma ratio is a
+      physiological gradient probing the carrying-capacity dependence
+      that the model parameter encodes.
+    tme_compatibility: moderate
+    tme_compatibility_notes: |
+      Nude mouse orthotopic xenograft lacks adaptive immune component
+      that's present in primary human PDAC. The cancer carrying-cap
+      dependence on CAF abundance is the parameter being probed and
+      is preserved in this setting; immune-mediated effects on cancer
+      are confounded but secondary for k_stroma_support magnitude.
+    measurement_directness: single_inversion
+    temporal_resolution: endpoint_pair
+    experimental_system: animal_in_vivo
+secondary_data_sources: []
+inputs:
+- name: pancreas_weight_basal
+  value: 0.22
+  units: gram
+  input_type: direct_measurement
+  source_ref: Hwang2008
+  source_location: Results, "Stromal fibroblasts increase tumor growth and metastasis"
+  value_snippet: |
+    the weight of the pancreas was 0.22 F 0.01 g and not significantly
+    different than the pancreas weight of mice that received HPSCs only
+- name: pancreas_weight_basal_se
+  value: 0.01
+  units: gram
+  input_type: direct_measurement
+  source_ref: Hwang2008
+  source_location: Results, "Stromal fibroblasts increase tumor growth and metastasis"
+  value_snippet: |
+    the weight of the pancreas was 0.22 F 0.01 g and not significantly
+    different than the pancreas weight of mice that received HPSCs only
+- name: pancreas_weight_1to1
+  value: 0.46
+  units: gram
+  input_type: direct_measurement
+  source_ref: Hwang2008
+  source_location: Results, "Stromal fibroblasts increase tumor growth and metastasis"
+  value_snippet: |
+    [0.46 F 0.18 versus 0.82 F 0.22 g; tumor-to-stroma ratio,
+    1:1 versus 1:5, respectively (means F SE)]
+- name: pancreas_weight_1to1_se
+  value: 0.18
+  units: gram
+  input_type: direct_measurement
+  source_ref: Hwang2008
+  source_location: Results, "Stromal fibroblasts increase tumor growth and metastasis"
+  value_snippet: |
+    [0.46 F 0.18 versus 0.82 F 0.22 g; tumor-to-stroma ratio,
+    1:1 versus 1:5, respectively (means F SE)]
+- name: pancreas_weight_1to5
+  value: 0.82
+  units: gram
+  input_type: direct_measurement
+  source_ref: Hwang2008
+  source_location: Results, "Stromal fibroblasts increase tumor growth and metastasis"
+  value_snippet: |
+    [0.46 F 0.18 versus 0.82 F 0.22 g; tumor-to-stroma ratio,
+    1:1 versus 1:5, respectively (means F SE)]
+- name: pancreas_weight_1to5_se
+  value: 0.22
+  units: gram
+  input_type: direct_measurement
+  source_ref: Hwang2008
+  source_location: Results, "Stromal fibroblasts increase tumor growth and metastasis"
+  value_snippet: |
+    [0.46 F 0.18 versus 0.82 F 0.22 g; tumor-to-stroma ratio,
+    1:1 versus 1:5, respectively (means F SE)]
+- name: cell_count_in_millions
+  value: 0.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Hwang2008
+  source_location: Methods, "Orthotopic model of pancreatic cancer"
+  value_snippet: |
+    BxPC3-FL alone, either 0.5  10^6 or 1  10^6 per mouse
+- name: stroma_ratio_1to1
+  value: 1.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Hwang2008
+  source_location: Methods, "Orthotopic model of pancreatic cancer"
+  value_snippet: |
+    in varying tumor-to-stroma ratios (1:1, 1:1, or 1:5)
+- name: stroma_ratio_1to5
+  value: 5.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Hwang2008
+  source_location: Methods, "Orthotopic model of pancreatic cancer"
+  value_snippet: |
+    in varying tumor-to-stroma ratios (1:1, 1:1, or 1:5)
+- name: million_cells_factor
+  value: 1000000.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: |
+    Conversion factor from "10^6 cells" notation in the paper to
+    absolute cell count.
+  source_ref: Hwang2008
+  source_location: Methods, "Orthotopic model of pancreatic cancer"
+  value_snippet: |
+    BxPC3-FL alone, either 0.5  10^6 or 1  10^6 per mouse
+- name: bxpc3_count_initial
+  value: 500000.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  source_inputs:
+  - cell_count_in_millions
+  - million_cells_factor
+  formula: cell_count_in_millions * million_cells_factor
+  rationale: |
+    Initial BxPC3 cell count = 0.5e6 cells/mouse from the Methods
+    description.
+  source_ref: Hwang2008
+  source_location: Methods, "Orthotopic model of pancreatic cancer"
+- name: hpsc_count_1to1
+  value: 500000.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  source_inputs:
+  - cell_count_in_millions
+  - million_cells_factor
+  - stroma_ratio_1to1
+  formula: cell_count_in_millions * million_cells_factor * stroma_ratio_1to1
+  rationale: |
+    HPSC cell count at 1:1 ratio = 0.5e6 cells (matches BxPC3 input).
+  source_ref: Hwang2008
+  source_location: Methods, "Orthotopic model of pancreatic cancer"
+- name: hpsc_count_1to5
+  value: 2500000.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  source_inputs:
+  - cell_count_in_millions
+  - million_cells_factor
+  - stroma_ratio_1to5
+  formula: cell_count_in_millions * million_cells_factor * stroma_ratio_1to5
+  rationale: |
+    HPSC cell count at 1:5 ratio = 2.5e6 cells (5x BxPC3 input).
+  source_ref: Hwang2008
+  source_location: Methods, "Orthotopic model of pancreatic cancer"
+- name: cancer_cell_volume_mL
+  value: 2.572e-09
+  units: dimensionless
+  input_type: reference_value
+  rationale: |
+    Cancer cell volume = (4/3)*pi*(8.5e-4)^3 = 2.572e-9 mL for a 17-um
+    diameter spherical cancer cell, consistent with the QSP model's
+    vol_cell parameter and used in the stromal_fraction observable.
+  source_ref: Hwang2008
+  source_location: Reference value (cell geometry)
+  value_snippet: |
+    BxPC3 cells (either 0.5  10^6 or 1  10^6)
+- name: caf_cell_volume_mL
+  value: 3.0e-09
+  units: dimensionless
+  input_type: reference_value
+  rationale: |
+    CAF cell volume averaged over subtypes from QSP model parameters:
+    iCAF 2000 um^3, myCAF 3500 um^3, apCAF 2500 um^3, qPSC 1500 um^3.
+    Mean ~3000 um^3 = 3e-9 mL.
+  source_ref: Hwang2008
+  source_location: Reference value (cell geometry)
+  value_snippet: |
+    HPSC stromal fibroblasts
+- name: ecm_saturation_factor
+  value: 0.75
+  units: dimensionless
+  input_type: reference_value
+  rationale: |
+    ECM-suppression term (1 - phi_collagen / (phi_collagen + phi_col_50_Kmax))
+    in the QSP model's C_max formula. Assumed 0.75 for the orthotopic
+    8-week endpoint, corresponding to a model phi_collagen of ~0.5 and
+    phi_col_50_Kmax of ~2.0. Captures the average suppression over the
+    growth period.
+  source_ref: Hwang2008
+  source_location: Reference value (model formula)
+  value_snippet: |
+    8 weeks
+- name: tissue_density_g_per_mL
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: |
+    Tumor tissue density approximated as 1.0 g/mL for converting
+    pancreas weight to volume. Tissue is mostly water with some
+    protein (collagen + cells); 1.0 +/- 5% is standard for soft
+    tumor tissue.
+  source_ref: Hwang2008
+  source_location: Reference value (tissue density)
+  value_snippet: |
+    weight of the pancreas
+calibration:
+  parameters:
+  - name: k_stroma_support
+    units: dimensionless
+  - name: alpha_endpoint_mass
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.7
+  forward_model:
+    type: algebraic
+    formula: |
+      Tumor weight (g) at 8 weeks =
+        pancreas_weight_basal +
+        alpha_endpoint_mass *
+          (k_stroma_support * HPSC_count + bxpc3_count_initial) *
+          cancer_cell_volume_mL * tissue_density_g_per_mL *
+          ecm_saturation_factor +
+        HPSC_count * caf_cell_volume_mL * tissue_density_g_per_mL
+    code: |
+      def compute(params, inputs):
+          import numpy as np
+          k_ss = params['k_stroma_support']
+          alpha = params['alpha_endpoint_mass']
+          v_c = inputs['cancer_cell_volume_mL']
+          v_caf = inputs['caf_cell_volume_mL']
+          ecm = inputs['ecm_saturation_factor']
+          rho = inputs['tissue_density_g_per_mL']
+          w_basal = inputs['pancreas_weight_basal']
+          hpsc_1to1 = inputs['hpsc_count_1to1']
+          hpsc_1to5 = inputs['hpsc_count_1to5']
+          bxpc3 = inputs['bxpc3_count_initial']
+          # Cancer cell endpoint count: alpha * C_max where
+          #   C_max = (V_T.K_eff + k_stroma_support * HPSC_count) * ECM_factor
+          # alpha captures the fraction of carrying capacity actually
+          # reached at 8 weeks (lumps growth-rate-vs-time efficiency).
+          # In orthotopic without prior vasculature, V_T.K_eff ~ 0;
+          # bxpc3 contributes a small floor via its initial seeding.
+          c_max_1to1 = (k_ss * hpsc_1to1 + bxpc3) * ecm
+          c_max_1to5 = (k_ss * hpsc_1to5 + bxpc3) * ecm
+          # Tumor weight = basal + cancer mass + HPSC mass
+          w_1to1 = w_basal + alpha * c_max_1to1 * v_c * rho + hpsc_1to1 * v_caf * rho
+          w_1to5 = w_basal + alpha * c_max_1to5 * v_c * rho + hpsc_1to5 * v_caf * rho
+          return {
+              'pancreas_weight_1to1': w_1to1,
+              'pancreas_weight_1to5': w_1to5,
+          }
+    data_rationale: |
+      The Hwang dose-response data informs the linear scaling of cancer
+      carrying capacity with CAF count. With two data points (1:1 and
+      1:5 ratios at fixed cancer cell input), the parameter pair
+      (k_stroma_support, alpha_endpoint_mass) is identifiable: the
+      slope (W_1to5 - W_1to1)/(HPSC_1to5 - HPSC_1to1) sets the
+      product alpha * k_stroma_support, and the intercept conditions
+      alpha against the cancer-only seeding via the bxpc3_count_initial
+      term.
+    submodel_rationale: |
+      The QSP model's cancer carrying capacity formula
+      C_max = (V_T.K + k_stroma_support * aPSC_total) * (1 - phi/(phi+phi_50))
+      reduces to k_stroma_support * aPSC_total in this orthotopic
+      setting (no pre-existing vasculature, ECM saturation absorbed
+      into the assumed factor). The Hwang dose-response is the cleanest
+      direct probe of this term's slope. alpha_endpoint_mass is a
+      nuisance lumping growth-rate-to-saturation efficiency at 8 weeks.
+  error_model:
+  - name: pancreas_weight_1to1
+    units: gram
+    uses_inputs:
+    - pancreas_weight_1to1
+    - pancreas_weight_1to1_se
+    sample_size_input: stroma_ratio_1to1
+    observable:
+      type: custom
+      code: |
+        def compute(t, y, y_start):
+            return y['pancreas_weight_1to1']
+    observation_code: |
+      def derive_observation(inputs, sample_size, rng, n_bootstrap):
+          import numpy as np
+          mean = inputs['pancreas_weight_1to1']
+          se = inputs['pancreas_weight_1to1_se']
+          # SE is the standard error of the population mean — directly
+          # the spread we want to bootstrap. Lognormal because tumor
+          # mass is positive and CV (~0.4) is in the regime where
+          # the lognormal correction matters.
+          cv = se / mean
+          sigma_ln = np.sqrt(np.log(1 + cv**2))
+          mu_ln = np.log(mean) - sigma_ln**2 / 2
+          return rng.lognormal(mu_ln, sigma_ln, n_bootstrap)
+  - name: pancreas_weight_1to5
+    units: gram
+    uses_inputs:
+    - pancreas_weight_1to5
+    - pancreas_weight_1to5_se
+    sample_size_input: stroma_ratio_1to5
+    observable:
+      type: custom
+      code: |
+        def compute(t, y, y_start):
+            return y['pancreas_weight_1to5']
+    observation_code: |
+      def derive_observation(inputs, sample_size, rng, n_bootstrap):
+          import numpy as np
+          mean = inputs['pancreas_weight_1to5']
+          se = inputs['pancreas_weight_1to5_se']
+          cv = se / mean
+          sigma_ln = np.sqrt(np.log(1 + cv**2))
+          mu_ln = np.log(mean) - sigma_ln**2 / 2
+          return rng.lognormal(mu_ln, sigma_ln, n_bootstrap)
+  identifiability_notes: |
+    Two QSP/nuisance parameters (k_stroma_support, alpha_endpoint_mass),
+    two error model entries. Identifiable by construction: the slope
+    (W_1to5 - W_1to1) constrains the product alpha * k_stroma_support,
+    and the intercept (relative to bxpc3-only seeding mass) breaks the
+    degeneracy. Joint inference with f_stroma_max submodel target on
+    Ogawa 2021 area data sharpens the cancer:CAF coupling further.
+tags:
+- ai-generated
+- ecm-anchor-audit
+- caf-cancer-coupling
+extraction_model: claude-opus-4-7

@@ -1,0 +1,227 @@
+study_interpretation: |
+  Ogawa et al. (CCR 2021) performed whole-tissue multiplex fluorescence IHC (ACTA2 + FAP + h-caldesmon) on 215 treatment-naive PDACs from Keio University Hospital. Pixel-by-pixel Naive Bayes classification quantified desmoplastic element proportions. FAP-dominant fibroblast proportion was median 12.1% (IQR 8.2-17.4%) and ACTA2-dominant fibroblast proportion was median 30.6% (IQR 24.2-41.1%) of desmoplastic area. The iCAF fraction is derived as FAP-fib / (ACTA2-fib + FAP-fib), ignoring the negligible ACTA2/FAP overlap (median 0.1%).
+key_assumptions:
+- |
+  FAP-dominant fibroblasts correspond to model iCAFs (inflammatory, paracrine phenotype). Paper confirms these fibroblasts are associated with poorly differentiated areas and restricted CD8 infiltration, consistent with iCAF biology.
+- |
+  ACTA2-dominant fibroblasts (alphaSMA-high, h-caldesmon-negative) correspond to model myCAFs.
+- |
+  The small ACTA2/FAP overlap population (median 0.1% of desmoplastic area) is negligible and excluded from the denominator.
+- |
+  apCAF (CD74+) is described as "extremely limited in number" and is not included in the denominator. This is consistent with the model where apCAF is a very small fraction of total CAFs.
+key_study_limitations:
+- |
+  FAP is expressed by both iCAFs and some myCAFs in scRNA-seq data, but this paper's pixel-level dominant-marker classification separates them by the dominant marker. Some misclassification is expected.
+- |
+  Proportions are of desmoplastic area, not cell counts. Area-per-cell cancels in the fraction, but cell size differences between subtypes could introduce mild bias.
+- |
+  Single-institution cohort (Keio University Hospital, 1991-2016), though n=215 is large.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        icaf = species_dict['V_T.iCAF']
+        total_caf = species_dict['V_T.iCAF'] + species_dict['V_T.myCAF'] + species_dict['V_T.apCAF']
+        return (icaf / total_caf)
+
+  units: dimensionless
+  species:
+  - V_T.iCAF
+  - V_T.myCAF
+  - V_T.apCAF
+  constants: []
+  support: unit_interval
+  mapping_rationale: |
+    FAP-dominant fibroblast fraction of total fibroblasts maps to V_T.iCAF / (V_T.iCAF + V_T.myCAF + V_T.apCAF). Paper's functional characterization (CD8 exclusion, neutrophil recruitment, association with poorly differentiated areas) aligns with iCAF inflammatory/immunosuppressive biology. Area cancels in the fraction.
+  experimental_denominator: ACTA2-dominant + FAP-dominant fibroblast area (pixel-classified desmoplastic compartment, excluding
+    collagen)
+  model_denominator_species:
+  - V_T.iCAF
+  - V_T.myCAF
+  - V_T.apCAF
+  unmodeled_denominator_components: |
+    apCAF (CD74+) fibroblasts not quantified in this paper but described as "extremely limited." Smooth muscle cells excluded by h-caldesmon gating. ACTA2/FAP overlap population (median 0.1%) excluded.
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: Treatment-naive primary PDAC resected without neoadjuvant therapy.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    215 treatment-naive primary PDAC resection specimens (whole-tissue slides), Keio University Hospital 1991-2016. Excluded: 47 preoperative chemo/chemoradiotherapy, 17 PDAC variants, 14 poor staining. Total tumor area examined: 1.6e4 mm2.
+  assay_type: |
+    Whole-tissue multiplex fluorescence IHC (ACTA2 + FAP + h-caldesmon) with pixel-by-pixel Naive Bayes classification. Van Gieson collagen stain on adjacent sections.
+scenario:
+  description: |
+    Baseline stromal composition in treatment-naive resectable PDAC at surgical resection.
+  interventions:
+  - intervention_description: No neoadjuvant therapy. Standard pancreatic resection.
+empirical_data:
+  median:
+  - 0.284
+  ci95:
+  - - 0.094
+    - 0.604
+  units: dimensionless
+  sample_size: 215
+  sample_size_rationale: |
+    n=215 treatment-naive PDACs from Ogawa et al. 2021, after exclusion of 47 preoperative therapy, 17 PDAC variants, 14 poor staining.
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs:
+  - name: acta2_fib_proportion_median
+    value: 30.6
+    units: percent
+    description: Median ACTA2-dominant fibroblast proportion of desmoplastic area
+    source_ref: Ogawa2021_CCR_StromaTypes
+    value_location: Results section, paragraph 1 of "Three distinct stroma types"
+    value_snippet: ACTA2-dominant fibroblast, 33.4% [mean] (median 30.6%; IQR 24.2-41.1%)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: iqr
+    dispersion_type_rationale: Paper reports median and IQR for n=215
+  - name: acta2_fib_proportion_q1
+    value: 24.2
+    units: percent
+    description: Q1 of ACTA2-dominant fibroblast proportion
+    source_ref: Ogawa2021_CCR_StromaTypes
+    value_location: Results section, paragraph 1
+    value_snippet: IQR 24.2-41.1%
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: iqr
+    dispersion_type_rationale: Paper explicitly reports IQR in parentheses after the median.
+  - name: acta2_fib_proportion_q3
+    value: 41.1
+    units: percent
+    description: Q3 of ACTA2-dominant fibroblast proportion
+    source_ref: Ogawa2021_CCR_StromaTypes
+    value_location: Results section, paragraph 1
+    value_snippet: IQR 24.2-41.1%
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: iqr
+    dispersion_type_rationale: Paper explicitly reports IQR in parentheses after the median.
+  - name: fap_fib_proportion_median
+    value: 12.1
+    units: percent
+    description: Median FAP-dominant fibroblast proportion of desmoplastic area
+    source_ref: Ogawa2021_CCR_StromaTypes
+    value_location: Results section, paragraph 1
+    value_snippet: FAP-dominant fibroblast, 13.0% [mean] (median 12.1%; IQR 8.2-17.4%)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: iqr
+    dispersion_type_rationale: Paper reports median and IQR for n=215
+  - name: fap_fib_proportion_q1
+    value: 8.2
+    units: percent
+    description: Q1 of FAP-dominant fibroblast proportion
+    source_ref: Ogawa2021_CCR_StromaTypes
+    value_location: Results section, paragraph 1
+    value_snippet: IQR 8.2-17.4%
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: iqr
+    dispersion_type_rationale: Paper explicitly reports IQR in parentheses after the median.
+  - name: fap_fib_proportion_q3
+    value: 17.4
+    units: percent
+    description: Q3 of FAP-dominant fibroblast proportion
+    source_ref: Ogawa2021_CCR_StromaTypes
+    value_location: Results section, paragraph 1
+    value_snippet: IQR 8.2-17.4%
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: iqr
+    dispersion_type_rationale: Paper explicitly reports IQR in parentheses after the median.
+  assumptions:
+  - name: n_mc_samples
+    value: 100000.0
+    units: dimensionless
+    description: Number of Monte Carlo samples for uncertainty propagation.
+    rationale: 100,000 samples provide stable median and 95% CI estimates.
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        rng = np.random.default_rng(42)
+        z_q = 0.67448975
+        def sample_ln(med, q1, q3, n=100000):
+            sigma = np.log(q3.magnitude / max(q1.magnitude, 0.5)) / (2.0 * z_q)
+            mu = np.log(med.magnitude)
+            return rng.lognormal(mu, sigma, n) * med.units
+        acta2 = sample_ln(inputs['acta2_fib_proportion_median'], inputs['acta2_fib_proportion_q1'], inputs['acta2_fib_proportion_q3'])
+        fap = sample_ln(inputs['fap_fib_proportion_median'], inputs['fap_fib_proportion_q1'], inputs['fap_fib_proportion_q3'])
+        frac = (fap / (acta2 + fap)).to('dimensionless')
+        return {
+            'median_obs': np.median(frac),
+            'ci95_lower': np.percentile(frac, 2.5),
+            'ci95_upper': np.percentile(frac, 97.5),
+        }
+primary_data_source:
+  source_tag: Ogawa2021_CCR_StromaTypes
+  title: |
+    Three Distinct Stroma Types in Human Pancreatic Cancer Identified by Image Analysis of Fibroblast Subpopulations and Collagen
+  first_author: Ogawa
+  year: 2021
+  doi: 10.1158/1078-0432.CCR-20-2298
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: |
+      Treatment-naive human PDAC resection specimens (n=215) with quantitative whole-tissue multiplex IHC, exactly matching the model indication.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Observational measurement of treatment-naive PDAC specimens; no experimental perturbation applied.
+    tme_compatibility: high
+    tme_compatibility_notes: |
+      Treatment-naive PDAC with characteristic desmoplastic stroma. Large cohort (n=215) provides robust population-level estimates of CAF subtype proportions.
+    validation_warnings:
+    - |
+      FAP is not exclusive to iCAFs; pixel-based dominant-marker classification provides reasonable but imperfect separation from myCAFs.
+    - ACTA2 and FAP proportions sampled independently in Monte Carlo; within-patient correlation is not captured.
+secondary_data_sources: []
+calibration_target_id: icaf_fraction_of_caf
+cancer_type: PDAC
+tags:
+- ai-generated
+- text-extracted
+- human-verified
+logfire_trace_id: null
+extraction_model: claude-opus-4-6
+extraction_reasoning_effort: high

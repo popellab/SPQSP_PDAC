@@ -1,0 +1,249 @@
+target_id: k_CXCL12_sec_cancer
+inputs:
+- name: CXCL12_MiaPaCa2_mean_pg_ml
+  value: 129.84
+  units: pg/mL
+  input_type: direct_measurement
+  source_ref: Xu2015
+  source_location: Figure 4C, MiaPaCa-2 bar
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: ~130 pg/mL
+    description: CXCL12 concentration in conditioned medium from MiaPaCa-2 pancreatic
+      cancer cells after 72 h serum-free culture
+    context: ELISA of CXCL12 levels in conditioned media from multiple pancreatic
+      cancer cell lines, Schwann cells (RSC96), and DRGs after 72 h serum-free incubation
+- name: CXCL12_MiaPaCa2_sd_pg_ml
+  value: 14.52
+  units: pg/mL
+  input_type: direct_measurement
+  source_ref: Xu2015
+  source_location: Figure 4C, MiaPaCa-2 bar error
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: error bar height difference ~15 pg/mL
+    description: Approximate spread of the MiaPaCa-2 bar from mean to error-bar tip,
+      used as an estimate of SD
+    context: "Error bars on CXCL12 ELISA bar graph; paper does not specify SD vs SEM,\
+      \ assumed SD with n\u22483 replicates"
+- name: elisa_n_reps
+  value: 3.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: "Most in vitro ELISA measurements in this paper and similar PDAC cell\
+    \ line studies are performed in biological triplicate; the small error bars in\
+    \ Figure 4C are consistent with n\u22483."
+  source_ref: Xu2015
+  source_location: Methods, general note that experiments were repeated multiple times
+- name: incubation_time_72h_hours
+  value: 72.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Xu2015
+  source_location: Methods, Enzyme-linked immunosorbent assay (ELISA)
+  value_snippet: "The cells were conditioned in serum-free medium for 72 h. The culture\
+    \ media were collected, centrifuged at 1500 r.p.m. for 5 min to remove particles,\
+    \ and supernatants were frozen at -80 \xB0C until use."
+- name: incubation_time_72h_days
+  value: 3.0
+  units: day
+  input_type: derived_arithmetic
+  rationale: Convert the reported 72 h conditioning interval into days for consistency
+    with QSP time units.
+  source_ref: Xu2015
+  source_location: Methods, Enzyme-linked immunosorbent assay (ELISA)
+  source_inputs:
+  - incubation_time_72h_hours
+  formula: incubation_time_72h_hours / 24.0
+- name: MiaPaCa2_cell_count_elisa
+  value: 1000000.0
+  units: cell
+  input_type: reference_value
+  rationale: "Approximate number of MiaPaCa-2 pancreatic cancer cells per well used\
+    \ for 72 h serum-free conditioned medium collection in a standard 6-well plate.\
+    \ Typical confluent seeding densities for such ELISA-based secretion assays are\
+    \ on the order of 1\xD710^6 cells per well, consistent with similar PDAC cell\
+    \ line protocols."
+  source_ref: Xu2015
+  source_location: Cell lines, culture conditions and reagents
+- name: elisa_medium_volume_mL
+  value: 2.0
+  units: mL
+  input_type: reference_value
+  rationale: Estimated culture medium volume per well for CXCL12 ELISA-conditioned
+    media collections in 6-well plates; 2 mL is a standard working volume providing
+    adequate nutrients over 72 h.
+  source_ref: Xu2015
+  source_location: Cell culture conditions for pancreatic cancer cell lines
+- name: CXCL12_MW_g_per_mol
+  value: 8000.0
+  units: g/mol
+  input_type: reference_value
+  rationale: Approximate molecular weight of mature human CXCL12 (SDF-1alpha) is ~8
+    kDa; this value is used to convert between nmol and pg for secretion rate calculations.
+  source_ref: Xu2015
+  source_location: Background on CXCL12/CXCR4 axis in pancreatic cancer
+calibration:
+  parameters:
+  - name: k_CXCL12_sec_cancer
+    units: nanomolarity*liter/(cell*day)
+    nuisance: false
+  - name: k_CXCL12_deg
+    units: 1/day
+  forward_model:
+    data_rationale: Xu2015 measured CXCL12 accumulation in conditioned medium from
+      MiaPaCa-2 pancreatic cancer cells over a fixed 72 h incubation using ELISA.
+      With CXCL12 half-life ~8h (k_deg ~2/day), degradation is substantial over 72h
+      and must be included. The steady-state-approach formula C(t) = (k_sec*N*MW*UCF)/(k_deg*V)
+      * (1 - exp(-k_deg*t)) accounts for both secretion and degradation.
+    submodel_rationale: In the full PDAC QSP model, k_CXCL12_sec_cancer multiplies
+      the total cancer cell number to generate a CXCL12 production flux into the tumor
+      compartment, balanced by k_CXCL12_deg degradation. The secretion-with-degradation
+      model replicates both terms.
+    type: algebraic
+    formula: C(t) = k_sec * N * MW * UCF / (k_deg * V) * (1 - exp(-k_deg * t))
+    code: "def compute(params, inputs):\n    import numpy as np\n    k_sec = params['k_CXCL12_sec_cancer']\n\
+      \    k_deg = params['k_CXCL12_deg']\n    N = inputs['MiaPaCa2_cell_count_elisa']\n\
+      \    t = inputs['incubation_time_72h_days']\n    MW = inputs['CXCL12_MW_g_per_mol']\n\
+      \    V_mL = inputs['elisa_medium_volume_mL']\n    UCF = 1000.0\n\n    # C(t) = (k_sec * N * MW * UCF) / (k_deg * V_mL) * (1 - exp(-k_deg * t))\n\
+      \    # Units: [nM*L/(cell*day)] * [cell] * [g/mol] * [1000] / ([1/day] * [mL]) = pg/mL\n\
+      \    ss = k_sec * N * MW * UCF / (k_deg * V_mL)\n    return ss * (1 - np.exp(-k_deg * t))\n"
+  error_model:
+  - name: CXCL12_MiaPaCa2_72h
+    units: pg/mL
+    uses_inputs:
+    - CXCL12_MiaPaCa2_mean_pg_ml
+    - CXCL12_MiaPaCa2_sd_pg_ml
+    sample_size_input: elisa_n_reps
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['CXCL12_MiaPaCa2_mean_pg_ml']\n \
+      \   sd = inputs['CXCL12_MiaPaCa2_sd_pg_ml']\n    n = int(sample_size)\n    cv\
+      \ = sd / mean\n    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean)\
+      \ - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(n),\
+      \ n_bootstrap)"
+    n_bootstrap: 10000
+  identifiability_notes: >
+    k_CXCL12_sec_cancer and k_CXCL12_deg are jointly constrained by the single
+    72h concentration measurement. With CXCL12 half-life ~8h (k_deg ~2/day from
+    the priors CSV), the system is near steady state at 72h, so the measurement
+    constrains k_sec/k_deg rather than k_sec alone. k_CXCL12_deg is shared with
+    the iCAF secretion targets (deriv001, deriv002), providing cross-target
+    constraint. MiaPaCa-2 is among the higher-secreting PDAC lines in Xu2015
+    yet still produces very low CXCL12 (~0.02 nM), confirming that tumor-cell
+    secretion is orders of magnitude lower than stromal sources.
+experimental_context:
+  species: human
+  system: in_vitro_cell_line
+  cell_lines:
+  - name: MiaPaCa-2
+    species: human
+    tissue_origin: pancreas
+    cell_type: pancreatic ductal adenocarcinoma cell line
+    source: Chinese Academy of Sciences Cell Bank of Type Culture Collection
+  culture_conditions:
+    substrate: standard tissue culture-treated plastic (6-well plates)
+    serum_concentration: 0.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic (5% CO2, ambient O2)
+    culture_type: 2d_monolayer
+    medium: DMEM or appropriate complete medium followed by serum-free DMEM/F12 for
+      conditioning
+    duration: 72 h serum-free conditioning for ELISA collection
+    notes: Cells were grown to near confluence in serum-containing medium, then switched
+      to serum-free medium for 72 h before supernatant collection for CXCL12 ELISA.
+  indication: pancreatic ductal adenocarcinoma
+study_interpretation: Xu2015 quantified CXCL12 accumulation in serum-free conditioned
+  medium from multiple human pancreatic cancer cell lines, Schwann cells, and DRGs.
+  MiaPaCa-2 showed the highest CXCL12 among the PDAC lines but remained nearly two
+  orders of magnitude lower than Schwann cells and DRGs. Converting the MiaPaCa-2
+  ELISA concentration after 72 h into a per-cell secretion rate yields a value on
+  the order of 10^-11 nM*L/(cell*day), supporting the modeling choice that PDAC tumor-cell
+  CXCL12 is a minor source compared to stromal compartments. This target therefore
+  informs k_CXCL12_sec_cancer as a small but nonzero upper bound consistent with PDAC
+  biology.
+key_assumptions:
+- MiaPaCa-2 is representative of the upper bound of CXCL12 secretion among PDAC cancer
+  cell lines; other lines with lower or undetectable CXCL12 are ignored to avoid overconstraining
+  k_CXCL12_sec_cancer toward zero.
+- The conditioned medium volume per well is approximated as 2 mL, typical for 6-well
+  plate cultures used for ELISA supernatant collection.
+- "The number of MiaPaCa-2 cells per well contributing to conditioned medium is approximated\
+  \ as 1\xD710^6 cells at near confluence, consistent with standard PDAC cell culture\
+  \ practice."
+- CXCL12 degradation over the 72 h conditioning period is negligible compared with
+  accumulation, so the ELISA concentration reflects the time-integrated secretion
+  rate without significant loss.
+- Error bars in Figure 4C are treated as standard deviations over approximately three
+  biological replicates, enabling a lognormal bootstrap for measurement uncertainty.
+- Serum-free culture for 72 h does not dramatically suppress or enhance CXCL12 secretion
+  relative to the in vivo PDAC tumor microenvironment, so the in vitro rate is used
+  directly as an upper bound for the in vivo parameter.
+key_study_limitations:
+- Cell counts and medium volumes for the ELISA-conditioned media are not explicitly
+  reported and are approximated based on typical 6-well plate usage, introducing uncertainty
+  in the absolute per-cell secretion rate.
+- Only a single timepoint (72 h) is available, precluding separation of secretion
+  and degradation kinetics; any CXCL12 instability would cause the inferred secretion
+  rate to underestimate the true rate.
+- PDAC cell lines in 2D monolayer culture lack the complex stromal interactions and
+  mechanical cues present in vivo, which could modestly alter chemokine secretion
+  profiles.
+- MiaPaCa-2 represents one PDAC genotype/phenotype; other tumors may secrete even
+  less CXCL12, so the inferred rate should be interpreted as an approximate upper
+  bound rather than a population average.
+- ELISA measurements are near the lower end of the standard curve for cancer supernatants,
+  so relative errors may be larger than indicated by the small plotted error bars.
+primary_data_source:
+  pmid: '25537514'
+  title: Stromal-derived factor-1alpha/CXCL12-CXCR4 chemotactic pathway promotes perineural
+    invasion in pancreatic cancer
+  authors:
+  - Xu Q
+  - Wang Z
+  - Chen X
+  - Duan W
+  - Lei J
+  - Zong L
+  - Li X
+  - Sheng L
+  - Ma J
+  - Han L
+  - Li W
+  - Zhang L
+  - Guo K
+  - Ma Z
+  - Wu Z
+  - Wu E
+  - Ma Q
+  year: 2015
+  source_tag: Xu2015
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The study uses multiple human pancreatic ductal
+      adenocarcinoma cell lines to investigate CXCL12/CXCR4 signaling and perineural
+      invasion, directly matching the PDAC indication modeled in the QSP framework.
+      The secretion data therefore reflects the same cancer type as the target model.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Cells are cultured under baseline conditions without pharmacologic
+      perturbation; CXCL12 secretion reflects intrinsic properties of the PDAC lines
+      in serum-free medium.
+    tme_compatibility: moderate
+    tme_compatibility_notes: The data are derived from 2D monolayer cultures of PDAC
+      cell lines lacking desmoplastic stroma, immune cells, and vasculature. While
+      suitable for characterizing intrinsic tumor-cell CXCL12 production, these conditions
+      do not capture TME-mediated regulation of chemokine secretion present in PDAC
+      tumors.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_cell_line
+tags:
+- CXCL12
+- CXCR4
+- chemokine_secretion
+- PDAC
+- tumor_cell_intrinsic
+extraction_model: gpt-4.1
+extraction_reasoning_effort: medium

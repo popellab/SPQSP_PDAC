@@ -1,0 +1,114 @@
+# QSPIO-PDAC: Quantitative Systems Pharmacology Model for Pancreatic Ductal Adenocarcinoma
+
+## Overview
+Immuno-oncology QSP model for PDAC capturing tumor-immune-stroma interactions and therapeutic interventions. ~90 species across 11 compartments.
+
+## Compartments
+- **V_C**: Central compartment (blood, 5 L)
+- **V_P**: Peripheral compartment (tissues, 60 L)
+- **V_T**: Tumor compartment (dynamic volume, initially ~1 μL)
+- **V_LN**: Tumor-draining lymph node (1113 mm³)
+- **V_ID**: Injection site (GVAX administration)
+- **V_e**: APC endosomal compartment
+- **A_e, A_s**: Endosomal/surface MHC-I compartments
+- Synaptic compartments: syn_CD8_C1, syn_CD8_APC, syn_M_C (checkpoint interactions)
+
+## Cell Populations
+
+### Tumor Cells
+- **C1**: Viable cancer cells (Gompertzian growth, vasculature-dependent carrying capacity K)
+- **C_x**: Dead cancer cells (antigen source, cleared by efferocytosis)
+
+### T Cells (by functional state and compartment)
+- **nCD8, nCD4**: Naive T cells (V_C, V_P, V_LN)
+- **aCD8, aTreg, aTh**: Activated T cells (V_LN, primed by mature DCs)
+- **CD8, Treg, Th**: Effector T cells (V_T, V_C, V_P, V_LN)
+- **CD8_exh, Th_exh**: Exhausted T cells (V_T) — PD-1hi, reduced function
+
+### Dendritic Cells (two subtypes)
+- **cDC1**: Immature conventional DC type 1 (BATF3+, cross-presenting → CD8 priming via MHC-I)
+- **cDC2**: Immature conventional DC type 2 (IRF4+, MHC-II → CD4 Th/Treg priming)
+- **mcDC1, mcDC2**: Mature (activated) forms of each subtype
+- Present in both V_T and V_LN (8 species total)
+- Maturation driven by DAMP or IL-12; inhibited by IL-10 and TGFb; blocked by H_pore_APC (ECM exclusion)
+- Aggregate aliases: APC_total_T, mAPC_total_T, mAPC_total_LN (backward compatibility)
+
+### NK Cells
+- **NK**: NK cells in V_T; **NK_P**: NK cells in V_P
+- Secrete IFNg and XCL1 (cDC1 recruitment); killing suppressed by IL-10, TGFb, MDSC
+
+### Myeloid Cells
+- **Mac_M1**: M1 macrophages (pro-inflammatory, anti-tumor, secrete IL-12)
+- **Mac_M2**: M2 macrophages (immunosuppressive, secrete IL-10)
+- **MDSC**: Myeloid-derived suppressor cells (secrete NO, ArgI; recruited by CCL2, IL-6)
+
+### Stromal Cells — CAF Subtypes (PDAC-specific)
+- **qPSC**: Quiescent pancreatic stellate cells (dormant precursor)
+- **iCAF**: Inflammatory CAFs — secrete IL-6, CCL5; IL-1-driven; TGFb antagonizes via IL-1R1 downregulation
+- **myCAF**: Myofibroblastic CAFs — secrete collagen, CXCL12, TGFb, VEGF; TGFb-driven
+- **apCAF**: Antigen-presenting CAFs — tolerogenic; sequester antigen P1, induce Tregs
+
+### ECM / Desmoplasia
+- **collagen**: Fibrillar collagen mass (mg) in V_T; produced by myCAFs, degraded by MMPs (M1-dependent) and constitutive turnover
+- **phi_collagen**: Collagen volume fraction (dimensionless, 0–1) — primary ECM state variable
+- **d_pore**: Dynamic pore diameter (μm) — `d_pore_ref * (phi_col_ref / phi_collagen)^0.5`
+- **stiffness**: Tissue stiffness (kPa-scaled) — `E_ref * (phi_collagen / phi_col_ref)^n_stiff`
+- **H_pore_T, H_pore_APC**: Pore-size-based immune cell exclusion
+- **H_stiff_Texh**: Stiffness-mediated T cell exhaustion
+- **H_stiff_fib**: Stiffness-mediated fibroblast activation (YAP/TAZ mechanotransduction)
+
+## Cytokines and Soluble Factors
+
+| Species | Compartment | Source | Function |
+|---------|-------------|--------|----------|
+| IL-2 | V_LN | Activated T cells | T cell clonal expansion |
+| IL-6 | V_T | iCAFs | MDSC recruitment, M2 polarization, iCAF autocrine |
+| IL-10 | V_T | M2 macrophages | Immunosuppression (DCs, NK, T cells) |
+| IL-12 | V_T | mcDC1, M1 macrophages | DC maturation, NK activation |
+| IL-1 (IL-1α) | V_T | Cancer cells | iCAF differentiation (antagonized by TGFb at IL-1R1) |
+| IFNγ | V_T | CD8, Th, NK cells | M1 polarization, CXCL9 induction |
+| TGFβ | V_T | myCAFs, cancer cells, Tregs | myCAF activation, T cell suppression, IL-1R1 downregulation |
+| VEGF | V_T | myCAFs, cancer cells | Angiogenesis (vasculature-dependent carrying capacity) |
+| CXCL12 | V_T | iCAFs, cancer cells | T cell and NK cell exclusion (CXCR4) |
+| CXCL9 | V_T | IFNγ-stimulated cells | T cell recruitment (CXCR3) |
+| XCL1 | V_T | NK cells | cDC1 recruitment (XCR1) |
+| CCL2 | V_T | Cancer cells, MDSCs | Macrophage/MDSC recruitment |
+| CCL5 | V_T | Cancer cells, iCAFs | Treg recruitment (CCR5) |
+| NO | V_T | MDSCs | T cell dysfunction |
+| ArgI | V_T | MDSCs | Arginine depletion → T cell suppression |
+| GMCSF | V_ID | GVAX cells | DC recruitment and maturation at injection site |
+
+## Checkpoint Molecules (synaptic compartments)
+- **PD-1/PD-L1/PD-L2**: T cell exhaustion axis
+- **CTLA-4/CD80/CD86**: T cell activation control
+- **CD28/CD80/CD86**: Co-stimulation
+- **CD47/SIRPα**: "Don't eat me" signal (macrophage phagocytosis checkpoint)
+- Multi-valent binding kinetics with ~31 species per synapse
+
+## Therapeutic Interventions
+- **Checkpoint inhibitors**: aPD1 (nivolumab), aPDL1 (atezolizumab), aCTLA4 (ipilimumab/tremelimumab)
+- **Vaccine**: GVAX (GM-CSF-secreting tumor cells → cDC2 maturation at injection site)
+- **Chemotherapy**: nab-paclitaxel (3-compartment PK)
+- **Epigenetic**: entinostat (HDAC inhibitor)
+- **Targeted**: cabozantinib (anti-angiogenic), anti-CD47 (phagocytosis checkpoint)
+- **Immunomodulatory**: low-dose cyclophosphamide (Treg depletion)
+
+## Key Parameter Naming Conventions
+- `k_*`: Rate constants (e.g., k_C1_growth, k_Treg_death)
+- `K_*`: Carrying capacities or association constants
+- `*_50`: EC50 / half-maximal concentrations (e.g., TGFb_50_APC, IL10_50)
+- `n_*`: Hill coefficients (e.g., n_stiff, n_pore)
+- `q_*`: Transport/trafficking rates (e.g., q_CD8_T_in)
+- `rho_*`: Density/carrying capacity parameters (e.g., rho_Treg_max)
+- `f_*`: Fraction parameters (e.g., f_stroma_max, f_col_basal)
+- `d_*`: Diameter/distance parameters (e.g., d_pore_ref, d_crit_T)
+- `E_*`: Stiffness parameters (e.g., E_ref, E_50_Texh)
+- `phi_*`: Volume fraction parameters (e.g., phi_col_ref)
+- `APC0_*`: Homeostatic DC densities (e.g., APC0_cDC1_T, APC0_cDC2_LN)
+
+## PDAC-Specific Biology
+1. **Desmoplastic stroma**: Dense collagen matrix produced by myCAFs creates physical barriers (pore exclusion) and mechanical signaling (stiffness-driven exhaustion)
+2. **CAF subtype plasticity**: IL-1/TGFb axis drives iCAF↔myCAF interconversion; apCAFs are tolerogenic
+3. **T cell exclusion**: CXCL12 from iCAFs/cancer cells prevents T cell infiltration
+4. **Layered immunosuppression**: MDSC (NO, ArgI) + M2 macrophages (IL-10) + Tregs (CCL5-recruited) + TGFb
+5. **Positive feedback loops**: IL-6 autocrine on iCAFs; IL-12→NK→XCL1→cDC1→IL-12

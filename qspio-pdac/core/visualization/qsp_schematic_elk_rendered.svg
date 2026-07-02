@@ -1,0 +1,440 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1251.6666666666667" height="941" viewBox="0 0 1251.6666666666667 941" font-family="Helvetica, Arial, sans-serif">
+<rect width="1251.6666666666667" height="941" fill="white"/>
+<defs>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#3366cc"/>
+  </marker>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#9933cc"/>
+  </marker>
+  <marker id="arrow-red" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#cc3333"/>
+  </marker>
+  <marker id="arrow-teal" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#009688"/>
+  </marker>
+  <marker id="tee-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <line x1="9" y1="1" x2="9" y2="9" stroke="#cc3333" stroke-width="3"/>
+  </marker>
+  <marker id="circle-teal" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+    <circle cx="5" cy="5" r="4" fill="none" stroke="#009688" stroke-width="1.5"/>
+  </marker>
+</defs>
+<g id="comp-blood">
+<rect x="247" y="394" width="230" height="153" rx="12" ry="12" fill="#fce8e8" stroke="#cc4444" stroke-width="2" opacity="0.8"/>
+<text x="259" y="416" font-size="15" font-weight="bold" fill="#cc4444">Blood</text>
+</g>
+<g id="comp-dln">
+<rect x="247" y="40" width="317.33333333333337" height="324" rx="12" ry="12" fill="#fff3e0" stroke="#cc8833" stroke-width="2" opacity="0.8"/>
+<text x="259" y="62" font-size="15" font-weight="bold" fill="#cc8833">Primary dLNs</text>
+</g>
+<g id="comp-tumor">
+<rect x="594.3333333333334" y="40" width="617.3333333333334" height="861" rx="12" ry="12" fill="#e8f5e9" stroke="#44aa44" stroke-width="2" opacity="0.8"/>
+<text x="606.3333333333334" y="62" font-size="15" font-weight="bold" fill="#44aa44">Primary Tumor</text>
+</g>
+<g id="comp-injection">
+<rect x="40" y="40" width="177" height="324" rx="12" ry="12" fill="#e0f7fa" stroke="#00838f" stroke-width="2" opacity="0.8"/>
+<text x="52" y="62" font-size="15" font-weight="bold" fill="#00838f">Intradermal Injection</text>
+</g>
+<g id="edge-blood.Cy-to-blood.Treg">
+<path d="M 347 452 L 377 452" fill="none" stroke="#cc3333" stroke-width="1.8" marker-end="url(#tee-red)"/>
+</g>
+<g id="edge-blood.Cy-to-blood.Teff">
+<path d="M 347 464 L 357 464 L 357 503 L 377 503" fill="none" stroke="#cc3333" stroke-width="1.8" marker-end="url(#tee-red)"/>
+</g>
+<g id="edge-dln.nTCD8-to-dln.Teff">
+<path d="M 307 268 L 307 308" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-dln.nTCD4-to-dln.Treg">
+<path d="M 505 192 L 505 207 L 517.6666666666667 207 L 517.6666666666667 308" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-dln.nTCD4-to-dln.Th">
+<path d="M 465 192 L 465 207 L 407 207 L 407 232" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-dln.nTCD4-to-dln.IL2">
+<path d="M 485 192 L 485 232" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-dln.IL2-to-dln.Treg">
+<path d="M 491 268 L 491 308" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-dln.IL2-to-dln.Teff">
+<path d="M 479 268 L 479 283 L 333.6666666666667 283 L 333.6666666666667 308" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-dln.mcDC1-to-dln.nTCD8">
+<path d="M 307 192 L 307 232" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-dln.mcDC2-to-dln.nTCD4">
+<path d="M 485 116 L 485 156" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-dln.Teff-to-blood.Teff">
+<path d="M 317.8926553672316 344 L 317.8926553672316 414.5 L 414.5593220338983 414.5 L 414.5593220338983 485" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-dln.Treg-to-blood.Treg">
+<path d="M 504.33333333333337 344 L 504.33333333333337 389 L 417 389 L 417 434" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-dln.Th-to-blood.Th">
+<path d="M 408.66795366795367 268 L 408.66795366795367 379.5 L 308.66795366795367 379.5 L 308.66795366795367 491" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-blood.Th-to-tumor.Th">
+<path d="M 347 504.87392550143267 L 481.5 504.87392550143267 L 481.5 473.87392550143267 L 616 473.87392550143267" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-blood.Treg-to-tumor.Treg">
+<path d="M 457 450.3448275862069 L 562 450.3448275862069 L 562 582.3448275862069 L 667 582.3448275862069" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-blood.Teff-to-tumor.Teff">
+<path d="M 457 503.9417920209287 L 671.8333333333334 503.9417920209287 L 671.8333333333334 726.9417920209287 L 886.6666666666667 726.9417920209287" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.IFNg-to-tumor.PDL1">
+<path d="M 934.0000000000001 815 L 934.0000000000001 850" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.Th-to-tumor.IFNg">
+<path d="M 656 496 L 656 764 L 928.0000000000001 764 L 928.0000000000001 779" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.Teff-to-tumor.IFNg">
+<path d="M 940.0000000000001 744 L 940.0000000000001 779" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.CXCL12-to-tumor.Teff">
+<path d="M 897.6666666666667 496 L 897.6666666666667 683 L 913.3333333333335 683 L 913.3333333333335 708" fill="none" stroke="#cc3333" stroke-width="1.8" marker-end="url(#tee-red)"/>
+</g>
+<g id="edge-tumor.M2-to-tumor.IL10">
+<path d="M 1041 602 L 1041 637" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.M2-to-tumor.TGFb">
+<path d="M 1014.3333333333335 602 L 1014.3333333333335 612 L 930.2666666666668 612 L 930.2666666666668 637" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.M1-to-tumor.IL12">
+<path d="M 1132.6666666666667 116 L 1132.6666666666667 126 L 679.3333333333334 126 L 679.3333333333334 242" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.mcDC1-to-tumor.IL12">
+<path d="M 697.6666666666667 389 L 697.6666666666667 359 L 673.3333333333334 359 L 673.3333333333334 278" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.CCL2-to-tumor.M1">
+<path d="M 782.6666666666667 242 L 782.6666666666667 136 L 1148.6666666666667 136 L 1148.6666666666667 116" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-tumor.M1-to-tumor.M2">
+<path d="M 1180.6666666666667 116 L 1180.6666666666667 556 L 1041 556 L 1041 566" fill="none" stroke="#9933cc" stroke-width="1.8" marker-start="url(#arrow-purple)" marker-end="url(#arrow-purple)"/>
+</g>
+<g id="edge-tumor.MDSC-to-tumor.NO">
+<path d="M 788.6666666666667 602 L 788.6666666666667 612 L 764.3333333333334 612 L 764.3333333333334 637" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.MDSC-to-tumor.ArgI">
+<path d="M 815.3333333333334 602 L 815.3333333333334 637" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.CCL2-to-tumor.MDSC">
+<path d="M 788.6666666666667 278 L 788.6666666666667 566" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-tumor.Cancer-to-tumor.CCL2">
+<path d="M 1117.3333333333335 192 L 1117.3333333333335 212 L 794.6666666666667 212 L 794.6666666666667 242" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.Cancer-to-tumor.CCL5">
+<path d="M 1130.6666666666667 192 L 1130.6666666666667 222 L 817.6666666666667 222 L 817.6666666666667 313" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.Cancer-to-tumor.Debris">
+<path d="M 1104 192 L 1104 202 L 737.6666666666667 202 L 737.6666666666667 242" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.Cancer-to-tumor.PDGF">
+<path d="M 1144 192 L 1144 232 L 1107.3333333333335 232 L 1107.3333333333335 242" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.M1-to-tumor.Cancer">
+<path d="M 1164.6666666666667 116 L 1164.6666666666667 146 L 1130.6666666666667 146 L 1130.6666666666667 156" fill="none" stroke="#cc3333" stroke-width="1.8" marker-end="url(#tee-red)"/>
+</g>
+<g id="edge-tumor.Teff-to-tumor.Cancer">
+<path d="M 953.3333333333335 708 L 953.3333333333335 693 L 1157.3333333333335 693 L 1157.3333333333335 192" fill="none" stroke="#cc3333" stroke-width="1.8" marker-end="url(#tee-red)"/>
+</g>
+<g id="edge-tumor.Th-to-tumor.Treg">
+<path d="M 676 496 L 676 506 L 687 506 L 687 566" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.Treg-to-tumor.TGFb">
+<path d="M 720.3333333333334 602 L 720.3333333333334 622 L 915.8666666666668 622 L 915.8666666666668 637" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.Th-to-tumor.Texh">
+<path d="M 636 496 L 636 779" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.Teff-to-tumor.Texh">
+<path d="M 913.3333333333335 744 L 913.3333333333335 754 L 662.6666666666667 754 L 662.6666666666667 779" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.Treg-to-tumor.Teff">
+<path d="M 693.6666666666667 602 L 693.6666666666667 693 L 900.0000000000001 693 L 900.0000000000001 708" fill="none" stroke="#cc3333" stroke-width="1.8" marker-end="url(#tee-red)"/>
+</g>
+<g id="edge-tumor.apCAF-to-tumor.Treg">
+<path d="M 868.6666666666667 425 L 868.6666666666667 516 L 727 516 L 727 566" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.CCL5-to-tumor.Treg">
+<path d="M 817.6666666666667 349 L 817.6666666666667 506 L 707 506 L 707 566" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-tumor.ECM-to-tumor.Teff">
+<path d="M 954.6666666666667 602 L 954.6666666666667 683 L 940.0000000000001 683 L 940.0000000000001 708" fill="none" stroke="#cc3333" stroke-width="1.8" marker-end="url(#tee-red)"/>
+</g>
+<g id="edge-tumor.TGFb-to-tumor.Teff">
+<path d="M 926.6666666666667 673 L 926.6666666666667 708" fill="none" stroke="#cc3333" stroke-width="1.8" marker-end="url(#tee-red)"/>
+</g>
+<g id="edge-tumor.Debris-to-tumor.cDC1">
+<path d="M 737.6666666666667 278 L 737.6666666666667 313" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-tumor.cDC1-to-tumor.mcDC1">
+<path d="M 724.3333333333334 349 L 724.3333333333334 389" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.cDC2-to-tumor.mcDC2">
+<path d="M 1041 744 L 1041 779" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.mcDC1-to-dln.mcDC1">
+<path d="M 671 405.81188118811883 L 509 405.81188118811883 L 509 172.8118811881188 L 347 172.8118811881188" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.mcDC2-to-dln.mcDC2">
+<path d="M 1041.3090128755364 779 L 1041.3090128755364 447.5 L 485.3090128755365 447.5 L 485.3090128755365 116" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.IL12-to-tumor.cDC1">
+<path d="M 685.3333333333334 278 L 685.3333333333334 288 L 711 288 L 711 313" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-tumor.IL10-to-tumor.cDC2">
+<path d="M 1041 673 L 1041 708" fill="none" stroke="#cc3333" stroke-width="1.8" marker-end="url(#tee-red)"/>
+</g>
+<g id="edge-tumor.qPSC-to-tumor.myCAF">
+<path d="M 1115.3333333333335 349 L 1115.3333333333335 379 L 1094.6666666666667 379 L 1094.6666666666667 460" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.qPSC-to-tumor.iCAF">
+<path d="M 1099.3333333333335 349 L 1099.3333333333335 369 L 1008.3333333333335 369 L 1008.3333333333335 389" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.qPSC-to-tumor.apCAF">
+<path d="M 1083.3333333333335 349 L 1083.3333333333335 359 L 868.6666666666667 359 L 868.6666666666667 389" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.TGFb-to-tumor.qPSC">
+<path d="M 937.4666666666668 637 L 937.4666666666668 622 L 1131.3333333333335 622 L 1131.3333333333335 349" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-tumor.PDGF-to-tumor.qPSC">
+<path d="M 1107.3333333333335 278 L 1107.3333333333335 313" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-tumor.myCAF-to-tumor.ECM">
+<path d="M 1094.6666666666667 496 L 1094.6666666666667 546 L 954.6666666666667 546 L 954.6666666666667 566" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.iCAF-to-tumor.CXCL12">
+<path d="M 988.3333333333335 425 L 988.3333333333335 435 L 897.6666666666667 435 L 897.6666666666667 460" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.myCAF-to-tumor.TGFb">
+<path d="M 1068 496 L 1068 536 L 923.0666666666668 536 L 923.0666666666668 637" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.iCAF-to-tumor.IL6">
+<path d="M 1008.3333333333335 425 L 1008.3333333333335 460" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-tumor.iCAF-to-tumor.myCAF">
+<path d="M 1028.3333333333335 425 L 1028.3333333333335 435 L 1068 435 L 1068 460" fill="none" stroke="#9933cc" stroke-width="1.8" marker-start="url(#arrow-purple)" marker-end="url(#arrow-purple)"/>
+</g>
+<g id="edge-tumor.IL6-to-tumor.MDSC">
+<path d="M 1002.3333333333335 496 L 1002.3333333333335 526 L 815.3333333333334 526 L 815.3333333333334 566" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-tumor.IL6-to-tumor.M2">
+<path d="M 1014.3333333333335 496 L 1014.3333333333335 566" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-blood.Cy-to-tumor.Treg">
+<path d="M 347 461.6 L 507 461.6 L 507 587.6 L 667 587.6" fill="none" stroke="#cc3333" stroke-width="1.8" marker-end="url(#tee-red)"/>
+</g>
+<g id="edge-injection.GVAX-to-injection.GMCSF">
+<path d="M 151 116 L 151 156" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-injection.GVAX-to-injection.P1">
+<path d="M 124.33333333333333 116 L 124.33333333333333 126 L 78 126 L 78 232" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-injection.APC-to-injection.mAPC">
+<path d="M 157 268 L 157 278 L 126 278 L 126 308" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="edge-injection.GMCSF-to-injection.APC">
+<path d="M 157 192 L 157 232" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-injection.GMCSF-to-injection.mAPC">
+<path d="M 145 192 L 145 202 L 106 202 L 106 308" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-injection.P1-to-injection.mAPC">
+<path d="M 78 268 L 78 278 L 86 278 L 86 308" fill="none" stroke="#009688" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#circle-teal)"/>
+</g>
+<g id="edge-injection.mAPC-to-dln.mcDC2">
+<path d="M 146 326 L 295.5 326 L 295.5 98 L 445 98" fill="none" stroke="#3366cc" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="node-blood.Th">
+<rect x="267" y="491" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="307" y="513" text-anchor="middle" font-size="12" fill="#333">Th</text>
+</g>
+<g id="node-blood.Treg">
+<rect x="377" y="434" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="417" y="456" text-anchor="middle" font-size="12" fill="#333">Treg</text>
+</g>
+<g id="node-blood.Teff">
+<rect x="377" y="485" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="417" y="507" text-anchor="middle" font-size="12" fill="#333">Teff</text>
+</g>
+<g id="node-blood.Cy">
+<rect x="267" y="440" width="80" height="36" rx="6" ry="6" fill="#ffcccc" stroke="#666" stroke-width="1.5"/>
+<text x="307" y="462" text-anchor="middle" font-size="12" fill="#333">Cy</text>
+</g>
+<g id="node-dln.nTCD8">
+<rect x="267" y="232" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="307" y="254" text-anchor="middle" font-size="12" fill="#333">nTCD8</text>
+</g>
+<g id="node-dln.Teff">
+<rect x="280.3333333333333" y="308" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="320.3333333333333" y="330" text-anchor="middle" font-size="12" fill="#333">Teff</text>
+</g>
+<g id="node-dln.nTCD4">
+<rect x="445" y="156" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="485" y="178" text-anchor="middle" font-size="12" fill="#333">nTCD4</text>
+</g>
+<g id="node-dln.Treg">
+<rect x="464.33333333333337" y="308" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="504.33333333333337" y="330" text-anchor="middle" font-size="12" fill="#333">Treg</text>
+</g>
+<g id="node-dln.Th">
+<rect x="367" y="232" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="407" y="254" text-anchor="middle" font-size="12" fill="#333">Th</text>
+</g>
+<g id="node-dln.IL2">
+<circle cx="485" cy="250" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="485" y="254" text-anchor="middle" font-size="11" fill="#333">IL-2</text>
+</g>
+<g id="node-dln.mcDC1">
+<rect x="267" y="156" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="307" y="178" text-anchor="middle" font-size="12" fill="#333">mcDC1</text>
+</g>
+<g id="node-dln.mcDC2">
+<rect x="445" y="80" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="485" y="102" text-anchor="middle" font-size="12" fill="#333">mcDC2</text>
+</g>
+<g id="node-tumor.Th">
+<rect x="616" y="460" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="656" y="482" text-anchor="middle" font-size="12" fill="#333">Th</text>
+</g>
+<g id="node-tumor.Treg">
+<rect x="667" y="566" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="707" y="588" text-anchor="middle" font-size="12" fill="#333">Treg</text>
+</g>
+<g id="node-tumor.Teff">
+<rect x="886.6666666666667" y="708" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="926.6666666666667" y="730" text-anchor="middle" font-size="12" fill="#333">Teff</text>
+</g>
+<g id="node-tumor.Texh">
+<rect x="609.3333333333334" y="779" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="649.3333333333334" y="801" text-anchor="middle" font-size="12" fill="#333">Texh</text>
+</g>
+<g id="node-tumor.PDL1">
+<circle cx="934.0000000000001" cy="868" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="934.0000000000001" y="872" text-anchor="middle" font-size="11" fill="#333">PD-L1</text>
+</g>
+<g id="node-tumor.IFNg">
+<circle cx="934.0000000000001" cy="797" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="934.0000000000001" y="801" text-anchor="middle" font-size="11" fill="#333">IFNγ</text>
+</g>
+<g id="node-tumor.IL12">
+<circle cx="679.3333333333334" cy="260" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="679.3333333333334" y="264" text-anchor="middle" font-size="11" fill="#333">IL-12</text>
+</g>
+<g id="node-tumor.IL10">
+<circle cx="1041" cy="655" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="1041" y="659" text-anchor="middle" font-size="11" fill="#333">IL-10</text>
+</g>
+<g id="node-tumor.TGFb">
+<circle cx="926.6666666666667" cy="655" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="926.6666666666667" y="659" text-anchor="middle" font-size="11" fill="#333">TGF-β</text>
+</g>
+<g id="node-tumor.CCL2">
+<circle cx="788.6666666666667" cy="260" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="788.6666666666667" y="264" text-anchor="middle" font-size="11" fill="#333">CCL2</text>
+</g>
+<g id="node-tumor.CCL5">
+<circle cx="817.6666666666667" cy="331" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="817.6666666666667" y="335" text-anchor="middle" font-size="11" fill="#333">CCL5</text>
+</g>
+<g id="node-tumor.CXCL12">
+<circle cx="897.6666666666667" cy="478" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="897.6666666666667" y="482" text-anchor="middle" font-size="11" fill="#333">CXCL12</text>
+</g>
+<g id="node-tumor.NO">
+<circle cx="764.3333333333334" cy="655" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="764.3333333333334" y="659" text-anchor="middle" font-size="11" fill="#333">NO</text>
+</g>
+<g id="node-tumor.ArgI">
+<circle cx="815.3333333333334" cy="655" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="815.3333333333334" y="659" text-anchor="middle" font-size="11" fill="#333">ArgI</text>
+</g>
+<g id="node-tumor.ECM">
+<circle cx="954.6666666666667" cy="584" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="954.6666666666667" y="588" text-anchor="middle" font-size="11" fill="#333">ECM</text>
+</g>
+<g id="node-tumor.PDGF">
+<circle cx="1107.3333333333335" cy="260" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="1107.3333333333335" y="264" text-anchor="middle" font-size="11" fill="#333">PDGF</text>
+</g>
+<g id="node-tumor.IL6">
+<circle cx="1008.3333333333335" cy="478" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="1008.3333333333335" y="482" text-anchor="middle" font-size="11" fill="#333">IL-6</text>
+</g>
+<g id="node-tumor.M1">
+<rect x="1116.6666666666667" y="80" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="1156.6666666666667" y="102" text-anchor="middle" font-size="12" fill="#333">M1 Mac</text>
+</g>
+<g id="node-tumor.M2">
+<rect x="987.6666666666667" y="566" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="1027.6666666666667" y="588" text-anchor="middle" font-size="12" fill="#333">M2 Mac</text>
+</g>
+<g id="node-tumor.MDSC">
+<rect x="762" y="566" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="802" y="588" text-anchor="middle" font-size="12" fill="#333">MDSC</text>
+</g>
+<g id="node-tumor.Cancer">
+<rect x="1090.6666666666667" y="156" width="80" height="36" rx="6" ry="6" fill="#ffe0e0" stroke="#666" stroke-width="1.5"/>
+<text x="1130.6666666666667" y="178" text-anchor="middle" font-size="12" fill="#333">Cancer</text>
+</g>
+<g id="node-tumor.Debris">
+<circle cx="737.6666666666667" cy="260" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="737.6666666666667" y="264" text-anchor="middle" font-size="11" fill="#333">Debris</text>
+</g>
+<g id="node-tumor.cDC1">
+<rect x="684.3333333333334" y="313" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="724.3333333333334" y="335" text-anchor="middle" font-size="12" fill="#333">cDC1</text>
+</g>
+<g id="node-tumor.cDC2">
+<rect x="1001.0000000000001" y="708" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="1041" y="730" text-anchor="middle" font-size="12" fill="#333">cDC2</text>
+</g>
+<g id="node-tumor.mcDC1">
+<rect x="671" y="389" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="711" y="411" text-anchor="middle" font-size="12" fill="#333">mcDC1</text>
+</g>
+<g id="node-tumor.mcDC2">
+<rect x="1001.0000000000001" y="779" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="1041" y="801" text-anchor="middle" font-size="12" fill="#333">mcDC2</text>
+</g>
+<g id="node-tumor.qPSC">
+<rect x="1067.3333333333335" y="313" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="1107.3333333333335" y="335" text-anchor="middle" font-size="12" fill="#333">qPSC</text>
+</g>
+<g id="node-tumor.myCAF">
+<rect x="1041.3333333333335" y="460" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="1081.3333333333335" y="482" text-anchor="middle" font-size="12" fill="#333">myCAF</text>
+</g>
+<g id="node-tumor.iCAF">
+<rect x="968.3333333333335" y="389" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="1008.3333333333335" y="411" text-anchor="middle" font-size="12" fill="#333">iCAF</text>
+</g>
+<g id="node-tumor.apCAF">
+<rect x="828.6666666666667" y="389" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="868.6666666666667" y="411" text-anchor="middle" font-size="12" fill="#333">apCAF</text>
+</g>
+<g id="node-injection.GVAX">
+<rect x="97.66666666666666" y="80" width="80" height="36" rx="6" ry="6" fill="#b2ebf2" stroke="#666" stroke-width="1.5"/>
+<text x="137.66666666666666" y="102" text-anchor="middle" font-size="12" fill="#333">GVAX</text>
+</g>
+<g id="node-injection.GMCSF">
+<circle cx="151" cy="174" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="151" y="178" text-anchor="middle" font-size="11" fill="#333">GM-CSF</text>
+</g>
+<g id="node-injection.P1">
+<circle cx="78" cy="250" r="18" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="78" y="254" text-anchor="middle" font-size="11" fill="#333">Debris</text>
+</g>
+<g id="node-injection.APC">
+<rect x="117" y="232" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="157" y="254" text-anchor="middle" font-size="12" fill="#333">APC</text>
+</g>
+<g id="node-injection.mAPC">
+<rect x="66" y="308" width="80" height="36" rx="6" ry="6" fill="#ffffff" stroke="#666" stroke-width="1.5"/>
+<text x="106" y="330" text-anchor="middle" font-size="12" fill="#333">mAPC</text>
+</g>
+</svg>

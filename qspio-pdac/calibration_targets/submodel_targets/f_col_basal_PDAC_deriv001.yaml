@@ -1,0 +1,174 @@
+target_id: f_col_basal_tgfb_fold_illsley2000
+tags:
+- ai-generated
+extraction_model: claude-opus-4-6
+extraction_reasoning_effort: high
+study_interpretation: 'Illsley et al. 2000 measured the effect of TGFb1 (1 ng/mL) on collagen production
+
+  by human dermal fibroblasts. TGFb increased production by a factor of 1.31 to 1.91
+
+  across 5 control (unirradiated) cell lines. In the model, the fold-change from basal
+
+  to TGFb-saturated is 1/f_col_basal. This directly constrains f_col_basal.
+
+  '
+key_assumptions:
+- 'TGFb1 at 1 ng/mL represents near-maximal stimulation of the collagen secretion
+
+  pathway. If TGFb is sub-saturating, the true fold-change would be higher and
+
+  f_col_basal lower. This makes the estimate an upper bound on f_col_basal.
+
+  '
+- 'The fold-change is specific to collagen secretion rate, not total protein synthesis.
+
+  Illsley confirmed no change in cell cycle during 48h incubation.
+
+  '
+- 'Consistent with Shek 2002: TGFb-neutralizing antibody reduced PSC collagen synthesis
+
+  to 44% of baseline, implying f_col_basal ~0.44 from the complementary direction.
+
+  '
+key_study_limitations:
+- 'Only 5 patients. Fold-change range (1.31-1.91) shows substantial inter-patient
+
+  variability.
+
+  '
+- 'Single TGFb concentration (1 ng/mL). No dose-response to confirm saturation.
+
+  '
+- 'Human dermal fibroblasts, not pancreatic CAFs.
+
+  '
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: dermal fibroblasts
+    source: skin biopsies from cancer patients (unirradiated contralateral sites)
+    isolation_method: 'Same cells as k_col_myCAF_sec target. TGFb1 (1 ng/mL) added at start
+
+      of 48h experimental incubation.
+
+      '
+  culture_conditions:
+    medium: DMEM + 0.5% FCS
+    supplements: 50 ug/mL ascorbic acid, 0.2 mM L-proline, +/- 1 ng/mL TGFb1
+    duration: 48h experimental incubation
+  indication: general_fibrosis
+primary_data_source:
+  doi: 10.1054/bjoc.2000.1321
+  title: 'Increased collagen production in fibroblasts cultured from irradiated
+
+    skin and effect of TGF beta1 - clinical study
+
+    '
+  authors:
+  - Illsley
+  - Peacock
+  - McAnulty
+  - Yarnold
+  year: 2000
+  source_tag: Illsley2000
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'Human dermal fibroblasts as proxy for PDAC myCAFs. The TGFb-dependent fraction
+
+      of collagen secretion is a fundamental fibroblast property, though the exact
+
+      split may differ in pancreatic vs dermal fibroblasts.
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: 'TGFb1 at 1 ng/mL is a physiologically relevant concentration (similar to PDAC
+
+      TME levels). The fold-change measures the TGFb-responsive fraction of the
+
+      collagen secretion pathway.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro 2D culture. TGFb1 concentration (1 ng/mL) is within the range
+
+      expected in the PDAC TME but other TME signals (IL-1, hypoxia, mechanical
+
+      cues) are absent.
+
+      '
+    measurement_directness: direct
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_primary
+secondary_data_sources: []
+inputs:
+- name: tgfb_fold_low
+  value: 1.31
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Illsley2000
+  source_location: Discussion
+  value_snippet: increased the rate of collagen production in all control cell lines, by a factor of between 1.31 and 1.91
+- name: tgfb_fold_high
+  value: 1.91
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Illsley2000
+  source_location: Discussion
+  value_snippet: increased the rate of collagen production in all control cell lines, by a factor of between 1.31 and 1.91
+- name: n_patients
+  value: 5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Illsley2000
+  source_location: Results
+  value_snippet: Fibroblasts cultured from all five patients studied
+calibration:
+  parameters:
+  - name: f_col_basal
+    units: dimensionless
+  forward_model:
+    type: algebraic
+    formula: fold_change = 1 / f_col_basal
+    data_rationale: 'TGFb fold-change on collagen production directly measures the ratio of
+
+      full (TGFb-saturated) to basal secretion. In the model, basal rate is
+
+      k_sec * f_col_basal, full rate is k_sec * 1.0. Fold = 1/f_col_basal.
+
+      '
+    submodel_rationale: 'The model uses k_col_myCAF_sec * (f_col_basal + (1-f_col_basal)*H_TGFb).
+
+      At H_TGFb=0: rate = k_sec * f_col_basal.
+
+      At H_TGFb=1: rate = k_sec * 1.0.
+
+      Fold = 1.0 / f_col_basal.
+
+      '
+    code: "def compute(params, inputs):\n    f_basal = params['f_col_basal']\n    return 1 / f_basal\n"
+  error_model:
+  - name: tgfb_fold_change
+    units: dimensionless
+    uses_inputs:
+    - tgfb_fold_low
+    - tgfb_fold_high
+    - n_patients
+    sample_size_input: n_patients
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    fold_low\
+      \ = inputs['tgfb_fold_low']\n    fold_high = inputs['tgfb_fold_high']\n    # n=5 patients, range 1.31-1.91\n    log_low\
+      \ = np.log(fold_low)\n    log_high = np.log(fold_high)\n    log_mid = (log_low + log_high) / 2\n    n = int(inputs['n_patients'])\n\
+      \    range_factor = 2 * np.sqrt(2 * np.log(n))\n    sd_log = (log_high - log_low) / range_factor\n    return rng.lognormal(log_mid,\
+      \ sd_log, size=n_bootstrap)\n"
+  identifiability_notes: 'f_col_basal is uniquely identified from the TGFb fold-change: f_col_basal = 1/fold.
+
+    With fold = 1.31-1.91, f_col_basal = 0.52-0.76. The companion target
+
+    (k_col_myCAF_sec from basal OHpro rate) constrains the product k_sec * f_basal,
+
+    so together they identify both parameters.
+
+    '

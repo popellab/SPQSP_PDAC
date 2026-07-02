@@ -1,0 +1,516 @@
+target_id: k_TGFb_Th_exh+TGFb_50_Th_exh
+inputs:
+- name: pd1_mfi_cd4_bar0
+  value: 25.75
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, CD4+ PD-1, leftmost bar
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '25.75'
+    description: Digitized PD-1 MFI for CD4+ T cells at 0 pg/mL added TGF-beta1 (alphaCD3/alphaCD28 only)
+    context: Human CD3+ T cells activated with alphaCD3/alphaCD28 with or without varying TGF-beta1 for 72h; PD-1 MFI on CD4+
+      T cells shown as bar graph.
+- name: pd1_mfi_cd4_bar1
+  value: 27.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, CD4+ PD-1, second bar
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '27.0'
+    description: Digitized PD-1 MFI for CD4+ T cells at 5 pg/mL TGF-beta1
+    context: Dose-response of TGF-beta1 (5–50,000 pg/mL) on PD-1 MFI (CD4+ and CD8+).
+- name: pd1_mfi_cd4_bar2
+  value: 28.375
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, CD4+ PD-1, third bar
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '28.38'
+    description: Digitized PD-1 MFI for CD4+ T cells at 50 pg/mL TGF-beta1
+    context: Dose-response of TGF-beta1 on PD-1 MFI (CD4+ and CD8+).
+- name: pd1_mfi_cd4_bar3
+  value: 34.375
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, CD4+ PD-1, fourth bar
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '34.38'
+    description: Digitized PD-1 MFI for CD4+ T cells at 500 pg/mL TGF-beta1
+    context: Dose-response of TGF-beta1 on PD-1 MFI (CD4+ and CD8+).
+- name: pd1_mfi_cd4_bar4
+  value: 43.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, CD4+ PD-1, fifth bar
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '43.5'
+    description: Digitized PD-1 MFI for CD4+ T cells at 5,000 pg/mL TGF-beta1
+    context: Dose-response of TGF-beta1 on PD-1 MFI (CD4+ and CD8+).
+- name: pd1_mfi_cd4_bar5
+  value: 51.125
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, CD4+ PD-1, sixth bar
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '51.13'
+    description: Digitized PD-1 MFI for CD4+ T cells at 50,000 pg/mL TGF-beta1
+    context: Dose-response of TGF-beta1 on PD-1 MFI (CD4+ and CD8+).
+- name: tgfb_dose_5pg_ml
+  value: 5.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, x-axis label
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '5'
+    description: TGF-beta1 concentration 5 pg/mL for second bar in dose-response
+    context: X-axis labels show TGF-beta1 concentrations 5–50,000 pg/mL.
+- name: tgfb_dose_50pg_ml
+  value: 50.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, x-axis label
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '50'
+    description: TGF-beta1 concentration 50 pg/mL for third bar in dose-response
+    context: X-axis labels show TGF-beta1 concentrations 5–50,000 pg/mL.
+- name: tgfb_dose_500pg_ml
+  value: 500.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, x-axis label
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '500'
+    description: TGF-beta1 concentration 500 pg/mL for fourth bar in dose-response
+    context: X-axis labels show TGF-beta1 concentrations 5–50,000 pg/mL.
+- name: tgfb_dose_5000pg_ml
+  value: 5000.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, x-axis label
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '5000'
+    description: TGF-beta1 concentration 5,000 pg/mL for fifth bar in dose-response
+    context: X-axis labels show TGF-beta1 concentrations 5–50,000 pg/mL.
+- name: tgfb_dose_50000pg_ml
+  value: 50000.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, x-axis label
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '50000'
+    description: TGF-beta1 concentration 50,000 pg/mL for sixth bar in dose-response
+    context: X-axis labels show TGF-beta1 concentrations 5–50,000 pg/mL.
+- name: tgfb_dose_0pg_ml
+  value: 0.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1e, CD4+ PD-1, first bar (alphaCD3/alphaCD28 only)
+  rationale: No exogenous TGF-beta1 added in the alphaCD3/alphaCD28-only condition; treated as 0 pg/mL for the dose-response.
+  figure_excerpt:
+    figure_id: Figure 1e
+    value: '0'
+    description: Leftmost bar in Figure 1e CD4+ panel — αCD3/αCD28 stimulation with no exogenous TGFβ1 added (control condition).
+    context: Park 2016 Figure 1e shows PD-1 MFI on CD4+ T cells across a graded TGFβ1 dose-response (5–50,000 pg/mL); the
+      leftmost bar is the no-TGFβ control.
+- name: t_exp_hours_park2016
+  value: 72.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Methods, Human and murine primary T cell Isolation and Culture
+  value_snippet: The isolated cells were activated for 72 hr with alphaCD3/alphaCD28 Dynabeads.
+- name: t_exp_days_park2016
+  value: 3.0
+  units: day
+  input_type: derived_arithmetic
+  source_ref: Park2016
+  source_location: Methods, Human and murine primary T cell Isolation and Culture
+  source_inputs:
+  - t_exp_hours_park2016
+  formula: t_exp_hours_park2016/24.0
+  rationale: Convert the reported 72 h activation period into days to match the 1/day units of k_TGFb_Th_exh.
+- name: n_donors_park2016
+  value: 2.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Park2016
+  source_location: Figure 1 legend
+  value_snippet: The data represent combined results of two independent trials.
+- name: tgfb_mw_kda
+  value: 25.0
+  units: kilodalton
+  input_type: reference_value
+  source_ref: Park2016
+  source_location: Introduction and Methods (recombinant human TGF-beta1)
+  rationale: Approximate molecular weight of mature dimeric human TGF-beta1 is ~25 kDa; used for unit conversion from pg/mL
+    to nM when interpreting EC50.
+- name: tgfb_dose_0_nM
+  value: 0.0
+  units: nanomolarity
+  input_type: derived_arithmetic
+  source_ref: Park2016
+  source_location: Figure 1e, 0 pg/mL condition
+  source_inputs:
+  - tgfb_dose_0pg_ml
+  - tgfb_mw_kda
+  formula: tgfb_dose_0pg_ml
+  rationale: Zero pg/mL corresponds to zero nanomolar TGF-beta1.
+- name: tgfb_dose_5pg_nM
+  value: 0.0002
+  units: nanomolarity
+  input_type: derived_arithmetic
+  source_ref: Park2016
+  source_location: Figure 1e, 5 pg/mL condition
+  source_inputs:
+  - tgfb_dose_5pg_ml
+  - tgfb_mw_kda
+  formula: tgfb_dose_5pg_ml*1.0e-3*0.04
+  rationale: Convert 5 pg/mL to 0.0002 nM using 1 ng/mL ≈ 0.04 nM for 25 kDa TGF-beta1.
+- name: tgfb_dose_50pg_nM
+  value: 0.002
+  units: nanomolarity
+  input_type: derived_arithmetic
+  source_ref: Park2016
+  source_location: Figure 1e, 50 pg/mL condition
+  source_inputs:
+  - tgfb_dose_50pg_ml
+  - tgfb_mw_kda
+  formula: tgfb_dose_50pg_ml*1.0e-3*0.04
+  rationale: Convert 50 pg/mL to 0.002 nM using 1 ng/mL ≈ 0.04 nM for 25 kDa TGF-beta1.
+- name: tgfb_dose_500pg_nM
+  value: 0.02
+  units: nanomolarity
+  input_type: derived_arithmetic
+  source_ref: Park2016
+  source_location: Figure 1e, 500 pg/mL condition
+  source_inputs:
+  - tgfb_dose_500pg_ml
+  - tgfb_mw_kda
+  formula: tgfb_dose_500pg_ml*1.0e-3*0.04
+  rationale: Convert 500 pg/mL to 0.02 nM using 1 ng/mL ≈ 0.04 nM for 25 kDa TGF-beta1.
+- name: tgfb_dose_5000pg_nM
+  value: 0.2
+  units: nanomolarity
+  input_type: derived_arithmetic
+  source_ref: Park2016
+  source_location: Figure 1e, 5,000 pg/mL condition
+  source_inputs:
+  - tgfb_dose_5000pg_ml
+  - tgfb_mw_kda
+  formula: tgfb_dose_5000pg_ml*1.0e-3*0.04
+  rationale: Convert 5,000 pg/mL to 0.2 nM using 1 ng/mL ≈ 0.04 nM for 25 kDa TGF-beta1.
+- name: tgfb_dose_50000pg_nM
+  value: 2.0
+  units: nanomolarity
+  input_type: derived_arithmetic
+  source_ref: Park2016
+  source_location: Figure 1e, 50,000 pg/mL condition
+  source_inputs:
+  - tgfb_dose_50000pg_ml
+  - tgfb_mw_kda
+  formula: tgfb_dose_50000pg_ml*1.0e-3*0.04
+  rationale: Convert 50,000 pg/mL to 2.0 nM using 1 ng/mL ≈ 0.04 nM for 25 kDa TGF-beta1.
+- name: pd1_mfi_cd4_baseline_sd
+  value: 1.313
+  units: dimensionless
+  input_type: derived_arithmetic
+  source_ref: Park2016
+  source_location: Figure 1e — derived from spread of three low-dose bars (0, 5, 50 pg/mL TGFβ1)
+  rationale: Park 2016 Figure 1e does not display error bars, but the three lowest-dose bars (0, 5, 50 pg/mL TGFβ1) span a
+    TGFβ concentration range over which no biologically meaningful PD-1 induction is expected (well below any plausible EC50).
+    Their spread (PD-1 MFI 25.75, 27.0, 28.375; sample SD = 1.313, CV ≈ 4.9% at the baseline mean of 27.04) therefore reflects
+    measurement and inter-replicate noise rather than a TGFβ effect, and is used as a data-derived measurement-noise SD for
+    all dose-response bars. This avoids fabricating a CV while still admitting a positive bootstrap spread.
+  source_inputs:
+  - pd1_mfi_cd4_bar0
+  - pd1_mfi_cd4_bar1
+  - pd1_mfi_cd4_bar2
+  formula: sqrt(((pd1_mfi_cd4_bar0 - pd1_mfi_cd4_bar1) * (pd1_mfi_cd4_bar0 - pd1_mfi_cd4_bar1) + (pd1_mfi_cd4_bar0 - pd1_mfi_cd4_bar2)
+    * (pd1_mfi_cd4_bar0 - pd1_mfi_cd4_bar2) + (pd1_mfi_cd4_bar1 - pd1_mfi_cd4_bar2) * (pd1_mfi_cd4_bar1 - pd1_mfi_cd4_bar2))
+    / 6)
+calibration:
+  parameters:
+  - name: k_TGFb_Th_exh
+    units: 1/day
+  - name: TGFb_50_Th_exh
+    units: nanomolarity
+  - name: t_exp_days_Th_exh_invitro
+    units: day
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 1.098612288
+      sigma: 0.1
+  - name: scale_Park2016_PD1
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.5
+  forward_model:
+    type: algebraic
+    formula: For each TGF-beta1 concentration c, the exhausted Th fraction after t_exp days is f_exh(c) = 1 - exp(-k_TGFb_Th_exh
+      * t_exp * H_TGFb(c)), where H_TGFb(c) = c/(c + TGFb_50_Th_exh).
+    code: "def compute(params, inputs):\n    import numpy as np\n    k = params['k_TGFb_Th_exh']\n    ec50 = params['TGFb_50_Th_exh']\n\
+      \    t_exp = params['t_exp_days_Th_exh_invitro']\n    # TGF-beta1 concentrations in nM corresponding to Park2016 Figure\
+      \ 1e doses\n    c_5 = inputs['tgfb_dose_5pg_nM']\n    c_50 = inputs['tgfb_dose_50pg_nM']\n    c_500 = inputs['tgfb_dose_500pg_nM']\n\
+      \    c_5000 = inputs['tgfb_dose_5000pg_nM']\n    c_50000 = inputs['tgfb_dose_50000pg_nM']\n\n    def hill(c):\n    \
+      \    return c / (ec50 + c)\n\n    f_5 = 1.0 - np.exp(-k * hill(c_5) * t_exp)\n    f_50 = 1.0 - np.exp(-k * hill(c_50)\
+      \ * t_exp)\n    f_500 = 1.0 - np.exp(-k * hill(c_500) * t_exp)\n    f_5000 = 1.0 - np.exp(-k * hill(c_5000) * t_exp)\n\
+      \    f_50000 = 1.0 - np.exp(-k * hill(c_50000) * t_exp)\n\n    return {\n        'frac_exh_5pg': f_5 * params['scale_Park2016_PD1'],\n\
+      \        'frac_exh_50pg': f_50 * params['scale_Park2016_PD1'],\n        'frac_exh_500pg': f_500 * params['scale_Park2016_PD1'],\n\
+      \        'frac_exh_5000pg': f_5000 * params['scale_Park2016_PD1'],\n        'frac_exh_50000pg': f_50000 * params['scale_Park2016_PD1'],\n\
+      \    }"
+    data_rationale: Park2016 reports a single 72 h endpoint measurement of PD-1 MFI on human CD4+ T cells across a graded
+      TGF-beta1 dose range (5–50,000 pg/mL). Over this fixed culture duration, a simple first-order Th -> Th_exh process with
+      TGF-beta1-dependent rate maps naturally to an exhaustion fraction f_exh(c) = 1 - exp(-k_TGFb_Th_exh * t_exp * H_TGFb(c)).
+      The algebraic model directly encodes this mapping at the experimental endpoint for each dose, allowing simultaneous
+      inference of the maximal TGF-beta-driven exhaustion rate and the TGF-beta EC50 from the dose-response.
+    submodel_rationale: In the full QSPIO-PDAC model, TGF-beta-driven CD4 helper T cell exhaustion in the tumor is modeled
+      as V_T.Th -> V_T.Th_exh with rate k_TGFb_Th_exh * V_T.Th * H_TGFb_Th_exh, where H_TGFb_Th_exh is a Hill function of
+      TGF-beta with EC50 TGFb_50_Th_exh. Assuming a homogeneous Th pool and constant TGF-beta over the 72 h in vitro experiment,
+      the fraction of Th that become exhausted obeys f_exh(c) = 1 - exp(-k_TGFb_Th_exh * H_TGFb_Th_exh(c) * t_exp). The algebraic
+      forward model preserves this exact dependence on k_TGFb_Th_exh and TGFb_50_Th_exh, differing only in the absence of
+      other tumor-specific modifiers (e.g., cancer-cell-driven basal exhaustion), which are minimal in this polyclonal activation
+      context.
+  error_model:
+  - name: Park2016_CD4_frac_exh_5pg
+    units: dimensionless
+    uses_inputs:
+    - pd1_mfi_cd4_bar0
+    - pd1_mfi_cd4_bar1
+    - pd1_mfi_cd4_bar5
+    - pd1_mfi_cd4_baseline_sd
+    - n_donors_park2016
+    sample_size_input: n_donors_park2016
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    baseline\
+      \ = inputs['pd1_mfi_cd4_bar0']\n    maxv = inputs['pd1_mfi_cd4_bar5']\n    mfi  = inputs['pd1_mfi_cd4_bar1']\n    sd_mfi\
+      \ = inputs['pd1_mfi_cd4_baseline_sd']\n    se = sd_mfi / np.sqrt(sample_size)\n    baseline_s = rng.normal(baseline,\
+      \ se, n_bootstrap)\n    maxv_s     = rng.normal(maxv,     se, n_bootstrap)\n    mfi_s      = rng.normal(mfi,      se,\
+      \ n_bootstrap)\n    return (mfi_s - baseline_s) / (maxv_s - baseline_s)\n"
+    n_bootstrap: 10000
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['frac_exh_5pg']"
+  - name: Park2016_CD4_frac_exh_50pg
+    units: dimensionless
+    uses_inputs:
+    - pd1_mfi_cd4_bar0
+    - pd1_mfi_cd4_bar2
+    - pd1_mfi_cd4_bar5
+    - pd1_mfi_cd4_baseline_sd
+    - n_donors_park2016
+    sample_size_input: n_donors_park2016
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    baseline\
+      \ = inputs['pd1_mfi_cd4_bar0']\n    maxv = inputs['pd1_mfi_cd4_bar5']\n    mfi  = inputs['pd1_mfi_cd4_bar2']\n    sd_mfi\
+      \ = inputs['pd1_mfi_cd4_baseline_sd']\n    se = sd_mfi / np.sqrt(sample_size)\n    baseline_s = rng.normal(baseline,\
+      \ se, n_bootstrap)\n    maxv_s     = rng.normal(maxv,     se, n_bootstrap)\n    mfi_s      = rng.normal(mfi,      se,\
+      \ n_bootstrap)\n    return (mfi_s - baseline_s) / (maxv_s - baseline_s)\n"
+    n_bootstrap: 10000
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['frac_exh_50pg']"
+  - name: Park2016_CD4_frac_exh_500pg
+    units: dimensionless
+    uses_inputs:
+    - pd1_mfi_cd4_bar0
+    - pd1_mfi_cd4_bar3
+    - pd1_mfi_cd4_bar5
+    - pd1_mfi_cd4_baseline_sd
+    - n_donors_park2016
+    sample_size_input: n_donors_park2016
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    baseline\
+      \ = inputs['pd1_mfi_cd4_bar0']\n    maxv = inputs['pd1_mfi_cd4_bar5']\n    mfi  = inputs['pd1_mfi_cd4_bar3']\n    sd_mfi\
+      \ = inputs['pd1_mfi_cd4_baseline_sd']\n    se = sd_mfi / np.sqrt(sample_size)\n    baseline_s = rng.normal(baseline,\
+      \ se, n_bootstrap)\n    maxv_s     = rng.normal(maxv,     se, n_bootstrap)\n    mfi_s      = rng.normal(mfi,      se,\
+      \ n_bootstrap)\n    return (mfi_s - baseline_s) / (maxv_s - baseline_s)\n"
+    n_bootstrap: 10000
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['frac_exh_500pg']"
+  - name: Park2016_CD4_frac_exh_5000pg
+    units: dimensionless
+    uses_inputs:
+    - pd1_mfi_cd4_bar0
+    - pd1_mfi_cd4_bar4
+    - pd1_mfi_cd4_bar5
+    - pd1_mfi_cd4_baseline_sd
+    - n_donors_park2016
+    sample_size_input: n_donors_park2016
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    baseline\
+      \ = inputs['pd1_mfi_cd4_bar0']\n    maxv = inputs['pd1_mfi_cd4_bar5']\n    mfi  = inputs['pd1_mfi_cd4_bar4']\n    sd_mfi\
+      \ = inputs['pd1_mfi_cd4_baseline_sd']\n    se = sd_mfi / np.sqrt(sample_size)\n    baseline_s = rng.normal(baseline,\
+      \ se, n_bootstrap)\n    maxv_s     = rng.normal(maxv,     se, n_bootstrap)\n    mfi_s      = rng.normal(mfi,      se,\
+      \ n_bootstrap)\n    return (mfi_s - baseline_s) / (maxv_s - baseline_s)\n"
+    n_bootstrap: 10000
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['frac_exh_5000pg']"
+  - name: Park2016_CD4_frac_exh_50000pg
+    units: dimensionless
+    uses_inputs:
+    - pd1_mfi_cd4_bar0
+    - pd1_mfi_cd4_bar5
+    - pd1_mfi_cd4_bar5
+    - pd1_mfi_cd4_baseline_sd
+    - n_donors_park2016
+    sample_size_input: n_donors_park2016
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    baseline\
+      \ = inputs['pd1_mfi_cd4_bar0']\n    maxv = inputs['pd1_mfi_cd4_bar5']\n    mfi  = inputs['pd1_mfi_cd4_bar5']\n    sd_mfi\
+      \ = inputs['pd1_mfi_cd4_baseline_sd']\n    se = sd_mfi / np.sqrt(sample_size)\n    baseline_s = rng.normal(baseline,\
+      \ se, n_bootstrap)\n    maxv_s     = rng.normal(maxv,     se, n_bootstrap)\n    mfi_s      = rng.normal(mfi,      se,\
+      \ n_bootstrap)\n    return (mfi_s - baseline_s) / (maxv_s - baseline_s)\n"
+    n_bootstrap: 10000
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['frac_exh_50000pg']"
+  identifiability_notes: 'The Park2016 CD4+ PD-1 MFI dose-response provides five non-zero TGF-beta1 concentrations (5–50,000
+    pg/mL) at a single endpoint (~3 days). After normalization to the baseline (0 pg/mL) and apparent saturation (50,000 pg/mL),
+    these yield five effective exhaustion fractions on (0,1]. Jointly fitting the mechanistic mapping f_exh(c) = 1 - exp(-k_TGFb_Th_exh
+    * t_exp * c/(c + TGFb_50_Th_exh)) constrains both k_TGFb_Th_exh and TGFb_50_Th_exh, but they remain correlated: larger
+    k can be partially compensated by larger EC50. The nuisance parameter t_exp_days_Th_exh_invitro is tightly informed by
+    the reported 72 h culture duration and mainly propagates timing uncertainty; scale_Park2016_PD1 allows modest deviation
+    from the assumption that normalized PD-1 MFI directly equals exhausted fraction. Because all data come from a single experiment
+    with polyclonal human CD4+ T cells in vitro, extrapolation to PDAC tumor-infiltrating Th cells adds translation uncertainty
+    not captured by this single-target identifiability analysis.'
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_lines: null
+  cell_types:
+  - name: CD3+ T cells (CD4+ and CD8+ subsets)
+    phenotype: Polyclonal peripheral blood T cells from healthy donors
+    isolation_method: Pan T cell negative selection from PBMCs using magnetic beads
+    source: Leukapheresis products from healthy adult donors
+  culture_conditions:
+    substrate: Standard tissue culture plastic
+    serum_concentration: 10.0
+    serum_concentration_units: percent_fetal_bovine_serum
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+    medium: RPMI-1640 + 10% Fetal Bovine Serum with HEPES, penicillin/streptomycin, and L-glutamine
+    supplements: alphaCD3/alphaCD28-conjugated Dynabeads (1:1 cell:bead ratio); graded recombinant human TGF-beta1 (5–50,000
+      pg/mL)
+    duration: 72 h activation with alphaCD3/alphaCD28 ± TGF-beta1
+    notes: No tumor cells or stromal components present; experiment isolates direct TGF-beta1 effects on activated human T
+      cells.
+study_interpretation: Park2016 demonstrates that exogenous TGF-beta1 markedly enhances PD-1 expression on activated human
+  CD4+ T cells in a graded, dose-dependent fashion over 72 h, with minimal effect on proliferation and limited impact on the
+  activation marker HLA-DR. By normalizing PD-1 MFI to the alphaCD3/alphaCD28-only baseline and the apparent saturation response
+  at the highest TGF-beta1 dose, the CD4+ PD-1 data in Figure 1e can be interpreted as an approximate exhausted Th fraction
+  vs. TGF-beta1 concentration. Under the assumption of first-order Th -> Th_exh kinetics driven by a Hill function of TGF-beta1,
+  these data inform both the maximal TGF-beta–driven exhaustion rate k_TGFb_Th_exh and the TGF-beta EC50 TGFb_50_Th_exh used
+  in the QSPIO-PDAC model. Although measured in peripheral blood T cells from healthy donors rather than PDAC tumor-infiltrating
+  lymphocytes, the signaling machinery (TGF-betaR, Smad3-dependent PD-1 transcription) is conserved and provides a mechanistic,
+  human-based prior for TGF-beta–mediated CD4+ T cell exhaustion in the PDAC tumor microenvironment.
+key_assumptions:
+- Normalized PD-1 MFI on CD4+ T cells (after subtracting the alphaCD3/alphaCD28-only baseline and scaling to the highest TGF-beta1
+  dose) is proportional to the fraction of Th cells that have entered a PD-1hi exhausted state.
+- TGF-beta1 concentration in culture remains approximately constant over the 72 h activation period, so exhaustion can be
+  treated as an integrated first-order process with fixed rate k_TGFb_Th_exh * H_TGFb(c).
+- Other cytokines present in the culture (e.g., autocrine IL-2, IL-6) have secondary effects compared with the dominant Smad3-dependent
+  TGF-beta1 signal and can be neglected when mapping PD-1 MFI to TGF-beta–driven exhaustion.
+- The Hill coefficient for the TGF-beta1 effect on Th exhaustion is 1, consistent with a simple receptor occupancy-like dependence,
+  so H_TGFb(c) = c/(c + TGFb_50_Th_exh).
+- The alphaCD3/alphaCD28-only baseline PD-1 expression reflects TCR-driven but TGF-beta–independent activation; subtracting
+  this baseline removes the influence of non–TGF-beta mechanisms (e.g., NFATc1 alone) on PD-1 levels.
+- Differences between circulating CD4+ T cells from healthy donors and PDAC tumor-infiltrating Th cells (chronic antigen exposure,
+  hypoxia, stromal cues) primarily affect the magnitude of exhaustion but not the fundamental TGF-beta–Smad3–PD-1 regulatory
+  axis, allowing reuse of the inferred kinetic parameters with additional contextual uncertainty in the full QSP model.
+key_study_limitations:
+- The experiment uses polyclonal CD3+ T cells from healthy donors activated with strong alphaCD3/alphaCD28 stimulation rather
+  than tumor-infiltrating Th cells from PDAC, so antigen load, co-inhibitory receptor landscape, and chronic exposure history
+  differ from the in vivo tumor context.
+- PD-1 MFI is a surrogate marker for exhaustion rather than a direct functional readout; the mapping from normalized PD-1
+  intensity to exhausted fraction is approximate and may vary across T cell subsets and environments.
+- Only a single time point (72 h) is available, so the separation of k_TGFb_Th_exh from the culture duration t_exp relies
+  on the reported incubation time and an assumed first-order kinetic form; potential time-dependent saturation or feedback
+  cannot be resolved.
+- Figure-based digitization of PD-1 MFI introduces small uncertainties in the absolute values and does not capture experimental
+  variance (SD/SEM) explicitly; bootstrap uncertainty is therefore dominated by between-dose differences rather than within-dose
+  noise.
+- The cultured T cells are exposed to relatively high TGF-beta1 concentrations compared with many physiological settings;
+  the highest doses likely represent an upper bound on TGF-beta–driven exhaustion rates in vivo.
+- The in vitro system lacks key PDAC tumor microenvironment components (myofibroblastic CAFs, dense collagen matrix, hypoxia,
+  suppressive myeloid cells), which in the full QSPIO-PDAC model modulate both TGF-beta production and additional exhaustion
+  pathways; thus the inferred parameters primarily characterize the intrinsic T cell sensitivity to TGF-beta rather than the
+  net in-tumor exhaustion rate.
+primary_data_source:
+  doi: 10.1158/2159-8290.CD-15-1347
+  pmid: null
+  title: TGF-beta1-mediated Smad3 enhances PD-1 expression on antigen-specific T cells in cancer
+  authors:
+  - Park
+  - Freeman
+  - Ghasemzadeh
+  - Chattergoon
+  - Rutebemberwa
+  - Steigner
+  - Winter
+  - Huynh
+  - Sebald
+  - Lee
+  - Pan
+  - Pardoll
+  - Cox
+  year: 2016
+  source_tag: Park2016
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The primary data come from human peripheral blood CD3+ T cells from healthy donors activated
+      in vitro, whereas the QSPIO-PDAC model targets CD4 helper T cell exhaustion in the pancreatic ductal adenocarcinoma
+      tumor microenvironment. The TGF-beta/Smad3/PD-1 signaling axis and basic exhaustion biology are conserved between these
+      contexts, but PDAC-specific factors such as desmoplastic stroma, chronic tumor antigen exposure, and complex myeloid/CAF-mediated
+      immunosuppression are absent, so the study serves as a mechanistic proxy rather than an indication-matched dataset.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: Recombinant human TGF-beta1 is added to activated T cell cultures over a wide concentration range,
+      producing supraphysiologic exposure that isolates the intrinsic sensitivity of Th cells to TGF-beta–driven PD-1 upregulation
+      via Smad3. These conditions likely represent an upper bound on TGF-beta–driven exhaustion rates in vivo but are appropriate
+      for calibrating the kinetic parameters of the TGF-beta-dependent exhaustion module in the QSP model.
+    tme_compatibility: low
+    tme_compatibility_notes: The in vitro T cell cultures lack the desmoplastic stroma, CAF subtypes, suppressive myeloid
+      cells, hypoxia, and spatial heterogeneity characteristic of the PDAC tumor microenvironment. Consequently, many modifiers
+      of Th exhaustion present in PDAC (e.g., collagen-dependent stiffness, CXCL12-mediated exclusion, NO and ArgI from MDSCs)
+      are absent, and TGF-beta is the dominant extrinsic signal. The inferred parameters therefore capture intrinsic T cell
+      responsiveness to TGF-beta but must be combined with additional uncertainty when applied to the PDAC TME.
+    measurement_directness: proxy_observable
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_primary
+    validation_warnings: null
+secondary_data_sources: null
+tags:
+- TGFbeta
+- PD-1
+- Th_exhaustion
+- human_T_cells
+- dose_response
+- in_vitro
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

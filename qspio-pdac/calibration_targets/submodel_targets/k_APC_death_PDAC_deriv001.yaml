@@ -1,0 +1,982 @@
+target_id: k_APC_death
+inputs:
+- name: Kamath02_unlabeled_initial_pct
+  value: 100.0
+  units: percent
+  input_type: reference_value
+  rationale: At the onset of continuous BrdU administration, essentially all dendritic
+    cells are unlabeled; we approximate the initial unlabeled fraction as 100%.
+  source_ref: Kamath2002
+  source_location: Methods and Figure 4 description
+- name: Kamath02_n_mice_effective
+  value: 6.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Kamath2002 states that groups of 4 to 8 mice were used per time point
+    and data were pooled from 3 to 5 kinetic experiments. We approximate an effective
+    sample size of 6 mice contributing to each time point for uncertainty estimation.
+  source_ref: Kamath2002
+  source_location: Methods (BrdU administration)
+  value_snippet: Groups of 4 to 8 mice were initially injected intraperitoneally with
+    1 mg bromodeoxyuridine (BrdU)... Results represent pooled data from 3 to 5 separate
+    kinetic experiments.
+- name: Kamath02_spleen_cd8p_t1_label_pct_mean
+  value: 32.901554404145074
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8+ DEC-205+ subset, ~1 day
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~33
+    description: Percent BrdU-positive spleen CD8+ DEC-205+ DCs after ~1 day of continuous
+      BrdU labeling
+    context: BrdU-labeling kinetics of subtypes of DCs within different peripheral
+      lymphoid organs; spleen panel
+- name: Kamath02_spleen_cd8p_t1_label_pct_mean_pluserr
+  value: 40.932642487046635
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8+ DEC-205+ subset, ~1 day (error bar tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~41 (upper error bar)
+    description: Upper tip of error bar for percent BrdU-positive spleen CD8+ DEC-205+
+      DCs after ~1 day
+    context: BrdU-labeling kinetics, spleen CD8+ DEC-205+ DCs; error bars represent
+      variation across mice/experiments
+- name: Kamath02_spleen_cd8p_t3_label_pct_mean
+  value: 89.76683937823834
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8+ DEC-205+ subset, ~3 days
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~90
+    description: Percent BrdU-positive spleen CD8+ DEC-205+ DCs after ~3 days of continuous
+      BrdU labeling
+    context: BrdU-labeling kinetics of DC subtypes; spleen panel
+- name: Kamath02_spleen_cd8p_t3_label_pct_mean_pluserr
+  value: 91.83937823834198
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8+ DEC-205+ subset, ~3 days (error bar
+    tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~92 (upper error bar)
+    description: Upper tip of error bar for percent BrdU-positive spleen CD8+ DEC-205+
+      DCs after ~3 days
+    context: BrdU-labeling kinetics, spleen CD8+ DEC-205+ DCs
+- name: Kamath02_spleen_cd8p_t5_label_pct_mean
+  value: 94.30051813471503
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8+ DEC-205+ subset, ~6.8 days
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~94
+    description: "Percent BrdU-positive spleen CD8+ DEC-205+ DCs after ~6\u20137 days\
+      \ of continuous BrdU labeling"
+    context: BrdU-labeling kinetics of DC subtypes; spleen panel
+- name: Kamath02_spleen_cd8p_t5_label_pct_mean_pluserr
+  value: 96.37305699481865
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8+ DEC-205+ subset, ~6.8 days (error bar
+    tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~96 (upper error bar)
+    description: "Upper tip of error bar for percent BrdU-positive spleen CD8+ DEC-205+\
+      \ DCs after ~6\u20137 days"
+    context: BrdU-labeling kinetics, spleen CD8+ DEC-205+ DCs
+- name: Kamath02_spleen_cd8m_t1_label_pct_mean
+  value: 25.51813471502591
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8- DEC-205+ subset, ~1 day
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~26
+    description: Percent BrdU-positive spleen CD8- DEC-205+ DCs after ~1 day
+    context: BrdU-labeling kinetics of DC subtypes; spleen panel
+- name: Kamath02_spleen_cd8m_t1_label_pct_mean_pluserr
+  value: 27.720207253886002
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8- DEC-205+ subset, ~1 day (error bar tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~28 (upper error bar)
+    description: Upper tip of error bar for percent BrdU-positive spleen CD8- DEC-205+
+      DCs after ~1 day
+    context: BrdU-labeling kinetics, spleen CD8- DEC-205+ DCs
+- name: Kamath02_spleen_cd8m_t3_label_pct_mean
+  value: 63.730569948186535
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8- DEC-205+ subset, ~3 days
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~64
+    description: Percent BrdU-positive spleen CD8- DEC-205+ DCs after ~3 days
+    context: BrdU-labeling kinetics of DC subtypes; spleen panel
+- name: Kamath02_spleen_cd8m_t3_label_pct_mean_pluserr
+  value: 66.1917098445596
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8- DEC-205+ subset, ~3 days (error bar
+    tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~66 (upper error bar)
+    description: Upper tip of error bar for percent BrdU-positive spleen CD8- DEC-205+
+      DCs after ~3 days
+    context: BrdU-labeling kinetics, spleen CD8- DEC-205+ DCs
+- name: Kamath02_spleen_cd8m_t5_label_pct_mean
+  value: 80.0518134715026
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8- DEC-205+ subset, ~7 days
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~80
+    description: Percent BrdU-positive spleen CD8- DEC-205+ DCs after ~7 days
+    context: BrdU-labeling kinetics of DC subtypes; spleen panel
+- name: Kamath02_spleen_cd8m_t5_label_pct_mean_pluserr
+  value: 81.99481865284974
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen DCs, CD8- DEC-205+ subset, ~7 days (error bar
+    tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~82 (upper error bar)
+    description: Upper tip of error bar for percent BrdU-positive spleen CD8- DEC-205+
+      DCs after ~7 days
+    context: BrdU-labeling kinetics, spleen CD8- DEC-205+ DCs
+- name: Kamath02_mesLN_cd8p_t1_label_pct_mean
+  value: 24.449398276960196
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8+ DEC-205+ subset, ~1.25 days
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~24
+    description: Percent BrdU-positive mesenteric LN CD8+ DEC-205+ DCs after ~1 day
+    context: BrdU-labeling kinetics of DC subtypes; mesenteric LN panel
+- name: Kamath02_mesLN_cd8p_t1_label_pct_mean_pluserr
+  value: 26.372733062921114
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8+ DEC-205+ subset, ~1.25 days (error
+    bar tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~26 (upper error bar)
+    description: Upper tip of error bar for percent BrdU-positive mesenteric LN CD8+
+      DEC-205+ DCs after ~1 day
+    context: BrdU-labeling kinetics, mesenteric LN CD8+ DEC-205+ DCs
+- name: Kamath02_mesLN_cd8p_t3_label_pct_mean
+  value: 55.130568871308355
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8+ DEC-205+ subset, ~3.2 days
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~55
+    description: Percent BrdU-positive mesenteric LN CD8+ DEC-205+ DCs after ~3 days
+    context: BrdU-labeling kinetics of DC subtypes; mesenteric LN panel
+- name: Kamath02_mesLN_cd8p_t3_label_pct_mean_pluserr
+  value: 76.5470483724984
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8+ DEC-205+ subset, ~3.2 days (error
+    bar tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~77 (upper error bar)
+    description: Upper tip of error bar for percent BrdU-positive mesenteric LN CD8+
+      DEC-205+ DCs after ~3 days
+    context: BrdU-labeling kinetics, mesenteric LN CD8+ DEC-205+ DCs
+- name: Kamath02_mesLN_cd8p_t5_label_pct_mean
+  value: 93.63665314605609
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8+ DEC-205+ subset, ~5.24 days
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~94
+    description: Percent BrdU-positive mesenteric LN CD8+ DEC-205+ DCs after ~5 days
+    context: BrdU-labeling kinetics of DC subtypes; mesenteric LN panel
+- name: Kamath02_mesLN_cd8p_t5_label_pct_mean_pluserr
+  value: 95.81643257014512
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8+ DEC-205+ subset, ~5.24 days (error
+    bar tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~96 (upper error bar)
+    description: Upper tip of error bar for percent BrdU-positive mesenteric LN CD8+
+      DEC-205+ DCs after ~5 days
+    context: BrdU-labeling kinetics, mesenteric LN CD8+ DEC-205+ DCs
+- name: Kamath02_mesLN_cd8m_t1_label_pct_mean
+  value: 19.833394790654012
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8- DEC-205+ subset, ~1.25 days
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~20
+    description: Percent BrdU-positive mesenteric LN CD8- DEC-205+ DCs after ~1 day
+    context: BrdU-labeling kinetics of DC subtypes; mesenteric LN panel
+- name: Kamath02_mesLN_cd8m_t1_label_pct_mean_pluserr
+  value: 22.14139653380711
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8- DEC-205+ subset, ~1.25 days (error
+    bar tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~22 (upper error bar)
+    description: Upper tip of error bar for percent BrdU-positive mesenteric LN CD8-
+      DEC-205+ DCs after ~1 day
+    context: BrdU-labeling kinetics, mesenteric LN CD8- DEC-205+ DCs
+- name: Kamath02_mesLN_cd8m_t3_label_pct_mean
+  value: 36.41346250544733
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8- DEC-205+ subset, ~3.23 days
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~36
+    description: Percent BrdU-positive mesenteric LN CD8- DEC-205+ DCs after ~3 days
+    context: BrdU-labeling kinetics of DC subtypes; mesenteric LN panel
+- name: Kamath02_mesLN_cd8m_t3_label_pct_mean_pluserr
+  value: 41.28255841238979
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8- DEC-205+ subset, ~3.23 days (error
+    bar tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~41 (upper error bar)
+    description: Upper tip of error bar for percent BrdU-positive mesenteric LN CD8-
+      DEC-205+ DCs after ~3 days
+    context: BrdU-labeling kinetics, mesenteric LN CD8- DEC-205+ DCs
+- name: Kamath02_mesLN_cd8m_t5_label_pct_mean
+  value: 68.37518018169017
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8- DEC-205+ subset, ~5.19 days
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~68
+    description: Percent BrdU-positive mesenteric LN CD8- DEC-205+ DCs after ~5 days
+    context: BrdU-labeling kinetics of DC subtypes; mesenteric LN panel
+- name: Kamath02_mesLN_cd8m_t5_label_pct_mean_pluserr
+  value: 79.66209647681939
+  units: percent
+  input_type: direct_measurement
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN DCs, CD8- DEC-205+ subset, ~5.19 days (error
+    bar tip)
+  figure_excerpt:
+    figure_id: Figure 4
+    value: ~80 (upper error bar)
+    description: Upper tip of error bar for percent BrdU-positive mesenteric LN CD8-
+      DEC-205+ DCs after ~5 days
+    context: BrdU-labeling kinetics, mesenteric LN CD8- DEC-205+ DCs
+- name: Kamath02_spleen_cd8p_t1_unlabel_pct_mean
+  value: 67.09844559585493
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen CD8+ DEC-205+ DCs, ~1 day
+  source_inputs:
+  - Kamath02_spleen_cd8p_t1_label_pct_mean
+  formula: 100.0 - Kamath02_spleen_cd8p_t1_label_pct_mean
+- name: Kamath02_spleen_cd8p_t1_unlabel_pct_sd
+  value: 8.031088082901562
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the height of the error bar (upper
+    error bar tip minus mean value), carried over to the unlabeled fraction since
+    subtracting a constant does not change SD.
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen CD8+ DEC-205+ DCs, ~1 day
+  source_inputs:
+  - Kamath02_spleen_cd8p_t1_label_pct_mean_pluserr
+  - Kamath02_spleen_cd8p_t1_label_pct_mean
+  formula: Kamath02_spleen_cd8p_t1_label_pct_mean_pluserr - Kamath02_spleen_cd8p_t1_label_pct_mean
+- name: Kamath02_spleen_cd8p_t3_unlabel_pct_mean
+  value: 10.23316062176166
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen CD8+ DEC-205+ DCs, ~3 days
+  source_inputs:
+  - Kamath02_spleen_cd8p_t3_label_pct_mean
+  formula: 100.0 - Kamath02_spleen_cd8p_t3_label_pct_mean
+- name: Kamath02_spleen_cd8p_t3_unlabel_pct_sd
+  value: 2.07253886010364
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the error bar height for the labeled
+    fraction and applied to the unlabeled fraction.
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen CD8+ DEC-205+ DCs, ~3 days
+  source_inputs:
+  - Kamath02_spleen_cd8p_t3_label_pct_mean_pluserr
+  - Kamath02_spleen_cd8p_t3_label_pct_mean
+  formula: Kamath02_spleen_cd8p_t3_label_pct_mean_pluserr - Kamath02_spleen_cd8p_t3_label_pct_mean
+- name: Kamath02_spleen_cd8p_t5_unlabel_pct_mean
+  value: 5.699481865284973
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: "Figure 4, spleen CD8+ DEC-205+ DCs, ~6\u20137 days"
+  source_inputs:
+  - Kamath02_spleen_cd8p_t5_label_pct_mean
+  formula: 100.0 - Kamath02_spleen_cd8p_t5_label_pct_mean
+- name: Kamath02_spleen_cd8p_t5_unlabel_pct_sd
+  value: 2.072538860103619
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the error bar height for the labeled
+    fraction and applied to the unlabeled fraction.
+  source_ref: Kamath2002
+  source_location: "Figure 4, spleen CD8+ DEC-205+ DCs, ~6\u20137 days"
+  source_inputs:
+  - Kamath02_spleen_cd8p_t5_label_pct_mean_pluserr
+  - Kamath02_spleen_cd8p_t5_label_pct_mean
+  formula: Kamath02_spleen_cd8p_t5_label_pct_mean_pluserr - Kamath02_spleen_cd8p_t5_label_pct_mean
+- name: Kamath02_spleen_cd8m_t1_unlabel_pct_mean
+  value: 74.48186528497409
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen CD8- DEC-205+ DCs, ~1 day
+  source_inputs:
+  - Kamath02_spleen_cd8m_t1_label_pct_mean
+  formula: 100.0 - Kamath02_spleen_cd8m_t1_label_pct_mean
+- name: Kamath02_spleen_cd8m_t1_unlabel_pct_sd
+  value: 2.202072538860091
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the error bar height for the labeled
+    fraction and applied to the unlabeled fraction.
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen CD8- DEC-205+ DCs, ~1 day
+  source_inputs:
+  - Kamath02_spleen_cd8m_t1_label_pct_mean_pluserr
+  - Kamath02_spleen_cd8m_t1_label_pct_mean
+  formula: Kamath02_spleen_cd8m_t1_label_pct_mean_pluserr - Kamath02_spleen_cd8m_t1_label_pct_mean
+- name: Kamath02_spleen_cd8m_t3_unlabel_pct_mean
+  value: 36.26943005181347
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen CD8- DEC-205+ DCs, ~3 days
+  source_inputs:
+  - Kamath02_spleen_cd8m_t3_label_pct_mean
+  formula: 100.0 - Kamath02_spleen_cd8m_t3_label_pct_mean
+- name: Kamath02_spleen_cd8m_t3_unlabel_pct_sd
+  value: 2.461139896373065
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the error bar height for the labeled
+    fraction and applied to the unlabeled fraction.
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen CD8- DEC-205+ DCs, ~3 days
+  source_inputs:
+  - Kamath02_spleen_cd8m_t3_label_pct_mean_pluserr
+  - Kamath02_spleen_cd8m_t3_label_pct_mean
+  formula: Kamath02_spleen_cd8m_t3_label_pct_mean_pluserr - Kamath02_spleen_cd8m_t3_label_pct_mean
+- name: Kamath02_spleen_cd8m_t5_unlabel_pct_mean
+  value: 19.948186528497406
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen CD8- DEC-205+ DCs, ~7 days
+  source_inputs:
+  - Kamath02_spleen_cd8m_t5_label_pct_mean
+  formula: 100.0 - Kamath02_spleen_cd8m_t5_label_pct_mean
+- name: Kamath02_spleen_cd8m_t5_unlabel_pct_sd
+  value: 1.943005181347137
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the error bar height for the labeled
+    fraction and applied to the unlabeled fraction.
+  source_ref: Kamath2002
+  source_location: Figure 4, spleen CD8- DEC-205+ DCs, ~7 days
+  source_inputs:
+  - Kamath02_spleen_cd8m_t5_label_pct_mean_pluserr
+  - Kamath02_spleen_cd8m_t5_label_pct_mean
+  formula: Kamath02_spleen_cd8m_t5_label_pct_mean_pluserr - Kamath02_spleen_cd8m_t5_label_pct_mean
+- name: Kamath02_mesLN_cd8p_t1_unlabel_pct_mean
+  value: 75.5506017230398
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8+ DEC-205+ DCs, ~1.25 days
+  source_inputs:
+  - Kamath02_mesLN_cd8p_t1_label_pct_mean
+  formula: 100.0 - Kamath02_mesLN_cd8p_t1_label_pct_mean
+- name: Kamath02_mesLN_cd8p_t1_unlabel_pct_sd
+  value: 1.923334785960918
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the error bar height for the labeled
+    fraction and applied to the unlabeled fraction.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8+ DEC-205+ DCs, ~1.25 days
+  source_inputs:
+  - Kamath02_mesLN_cd8p_t1_label_pct_mean_pluserr
+  - Kamath02_mesLN_cd8p_t1_label_pct_mean
+  formula: Kamath02_mesLN_cd8p_t1_label_pct_mean_pluserr - Kamath02_mesLN_cd8p_t1_label_pct_mean
+- name: Kamath02_mesLN_cd8p_t3_unlabel_pct_mean
+  value: 44.869431128691645
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8+ DEC-205+ DCs, ~3.2 days
+  source_inputs:
+  - Kamath02_mesLN_cd8p_t3_label_pct_mean
+  formula: 100.0 - Kamath02_mesLN_cd8p_t3_label_pct_mean
+- name: Kamath02_mesLN_cd8p_t3_unlabel_pct_sd
+  value: 21.416479501190047
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the unusually large error bar height
+    for this time point; this likely reflects inter-experiment variability and is
+    carried to the unlabeled fraction.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8+ DEC-205+ DCs, ~3.2 days
+  source_inputs:
+  - Kamath02_mesLN_cd8p_t3_label_pct_mean_pluserr
+  - Kamath02_mesLN_cd8p_t3_label_pct_mean
+  formula: Kamath02_mesLN_cd8p_t3_label_pct_mean_pluserr - Kamath02_mesLN_cd8p_t3_label_pct_mean
+- name: Kamath02_mesLN_cd8p_t5_unlabel_pct_mean
+  value: 6.363346853943907
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8+ DEC-205+ DCs, ~5.24 days
+  source_inputs:
+  - Kamath02_mesLN_cd8p_t5_label_pct_mean
+  formula: 100.0 - Kamath02_mesLN_cd8p_t5_label_pct_mean
+- name: Kamath02_mesLN_cd8p_t5_unlabel_pct_sd
+  value: 2.17977942408903
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the error bar height for the labeled
+    fraction and applied to the unlabeled fraction.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8+ DEC-205+ DCs, ~5.24 days
+  source_inputs:
+  - Kamath02_mesLN_cd8p_t5_label_pct_mean_pluserr
+  - Kamath02_mesLN_cd8p_t5_label_pct_mean
+  formula: Kamath02_mesLN_cd8p_t5_label_pct_mean_pluserr - Kamath02_mesLN_cd8p_t5_label_pct_mean
+- name: Kamath02_mesLN_cd8m_t1_unlabel_pct_mean
+  value: 80.16660520934599
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8- DEC-205+ DCs, ~1.25 days
+  source_inputs:
+  - Kamath02_mesLN_cd8m_t1_label_pct_mean
+  formula: 100.0 - Kamath02_mesLN_cd8m_t1_label_pct_mean
+- name: Kamath02_mesLN_cd8m_t1_unlabel_pct_sd
+  value: 2.3080017431530986
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the error bar height for the labeled
+    fraction and applied to the unlabeled fraction.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8- DEC-205+ DCs, ~1.25 days
+  source_inputs:
+  - Kamath02_mesLN_cd8m_t1_label_pct_mean_pluserr
+  - Kamath02_mesLN_cd8m_t1_label_pct_mean
+  formula: Kamath02_mesLN_cd8m_t1_label_pct_mean_pluserr - Kamath02_mesLN_cd8m_t1_label_pct_mean
+- name: Kamath02_mesLN_cd8m_t3_unlabel_pct_mean
+  value: 63.58653749455267
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8- DEC-205+ DCs, ~3.23 days
+  source_inputs:
+  - Kamath02_mesLN_cd8m_t3_label_pct_mean
+  formula: 100.0 - Kamath02_mesLN_cd8m_t3_label_pct_mean
+- name: Kamath02_mesLN_cd8m_t3_unlabel_pct_sd
+  value: 4.86909590694246
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the error bar height for the labeled
+    fraction and applied to the unlabeled fraction.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8- DEC-205+ DCs, ~3.23 days
+  source_inputs:
+  - Kamath02_mesLN_cd8m_t3_label_pct_mean_pluserr
+  - Kamath02_mesLN_cd8m_t3_label_pct_mean
+  formula: Kamath02_mesLN_cd8m_t3_label_pct_mean_pluserr - Kamath02_mesLN_cd8m_t3_label_pct_mean
+- name: Kamath02_mesLN_cd8m_t5_unlabel_pct_mean
+  value: 31.62481981830983
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Unlabeled fraction is 100% minus labeled fraction at the same time point.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8- DEC-205+ DCs, ~5.19 days
+  source_inputs:
+  - Kamath02_mesLN_cd8m_t5_label_pct_mean
+  formula: 100.0 - Kamath02_mesLN_cd8m_t5_label_pct_mean
+- name: Kamath02_mesLN_cd8m_t5_unlabel_pct_sd
+  value: 11.28691629512922
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Standard deviation approximated from the relatively large error bar height
+    for the labeled fraction and applied to the unlabeled fraction.
+  source_ref: Kamath2002
+  source_location: Figure 4, mesenteric LN CD8- DEC-205+ DCs, ~5.19 days
+  source_inputs:
+  - Kamath02_mesLN_cd8m_t5_label_pct_mean_pluserr
+  - Kamath02_mesLN_cd8m_t5_label_pct_mean
+  formula: Kamath02_mesLN_cd8m_t5_label_pct_mean_pluserr - Kamath02_mesLN_cd8m_t5_label_pct_mean
+calibration:
+  parameters:
+  - name: k_APC_death
+    units: 1/day
+    nuisance: false
+  - name: r_cDC1_turnover
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.64
+      sigma: 0.3
+  forward_model:
+    data_rationale: Kamath2002 measured BrdU-labeling kinetics of nondividing dendritic
+      cell subtypes in spleen and mesenteric lymph nodes of healthy mice under continuous
+      BrdU administration. In steady state, mature DCs are continually lost and replaced
+      from BrdU-labeled precursors, so the fraction of unlabeled DCs decays approximately
+      exponentially with an organ- and subtype-specific first-order turnover rate.
+      CD8+ DEC-205+ DCs (cDC1-like) turn over ~1.9x faster than CD8- DEC-205+
+      DCs (cDC2-like) across both tissues. A nuisance ratio parameter r_cDC1_turnover
+      absorbs this subtype difference, allowing k_APC_death to represent the
+      cDC2 baseline rate while cDC1 observables see k_APC_death * r_cDC1_turnover.
+    submodel_rationale: In the QSP PDAC model, k_APC_death is the first-order death/removal
+      rate constant for immature cDC1 and cDC2 in tumor and lymph node compartments,
+      with matching source terms that maintain a homeostatic density. Under continuous
+      labeling of upstream precursors, the same first-order death/turnover process
+      governs the decay of the unlabeled DC fraction in lymphoid organs. The two
+      state variables (U_cd8p, U_cd8m) track unlabeled fractions for each DC subtype
+      independently, with k_APC_death * r_cDC1_turnover governing cDC1 decay and
+      k_APC_death governing cDC2 decay.
+    independent_variable:
+      name: time
+      units: day
+      span:
+      - 0.0
+      - 7.0
+    state_variables:
+    - name: U_cd8p
+      units: percent
+      initial_condition:
+        input_ref: Kamath02_unlabeled_initial_pct
+        rationale: Before BrdU administration, essentially all CD8+ DCs are unlabeled.
+    - name: U_cd8m
+      units: percent
+      initial_condition:
+        input_ref: Kamath02_unlabeled_initial_pct
+        rationale: Before BrdU administration, essentially all CD8- DCs are unlabeled.
+    type: custom_ode
+    code: "def ode(t, y, params, inputs):\n    U_cd8p, U_cd8m = y\n    k = params['k_APC_death']\n\
+      \    r = params['r_cDC1_turnover']\n    dU_cd8p = -k * r * U_cd8p\n    dU_cd8m\
+      \ = -k * U_cd8m\n    return [dU_cd8p, dU_cd8m]\n"
+  error_model:
+  - name: Kamath02_spleen_cd8p_t1_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8p
+    units: percent
+    uses_inputs:
+    - Kamath02_spleen_cd8p_t1_unlabel_pct_mean
+    - Kamath02_spleen_cd8p_t1_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 1.03
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_spleen_cd8p_t1_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_spleen_cd8p_t1_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: Kamath02_spleen_cd8p_t3_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8p
+    units: percent
+    uses_inputs:
+    - Kamath02_spleen_cd8p_t3_unlabel_pct_mean
+    - Kamath02_spleen_cd8p_t3_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 2.95
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_spleen_cd8p_t3_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_spleen_cd8p_t3_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: Kamath02_spleen_cd8p_t5_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8p
+    units: percent
+    uses_inputs:
+    - Kamath02_spleen_cd8p_t5_unlabel_pct_mean
+    - Kamath02_spleen_cd8p_t5_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 6.84
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_spleen_cd8p_t5_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_spleen_cd8p_t5_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: Kamath02_spleen_cd8m_t1_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8m
+    units: percent
+    uses_inputs:
+    - Kamath02_spleen_cd8m_t1_unlabel_pct_mean
+    - Kamath02_spleen_cd8m_t1_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 1.11
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_spleen_cd8m_t1_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_spleen_cd8m_t1_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: Kamath02_spleen_cd8m_t3_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8m
+    units: percent
+    uses_inputs:
+    - Kamath02_spleen_cd8m_t3_unlabel_pct_mean
+    - Kamath02_spleen_cd8m_t3_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 2.95
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_spleen_cd8m_t3_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_spleen_cd8m_t3_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: Kamath02_spleen_cd8m_t5_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8m
+    units: percent
+    uses_inputs:
+    - Kamath02_spleen_cd8m_t5_unlabel_pct_mean
+    - Kamath02_spleen_cd8m_t5_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 6.97
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_spleen_cd8m_t5_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_spleen_cd8m_t5_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: Kamath02_mesLN_cd8p_t1_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8p
+    units: percent
+    uses_inputs:
+    - Kamath02_mesLN_cd8p_t1_unlabel_pct_mean
+    - Kamath02_mesLN_cd8p_t1_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 1.25
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_mesLN_cd8p_t1_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_mesLN_cd8p_t1_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: Kamath02_mesLN_cd8p_t3_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8p
+    units: percent
+    uses_inputs:
+    - Kamath02_mesLN_cd8p_t3_unlabel_pct_mean
+    - Kamath02_mesLN_cd8p_t3_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 3.22
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_mesLN_cd8p_t3_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_mesLN_cd8p_t3_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: Kamath02_mesLN_cd8p_t5_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8p
+    units: percent
+    uses_inputs:
+    - Kamath02_mesLN_cd8p_t5_unlabel_pct_mean
+    - Kamath02_mesLN_cd8p_t5_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 5.24
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_mesLN_cd8p_t5_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_mesLN_cd8p_t5_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: Kamath02_mesLN_cd8m_t1_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8m
+    units: percent
+    uses_inputs:
+    - Kamath02_mesLN_cd8m_t1_unlabel_pct_mean
+    - Kamath02_mesLN_cd8m_t1_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 1.25
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_mesLN_cd8m_t1_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_mesLN_cd8m_t1_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: Kamath02_mesLN_cd8m_t3_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8m
+    units: percent
+    uses_inputs:
+    - Kamath02_mesLN_cd8m_t3_unlabel_pct_mean
+    - Kamath02_mesLN_cd8m_t3_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 3.23
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_mesLN_cd8m_t3_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_mesLN_cd8m_t3_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: Kamath02_mesLN_cd8m_t5_unlabeled
+    observable:
+      type: identity
+      state_variables:
+      - U_cd8m
+    units: percent
+    uses_inputs:
+    - Kamath02_mesLN_cd8m_t5_unlabel_pct_mean
+    - Kamath02_mesLN_cd8m_t5_unlabel_pct_sd
+    - Kamath02_n_mice_effective
+    evaluation_points:
+    - 5.19
+    sample_size_input: Kamath02_n_mice_effective
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['Kamath02_mesLN_cd8m_t5_unlabel_pct_mean']\n\
+      \    sd = inputs['Kamath02_mesLN_cd8m_t5_unlabel_pct_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: >
+    k_APC_death is the primary QSP parameter, representing the cDC2 (CD8-) baseline
+    turnover rate. The nuisance parameter r_cDC1_turnover absorbs the ~1.9x faster
+    turnover of cDC1 (CD8+) DCs documented by Kamath2002 (half-life ~1.5d for CD8+
+    vs ~3d for CD8- in spleen). With 6 CD8+ and 6 CD8- time points across two
+    tissues, both parameters are well-identified. Residual tissue differences
+    (spleen vs mesLN) are absorbed into observational noise — adding a tissue
+    nuisance parameter would leave only 3 points per group, risking overfitting.
+    The QSP model uses a single k_APC_death for both cDC1 and cDC2; the posterior
+    for k_APC_death from this target should be interpreted as the cDC2-anchored
+    rate, with cDC1 turnover implicitly ~1.9x faster in the data but not
+    distinguished in the QSP model.
+experimental_context:
+  species: mouse
+  system: animal_in_vivo
+  cell_types:
+  - name: Conventional dendritic cells (CD11c+ MHC class IIhi)
+    phenotype: 'Splenic and mesenteric lymph node DC subtypes: CD8+ DEC-205+ (cDC1-like)
+      and CD8- DEC-205+ (cDC2-like)'
+    isolation_method: Collagenase-DNase digestion of spleen or LN fragments, Nycodenz
+      gradient, and immunomagnetic depletion of non-DC lineages, followed by flow
+      cytometric gating on CD11c+ MHC class IIhi cells
+    source: "Healthy adult C57BL/6J WEHI mice, 6\u20139 weeks old"
+  indication: Healthy lymphoid organs (spleen and mesenteric lymph nodes) in steady-state
+    mice; used as a proxy for APC turnover in human PDAC tumor and draining lymph
+    node.
+study_interpretation: "Kamath2002 performed continuous BrdU labeling in healthy C57BL/6\
+  \ mice and quantified the kinetics of BrdU incorporation into phenotypically defined\
+  \ dendritic cell subtypes in spleen and lymph nodes. Because mature DCs are nondividing\
+  \ end cells, BrdU first labels their dividing precursors and then appears in mature\
+  \ DCs as unlabeled cells are lost and replaced. For a DC population at homeostasis\
+  \ with first-order loss and replacement from BrdU-labeled precursors, the fraction\
+  \ of unlabeled cells should decay as U(t) = U0 * exp(-k * t), where k is the turnover/death\
+  \ rate. By fitting this exponential decay of the unlabeled fraction across CD8+\
+  \ DEC-205+ and CD8- DEC-205+ DCs in spleen and mesenteric LNs, we obtain an effective\
+  \ k_APC_death that is mechanistically aligned with the QSP model\u2019s first-order\
+  \ APC death term. This k_APC_death represents a composite murine lymphoid-organ\
+  \ DC turnover rate on the order of 0.3\u20130.5 day^-1 (half-life 1.5\u20133 days),\
+  \ consistent with Kamath\u2019s reported subtype-specific half-lives, and is used\
+  \ as a proxy for immature cDC1/cDC2 death in human PDAC tumor and draining LN compartments."
+key_assumptions:
+- DC turnover in healthy mouse spleen and mesenteric lymph nodes is representative,
+  at the order-of-magnitude level, of immature cDC1/cDC2 death rates in human PDAC
+  tumor and draining lymph node compartments.
+- BrdU-labeled precursors supply new DCs rapidly relative to the DC lifespan, so the
+  inflow of new DCs can be treated as fully labeled and the unlabeled fraction of
+  mature DCs decays approximately exponentially.
+- CD8+ DEC-205+ (cDC1-like) DCs turn over faster than CD8- DEC-205+ (cDC2-like) DCs
+  by a factor of ~1.9x (Kamath2002). The nuisance parameter r_cDC1_turnover absorbs
+  this subtype difference. Tissue-specific differences (spleen vs mesLN) are absorbed
+  by observational noise. The QSP model uses a single k_APC_death for both subtypes.
+- "Error bars in Figure 4 are treated as approximations to standard deviations rather\
+  \ than standard errors; an effective sample size of 6 mice per time point is assumed\
+  \ based on the reported range of 4\u20138 animals per group."
+- Effects of microbial products or strong antigenic stimulation, which Kamath2002
+  shows can further accelerate DC turnover, are neglected; we interpret the data as
+  steady-state physiological baseline turnover.
+key_study_limitations:
+- The data are from healthy young adult C57BL/6 mice rather than from PDAC-bearing
+  animals or human patients; inflammatory and tumor microenvironmental signals in
+  PDAC may alter APC lifespans.
+- DC subtypes are defined by murine markers (CD8, DEC-205) and include both resident
+  and potentially migratory populations; mapping to human cDC1 and cDC2 is approximate.
+- Spleen and mesenteric LN environments differ from desmoplastic PDAC tumors; tumor-resident
+  DCs might experience additional death signals (e.g., hypoxia, cytokines) or survival
+  cues not captured here.
+- BrdU labeling and ethanol fixation could slightly perturb DC survival, and the computational
+  background subtraction used by Kamath2002 may introduce small systematic biases
+  in the estimated labeled fractions.
+- Error bars from the figure were digitized and interpreted as SD; the original paper
+  does not unambiguously state whether they represent SD or SEM, adding uncertainty
+  to the variance estimates.
+primary_data_source:
+  pmid: '12200352'
+  title: Developmental kinetics and lifespan of dendritic cells in mouse lymphoid
+    organs
+  authors:
+  - Kamath AT
+  - Henri S
+  - Battye F
+  - Tough DF
+  - Shortman K
+  year: 2002
+  source_tag: Kamath2002
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study examines dendritic cell turnover in
+      healthy mouse spleen and lymph nodes, whereas the QSP model targets APC dynamics
+      in human pancreatic ductal adenocarcinoma tumors and draining lymph nodes. We
+      treat these healthy lymphoid-organ measurements as a mechanistic proxy for baseline
+      APC death rates, acknowledging that PDAC-associated inflammation and desmoplasia
+      may quantitatively modify DC lifespans.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Mice were uninfected and not treated with drugs for the
+      main BrdU kinetic experiments used here, so the measured DC turnover reflects
+      steady-state physiological conditions rather than pharmacologically perturbed
+      death rates. Additional experiments with LPS and antigen showed faster turnover,
+      which we interpret as upper bounds and do not use for calibration.
+    tme_compatibility: moderate
+    tme_compatibility_notes: Spleen and mesenteric lymph nodes in healthy mice share
+      key features with human tumor-draining lymph nodes (structured lymphoid tissue
+      and blood-derived conventional DCs) but lack the chronic inflammation, fibrosis,
+      and immunosuppression characteristic of PDAC tumors. We therefore expect true
+      PDAC APC death rates to be within an order of magnitude of these values but
+      allow for potential systematic shifts.
+    measurement_directness: direct
+    temporal_resolution: timecourse
+    experimental_system: animal_in_vivo
+tags:
+- APC
+- dendritic_cells
+- death_rate
+- turnover
+- BrdU
+- mouse
+- spleen
+- mesenteric_lymph_node
+- Kamath2002
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

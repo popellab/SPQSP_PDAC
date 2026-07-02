@@ -1,0 +1,443 @@
+target_id: k_CCL5_sec_iCAF_kawka2014
+tags:
+- ai-generated
+extraction_model: claude-opus-4-6
+study_interpretation: 'Kawka et al. (2014) measured CCL5 protein secretion by ELISA (DuoSet R&D
+
+  Systems, sensitivity 5 pg/mL) in human peritoneal fibroblast (HPFB) cultures
+
+  stimulated with TNF-alpha (1000 pg/mL) or IL-1beta (1000 pg/mL). Figure 1a
+
+  shows a time course (6-96h, n=6 donors) of CCL5 accumulation in pg/10^4 cells
+
+  for control, IL-1beta, and TNF-alpha conditions. TNF-alpha produced the
+
+  strongest response, reaching ~230 pg/10^4 cells at 96h with a plateau
+
+  beginning ~72h, consistent with secretion-degradation steady state.
+
+
+  The TNF-alpha-stimulated condition is the relevant proxy for iCAF-like
+
+  inflammatory fibroblasts (NF-kB-driven secretory program). The time course
+
+  constrains both the secretion rate (rising phase) and the in vitro
+
+  degradation rate (plateau).
+
+  '
+key_assumptions:
+- 'Cell count remains approximately constant over the 96h experiment. HPFB were
+
+  rendered quiescent (0.1% FCS for 48h) before stimulation. At 0.1% FCS,
+
+  proliferation is minimal.
+
+  '
+- 'CCL5 accumulation follows dC/dt = k_sec - k_deg*C, reaching steady state
+
+  C_ss = k_sec / k_deg. The plateau at 72-96h confirms this.
+
+  '
+- 'The TNF-alpha-activated HPFB phenotype (NF-kB-driven, CCL5-secreting) is
+
+  functionally analogous to the iCAF inflammatory program driven by IL-1/NF-kB
+
+  in PDAC. Both converge on NF-kB activation of CCL5 transcription.
+
+  '
+- 'CCL5 MW = 8 kDa (68 amino acids, mature form).
+
+  '
+key_study_limitations:
+- 'Human peritoneal fibroblasts, not pancreatic stellate cells. Peritoneal
+
+  fibroblasts are mesenchymal cells that share activation biology with PSCs
+
+  but may differ in baseline secretory capacity.
+
+  '
+- 'TNF-alpha stimulation is a proxy for the IL-1/NF-kB axis that drives iCAF
+
+  identity. The paper also shows IL-1beta data (weaker response) which could
+
+  provide a second constraint.
+
+  '
+- 'Data normalized to 10^4 cells — actual cell count per well not stated.
+
+  This is advantageous (eliminates volume/count uncertainty) but means we
+
+  cannot cross-check against absolute concentrations.
+
+  '
+- 'Error bars are SD from n=6 donors. Inter-donor variability is high
+
+  (CV ~25-40% at later time points), reflecting biological heterogeneity.
+
+  '
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: human peritoneal fibroblast (HPFB)
+    source: omentum from elective abdominal surgery
+    isolation_method: 'Isolated from apparently normal omentum, digested with trypsin,
+
+      identified by spindle-shape and FSP-1 positivity. Propagated in
+
+      Ham''s F12 + 10% FCS. Rendered quiescent at 0.1% FCS for 48h
+
+      before stimulation with TNF-alpha 1000 pg/mL.
+
+      '
+  culture_conditions:
+    medium: Ham's F12, 0.1% FCS + TNF-alpha 1000 pg/mL
+    duration: 6-96h time course
+  indication: peritonitis
+primary_data_source:
+  doi: 10.1155/2014/590654
+  title: 'Regulation of Chemokine CCL5 Synthesis in Human Peritoneal Fibroblasts:
+
+    A Key Role of IFN-gamma
+
+    '
+  authors:
+  - Kawka
+  - Witowski
+  - Fouqet
+  - Tayama
+  - Bender
+  - Catar
+  - Dragun
+  - Jorres
+  year: 2014
+  source_tag: Kawka2014
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'Human peritoneal fibroblasts as proxy for PDAC iCAFs. Both are mesenchymal
+
+      cells that produce CCL5 under NF-kB-driven inflammatory stimulation.
+
+      Peritoneal fibroblasts from omentum share key features with pancreatic
+
+      stellate cells (mesenchymal origin, cytokine responsiveness, chemokine
+
+      production). The TNF-alpha stimulation recapitulates the NF-kB activation
+
+      that drives iCAF identity in PDAC.
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: 'TNF-alpha (1000 pg/mL = ~58 pM) activates NF-kB signaling to drive CCL5
+
+      production. This is a proxy for the IL-1alpha/NF-kB axis that maintains
+
+      iCAF identity in PDAC. The concentration used is in the physiological range
+
+      for inflamed tissue.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro 2D culture on plastic in 0.1% FCS. Lacks 3D ECM, cancer cell
+
+      paracrine signals, and immune cell interactions. TNF-alpha stimulation
+
+      partially recapitulates the inflammatory milieu but the actual iCAF
+
+      program involves IL-1alpha from cancer cells and LIF/JAK-STAT signaling.
+
+      '
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_primary
+secondary_data_sources: []
+inputs:
+- name: tnfa_6h_mean
+  value: 7.0
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: ~7
+    description: TNF-alpha CCL5 at 6h
+    context: CCL5 (pg/10^4 cells) time course, TNF-alpha 1000 pg/mL, n=6
+- name: tnfa_6h_sd
+  value: 4.0
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: +/- ~4
+    description: SD at 6h
+    context: Error bars = SD from n=6 donors
+- name: tnfa_12h_mean
+  value: 13.0
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: ~13
+    description: TNF-alpha CCL5 at 12h
+    context: CCL5 (pg/10^4 cells) time course
+- name: tnfa_12h_sd
+  value: 3.5
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: +/- ~3.5
+    description: SD at 12h
+    context: Error bars = SD
+- name: tnfa_24h_mean
+  value: 38.5
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: ~38.5
+    description: TNF-alpha CCL5 at 24h
+    context: CCL5 (pg/10^4 cells) time course
+- name: tnfa_24h_sd
+  value: 9.5
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: +/- ~9.5
+    description: SD at 24h
+    context: Error bars = SD
+- name: tnfa_48h_mean
+  value: 126.5
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: ~126.5
+    description: TNF-alpha CCL5 at 48h
+    context: CCL5 (pg/10^4 cells) time course
+- name: tnfa_48h_sd
+  value: 31.5
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: +/- ~31.5
+    description: SD at 48h
+    context: Error bars = SD
+- name: tnfa_72h_mean
+  value: 212.5
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: ~212.5
+    description: TNF-alpha CCL5 at 72h
+    context: CCL5 (pg/10^4 cells) time course
+- name: tnfa_72h_sd
+  value: 51.0
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: +/- ~51
+    description: SD at 72h
+    context: Error bars = SD
+- name: tnfa_96h_mean
+  value: 231.0
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: ~231
+    description: TNF-alpha CCL5 at 96h
+    context: CCL5 (pg/10^4 cells) time course
+- name: tnfa_96h_sd
+  value: 51.0
+  units: picogram
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: +/- ~51
+    description: SD at 96h
+    context: Error bars = SD
+- name: n_donors
+  value: 6
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Kawka2014
+  source_location: Figure 1 caption
+  value_snippet: n = 6
+- name: CCL5_MW_kDa
+  value: 8.0
+  units: kilodalton
+  input_type: reference_value
+  rationale: Molecular weight of mature human CCL5/RANTES (68 amino acids, ~8 kDa)
+  source_ref: Kawka2014
+  source_location: Introduction
+  value_snippet: CCL5 is an 8 kDa protein consisting of 68 amino acids
+calibration:
+  parameters:
+  - name: k_CCL5_sec_iCAF
+    units: nanomole/cell/day
+  - name: k_CCL5_deg_invitro
+    units: 1/day
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -2.0
+      sigma: 1.0
+  forward_model:
+    type: algebraic
+    formula: 'C(t) = k_sec_pg * (1 - exp(-k_deg_hr * t)) / k_deg_hr
+
+      where k_sec_pg = k_CCL5_sec_iCAF (nmol/cell/day) * 1e4 (cells) * MW (kDa) * 1e6 (pg/nmol) / 24 (hr/day)
+
+      and k_deg_hr = k_CCL5_deg_invitro / 24
+
+      Units: pg per 10^4 cells, time in hours.
+
+      '
+    data_rationale: 'Time course of CCL5 accumulation in culture supernatant normalized to
+
+      10^4 cells. The saturation curve constrains both the secretion rate
+
+      (rising phase slope) and in vitro degradation rate (plateau level).
+
+      '
+    submodel_rationale: 'Maps to CCL5 secretion in fibroblast_module_enhanced.m:
+
+      null -> V_T.CCL5 at rate k_CCL5_sec_iCAF * V_T.iCAF. The in vitro
+
+      degradation rate is nuisance (in vivo degradation includes receptor-
+
+      mediated clearance and protease activity not present in culture).
+
+      '
+    code: "def compute(params, inputs):\n    k_sec = params['k_CCL5_sec_iCAF']\n    k_deg_day = params['k_CCL5_deg_invitro']\n\
+      \    MW = inputs['CCL5_MW_kDa']\n\n    # Convert k_sec from nmol/(cell*day) to pg/(10^4 cells * hour)\n    # 1 nmol\
+      \ = MW_kDa * 1e6 pg\n    # Per 10^4 cells, per hour: * 1e4 / 24\n    k_sec_pg_hr = k_sec * MW * 1e6 * 1e4 / 24\n\n \
+      \   # Degradation in 1/hour\n    k_deg_hr = k_deg_day / 24\n\n    # C(t) = k_sec_pg_hr / k_deg_hr * (1 - exp(-k_deg_hr\
+      \ * t))\n    ratio = k_sec_pg_hr / k_deg_hr\n    return {\n        't6': ratio * (1 - np.exp(-k_deg_hr * 6)),\n    \
+      \    't12': ratio * (1 - np.exp(-k_deg_hr * 12)),\n        't24': ratio * (1 - np.exp(-k_deg_hr * 24)),\n        't48':\
+      \ ratio * (1 - np.exp(-k_deg_hr * 48)),\n        't72': ratio * (1 - np.exp(-k_deg_hr * 72)),\n        't96': ratio\
+      \ * (1 - np.exp(-k_deg_hr * 96)),\n    }\n"
+  error_model:
+  - name: CCL5_6h
+    units: picogram
+    uses_inputs:
+    - tnfa_6h_mean
+    - tnfa_6h_sd
+    - n_donors
+    sample_size_input: n_donors
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['tnfa_6h_mean']\n    sd = inputs['tnfa_6h_sd']\n    cv = sd / mean\n    return rng.lognormal(np.log(mean),\
+      \ cv / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['t6']\n"
+  - name: CCL5_12h
+    units: picogram
+    uses_inputs:
+    - tnfa_12h_mean
+    - tnfa_12h_sd
+    - n_donors
+    sample_size_input: n_donors
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['tnfa_12h_mean']\n    sd = inputs['tnfa_12h_sd']\n    cv = sd / mean\n    return rng.lognormal(np.log(mean),\
+      \ cv / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['t12']\n"
+  - name: CCL5_24h
+    units: picogram
+    uses_inputs:
+    - tnfa_24h_mean
+    - tnfa_24h_sd
+    - n_donors
+    sample_size_input: n_donors
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['tnfa_24h_mean']\n    sd = inputs['tnfa_24h_sd']\n    cv = sd / mean\n    return rng.lognormal(np.log(mean),\
+      \ cv / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['t24']\n"
+  - name: CCL5_48h
+    units: picogram
+    uses_inputs:
+    - tnfa_48h_mean
+    - tnfa_48h_sd
+    - n_donors
+    sample_size_input: n_donors
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['tnfa_48h_mean']\n    sd = inputs['tnfa_48h_sd']\n    cv = sd / mean\n    return rng.lognormal(np.log(mean),\
+      \ cv / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['t48']\n"
+  - name: CCL5_72h
+    units: picogram
+    uses_inputs:
+    - tnfa_72h_mean
+    - tnfa_72h_sd
+    - n_donors
+    sample_size_input: n_donors
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['tnfa_72h_mean']\n    sd = inputs['tnfa_72h_sd']\n    cv = sd / mean\n    return rng.lognormal(np.log(mean),\
+      \ cv / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['t72']\n"
+  - name: CCL5_96h
+    units: picogram
+    uses_inputs:
+    - tnfa_96h_mean
+    - tnfa_96h_sd
+    - n_donors
+    sample_size_input: n_donors
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['tnfa_96h_mean']\n    sd = inputs['tnfa_96h_sd']\n    cv = sd / mean\n    return rng.lognormal(np.log(mean),\
+      \ cv / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['t96']\n"
+  identifiability_notes: 'Two parameters (k_CCL5_sec_iCAF, k_CCL5_deg_invitro) from 6 time points.
+
+    The rising phase (6-48h) constrains the secretion rate. The plateau
+
+    (72-96h) constrains the ratio k_sec/k_deg (steady state). Together these
+
+    identify both parameters. k_deg_invitro is nuisance — it captures in vitro
+
+    degradation (thermal, protease-free) which differs from in vivo clearance.
+
+    The QSP parameter k_CCL5_deg is not constrained by this target.
+
+    '

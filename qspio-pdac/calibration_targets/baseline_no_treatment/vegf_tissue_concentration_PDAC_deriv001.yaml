@@ -1,0 +1,245 @@
+study_interpretation: |
+  Delitto et al. quantified a panel of 41 cytokines, chemokines and growth factors, including VEGF-A, in freshly homogenized pancreatic surgical specimens (normal pancreas, chronic pancreatitis, and pancreatic adenocarcinoma). For each sample, soluble mediators were measured in pg/mL and normalized to total protein content to yield concentrations in pg/mg protein. We use the VEGF row for the pancreatic adenocarcinoma group (n = 36) as an estimate of baseline intratumoral VEGF-A protein concentration in resectable human PDAC at the time of surgery. This provides a direct constraint on tumor VEGF-A levels in untreated or gemcitabine/abraxane-pretreated PDAC.
+key_assumptions:
+- |
+  VEGF-A concentrations reported for the pancreatic adenocarcinoma group (n = 36) are treated as representative of resectable PDAC tumors, even though 10 of 36 patients received gemcitabine/abraxane-based neoadjuvant chemotherapy before resection.
+- |
+  Values reported as mean (SE) in Table 1 are interpreted as mean and standard error of the mean, and we derive the standard deviation as SD = SE × sqrt(n) for use in Monte Carlo sampling.
+- |
+  Intratumoral VEGF-A concentrations are modeled as approximately lognormally distributed, which is appropriate for positive, right-skewed biochemical concentration data; this replaces potentially biased truncated normal approximations.
+- |
+  We approximate total protein content in PDAC tumor tissue as 100 micrograms of protein per mg wet tissue, extrapolating from optimized brain protein extraction protocols, and assume soft-tissue density is close to 1 g/mL when converting pg/mL to pg/mg protein via the ml_per_mg_protein_tissue constant.
+- |
+  We assume that normalizing VEGF-A by total protein (pg/mg protein) does not substantially change relative variability compared with normalizing by tumor volume, so that the same observable can constrain VEGF-related parameters in the QSP model.
+key_study_limitations:
+- |
+  Patient cohort includes a mixture of treatment-naive tumors and tumors exposed to gemcitabine/abraxane neoadjuvant chemotherapy, which may alter the inflammatory milieu and VEGF-A levels relative to strictly treatment-naive resectable PDAC.
+- |
+  VEGF-A is measured in bulk tumor homogenates normalized to total protein, integrating contributions from cancer cells, stroma, vasculature, and infiltrating immune cells; the model species V_T.VEGF represents compartment-average VEGF-A and cannot distinguish cellular sources.
+- |
+  The sample size for the pancreatic adenocarcinoma group (n = 36) is modest and derived from a single academic center, which may limit generalizability across PDAC populations.
+- |
+  The protein-per-tissue conversion used to relate pg/mL to pg/mg protein is derived from brain tissue and generic soft-tissue density rather than PDAC-specific measurements, introducing additional systematic uncertainty in the observable mapping.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        """Compute intratumoral VEGF-A concentration normalized per mg total protein.
+
+        Model species V_T.VEGF is VEGF-A concentration in tumor interstitial fluid
+        (pg/mL). Experimental measurements report VEGF-A as pg per mg total protein
+        in tumor homogenate. We convert pg/mL to pg/mg protein using an assumed
+        protein concentration of ~100 mg protein per mL tissue, encoded as the
+        constant 'ml_per_mg_protein_tissue'.
+        """
+        vegf = species_dict['V_T.VEGF']
+        ml_per_mg_protein = constants['ml_per_mg_protein_tissue']
+        return (vegf * ml_per_mg_protein)
+
+  units: picogram/milligram
+  species:
+  - V_T.VEGF
+  constants:
+  - name: ml_per_mg_protein_tissue
+    value: 0.01
+    units: milliliter/milligram
+    biological_basis: |
+      Ericsson and Nister (2011) report that optimized extraction and solubilization of brain tissue yields about 100 micrograms of protein per mg tissue wet weight, i.e., approximately 0.1 mg protein per mg tissue. Assuming soft tissues (including PDAC) have density close to 1 g/mL, this corresponds to roughly 100 mg protein per mL of tissue. The reciprocal gives ~0.01 mL tissue per mg protein, which we use as an approximate protein concentration for PDAC tumor homogenates when converting model VEGF-A concentration from pg/mL to pg/mg protein.
+    source_type: literature
+    reference_db_name: null
+    reference_db_names: null
+    source_tag: Ericsson2007_ProteinExtraction
+  support: positive
+  mapping_rationale: |
+    Delitto et al. measure VEGF-A in freshly resected PDAC tumor homogenates as picograms per milligram of total protein using a Luminex multiplex immunoassay normalized to total protein. The model species V_T.VEGF represents VEGF-A concentration in the tumor compartment in pg/mL. Assuming approximately 100 micrograms protein per mg wet tissue and soft-tissue density near 1 g/mL, we convert pg/mL to pg/mg protein via a single proportionality constant (ml_per_mg_protein_tissue), so the observable directly matches the experimental normalization.
+  experimental_denominator: milligram of total protein in tumor tissue homogenate
+  model_denominator_species:
+  - V_T.VEGF
+  unmodeled_denominator_components: |
+    Total protein includes structural, stromal, and immune-cell proteins not modeled explicitly; V_T.VEGF tracks only soluble VEGF-A in the tumor compartment, so the mapping assumes that VEGF-A per mg total protein scales with VEGF-A per unit tumor volume.
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    - prior_chemotherapy
+    status: off_treatment
+    specifier: |
+      Ten of 36 patients received gemcitabine/abraxane-based neoadjuvant chemotherapy before surgical resection; the remaining 26 were resected upfront without neoadjuvant therapy.
+  stage: null
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Freshly resected primary pancreatic ductal adenocarcinoma tissue obtained at surgery.
+  assay_type: |
+    Multiplex bead-based immunoassay (Milliplex 41-plex) with concentrations normalized to total protein (pg/mg protein).
+scenario:
+  description: |
+    Baseline intratumoral VEGF-A concentration in resected primary PDAC tumors at the time of surgery, with a subset of patients having completed gemcitabine/abraxane-based neoadjuvant chemotherapy.
+  interventions:
+  - intervention_description: |
+      Gemcitabine/abraxane-based neoadjuvant chemotherapy administered prior to surgery in 10 of 36 PDAC patients (doses and cycles per institutional protocols), completed before tumor resection.
+  - intervention_description: |
+      Surgical resection of primary pancreatic tumor with curative intent; tumor tissue was harvested immediately upon resection for homogenization and soluble mediator analysis.
+empirical_data:
+  median:
+  - 144.78
+  ci95:
+  - - 18.73
+    - 1142.05
+  units: picogram/milligram
+  sample_size: 36
+  sample_size_rationale: |
+    Pancreatic adenocarcinoma group size n = 36 reported in the patient cohorts and Table 1 of Delitto et al. 2015.
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs:
+  - name: vegf_mean_pg_per_mg
+    value: 252.0
+    units: picogram/milligram
+    description: |
+      Mean VEGF-A concentration in pancreatic adenocarcinoma tissue homogenates normalized per mg total protein.
+    source_ref: Delitto2015_PDACInflammatoryMilieu
+    value_location: Table 1, Growth factors section, VEGF row, Pancreatic cancer column.
+    value_snippet: |
+      Growth factors
+      FGF-2 761 (221) 951 (187) 1674 (177)
+      PDGF-BB 117 (46) 102 (48) 244 (63)
+      VEGF 151 (46) 76 (20) 252 (59)
+      Concentrations expressed as mean (SE) in units of pg/mg protein.
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: vegf_se_pg_per_mg
+    value: 59.0
+    units: picogram/milligram
+    description: |
+      Standard error of the mean (SEM) for VEGF-A concentration in pancreatic adenocarcinoma tissue homogenates.
+    source_ref: Delitto2015_PDACInflammatoryMilieu
+    value_location: |
+      Table 1, Growth factors section, VEGF row, Pancreatic cancer column, with table footnote.
+    value_snippet: |
+      Growth factors
+      FGF-2 761 (221) 951 (187) 1674 (177)
+      PDGF-BB 117 (46) 102 (48) 244 (63)
+      VEGF 151 (46) 76 (20) 252 (59)
+      Concentrations expressed as mean (SE) in units of pg/mg protein.
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: se
+    dispersion_type_rationale: |
+      Table 1 explicitly states that concentrations are expressed as mean (SE) in units of pg/mg protein, so the value in parentheses (59) for pancreatic cancer VEGF is interpreted as the standard error of the mean.
+  - name: group_sample_size
+    value: 36.0
+    units: dimensionless
+    description: |
+      Number of pancreatic adenocarcinoma surgical specimens used for soluble mediator analysis, including VEGF-A.
+    source_ref: Delitto2015_PDACInflammatoryMilieu
+    value_location: Materials and methods – Patient cohorts.
+    value_snippet: |
+      Using pathologically verified diagnoses, samples were placed into one of three experimental groups: normal pancreas (n = 6), chronic pancreatitis (n = 9) and pancreatic carcinoma (n = 36).
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  assumptions:
+  - name: n_mc_samples
+    value: 100000.0
+    units: dimensionless
+    description: |
+      Number of Monte Carlo samples used to approximate the sampling distribution of intratumoral VEGF-A concentration.
+    rationale: |
+      100,000 samples provide stable estimates of the median and 95% CI for a lognormal distribution with moderate skew without excessive computation.
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        import math
+
+        mean = inputs['vegf_mean_pg_per_mg']  # pg/mg
+        se = inputs['vegf_se_pg_per_mg']      # pg/mg, standard error of the mean
+        n_group = int(inputs['group_sample_size'].magnitude)
+
+        # Convert SEM to SD
+        sd = se * math.sqrt(n_group)
+
+        # Lognormal parameterization from mean and SD (both positive-valued)
+        mean_mag = mean.magnitude
+        sd_mag = sd.magnitude
+        mu_log = math.log(mean_mag ** 2 / math.sqrt(mean_mag ** 2 + sd_mag ** 2))
+        sigma_log = math.sqrt(math.log(1.0 + (sd_mag ** 2) / (mean_mag ** 2)))
+
+        n_mc = int(inputs['n_mc_samples'].magnitude)
+        rng = np.random.default_rng(42)
+
+        # Sampling strips units; reattach mean.units immediately after sampling
+        samples = rng.lognormal(mu_log, sigma_log, n_mc) * mean.units
+
+        median_obs = np.median(samples)
+        ci95_lower = np.percentile(samples, 2.5)
+        ci95_upper = np.percentile(samples, 97.5)
+
+        return {
+            'median_obs': median_obs,
+            'ci95_lower': ci95_lower,
+            'ci95_upper': ci95_upper,
+        }
+primary_data_source:
+  source_tag: Delitto2015_PDACInflammatoryMilieu
+  title: |
+    The inflammatory milieu within the pancreatic cancer microenvironment correlates with clinicopathologic parameters, chemoresistance and survival
+  first_author: Delitto
+  year: 2015
+  doi: 10.1186/s12885-015-1820-x
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: Human PDAC patient specimens, directly matching the model indication and disease context.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Observational measurement of treatment-naive PDAC specimens; no experimental perturbation applied.
+    tme_compatibility: high
+    tme_compatibility_notes: Resected PDAC specimens with characteristic desmoplastic, immune-excluded TME matching model
+      assumptions.
+    validation_warnings: []
+secondary_data_sources:
+- source_tag: Ericsson2007_ProteinExtraction
+  title: Optimized protein extraction from cryopreserved brain tissue samples
+  first_author: Ericsson
+  year: 2007
+  doi_or_url: 10.1080/02841860600847061
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: Human PDAC or pancreatic tissue data used as supporting reference for the primary measurement.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Secondary reference providing supporting context or normalization values; no experimental perturbation.
+    tme_compatibility: high
+    tme_compatibility_notes: Human pancreatic tissue data consistent with PDAC model assumptions.
+    validation_warnings: []
+calibration_target_id: vegf_tissue_concentration
+cancer_type: PDAC
+tags:
+- ai-generated
+logfire_trace_id: 019c6ed0bb29601ee013d1e4c2cee182
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium

@@ -1,0 +1,667 @@
+target_id: psc_activation_myCAF_biffi2019
+tags:
+- ai-generated
+- fibroblast-module
+extraction_model: claude-opus-4-6
+study_interpretation: 'Biffi et al. (2019) measured proliferation of mouse PSCs cultured in Matrigel
+
+  with control media (quiescent) or control media + 20 ng/mL TGFb (driving
+
+  myofibroblast activation). CellTiter-Glo luminescence measured every 24h for
+
+  6 days (n=5 tech reps). The Supplementary Figure S6A qPCR confirmed TGFb
+
+  induces myCAF markers (Ctgf, Col1a1) without inducing iCAF markers.
+
+
+  The with-TGFb curve grows 3.2x over 6 days (k=0.23/day) while quiescent PSCs
+
+  barely grow (1.2x, k=0.04/day). The accelerating growth in the TGFb condition
+
+  reflects PSCs activating to myCAFs, which proliferate faster. Early timepoints
+
+  are dominated by qPSC growth (most cells still quiescent); later timepoints
+
+  by myCAF growth (most cells have converted). The transition timescale directly
+
+  constrains k_PSC_to_myCAF.
+
+
+  Importantly, this uses control media (no organoid CM), so there is no IL-1
+
+  present. The activation is purely TGFb-driven, matching the QSP model reaction:
+
+  qPSC -> myCAF at rate k_PSC_to_myCAF * qPSC * TGFb/(TGFb_50_CAF_act + TGFb).
+
+  '
+key_assumptions:
+- 'All cells start as quiescent PSCs. TGFb drives activation to myCAFs but not
+
+  to iCAFs (confirmed by S6A qPCR showing no iCAF marker induction). No
+
+  reverse conversion (myCAF->qPSC) is modeled since TGFb is continuously
+
+  present at saturating levels.
+
+  '
+- 'CellTiter-Glo luminescence is proportional to total cell count, with the
+
+  proportionality constant assumed similar between qPSCs and myCAFs.
+
+  '
+- 'TGFb concentration is constant at 0.8 nM (20 ng/mL) throughout the experiment.
+
+  No significant depletion by cells.
+
+  '
+- 'The control condition (no TGFb) has negligible activation — PSCs remain
+
+  quiescent throughout. This is supported by the near-flat growth curve and
+
+  the absence of myCAF markers (S6A qPCR).
+
+  '
+key_study_limitations:
+- 'Technical replicates only (n=5 wells), not biological replicates.
+
+  '
+- 'Mouse PSCs, not human. Activation kinetics may differ between species.
+
+  '
+- 'Control media contains 5% FBS which provides some TGFb (~0.1-0.5 ng/mL).
+
+  This could contribute to low-level activation in the control condition,
+
+  though the near-flat growth curve suggests this is negligible.
+
+  '
+- '2D Matrigel culture lacks the mechanical cues (stiffness) that contribute
+
+  to myCAF activation in vivo. However, TGFb is the dominant chemical
+
+  activator and is provided exogenously.
+
+  '
+experimental_context:
+  species: mouse
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: quiescent PSCs
+    source: mouse pancreas (KPC model)
+    isolation_method: 'PSCs embedded in Matrigel and cultured in DMEM with 5% FBS (control media)
+
+      with or without 20 ng/mL mouse TGFb. No organoid-conditioned media.
+
+      '
+  culture_conditions:
+    medium: DMEM with 5% FBS, +/- 20 ng/mL mouse TGF-beta1
+    duration: 6 days (digitized), measurements every 24 hours. 6,000 PSCs per well in 52 uL Matrigel, white 96-well plates,
+      readout by CellTiter-Glo.
+  indication: PDAC
+primary_data_source:
+  doi: 10.1158/2159-8290.CD-18-0710
+  title: 'IL-1-induced JAK/STAT signaling is antagonized by TGF-beta to shape CAF
+
+    heterogeneity in pancreatic ductal adenocarcinoma
+
+    '
+  authors:
+  - Biffi
+  - Oni
+  - Spielman
+  - Hao
+  - Elyada
+  - Park
+  - Preall
+  - Tuveson
+  year: 2019
+  source_tag: Biffi2019
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: 'Mouse KPC pancreatic stellate cells with exogenous TGFb. The activation
+
+      of quiescent PSCs to myCAFs by TGFb is the defining mechanism of myCAF
+
+      formation in PDAC (Biffi 2019, Ohlund 2017).
+
+      '
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: 'TGFb at 20 ng/mL (0.8 nM) is supraphysiological but within the range
+
+      observed in PDAC stroma. The saturating concentration means the measured
+
+      activation rate represents the maximal rate, providing an upper bound
+
+      for in vivo activation at sub-saturating local TGFb concentrations.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro Matrigel culture with exogenous TGFb. Lacks spatial gradients,
+
+      mechanical cues, and co-culture interactions present in PDAC TME. The
+
+      activation rate may differ in vivo due to ECM stiffness-mediated
+
+      mechanotransduction (YAP/TAZ) that enhances myCAF differentiation.
+
+      '
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_primary
+secondary_data_sources: []
+inputs:
+- name: n_tech_replicates
+  value: 5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B legend
+  value_snippet: mean SD of 5 technical replicates
+- name: TGFb_conc_nM
+  value: 0.8
+  units: nanomolarity
+  input_type: derived_arithmetic
+  source_inputs:
+  - TGFb_conc_ng_ml
+  - TGFb_MW_Da
+  formula: TGFb_conc_ng_ml / TGFb_MW_Da * 1000
+  rationale: Convert 20 ng/mL to nM. MW of TGFb1 homodimer = 25 kDa.
+  source_ref: Biffi2019
+  source_location: Methods, Drug and antibody treatments
+- name: TGFb_conc_ng_ml
+  value: 20
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Methods, Drug and antibody treatments
+  value_snippet: 20 ng/mL mouse
+- name: TGFb_MW_Da
+  value: 25000
+  units: dimensionless
+  input_type: reference_value
+  rationale: Molecular weight of TGFb1 homodimer (25 kDa). Standard reference value.
+  source_ref: Biffi2019
+  source_location: N/A
+- name: ctrl_day1_mean
+  value: 85326
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~85000
+    description: Without TGFb luminescence at day 1 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb. Black curve.
+- name: ctrl_day2_mean
+  value: 81522
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~82000
+    description: Without TGFb luminescence at day 2 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb.
+- name: ctrl_day2_sd
+  value: 10326
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~10000
+    description: Without TGFb SD at day 2
+    context: Error bars represent SD, n=5 technical replicates.
+- name: ctrl_day3_mean
+  value: 83696
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~84000
+    description: Without TGFb luminescence at day 3 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb.
+- name: ctrl_day3_sd
+  value: 1087
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~1000
+    description: Without TGFb SD at day 3
+    context: Error bars represent SD, n=5 technical replicates.
+- name: ctrl_day4_mean
+  value: 79891
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~80000
+    description: Without TGFb luminescence at day 4 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb.
+- name: ctrl_day4_sd
+  value: 5435
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~5000
+    description: Without TGFb SD at day 4
+    context: Error bars represent SD, n=5 technical replicates.
+- name: ctrl_day5_mean
+  value: 94565
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~95000
+    description: Without TGFb luminescence at day 5 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb.
+- name: ctrl_day5_sd
+  value: 11413
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~11000
+    description: Without TGFb SD at day 5
+    context: Error bars represent SD, n=5 technical replicates.
+- name: ctrl_day6_mean
+  value: 105435
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~105000
+    description: Without TGFb luminescence at day 6 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb.
+- name: ctrl_day6_sd
+  value: 12500
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~13000
+    description: Without TGFb SD at day 6
+    context: Error bars represent SD, n=5 technical replicates.
+- name: tgfb_day1_mean
+  value: 85870
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~86000
+    description: With TGFb luminescence at day 1 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb. Red/pink curve.
+- name: tgfb_day2_mean
+  value: 97283
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~97000
+    description: With TGFb luminescence at day 2 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb.
+- name: tgfb_day2_sd
+  value: 10326
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~10000
+    description: With TGFb SD at day 2
+    context: Error bars represent SD, n=5 technical replicates.
+- name: tgfb_day3_mean
+  value: 120652
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~121000
+    description: With TGFb luminescence at day 3 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb.
+- name: tgfb_day3_sd
+  value: 4348
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~4000
+    description: With TGFb SD at day 3
+    context: Error bars represent SD, n=5 technical replicates.
+- name: tgfb_day4_mean
+  value: 160326
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~160000
+    description: With TGFb luminescence at day 4 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb.
+- name: tgfb_day4_sd
+  value: 11957
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~12000
+    description: With TGFb SD at day 4
+    context: Error bars represent SD, n=5 technical replicates.
+- name: tgfb_day5_mean
+  value: 232609
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~233000
+    description: With TGFb luminescence at day 5 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb.
+- name: tgfb_day5_sd
+  value: 19022
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~19000
+    description: With TGFb SD at day 5
+    context: Error bars represent SD, n=5 technical replicates.
+- name: tgfb_day6_mean
+  value: 271739
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~272000
+    description: With TGFb luminescence at day 6 (mean)
+    context: Proliferation curves of PSCs in Matrigel +/- TGFb. ***P<0.001
+- name: tgfb_day6_sd
+  value: 27717
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6B
+  figure_excerpt:
+    figure_id: Figure S6B
+    value: ~28000
+    description: With TGFb SD at day 6
+    context: Error bars represent SD, n=5 technical replicates.
+calibration:
+  parameters:
+  - name: k_PSC_to_myCAF
+    units: 1/day
+  - name: TGFb_50_CAF_act
+    units: nanomolarity
+  - name: k_myCAF_prolif
+    units: 1/day
+  - name: k_qPSC_prolif
+    units: 1/day
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -2.3
+      sigma: 1.0
+  - name: K_well
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 13.5
+      sigma: 0.5
+  - name: n_logistic
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 1.1
+      sigma: 0.5
+  forward_model:
+    type: custom_ode
+    data_rationale: 'Two proliferation curves from quiescent PSCs +/- TGFb over 6 days.
+
+      Without TGFb, PSCs remain quiescent and barely grow. With TGFb, PSCs
+
+      activate to myCAFs which proliferate faster. The accelerating growth
+
+      curve in the TGFb condition directly constrains the activation rate
+
+      k_PSC_to_myCAF: early timepoints reflect qPSC growth (most
+
+      cells still quiescent), later timepoints reflect myCAF growth (most
+
+      cells converted).
+
+      '
+    submodel_rationale: "Replicates the QSP model reaction:\n  qPSC -> myCAF at rate k_PSC_to_myCAF * qPSC * TGFb/(TGFb_50_CAF_act\
+      \ + TGFb)\nIn control media with no organoid CM, there is no IL-1, so no iCAF\nformation occurs. The activation is purely\
+      \ TGFb-driven (confirmed by\nS6A qPCR). No reverse conversion is modeled since TGFb is continuously\npresent at saturating\
+      \ levels.\n"
+    code: "def ode(t, y, params, inputs):\n    q_ctrl, q_act, m_act = y\n    k_q = params['k_qPSC_prolif']\n    k_act = params['k_PSC_to_myCAF']\n\
+      \    k_m = params['k_myCAF_prolif']\n    ec50 = params['TGFb_50_CAF_act']\n    K = params['K_well']\n    n = params['n_logistic']\n\
+      \    tgfb = inputs['TGFb_conc_nM']\n\n    H_TGFb = tgfb / (ec50 + tgfb)\n\n    # Control: quiescent logistic growth\
+      \ (no TGFb)\n    dq_ctrl = k_q * q_ctrl * (1 - (q_ctrl / K) ** n)\n\n    # With TGFb: activation + proliferation\n \
+      \   N_act = q_act + m_act\n    logistic_act = 1 - (N_act / K) ** n\n    activation = k_act * H_TGFb * q_act\n\n    dq_act\
+      \ = -activation + k_q * q_act * logistic_act\n    dm_act = activation + k_m * m_act * logistic_act\n\n    return [dq_ctrl,\
+      \ dq_act, dm_act]\n"
+    state_variables:
+    - name: q_ctrl
+      units: dimensionless
+      initial_condition:
+        input_ref: ctrl_day1_mean
+        rationale: Day 1 luminescence for control (no TGFb) condition
+    - name: q_act
+      units: dimensionless
+      initial_condition:
+        input_ref: tgfb_day1_mean
+        rationale: Day 1 luminescence for TGFb condition (all qPSCs initially)
+    - name: m_act
+      units: dimensionless
+      initial_condition:
+        value: 0.0
+        rationale: No myCAFs at day 1 — all cells start as quiescent PSCs
+    independent_variable:
+      name: time
+      units: day
+      span:
+      - 1
+      - 6
+  # ctrl_day2, ctrl_day3, ctrl_day4 removed from error model:
+  # Biffi2019 control arm shows flat/declining luminescence in days 1-4
+  # (85k → 82k → 84k → 80k) due to Matrigel settling/adaptation artifact.
+  # Monotonic logistic growth structurally cannot capture this transient dip.
+  # Days 5-6 (growth phase) are retained to constrain k_qPSC_prolif.
+  error_model:
+  - name: ctrl_day5
+    units: dimensionless
+    uses_inputs:
+    - ctrl_day5_mean
+    - ctrl_day5_sd
+    - n_tech_replicates
+    evaluation_points:
+    - 5
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['ctrl_day5_mean']\n    sd = inputs['ctrl_day5_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: identity
+      state_variables:
+      - q_ctrl
+  - name: ctrl_day6
+    units: dimensionless
+    uses_inputs:
+    - ctrl_day6_mean
+    - ctrl_day6_sd
+    - n_tech_replicates
+    evaluation_points:
+    - 6
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['ctrl_day6_mean']\n    sd = inputs['ctrl_day6_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: identity
+      state_variables:
+      - q_ctrl
+  - name: tgfb_day2
+    units: dimensionless
+    uses_inputs:
+    - tgfb_day2_mean
+    - tgfb_day2_sd
+    - n_tech_replicates
+    evaluation_points:
+    - 2
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['tgfb_day2_mean']\n    sd = inputs['tgfb_day2_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: 'def compute(t, y, y_start): return y[1] + y[2]'
+      state_variables:
+      - q_act
+      - m_act
+  - name: tgfb_day3
+    units: dimensionless
+    uses_inputs:
+    - tgfb_day3_mean
+    - tgfb_day3_sd
+    - n_tech_replicates
+    evaluation_points:
+    - 3
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['tgfb_day3_mean']\n    sd = inputs['tgfb_day3_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: 'def compute(t, y, y_start): return y[1] + y[2]'
+      state_variables:
+      - q_act
+      - m_act
+  - name: tgfb_day4
+    units: dimensionless
+    uses_inputs:
+    - tgfb_day4_mean
+    - tgfb_day4_sd
+    - n_tech_replicates
+    evaluation_points:
+    - 4
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['tgfb_day4_mean']\n    sd = inputs['tgfb_day4_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: 'def compute(t, y, y_start): return y[1] + y[2]'
+      state_variables:
+      - q_act
+      - m_act
+  - name: tgfb_day5
+    units: dimensionless
+    uses_inputs:
+    - tgfb_day5_mean
+    - tgfb_day5_sd
+    - n_tech_replicates
+    evaluation_points:
+    - 5
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['tgfb_day5_mean']\n    sd = inputs['tgfb_day5_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: 'def compute(t, y, y_start): return y[1] + y[2]'
+      state_variables:
+      - q_act
+      - m_act
+  - name: tgfb_day6
+    units: dimensionless
+    uses_inputs:
+    - tgfb_day6_mean
+    - tgfb_day6_sd
+    - n_tech_replicates
+    evaluation_points:
+    - 6
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['tgfb_day6_mean']\n    sd = inputs['tgfb_day6_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: 'def compute(t, y, y_start): return y[1] + y[2]'
+      state_variables:
+      - q_act
+      - m_act
+  identifiability_notes: 'k_PSC_to_myCAF is the primary target, constrained by the divergence
+
+    between control and TGFb curves. The activation rate determines the timescale
+
+    of the qPSC->myCAF transition: fast activation gives early divergence, slow
+
+    activation gives late divergence. At 0.8 nM TGFb (H_TGFb ~ 0.92), the
+
+    effective activation rate is approximately k_PSC_to_myCAF * 0.92.
+
+
+    TGFb_50_CAF_act is weakly constrained (same issue as Fig 5H — TGFb is
+
+    near-saturating). Shared with the interconversion target for joint constraint.
+
+
+    k_myCAF_prolif is constrained by the late-timepoint growth rate (days 5-6)
+
+    when most cells have converted to myCAFs. Shared with S6K and 5H targets.
+
+
+    k_qPSC_prolif (nuisance) is constrained by the control curve.
+
+
+    Potential degeneracy: fast activation + slow myCAF proliferation vs slow
+
+    activation + fast myCAF proliferation. The S6K target breaks this by
+
+    independently constraining k_myCAF_prolif.
+
+    '

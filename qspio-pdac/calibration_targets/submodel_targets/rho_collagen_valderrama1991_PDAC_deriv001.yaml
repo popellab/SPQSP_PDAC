@@ -1,0 +1,217 @@
+target_id: rho_collagen_valderrama1991_PDAC_deriv001
+study_interpretation: |
+  Valderrama et al. 1991 (Int J Pancreatol 10:23-29) measured collagen
+  content in n=11 control human pancreas specimens (postmortem from
+  non-alcoholic adults with no pancreatic pathology). Their colorimetric
+  method uses Sirius red F3B + Fast green FCF on paraffin-embedded
+  sections, with absorbance read spectrophotometrically and converted to
+  collagen mass using the Lopez de Leon-Rojkind 1985 calibration
+  (37 OD/mg collagen for Sirius red, 3 OD/mg protein for Fast green).
+  Reported control-group collagen content: 89.1 +/- 11.6 ug collagen /
+  mg total protein (mean +/- SD, n=11).
+
+  In the QSP-IO PDAC model, rho_collagen [g/mL] is the mass-to-volume
+  conversion for collagen contribution to V_T: phi_collagen =
+  V_T.collagen / (V_T * rho_collagen). It defines the "scaffold-equivalent
+  packing density" — the implicit collagen mass density of the volume
+  region phi_collagen represents in V_T. Combined with phi_col_ref
+  (the normal-pancreas reference fraction), they jointly determine the
+  predicted collagen-mass density in normal pancreas tissue.
+
+  Valderrama's colorimetric measurement constrains the joint product
+  phi_col_ref * rho_collagen / protein_per_wet_volume. Joint inference
+  with the existing phi_col_ref-constraining targets (Wolf 2013 for
+  d_pore_ref, Rubiano 2018 for E_ref+n_stiff, Grizzi 2019 for
+  Sirius-red area) breaks the degeneracy and produces a posterior on
+  rho_collagen.
+key_assumptions:
+- |
+  Valderrama specimens are representative of normal human pancreas
+  in vivo. Postmortem fixation may alter water content but not the
+  protein-mass measurements (Sirius red binds collagen protein
+  irrespective of hydration state).
+- |
+  Pancreas total protein per wet tissue volume is treated as a
+  nuisance parameter with a literature-anchored prior. Pancreatic
+  tissue is ~75% water (Noblet 2018, in reference_values.yaml) with
+  the remaining ~25% solids being roughly half protein, giving
+  protein-per-wet-mass ~0.10-0.15 and (with wet density ~1.04 g/mL)
+  protein-per-wet-volume ~0.10-0.16 g/mL.
+- |
+  The QSP convention is "scaffold-equivalent including void" (V_T
+  collagen volume = total collagen mass / fibrillar packing density).
+  Valderrama's Sirius-red colorimetric is a direct mass measurement
+  of collagen protein, so it is independent of packing convention —
+  it constrains the product phi_col_ref * rho_collagen, with the
+  individual values resolved by the morphometric / pore / stiffness
+  joint inference.
+- |
+  Morphometric arm of Valderrama (Masson trichrome) is NOT used as
+  a second observable here because Masson trichrome captures broader
+  connective tissue (collagen + reticular fibers + basement membrane),
+  not Sirius-red-specific fibrillar collagen. The Sirius-red-specific
+  morphometric anchor lives in the separate Grizzi 2019 phi_col_ref
+  submodel target (2.23 +/- 0.28% normal). Mixing conventions in one
+  target would introduce a method-factor nuisance that is not
+  literature-anchored.
+key_study_limitations:
+- |
+  n=11 control specimens. Population-level uncertainty is limited
+  by patient count.
+- |
+  Postmortem material rather than fresh-frozen surgical resection.
+  Sirius-red colorimetry is robust to fixation, but absolute collagen
+  values can shift +/- 10% with paraffin embedding artifacts.
+- |
+  Inter-assay CV of 7% reported (intra-assay 4.7%) — methodological
+  variability is much smaller than between-patient biological
+  variability (CV = 11.6/89.1 = 13%), so reported SD is dominated
+  by biology, which is the right denominator for prior calibration.
+experimental_context:
+  species: human
+  system: ex_vivo_tissue
+  cell_lines: null
+  cell_types: null
+  culture_conditions: null
+  indication: PDAC
+primary_data_source:
+  doi: 10.1007/BF02924250
+  source_tag: Valderrama1991
+  title: |
+    Quantitative measurement of fibrosis in pancreatic tissue.
+    Evaluation of a colorimetric method
+  authors:
+  - Valderrama
+  year: 1991
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: |
+      Direct quantitative measurement of collagen content in normal
+      human pancreas (n=11 controls) by Sirius-red colorimetry.
+      The control group is the empirical anchor for normal-pancreas
+      collagen mass content, which combined with the model's
+      phi_col_ref reference fraction defines rho_collagen.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: |
+      Postmortem normal pancreas (no alcoholism, no pancreatic
+      pathology, normal histology). Represents the healthy baseline
+      that phi_col_ref + rho_collagen are calibrated against.
+    tme_compatibility: high
+    tme_compatibility_notes: |
+      Direct ex vivo measurement on human pancreas tissue. Sirius red
+      F3B colorimetry is a well-validated mass-based collagen assay
+      (Lopez de Leon-Rojkind 1985, used in Jimenez 1985 hepatic
+      fibrosis). The method captures all fibrillar collagen types
+      (I, III, V) which is appropriate for the QSP-model's lumped
+      collagen species.
+    measurement_directness: single_inversion
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: ex_vivo
+secondary_data_sources: []
+inputs:
+- name: c_mass_normal_mean
+  value: 89.1
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Valderrama1991
+  source_location: Abstract / Results, Colorimetric Assay paragraph
+  value_snippet: |
+    89.1 +_ 11.6/xg collagen/mg total protein in the control group
+- name: c_mass_normal_sd
+  value: 11.6
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Valderrama1991
+  source_location: Abstract / Results, Colorimetric Assay paragraph
+  value_snippet: |
+    89.1 +_ 11.6/xg collagen/mg total protein in the control group
+- name: n_normal_specimens
+  value: 11
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Valderrama1991
+  source_location: Materials and Methods, paragraph 1
+  value_snippet: '11 control pancreases obtained at postmortem examination'
+calibration:
+  parameters:
+  - name: phi_col_ref
+    units: dimensionless
+  - name: rho_collagen
+    units: gram/milliliter
+  - name: protein_per_wet_volume_pancreas
+    units: gram/milliliter
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -1.966112856372833
+      sigma: 0.5
+  forward_model:
+    type: algebraic
+    formula: |
+      c_mass [ug collagen / mg total protein] = (phi_col_ref * rho_collagen) /
+                                                 protein_per_wet_volume_pancreas * 1000
+    code: |
+      def compute(params, inputs):
+          # Predicted Valderrama colorimetric reading: ug collagen / mg total protein.
+          # Reasoning:
+          #   collagen_mass_per_V_T_volume = phi_col_ref * rho_collagen [g/mL]
+          #   protein_mass_per_V_T_volume = protein_per_wet_volume_pancreas [g/mL]
+          #   ratio (mg/mg, dimensionless) = collagen_per_V / protein_per_V
+          #   convert mg/mg -> ug/mg: multiply by 1000
+          phi = params['phi_col_ref']
+          rho = params['rho_collagen']
+          ppwv = params['protein_per_wet_volume_pancreas']
+          return phi * rho / ppwv * 1000.0
+    data_rationale: |
+      The Sirius-red colorimetric reading is the ratio of collagen
+      protein mass to total protein mass per unit tissue. In the QSP
+      model, that ratio = (phi_col_ref * rho_collagen) /
+      protein_per_wet_volume_pancreas. The 1000 factor converts
+      mg/mg to ug/mg to match the Valderrama units.
+    submodel_rationale: |
+      rho_collagen and phi_col_ref both appear in the model's V_T
+      volume rule. Their product determines the implied collagen-mass
+      density in V_T per unit volume; Valderrama's data anchors this
+      product. Joint inference with phi_col_ref-constraining targets
+      (Wolf 2013, Rubiano 2018, Grizzi 2019) resolves the individual
+      values.
+  error_model:
+  - name: c_mass_normal_pancreas
+    units: dimensionless
+    uses_inputs:
+    - c_mass_normal_mean
+    - c_mass_normal_sd
+    - n_normal_specimens
+    sample_size_input: n_normal_specimens
+    observation_code: |
+      def derive_observation(inputs, sample_size, rng, n_bootstrap):
+          import numpy as np
+          mean = inputs['c_mass_normal_mean']
+          sd = inputs['c_mass_normal_sd']
+          # Population-level mean of ug collagen / mg total protein
+          # in normal pancreas. CV = 11.6/89.1 ~ 13% (biology-dominated;
+          # methodological CV is 4.7-7%). Lognormal bootstrap because
+          # the quantity is positive and CV sits in the regime where
+          # the lognormal correction matters.
+          cv = sd / mean
+          sigma_ln = np.sqrt(np.log(1 + cv**2))
+          mu_ln = np.log(mean) - sigma_ln**2 / 2
+          return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)
+  identifiability_notes: |
+    Single observable (c_mass_normal) constrains the product
+    phi_col_ref * rho_collagen / protein_per_wet_volume_pancreas.
+    The nuisance prior on protein_per_wet_volume_pancreas (lognormal,
+    mu=log(0.14), sigma=0.25, anchored to pancreas total-protein
+    fraction ~0.10-0.18 g/mL via Noblet 2018 dry-fraction + standard
+    pancreatic protein composition) breaks one dimension of the
+    degeneracy. The product phi_col_ref * rho_collagen is then
+    constrained, with individual values disentangled by the
+    phi_col_ref-only targets (Wolf 2013, Rubiano 2018, Grizzi 2019)
+    in joint inference.
+tags:
+- ai-generated
+- ecm-anchor-audit
+extraction_model: claude-opus-4-7

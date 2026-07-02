@@ -1,0 +1,220 @@
+study_interpretation: |
+  Li et al. (Cancer Cell 2022) performed multiplex immunohistochemistry (mIHC) on resected PDAC tumors from patients treated with neoadjuvant GVAX ± nivolumab in a randomized platform trial (NCT02451982). Figure 3B reports the M1 TAM/M2 TAM ratio in non-LA (non-lymphoid aggregate) tumor areas stratified by treatment arm (GVAX alone vs GVAX+nivolumab) and overall survival (OS <2y vs OS >2y). We digitized data points from the GVAX+nivolumab arm (Arm B, n=10) in the non-LA tumor region, pooling OS subgroups, to derive the post-treatment intratumoral M1/M2 macrophage ratio. Non-LA tumor area was chosen over LA because it represents ~90% of the tumor volume and better matches the model's well-mixed V_T compartment. The M1/M2 ratio in the LA region was higher (median ~2.0 vs ~0.3), reflecting concentrated immune activation in lymphoid aggregates.
+key_assumptions:
+- |
+  M1 and M2 TAM classification by mIHC markers in Li et al. corresponds to the model's V_T.Mac_M1 and V_T.Mac_M2 populations. Specific marker panels are described in Table S3 of the supplementary material.
+- |
+  Data points were digitized from scatter plots in Figure 3B (non-LA tumor area, M1 TAM/M2 TAM panel). Values near zero on the y-axis (0–8 scale) were read as 0.1 rather than exactly 0, reflecting the resolution limit of figure digitization.
+- |
+  OS <2y and OS >2y subgroups within the GVAX+nivolumab arm were pooled to produce a single population-level calibration target (n=10), as the QSP model does not currently condition on survival outcome.
+- |
+  Patient-to-patient variability in the M1/M2 ratio is approximated by a lognormal distribution parameterized from the sample median and interquartile range, consistent with the positive-valued, right-skewed nature of the data.
+key_study_limitations:
+- |
+  Values were digitized from published scatter plots (Figure 3B), not extracted from tabulated data. Reading precision is limited by the y-axis scale (0–8) and symbol size, estimated at ±0.1–0.2.
+- |
+  Small sample size (n=10 for GVAX+nivolumab arm) yields wide confidence intervals for the population distribution.
+- |
+  The non-LA tumor area M1/M2 ratio distribution appears bimodal, with most patients showing M2 dominance (ratio 0.1–0.3) and a minority showing M1 enrichment (ratio 2–4). The lognormal parametric fit smooths over this bimodality.
+- |
+  LA region data (median M1/M2 ~2.0, n=10) is not used in the primary target but provides an upper-bound validation check for models that resolve spatial immune heterogeneity.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        """Compute the ratio of M1 to M2 macrophages in the tumor compartment.
+
+        species_dict contains tumor-compartment macrophage counts:
+        - V_T.Mac_M1: number of M1 macrophages (cells)
+        - V_T.Mac_M2: number of M2 macrophages (cells)
+
+        The observable is the instantaneous ratio Mac_M1 / Mac_M2, which is
+        dimensionless and strictly positive.
+        """
+        M1 = species_dict['V_T.Mac_M1']
+        M2 = species_dict['V_T.Mac_M2']
+        ratio = (M1 / M2)
+        return ratio
+
+  units: dimensionless
+  species:
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  constants: []
+  support: positive_unbounded
+  mapping_rationale: |
+    Li et al. quantified M1 and M2 tumor-associated macrophages by mIHC in resected PDAC tumors. The M1 TAM/M2 TAM ratio in the non-LA tumor area (Figure 3B) represents the bulk-tumor macrophage polarization balance post-treatment. This maps directly to V_T.Mac_M1 / V_T.Mac_M2 in the model, as the tumor compartment is well-mixed and tissue area cancels in the ratio. Non-LA regions (representing ~90% of tumor area) provide the best match to the model's whole-tumor compartment.
+  experimental_denominator: |
+    Shared non-LA tumor region in which both M1-like and M2-like TAMs were quantified on the same resection sections by mIHC; tissue area cancels in the ratio.
+  model_denominator_species:
+  - V_T.Mac_M2
+  unmodeled_denominator_components: |
+    None for the ratio itself, assuming experimental M1 and M2 TAM classifications correspond directly to V_T.Mac_M1 and V_T.Mac_M2. Intermediate-polarization macrophages (neither clearly M1 nor M2) may exist experimentally but are not represented in the binary model.
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - prior_immunotherapy
+    status: on_treatment
+    specifier: |
+      Neoadjuvant GVAX pancreatic cancer vaccine plus nivolumab (anti-PD-1) prior to surgical resection (Arm B of NCT02451982). GVAX was administered ~2 weeks before surgery; nivolumab was given concurrently.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Resected primary pancreatic ductal adenocarcinoma tumor following neoadjuvant GVAX + nivolumab immunotherapy. Non-lymphoid aggregate (non-LA) tumor areas were analyzed by mIHC.
+  assay_type: |
+    Multiplex immunohistochemistry (mIHC) with digital image analysis for M1 and M2 TAM classification.
+scenario:
+  description: |
+    Neoadjuvant GVAX + nivolumab immunotherapy in patients with resectable PDAC (Arm B of NCT02451982), followed by surgical resection approximately two weeks after the first vaccine dose. Tumor mIHC analysis at the time of resection.
+  interventions:
+  - intervention_description: |
+      Irradiated GM-CSF-secreting allogeneic PDAC vaccine (GVAX) plus nivolumab (anti-PD-1 antibody) administered in the neoadjuvant setting as part of a randomized platform trial, followed by pancreaticoduodenectomy approximately 2 weeks later.
+empirical_data:
+  median:
+  - 0.2959
+  ci95:
+  - - 0.0148
+    - 6.105
+  units: dimensionless
+  sample_size: 10
+  sample_size_rationale: |
+    n=10 corresponds to the GVAX+nivolumab arm (Arm B) of NCT02451982 as reported in Li et al. 2022. Data points were pooled across OS <2y (n=3) and OS >2y (n=7) subgroups.
+  index_values:
+  - 21.0
+  index_unit: day
+  index_type: time
+  inputs:
+  - name: m1_m2_ratio_median
+    value: 0.3
+    units: dimensionless
+    description: |
+      Sample median of the M1 TAM/M2 TAM ratio in non-LA tumor areas from the GVAX+nivolumab arm (Arm B, n=10), digitized from Figure 3B of Li et al. 2022. Pooled across OS <2y and OS >2y subgroups.
+    source_ref: Li2022_CancerCell_PDAC_AntiPD1
+    value_location: |
+      Figure 3B, rightmost panel (M1 TAM/M2 TAM), GVAX+Nivo columns (OS<2y and OS>2y pooled)
+    value_snippet: |
+      Figure 3B shows M1 TAM/M2 TAM ratios in non-LA tumor areas. GVAX+Nivo OS<2y: 3 data points at approximately 0.1, 0.2, 0.3. GVAX+Nivo OS>2y: 7 data points at approximately 0.1, 0.2, 0.3, 0.3, 2.0, 2.1, 4.0. Pooled median = 0.3.
+    input_type: inferred_estimate
+    conversion_formula: null
+    source_type: figure
+    figure_id: Figure 3B
+    extraction_method: manual
+    extraction_notes: |
+      Values near zero on the y-axis (scale 0-8) were read as 0.1 based on visual estimation; exact values below ~0.2 are uncertain.
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: m1_m2_ratio_q1
+    value: 0.2
+    units: dimensionless
+    description: |
+      First quartile (Q1, 25th percentile) of the digitized M1 TAM/M2 TAM ratio values from the GVAX+nivolumab arm in non-LA tumor areas.
+    source_ref: Li2022_CancerCell_PDAC_AntiPD1
+    value_location: Derived from individual data points in Figure 3B
+    value_snippet: |
+      Computed from digitized values: sorted data [0.1, 0.1, 0.2, 0.2, 0.3, 0.3, 0.3, 2.0, 2.1, 4.0], Q1 = 0.2.
+    input_type: inferred_estimate
+    conversion_formula: null
+    source_type: figure
+    figure_id: Figure 3B
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: m1_m2_ratio_q3
+    value: 1.575
+    units: dimensionless
+    description: |
+      Third quartile (Q3, 75th percentile) of the digitized M1 TAM/M2 TAM ratio values from the GVAX+nivolumab arm in non-LA tumor areas.
+    source_ref: Li2022_CancerCell_PDAC_AntiPD1
+    value_location: Derived from individual data points in Figure 3B
+    value_snippet: |
+      Computed from digitized values: sorted data [0.1, 0.1, 0.2, 0.2, 0.3, 0.3, 0.3, 2.0, 2.1, 4.0], Q3 = 1.575.
+    input_type: inferred_estimate
+    conversion_formula: null
+    source_type: figure
+    figure_id: Figure 3B
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  assumptions:
+  - name: n_mc_samples
+    value: 100000.0
+    units: dimensionless
+    description: |
+      Number of Monte Carlo samples used to propagate uncertainty from the lognormal parameterization to the M1/M2 ratio distribution.
+    rationale: |
+      100,000 samples provide stable estimates of the median and 95% interval for the ratio distribution.
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+
+        # Extract inputs as Pint Quantities
+        ratio_med = inputs['m1_m2_ratio_median']
+        ratio_q1 = inputs['m1_m2_ratio_q1']
+        ratio_q3 = inputs['m1_m2_ratio_q3']
+        n_samples = int(inputs['n_mc_samples'].magnitude)
+
+        # z-score for first and third quartiles of a standard normal
+        z_q = 0.67448975
+
+        # Derive lognormal parameters from median and IQR
+        sigma = np.log(ratio_q3.magnitude / ratio_q1.magnitude) / (2.0 * z_q)
+        mu = np.log(ratio_med.magnitude)
+
+        rng = np.random.default_rng(42)
+
+        # Sample from lognormal distribution; ratio is dimensionless
+        samples = rng.lognormal(mu, sigma, n_samples) * ureg('dimensionless')
+
+        median_obs = np.median(samples)
+        ci95_lower = np.percentile(samples, 2.5)
+        ci95_upper = np.percentile(samples, 97.5)
+
+        return {
+            'median_obs': median_obs,
+            'ci95_lower': ci95_lower,
+            'ci95_upper': ci95_upper,
+        }
+primary_data_source:
+  source_tag: Li2022_CancerCell_PDAC_AntiPD1
+  title: |
+    Multi-omic analyses of changes in the tumor microenvironment of pancreatic adenocarcinoma following neoadjuvant treatment with anti-PD-1 therapy
+  first_author: Li
+  year: 2022
+  doi: 10.1016/j.ccell.2022.10.001
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: |
+      Primary study cohort consists of human resectable PDAC patients treated with neoadjuvant GVAX + nivolumab, exactly matching the model's PDAC indication and GVAX+nivo treatment scenario.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: pharmacological
+    perturbation_relevance: |
+      GVAX + nivolumab neoadjuvant immunotherapy is the exact treatment modeled in the gvax_nivo_neoadjuvant scenario.
+    tme_compatibility: high
+    tme_compatibility_notes: |
+      Resected PDAC tumors post-immunotherapy. Non-LA tumor areas represent the bulk desmoplastic TME that the model's well-mixed V_T compartment captures. LA regions (not used for this target) show higher M1/M2 ratios reflecting localized immune activation.
+    validation_warnings:
+    - |
+      Values digitized from scatter plots (Figure 3B), not from tabulated data. Reading precision is ±0.1-0.2 on a 0-8 y-axis scale.
+    - |
+      LA-region M1/M2 ratios (median ~2.0) are substantially higher than non-LA (median ~0.3). If the model captures any LA-like immune activation, its predicted M1/M2 may exceed the non-LA target.
+secondary_data_sources: []
+calibration_target_id: m1_m2_ratio_gvax_nivo_d21
+cancer_type: PDAC
+tags:
+- ai-generated
+- figure-digitized
+- human-verified
+logfire_trace_id: null
+extraction_model: claude-opus-4-6
+extraction_reasoning_effort: high

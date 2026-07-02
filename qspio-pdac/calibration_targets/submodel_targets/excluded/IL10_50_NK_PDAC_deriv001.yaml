@@ -1,0 +1,608 @@
+target_id: IL10_50_NK
+inputs:
+- name: IL10_dose_5_ngml
+  value: 5.0
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1 legend; NK Cell Treatment Methods
+  value_snippet: NK cells were left untreated or treated with IL-10 of 5, 20, 50,
+    and 100 ng/ml for 16 h.
+- name: IL10_dose_20_ngml
+  value: 20.0
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1 legend; NK Cell Treatment Methods
+  value_snippet: NK cells were left untreated or treated with IL-10 of 5, 20, 50,
+    and 100 ng/ml for 16 h.
+- name: IL10_dose_50_ngml
+  value: 50.0
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1 legend; NK Cell Treatment Methods
+  value_snippet: NK cells were left untreated or treated with IL-10 of 5, 20, 50,
+    and 100 ng/ml for 16 h.
+- name: IL10_dose_100_ngml
+  value: 100.0
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1 legend; NK Cell Treatment Methods
+  value_snippet: NK cells were left untreated or treated with IL-10 of 5, 20, 50,
+    and 100 ng/ml for 16 h.
+- name: NK_kill_IL10_0_mean_pct
+  value: 26.1
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1L, ex vivo expanded NK, 1.5:1 E:T, 0 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~26
+    description: Mean % killing of K562 cells by ex vivo expanded NK cells at 1.5:1
+      E:T without IL-10 treatment
+    context: Dose-response of NK cell cytotoxicity vs IL-10 concentration (0, 5, 20,
+      50, 100 ng/ml) after 16 h IL-10 pre-treatment; ex vivo expanded NK cells.
+- name: NK_kill_IL10_0_sd_pct
+  value: 2.0
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1L, ex vivo expanded NK, 1.5:1 E:T, 0 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~28 vs ~26
+    description: Error bar height above the 0 ng/ml bar corresponding to approximately
+      2 percentage points
+    context: Mean +/- SD % killing of K562 targets by ex vivo expanded NK cells; n
+      = 2 for (L,M).
+- name: NK_kill_IL10_5_mean_pct
+  value: 34.3
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1L, ex vivo expanded NK, 1.5:1 E:T, 5 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~34
+    description: Mean % killing at 5 ng/ml IL-10
+    context: Dose-response of NK cell cytotoxicity vs IL-10 concentration (0, 5, 20,
+      50, 100 ng/ml) after 16 h IL-10 pre-treatment; ex vivo expanded NK cells.
+- name: NK_kill_IL10_5_sd_pct
+  value: 5.4
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1L, ex vivo expanded NK, 1.5:1 E:T, 5 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~40 vs ~34
+    description: Error bar height above the 5 ng/ml bar corresponding to approximately
+      5 percentage points
+    context: Mean +/- SD % killing of K562 targets by ex vivo expanded NK cells; n
+      = 2 for (L,M).
+- name: NK_kill_IL10_20_mean_pct
+  value: 43.2
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1L, ex vivo expanded NK, 1.5:1 E:T, 20 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~43
+    description: Mean % killing at 20 ng/ml IL-10
+    context: Dose-response of NK cell cytotoxicity vs IL-10 concentration (0, 5, 20,
+      50, 100 ng/ml) after 16 h IL-10 pre-treatment; ex vivo expanded NK cells.
+- name: NK_kill_IL10_20_sd_pct
+  value: 5.4
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1L, ex vivo expanded NK, 1.5:1 E:T, 20 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~49 vs ~43
+    description: Error bar height above the 20 ng/ml bar corresponding to approximately
+      5 percentage points
+    context: Mean +/- SD % killing of K562 targets by ex vivo expanded NK cells; n
+      = 2 for (L,M).
+- name: NK_kill_IL10_50_mean_pct
+  value: 53.1
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1L, ex vivo expanded NK, 1.5:1 E:T, 50 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~53
+    description: Mean % killing at 50 ng/ml IL-10
+    context: Dose-response of NK cell cytotoxicity vs IL-10 concentration (0, 5, 20,
+      50, 100 ng/ml) after 16 h IL-10 pre-treatment; ex vivo expanded NK cells.
+- name: NK_kill_IL10_50_sd_pct
+  value: 5.1
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1L, ex vivo expanded NK, 1.5:1 E:T, 50 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~58 vs ~53
+    description: Error bar height above the 50 ng/ml bar corresponding to approximately
+      5 percentage points
+    context: Mean +/- SD % killing of K562 targets by ex vivo expanded NK cells; n
+      = 2 for (L,M).
+- name: NK_kill_IL10_100_mean_pct
+  value: 56.6
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1L, ex vivo expanded NK, 1.5:1 E:T, 100 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~57
+    description: Mean % killing at 100 ng/ml IL-10
+    context: Dose-response of NK cell cytotoxicity vs IL-10 concentration (0, 5, 20,
+      50, 100 ng/ml) after 16 h IL-10 pre-treatment; ex vivo expanded NK cells.
+- name: NK_kill_IL10_100_sd_pct
+  value: 4.1
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1L, ex vivo expanded NK, 1.5:1 E:T, 100 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~61 vs ~57
+    description: Error bar height above the 100 ng/ml bar corresponding to approximately
+      4 percentage points
+    context: Mean +/- SD % killing of K562 targets by ex vivo expanded NK cells; n
+      = 2 for (L,M).
+- name: IFNg_IL10_0_mean_pgml
+  value: 126.3
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1M, ex vivo expanded NK, 0 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~130
+    description: Mean IFN-gamma secretion without IL-10 treatment
+    context: Dose-response of IFN-gamma secretion vs IL-10 concentration (0, 5, 20,
+      50, 100 ng/ml) after 16 h IL-10 treatment; ex vivo expanded NK cells.
+- name: IFNg_IL10_0_sd_pgml
+  value: 13.6
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1M, ex vivo expanded NK, 0 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~140 vs ~130
+    description: Error bar height above the 0 ng/ml bar corresponding to approximately
+      14 pg/ml
+    context: Mean +/- SD IFN-gamma secretion; n = 2 for (L,M).
+- name: IFNg_IL10_5_mean_pgml
+  value: 373.8
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1M, ex vivo expanded NK, 5 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~374
+    description: Mean IFN-gamma secretion at 5 ng/ml IL-10
+    context: Dose-response of IFN-gamma secretion vs IL-10 concentration (0, 5, 20,
+      50, 100 ng/ml) after 16 h IL-10 treatment; ex vivo expanded NK cells.
+- name: IFNg_IL10_5_sd_pgml
+  value: 88.6
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1M, ex vivo expanded NK, 5 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~462 vs ~374
+    description: Error bar height above the 5 ng/ml bar corresponding to approximately
+      89 pg/ml
+    context: Mean +/- SD IFN-gamma secretion; n = 2 for (L,M).
+- name: IFNg_IL10_20_mean_pgml
+  value: 657.7
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1M, ex vivo expanded NK, 20 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~658
+    description: Mean IFN-gamma secretion at 20 ng/ml IL-10
+    context: Dose-response of IFN-gamma secretion vs IL-10 concentration (0, 5, 20,
+      50, 100 ng/ml) after 16 h IL-10 treatment; ex vivo expanded NK cells.
+- name: IFNg_IL10_20_sd_pgml
+  value: 59.6
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1M, ex vivo expanded NK, 20 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~717 vs ~658
+    description: Error bar height above the 20 ng/ml bar corresponding to approximately
+      60 pg/ml
+    context: Mean +/- SD IFN-gamma secretion; n = 2 for (L,M).
+- name: IFNg_IL10_50_mean_pgml
+  value: 758.6
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1M, ex vivo expanded NK, 50 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~759
+    description: Mean IFN-gamma secretion at 50 ng/ml IL-10
+    context: Dose-response of IFN-gamma secretion vs IL-10 concentration (0, 5, 20,
+      50, 100 ng/ml) after 16 h IL-10 treatment; ex vivo expanded NK cells.
+- name: IFNg_IL10_50_sd_pgml
+  value: 68.2
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1M, ex vivo expanded NK, 50 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~827 vs ~759
+    description: Error bar height above the 50 ng/ml bar corresponding to approximately
+      68 pg/ml
+    context: Mean +/- SD IFN-gamma secretion; n = 2 for (L,M).
+- name: IFNg_IL10_100_mean_pgml
+  value: 837.0
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1M, ex vivo expanded NK, 100 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~837
+    description: Mean IFN-gamma secretion at 100 ng/ml IL-10
+    context: Dose-response of IFN-gamma secretion vs IL-10 concentration (0, 5, 20,
+      50, 100 ng/ml) after 16 h IL-10 treatment; ex vivo expanded NK cells.
+- name: IFNg_IL10_100_sd_pgml
+  value: 46.0
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1M, ex vivo expanded NK, 100 ng/ml IL-10
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~883 vs ~837
+    description: Error bar height above the 100 ng/ml bar corresponding to approximately
+      46 pg/ml
+    context: Mean +/- SD IFN-gamma secretion; n = 2 for (L,M).
+- name: NK_dose_response_n
+  value: 2.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Wang2021
+  source_location: Figure 1 legend
+  value_snippet: The results were presented as Mean +/- SD [n = 2 for (L,M)].
+calibration:
+  parameters:
+  - name: IL10_50_NK
+    units: nanogram / milliliter
+    nuisance: false
+  - name: n_IL10_NK
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.5
+  - name: NK_cytotox_max_foldchange
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.7
+  - name: NK_IFNg_max_foldchange
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.7
+  forward_model:
+    data_rationale: Wang2021 reports IL-10 dose-responses (0, 5, 20, 50, 100 ng/ml)
+      for ex vivo expanded human NK cells, measuring percent killing of K562 targets
+      and IFN-gamma secretion after 16 h IL-10 pre-treatment. The experimental design
+      corresponds to steady-state effector function vs cytokine concentration and
+      is appropriately summarized by a Hill-type algebraic response curve.
+    submodel_rationale: 'In the PDAC QSP model, IL10_50_NK and a Hill coefficient
+      n_IL10_NK gate IL-10 modulation of NK effector functions (killing and IFN-gamma
+      production) via multiplicative Hill terms. This algebraic submodel reproduces
+      that gating: both cytotoxicity and IFN-gamma are scaled from their baseline
+      (no IL-10) values by Hill functions of IL-10 with shared EC50 and Hill coefficient
+      and separate maximal fold-change parameters (NK_cytotox_max_foldchange, NK_IFNg_max_foldchange).'
+    type: algebraic
+    formula: NK cytotoxicity (%) and IFN-gamma secretion (pg/ml) increase with IL-10
+      concentration via a shared Hill function with EC50 IL10_50_NK and Hill coefficient
+      n_IL10_NK, scaling baseline responses by maximal fold-change parameters for
+      cytotoxicity and IFN-gamma.
+    code: "def compute(params, inputs):\n    import numpy as np\n\n    def hill_il10(dose):\n\
+      \        ec50 = params['IL10_50_NK']\n        n_h = params['n_IL10_NK']\n  \
+      \      if dose <= 0.0:\n            return 0.0\n        return 1.0 / (1.0 +\
+      \ (ec50 / dose) ** n_h)\n\n    base_kill = inputs['NK_kill_IL10_0_mean_pct']\n\
+      \    base_ifng = inputs['IFNg_IL10_0_mean_pgml']\n\n    fmax_kill = params['NK_cytotox_max_foldchange']\n\
+      \    fmax_ifng = params['NK_IFNg_max_foldchange']\n\n    result = {}\n    for\
+      \ label in ['5', '20', '50', '100']:\n        dose = inputs['IL10_dose_' + label\
+      \ + '_ngml']\n        h = hill_il10(dose)\n        result['kill_pct_' + label]\
+      \ = base_kill * (1.0 + (fmax_kill - 1.0) * h)\n        result['IFNg_pgml_' +\
+      \ label] = base_ifng * (1.0 + (fmax_ifng - 1.0) * h)\n    return result\n"
+  error_model:
+  - name: NK_kill_IL10_5
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['kill_pct_5']\n"
+    units: percent
+    uses_inputs:
+    - NK_kill_IL10_5_mean_pct
+    - NK_kill_IL10_5_sd_pct
+    - NK_dose_response_n
+    sample_size_input: NK_dose_response_n
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['NK_kill_IL10_5_mean_pct']\n    sd\
+      \ = inputs['NK_kill_IL10_5_sd_pct']\n    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0\
+      \ + cv ** 2))\n    mu_ln = np.log(mean) - sigma_ln ** 2 / 2.0\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: NK_kill_IL10_20
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['kill_pct_20']\n"
+    units: percent
+    uses_inputs:
+    - NK_kill_IL10_20_mean_pct
+    - NK_kill_IL10_20_sd_pct
+    - NK_dose_response_n
+    sample_size_input: NK_dose_response_n
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['NK_kill_IL10_20_mean_pct']\n   \
+      \ sd = inputs['NK_kill_IL10_20_sd_pct']\n    cv = sd / mean\n    sigma_ln =\
+      \ np.sqrt(np.log(1.0 + cv ** 2))\n    mu_ln = np.log(mean) - sigma_ln ** 2 /\
+      \ 2.0\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: NK_kill_IL10_50
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['kill_pct_50']\n"
+    units: percent
+    uses_inputs:
+    - NK_kill_IL10_50_mean_pct
+    - NK_kill_IL10_50_sd_pct
+    - NK_dose_response_n
+    sample_size_input: NK_dose_response_n
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['NK_kill_IL10_50_mean_pct']\n   \
+      \ sd = inputs['NK_kill_IL10_50_sd_pct']\n    cv = sd / mean\n    sigma_ln =\
+      \ np.sqrt(np.log(1.0 + cv ** 2))\n    mu_ln = np.log(mean) - sigma_ln ** 2 /\
+      \ 2.0\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: NK_kill_IL10_100
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['kill_pct_100']\n"
+    units: percent
+    uses_inputs:
+    - NK_kill_IL10_100_mean_pct
+    - NK_kill_IL10_100_sd_pct
+    - NK_dose_response_n
+    sample_size_input: NK_dose_response_n
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['NK_kill_IL10_100_mean_pct']\n  \
+      \  sd = inputs['NK_kill_IL10_100_sd_pct']\n    cv = sd / mean\n    sigma_ln\
+      \ = np.sqrt(np.log(1.0 + cv ** 2))\n    mu_ln = np.log(mean) - sigma_ln ** 2\
+      \ / 2.0\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: IFNg_IL10_5
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['IFNg_pgml_5']\n"
+    units: picogram / milliliter
+    uses_inputs:
+    - IFNg_IL10_5_mean_pgml
+    - IFNg_IL10_5_sd_pgml
+    - NK_dose_response_n
+    sample_size_input: NK_dose_response_n
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['IFNg_IL10_5_mean_pgml']\n    sd\
+      \ = inputs['IFNg_IL10_5_sd_pgml']\n    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0\
+      \ + cv ** 2))\n    mu_ln = np.log(mean) - sigma_ln ** 2 / 2.0\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: IFNg_IL10_20
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['IFNg_pgml_20']\n"
+    units: picogram / milliliter
+    uses_inputs:
+    - IFNg_IL10_20_mean_pgml
+    - IFNg_IL10_20_sd_pgml
+    - NK_dose_response_n
+    sample_size_input: NK_dose_response_n
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['IFNg_IL10_20_mean_pgml']\n    sd\
+      \ = inputs['IFNg_IL10_20_sd_pgml']\n    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0\
+      \ + cv ** 2))\n    mu_ln = np.log(mean) - sigma_ln ** 2 / 2.0\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: IFNg_IL10_50
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['IFNg_pgml_50']\n"
+    units: picogram / milliliter
+    uses_inputs:
+    - IFNg_IL10_50_mean_pgml
+    - IFNg_IL10_50_sd_pgml
+    - NK_dose_response_n
+    sample_size_input: NK_dose_response_n
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['IFNg_IL10_50_mean_pgml']\n    sd\
+      \ = inputs['IFNg_IL10_50_sd_pgml']\n    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0\
+      \ + cv ** 2))\n    mu_ln = np.log(mean) - sigma_ln ** 2 / 2.0\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: IFNg_IL10_100
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['IFNg_pgml_100']\n"
+    units: picogram / milliliter
+    uses_inputs:
+    - IFNg_IL10_100_mean_pgml
+    - IFNg_IL10_100_sd_pgml
+    - NK_dose_response_n
+    sample_size_input: NK_dose_response_n
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['IFNg_IL10_100_mean_pgml']\n    sd\
+      \ = inputs['IFNg_IL10_100_sd_pgml']\n    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0\
+      \ + cv ** 2))\n    mu_ln = np.log(mean) - sigma_ln ** 2 / 2.0\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  identifiability_notes: 'Eight dose-response measurements (four IL-10 doses for NK
+    cytotoxicity and four for IFN-gamma secretion) constrain four QSP parameters:
+    the shared IL-10 EC50 (IL10_50_NK), Hill coefficient (n_IL10_NK), and separate
+    maximal fold-changes for cytotoxicity and IFN-gamma. Cytotoxicity and cytokine
+    data jointly reduce uncertainty on IL10_50_NK and n_IL10_NK, while amplitudes
+    (NK_cytotox_max_foldchange, NK_IFNg_max_foldchange) may remain partially correlated
+    with the Hill coefficient. Baseline responses at 0 ng/ml IL-10 are treated as
+    fixed inputs, so absolute baseline levels are not inferred here; the target instead
+    constrains relative IL-10 sensitivity and maximal enhancement. Because data are
+    from in vitro expanded blood NK cells in the absence of a PDAC tumor microenvironment,
+    additional in vivo data would be needed to fully characterize IL-10 effects on
+    tumor-infiltrating NK cells in PDAC.'
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: NK cells
+    phenotype: CD56+ CD3- human peripheral blood NK cells, ex vivo expanded
+    isolation_method: Negative selection from PBMCs followed by co-culture with irradiated
+      K562 feeder cells expressing membrane-bound IL-15, IL-21 and 4-1BBL
+    source: Peripheral blood from healthy donors
+  culture_conditions:
+    substrate: Plastic culture plates (standard tissue culture-treated)
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic (5% CO2 incubator)
+    culture_type: 2d_monolayer
+    medium: BIOTARGET medium supplemented with 10% fetal bovine serum
+    supplements: Human recombinant IL-2 (50 IU/ml) during expansion phase; recombinant
+      human IL-10 at 0, 5, 20, 50, 100 ng/ml during 16 h stimulation
+    duration: 14 days ex vivo expansion with K562 feeders followed by 16 h IL-10 stimulation
+      and 1.5 h co-culture with K562 targets for cytotoxicity assay
+    notes: Cytotoxicity measured against CellTrace Violet-labeled K562 leukemia cells
+      at 1.5:1 effector:target ratio for ex vivo expanded NK cells.
+  indication: Pancreatic ductal adenocarcinoma (PDAC) model parameterization using
+    human blood NK cell data as a mechanistic proxy
+study_interpretation: Wang2021 demonstrates that recombinant human IL-10 dose-dependently
+  enhances effector functions of ex vivo expanded human NK cells. Over 0 to 100 ng/ml
+  IL-10, both K562 killing and IFN-gamma secretion increase with a sigmoidal, saturating
+  profile that is well captured by a Hill function with EC50 in the low tens of ng/ml.
+  By fitting a shared Hill curve to the cytotoxicity and IFN-gamma dose-responses,
+  this submodel constrains the PDAC QSP parameter IL10_50_NK (half-maximal IL-10 sensitivity
+  of NK effector functions) together with the Hill coefficient and maximal fold-change
+  amplitudes for cytotoxicity and IFN-gamma.
+key_assumptions:
+- Ex vivo expanded human peripheral blood NK cells have similar intrinsic IL-10 sensitivity
+  to tumor-infiltrating NK cells in PDAC, even though the PDAC tumor microenvironment
+  is more immunosuppressive and desmoplastic.
+- The 16 h IL-10 stimulation used by Wang2021 yields near-steady-state changes in
+  NK effector capacity, so a static Hill-type algebraic model is an appropriate summary
+  of the dose-response.
+- IL-10 modulates NK effector functions primarily through changing per-cell cytotoxic
+  potency and IFN-gamma secretion rates, which can be represented as multiplicative
+  fold-changes relative to baseline (0 ng/ml IL-10).
+- The same IL-10 EC50 (IL10_50_NK) and Hill coefficient (n_IL10_NK) control both NK
+  cytotoxicity and IFN-gamma secretion, with only the maximal fold-change differing
+  between readouts.
+- Measurement errors for different IL-10 doses and for cytotoxicity versus IFN-gamma
+  are independent and approximately lognormal, given the strictly positive nature
+  and roughly multiplicative variability of the readouts.
+- Baseline (no IL-10) NK cytotoxicity and IFN-gamma levels from Wang2021 are representative
+  for scaling the fold-change but do not themselves require explicit parameterization
+  in the QSP model.
+key_study_limitations:
+- Experiments were performed in vitro with ex vivo expanded NK cells from healthy
+  donors, not with tumor-infiltrating NK cells from PDAC patients; stromal barriers,
+  chronic cytokine exposure and suppressive myeloid cells present in PDAC are absent.
+- IL-10 acts as a stimulatory cytokine for NK cells in this system, whereas in many
+  tumor settings IL-10 is associated with immunosuppression; the QSP model must encode
+  the direction of IL-10 effects separately from this EC50 calibration.
+- Sample size for the IL-10 dose-response panels (Figure 1L,M) is small (n = 2), leading
+  to substantial statistical uncertainty in Hill parameter estimates.
+- Cytotoxicity is measured against K562 leukemia targets at a single E:T ratio and
+  time point, which may not directly reflect NK killing efficiency against PDAC cells
+  in vivo.
+- IL-10 concentrations used (up to 100 ng/ml) are supraphysiologic compared with typical
+  serum levels in patients; local intratumoral IL-10 concentrations in PDAC are not
+  measured here.
+- Potential contributions of other cytokines (such as residual IL-2 from expansion)
+  and feeder-cell-induced activation state on IL-10 responsiveness are not explicitly
+  quantified.
+primary_data_source:
+  doi: 10.3389/fimmu.2021.619195
+  title: IL-10 Enhances Human Natural Killer Cell Effector Functions via Metabolic
+    Reprogramming Regulated by mTORC1 Signaling
+  authors:
+  - Wang
+  - Guan
+  - Huo
+  - Biswas
+  - Huang
+  - Yang
+  - Xu
+  - Lam
+  year: 2021
+  source_tag: Wang2021
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study uses human peripheral blood NK cells
+      from healthy donors stimulated with IL-10 in vitro, whereas the QSP model targets
+      NK cells within the pancreatic ductal adenocarcinoma (PDAC) tumor microenvironment.
+      NK cell receptor signaling and IL-10 receptor pathways are conserved, so the
+      IL-10 concentration scale that modulates NK effector functions is expected to
+      be similar. However, important contextual differences such as chronic antigen
+      exposure, stromal exclusion, and additional suppressive cytokines in PDAC mean
+      that this dataset serves as a mechanistic proxy rather than a direct PDAC measurement.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: Recombinant human IL-10 is added at defined concentrations
+      (5-100 ng/ml) to NK cultures, directly probing how acute IL-10 exposure modulates
+      NK cytotoxicity and IFN-gamma secretion. These concentrations are higher than
+      typical systemic IL-10 levels but appropriate for mapping the sensitivity (EC50)
+      and maximal response of NK effector functions to IL-10, which can then be applied
+      as a mechanistic parameter in the PDAC model where endogenous IL-10 is produced
+      by tumor-associated cells.
+    tme_compatibility: low
+    tme_compatibility_notes: The in vitro NK cell system lacks the dense collagenous
+      stroma, hypoxia, chronic inflammatory signaling, and suppressive myeloid and
+      regulatory T-cell populations characteristic of the PDAC tumor microenvironment.
+      As a result, IL-10 may exert quantitatively different or context-dependent effects
+      on NK cells in PDAC compared with this simplified system, and the inferred EC50
+      should be interpreted with additional uncertainty when transferred to PDAC.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_primary
+    validation_warnings: []
+tags:
+- NK
+- IL-10
+- dose_response
+- IFN-gamma
+- cytotoxicity
+- human
+- in_vitro
+- PDAC_proxy
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

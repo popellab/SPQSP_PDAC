@@ -1,0 +1,19 @@
+sweep_id: npe_capacity_at_100k_2026-04
+description: |
+  Capacity sweep at fixed training size (100k), restricted pool. Sweep-1 tried
+  {128,256,512} x {5,9} and saw flat identifiability; sweep-v2 plateau-ed at
+  11 identified (contraction_local > 0.5). This grid pushes capacity further
+  (wider hidden, deeper num_transforms) to test whether a bigger NN can still
+  squeeze gains out of the current observable set.
+
+fixed:
+  n_train_subsample: 100000
+  num_bins: 10
+  batch_size: 2048
+  max_epochs: 80
+
+axes:
+  hidden_features: [256, 512, 1024]
+  num_transforms: [5, 9, 13]
+
+# Tag = h{hf}_t{nt}  (no _s100k suffix — training size is fixed).

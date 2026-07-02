@@ -1,0 +1,433 @@
+target_id: TGFb_50_APC_PDAC_deriv001
+tags:
+- ai-generated
+- obed-priority
+extraction_model: claude-opus-4-6
+extraction_reasoning_effort: high
+study_interpretation: 'Fogel-Petrovic 2007 provides a 3-point dose-response of TGFbeta1 inhibition on human
+
+  monocyte-derived DC maturation (LPS+IFNg stimulated, 8-day TGFbeta1 exposure during
+
+  differentiation). IL-12p70 was the most sensitive readout: fully suppressed at 2 ng/mL
+
+  (0.08 nM, P=0.0001), significantly reduced at 0.2 ng/mL (0.008 nM, P=0.001), unaffected
+
+  at 0.02 ng/mL (0.0008 nM). PGE2 showed a similar but less sensitive pattern (n=3,
+
+  P<0.001 only at 2 ng/mL). HLA-DR was reduced only at 2 ng/mL with 8-day exposure.
+
+  CD80 and CD86 were NOT affected at any concentration up to 2 ng/mL.
+
+
+  The model''s H_TGFb_APC = TGFb/(TGFb + TGFb_50_APC) gates the immature-to-mature DC
+
+  transition for both cDC1 and cDC2. IL-12p70 suppression is used as the primary readout
+
+  because: (1) it shows a clear 3-point transition spanning no effect to full suppression,
+
+  (2) IL-12 production is a key functional output of mature cDC1s that drives CD8 T cell
+
+  priming (the principal downstream effect of maturation in the model), and (3) it was
+
+  measured with n=4 independent experiments.
+
+
+  The n=1 Hill function in the model does not perfectly match the steeper observed
+
+  dose-response (effective n ~2). Fitting n=1 to the data gives per-point IC50 estimates
+
+  spanning ~10x (0.002-0.02 nM), reflecting this mismatch. The geometric mean (~0.004 nM)
+
+  is used as a robust central estimate. This is lower than the current model value
+
+  (0.07 nM) because IL-12 is the most TGFbeta-sensitive arm of maturation. In the PDAC
+
+  TME where active TGFbeta likely exceeds 0.1 nM, H_TGFb_APC is near saturation
+
+  regardless of whether IC50 is 0.004 or 0.07 nM.
+
+  '
+key_assumptions:
+- 'IL-12p70 suppression is used as the primary readout for APC maturation inhibition.
+
+  This is the most TGFbeta-sensitive marker tested. Other markers (HLA-DR, PGE2) have
+
+  higher effective IC50s; CD80/CD86 were not affected at any tested concentration. The
+
+  model''s single H_TGFb_APC Hill function represents a composite inhibition weighted
+
+  toward the most functionally relevant output (IL-12).
+
+  '
+- 'Hill coefficient n=1 is assumed (matching the model). The data shows a steeper
+
+  dose-response (effective n > 1), so the n=1 IC50 varies ~10x depending on which
+
+  point dominates. The geometric mean of per-point estimates captures this uncertainty.
+
+  '
+- 'TGFbeta1 was present during the full 8-day DC differentiation period. The paper shows
+
+  that exposure only during the final 2 days suppressed IL-12p70 equally but had minimal
+
+  effects on other markers. The 8-day condition is most relevant for the TME where
+
+  TGFbeta is chronically present during monocyte-to-DC differentiation.
+
+  '
+- 'IL-12p70 values are manually read from Figure 3a bar chart. Approximate values:
+
+  control ~500 pg/mL, 0.02 ng/mL ~480 pg/mL, 0.2 ng/mL ~120 pg/mL, 2 ng/mL ~10 pg/mL.
+
+  These carry ~10-20% figure-reading uncertainty.
+
+  '
+key_study_limitations:
+- 'In vitro monocyte-derived DCs may not fully represent tumor-infiltrating cDC1/cDC2
+
+  subsets. The PDAC TME has additional immunosuppressive signals (IL-10, adenosine,
+
+  hypoxia) that may synergize with TGFbeta, potentially lowering the effective IC50.
+
+  '
+- 'Only 3 TGFbeta concentrations tested (plus control). The transition from no effect
+
+  (0.02 ng/mL) to full suppression (2 ng/mL) spans 100-fold. More intermediate
+
+  concentrations would better constrain the IC50.
+
+  '
+- 'n=4 experiments with SEM error bars. SEM values are only visible in figure bars and
+
+  cannot be precisely extracted. True inter-experiment SD = SEM * sqrt(4) = 2x SEM.
+
+  '
+- 'LPS or LPS+IFNg was used as maturation stimulus. In vivo, DAMP-mediated maturation
+
+  (through H_DAMP in the model) may have different TGFbeta sensitivity.
+
+  '
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_lines: null
+  cell_types:
+  - name: monocyte-derived dendritic cells (hMo-DC)
+    source: peripheral blood monocytes (adherent PBMCs)
+    isolation_method: 'PBMCs from heparinized blood on Ficoll-Paque. Adherent fraction cultured
+
+      with GM-CSF (50 ng/mL) + IL-4 (10 ng/mL) for 7 days. 95-98% CD1a+ by day 7.
+
+      '
+  culture_conditions:
+    medium: RPMI-1640 + 10% FCS
+    supplements: GM-CSF (50 ng/mL) + IL-4 (10 ng/mL), polymyxin B (1 ug/mL)
+    duration: 7 days differentiation + 12h maturation stimulus
+    notes: 'TGFbeta1 added from day 1 (8-day condition) at 0.02, 0.2, or 2 ng/mL.
+
+      Maturation: IFNg (1 ng/mL) priming for 3h then LPS (1 ug/mL) for 12h.
+
+      '
+  indication: general_immunology
+primary_data_source:
+  doi: 10.1016/j.intimp.2007.07.003
+  title: 'Physiological concentrations of transforming growth factor beta1
+
+    selectively inhibit human dendritic cell function
+
+    '
+  authors:
+  - Mirjana Fogel-Petrovic
+  - Julie A Long
+  - Neil L Misso
+  - Paul S Foster
+  - Kanti D Bhoola
+  - Philip J Thompson
+  year: 2007
+  source_tag: FogelPetrovic2007
+  source_relevance:
+    indication_match: related
+    indication_match_justification: 'Human monocyte-derived DCs from healthy donors used to inform PDAC model.
+
+      TGFbeta sensitivity of DC maturation is a fundamental cell-biological property
+
+      conserved across tissues. However, PDAC-infiltrating cDC1/cDC2 may differ
+
+      from Mo-DCs in TGFbeta receptor expression and downstream signaling.
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: 'TGFbeta1 is a physiological cytokine elevated in the PDAC TME, not a drug.
+
+      Concentrations tested (0.02-2 ng/mL = 0.0008-0.08 nM) are described by the
+
+      authors as physiologically relevant (10^-13 to 10^-11 M range released by
+
+      inflammatory cells and platelets). The pharmacological label reflects
+
+      exogenous addition to culture.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro Mo-DC culture lacks the stromal, hypoxic, and multi-cytokine
+
+      context of PDAC TME. TGFbeta may synergize with IL-10, adenosine, and
+
+      other immunosuppressive factors in vivo. The in vitro IC50 may be an
+
+      upper bound for the in vivo effective IC50.
+
+      '
+    measurement_directness: single_inversion
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_primary
+secondary_data_sources: []
+inputs:
+- name: tgfb_conc_low_nM
+  value: 0.0008
+  units: nanomolarity
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Methods, Section 2.2, paragraph 1
+  value_snippet: 0.02 ng/ml (8 x 10^-13 M)
+  rationale: 0.02 ng/mL TGFbeta1 = 8e-13 M = 0.0008 nM
+- name: tgfb_conc_mid_nM
+  value: 0.008
+  units: nanomolarity
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Methods, Section 2.2, paragraph 1
+  value_snippet: 0.2 ng/ml (8 x 10^-12 M)
+  rationale: 0.2 ng/mL TGFbeta1 = 8e-12 M = 0.008 nM
+- name: tgfb_conc_high_nM
+  value: 0.08
+  units: nanomolarity
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Methods, Section 2.2, paragraph 1
+  value_snippet: 2 ng/ml (8 x 10^-11 M)
+  rationale: 2 ng/mL TGFbeta1 = 8e-11 M = 0.08 nM
+- name: il12p70_control
+  value: 520.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Figure 3a
+  figure_excerpt:
+    figure_id: Figure 3a
+    description: IL-12p70 production (pg/mL) vs TGFbeta1 concentration, bar chart
+    value: '520'
+    context: 'Series: 0 ng/mL TGFbeta1, LPS+IFNg.
+
+      IL-12p70 production (pg/mL) in hMo-DC cultured without TGFbeta1
+
+      and stimulated with LPS+IFNg for 12h. Control bar, n=4.
+
+      '
+- name: il12p70_control_sem
+  value: 60.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Figure 3a
+  figure_excerpt:
+    figure_id: Figure 3a
+    description: IL-12p70 production (pg/mL) vs TGFbeta1 concentration, bar chart
+    value: '60'
+    context: 'Series: 0 ng/mL TGFbeta1, LPS+IFNg.
+
+      SEM error bar height (upper bar 580 - mean 520 = 60).
+
+      SD = SEM * sqrt(n) = 60 * sqrt(4) = 120.
+
+      '
+- name: il12p70_at_0p02_ngml
+  value: 500.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Figure 3a
+  figure_excerpt:
+    figure_id: Figure 3a
+    description: IL-12p70 production (pg/mL) vs TGFbeta1 concentration, bar chart
+    value: '500'
+    context: 'Series: 0.02 ng/mL TGFbeta1, LPS+IFNg.
+
+      IL-12p70 production at 0.02 ng/mL TGFbeta1 (8-day exposure).
+
+      Not significantly different from control. n=4.
+
+      '
+- name: il12p70_0p02_sem
+  value: 100.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Figure 3a
+  figure_excerpt:
+    figure_id: Figure 3a
+    description: IL-12p70 production (pg/mL) vs TGFbeta1 concentration, bar chart
+    value: '100'
+    context: 'Series: 0.02 ng/mL TGFbeta1, LPS+IFNg.
+
+      SEM error bar (upper bar 600 - mean 500 = 100).
+
+      SD = 100 * sqrt(4) = 200.
+
+      '
+- name: il12p70_at_0p2_ngml
+  value: 100.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Figure 3a
+  figure_excerpt:
+    figure_id: Figure 3a
+    description: IL-12p70 production (pg/mL) vs TGFbeta1 concentration, bar chart
+    value: '100'
+    context: 'Series: 0.2 ng/mL TGFbeta1, LPS+IFNg.
+
+      IL-12p70 production at 0.2 ng/mL TGFbeta1 (8-day exposure).
+
+      Significantly decreased (*P=0.001). n=4.
+
+      '
+- name: il12p70_0p2_sem
+  value: 5.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Figure 3a
+  figure_excerpt:
+    figure_id: Figure 3a
+    description: IL-12p70 production (pg/mL) vs TGFbeta1 concentration, bar chart
+    value: '5'
+    context: 'Series: 0.2 ng/mL TGFbeta1, LPS+IFNg.
+
+      SEM error bar (upper bar 105 - mean 100 = 5).
+
+      SD = 5 * sqrt(4) = 10.
+
+      '
+- name: il12p70_at_2_ngml
+  value: 5.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Figure 3a
+  figure_excerpt:
+    figure_id: Figure 3a
+    description: IL-12p70 production (pg/mL) vs TGFbeta1 concentration, bar chart
+    value: '5'
+    context: 'Series: 2 ng/mL TGFbeta1, LPS+IFNg.
+
+      IL-12p70 production at 2 ng/mL TGFbeta1 (8-day exposure).
+
+      Completely suppressed (**P=0.0001). n=4.
+
+      '
+- name: il12p70_2_sem
+  value: 1.0
+  units: picogram/milliliter
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Figure 3a
+  figure_excerpt:
+    figure_id: Figure 3a
+    description: IL-12p70 production (pg/mL) vs TGFbeta1 concentration, bar chart
+    value: '1'
+    context: 'Series: 2 ng/mL TGFbeta1, LPS+IFNg.
+
+      SEM error bar (upper bar 6 - mean 5 = 1).
+
+      SD = 1 * sqrt(4) = 2.
+
+      '
+- name: n_il12p70_experiments
+  value: 4
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: FogelPetrovic2007
+  source_location: Figure 3a legend
+  value_snippet: (n=4)
+calibration:
+  parameters:
+  - name: TGFb_50_APC
+    units: nanomolarity
+  forward_model:
+    type: algebraic
+    formula: IC50 = TGFb_50_APC (identity -- parameter is directly constrained by dose-response)
+    data_rationale: 'TGFbeta1 dose-response on IL-12p70 production by human Mo-DCs provides a
+
+      direct dose-response curve for TGFbeta-mediated maturation inhibition. Three
+
+      concentrations span the full transition from no effect to complete suppression.
+
+      Fitting a Hill function (n=1, matching the model) to the fractional inhibition
+
+      at each concentration yields an IC50 estimate.
+
+      '
+    submodel_rationale: 'The QSP model uses H_TGFb_APC = TGFb/(TGFb + TGFb_50_APC) as a Hill function
+
+      (n=1) gating APC maturation rate for both cDC1 and cDC2. TGFb_50_APC is the
+
+      EC50 of this inhibitory function. The dose-response data directly constrains
+
+      this parameter: at each known TGFb concentration, the fractional IL-12p70
+
+      remaining is predicted by IC50/(c+IC50), allowing IC50 to be estimated from
+
+      the observed fractions.
+
+      '
+    code: "def compute(params, inputs):\n    return params['TGFb_50_APC']\n"
+  error_model:
+  - name: il12p70_dose_response_ic50
+    units: nanomolarity
+    uses_inputs:
+    - il12p70_control
+    - il12p70_control_sem
+    - il12p70_at_0p02_ngml
+    - il12p70_0p02_sem
+    - il12p70_at_0p2_ngml
+    - il12p70_0p2_sem
+    - il12p70_at_2_ngml
+    - il12p70_2_sem
+    - tgfb_conc_low_nM
+    - tgfb_conc_mid_nM
+    - tgfb_conc_high_nM
+    - n_il12p70_experiments
+    sample_size_input: n_il12p70_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n\n    # Digitized\
+      \ IL-12p70 dose-response from Figure 3a\n    n = int(inputs['n_il12p70_experiments'])\n    ctrl_mean = inputs['il12p70_control']\n\
+      \    ctrl_sd = inputs['il12p70_control_sem'] * np.sqrt(n)\n\n    means = np.array([\n        inputs['il12p70_at_0p02_ngml'],\n\
+      \        inputs['il12p70_at_0p2_ngml'],\n        inputs['il12p70_at_2_ngml'],\n    ])\n    sds = np.array([\n      \
+      \  inputs['il12p70_0p02_sem'],\n        inputs['il12p70_0p2_sem'],\n        inputs['il12p70_2_sem'],\n    ]) * np.sqrt(n)\n\
+      \n    concs = np.array([\n        inputs['tgfb_conc_low_nM'],\n        inputs['tgfb_conc_mid_nM'],\n        inputs['tgfb_conc_high_nM'],\n\
+      \    ])\n\n    # Compute per-point IC50 estimates from mean values\n    # Hill (n=1): fraction = IC50/(c+IC50) => IC50\
+      \ = c*f/(1-f)\n    fracs = means / ctrl_mean\n    ic50_per_point = concs * fracs / (1 - fracs)\n    log_ic50 = np.log(ic50_per_point)\n\
+      \n    # Bootstrap: resample the 3 log-IC50 estimates with replacement\n    # and add noise from SEM-derived uncertainty\n\
+      \    log_ic50_sd = np.std(log_ic50, ddof=1)\n    bootstrap_ic50 = np.zeros(n_bootstrap)\n    for i in range(n_bootstrap):\n\
+      \        idx = rng.choice(len(log_ic50), size=len(log_ic50), replace=True)\n        bootstrap_ic50[i] = np.exp(\n  \
+      \          np.mean(log_ic50[idx]) + rng.normal(0, log_ic50_sd / np.sqrt(n))\n        )\n\n    return bootstrap_ic50\n"
+  identifiability_notes: 'TGFb_50_APC is constrained by 3 dose-response points spanning no effect (0.0008 nM)
+
+    to complete suppression (0.08 nM). The n=1 Hill assumption causes per-point IC50
+
+    estimates to span ~10x (0.002-0.02 nM), reflecting model structure mismatch rather
+
+    than data noise. The geometric mean (~0.004 nM) is robust. In the PDAC TME where
+
+    active TGFbeta likely exceeds 0.1 nM, H_TGFb_APC is near saturation regardless of
+
+    whether IC50 is 0.004 or 0.07 nM, limiting the parameter''s influence on model
+
+    outputs at physiological concentrations. This may explain its moderate PRCC rank (46)
+
+    despite high OBED rank (9).
+
+    '

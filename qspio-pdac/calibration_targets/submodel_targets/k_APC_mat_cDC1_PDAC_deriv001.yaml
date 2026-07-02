@@ -1,0 +1,136 @@
+target_id: k_APC_mat_cDC1
+inputs:
+- name: t_max_maturation_hours_low
+  value: 11.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Meixlsperger2013
+  source_location: Results, Figure 3A-B text
+  value_snippet: "Maturation markers were maximally up-regulated at 11 to 14 hours"
+- name: t_max_maturation_hours_high
+  value: 14.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Meixlsperger2013
+  source_location: Results, Figure 3A-B text
+  value_snippet: "Maturation markers were maximally up-regulated at 11 to 14 hours"
+- name: n_time_points
+  value: 4.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Meixlsperger2013
+  source_location: Figure 3A-B
+  value_snippet: "5 to 24 h after polyICLC injection"
+- name: hours_per_day
+  value: 24.0
+  units: hour/day
+  input_type: unit_conversion
+  source_ref: Meixlsperger2013
+  source_location: unit conversion
+  rationale: Convert maturation time from hours to days for rate constant in 1/day
+calibration:
+  parameters:
+  - name: k_APC_mat_cDC1
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: Meixlsperger2013 injected polyICLC into humanized NSG mice and
+      monitored maturation marker upregulation (CD86, CD83, CD274, CD40, HLA-DR) on
+      human CD141+ cDC1s over 5-24 hours by flow cytometry. Maturation markers were
+      maximally upregulated at 11-14 hours, with CD141+ cDCs showing the greatest
+      CD86 upregulation among DC subsets. This time-to-maximum directly constrains
+      the first-order maturation rate constant.
+    submodel_rationale: In the QSP model, immature cDC1s mature at rate k_APC_mat_cDC1
+      in response to DAMPs and IL-12. For a first-order maturation process approaching
+      maximum, the time to ~95% completion (practical maximum) relates to the rate
+      constant via t_max ≈ 3/k (three time constants). The midpoint of the reported
+      11-14h range gives t_max ≈ 12.5h, implying k ≈ 3/(12.5/24) ≈ 5.8/day.
+    type: algebraic
+    formula: "t_max_pred_hours = 3 * hours_per_day / k_APC_mat_cDC1"
+    code: "def compute(params, inputs):\n    import numpy as np\n    k = params['k_APC_mat_cDC1']\n\
+      \    hpd = inputs['hours_per_day']\n    # Predicted time to practical maximum\
+      \ (95% completion) for first-order process:\n    # fraction_mature(t) = 1 - exp(-k*t),\
+      \ reaches ~95% at t = 3/k\n    t_max_pred_hours = 3.0 * hpd / k\n    return\
+      \ t_max_pred_hours\n"
+  error_model:
+  - name: time_to_max_maturation
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y"
+    units: hour
+    uses_inputs:
+    - t_max_maturation_hours_low
+    - t_max_maturation_hours_high
+    sample_size_input: n_time_points
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    t_low = inputs['t_max_maturation_hours_low']\n  \
+      \  t_high = inputs['t_max_maturation_hours_high']\n    # Reported range 11-14h\
+      \ represents uncertainty in the time to maximum.\n    # Model as uniform between\
+      \ 11 and 14h.\n    return rng.uniform(t_low, t_high, n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: k_APC_mat_cDC1 is identified from the time-to-maximum
+    of maturation markers in vivo. The mapping t_max = 3/k assumes first-order
+    kinetics and that the reported 11-14h range represents near-complete
+    maturation. With a single observable (time to max), only one parameter
+    is identifiable.
+experimental_context:
+  species: human
+  system: animal_in_vivo
+  cell_types:
+  - name: CD141+ cDC1
+    phenotype: Human CD141+ (BDCA3+) conventional dendritic cells in humanized
+      NSG mouse spleen
+    isolation_method: Flow cytometry gating on human CD45+HLA-DR+CD11c+CD141+
+    source: Human hematopoietic stem cell-reconstituted NSG mice
+  indication: healthy (polyICLC-stimulated, non-tumor)
+study_interpretation: Meixlsperger2013 demonstrates that human CD141+ cDC1s in
+  humanized mice reach maximal maturation marker expression (CD86, CD83) within
+  11-14 hours after polyICLC injection. This constrains k_APC_mat_cDC1 to
+  approximately 2-6/day, consistent with the prior median of 2.0/day. CD141+
+  cDC1s showed the greatest CD86 upregulation among DC subsets.
+key_assumptions:
+- First-order maturation kinetics (exponential approach to steady-state marker
+  expression).
+- The reported time to maximum (11-14h) corresponds to approximately 95% completion
+  of the maturation process (3 time constants).
+- polyICLC-induced maturation kinetics in humanized mice are representative of
+  DAMP/cytokine-driven cDC1 maturation in the PDAC tumor microenvironment.
+key_study_limitations:
+- Humanized NSG mice lack a complete human immune system.
+- polyICLC is a strong TLR3 agonist that may induce faster maturation than
+  endogenous DAMP signaling in tumors.
+- Only the time to maximum is reported; the full kinetic time-course would
+  require digitization of Figure 3A-B.
+primary_data_source:
+  doi: 10.1182/blood-2012-12-473413
+  title: CD141+ dendritic cells produce prominent amounts of IFN-alpha after dsRNA
+    recognition and can be targeted via DEC-205 in humanized mice
+  authors:
+  - Meixlsperger
+  year: 2013
+  source_tag: Meixlsperger2013
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: polyICLC-stimulated humanized mice, not PDAC.
+      Maturation kinetics of CD141+ cDC1s are an intrinsic DC property expected
+      to be conserved across contexts.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: polyICLC maximally activates cDC1 maturation. The rate
+      may be an upper bound compared to endogenous signaling in tumors.
+    tme_compatibility: low
+    tme_compatibility_notes: Humanized mouse spleen does not recapitulate PDAC TME.
+      Intrinsic DC maturation kinetics are cell-autonomous properties less
+      dependent on tissue context.
+    measurement_directness: direct
+    temporal_resolution: timecourse
+    experimental_system: animal_in_vivo
+tags:
+- cDC1
+- dendritic_cell
+- maturation
+- CD86
+- CD141
+- k_APC_mat_cDC1

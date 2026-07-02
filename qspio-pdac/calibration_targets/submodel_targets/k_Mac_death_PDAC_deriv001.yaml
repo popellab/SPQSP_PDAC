@@ -1,0 +1,257 @@
+target_id: k_Mac_death
+inputs:
+- name: brdu_percent_panc02_mean_24h
+  value: 8.347107438016529
+  units: percent
+  input_type: direct_measurement
+  source_ref: Yang2022
+  source_location: Figure 4C, Panc02 control group
+  figure_excerpt:
+    figure_id: Figure 4C (Panc02)
+    value: ~8.3
+    description: Mean percentage of BrdU+ F4/80+ macrophages in Panc02 tumors after
+      24 h BrdU pulse in control liposome-treated mice
+    context: Bar chart of % BrdU+ F4/80+ cells among tumor macrophages; control (PBS
+      liposomes) vs clodronate liposomes
+- name: brdu_percent_panc02_sem_24h
+  value: 0.793388429752067
+  units: percent
+  input_type: direct_measurement
+  source_ref: Yang2022
+  source_location: Figure 4C, Panc02 control group (error bar)
+  figure_excerpt:
+    figure_id: Figure 4C (Panc02)
+    value: "~8.3 \xB1 0.8"
+    description: Error bar height for % BrdU+ F4/80+ macrophages in Panc02 control
+      tumors; interpreted as SEM
+    context: "Legend states data are mean \xB1 SEM; bar graph for BrdU+ F4/80+ cells"
+- name: brdu_percent_kpc_mean_24h
+  value: 5.801652892561984
+  units: percent
+  input_type: direct_measurement
+  source_ref: Yang2022
+  source_location: Figure 4C, KPC control group
+  figure_excerpt:
+    figure_id: Figure 4C (KPC)
+    value: ~5.8
+    description: Mean percentage of BrdU+ F4/80+ macrophages in KPC tumors after 24
+      h BrdU pulse in control liposome-treated mice
+    context: Bar chart of % BrdU+ F4/80+ cells among tumor macrophages; control (PBS
+      liposomes) vs clodronate liposomes
+- name: brdu_percent_kpc_sem_24h
+  value: 0.545454545454545
+  units: percent
+  input_type: direct_measurement
+  source_ref: Yang2022
+  source_location: Figure 4C, KPC control group (error bar)
+  figure_excerpt:
+    figure_id: Figure 4C (KPC)
+    value: "~5.8 \xB1 0.5"
+    description: Error bar height for % BrdU+ F4/80+ macrophages in KPC control tumors;
+      interpreted as SEM
+    context: "Legend states data are mean \xB1 SEM; bar graph for BrdU+ F4/80+ cells"
+- name: n_mice_panc02_brdu
+  value: 7.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Yang2022
+  source_location: Section 2.1 Patient Samples and Mouse Models
+  value_snippet: "C57BL/6 mice were injected subcutaneously with 5 \xD7 10^5 Panc02\
+    \ cells or 3 \xD7 10^5 KPC cells ... (n = 7 per group)."
+- name: n_mice_kpc_brdu
+  value: 7.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Yang2022
+  source_location: Section 2.1 Patient Samples and Mouse Models
+  value_snippet: "C57BL/6 mice were injected subcutaneously with 5 \xD7 10^5 Panc02\
+    \ cells or 3 \xD7 10^5 KPC cells ... (n = 7 per group)."
+- name: T_pulse_days
+  value: 1.0
+  units: day
+  input_type: direct_measurement
+  source_ref: Yang2022
+  source_location: Section 2.6 Bromodeoxyuridine (BrdU) Labeling
+  value_snippet: 24 h prior to euthanasia, mice were injected intraperitoneally with
+    BrdU every 8 h. Each mouse received a total of 3 injections.
+calibration:
+  parameters:
+  - name: k_Mac_death
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: Yang2022 quantified the percentage of BrdU+ F4/80+ tumor-associated
+      macrophages in Panc02 and KPC murine PDAC tumors after a 24 h BrdU pulse (three
+      injections over 24 h, then analysis). This provides the fraction of TAMs that
+      entered S-phase over a 1-day window, which is directly related to the per-capita
+      proliferation rate under a simple Poisson process model.
+    submodel_rationale: In the full QSPIO-PDAC model, k_Mac_death is a first-order
+      death rate applied identically to tumor M1 and M2 macrophages (Mac_M1 and Mac_M2).
+      In established tumors where TAM numbers are approximately at dynamic steady
+      state, the per-capita proliferation rate of tissue-resident tumor-infiltrating
+      macrophages should balance the per-capita death rate (plus slower recruitment
+      and clearance terms). By equating the BrdU-inferred daily proliferation rate
+      with k_Mac_death, this algebraic submodel links the observed 24 h BrdU labeling
+      fraction to the macrophage death rate via BrdU_percent_24h = 100*(1-exp(-k_Mac_death*T_pulse_days)).
+    type: algebraic
+    formula: BrdU_percent_24h = 100 * (1 - exp(-k_Mac_death * T_pulse_days))
+    code: "def compute(params, inputs):\n    import numpy as np\n    k = params['k_Mac_death']\
+      \  # 1/day\n    T = inputs['T_pulse_days']  # day\n    # Predicted percentage\
+      \ of TAMs incorporating BrdU over the 24 h pulse\n    brdu_percent = 100.0 *\
+      \ (1.0 - np.exp(-k * T))\n    return brdu_percent\n"
+  error_model:
+  - name: brdu_panc02_24h
+    units: percent
+    uses_inputs:
+    - brdu_percent_panc02_mean_24h
+    - brdu_percent_panc02_sem_24h
+    - n_mice_panc02_brdu
+    sample_size_input: n_mice_panc02_brdu
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['brdu_percent_panc02_mean_24h'] \
+      \      # percent\n    sem = inputs['brdu_percent_panc02_sem_24h']         #\
+      \ percent\n    n = int(inputs['n_mice_panc02_brdu'])\n    sd = sem * np.sqrt(n)\n\
+      \    # BrdU+ percentage is positive; use lognormal bootstrap\n    cv = sd /\
+      \ mean\n    sigma_ln = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln = np.log(mean)\
+      \ - sigma_ln**2 / 2.0\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: brdu_kpc_24h
+    units: percent
+    uses_inputs:
+    - brdu_percent_kpc_mean_24h
+    - brdu_percent_kpc_sem_24h
+    - n_mice_kpc_brdu
+    sample_size_input: n_mice_kpc_brdu
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['brdu_percent_kpc_mean_24h']    \
+      \   # percent\n    sem = inputs['brdu_percent_kpc_sem_24h']         # percent\n\
+      \    n = int(inputs['n_mice_kpc_brdu'])\n    sd = sem * np.sqrt(n)\n    # BrdU+\
+      \ percentage is positive; use lognormal bootstrap\n    cv = sd / mean\n    sigma_ln\
+      \ = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2.0\n\
+      \    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: "Single-timepoint BrdU labeling from two PDAC models (Panc02\
+    \ and KPC) constrains k_Mac_death through the relationship BrdU_percent_24h =\
+    \ 100*(1-exp(-k*T)). For the observed small fractions (~6\u20138%/day), this is\
+    \ nearly linear (BrdU% \u2248 100*k), so k_Mac_death is effectively identified\
+    \ as the BrdU fraction per day with modest uncertainty from SEM and inter-model\
+    \ variation. The model assumes that TAM numbers are close to steady state so that\
+    \ proliferation approximates death; deviations from steady state (e.g., net TAM\
+    \ expansion or regression) are not separately identifiable from this dataset and\
+    \ will be absorbed into the effective k_Mac_death estimate."
+experimental_context:
+  species: mouse
+  system: animal_in_vivo
+  cell_lines:
+  - name: Panc02
+    species: mouse
+    tissue_origin: pancreas
+    cell_type: pancreatic ductal adenocarcinoma cell line
+    source: Chemically induced C57BL/6 PDAC line
+  - name: KPC
+    species: mouse
+    tissue_origin: pancreas
+    cell_type: Kras/p53 mutant pancreatic ductal adenocarcinoma cell line
+    source: Derived from in situ tumors in KPC mice
+  cell_types:
+  - name: tumor-associated macrophages
+    phenotype: F4/80+ tumor-infiltrating macrophages
+    isolation_method: Enzymatic digestion of tumors followed by flow cytometry gating
+      on CD45+CD11b+F4/80+ cells
+    source: Subcutaneous Panc02 or KPC tumors in C57BL/6 mice
+  indication: pancreatic ductal adenocarcinoma
+study_interpretation: "Yang2022 demonstrates that a substantial fraction (~6\u2013\
+  8% per day) of tumor-infiltrating F4/80+ macrophages in murine PDAC (Panc02 and\
+  \ KPC tumors) incorporate BrdU over a 24 h pulse, indicating ongoing local proliferation\
+  \ of TAMs. Assuming that TAM numbers in established tumors are approximately at\
+  \ steady state, this daily proliferation rate should balance the intrinsic death\
+  \ rate of macrophages in the tumor compartment. The BrdU fraction can therefore\
+  \ be used to infer the first-order macrophage death rate k_Mac_death used in the\
+  \ QSPIO-PDAC model, implying a macrophage half-life on the order of 8\u201312 days,\
+  \ consistent with literature expectations for tissue-resident macrophages in inflammatory\
+  \ settings."
+key_assumptions:
+- BrdU labeling over the 24 h pulse is effectively saturating, so the measured percentage
+  of BrdU+ F4/80+ cells closely approximates the fraction of TAMs that entered S-phase
+  during that interval.
+- "Tumor-associated macrophage numbers in established subcutaneous Panc02 and KPC\
+  \ tumors are approximately at dynamic steady state (birth \u2248 death), so the\
+  \ per-capita proliferation rate inferred from BrdU equals the per-capita death rate\
+  \ k_Mac_death."
+- Additional sources of TAM gain and loss (e.g., monocyte recruitment, emigration,
+  clodronate-induced depletion) are small over a 24 h window in the control liposome
+  groups used here and can be neglected for estimating the baseline turnover rate.
+- Per-capita death rates are similar for M1-like and M2-like F4/80+ macrophages, justifying
+  the use of a single k_Mac_death for both Mac_M1 and Mac_M2 in the QSP model.
+- Mouse subcutaneous PDAC models (Panc02 and KPC) provide a reasonable quantitative
+  proxy for macrophage turnover kinetics in human PDAC tumors, despite species and
+  anatomical differences.
+- The BrdU+ fraction is modeled as arising from a simple Poisson process of S-phase
+  entry, leading to BrdU_percent_24h = 100*(1-exp(-k*T)); more complex cell cycle
+  structure is neglected.
+key_study_limitations:
+- The BrdU labeling experiment provides only a single 24 h timepoint in each model,
+  so dynamic changes in TAM proliferation over tumor progression or in response to
+  therapy cannot be resolved.
+- Subcutaneous murine PDAC tumors differ from human pancreatic tumors in stromal architecture,
+  vascularization, and immune contexture, which may alter TAM turnover rates; species
+  translation uncertainty is non-trivial.
+- The assumption that TAM numbers are at steady state may be violated in rapidly growing
+  or regressing tumors, potentially biasing the inferred k_Mac_death if net expansion
+  or contraction is substantial.
+- BrdU incorporation measures proliferation but not death directly; equating proliferation
+  and death relies on steady-state and ignores contributions from monocyte recruitment
+  and clodronate-sensitive cell loss.
+- Flow cytometry gating (CD45+CD11b+F4/80+) aggregates heterogeneous macrophage subsets
+  with potentially different turnover rates; the inferred k_Mac_death represents an
+  average over these populations.
+- The exact number of mice contributing to the BrdU flow cytometry data for each group
+  is inferred from methods (n = 7 per group) rather than explicitly stated in the
+  figure legend for Figure 4C.
+primary_data_source:
+  doi: 10.3390/cancers14061474
+  title: Targeting Proliferating Tumor-Infiltrating Macrophages Facilitates Spatial
+    Redistribution of CD8+ T Cells in Pancreatic Cancer
+  authors:
+  - Yang
+  - Lin
+  - Wang
+  - Xu
+  year: 2022
+  source_tag: Yang2022
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The study uses murine pancreatic ductal adenocarcinoma
+      models (Panc02 and KPC cell lines implanted into C57BL/6 mice) to investigate
+      tumor-infiltrating macrophages, directly matching the PDAC indication of the
+      QSPIO-PDAC model. The tumor type, microenvironmental features, and immune contexture
+      are therefore highly relevant to parameterizing macrophage turnover in PDAC.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: pathological_state
+    perturbation_relevance: Measurements are made in untreated PDAC-bearing mice (control
+      liposome groups) that reflect the pathological tumor state without additional
+      pharmacologic perturbation of macrophages beyond the tumor-driven environment.
+      These baseline TAM proliferation rates are intended to represent the intrinsic
+      turnover of tumor-infiltrating macrophages in PDAC.
+    tme_compatibility: moderate
+    tme_compatibility_notes: Subcutaneous Panc02 and KPC tumors in C57BL/6 mice recapitulate
+      important features of PDAC, including dense macrophage infiltration and an immunosuppressive
+      microenvironment, but differ from human pancreatic tumors in anatomical site,
+      stromal composition, and vascularization. These differences may modestly alter
+      TAM turnover rates, so moderate translation uncertainty is expected when mapping
+      to human PDAC.
+    measurement_directness: steady_state_inversion
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: animal_in_vivo
+tags:
+- macrophage
+- death_rate
+- tumor-associated macrophages
+- BrdU
+- PDAC
+- turnover
+extraction_model: gpt-4.1
+extraction_reasoning_effort: medium

@@ -1,0 +1,457 @@
+target_id: CD28_CD8X_50
+inputs:
+- name: CD80_DC_molecules_per_cell_mean
+  value: 132.0
+  units: molecule
+  input_type: direct_measurement
+  source_ref: Unternaehrer2007
+  source_location: Table 1, row 'CD80 16-10A1', DC column 'Molecules per cell'
+  table_excerpt:
+    table_id: Table 1
+    column: Molecules per cell (DC)
+    row: CD80 16-10A1
+    value: "132 \xB1 20"
+    context: "Values are stated as numbers of molecules \xD710^3 for mature DCs or\
+      \ 24-h B blasts labeled with PE-conjugated antibodies."
+- name: CD80_DC_molecules_per_cell_sd
+  value: 20.0
+  units: molecule
+  input_type: direct_measurement
+  source_ref: Unternaehrer2007
+  source_location: Table 1, row 'CD80 16-10A1', DC column 'Molecules per cell'
+  table_excerpt:
+    table_id: Table 1
+    column: Molecules per cell (DC)
+    row: CD80 16-10A1
+    value: "132 \xB1 20"
+    context: "Standard deviation for molecules per cell (\xD710^3) for CD80 on DCs."
+- name: CD86_DC_molecules_per_cell_mean
+  value: 208.0
+  units: molecule
+  input_type: direct_measurement
+  source_ref: Unternaehrer2007
+  source_location: Table 1, row 'CD86 GL1', DC column 'Molecules per cell'
+  table_excerpt:
+    table_id: Table 1
+    column: Molecules per cell (DC)
+    row: CD86 GL1
+    value: "208 \xB1 43"
+    context: "Values are stated as numbers of molecules \xD710^3 for mature DCs or\
+      \ 24-h B blasts labeled with PE-conjugated antibodies."
+- name: CD86_DC_molecules_per_cell_sd
+  value: 43.0
+  units: molecule
+  input_type: direct_measurement
+  source_ref: Unternaehrer2007
+  source_location: Table 1, row 'CD86 GL1', DC column 'Molecules per cell'
+  table_excerpt:
+    table_id: Table 1
+    column: Molecules per cell (DC)
+    row: CD86 GL1
+    value: "208 \xB1 43"
+    context: "Standard deviation for molecules per cell (\xD710^3) for CD86 on DCs."
+- name: CD80_B_molecules_per_cell_mean
+  value: 1.6
+  units: molecule
+  input_type: direct_measurement
+  source_ref: Unternaehrer2007
+  source_location: Table 1, row 'CD80 16-10A1', B column 'Molecules per cell'
+  table_excerpt:
+    table_id: Table 1
+    column: Molecules per cell (B)
+    row: CD80 16-10A1
+    value: "1.6 \xB1 0.7"
+    context: "Values are stated as numbers of molecules \xD710^3 for mature DCs or\
+      \ 24-h B blasts labeled with PE-conjugated antibodies."
+- name: CD80_B_molecules_per_cell_sd
+  value: 0.7
+  units: molecule
+  input_type: direct_measurement
+  source_ref: Unternaehrer2007
+  source_location: Table 1, row 'CD80 16-10A1', B column 'Molecules per cell'
+  table_excerpt:
+    table_id: Table 1
+    column: Molecules per cell (B)
+    row: CD80 16-10A1
+    value: "1.6 \xB1 0.7"
+    context: "Standard deviation for molecules per cell (\xD710^3) for CD80 on B blasts."
+- name: CD86_B_molecules_per_cell_mean
+  value: 16.0
+  units: molecule
+  input_type: direct_measurement
+  source_ref: Unternaehrer2007
+  source_location: Table 1, row 'CD86 GL1', B column 'Molecules per cell'
+  table_excerpt:
+    table_id: Table 1
+    column: Molecules per cell (B)
+    row: CD86 GL1
+    value: "16 \xB1 1.6"
+    context: "Values are stated as numbers of molecules \xD710^3 for mature DCs or\
+      \ 24-h B blasts labeled with PE-conjugated antibodies."
+- name: CD86_B_molecules_per_cell_sd
+  value: 1.6
+  units: molecule
+  input_type: direct_measurement
+  source_ref: Unternaehrer2007
+  source_location: Table 1, row 'CD86 GL1', B column 'Molecules per cell'
+  table_excerpt:
+    table_id: Table 1
+    column: Molecules per cell (B)
+    row: CD86 GL1
+    value: "16 \xB1 1.6"
+    context: "Standard deviation for molecules per cell (\xD710^3) for CD86 on B blasts."
+- name: DC_surface_area_mean
+  value: 1421.0
+  units: micrometer ** 2
+  input_type: direct_measurement
+  source_ref: Unternaehrer2007
+  source_location: Table 1, row 'Cell surface area', DC column
+  table_excerpt:
+    table_id: Table 1
+    column: Cell surface area (DC)
+    row: Cell surface area
+    value: "1,421 \xB5m\xB2"
+    context: Average cell surface area of mature DCs determined by stereology.
+- name: B_surface_area_mean
+  value: 243.0
+  units: micrometer ** 2
+  input_type: direct_measurement
+  source_ref: Unternaehrer2007
+  source_location: Table 1, row 'Cell surface area', B column
+  table_excerpt:
+    table_id: Table 1
+    column: Cell surface area (B)
+    row: Cell surface area
+    value: "243 \xB5m\xB2"
+    context: Average cell surface area of 24-h B blasts determined by stereology.
+- name: CD80_DC_density_mean
+  value: 92.9
+  units: molecule / micrometer ** 2
+  input_type: derived_arithmetic
+  rationale: "Surface density of CD80 on DCs computed as molecules per cell (\xD7\
+    10^3) divided by mean cell surface area (mature DCs)."
+  source_ref: Unternaehrer2007
+  source_location: Derived from Table 1 CD80 molecules per cell and DC surface area
+  source_inputs:
+  - CD80_DC_molecules_per_cell_mean
+  - DC_surface_area_mean
+  formula: CD80_DC_molecules_per_cell_mean * 1000.0 / DC_surface_area_mean
+- name: CD80_DC_density_sd
+  value: 14.1
+  units: molecule / micrometer ** 2
+  input_type: derived_arithmetic
+  rationale: "Standard deviation of CD80 surface density on DCs propagated from molecules-per-cell\
+    \ SD (\xD710^3) assuming fixed mean surface area."
+  source_ref: Unternaehrer2007
+  source_location: Derived from Table 1 CD80 molecules per cell SD and DC surface
+    area
+  source_inputs:
+  - CD80_DC_molecules_per_cell_sd
+  - DC_surface_area_mean
+  formula: CD80_DC_molecules_per_cell_sd * 1000.0 / DC_surface_area_mean
+- name: CD86_DC_density_mean
+  value: 146.4
+  units: molecule / micrometer ** 2
+  input_type: derived_arithmetic
+  rationale: "Surface density of CD86 on DCs computed as molecules per cell (\xD7\
+    10^3) divided by mean cell surface area (mature DCs)."
+  source_ref: Unternaehrer2007
+  source_location: Derived from Table 1 CD86 molecules per cell and DC surface area
+  source_inputs:
+  - CD86_DC_molecules_per_cell_mean
+  - DC_surface_area_mean
+  formula: CD86_DC_molecules_per_cell_mean * 1000.0 / DC_surface_area_mean
+- name: CD86_DC_density_sd
+  value: 30.3
+  units: molecule / micrometer ** 2
+  input_type: derived_arithmetic
+  rationale: "Standard deviation of CD86 surface density on DCs propagated from molecules-per-cell\
+    \ SD (\xD710^3) assuming fixed mean surface area."
+  source_ref: Unternaehrer2007
+  source_location: Derived from Table 1 CD86 molecules per cell SD and DC surface
+    area
+  source_inputs:
+  - CD86_DC_molecules_per_cell_sd
+  - DC_surface_area_mean
+  formula: CD86_DC_molecules_per_cell_sd * 1000.0 / DC_surface_area_mean
+- name: CD80_B_density_mean
+  value: 6.6
+  units: molecule / micrometer ** 2
+  input_type: derived_arithmetic
+  rationale: "Surface density of CD80 on B blasts computed as molecules per cell (\xD7\
+    10^3) divided by mean B-cell surface area."
+  source_ref: Unternaehrer2007
+  source_location: Derived from Table 1 CD80 molecules per cell (B blasts) and B cell
+    surface area
+  source_inputs:
+  - CD80_B_molecules_per_cell_mean
+  - B_surface_area_mean
+  formula: CD80_B_molecules_per_cell_mean * 1000.0 / B_surface_area_mean
+- name: CD86_B_density_mean
+  value: 65.8
+  units: molecule / micrometer ** 2
+  input_type: derived_arithmetic
+  rationale: "Surface density of CD86 on B blasts computed as molecules per cell (\xD7\
+    10^3) divided by mean B-cell surface area."
+  source_ref: Unternaehrer2007
+  source_location: Derived from Table 1 CD86 molecules per cell (B blasts) and B cell
+    surface area
+  source_inputs:
+  - CD86_B_molecules_per_cell_mean
+  - B_surface_area_mean
+  formula: CD86_B_molecules_per_cell_mean * 1000.0 / B_surface_area_mean
+- name: DC_total_CD80_CD86_density
+  value: 239.3
+  units: molecule / micrometer ** 2
+  input_type: derived_arithmetic
+  rationale: Total effective CD28 ligand density on DCs approximated as the sum of
+    CD80 and CD86 surface densities.
+  source_ref: Unternaehrer2007
+  source_location: Derived from CD80 and CD86 density means on DCs
+  source_inputs:
+  - CD80_DC_density_mean
+  - CD86_DC_density_mean
+  formula: CD80_DC_density_mean + CD86_DC_density_mean
+- name: B_total_CD80_CD86_density
+  value: 72.4
+  units: molecule / micrometer ** 2
+  input_type: derived_arithmetic
+  rationale: Total effective CD28 ligand density on B blasts approximated as the sum
+    of CD80 and CD86 surface densities.
+  source_ref: Unternaehrer2007
+  source_location: Derived from CD80 and CD86 density means on B blasts
+  source_inputs:
+  - CD80_B_density_mean
+  - CD86_B_density_mean
+  formula: CD80_B_density_mean + CD86_B_density_mean
+- name: n_experiments_CD80_CD86
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Unternaehrer2007
+  source_location: FACS Analysis section, Methods
+  value_snippet: Events (10^4) were collected in each of three experiments.
+calibration:
+  parameters:
+  - name: CD28_CD8X_50
+    units: molecule / micrometer ** 2
+    nuisance: false
+  - name: CD80_DC_density
+    units: molecule / micrometer ** 2
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 4.5315
+      sigma: 0.3
+  - name: CD86_DC_density
+    units: molecule / micrometer ** 2
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 4.9863
+      sigma: 0.3
+  forward_model:
+    data_rationale: Unternaehrer2007 provides quantitative surface densities (molecules
+      per square micron) for CD80 and CD86 on murine bone-marrow-derived DCs and B
+      blasts. We treat the DC densities as near-saturating CD28 co-stimulation and
+      the substantially lower B-blast densities as sub-saturating, which brackets
+      a plausible EC50 range for CD28 ligation. The absolute DC CD80/CD86 densities
+      are directly mapped to QSP parameters representing typical DC B7 densities.
+    submodel_rationale: In the full QSPIO-PDAC model, CD28-mediated costimulation
+      enters as a Hill function of an effective B7 (CD80+CD86) surface density, with
+      CD28_CD8X_50 as the EC50 and CD80_DC_density/CD86_DC_density setting the scale
+      of available ligands on dendritic cells. This algebraic submodel keeps that
+      parameterization explicit by (i) directly inferring the DC B7 densities from
+      the FACS-based molecule-per-area measurements and (ii) constraining CD28_CD8X_50
+      to lie between the physiologic B-blast and DC B7 densities, consistent with
+      DCs providing near-saturating costimulation while B blasts are sub-saturating.
+    type: algebraic
+    formula: Observable CD80 and CD86 DC surface densities equal their corresponding
+      QSP parameters; CD28_CD8X_50 is the EC50 for total CD80+CD86 density needed
+      for half-maximal CD28 costimulation.
+    code: "def compute(params, inputs):\n    import numpy as np\n    # QSP parameters\n\
+      \    cd80_dc = params['CD80_DC_density']\n    cd86_dc = params['CD86_DC_density']\n\
+      \    ec50_cd8 = params['CD28_CD8X_50']\n    # Return observables as a dict\n\
+      \    return {\n        'CD80_DC_density': cd80_dc,\n        'CD86_DC_density':\
+      \ cd86_dc,\n        'CD28_CD8X_50': ec50_cd8,\n    }\n"
+  error_model:
+  - name: CD80_DC_density_measurement
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['CD80_DC_density']\n"
+    units: molecule / micrometer ** 2
+    uses_inputs:
+    - CD80_DC_density_mean
+    - CD80_DC_density_sd
+    - n_experiments_CD80_CD86
+    sample_size_input: n_experiments_CD80_CD86
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['CD80_DC_density_mean']\n    sd =\
+      \ inputs['CD80_DC_density_sd']\n    cv = sd / mean\n    # Lognormal bootstrap\
+      \ for positive densities; measurement SD over n experiments\n    return rng.lognormal(np.log(mean),\
+      \ cv / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: CD86_DC_density_measurement
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['CD86_DC_density']\n"
+    units: molecule / micrometer ** 2
+    uses_inputs:
+    - CD86_DC_density_mean
+    - CD86_DC_density_sd
+    - n_experiments_CD80_CD86
+    sample_size_input: n_experiments_CD80_CD86
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['CD86_DC_density_mean']\n    sd =\
+      \ inputs['CD86_DC_density_sd']\n    cv = sd / mean\n    # Lognormal bootstrap\
+      \ for positive densities; measurement SD over n experiments\n    return rng.lognormal(np.log(mean),\
+      \ cv / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: CD28_CD8X_50_bracket
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['CD28_CD8X_50']\n"
+    units: molecule / micrometer ** 2
+    uses_inputs:
+    - DC_total_CD80_CD86_density
+    - B_total_CD80_CD86_density
+    - n_experiments_CD80_CD86
+    sample_size_input: n_experiments_CD80_CD86
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    dc_total = inputs['DC_total_CD80_CD86_density']\n\
+      \    b_total = inputs['B_total_CD80_CD86_density']\n    # Treat B-blast and\
+      \ DC total B7 densities as approximate lower and upper bounds\n    # for the\
+      \ CD28 EC50. Use a lognormal distribution whose 95% CI spans [b_total, dc_total].\n\
+      \    log_b = np.log(b_total)\n    log_dc = np.log(dc_total)\n    mu = (log_b\
+      \ + log_dc) / 2.0\n    sigma = (log_dc - log_b) / (2.0 * 1.96)\n    return rng.lognormal(mu,\
+      \ sigma, n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: "CD80_DC_density and CD86_DC_density are directly and fairly\
+    \ tightly constrained by the FACS-based molecule-per-cell measurements and stereological\
+    \ surface areas, yielding well-identified typical DC B7 densities. CD28_CD8X_50\
+    \ is only indirectly constrained via the requirement that its value fall between\
+    \ the lower B-blast and higher DC total B7 densities, implemented as a broad lognormal\
+    \ prior centered at the geometric mean of these totals with a 95% interval spanning\
+    \ the bracket. This yields a weak but biologically informed constraint that keeps\
+    \ CD28_CD8X_50 on the order of 10^2 molecules/\xB5m^2, consistent with the QSP\
+    \ prior, while allowing substantial uncertainty. Additional functional data relating\
+    \ T cell activation to absolute B7 densities (e.g., dose\u2013response on supported\
+    \ lipid bilayers) would be required to more sharply identify CD28_CD8X_50."
+experimental_context:
+  species: mouse
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: bone-marrow-derived dendritic cells
+    phenotype: GM-CSF-differentiated, LPS-matured conventional dendritic cells
+    isolation_method: bone marrow progenitors cultured with GM-CSF
+    source: C57BL/6 or B10.BR mice
+  - name: splenic B cell blasts
+    phenotype: LPS-activated B220+ B cells
+    isolation_method: spleen B cells stimulated with LPS for 24 h
+    source: C57BL/6 or B10.BR mice
+  culture_conditions:
+    substrate: plastic tissue culture plates / glass coverslips
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+    medium: RPMI-1640 with 10% FCS
+    supplements: GM-CSF for DC differentiation; LPS for B-blast activation
+    duration: "DCs differentiated for 5\u20137 days then matured for 6\u201312 h;\
+      \ B cells stimulated with LPS for 24 h"
+    notes: Cells were analyzed at a mature DC stage and fully blasted B cells for
+      surface molecule quantification by quantitative flow cytometry.
+  indication: general immunology (non-tumor)
+study_interpretation: Unternaehrer2007 quantitatively establishes baseline surface
+  densities of the costimulatory ligands CD80 and CD86 on murine bone-marrow-derived
+  dendritic cells and on activated B-cell blasts, expressed as molecules per square
+  micron of plasma membrane. In the PDAC QSP model, DCs are the dominant professional
+  antigen-presenting cells responsible for priming naive CD8 T cells, whereas B cells
+  are not explicitly modeled. The substantially higher CD80 and CD86 densities on
+  DCs (relative to B blasts) are interpreted as reflecting near-saturating CD28 costimulation
+  in physiological priming contexts, while the lower B-blast densities represent sub-saturating
+  conditions. By (i) mapping the DC B7 densities directly to the QSP parameters CD80_DC_density
+  and CD86_DC_density and (ii) constraining the CD28_CD8X_50 EC50 parameter to lie
+  between the summed B-blast and DC B7 densities, this submodel provides a weak but
+  mechanistically grounded calibration of the co-stimulatory EC50 consistent with
+  the overall magnitude of physiological B7 expression.
+key_assumptions:
+- Murine bone-marrow-derived dendritic cells have CD80/CD86 surface densities in the
+  same order of magnitude as human tumor-draining dendritic cells in PDAC, so mouse
+  values can be used as proxies for human.
+- The average surface densities reported for whole-cell plasma membranes approximate
+  the effective B7 ligand density experienced by CD8 T cells at immunological synapses,
+  ignoring potential synaptic enrichment or nanoscale clustering.
+- Total effective CD28 ligand density for CD8 T cells can be approximated as the sum
+  of CD80 and CD86 surface densities with equal weight, without distinguishing differences
+  in CD28 affinity or kinetics between the two ligands.
+- Mature DCs provide near-saturating CD28 costimulation for naive T cells, whereas
+  B blasts with substantially lower CD80 (and somewhat lower CD86) are sub-saturating;
+  thus the true EC50 for CD28 costimulation lies between the B-blast and DC total
+  B7 densities.
+- Measurement error in molecules-per-cell estimates and stereological surface area
+  is modest relative to biological and cross-species translation uncertainty, so uncertainties
+  derived from reported SDs are adequate for calibration.
+- Differences between resting and inflammatory conditions, and between lymphoid and
+  tumor-draining microenvironments, primarily shift B7 density within the same order
+  of magnitude and do not radically alter the EC50 scale for CD28 ligation.
+key_study_limitations:
+- "The study quantifies surface densities of CD80 and CD86 but does not measure T\
+  \ cell activation or proliferation as a function of these densities, so CD28 co-stimulatory\
+  \ EC50 must be inferred indirectly from bracketing arguments rather than a true\
+  \ dose\u2013response curve."
+- Experiments were performed with murine bone-marrow-derived DCs and LPS-activated
+  B blasts in vitro under non-tumor conditions; applying these densities to human
+  PDAC tumor-draining DCs involves cross-species and context extrapolation.
+- Surface densities are averaged over the entire plasma membrane and do not capture
+  possible enrichment of CD80/CD86 at immunological synapses or within tetraspanin
+  microdomains, which may increase local ligand density.
+- "Only a small number of independent experiments (n\u22483) were used to estimate\
+  \ molecules-per-cell, and the uncertainty in stereological surface area measurements\
+  \ is not explicitly reported, so propagated density SDs may underestimate true variability."
+- The PDAC QSP model does not explicitly include B cells, so using B-blast B7 densities
+  to define a sub-saturating bracket for EC50 relies on the assumption that B-cell
+  costimulation is representative of lower-efficiency professional APCs in vivo.
+primary_data_source:
+  doi: 10.1073/pnas.0609665104
+  year: 2007
+  source_tag: Unternaehrer2007
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: "The study investigates antigen-presenting dendritic\
+      \ cells and B blasts in healthy mice rather than tumor-draining dendritic cells\
+      \ in pancreatic ductal adenocarcinoma. However, the biophysical quantity of\
+      \ interest\u2014baseline CD80/CD86 molecule density on mature dendritic cells\u2014\
+      is expected to be broadly conserved across tissues and disease contexts, so\
+      \ these values can serve as a mechanistic proxy for B7 densities in PDAC-associated\
+      \ dendritic cells, with added translation uncertainty."
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Cells were examined at baseline or after standard maturation
+      stimuli (e.g., LPS for DCs, LPS for B blasts) without pharmacologic checkpoint
+      modulation. Thus measured CD80/CD86 densities reflect typical activation states
+      for professional and non-professional APCs rather than drug-perturbed extremes,
+      appropriate for constraining physiological B7 levels in the QSP model.
+    tme_compatibility: moderate
+    tme_compatibility_notes: Bone-marrow-derived DCs differentiated in vitro and their
+      LPS-matured counterparts differ from tumor-infiltrating DCs in PDAC, which experience
+      chronic exposure to tumor antigens, immunosuppressive cytokines, and dense stroma.
+      Nonetheless, fundamental constraints on B7 surface expression and typical densities
+      per unit area are likely similar, so the data are considered moderately compatible
+      with the PDAC tumor microenvironment but subject to added uncertainty.
+    measurement_directness: proxy_observable
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_primary
+tags:
+- checkpoint
+- costimulation
+- CD28
+- CD80
+- CD86
+- dendritic_cells
+- B_cells
+- PDAC_QSP
+extraction_model: gpt-4.1
+extraction_reasoning_effort: medium

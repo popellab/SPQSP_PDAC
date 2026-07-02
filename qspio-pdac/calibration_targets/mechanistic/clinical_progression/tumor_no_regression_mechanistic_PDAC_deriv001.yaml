@@ -1,0 +1,138 @@
+study_interpretation: |
+  Untreated PDAC does not spontaneously regress. Across 90 days of clinical
+  progression in the absence of any intervention, the tumor cell count C1(t)
+  should never fall below its starting value C1(0). This target encodes that
+  mechanistic invariant as a soft prior on the observable
+  min_t(C1[t]) / C1(0) over the 90-day window.
+
+  This is a mechanistic prior, not a literature measurement: PDAC's
+  exponential growth phase is well-characterized (Haeno 2012, Ahn 2017 VDT)
+  but no single primary source publishes a per-patient distribution of
+  "minimum-over-trajectory normalized to baseline." The distribution is
+  intentionally wide so the target nudges the model away from spurious
+  numerical regressions while remaining uninformative across plausible
+  growth rates.
+key_assumptions:
+- |
+  Mechanistic prior: PDAC growth law (k_C_growth × Hill cascades over
+  immune killing) is positive-net in untreated 90-day windows. The model
+  must not produce trajectories where C1 dips below C1(0); such a dip
+  would indicate either (a) an emergent immune control phase the model
+  is not parameterized for, or (b) numerical instability in the solver.
+  Either is a structural failure to flag, not a calibration target.
+- |
+  Distribution width: lognormal with [1.0, 5.0] as the 95% credible
+  interval. Lower endpoint 1.0 = no-regression floor (the assertion
+  itself); upper endpoint 5.0 = ~5× expansion ceiling at d90, consistent
+  with Ahn 2017 PDAC volume doubling times of 60-200 days
+  (cube-root → diameter doubling 180-600 days; over 90 days,
+  V_T fold-change ranges 1.1× to ~3×). Width chosen so the target
+  nudges rather than dominates the likelihood.
+- |
+  Observable scaling: end fold-change C1(t) / C1(0), evaluated at
+  t=90 days via index_values. A monotonically growing trajectory
+  has fold > 1.0; values below 1.0 indicate net regression by the
+  end of the window. Earlier versions used a running-min ratio
+  (bounded in (0, 1] by construction), which made the [1, 5] CI95
+  unreachable — switching to end fold-change aligns the observable
+  with the asserted floor + 5x expansion ceiling.
+key_study_limitations:
+- |
+  No primary source: this target encodes biological intuition rather
+  than a quantified observation. It is not a substitute for literature-
+  grounded growth-rate targets (see clinical_progression/
+  tumor_doubling_time_PDAC_deriv001.yaml — Ahn 2017, n=100, tight CI).
+  Its role is structural: catch trajectories that should not exist
+  in the untreated regime.
+- |
+  The observable is evaluated only at t=d90 (via index_values).
+  Brief mid-trajectory dips that recover by d90 are not penalized;
+  the older running-min variant did catch those but its (0, 1]
+  range conflicted with the [1, 5] CI95 the prior asserts.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        import numpy as np
+        c1 = species_dict['V_T.C1']
+        if c1.size == 0 or c1[0] <= 0:
+            return np.full_like(c1, np.nan, dtype=float)
+        return (c1 / c1[0])
+
+  units: dimensionless
+  species:
+  - V_T.C1
+  constants: []
+  support: positive_unbounded
+  mapping_rationale: |
+    End fold-change C1(d90) / C1(0). Greater than 1.0 for any net
+    growth; below 1.0 indicates net regression by d90. Mechanistic
+    prior asserts the observable stays in [1, 5] over 90 days
+    (no regression, up to ~5x expansion consistent with PDAC
+    volume doubling times of 60-200 days; see Ahn 2017).
+  experimental_denominator: null
+  model_denominator_species: null
+  unmodeled_denominator_components: null
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: 90-day untreated progression from diagnosis
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: null
+  assay_type: null
+scenario:
+  description: |
+    90-day untreated clinical progression scenario. No interventions;
+    target evaluates trajectory monotonicity in the C1 cancer cell
+    population.
+  interventions:
+  - intervention_description: No intervention
+empirical_data:
+  median:
+  - 2.236
+  ci95:
+  - - 1.0
+    - 5.0
+  units: dimensionless
+  sample_size: 1
+  sample_size_rationale: |
+    Mechanistic prior; sample size set to 1 to denote a single
+    soft-prior assertion. The CI95 [1.0, 5.0] carries the
+    uncertainty.
+  index_values:
+  - 90.0
+  index_unit: day
+  index_type: time
+  inputs: []
+  assumptions: []
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        rng = np.random.default_rng(42)
+        lo, hi = 1.0, 5.0
+        mu = 0.5 * (np.log(lo) + np.log(hi))
+        sigma = (np.log(hi) - np.log(lo)) / (2.0 * 1.96)
+        samples = rng.lognormal(mu, sigma, 100000) * ureg.dimensionless
+        return {
+            'median_obs': np.median(samples),
+            'ci95_lower': np.percentile(samples, 2.5),
+            'ci95_upper': np.percentile(samples, 97.5),
+        }
+epistemic_basis: mechanistic
+primary_data_source: null
+secondary_data_sources: []
+calibration_target_id: tumor_no_regression_mechanistic
+cancer_type: PDAC
+tags:
+- mechanistic_prior
+- from-qualitative-bound

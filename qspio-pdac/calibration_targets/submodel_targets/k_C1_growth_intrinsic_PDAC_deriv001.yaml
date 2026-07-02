@@ -1,0 +1,186 @@
+target_id: k_C1_growth_intrinsic
+inputs:
+- name: T_double_organoid_days
+  value: 7.0
+  units: day
+  input_type: direct_measurement
+  source_ref: Usman2022
+  source_location: Results, 'Copy number alterations in two lines of patient-derived
+    PDAC organoids' and Methods, 'PDAC organoid culture and immunostaining'
+  value_snippet: The doubling time of both organoids was about 7 days, hence the organoids
+    were passaged at a 1:2 ratio weekly.
+- name: n_organoid_lines
+  value: 2.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Usman2022
+  source_location: Results, 'Copy number alterations in two lines of patient-derived
+    PDAC organoids'
+  value_snippet: Two patient-derived primary tumor PDAC organoids (hPT1 and hPT2)
+    were acquired and expanded for this study (Fig. 1a).
+calibration:
+  parameters:
+  - name: k_C1_growth
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: Usman2022 reports that both primary human PDAC organoid lines
+      (hPT1, hPT2) have an overall culture doubling time of about 7 days under standard
+      3D Matrigel conditions, with weekly 1:2 passaging. This doubling time captures
+      the net expansion rate of cancer cells in a stromal-free but physiologically
+      relevant 3D environment and can be mapped directly to an effective exponential
+      doubling time.
+    submodel_rationale: "In the full QSPIO-PDAC model, viable tumor cells C1 follow\
+      \ Gompertzian growth with rate k_C1_growth multiplying a carrying-capacity-dependent\
+      \ term. In the low-density regime relevant to early organoid expansion between\
+      \ weekly passages, the Gompertz factor is approximately constant and close to\
+      \ 1, so net growth is well approximated as exponential with effective rate k_C1_growth.\
+      \ We therefore relate the observed organoid doubling time T_double_organoid_days\
+      \ to k_C1_growth via the standard exponential-growth relation T_double = ln(2)/k_C1_growth,\
+      \ treating this as the intrinsic, tumor-cell\u2013autonomous proliferation rate\
+      \ in a 3D matrix without stromal or immune constraints."
+    type: algebraic
+    formula: T_double_organoid_days = ln(2) / k_C1_growth
+    code: "def compute(params, inputs):\n    import numpy as np\n    k = params['k_C1_growth']\n\
+      \    return np.log(2.0) / k\n"
+  error_model:
+  - name: doubling_time_organoid
+    units: day
+    uses_inputs:
+    - T_double_organoid_days
+    - n_organoid_lines
+    sample_size_input: n_organoid_lines
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    # Usman2022 reports an approximate doubling time\
+      \ (\"about 7 days\") for two organoid lines,\n    # without replicate-level\
+      \ statistics. To encode nonzero observational variability\n    # using only\
+      \ reported quantities, we model the measured doubling time in days\n    # as\
+      \ a Poisson-like count with mean equal to the reported value.\n    t_double\
+      \ = inputs['T_double_organoid_days']\n    return rng.poisson(t_double, n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: "This target constrains k_C1_growth from a single approximate\
+    \ measurement of organoid doubling time. Under the assumption of exponential low-density\
+    \ growth, k_C1_growth is effectively identified near ln(2)/7 \u2248 0.1 day^-1,\
+    \ with observational uncertainty captured by a Poisson-like spread around the\
+    \ reported 7-day mean. However, this measurement captures net organoid expansion\
+    \ (proliferation minus any death within organoids) under nutrient- and growth-factor\u2013\
+    replete conditions and may overestimate in vivo net tumor growth. No independent\
+    \ information on tumor-cell death or carrying capacity is available from this\
+    \ study, so k_C1_growth should be interpreted as an intrinsic cell-cycle\u2013\
+    driven proliferation rate that will be modulated by additional processes (death,\
+    \ immune killing, vascular limitations) elsewhere in the QSP model."
+experimental_context:
+  species: human
+  system: in_vitro_primary
+  cell_lines:
+  - name: hPT1
+    species: human
+    tissue_origin: pancreas
+    cell_type: pancreatic ductal adenocarcinoma epithelial cells
+    source: Barts Pancreas Tissue Bank
+    passage_range: P5 at acquisition; P3 and P14 analyzed in this study
+  - name: hPT2
+    species: human
+    tissue_origin: pancreas
+    cell_type: pancreatic ductal adenocarcinoma epithelial cells
+    source: Human Cancer Models Initiative (HCM-CSHL-0092-C25)
+    passage_range: P15 at acquisition; P6 and P16 analyzed in this study
+  culture_conditions:
+    substrate: "3D Matrigel domes (50 \xB5L; Corning)"
+    oxygen_level: "normoxic incubator conditions (not explicitly specified, standard\
+      \ 37\xB0C, 5% CO2)"
+    culture_type: 3d_spheroid
+    medium: Human PDAC organoid medium per Tuveson Laboratory Murine and Human Organoid
+      Protocols
+    supplements: Defined growth factors and inhibitors as in Tuveson PDAC organoid
+      media (e.g., EGF, Noggin, R-spondin; exact cocktail per referenced protocol)
+    duration: Maintained with weekly 1:2 passaging; doubling time about 7 days
+    notes: Organoids were mechanically dissociated for passaging (vigorous trituration
+      >=20 times with P1000 tip) and replated into fresh Matrigel domes following
+      Tuveson laboratory protocols.
+  indication: pancreatic ductal adenocarcinoma
+study_interpretation: "Primary human PDAC organoids grown in 3D Matrigel expand with\
+  \ an overall culture doubling time of about 7 days, reflecting the intrinsic proliferation\
+  \ capacity of PDAC epithelial cells in a stromal-free but three-dimensional microenvironment.\
+  \ Mapping this doubling time to an exponential growth rate via T_double = ln(2)/k_C1_growth\
+  \ anchors the QSP tumor-growth parameter to a cell-cycle\u2013based value (k_C1_growth\
+  \ \u2248 0.1 day^-1), distinct from much slower clinical tumor-volume doubling times\
+  \ that incorporate stromal mass and cell death. This target thus provides an in\
+  \ vivo\u2013proximal estimate of tumor-cell\u2013autonomous proliferation under\
+  \ relatively favorable growth conditions."
+key_assumptions:
+- "The reported ~7-day doubling time represents approximately exponential low-density\
+  \ growth of organoid PDAC cells between weekly passages, so that Gompertzian carrying-capacity\
+  \ effects can be neglected (log(C_max/(C_total+cell)) \u2248 1)."
+- "Cell death and necrosis within organoids over the weekly culture interval are modest\
+  \ relative to proliferation, so the net doubling time primarily reflects intrinsic\
+  \ cell-cycle\u2013driven growth of viable cancer cells (C1)."
+- Absence of stromal, immune, and vascular components in the organoid system means
+  that the inferred k_C1_growth should be interpreted as an upper-bound intrinsic
+  proliferation rate; in vivo net tumor growth in PDAC will generally be slower due
+  to microenvironmental constraints and immune-mediated killing.
+- hPT1 and hPT2 organoids, both derived from primary PDAC tumors, are representative
+  of typical PDAC epithelial proliferation kinetics despite genomic heterogeneity
+  between lines.
+key_study_limitations:
+- The doubling time is reported qualitatively as "about 7 days" without explicit statistical
+  uncertainty, replicate counts beyond the two organoid lines, or direct cell-count
+  time courses, so observational uncertainty is under-specified and approximated here
+  via a Poisson-like spread with mean 7 days.
+- Only two patient-derived organoid lines (hPT1, hPT2) were studied; these may not
+  capture the full range of PDAC proliferative heterogeneity across patients or molecular
+  subtypes.
+- Organoid culture employs growth-factor-enriched media and lacks stromal, immune,
+  and vascular elements, potentially yielding faster proliferation than in vivo PDAC
+  tumors; translation to in vivo conditions requires additional modulation by death
+  and microenvironmental constraints in the full QSP model.
+- The inferred proliferation rate is net of any cell loss within organoids; separate
+  quantification of death or quiescent fractions is not available from this study.
+primary_data_source:
+  doi: 10.1038/s41525-022-00342-9
+  title: Genomic heterogeneity in pancreatic cancer organoids and its stability with
+    culture
+  authors:
+  - Usman
+  - Zhang
+  - Xie
+  - Kocher
+  - Hwang
+  - Wang
+  - Mallory
+  - Irianto
+  year: 2022
+  source_tag: Usman2022
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The study uses primary human pancreatic ductal
+      adenocarcinoma (PDAC) organoids (hPT1, hPT2) derived directly from patient tumors,
+      matching the target indication of the QSPIO-PDAC model. The organoids recapitulate
+      PDAC epithelial genotype and phenotype, making their growth kinetics directly
+      relevant to intrinsic tumor-cell proliferation in PDAC.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Organoids were cultured under baseline growth conditions
+      with defined media and Matrigel but without pharmacologic treatments or genetic
+      perturbations that would systematically alter proliferation rates beyond standard
+      ex vivo culture adaptation.
+    tme_compatibility: high
+    tme_compatibility_notes: Although organoids lack full stromal, immune, and vascular
+      components of the PDAC tumor microenvironment, the parameter being calibrated
+      (k_C1_growth) represents intrinsic tumor-cell proliferation. For this purpose,
+      a stromal-free 3D epithelial organoid system is appropriate and arguably more
+      directly informative than whole-tumor volume kinetics, which conflate cancer-cell
+      proliferation with stromal expansion and cell death.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_primary
+tags:
+- tumor_growth
+- organoid
+- PDAC
+- k_C1_growth
+- proliferation
+extraction_model: gpt-4.1
+extraction_reasoning_effort: medium

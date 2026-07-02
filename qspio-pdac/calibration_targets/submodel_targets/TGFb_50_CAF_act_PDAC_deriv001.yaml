@@ -1,0 +1,518 @@
+target_id: TGFb_50_CAF_act_bachem1992
+tags:
+- ai-generated
+extraction_model: claude-opus-4-6
+extraction_reasoning_effort: high
+study_interpretation: 'Bachem et al. (1992) measured alpha-SMA expression (% positive cells) over
+
+  time in primary rat liver perisinusoidal lipocyte cultures treated with or
+
+  without 1 ng/ml TGFbeta1. Figure 7b shows alpha-SMA% at days 4, 7, 11, 16
+
+  for control (10% FCS only) and TGFbeta1 (1 ng/ml added on day 2). TGFbeta1
+
+  substantially accelerated activation: at day 11, 80% of TGFbeta1-treated
+
+  cells were alpha-SMA+ versus 23% in controls. At day 16, 85% vs 45%.
+
+
+  The paired time courses (control vs +TGFbeta1) jointly constrain
+
+  k_PSC_to_myCAF (base activation rate from the control curve) and
+
+  TGFb_50_CAF_act (EC50 for TGFbeta-driven activation from the fold-
+
+  acceleration in the TGFbeta1 condition). The forward model runs the same
+
+  ODE for both conditions, with TGFbeta modulating the activation rate via
+
+  a Hill function.
+
+  '
+key_assumptions:
+- 'The activation rate in the model is k_PSC_to_myCAF * TGFb/(TGFb_50_CAF_act + TGFb).
+
+  In the control condition, basal TGFbeta from serum and autocrine production
+
+  provides a non-zero Hill function value. In the +TGFbeta1 condition, the
+
+  exogenous 1 ng/ml adds to this baseline.
+
+  '
+- '1 ng/ml TGFbeta1 = 0.04 nM (MW ~25 kDa for mature homodimer). This is
+
+  the exogenous concentration added; the effective concentration includes
+
+  basal TGFbeta from 10% FCS and autocrine production.
+
+  '
+- 'The basal TGFbeta level in 10% FCS culture is estimated at ~0.01 nM based
+
+  on typical serum TGFbeta1 levels (~1-2 ng/ml total, ~10% active = 0.1-0.2
+
+  ng/ml, diluted to 10% = 0.01-0.02 ng/ml = ~0.001 nM). This is small
+
+  relative to the exogenous 0.04 nM addition.
+
+  '
+- 'Rat hepatic stellate cell TGFbeta responsiveness is representative of
+
+  pancreatic stellate cell / CAF TGFbeta responsiveness.
+
+  '
+key_study_limitations:
+- 'Rat hepatic stellate cells on 2D plastic, not human PDAC CAFs in vivo.
+
+  '
+- 'Only one TGFbeta1 concentration tested (1 ng/ml). A full dose-response
+
+  would better constrain the EC50. The EC50 is identified from the magnitude
+
+  of acceleration at this single dose relative to control.
+
+  '
+- 'The basal TGFbeta level in the culture is not measured and must be
+
+  estimated. This introduces uncertainty in the Hill function calculation
+
+  for the control condition.
+
+  '
+- 'TGFbeta1 was added on day 2 along with the conditioned media treatment.
+
+  The effective concentration may change over the culture period due to
+
+  consumption, degradation, and autocrine production.
+
+  '
+experimental_context:
+  species: rat
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: perisinusoidal lipocyte / hepatic stellate cell
+    source: rat liver
+    isolation_method: 'Nycodenz density gradient from rat liver, seeded at 0.08 x 10^5
+
+      cells/cm^2 on 6-well plates in DME with 10% FCS. TGFbeta1 (1 ng/ml)
+
+      or control media added from day 2.
+
+      '
+  culture_conditions:
+    medium: DME with 10% FCS +/- 1 ng/ml TGFbeta1
+    duration: 16 days primary culture, sampled at days 4, 7, 11, 16
+  indication: liver_fibrosis
+primary_data_source:
+  doi: 10.1172/JCI115561
+  title: 'Activation of rat liver perisinusoidal lipocytes by transforming growth
+
+    factors derived from myofibroblastlike cells. A potential mechanism of
+
+    self perpetuation in liver fibrogenesis
+
+    '
+  authors:
+  - Bachem
+  - Meyer
+  - Melchior
+  - Sell
+  - Gressner
+  year: 1992
+  source_tag: Bachem1992
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'Rat hepatic stellate cell TGFbeta dose-response as proxy for PDAC CAF
+
+      TGFbeta-driven activation. TGFbeta/SMAD signaling is the canonical
+
+      activation pathway conserved between HSCs and PSCs.
+
+      '
+    species_source: rat
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: 'Exogenous TGFbeta1 at 1 ng/ml (0.04 nM) added to primary stellate cell
+
+      cultures. This directly probes the TGFbeta dose-response axis relevant
+
+      to the model''s Hill function parameterization.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro 2D culture. TGFbeta signaling dynamics (receptor availability,
+
+      SMAD activation kinetics) may differ in 3D PDAC stroma.
+
+      '
+    measurement_directness: direct
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_primary
+secondary_data_sources: []
+inputs:
+- name: ctrl_asma_day4_mean
+  value: 0.15
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, control day 4
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: Control alpha-SMA% at day 4
+    value: '15'
+    context: Digitized from Fig 7b squares (control). Stored as fraction 0.15.
+- name: ctrl_asma_day4_sd
+  value: 0.09
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, control day 4 error bar
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: Control alpha-SMA% SD at day 4
+    value: '9'
+    context: SD=15-6=9%. Stored as fraction 0.09.
+- name: ctrl_asma_day7_mean
+  value: 0.18
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, control day 7
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: Control alpha-SMA% at day 7
+    value: '18'
+    context: Digitized from Fig 7b squares. Stored as fraction 0.18.
+- name: ctrl_asma_day7_sd
+  value: 0.01
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, control day 7 error bar
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: Control alpha-SMA% SD at day 7
+    value: '1'
+    context: SD=18-17=1%. Stored as fraction 0.01.
+- name: ctrl_asma_day11_mean
+  value: 0.23
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, control day 11
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: Control alpha-SMA% at day 11
+    value: '23'
+    context: Digitized. Text confirms 27% at day 11 for control — close.
+- name: ctrl_asma_day11_sd
+  value: 0.04
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, control day 11 error bar
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: Control alpha-SMA% SD at day 11
+    value: '4'
+    context: SD=23-19=4%. Stored as fraction 0.04.
+- name: ctrl_asma_day16_mean
+  value: 0.45
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, control day 16
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: Control alpha-SMA% at day 16
+    value: '45'
+    context: Digitized from Fig 7b squares. Stored as fraction 0.45.
+- name: ctrl_asma_day16_sd
+  value: 0.07
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, control day 16 error bar
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: Control alpha-SMA% SD at day 16
+    value: '7'
+    context: SD=45-38=7%. Stored as fraction 0.07.
+- name: tgfb_asma_day4_mean
+  value: 0.36
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, TGFbeta1 day 4
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: TGFbeta1 alpha-SMA% at day 4
+    value: '36'
+    context: Digitized from Fig 7b circles (TGFbeta1). Stored as fraction 0.36.
+- name: tgfb_asma_day4_sd
+  value: 0.06
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, TGFbeta1 day 4 error bar
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: TGFbeta1 alpha-SMA% SD at day 4
+    value: '6'
+    context: SD=42-36=6%. Stored as fraction 0.06.
+- name: tgfb_asma_day7_mean
+  value: 0.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, TGFbeta1 day 7
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: TGFbeta1 alpha-SMA% at day 7
+    value: '50'
+    context: Digitized from Fig 7b circles. Stored as fraction 0.50.
+- name: tgfb_asma_day7_sd
+  value: 0.07
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, TGFbeta1 day 7 error bar
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: TGFbeta1 alpha-SMA% SD at day 7
+    value: '7'
+    context: SD=57-50=7%. Stored as fraction 0.07.
+- name: tgfb_asma_day11_mean
+  value: 0.8
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, TGFbeta1 day 11
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: TGFbeta1 alpha-SMA% at day 11
+    value: '80'
+    context: Digitized. Text confirms 70% for aMFBcM at day 11; TGFbeta1 is higher.
+- name: tgfb_asma_day11_sd
+  value: 0.03
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, TGFbeta1 day 11 error bar
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: TGFbeta1 alpha-SMA% SD at day 11
+    value: '3'
+    context: SD=83-80=3%. Stored as fraction 0.03.
+- name: tgfb_asma_day16_mean
+  value: 0.85
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, TGFbeta1 day 16
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: TGFbeta1 alpha-SMA% at day 16
+    value: '85'
+    context: Digitized from Fig 7b circles. Stored as fraction 0.85.
+- name: tgfb_asma_day16_sd
+  value: 0.05
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7b, TGFbeta1 day 16 error bar
+  figure_excerpt:
+    figure_id: Figure 7b
+    description: TGFbeta1 alpha-SMA% SD at day 16
+    value: '5'
+    context: SD=90-85=5%. Stored as fraction 0.05.
+- name: tgfb1_conc_exogenous
+  value: 0.04
+  units: nanomolarity
+  input_type: unit_conversion
+  rationale: '1 ng/ml TGFbeta1 = 0.04 nM (MW ~25 kDa for mature TGFbeta1 homodimer).
+
+    '
+  source_ref: Bachem1992
+  source_location: Figure 7 legend
+  value_snippet: '1 ng/ml TGFbeta1 (circles)
+
+    '
+- name: seeding_density_e5_per_cm2
+  value: 0.08
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7 legend
+  value_snippet: 'Seeding density of PL was 0.08 x 10^5 cells/cm^2
+
+    '
+- name: n_experiments
+  value: 4
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Figure 7 legend
+  value_snippet: 'each with n = 4
+
+    '
+calibration:
+  parameters:
+  - name: k_PSC_to_myCAF
+    units: 1/day
+  - name: TGFb_50_CAF_act
+    units: nanomolarity
+  - name: tgfb_basal_culture
+    units: nanomolarity
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -6.9
+      sigma: 1.5
+  forward_model:
+    type: algebraic
+    formula: 'alpha_SMA_fraction(t, condition) = 1 - exp(-k_act * H_TGFb(condition) * t)
+
+      where H_TGFb = TGFb / (EC50 + TGFb), with TGFb = basal (ctrl) or basal + exogenous (treat).
+
+      Analytical solution of dQ/dt = -k*H*Q with Q+A = const (no death/proliferation).
+
+      '
+    data_rationale: 'Paired time courses (control vs +TGFbeta1) of alpha-SMA% during stellate
+
+      cell activation. Pure first-order Q->A conversion: the activated fraction
+
+      is 1 - exp(-k*H*t). Analytical solution replaces the ODE for faster inference.
+
+      '
+    submodel_rationale: 'Matches the full QSP model''s activation reaction:
+
+      rate = k_act * TGFb/(TGFb_50_CAF_act + TGFb)
+
+      PDGF was removed from the model (matrix-bound, not freely diffusing;
+
+      see DEVLOG 2026-03-20). Basal TGFb in 10% FCS is a nuisance parameter.
+
+      '
+    code: "def compute(params, inputs):\n    k_act = params['k_PSC_to_myCAF']\n    ec50 = params['TGFb_50_CAF_act']\n    tgfb_basal\
+      \ = params['tgfb_basal_culture']\n    tgfb_exog = inputs['tgfb1_conc_exogenous']\n    h_ctrl = tgfb_basal / (ec50 +\
+      \ tgfb_basal)\n    h_treat = (tgfb_basal + tgfb_exog) / (ec50 + tgfb_basal + tgfb_exog)\n    # Return all 8 predictions\
+      \ as a dict keyed by condition_day\n    return {\n        'ctrl_4': 1 - np.exp(-k_act * h_ctrl * 4),\n        'ctrl_7':\
+      \ 1 - np.exp(-k_act * h_ctrl * 7),\n        'ctrl_11': 1 - np.exp(-k_act * h_ctrl * 11),\n        'ctrl_16': 1 - np.exp(-k_act\
+      \ * h_ctrl * 16),\n        'treat_4': 1 - np.exp(-k_act * h_treat * 4),\n        'treat_7': 1 - np.exp(-k_act * h_treat\
+      \ * 7),\n        'treat_11': 1 - np.exp(-k_act * h_treat * 11),\n        'treat_16': 1 - np.exp(-k_act * h_treat * 16),\n\
+      \    }\n"
+  error_model:
+  - name: ctrl_asma_day4
+    units: dimensionless
+    uses_inputs:
+    - ctrl_asma_day4_mean
+    - ctrl_asma_day4_sd
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['ctrl_asma_day4_mean']\n\
+      \    s = inputs['ctrl_asma_day4_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ctrl_4']\n"
+  - name: ctrl_asma_day7
+    units: dimensionless
+    uses_inputs:
+    - ctrl_asma_day7_mean
+    - ctrl_asma_day7_sd
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['ctrl_asma_day7_mean']\n\
+      \    s = inputs['ctrl_asma_day7_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ctrl_7']\n"
+  - name: ctrl_asma_day11
+    units: dimensionless
+    uses_inputs:
+    - ctrl_asma_day11_mean
+    - ctrl_asma_day11_sd
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['ctrl_asma_day11_mean']\n\
+      \    s = inputs['ctrl_asma_day11_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ctrl_11']\n"
+  - name: ctrl_asma_day16
+    units: dimensionless
+    uses_inputs:
+    - ctrl_asma_day16_mean
+    - ctrl_asma_day16_sd
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['ctrl_asma_day16_mean']\n\
+      \    s = inputs['ctrl_asma_day16_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ctrl_16']\n"
+  - name: tgfb_asma_day4
+    units: dimensionless
+    uses_inputs:
+    - tgfb_asma_day4_mean
+    - tgfb_asma_day4_sd
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['tgfb_asma_day4_mean']\n\
+      \    s = inputs['tgfb_asma_day4_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['treat_4']\n"
+  - name: tgfb_asma_day7
+    units: dimensionless
+    uses_inputs:
+    - tgfb_asma_day7_mean
+    - tgfb_asma_day7_sd
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['tgfb_asma_day7_mean']\n\
+      \    s = inputs['tgfb_asma_day7_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['treat_7']\n"
+  - name: tgfb_asma_day11
+    units: dimensionless
+    uses_inputs:
+    - tgfb_asma_day11_mean
+    - tgfb_asma_day11_sd
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['tgfb_asma_day11_mean']\n\
+      \    s = inputs['tgfb_asma_day11_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['treat_11']\n"
+  - name: tgfb_asma_day16
+    units: dimensionless
+    uses_inputs:
+    - tgfb_asma_day16_mean
+    - tgfb_asma_day16_sd
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['tgfb_asma_day16_mean']\n\
+      \    s = inputs['tgfb_asma_day16_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['treat_16']\n"
+  identifiability_notes: 'Two parameters jointly identified from 8 observations (4 time points x 2
+
+    conditions). k_PSC_to_myCAF is primarily constrained by the control
+
+    curve shape (activation rate under basal TGFbeta). TGFb_50_CAF_act is
+
+    constrained by the fold-acceleration in the TGFbeta1 condition — the ratio
+
+    of Hill(basal+0.04)/Hill(basal) determines how much faster activation
+
+    proceeds. With basal TGFbeta ~ 0.001 nM and exogenous 0.04 nM, the Hill
+
+    ratio is sensitive to TGFb_50_CAF_act in the 0.01-1 nM range. The paired
+
+    design breaks the degeneracy between k_act and EC50.
+
+    '

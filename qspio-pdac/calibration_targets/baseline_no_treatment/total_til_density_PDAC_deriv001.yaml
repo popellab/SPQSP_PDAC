@@ -1,0 +1,427 @@
+study_interpretation: |
+  From Sivagnanam et al. Table S5, total TIL density is computed as CD8+ (76) + Th0 (77) + Th1 (3) + Th2 (7) + Th17 (1) + Treg (14) = ~178 cells/mm^2 in the Tumor region. This excludes B cells and NK cells since the model TIL formula uses CD3+ T cell populations only.
+key_assumptions:
+- |
+  Total TILs = CD8+ + all Th subtypes + Treg, corresponding to V_T.CD8 + V_T.CD8_exh + V_T.Th + V_T.Th_exh + V_T.Treg.
+- |
+  B cells (CD20+, 21 cells/mm^2) and NK cells are excluded from this TIL count per the model formula.
+- All component densities sampled independently from lognormal distributions.
+key_study_limitations:
+- Excluding B cells underestimates total lymphocyte infiltration by ~10-15%.
+- NK cells are not reported in Table S5 and are not included.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        """mIHC-equivalent total TIL density via V_T-based 3D->2D projection."""
+        cd8 = species_dict['V_T.CD8']
+        cd8_exh = species_dict['V_T.CD8_exh']
+        th = species_dict['V_T.Th']
+        th_exh = species_dict['V_T.Th_exh']
+        treg = species_dict['V_T.Treg']
+        V_T = species_dict['V_T']
+        thickness = constants['section_thickness_um']
+        cell_diameter = constants['cell_diameter_um']  # Abercrombie correction term
+        total = cd8 + cd8_exh + th + th_exh + treg
+        density = total / V_T * (thickness + cell_diameter)
+        return (density) * 1e-06
+
+  units: cell / millimeter**2
+  species:
+  - V_T.CD8
+  - V_T.CD8_exh
+  - V_T.Th
+  - V_T.Th_exh
+  - V_T.Treg
+  - V_T
+  constants:
+  - name: section_thickness_um
+    value: 4.0
+    units: micrometer
+    biological_basis: |
+      Standard FFPE tissue section thickness for mIHC quantification (typical 3-5 micrometer).
+      Set to 4 micrometer to match the Plesca2022 submodel target convention used for APC0 calibration.
+    source_type: reference_db
+    reference_db_name: ffpe_section_thickness
+    reference_db_names: null
+    source_tag: null
+  - name: cell_diameter_um
+    value: 7.0
+    units: micrometer
+    biological_basis: |
+      Resting T lymphocyte diameter ~7 micrometer (Bufi 2015). Used as Abercrombie overcounting term `d` in the 2D->3D projection: counted_cells/mm^2 = (cells/V_T) * (t + d).
+    source_type: reference_db
+    reference_db_name: t_cell_diameter
+    reference_db_names: null
+    source_tag: null
+  support: positive
+  mapping_rationale: |
+    Sum of T cell subtypes (CD8 + CD8_exh + Th + Th_exh + Treg) projected from
+    3D V_T density to 2D mIHC section via section_thickness scaling.
+  experimental_denominator: mm^2 of tumor tissue section
+  model_denominator_species:
+  - V_T
+  unmodeled_denominator_components: B cells, NK cells, NKT cells not included in this TIL count.
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: Treatment-naive primary PDAC resected without neoadjuvant therapy.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Primary PDAC resection specimens (FFPE), treatment-naive, from Sivagnanam et al. 2021 (n=113). Cell densities from Supplementary Table S5, Tumor (T) region.
+  assay_type: Multiplex immunohistochemistry (mIHC) with digital image analysis.
+scenario:
+  description: |
+    Baseline tumor immune microenvironment in treatment-naive resectable PDAC at surgical resection.
+  interventions:
+  - intervention_description: No neoadjuvant therapy. Standard pancreatic resection.
+empirical_data:
+  median:
+  - 256.03
+  ci95:
+  - - 73.06
+    - 1105.61
+  units: cell / millimeter**2
+  sample_size: 113
+  sample_size_rationale: n=113 from Sivagnanam et al. 2021, Table S5.
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs:
+  - name: cd8_density_median
+    value: 76.0
+    units: cell / millimeter**2
+    description: Median CD8+ density
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: CD8+ T cell 76 (31-142)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: cd8_density_q1
+    value: 31.0
+    units: cell / millimeter**2
+    description: Q1
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: CD8+ T cell 76 (31-142)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: cd8_density_q3
+    value: 142.0
+    units: cell / millimeter**2
+    description: Q3
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: CD8+ T cell 76 (31-142)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: treg_density_median
+    value: 14.0
+    units: cell / millimeter**2
+    description: Median Treg density
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Treg 14 (5-26)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: treg_density_q1
+    value: 5.0
+    units: cell / millimeter**2
+    description: Q1
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Treg 14 (5-26)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: treg_density_q3
+    value: 26.0
+    units: cell / millimeter**2
+    description: Q3
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Treg 14 (5-26)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th0_density_median
+    value: 77.0
+    units: cell / millimeter**2
+    description: Median Th0
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th0 T cell 77 (34-134)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th0_density_q1
+    value: 34.0
+    units: cell / millimeter**2
+    description: Q1
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th0 T cell 77 (34-134)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th0_density_q3
+    value: 134.0
+    units: cell / millimeter**2
+    description: Q3
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th0 T cell 77 (34-134)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th1_density_median
+    value: 3.0
+    units: cell / millimeter**2
+    description: Median Th1
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th1 T cell 3 (1-6)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th1_density_q1
+    value: 1.0
+    units: cell / millimeter**2
+    description: Q1
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th1 T cell 3 (1-6)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th1_density_q3
+    value: 6.0
+    units: cell / millimeter**2
+    description: Q3
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th1 T cell 3 (1-6)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th2_density_median
+    value: 7.0
+    units: cell / millimeter**2
+    description: Median Th2
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th2 T cell 7 (2-18)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th2_density_q1
+    value: 2.0
+    units: cell / millimeter**2
+    description: Q1
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th2 T cell 7 (2-18)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th2_density_q3
+    value: 18.0
+    units: cell / millimeter**2
+    description: Q3
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th2 T cell 7 (2-18)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th17_density_median
+    value: 1.0
+    units: cell / millimeter**2
+    description: Median Th17
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th17 T cell 1 (0-4)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th17_density_q1
+    value: 0.5
+    units: cell / millimeter**2
+    description: Q1 (floored from 0)
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th17 T cell 1 (0-4)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: th17_density_q3
+    value: 4.0
+    units: cell / millimeter**2
+    description: Q3
+    source_ref: Liudahl2021_LeukocyteHeterogeneityPDAC
+    value_location: Supplementary Table S5, Cell Density section, Tumor (T) column
+    value_snippet: Th17 T cell 1 (0-4)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  assumptions:
+  - name: n_mc_samples
+    value: 100000.0
+    units: dimensionless
+    description: Number of Monte Carlo samples for uncertainty propagation.
+    rationale: 100,000 samples provide stable median and 95% CI estimates.
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        rng = np.random.default_rng(42)
+        z_q = 0.67448975
+        def sample_ln(med, q1, q3, n=100000):
+            sigma = np.log(q3.magnitude / max(q1.magnitude, 0.5)) / (2.0 * z_q)
+            mu = np.log(med.magnitude)
+            return rng.lognormal(mu, sigma, n) * med.units
+        cd8 = sample_ln(inputs['cd8_density_median'], inputs['cd8_density_q1'], inputs['cd8_density_q3'])
+        treg = sample_ln(inputs['treg_density_median'], inputs['treg_density_q1'], inputs['treg_density_q3'])
+        th0 = sample_ln(inputs['th0_density_median'], inputs['th0_density_q1'], inputs['th0_density_q3'])
+        th1 = sample_ln(inputs['th1_density_median'], inputs['th1_density_q1'], inputs['th1_density_q3'])
+        th2 = sample_ln(inputs['th2_density_median'], inputs['th2_density_q1'], inputs['th2_density_q3'])
+        th17 = sample_ln(inputs['th17_density_median'], inputs['th17_density_q1'], inputs['th17_density_q3'])
+        total = cd8 + treg + th0 + th1 + th2 + th17
+        return {
+            'median_obs': np.median(total),
+            'ci95_lower': np.percentile(total, 2.5),
+            'ci95_upper': np.percentile(total, 97.5),
+        }
+primary_data_source:
+  source_tag: Liudahl2021_LeukocyteHeterogeneityPDAC
+  title: |
+    Leukocyte Heterogeneity in Pancreatic Ductal Adenocarcinoma: Phenotypic and Spatial Features Associated with Clinical Outcome
+  first_author: Liudahl
+  year: 2021
+  doi: 10.1158/2159-8290.CD-20-0841
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: |
+      Treatment-naive human PDAC resection specimens with quantitative mIHC, exactly matching the model indication.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Observational measurement of treatment-naive PDAC specimens; no experimental perturbation applied.
+    tme_compatibility: high
+    tme_compatibility_notes: Treatment-naive PDAC with characteristic desmoplastic, immune-excluded TME.
+    validation_warnings:
+    - Values from Supplementary Table S5 (Tumor region), n=113 specimens.
+secondary_data_sources: []
+calibration_target_id: total_til_density
+cancer_type: PDAC
+tags:
+- ai-generated
+- table-extracted
+- human-verified
+logfire_trace_id: null
+extraction_model: claude-opus-4-6
+extraction_reasoning_effort: high

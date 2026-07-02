@@ -1,0 +1,1011 @@
+target_id: k_M2_pol
+inputs:
+- name: n_donors_unuvarpurcu2022
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure legends (Fig. 1, Fig. 2, Fig. 3, S4)
+  value_snippet: "are mean \xB1 SEM of biological replicates of 3 independent donors."
+- name: n_effective_unuvarpurcu2022
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Error bars in UnuvarPurcu2022 are reported as mean +/- SEM over n = 3
+    donors, and the per-readout rel_error inputs are computed as (mean+error -
+    mean)/mean = SEM/mean. The error model uses these relative SEM magnitudes
+    directly to build sigma_ln for the bootstrap distribution of the mean, so
+    sample_size is set to 1 to avoid a second sqrt(n) division that would
+    double-count the n_donors averaging. True between-donor SDs would be a
+    factor of sqrt(n_donors) wider than the digitized SEMs and are carried by
+    translation_sigma during joint calibration rather than imputed here.
+  source_ref: UnuvarPurcu2022
+  source_location: Error-model choice; see identifiability_notes.
+- name: il10_mrna_fc_0h_mean
+  value: 0.9951
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1L, 0 h
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~1.0
+    description: "Baseline IL-10 mRNA fold-change at 0 h in IL-10\u2013polarized macrophages"
+    context: Human monocyte-derived macrophages stimulated with IL-10 (20 ng/mL);
+      IL-10 mRNA expression relative to M0 at indicated times.
+- name: il10_mrna_fc_4h_mean
+  value: 2.2098
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1L, 4 h
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~2.2
+    description: IL-10 mRNA fold-change at 4 h under IL-10 stimulation
+    context: "Time course of IL-10 mRNA expression in IL-10\u2013polarized macrophages."
+- name: il10_mrna_fc_4h_mean_plus_error
+  value: 2.3171
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1L, 4 h error bar
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~2.3
+    description: Top of error bar for IL-10 mRNA at 4 h (mean + SEM)
+    context: "Error bars shown as mean \xB1 SEM over donors."
+- name: il10_mrna_fc_24h_mean
+  value: 1.3268
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1L, 24 h
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~1.3
+    description: IL-10 mRNA fold-change at 24 h under IL-10 stimulation
+    context: "Time course of IL-10 mRNA expression in IL-10\u2013polarized macrophages."
+- name: il10_mrna_fc_48h_mean
+  value: 1.5415
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1L, 48 h
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~1.5
+    description: IL-10 mRNA fold-change at 48 h under IL-10 stimulation
+    context: "Time course of IL-10 mRNA expression in IL-10\u2013polarized macrophages."
+- name: il10_mrna_fc_72h_mean
+  value: 1.5951
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1L, 72 h
+  figure_excerpt:
+    figure_id: Figure 1L
+    value: ~1.6
+    description: IL-10 mRNA fold-change at 72 h under IL-10 stimulation
+    context: "Time course of IL-10 mRNA expression in IL-10\u2013polarized macrophages."
+- name: rel_error_il10_mrna
+  value: 0.0487
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Relative uncertainty for IL-10 mRNA estimated from the 4 h error bar
+    (SEM / mean) in Figure 1L.
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1L, 4 h
+  source_inputs:
+  - il10_mrna_fc_4h_mean_plus_error
+  - il10_mrna_fc_4h_mean
+  formula: (il10_mrna_fc_4h_mean_plus_error - il10_mrna_fc_4h_mean) / il10_mrna_fc_4h_mean
+- name: il10_mrna_norm_24h
+  value: 0.553
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Normalize IL-10 mRNA fold-change to 0\u20131 scale using 0 h as baseline\
+    \ and 72 h as reference plateau."
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1L
+  source_inputs:
+  - il10_mrna_fc_24h_mean
+  - il10_mrna_fc_0h_mean
+  - il10_mrna_fc_72h_mean
+  formula: (il10_mrna_fc_24h_mean - il10_mrna_fc_0h_mean) / (il10_mrna_fc_72h_mean
+    - il10_mrna_fc_0h_mean)
+- name: il10_mrna_norm_48h
+  value: 0.911
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Normalize IL-10 mRNA fold-change to 0\u20131 scale using 0 h as baseline\
+    \ and 72 h as reference plateau."
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1L
+  source_inputs:
+  - il10_mrna_fc_48h_mean
+  - il10_mrna_fc_0h_mean
+  - il10_mrna_fc_72h_mean
+  formula: (il10_mrna_fc_48h_mean - il10_mrna_fc_0h_mean) / (il10_mrna_fc_72h_mean
+    - il10_mrna_fc_0h_mean)
+- name: il10_mrna_norm_72h
+  value: 1.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: By construction, 72 h value used as reference plateau for IL-10 mRNA
+    normalization.
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1L
+  source_inputs:
+  - il10_mrna_fc_72h_mean
+  - il10_mrna_fc_0h_mean
+  formula: (il10_mrna_fc_72h_mean - il10_mrna_fc_0h_mean) / (il10_mrna_fc_72h_mean
+    - il10_mrna_fc_0h_mean)
+- name: cd163_mrna_fc_0h_mean
+  value: 0.971
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1M, 0 h
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~1.0
+    description: "Baseline CD163 mRNA fold-change at 0 h in IL-10\u2013polarized macrophages"
+    context: CD163 mRNA expression relative to M0 over time under IL-10 stimulation.
+- name: cd163_mrna_fc_8h_mean
+  value: 4.2754
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1M, 8 h
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~4.3
+    description: CD163 mRNA fold-change at 8 h under IL-10 stimulation
+    context: "Time course of CD163 mRNA expression in IL-10\u2013polarized macrophages."
+- name: cd163_mrna_fc_8h_mean_plus_error
+  value: 5.0145
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1M, 8 h error bar
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~5.0
+    description: Top of error bar for CD163 mRNA at 8 h (mean + SEM)
+    context: "Error bars shown as mean \xB1 SEM over donors."
+- name: cd163_mrna_fc_24h_mean
+  value: 3.3478
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1M, 24 h
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~3.3
+    description: CD163 mRNA fold-change at 24 h under IL-10 stimulation
+    context: "Time course of CD163 mRNA expression in IL-10\u2013polarized macrophages."
+- name: cd163_mrna_fc_48h_mean
+  value: 2.8406
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1M, 48 h
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~2.8
+    description: CD163 mRNA fold-change at 48 h under IL-10 stimulation
+    context: "Time course of CD163 mRNA expression in IL-10\u2013polarized macrophages."
+- name: cd163_mrna_fc_72h_mean
+  value: 2.7681
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1M, 72 h
+  figure_excerpt:
+    figure_id: Figure 1M
+    value: ~2.8
+    description: CD163 mRNA fold-change at 72 h under IL-10 stimulation
+    context: "Time course of CD163 mRNA expression in IL-10\u2013polarized macrophages."
+- name: rel_error_cd163_mrna
+  value: 0.173
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Relative uncertainty for CD163 mRNA estimated from the 8 h error bar
+    (SEM / mean) in Figure 1M.
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1M, 8 h
+  source_inputs:
+  - cd163_mrna_fc_8h_mean_plus_error
+  - cd163_mrna_fc_8h_mean
+  formula: (cd163_mrna_fc_8h_mean_plus_error - cd163_mrna_fc_8h_mean) / cd163_mrna_fc_8h_mean
+- name: cd163_mrna_norm_24h
+  value: 1.322
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Normalize CD163 mRNA fold-change to 0\u20131 scale using 0 h as baseline\
+    \ and 72 h as reference value (overshoot >1 reflects transient peak)."
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1M
+  source_inputs:
+  - cd163_mrna_fc_24h_mean
+  - cd163_mrna_fc_0h_mean
+  - cd163_mrna_fc_72h_mean
+  formula: (cd163_mrna_fc_24h_mean - cd163_mrna_fc_0h_mean) / (cd163_mrna_fc_72h_mean
+    - cd163_mrna_fc_0h_mean)
+- name: cd163_mrna_norm_48h
+  value: 1.04
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Normalize CD163 mRNA fold-change to 0\u20131 scale using 0 h as baseline\
+    \ and 72 h as reference value."
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1M
+  source_inputs:
+  - cd163_mrna_fc_48h_mean
+  - cd163_mrna_fc_0h_mean
+  - cd163_mrna_fc_72h_mean
+  formula: (cd163_mrna_fc_48h_mean - cd163_mrna_fc_0h_mean) / (cd163_mrna_fc_72h_mean
+    - cd163_mrna_fc_0h_mean)
+- name: cd163_mrna_norm_72h
+  value: 1.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: By construction, 72 h value used as reference for CD163 mRNA normalization.
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 1M
+  source_inputs:
+  - cd163_mrna_fc_72h_mean
+  - cd163_mrna_fc_0h_mean
+  formula: (cd163_mrna_fc_72h_mean - cd163_mrna_fc_0h_mean) / (cd163_mrna_fc_72h_mean
+    - cd163_mrna_fc_0h_mean)
+- name: cd163_mfi_0h_mean
+  value: 223.64
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 2F, 0 h
+  figure_excerpt:
+    figure_id: Figure 2F
+    value: ~224
+    description: Baseline CD163 surface expression (MFI) at 0 h under IL-10 stimulation
+    context: "Median fluorescence intensity (MFI) of CD163 on IL-10\u2013polarized\
+      \ macrophages over time."
+- name: cd163_mfi_24h_mean
+  value: 734.55
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 2F, 24 h
+  figure_excerpt:
+    figure_id: Figure 2F
+    value: ~735
+    description: CD163 surface expression (MFI) at 24 h under IL-10 stimulation
+    context: "Time course of CD163 MFI in IL-10\u2013polarized macrophages."
+- name: cd163_mfi_24h_mean_plus_error
+  value: 956.36
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 2F, 24 h error bar
+  figure_excerpt:
+    figure_id: Figure 2F
+    value: ~956
+    description: Top of error bar for CD163 MFI at 24 h (mean + SEM)
+    context: "Error bars shown as mean \xB1 SEM over donors."
+- name: cd163_mfi_48h_mean
+  value: 581.82
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 2F, 48 h
+  figure_excerpt:
+    figure_id: Figure 2F
+    value: ~582
+    description: CD163 surface expression (MFI) at 48 h under IL-10 stimulation
+    context: "Time course of CD163 MFI in IL-10\u2013polarized macrophages."
+- name: cd163_mfi_72h_mean
+  value: 658.18
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 2F, 72 h
+  figure_excerpt:
+    figure_id: Figure 2F
+    value: ~658
+    description: CD163 surface expression (MFI) at 72 h under IL-10 stimulation
+    context: "Time course of CD163 MFI in IL-10\u2013polarized macrophages."
+- name: rel_error_cd163_mfi
+  value: 0.302
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Relative uncertainty for CD163 MFI estimated from the 24 h error bar
+    (SEM / mean) in Figure 2F.
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 2F, 24 h
+  source_inputs:
+  - cd163_mfi_24h_mean_plus_error
+  - cd163_mfi_24h_mean
+  formula: (cd163_mfi_24h_mean_plus_error - cd163_mfi_24h_mean) / cd163_mfi_24h_mean
+- name: cd163_mfi_norm_24h
+  value: 1.176
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Normalize CD163 MFI to 0\u20131 scale using 0 h as baseline and 72 h\
+    \ as reference value (overshoot >1 reflects slightly higher 24 h value)."
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 2F
+  source_inputs:
+  - cd163_mfi_24h_mean
+  - cd163_mfi_0h_mean
+  - cd163_mfi_72h_mean
+  formula: (cd163_mfi_24h_mean - cd163_mfi_0h_mean) / (cd163_mfi_72h_mean - cd163_mfi_0h_mean)
+- name: cd163_mfi_norm_48h
+  value: 0.824
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Normalize CD163 MFI to 0\u20131 scale using 0 h as baseline and 72 h\
+    \ as reference value."
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 2F
+  source_inputs:
+  - cd163_mfi_48h_mean
+  - cd163_mfi_0h_mean
+  - cd163_mfi_72h_mean
+  formula: (cd163_mfi_48h_mean - cd163_mfi_0h_mean) / (cd163_mfi_72h_mean - cd163_mfi_0h_mean)
+- name: cd163_mfi_norm_72h
+  value: 1.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: By construction, 72 h value used as reference for CD163 MFI normalization.
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 2F
+  source_inputs:
+  - cd163_mfi_72h_mean
+  - cd163_mfi_0h_mean
+  formula: (cd163_mfi_72h_mean - cd163_mfi_0h_mean) / (cd163_mfi_72h_mean - cd163_mfi_0h_mean)
+- name: il10_sec_0h_mean
+  value: 1.6981
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3D, 0 h
+  figure_excerpt:
+    figure_id: Figure 3D
+    value: ~1.7
+    description: Baseline secreted IL-10 concentration at 0 h under IL-10 stimulation
+    context: "IL-10 measured by ELISA in supernatants of IL-10\u2013polarized macrophages\
+      \ over time."
+- name: il10_sec_24h_mean
+  value: 2.7673
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3D, 24 h
+  figure_excerpt:
+    figure_id: Figure 3D
+    value: ~2.8
+    description: Secreted IL-10 concentration at 24 h under IL-10 stimulation
+    context: "Time course of IL-10 secretion in IL-10\u2013polarized macrophages."
+- name: il10_sec_48h_mean
+  value: 24.214
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3D, 48 h
+  figure_excerpt:
+    figure_id: Figure 3D
+    value: ~24
+    description: Secreted IL-10 concentration at 48 h under IL-10 stimulation
+    context: "Time course of IL-10 secretion in IL-10\u2013polarized macrophages."
+- name: il10_sec_48h_mean_plus_error
+  value: 27.044
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3D, 48 h error bar
+  figure_excerpt:
+    figure_id: Figure 3D
+    value: ~27
+    description: Top of error bar for secreted IL-10 at 48 h (mean + SEM)
+    context: "Error bars shown as mean \xB1 SEM over donors."
+- name: il10_sec_72h_mean
+  value: 24.151
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3D, 72 h
+  figure_excerpt:
+    figure_id: Figure 3D
+    value: ~24
+    description: Secreted IL-10 concentration at 72 h under IL-10 stimulation
+    context: "Time course of IL-10 secretion in IL-10\u2013polarized macrophages."
+- name: rel_error_il10_sec
+  value: 0.117
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Relative uncertainty for secreted IL-10 estimated from the 48 h error
+    bar (SEM / mean) in Figure 3D.
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3D, 48 h
+  source_inputs:
+  - il10_sec_48h_mean_plus_error
+  - il10_sec_48h_mean
+  formula: (il10_sec_48h_mean_plus_error - il10_sec_48h_mean) / il10_sec_48h_mean
+- name: il10_sec_norm_24h
+  value: 0.048
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Normalize secreted IL-10 to 0\u20131 scale using 0 h as baseline and\
+    \ 72 h as reference plateau."
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3D
+  source_inputs:
+  - il10_sec_24h_mean
+  - il10_sec_0h_mean
+  - il10_sec_72h_mean
+  formula: (il10_sec_24h_mean - il10_sec_0h_mean) / (il10_sec_72h_mean - il10_sec_0h_mean)
+- name: il10_sec_norm_48h
+  value: 1.003
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Normalize secreted IL-10 to 0\u20131 scale using 0 h as baseline and\
+    \ 72 h as reference plateau."
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3D
+  source_inputs:
+  - il10_sec_48h_mean
+  - il10_sec_0h_mean
+  - il10_sec_72h_mean
+  formula: (il10_sec_48h_mean - il10_sec_0h_mean) / (il10_sec_72h_mean - il10_sec_0h_mean)
+- name: il10_sec_norm_72h
+  value: 1.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: By construction, 72 h value used as reference for IL-10 secretion normalization.
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3D
+  source_inputs:
+  - il10_sec_72h_mean
+  - il10_sec_0h_mean
+  formula: (il10_sec_72h_mean - il10_sec_0h_mean) / (il10_sec_72h_mean - il10_sec_0h_mean)
+- name: tgfb_sec_0h_mean
+  value: 1.4085
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3E, 0 h
+  figure_excerpt:
+    figure_id: Figure 3E
+    value: ~1.4
+    description: Baseline secreted TGFbeta concentration at 0 h under IL-10 stimulation
+    context: "TGFbeta measured by ELISA in supernatants of IL-10\u2013polarized macrophages\
+      \ over time."
+- name: tgfb_sec_24h_mean
+  value: 90.141
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3E, 24 h
+  figure_excerpt:
+    figure_id: Figure 3E
+    value: ~90
+    description: Secreted TGFbeta concentration at 24 h under IL-10 stimulation
+    context: "Time course of TGFbeta secretion in IL-10\u2013polarized macrophages."
+- name: tgfb_sec_48h_mean
+  value: 142.254
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3E, 48 h
+  figure_excerpt:
+    figure_id: Figure 3E
+    value: ~142
+    description: Secreted TGFbeta concentration at 48 h under IL-10 stimulation
+    context: "Time course of TGFbeta secretion in IL-10\u2013polarized macrophages."
+- name: tgfb_sec_72h_mean
+  value: 507.042
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3E, 72 h
+  figure_excerpt:
+    figure_id: Figure 3E
+    value: ~507
+    description: Secreted TGFbeta concentration at 72 h under IL-10 stimulation
+    context: "Time course of TGFbeta secretion in IL-10\u2013polarized macrophages."
+- name: tgfb_sec_72h_mean_plus_error
+  value: 563.38
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3E, 72 h error bar
+  figure_excerpt:
+    figure_id: Figure 3E
+    value: ~563
+    description: Top of error bar for secreted TGFbeta at 72 h (mean + SEM)
+    context: "Error bars shown as mean \xB1 SEM over donors."
+- name: rel_error_tgfb_sec
+  value: 0.111
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Relative uncertainty for secreted TGFbeta estimated from the 72 h error
+    bar (SEM / mean) in Figure 3E.
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3E, 72 h
+  source_inputs:
+  - tgfb_sec_72h_mean_plus_error
+  - tgfb_sec_72h_mean
+  formula: (tgfb_sec_72h_mean_plus_error - tgfb_sec_72h_mean) / tgfb_sec_72h_mean
+- name: tgfb_sec_norm_24h
+  value: 0.176
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Normalize secreted TGFbeta to 0\u20131 scale using 0 h as baseline and\
+    \ 72 h as reference plateau."
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3E
+  source_inputs:
+  - tgfb_sec_24h_mean
+  - tgfb_sec_0h_mean
+  - tgfb_sec_72h_mean
+  formula: (tgfb_sec_24h_mean - tgfb_sec_0h_mean) / (tgfb_sec_72h_mean - tgfb_sec_0h_mean)
+- name: tgfb_sec_norm_48h
+  value: 0.279
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Normalize secreted TGFbeta to 0\u20131 scale using 0 h as baseline and\
+    \ 72 h as reference plateau."
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3E
+  source_inputs:
+  - tgfb_sec_48h_mean
+  - tgfb_sec_0h_mean
+  - tgfb_sec_72h_mean
+  formula: (tgfb_sec_48h_mean - tgfb_sec_0h_mean) / (tgfb_sec_72h_mean - tgfb_sec_0h_mean)
+- name: tgfb_sec_norm_72h
+  value: 1.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: By construction, 72 h value used as reference for TGFbeta secretion normalization.
+  source_ref: UnuvarPurcu2022
+  source_location: Figure 3E
+  source_inputs:
+  - tgfb_sec_72h_mean
+  - tgfb_sec_0h_mean
+  formula: (tgfb_sec_72h_mean - tgfb_sec_0h_mean) / (tgfb_sec_72h_mean - tgfb_sec_0h_mean)
+calibration:
+  parameters:
+  - name: k_M2_pol
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: "UnuvarPurcu2022 reports time courses of IL-10\u2013driven M2c\
+      \ polarization markers (IL-10 and CD163 mRNA, CD163 surface expression, and\
+      \ IL-10/TGFbeta secretion) in human monocyte-derived macrophages over 0\u2013\
+      72 h. Under saturating IL-10, the fraction of macrophages that have polarized\
+      \ to an M2c-like state is expected to increase monotonically toward a plateau\
+      \ on a characteristic 24\u201348 h timescale, consistent with a first-order\
+      \ approach to saturation."
+    submodel_rationale: In the full QSP model, k_M2_pol multiplies the Mac_M1->Mac_M2
+      transition rate under cytokine drive via a gating term that approaches unity
+      for saturating IL-10/TGFbeta and absent IL-6. In the IL-10 polarization experiments
+      of UnuvarPurcu2022, IL-10 is applied at a high, constant dose and IL-6 is not
+      added, so the effective gating term is approximately 1. The fraction of macrophages
+      in the M2c-like state therefore follows f_M2c(t) = 1 - exp(-k_M2_pol * t) when
+      recruitment and death are negligible. Modeling a single dimensionless state
+      variable with dy/dt = k_M2_pol * (1 - y) and y(0)=0 reproduces this mechanistic
+      usage while remaining a valid reduction of the Mac_M1->Mac_M2 reaction.
+    independent_variable:
+      name: time
+      units: day
+      span:
+      - 0.0
+      - 3.0
+    state_variables:
+    - name: f_M2c
+      units: dimensionless
+      initial_condition:
+        value: 0.0
+        rationale: Cultures are differentiated with M-CSF but not pre-polarized to
+          M2c before IL-10 addition, so the initial fraction of M2c-like macrophages
+          is approximated as zero.
+    type: saturation
+    rate_constant: k_M2_pol
+  error_model:
+  - name: il10_mrna_24h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - il10_mrna_norm_24h
+    - rel_error_il10_mrna
+    evaluation_points:
+    - 1.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['il10_mrna_norm_24h']\n    rel =\
+      \ inputs['rel_error_il10_mrna']\n    sigma_ln = np.sqrt(np.log(1 + rel**2))\n\
+      \    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: il10_mrna_48h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - il10_mrna_norm_48h
+    - rel_error_il10_mrna
+    evaluation_points:
+    - 2.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['il10_mrna_norm_48h']\n    rel =\
+      \ inputs['rel_error_il10_mrna']\n    sigma_ln = np.sqrt(np.log(1 + rel**2))\n\
+      \    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: il10_mrna_72h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - il10_mrna_norm_72h
+    - rel_error_il10_mrna
+    evaluation_points:
+    - 3.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['il10_mrna_norm_72h']\n    rel =\
+      \ inputs['rel_error_il10_mrna']\n    sigma_ln = np.sqrt(np.log(1 + rel**2))\n\
+      \    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: cd163_mrna_24h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - cd163_mrna_norm_24h
+    - rel_error_cd163_mrna
+    evaluation_points:
+    - 1.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['cd163_mrna_norm_24h']\n    rel =\
+      \ inputs['rel_error_cd163_mrna']\n    sigma_ln = np.sqrt(np.log(1 + rel**2))\n\
+      \    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: cd163_mrna_48h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - cd163_mrna_norm_48h
+    - rel_error_cd163_mrna
+    evaluation_points:
+    - 2.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['cd163_mrna_norm_48h']\n    rel =\
+      \ inputs['rel_error_cd163_mrna']\n    sigma_ln = np.sqrt(np.log(1 + rel**2))\n\
+      \    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: cd163_mrna_72h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - cd163_mrna_norm_72h
+    - rel_error_cd163_mrna
+    evaluation_points:
+    - 3.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['cd163_mrna_norm_72h']\n    rel =\
+      \ inputs['rel_error_cd163_mrna']\n    sigma_ln = np.sqrt(np.log(1 + rel**2))\n\
+      \    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: cd163_mfi_24h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - cd163_mfi_norm_24h
+    - rel_error_cd163_mfi
+    evaluation_points:
+    - 1.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['cd163_mfi_norm_24h']\n    rel =\
+      \ inputs['rel_error_cd163_mfi']\n    sigma_ln = np.sqrt(np.log(1 + rel**2))\n\
+      \    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: cd163_mfi_48h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - cd163_mfi_norm_48h
+    - rel_error_cd163_mfi
+    evaluation_points:
+    - 2.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['cd163_mfi_norm_48h']\n    rel =\
+      \ inputs['rel_error_cd163_mfi']\n    sigma_ln = np.sqrt(np.log(1 + rel**2))\n\
+      \    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: cd163_mfi_72h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - cd163_mfi_norm_72h
+    - rel_error_cd163_mfi
+    evaluation_points:
+    - 3.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['cd163_mfi_norm_72h']\n    rel =\
+      \ inputs['rel_error_cd163_mfi']\n    sigma_ln = np.sqrt(np.log(1 + rel**2))\n\
+      \    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: il10_sec_24h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - il10_sec_norm_24h
+    - rel_error_il10_sec
+    evaluation_points:
+    - 1.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['il10_sec_norm_24h']\n    rel = inputs['rel_error_il10_sec']\n\
+      \    sigma_ln = np.sqrt(np.log(1 + rel**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: il10_sec_48h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - il10_sec_norm_48h
+    - rel_error_il10_sec
+    evaluation_points:
+    - 2.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['il10_sec_norm_48h']\n    rel = inputs['rel_error_il10_sec']\n\
+      \    sigma_ln = np.sqrt(np.log(1 + rel**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: il10_sec_72h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - il10_sec_norm_72h
+    - rel_error_il10_sec
+    evaluation_points:
+    - 3.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['il10_sec_norm_72h']\n    rel = inputs['rel_error_il10_sec']\n\
+      \    sigma_ln = np.sqrt(np.log(1 + rel**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: tgfb_sec_24h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - tgfb_sec_norm_24h
+    - rel_error_tgfb_sec
+    evaluation_points:
+    - 1.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['tgfb_sec_norm_24h']\n    rel = inputs['rel_error_tgfb_sec']\n\
+      \    sigma_ln = np.sqrt(np.log(1 + rel**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: tgfb_sec_48h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - tgfb_sec_norm_48h
+    - rel_error_tgfb_sec
+    evaluation_points:
+    - 2.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['tgfb_sec_norm_48h']\n    rel = inputs['rel_error_tgfb_sec']\n\
+      \    sigma_ln = np.sqrt(np.log(1 + rel**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: tgfb_sec_72h
+    observable:
+      type: identity
+      state_variables:
+      - f_M2c
+    units: dimensionless
+    uses_inputs:
+    - tgfb_sec_norm_72h
+    - rel_error_tgfb_sec
+    evaluation_points:
+    - 3.0
+    sample_size_input: n_effective_unuvarpurcu2022
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['tgfb_sec_norm_72h']\n    rel = inputs['rel_error_tgfb_sec']\n\
+      \    sigma_ln = np.sqrt(np.log(1 + rel**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: "This target infers a single rate constant k_M2_pol from\
+    \ multiple normalized readouts of IL-10\u2013driven M2c polarization (IL-10 and\
+    \ CD163 mRNA, CD163 surface expression, and IL-10/TGFbeta secretion) measured\
+    \ in the same experimental system. All observables are mapped to the same latent\
+    \ fraction of M2c-like macrophages, modeled as a first-order approach to saturation\
+    \ with time constant 1/k_M2_pol. The forward model constrains f_M2c(t) \u2264\
+    \ 1, but several readouts overshoot the 72 h reference at 24 h (notably CD163\
+    \ mRNA norm \u2248 1.32 and CD163 MFI norm \u2248 1.18); these overshoots and\
+    \ marker-specific transcriptional/translational delays cannot be reproduced by\
+    \ the one-state first-order model and will be absorbed into the residuals. The\
+    \ fitted k_M2_pol should therefore be interpreted as an effective compromise\
+    \ polarization timescale rather than a detailed transcriptional kinetic\
+    \ parameter. Error bars in UnuvarPurcu2022 are reported as mean +/- SEM over\
+    \ n = 3 donors; the per-readout rel_error inputs encode SEM/mean on the mean,\
+    \ and the error model uses sample_size = 1 so sigma_ln is not further divided\
+    \ by sqrt(n_donors) (which would double-count the averaging and artificially\
+    \ tighten this target). Between-donor biological variability beyond the SEM\
+    \ and the in vitro-to-PDAC gap are carried by translation_sigma rather than\
+    \ imputed here. The parameter is reasonably well-identified because the data\
+    \ span from near-baseline (24 h for IL-10/TGFbeta) to near-plateau (48\u2013\
+    72 h) over a 3-day window. No additional QSP parameters are included, so this\
+    \ target constrains only the magnitude of k_M2_pol under saturating\
+    \ IL-10/TGFbeta-like drive; its value under weaker or fluctuating cytokine\
+    \ conditions is set by the full QSP gating functions."
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: monocyte-derived macrophage
+    phenotype: M0 at baseline, polarized to M2c with IL-10
+    isolation_method: Peripheral blood monocytes isolated from healthy donors and
+      differentiated with M-CSF
+    source: Peripheral blood from healthy human donors
+  culture_conditions:
+    substrate: standard tissue culture plastic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+    medium: RPMI-1640 or similar with 10% FBS and M-CSF during differentiation
+    supplements: IL-10 (20 ng/mL) added at t = 0 h to induce M2c polarization
+    duration: "7 days differentiation with M-CSF followed by 0\u201372 h IL-10 polarization"
+    notes: No exogenous IL-6 or TGFbeta was added; TGFbeta arises from macrophage
+      secretion over time.
+  indication: pancreatic ductal adenocarcinoma
+study_interpretation: "Time courses of IL-10\u2013driven M2c polarization in human\
+  \ monocyte-derived macrophages provide a mechanistically relevant proxy for the\
+  \ Mac_M1->Mac_M2 transition in the PDAC QSP model under strong IL-10/TGFbeta drive.\
+  \ The observed 24\u201348 h window for near-maximal upregulation of CD163 and accumulation\
+  \ of IL-10/TGFbeta secretion supports an effective first-order polarization rate\
+  \ constant k_M2_pol on the order of 0.5\u20131 /day, faster than the current prior\
+  \ median of 0.1 /day but still within an order of magnitude. Normalizing multiple\
+  \ markers to a common 0\u20131 scale and fitting them to a shared first-order saturation\
+  \ model ties k_M2_pol directly to the experimentally observed timescale of acquiring\
+  \ an M2c/TAM-like phenotype."
+key_assumptions:
+- M0-to-M2c polarization kinetics under saturating IL-10 approximate the kinetics
+  of Mac_M1-to-Mac_M2 polarization under maximal IL-10/TGFbeta drive in PDAC tumors.
+- "Macrophage recruitment and death are negligible over the 0\u201372 h in vitro polarization\
+  \ window, so changes in marker expression primarily reflect state transitions rather\
+  \ than changes in total macrophage number."
+- Normalized IL-10 and CD163 mRNA, CD163 surface MFI, and IL-10/TGFbeta secretion
+  are proportional (up to noise and modest delays) to the underlying fraction of M2c-like
+  macrophages.
+- The IL-10 concentration used in vitro is sufficiently high that the QSP gating term
+  for IL-10/TGFbeta-driven M2 polarization is effectively saturated (value ~1), so
+  the measured timescale maps directly to k_M2_pol.
+- "Error bars in UnuvarPurcu2022 represent SEM; relative errors estimated from a representative\
+  \ time point per marker are treated as applicable across the 24\u201372 h window.\
+  \ The tip-to-mean rel_error is used directly as the relative SEM on the bootstrap\
+  \ mean with sample_size = 1, to avoid double-dividing by sqrt(n_donors); broader\
+  \ between-donor variability is carried by translation_sigma."
+- "Markers exhibit distinct temporal patterns (CD163 mRNA and CD163 MFI overshoot\
+  \ the 72 h reference at 24 h, IL-10/TGFbeta secretion lag behind mRNA), and the\
+  \ one-state first-order forward model cannot reproduce overshoots or reconcile\
+  \ marker-specific delays; these are absorbed as residuals and k_M2_pol is\
+  \ interpreted as an effective ensemble polarization timescale rather than a\
+  \ marker-specific rate."
+key_study_limitations:
+- The experiments measure M0-to-M2c polarization rather than explicit M1-to-M2 transitions,
+  so context-dependent differences in plasticity after prior M1 activation are not
+  captured.
+- Cytokine stimulation occurs in a simplified 2D culture without stromal or tumor
+  signals, whereas PDAC TAMs experience a complex, desmoplastic microenvironment that
+  may slow polarization.
+- Different markers exhibit distinct temporal patterns (e.g., CD163 mRNA overshoot),
+  so a single first-order rate cannot perfectly capture all readouts; the inferred
+  k_M2_pol should be interpreted as an effective timescale.
+- The IL-10 dose is pharmacologically high and constant, potentially representing
+  an upper bound on polarization speed compared with in vivo cytokine exposures.
+- "Sample size is modest (n\u22483 donors), and digitization of figure-based data\
+  \ introduces additional uncertainty in exact mean and SEM values."
+primary_data_source:
+  doi: 10.1371/journal.pone.0265196
+  year: 2022
+  source_tag: UnuvarPurcu2022
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study uses human monocyte-derived macrophages
+      from healthy donors polarized to M2c with IL-10 in vitro, whereas the target
+      model describes tumor-associated macrophages in human PDAC. M2c macrophages
+      share key IL-10/TGFbeta-driven, immunosuppressive features with PDAC TAMs, so
+      their polarization kinetics provide a mechanistic proxy but not a disease-matched
+      measurement.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: Macrophages are exposed to a high, constant concentration
+      of exogenous IL-10, which likely produces near-maximal M2c polarization rates.
+      As such, the inferred k_M2_pol should be interpreted as an upper bound on polarization
+      speed under strong IL-10/TGFbeta drive and may overestimate rates under physiological
+      cytokine levels in PDAC.
+    tme_compatibility: moderate
+    tme_compatibility_notes: The in vitro system lacks the dense desmoplastic stroma,
+      hypoxia, and complex cytokine milieu of PDAC tumors, but it does capture direct
+      IL-10/TGFbeta-like signaling to human macrophages. The absence of competing
+      pro-inflammatory cues and stromal barriers likely makes polarization somewhat
+      faster than in vivo, introducing moderate translation uncertainty.
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_primary
+tags:
+- macrophage_polarization
+- M2c
+- IL10
+- TGFbeta
+- human_monocyte_derived_macrophage
+- k_M2_pol
+- PDAC_proxy
+extraction_model: gpt-4.1
+extraction_reasoning_effort: medium

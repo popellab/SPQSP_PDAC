@@ -1,0 +1,8 @@
+{
+  "hidden_features": 256,
+  "num_transforms": 5,
+  "num_bins": 10,
+  "batch_size": 2048,
+  "max_epochs": 80,
+  "n_train_subsample": 50000
+}

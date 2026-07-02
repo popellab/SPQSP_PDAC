@@ -23,6 +23,11 @@ CLAUDE.md
 /calibration/archive/
 /results/
 /tmp/
-/qspio-pdac/
+# qspio-pdac absorbed into this repo (was popellab/qspio-pdac); ignore only its local envs/caches
+/qspio-pdac/.venv/
+/qspio-pdac/**/__pycache__/
+/qspio-pdac/**/*.pyc
+/qspio-pdac/.pytest_cache/
+/qspio-pdac/cpp/sim/build/
 /qsp-inference/
 /qsp-codegen/

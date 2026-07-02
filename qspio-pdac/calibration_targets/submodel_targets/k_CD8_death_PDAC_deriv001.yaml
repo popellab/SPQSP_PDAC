@@ -1,0 +1,291 @@
+target_id: k_CD8_death
+inputs:
+- name: CD8_memory_division_rate_mean_percent_per_day
+  value: 0.17
+  units: percent
+  input_type: direct_measurement
+  source_ref: Akondy2017
+  source_location: Results, 'Marking virus-specific CD8 T cells with deuterium' (study
+    1, second phase)
+  value_snippet: "deuterium enrichment levels in the YFV-specific CD8 T cells exhibited\
+    \ only slight dilution by newly divided cells (Fig. 1c, Supplementary Table 1,\
+    \ cell division rate 0.17 \xB1 0.09% per day) corresponding to a half-life of\
+    \ deuterium enrichment in the tetramer-sorted population that averaged more than\
+    \ a year (493 days) in the period after washout of heavy water."
+- name: CD8_memory_division_rate_sd_percent_per_day
+  value: 0.09
+  units: percent
+  input_type: direct_measurement
+  source_ref: Akondy2017
+  source_location: Results, 'Marking virus-specific CD8 T cells with deuterium' (study
+    1, second phase)
+  value_snippet: "cell division rate 0.17 \xB1 0.09% per day"
+- name: CD8_memory_net_loss_rate_mean_percent_per_day
+  value: 0.57
+  units: percent
+  input_type: direct_measurement
+  source_ref: Akondy2017
+  source_location: Results, 'Quantifying memory CD8 T cell half-life in vivo'
+  value_snippet: "The net rate of cell loss was 0.57 \xB1 0.25% per day (corresponding\
+    \ to a T1/2 of 123 days) and this can be added to the cell division rate (0.17%\
+    \ per day) to calculate a death rate ... of 0.74% per day (corresponding to a\
+    \ T1/2 of 94 days)."
+- name: CD8_memory_net_loss_rate_sd_percent_per_day
+  value: 0.25
+  units: percent
+  input_type: direct_measurement
+  source_ref: Akondy2017
+  source_location: Results, 'Quantifying memory CD8 T cell half-life in vivo'
+  value_snippet: "The net rate of cell loss was 0.57 \xB1 0.25% per day"
+- name: n_vaccinees_study1
+  value: 10.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Akondy2017
+  source_location: Extended Data Fig. 1 caption
+  value_snippet: Deuterium enrichment in body water for each vaccinee in study 1 (n
+    = 10).
+- name: half_input_factor
+  value: 0.5
+  units: dimensionless
+  input_type: reference_value
+  rationale: Constant 0.5 used in lognormal mean-bias correction mu = ln(mean) - 0.5*sigma^2;
+    specified explicitly to avoid hard-coding in observation code.
+  source_ref: Akondy2017
+  source_location: Not directly from paper; standard property of the lognormal distribution
+    used for statistical modeling.
+- name: k_CD8_division_memory_mean
+  value: 0.0017
+  units: 1/day
+  input_type: derived_arithmetic
+  rationale: 'Convert the reported memory CD8 division rate of 0.17% per day into
+    per-day units for use in kinetic equations: k = 0.17/100 per day = 0.0017 1/day.'
+  source_ref: Akondy2017
+  source_location: Derived from CD8_memory_division_rate_mean_percent_per_day
+  source_inputs:
+  - CD8_memory_division_rate_mean_percent_per_day
+  formula: CD8_memory_division_rate_mean_percent_per_day / 100.0
+- name: k_CD8_division_memory_sd
+  value: 0.0009
+  units: 1/day
+  input_type: derived_arithmetic
+  rationale: 'Convert the reported standard deviation of the memory CD8 division rate
+    (0.09% per day) into per-day units: sd = 0.09/100 per day = 0.0009 1/day.'
+  source_ref: Akondy2017
+  source_location: Derived from CD8_memory_division_rate_sd_percent_per_day
+  source_inputs:
+  - CD8_memory_division_rate_sd_percent_per_day
+  formula: CD8_memory_division_rate_sd_percent_per_day / 100.0
+- name: k_CD8_net_loss_mean
+  value: 0.0057
+  units: 1/day
+  input_type: derived_arithmetic
+  rationale: 'Convert the reported net loss rate of 0.57% per day into per-day units:
+    k_net = 0.57/100 per day = 0.0057 1/day.'
+  source_ref: Akondy2017
+  source_location: Derived from CD8_memory_net_loss_rate_mean_percent_per_day
+  source_inputs:
+  - CD8_memory_net_loss_rate_mean_percent_per_day
+  formula: CD8_memory_net_loss_rate_mean_percent_per_day / 100.0
+- name: k_CD8_net_loss_sd
+  value: 0.0025
+  units: 1/day
+  input_type: derived_arithmetic
+  rationale: 'Convert the reported standard deviation of the net loss rate (0.25%
+    per day) into per-day units: sd = 0.25/100 per day = 0.0025 1/day.'
+  source_ref: Akondy2017
+  source_location: Derived from CD8_memory_net_loss_rate_sd_percent_per_day
+  source_inputs:
+  - CD8_memory_net_loss_rate_sd_percent_per_day
+  formula: CD8_memory_net_loss_rate_sd_percent_per_day / 100.0
+calibration:
+  parameters:
+  - name: k_CD8_death
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: "Akondy2017 directly reports both the net rate of loss of YFV-specific\
+      \ memory CD8 T cells from the circulation (0.57 \xB1 0.25% per day) and their\
+      \ homeostatic division rate during the antigen-free maintenance phase (0.17\
+      \ \xB1 0.09% per day). These are timecourse-derived rates, so an algebraic relationship\
+      \ between the underlying death rate and the observed net loss rate is appropriate."
+    submodel_rationale: 'In the full QSPIO-PDAC model, k_CD8_death appears as a first-order
+      death rate for CD8 effector T cells in all compartments (V_C, V_P, V_LN, V_T):
+      dN/dt includes a term -k_CD8_death * N. For a memory pool with low but nonzero
+      homeostatic proliferation, the net fractional loss rate satisfies k_net = k_death
+      - k_division. Using Akondy2017''s independently measured division rate as a
+      fixed input, this algebraic submodel maps k_CD8_death to the experimentally
+      observed net loss rate without absorbing proliferation into the effective death
+      constant, preserving the mechanistic meaning of k_CD8_death as a pure first-order
+      death rate.'
+    type: algebraic
+    formula: k_net_loss = k_CD8_death - k_CD8_division_memory
+    code: "def compute(params, inputs):\n    import numpy as np\n    # Natural death\
+      \ rate of memory CD8 T cells (parameter from QSP model)\n    k_death = params['k_CD8_death']\n\
+      \    # Homeostatic division rate of YFV-specific memory CD8 T cells, fixed from\
+      \ Akondy2017\n    k_div = inputs['k_CD8_division_memory_mean']\n    # For a\
+      \ memory pool with dN/dt = (k_division - k_death)*N, the normalized\n    # net\
+      \ loss rate observed experimentally is k_net = k_death - k_division.\n    return\
+      \ k_death - k_div\n"
+  error_model:
+  - name: CD8_memory_net_loss_rate
+    units: 1/day
+    uses_inputs:
+    - k_CD8_net_loss_mean
+    - k_CD8_net_loss_sd
+    - n_vaccinees_study1
+    - half_input_factor
+    sample_size_input: n_vaccinees_study1
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['k_CD8_net_loss_mean']      # mean\
+      \ net loss rate (1/day)\n    sd = inputs['k_CD8_net_loss_sd']          # standard\
+      \ deviation across subjects (1/day)\n    half = inputs['half_input_factor']\
+      \        # constant 0.5 used in lognormal mean correction\n    # Treat the between-subject\
+      \ variability in the net loss rate as lognormal,\n    # since rates are positive.\
+      \ Convert CV to log-space sigma and correct the mean.\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln = np.log(mean) - half\
+      \ * sigma_ln**2\n    # Bootstrap the mean net loss rate across the study cohort.\n\
+      \    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: "This target provides a single algebraic constraint on k_CD8_death\
+    \ via the relationship k_net = k_CD8_death - k_CD8_division_memory, using Akondy2017's\
+    \ measured division rate as a fixed input. Because the experimental CV on the\
+    \ net loss rate is moderate (\u22480.44), the posterior for k_CD8_death from this\
+    \ target alone will be reasonably tight around k_CD8_death \u2248 k_net + k_div\
+    \ \u2248 0.0057 + 0.0017 \u2248 0.0074 1/day (corresponding to a half-life of\
+    \ \u224894 days). This value is an effective disappearance rate from the circulation\
+    \ of long-lived, antigen-experienced human memory CD8 T cells under antigen-free\
+    \ conditions and should be interpreted as a lower bound on CD8 effector death\
+    \ in the PDAC tumor microenvironment. Other targets (e.g., tumor-infiltrating\
+    \ effector T cell dynamics in cancer patients or mouse tumor models) can shift\
+    \ the joint posterior upward if PDAC-resident CD8 T cells die faster due to chronic\
+    \ activation, exhaustion, or local immunosuppression."
+experimental_context:
+  species: human
+  system: clinical_in_vivo
+  cell_types:
+  - name: CD8 T cells
+    phenotype: YFV-17D-specific memory CD8 T cells (HLA-A2/NS4B214 tetramer+) in peripheral
+      blood
+    isolation_method: Tetramer-based flow cytometric sorting from PBMC
+    source: Healthy adult volunteers vaccinated with live attenuated yellow fever
+      virus (YFV-17D)
+  indication: Healthy adults after YFV-17D vaccination (acute viral infection model,
+    not cancer)
+study_interpretation: "Akondy2017 used in vivo 2H2O labeling and long-term follow-up\
+  \ in YFV-17D-vaccinated adults to quantify the kinetics of human virus-specific\
+  \ memory CD8 T cells during the antigen-free maintenance phase. After the acute\
+  \ response, YFV-specific tetramer+ memory CD8 T cells divide very infrequently (\u2248\
+  0.17% per day, doubling time \u22481.3 years) yet decline in number with a net loss\
+  \ rate of \u22480.57% per day (half-life \u2248123 days). Under a simple birth\u2013\
+  death model dN/dt = (k_division \u2212 k_death)N, these measurements imply a pure\
+  \ death (disappearance) rate of \u22480.74% per day for long-lived human memory\
+  \ CD8 T cells in the circulation. This submodel uses the measured division rate\
+  \ as a fixed input and treats the observed net loss rate as the calibration target,\
+  \ constraining the QSP parameter k_CD8_death as a lower bound on the natural death\
+  \ rate of quiescent, antigen-experienced CD8 T cells in the absence of ongoing antigenic\
+  \ stimulation."
+key_assumptions:
+- "YFV-specific memory CD8 T cells in the maintenance phase can be approximated by\
+  \ a homogeneous population governed by first-order birth\u2013death kinetics dN/dt\
+  \ = (k_division \u2212 k_death)N."
+- "The experimentally reported net rate of cell loss (0.57 \xB1 0.25% per day) reflects\
+  \ true loss from the long-lived circulating memory pool, even though it technically\
+  \ measures disappearance from blood and may include redistribution to tissues."
+- "The memory-phase division rate measured by deuterium incorporation (0.17 \xB1 0.09%\
+  \ per day) is taken as a fixed input and is not itself altered when extrapolating\
+  \ to the PDAC context."
+- Natural death rates of long-lived, antigen-experienced memory CD8 T cells in healthy
+  humans provide a mechanistic lower bound for the global CD8 effector death rate
+  parameter k_CD8_death used in the PDAC QSP model, recognizing that tumor-resident
+  effector cells in PDAC may die faster due to additional stresses.
+- Heavy water ingestion and prior YFV-17D vaccination are assumed not to materially
+  change the intrinsic death rate of the established memory CD8 T cell pool compared
+  with unperturbed memory CD8 T cells.
+key_study_limitations:
+- The measurements are in healthy adults after resolution of an acute viral infection,
+  not in cancer patients; PDAC-associated inflammation, metabolic stress and immunosuppression
+  may increase CD8 effector death beyond the values inferred here.
+- Disappearance of tetramer+ cells from the blood conflates true cell death with migration
+  or long-term residence in non-sampled tissues, so the inferred k_CD8_death is effectively
+  a disappearance rate from circulation rather than a pure apoptosis rate.
+- The analysis assumes a single homogeneous long-lived memory population, although
+  there may be subpopulations with different survival and division rates (e.g., central
+  memory vs effector memory) that are not resolved in this dataset.
+- The YFV-specific memory CD8 T cells have a stem-cell-like central memory phenotype
+  and home predominantly in blood and lymphoid tissues, whereas the QSP parameter
+  k_CD8_death also applies to tumor-infiltrating effector CD8 cells, which experience
+  different microenvironmental cues.
+- The study reports cohort-level means and standard deviations for division and net
+  loss rates, and subject-level variability or potential covariates (age, sex, vaccine
+  response magnitude) are not modeled explicitly in this submodel.
+primary_data_source:
+  doi: 10.1038/nature24633
+  title: Origin and differentiation of human memory CD8 T cells after vaccination
+  authors:
+  - Akondy
+  - Fitch
+  - Edupuganti
+  - Yang
+  - Kissick
+  - Li
+  - Youngblood
+  - Abdelsamed
+  - McGuire
+  - Cohen
+  - Alexe
+  - Nagar
+  - McCausland
+  - Gupta
+  - Tata
+  - Haining
+  - McElrath
+  - Zhang
+  - Hu
+  - Greenleaf
+  - Goronzy
+  - Mulligan
+  - Hellerstein
+  - Ahmed
+  year: 2017
+  source_tag: Akondy2017
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: "The source study characterizes YFV-17D vaccine-elicited\
+      \ memory CD8 T cells in healthy adults, whereas the QSPIO-PDAC model targets\
+      \ effector CD8 T cells in pancreatic ductal adenocarcinoma. Although the disease\
+      \ context and tissues differ, the basic birth\u2013death kinetics of long-lived\
+      \ antigen-experienced human CD8 T cells provide a mechanistic lower bound for\
+      \ CD8 death rates that is expected to be relatively conserved across indications.\
+      \ We therefore treat this as a mechanistic proxy for intrinsic CD8 survival\
+      \ rather than a direct measurement in PDAC."
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: The key measurements are made months after vaccination
+      during the antigen-free maintenance phase, when YFV-specific memory CD8 T cells
+      are at or near homeostatic conditions; thus the inferred division and loss rates
+      approximate physiological baseline behavior of long-lived memory CD8 T cells
+      rather than an acute pharmacological perturbation.
+    tme_compatibility: low
+    tme_compatibility_notes: YFV-specific memory CD8 T cells measured in peripheral
+      blood and lymphoid tissues reside in an essentially normal immune environment,
+      whereas PDAC tumors are characterized by dense desmoplastic stroma, chronic
+      antigen exposure, hypoxia, and strong immunosuppression. These factors are likely
+      to increase the effective death or dysfunction of tumor-infiltrating CD8 T cells
+      relative to circulating memory cells, so the Akondy2017-derived rate should
+      be interpreted as a lower bound and inflated uncertainty is appropriate when
+      translating to the PDAC tumor microenvironment.
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: clinical_in_vivo
+tags:
+- CD8_T_cells
+- memory_T_cells
+- deuterium_labeling
+- human_clinical
+- turnover_kinetics
+- death_rate
+extraction_model: gpt-4.1
+extraction_reasoning_effort: medium

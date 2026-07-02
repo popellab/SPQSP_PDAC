@@ -1,0 +1,28 @@
+observable,estimate,ci95_lo,ci95_hi,units,reasoning
+cancer_cell_density_baseline,1050,400,2500,cells/mm2,3000 total cells/mm2 × 35% epithelial fraction from scRNA-seq clustering
+cd8_density_baseline,100,30,300,cells/mm2,3000 × 10% T cells × 40% CD8 fraction adjusted down for cold tumor exclusion from core
+cd4_helper_density,95,25,250,cells/mm2,3000 × 10% T cells × 50% CD4 × 65% non-Treg helpers
+treg_density_baseline,55,15,150,cells/mm2,3000 × 10% T cells × 50% CD4 × 35% FOXP3+ Treg fraction
+cdc1_density_baseline,9,2,25,cells/mm2,3000 × 2% DCs × 15% cDC1 fraction identified by CLEC9A/XCR1/BATF3 signatures
+cdc2_density_baseline,27,8,60,cells/mm2,3000 × 2% DCs × 45% cDC2 fraction identified by IRF4/CD1c signatures
+tam_density,350,150,700,cells/mm2,3000 × 12% macrophage fraction; dominant immune population in PDAC
+mdsc_density,110,30,250,cells/mm2,3000 × ~4% S100A8/A9/ARG1-expressing myeloid cells from clustering
+total_til_density,250,80,600,cells/mm2,Sum of CD8 (100) + CD4 helper (95) + Treg (55) densities
+cd8_exhausted_fraction,0.60,0.35,0.85,dimensionless,Majority of intratumoral CD8s express PDCD1/HAVCR2/LAG3 exhaustion program in scRNA-seq
+th_exhausted_fraction,0.35,0.15,0.60,dimensionless,CD4 helpers show moderate PD-1 expression lower than CD8 exhaustion rates
+cd8_treg_ratio,1.8,0.5,5.0,dimensionless,Direct ratio of CD8 density (100) to Treg density (55)
+cd8_treg_ratio_alt,2.0,0.6,4.5,dimensionless,Independent estimate from cross-dataset CD8:Treg cluster size comparisons in cold tumors
+treg_fraction_cd4,0.37,0.20,0.55,dimensionless,55 Tregs / (55 Tregs + 95 helpers) = 0.37; Treg enrichment characteristic of PDAC
+treg_fraction_cd4_alt,0.35,0.18,0.55,dimensionless,Independent clustering-based estimate; Treg clusters typically 25-45% of CD4 compartment
+treg_fraction_baseline,0.22,0.10,0.38,dimensionless,55 Tregs / 250 total CD3+ T cells from summed density estimates
+m1_m2_ratio,0.43,0.15,0.80,dimensionless,~30% M1 vs ~70% M2 by gene signatures (CD163/MRC1 vs NOS2/CD80) in M2-skewed PDAC TME
+m2_macrophage_fraction,0.70,0.55,0.85,dimensionless,Dominant M2 polarization from IL-10/TGFb-rich PDAC microenvironment
+apc_maturation_ratio,0.20,0.08,0.40,dimensionless,Only ~20% of DCs show CCR7/CD83/LAMP3 mature signatures due to immunosuppressive TME
+icaf_fraction_of_caf,0.35,0.20,0.55,dimensionless,IL6/CXCL1/HAS1-expressing inflammatory CAF cluster from scRNA-seq subtyping
+mycaf_fraction_of_caf,0.45,0.25,0.65,dimensionless,ACTA2/TAGLN/COL1A1-expressing myofibroblastic CAFs are the dominant subtype
+apcaf_fraction_of_caf,0.15,0.05,0.30,dimensionless,HLA-DRA/CD74-expressing apCAFs detected more reliably by scRNA-seq than IHC
+apcaf_fraction_of_caf_alt,0.18,0.08,0.30,dimensionless,Independent estimate from cluster proportions across multiple PDAC scRNA-seq cohorts
+stromal_fraction,0.75,0.55,0.90,dimensionless,Spatial deconvolution shows ~75% stroma (fibroblasts + ECM + vasculature) in desmoplastic PDAC
+psc_activation_ratio,0.85,0.65,0.95,dimensionless,Quiescent PSCs are rare in established PDAC; most are activated aSMA+ CAFs
+collagen1_protein_level,10,4,20,fold-change,Massive desmoplastic collagen deposition ~10x normal pancreas from spatial proteomics
+vegf_tissue_concentration,120,40,350,pg/mg protein,PDAC VEGF ~2-4x normal pancreas (~40 pg/mg); moderate angiogenic drive not as high as RCC

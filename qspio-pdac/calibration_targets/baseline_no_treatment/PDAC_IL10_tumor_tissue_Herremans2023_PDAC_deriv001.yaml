@@ -1,0 +1,362 @@
+calibration_target_id: PDAC_IL10_tumor_tissue_Herremans2023
+cancer_type: PDAC
+tags:
+- PDAC
+- IL10
+- tumor_homogenate
+- clinical_resection
+- treatment_naive
+- multiplex_assay
+epistemic_basis: literature
+study_interpretation: Herremans et al. measured IL-10 protein in freshly resected, treatment-naive human PDAC tumor specimens using a 41-plex Millipore/Luminex immunology multiplex assay on tumor homogenates,
+  with concentrations normalized to total protein as pg/mg protein. The figure-reported IL-10 distributions for the two machine-learning inflammatory phenotypes were digitized and combined using their reported
+  group sizes (immunomodulating N=32, immunostimulating N=27) to represent baseline resectable PDAC tumor IL-10. Because the QSP model state V_T.IL10 is a tumor-compartment concentration in nanomolar, the
+  pg/mg-protein homogenate measurement is converted using an assumed effective soluble protein concentration of 10 mg/mL and an IL-10 molecular mass of 18.6 kDa; this maps protein-normalized bulk tumor
+  homogenate IL-10 to an approximate molar tissue concentration.
+key_assumptions:
+- Digitized box-and-whisker values from Figure 2 are treated as five-number summaries for each subtype.
+- The two subtype distributions are combined according to their reported sample sizes (N=32 and N=27) to estimate the overall treatment-naive PDAC tumor IL-10 value.
+- The bulk tumor homogenate IL-10 signal is assumed to approximate the tumor-compartment IL-10 concentration represented by V_T.IL10; bound/intracellular cytokine and extracellular free cytokine are not
+  separated.
+- Conversion from pg/mg total protein to concentration uses an assumed effective soluble protein concentration of 10 mg/mL in tumor homogenate. This assumption dominates absolute nM scaling because the
+  paper reports normalized protein units but not absolute protein yield per tissue volume.
+- Human IL-10 molecular mass is approximated as 18.6 kDa for converting pg/mL to nanomolar.
+key_study_limitations:
+- IL-10 numerical values were not tabulated and were manually digitized from a box-and-whisker figure, limiting precision.
+- The reported unit is pg/mg total protein, not a direct molar concentration in tumor interstitial fluid; conversion to nM depends strongly on assumed protein recovery/homogenate concentration.
+- Single-center cohort with 59 resectable, treatment-naive PDAC tumors; results may not generalize to unresectable or metastatic PDAC.
+- Bulk homogenate measurements do not identify the cellular source of IL-10 and may include intracellular, stromal, immune, and tumor-cell-associated cytokine pools.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        il10 = species_dict['V_T.IL10']
+        return il10
+
+  units: nanomolar
+  species:
+  - V_T.IL10
+  constants: []
+  support: positive
+  mapping_rationale: The model contains V_T.IL10 as the IL-10 concentration in the tumor compartment. The experimental bulk tumor homogenate IL-10 protein concentration is converted to nanomolar and compared
+    directly to this tumor-compartment cytokine concentration.
+  experimental_denominator: null
+  model_denominator_species: null
+  unmodeled_denominator_components: The experimental normalization is per mg total extracted protein from bulk tumor homogenate; the model state has no explicit total-protein denominator. Conversion therefore
+    uses an assumed effective protein concentration rather than a modeled denominator.
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: null
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: Freshly resected PDAC tumor tissue transported on ice, flash frozen, homogenized, and assayed as tumor lysate
+  assay_type: 41-plex Luminex/Milliplex immunology multiplex assay normalized to total protein
+scenario:
+  description: Baseline treatment-naive PDAC tumor tissue collected at surgical resection and assayed after homogenization.
+  interventions:
+  - intervention_description: No neoadjuvant chemotherapy, radiation, or immunotherapy before tumor resection; tissue sampled directly from the operating room at surgical resection.
+empirical_data:
+  median:
+  - 0.4491
+  ci95:
+  - - 0.0397
+    - 5.2022
+  units: nanomolar
+  sample_size: 59
+  sample_size_rationale: The paper states that 59 treatment-naive PDAC tumor samples were analyzed; t-SNE groups were immunomodulating N=32 and immunostimulating N=27.
+  inputs:
+  - name: mod_min_il10
+    value: 5.263157894736878
+    units: pg / mg
+    description: Digitized minimum of IL-10 concentration in the immunomodulating PDAC subgroup.
+    source_ref: Herremans2023
+    value_location: Figure 2, IL-10 panel
+    value_snippet: 'Fig. 2: Comparison of inflammatory proteins between immunomodulating (Mod) and immunostimulating (Stim) groups. Concentrations are expressed in units of pg/mg protein.'
+    figure_excerpt:
+      figure_id: Figure 2
+      value: 5.263157894736878 pg/mg protein
+      description: Digitized lower whisker/minimum for the Mod group in the IL-10 panel.
+      context: IL-10 box-and-whisker panel; y-axis concentration in pg/mg protein.
+    input_type: direct_parameter
+    source_type: figure
+    figure_id: Figure 2
+    extraction_method: webplotdigitizer
+    extraction_notes: Digitized from the IL-10 box-and-whisker panel.
+    dispersion_type: range
+    dispersion_type_rationale: Lower whisker/minimum digitized from the box-and-whisker plot.
+  - name: mod_q25_il10
+    value: 36.84210526315786
+    units: pg / mg
+    description: Digitized first quartile of IL-10 concentration in the immunomodulating PDAC subgroup.
+    source_ref: Herremans2023
+    value_location: Figure 2, IL-10 panel
+    value_snippet: 'Fig. 2: Comparison of inflammatory proteins between immunomodulating (Mod) and immunostimulating (Stim) groups. Concentrations are expressed in units of pg/mg protein.'
+    figure_excerpt:
+      figure_id: Figure 2
+      value: 36.84210526315786 pg/mg protein
+      description: Digitized first quartile for the Mod group in the IL-10 panel.
+      context: IL-10 box-and-whisker panel; y-axis concentration in pg/mg protein.
+    input_type: direct_parameter
+    source_type: figure
+    figure_id: Figure 2
+    extraction_method: webplotdigitizer
+    extraction_notes: Digitized from the IL-10 box-and-whisker panel.
+    dispersion_type: iqr
+    dispersion_type_rationale: Lower edge of the box digitized as the 25th percentile.
+  - name: mod_median_il10
+    value: 93.421052631579
+    units: pg / mg
+    description: Digitized median of IL-10 concentration in the immunomodulating PDAC subgroup.
+    source_ref: Herremans2023
+    value_location: Figure 2, IL-10 panel
+    value_snippet: 'Fig. 2: Comparison of inflammatory proteins between immunomodulating (Mod) and immunostimulating (Stim) groups. Concentrations are expressed in units of pg/mg protein.'
+    figure_excerpt:
+      figure_id: Figure 2
+      value: 93.421052631579 pg/mg protein
+      description: Digitized median for the Mod group in the IL-10 panel.
+      context: IL-10 box-and-whisker panel; y-axis concentration in pg/mg protein.
+    input_type: direct_parameter
+    source_type: figure
+    figure_id: Figure 2
+    extraction_method: webplotdigitizer
+    extraction_notes: Digitized from the IL-10 box-and-whisker panel.
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: mod_q75_il10
+    value: 118.42105263157893
+    units: pg / mg
+    description: Digitized third quartile of IL-10 concentration in the immunomodulating PDAC subgroup.
+    source_ref: Herremans2023
+    value_location: Figure 2, IL-10 panel
+    value_snippet: 'Fig. 2: Comparison of inflammatory proteins between immunomodulating (Mod) and immunostimulating (Stim) groups. Concentrations are expressed in units of pg/mg protein.'
+    figure_excerpt:
+      figure_id: Figure 2
+      value: 118.42105263157893 pg/mg protein
+      description: Digitized third quartile for the Mod group in the IL-10 panel.
+      context: IL-10 box-and-whisker panel; y-axis concentration in pg/mg protein.
+    input_type: direct_parameter
+    source_type: figure
+    figure_id: Figure 2
+    extraction_method: webplotdigitizer
+    extraction_notes: Digitized from the IL-10 box-and-whisker panel.
+    dispersion_type: iqr
+    dispersion_type_rationale: Upper edge of the box digitized as the 75th percentile.
+  - name: mod_max_il10
+    value: 634.2105263157895
+    units: pg / mg
+    description: Digitized maximum of IL-10 concentration in the immunomodulating PDAC subgroup.
+    source_ref: Herremans2023
+    value_location: Figure 2, IL-10 panel
+    value_snippet: 'Fig. 2: Comparison of inflammatory proteins between immunomodulating (Mod) and immunostimulating (Stim) groups. Concentrations are expressed in units of pg/mg protein.'
+    figure_excerpt:
+      figure_id: Figure 2
+      value: 634.2105263157895 pg/mg protein
+      description: Digitized upper whisker/maximum for the Mod group in the IL-10 panel.
+      context: IL-10 box-and-whisker panel; y-axis concentration in pg/mg protein.
+    input_type: direct_parameter
+    source_type: figure
+    figure_id: Figure 2
+    extraction_method: webplotdigitizer
+    extraction_notes: Digitized from the IL-10 box-and-whisker panel.
+    dispersion_type: range
+    dispersion_type_rationale: Upper whisker/maximum digitized from the box-and-whisker plot.
+  - name: stim_min_il10
+    value: 9.210526315789451
+    units: pg / mg
+    description: Digitized minimum of IL-10 concentration in the immunostimulating PDAC subgroup.
+    source_ref: Herremans2023
+    value_location: Figure 2, IL-10 panel
+    value_snippet: 'Fig. 2: Comparison of inflammatory proteins between immunomodulating (Mod) and immunostimulating (Stim) groups. Concentrations are expressed in units of pg/mg protein.'
+    figure_excerpt:
+      figure_id: Figure 2
+      value: 9.210526315789451 pg/mg protein
+      description: Digitized lower whisker/minimum for the Stim group in the IL-10 panel.
+      context: IL-10 box-and-whisker panel; y-axis concentration in pg/mg protein.
+    input_type: direct_parameter
+    source_type: figure
+    figure_id: Figure 2
+    extraction_method: webplotdigitizer
+    extraction_notes: Digitized from the IL-10 box-and-whisker panel.
+    dispersion_type: range
+    dispersion_type_rationale: Lower whisker/minimum digitized from the box-and-whisker plot.
+  - name: stim_q25_il10
+    value: 130.26315789473688
+    units: pg / mg
+    description: Digitized first quartile of IL-10 concentration in the immunostimulating PDAC subgroup.
+    source_ref: Herremans2023
+    value_location: Figure 2, IL-10 panel
+    value_snippet: 'Fig. 2: Comparison of inflammatory proteins between immunomodulating (Mod) and immunostimulating (Stim) groups. Concentrations are expressed in units of pg/mg protein.'
+    figure_excerpt:
+      figure_id: Figure 2
+      value: 130.26315789473688 pg/mg protein
+      description: Digitized first quartile for the Stim group in the IL-10 panel.
+      context: IL-10 box-and-whisker panel; y-axis concentration in pg/mg protein.
+    input_type: direct_parameter
+    source_type: figure
+    figure_id: Figure 2
+    extraction_method: webplotdigitizer
+    extraction_notes: Digitized from the IL-10 box-and-whisker panel.
+    dispersion_type: iqr
+    dispersion_type_rationale: Lower edge of the box digitized as the 25th percentile.
+  - name: stim_median_il10
+    value: 139.4736842105263
+    units: pg / mg
+    description: Digitized median of IL-10 concentration in the immunostimulating PDAC subgroup.
+    source_ref: Herremans2023
+    value_location: Figure 2, IL-10 panel
+    value_snippet: 'Fig. 2: Comparison of inflammatory proteins between immunomodulating (Mod) and immunostimulating (Stim) groups. Concentrations are expressed in units of pg/mg protein.'
+    figure_excerpt:
+      figure_id: Figure 2
+      value: 139.4736842105263 pg/mg protein
+      description: Digitized median for the Stim group in the IL-10 panel.
+      context: IL-10 box-and-whisker panel; y-axis concentration in pg/mg protein.
+    input_type: direct_parameter
+    source_type: figure
+    figure_id: Figure 2
+    extraction_method: webplotdigitizer
+    extraction_notes: Digitized from the IL-10 box-and-whisker panel.
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: stim_q75_il10
+    value: 172.3684210526316
+    units: pg / mg
+    description: Digitized third quartile of IL-10 concentration in the immunostimulating PDAC subgroup.
+    source_ref: Herremans2023
+    value_location: Figure 2, IL-10 panel
+    value_snippet: 'Fig. 2: Comparison of inflammatory proteins between immunomodulating (Mod) and immunostimulating (Stim) groups. Concentrations are expressed in units of pg/mg protein.'
+    figure_excerpt:
+      figure_id: Figure 2
+      value: 172.3684210526316 pg/mg protein
+      description: Digitized third quartile for the Stim group in the IL-10 panel.
+      context: IL-10 box-and-whisker panel; y-axis concentration in pg/mg protein.
+    input_type: direct_parameter
+    source_type: figure
+    figure_id: Figure 2
+    extraction_method: webplotdigitizer
+    extraction_notes: Digitized from the IL-10 box-and-whisker panel.
+    dispersion_type: iqr
+    dispersion_type_rationale: Upper edge of the box digitized as the 75th percentile.
+  - name: stim_max_il10
+    value: 306.57894736842115
+    units: pg / mg
+    description: Digitized maximum of IL-10 concentration in the immunostimulating PDAC subgroup.
+    source_ref: Herremans2023
+    value_location: Figure 2, IL-10 panel
+    value_snippet: 'Fig. 2: Comparison of inflammatory proteins between immunomodulating (Mod) and immunostimulating (Stim) groups. Concentrations are expressed in units of pg/mg protein.'
+    figure_excerpt:
+      figure_id: Figure 2
+      value: 306.57894736842115 pg/mg protein
+      description: Digitized upper whisker/maximum for the Stim group in the IL-10 panel.
+      context: IL-10 box-and-whisker panel; y-axis concentration in pg/mg protein.
+    input_type: direct_parameter
+    source_type: figure
+    figure_id: Figure 2
+    extraction_method: webplotdigitizer
+    extraction_notes: Digitized from the IL-10 box-and-whisker panel.
+    dispersion_type: range
+    dispersion_type_rationale: Upper whisker/maximum digitized from the box-and-whisker plot.
+  - name: n_mod
+    value: 32
+    units: dimensionless
+    description: Number of patients in the immunomodulating inflammatory phenotype group.
+    source_ref: Herremans2023
+    value_location: Results, page 3
+    value_snippet: Between the immunomodulating group (N = 32) and immunostimulating group (N = 27), 10 out of 32 inflammatory proteins were significantly different (p-value <0.0015, Supp Table 1)
+    input_type: direct_parameter
+    source_type: text
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: n_stim
+    value: 27
+    units: dimensionless
+    description: Number of patients in the immunostimulating inflammatory phenotype group.
+    source_ref: Herremans2023
+    value_location: Results, page 3
+    value_snippet: Between the immunomodulating group (N = 32) and immunostimulating group (N = 27), 10 out of 32 inflammatory proteins were significantly different (p-value <0.0015, Supp Table 1)
+    input_type: direct_parameter
+    source_type: text
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: tissue_mass_processed
+    value: 30
+    units: mg
+    description: Mass of tumor tissue homogenized for multiplex protein assay.
+    source_ref: Herremans2023
+    value_location: Methods, Sample processing
+    value_snippet: Tissues were sharply divided into 30 mg pieces and 500uL of cell lysis buffer (Cell Signaling, Danvers, MA, USA) with protease/phosphatase inhibitor (Cell Signaling Technology, Danvers,
+      MA, USA) was added.
+    input_type: experimental_condition
+    source_type: text
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: lysis_buffer_volume
+    value: 500
+    units: microliter
+    description: Lysis buffer volume added to each 30 mg tumor tissue piece for homogenization.
+    source_ref: Herremans2023
+    value_location: Methods, Sample processing
+    value_snippet: Tissues were sharply divided into 30 mg pieces and 500uL of cell lysis buffer (Cell Signaling, Danvers, MA, USA) with protease/phosphatase inhibitor (Cell Signaling Technology, Danvers,
+      MA, USA) was added.
+    input_type: experimental_condition
+    source_type: text
+    dispersion_type: null
+    dispersion_type_rationale: null
+  assumptions:
+  - name: protein_density_low
+    value: 50
+    units: milligram / milliliter
+    description: Lower bound for soluble protein content per wet tumor volume used to convert pg/mg protein to pg/mL tissue.
+    rationale: PDAC tumor soluble-protein recovery varies by sample and lysis protocol. A 50-100 mg/mL uniform range is used so conversion uncertainty dominates appropriately and matches the Ghassem-Zadeh sibling cytokine targets (IL-1, IL-6, CCL2). Replaces a prior fixed 10 mg/mL assumption that under-shifted the empirical molar median by ~7.5x.
+  - name: protein_density_high
+    value: 100
+    units: milligram / milliliter
+    description: Upper bound for soluble protein content per wet tumor volume used to convert pg/mg protein to pg/mL tissue.
+    rationale: Brackets plausible wet-tissue protein densities and avoids overconfidence in converting protein-normalized homogenate data to tissue-volume concentration.
+  - name: il10_molecular_weight
+    value: 18600
+    units: g / mol
+    description: Approximate molecular mass of human IL-10 monomer used to convert mass concentration to molar concentration.
+    rationale: Human IL-10 is approximately 18.6 kDa per monomer.
+  - name: n_mc_samples
+    value: 100000
+    units: dimensionless
+    description: Monte Carlo sample count for propagating lognormal cytokine and protein-density uncertainty.
+    rationale: Large sample count provides stable percentiles for the derived calibration distribution.
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    rng = np.random.default_rng(42)\n    n_mod = inputs['n_mod'].magnitude\n    n_stim = inputs['n_stim'].magnitude\n    n_total = n_mod + n_stim\n    median_pg_per_mg = ((inputs['mod_median_il10'] * n_mod) + (inputs['stim_median_il10'] * n_stim)) / n_total\n    lower_pg_per_mg = min(inputs['mod_min_il10'], inputs['stim_min_il10'])\n    upper_pg_per_mg = max(inputs['mod_max_il10'], inputs['stim_max_il10'])\n    # Lognormal closure: derive sigma_log from the boxplot range\n    # (treated as approximate 95% span) so the empirical CI95 reflects\n    # both within-cohort spread and the protein-density uncertainty.\n    z95 = 1.959963984540054\n    log_span = np.log(upper_pg_per_mg.to('pg/mg').magnitude) - np.log(lower_pg_per_mg.to('pg/mg').magnitude)\n    sigma_log = log_span / (2.0 * z95)\n    mu_log = np.log(median_pg_per_mg.to('pg/mg').magnitude)\n    n_samples = int(inputs['n_mc_samples'].magnitude)\n    pg_per_mg = rng.lognormal(mu_log, sigma_log, n_samples) * inputs['mod_median_il10'].units\n    protein_low = inputs['protein_density_low'].to('milligram / milliliter')\n    protein_high = inputs['protein_density_high'].to('milligram / milliliter')\n    protein_density = rng.uniform(protein_low.magnitude, protein_high.magnitude, n_samples) * protein_low.units\n    mw = inputs['il10_molecular_weight'].to('gram / mole')\n    mass_conc = (pg_per_mg * protein_density).to('picogram / milliliter')\n    molar = (mass_conc.to('gram / liter') / mw).to('nanomolar')\n    return {\n        'median_obs': np.median(molar),\n        'ci95_lower': np.percentile(molar, 2.5),\n        'ci95_upper': np.percentile(molar, 97.5),\n    }\n"
+primary_data_source:
+  source_tag: Herremans2023
+  title: A protein-based machine learning approach to the identification of inflammatory subtypes in pancreatic ductal adenocarcinoma
+  first_author: Herremans
+  year: 2023
+  doi: 10.1016/j.pan.2023.06.007
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The source cohort consists of human pancreatic ductal adenocarcinoma tumor specimens.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Tumors were selected from patients naive to neoadjuvant therapy, providing baseline untreated PDAC tumor cytokine measurements.
+    tme_compatibility: high
+    tme_compatibility_notes: Fresh human resected PDAC tumors preserve the clinical PDAC tumor microenvironment at the bulk tissue level, although homogenization removes spatial localization.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: clinical_in_vivo
+    validation_warnings:
+    - IL-10 concentration values are digitized from a boxplot rather than extracted from a table.
+    - Reported units are pg/mg protein and require an assumed protein concentration for conversion to nanomolar.
+secondary_data_sources: []
+derivation_id: derive_Herremans2023_IL10_boxplot_to_nM
+derivation_timestamp: '2026-05-05T00:00:00Z'
+extraction_model: gpt-5
+extraction_reasoning_effort: high

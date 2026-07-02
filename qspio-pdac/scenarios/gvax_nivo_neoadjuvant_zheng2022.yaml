@@ -1,0 +1,48 @@
+scenario_id: "gvax_nivo_neoadjuvant_zheng2022"
+
+scenario_context: |
+  Neoadjuvant GVAX + low-dose cyclophosphamide + nivolumab in resectable PDAC
+  (NCT02451982 Arm B, Zheng/Li et al. Cancer Cell 2022; platform-trial write-up
+  Nat Commun 2023 PMID: 37316592). Cy day 6 (one day before vaccination), GVAX +
+  nivolumab day 7, surgical resection day 21. Low-dose Cy (200 mg/m^2 IV) is the
+  standard Hopkins GVAX preparation (Laheru 2008) for Treg depletion without
+  myeloablation — it is part of every arm of NCT02451982, not optional.
+
+# Simulation configuration
+sim_config:
+  start_time: 0
+  stop_time: 30  # Surgery at day 21; extended to 30 for solver stability through nivo stiff transient
+  time_units: "day"
+  solver: "sundials"
+  abs_tolerance: 1.0e-9
+  rel_tolerance: 1.0e-6
+  # Initialization: evolve from healthy state to diagnosis (target diameter from variant)
+  initialization_function: 'evolve_to_diagnosis'
+
+# Dosing configuration - passed to schedule_dosing()
+dosing:
+  drugs: ["GVAX", "nivolumab", "cyclophosphamide"]
+  # Override defaults from schedule_dosing.m
+  GVAX_dose: 5.0e+8  # cells
+  GVAX_schedule: [7, 0, 1]  # [start, interval, repeat] - single dose
+  nivolumab_dose: 3.43  # mg/kg (240mg / 70kg)
+  nivolumab_schedule: [7, 0, 1]  # single dose
+  cyclophosphamide_dose: 380  # mg (200 mg/m^2 × 1.9 m^2 BSA; low-dose immunomodulatory)
+  cyclophosphamide_schedule: [6, 0, 1]  # day 6 — one day before GVAX/nivo
+  patientWeight: 70
+  patientBSA: 1.9
+
+# Cancer type
+indication: "PDAC"
+
+# Notes
+notes: |
+  Neoadjuvant setting - calibration targets are immune cell ratios and activation states
+  at day 21 (surgical resection), not tumor shrinkage. Key finding: high baseline TANs
+  predict resistance (not currently modeled).
+
+  Cy added 2026-04-21: the prior version of this scenario omitted low-dose Cy, which
+  is actually part of every arm of NCT02451982 (Arms A/B/C all have Cy). Without Cy,
+  Fix 2 (CD8-scaled Treg carrying cap) lets Tregs expand under GVAX inflammation with
+  no counterbalance, causing the `test_treatment_reduces_tregs` family of qualitative
+  behavior tests to fail. Cy depletion is the mechanistic counterweight.

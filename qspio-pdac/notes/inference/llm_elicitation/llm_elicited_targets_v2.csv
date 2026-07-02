@@ -1,0 +1,28 @@
+observable,estimate,ci95_lo,ci95_hi,units,reasoning
+cancer_cell_density_baseline,800,400,1500,cells/mm2,PDAC is moderately cellular but much of the cross-section is stroma; epithelial nests are scattered among dense desmoplasia
+cd8_density_baseline,60,15,200,cells/mm2,PDAC is immunologically cold with poor CD8 infiltration compared to melanoma or NSCLC
+cd4_helper_density,40,10,120,cells/mm2,CD4 helpers are present but sparse; slightly fewer than CD8s in most PDAC tissue
+treg_density_baseline,25,8,70,cells/mm2,Tregs are actively recruited to PDAC TME and represent a disproportionate share of CD4 cells
+cdc1_density_baseline,3,0.5,10,cells/mm2,cDC1s are extremely rare in PDAC; their scarcity contributes to poor cross-presentation and CD8 priming failure
+cdc2_density_baseline,8,2,25,cells/mm2,cDC2s are more abundant than cDC1s but still uncommon; they skew toward tolerogenic function in PDAC
+tam_density,250,100,500,cells/mm2,Macrophages are among the most abundant immune cells in PDAC; they dominate the myeloid infiltrate
+mdsc_density,80,20,200,cells/mm2,MDSCs accumulate substantially in PDAC driven by GM-CSF and IL-6 from tumor and stroma
+total_til_density,125,40,350,cells/mm2,Sum of CD8 + CD4 helper + Treg; overall TIL density is low reflecting the cold tumor phenotype
+cd8_exhausted_fraction,0.55,0.30,0.80,dimensionless,Most CD8s that do infiltrate PDAC encounter chronic antigen and immunosuppressive signals leading to PD-1 upregulation
+th_exhausted_fraction,0.35,0.15,0.60,dimensionless,CD4 helpers also upregulate PD-1 but generally at lower rates than CD8s in solid tumors
+cd8_treg_ratio,2.4,0.8,6.0,dimensionless,Low CD8:Treg ratio reflects immunosuppressive skewing; values well below those seen in immunogenic tumors
+cd8_treg_ratio_alt,2.0,0.7,5.5,dimensionless,Independent estimate consistent with first; slight variation reflecting different measurement approaches
+treg_fraction_cd4,0.38,0.20,0.55,dimensionless,Tregs make up a large share of CD4 cells in PDAC due to active recruitment via CCL22 and TGF-beta conversion
+treg_fraction_cd4_alt,0.35,0.18,0.55,dimensionless,Second independent estimate; Treg enrichment among CD4 cells is a consistent PDAC feature
+treg_fraction_baseline,0.20,0.08,0.35,dimensionless,Tregs as fraction of all CD3+ T cells; substantial but diluted by the CD8 compartment
+m1_m2_ratio,0.25,0.10,0.50,dimensionless,PDAC macrophages are heavily M2-polarized by IL-10 TGF-beta and hypoxia; M1s are a minority
+m2_macrophage_fraction,0.75,0.60,0.90,dimensionless,Consistent with the low M1:M2 ratio; M2 dominance is a hallmark of PDAC immunosuppression
+apc_maturation_ratio,0.15,0.05,0.30,dimensionless,Most DCs in PDAC remain immature due to IL-10 TGF-beta and lack of danger signals; few fully mature
+icaf_fraction_of_caf,0.35,0.15,0.55,dimensionless,iCAFs and myCAFs are the two dominant subtypes; iCAFs produce inflammatory cytokines and are found more distally from tumor nests
+mycaf_fraction_of_caf,0.50,0.30,0.70,dimensionless,myCAFs are typically the most abundant CAF subtype in PDAC producing ECM and located adjacent to tumor cells
+apcaf_fraction_of_caf,0.10,0.03,0.20,dimensionless,apCAFs are a minor population; they express MHC-II but lack costimulatory molecules and promote Treg induction
+apcaf_fraction_of_caf_alt,0.08,0.02,0.18,dimensionless,Second estimate; apCAFs are consistently the rarest CAF subtype in PDAC
+stromal_fraction,0.70,0.50,0.85,dimensionless,PDAC is defined by its dense desmoplastic reaction; stroma typically exceeds tumor epithelial volume
+psc_activation_ratio,0.80,0.60,0.95,dimensionless,Most stellate cells near tumor are activated by TGF-beta PDGF and direct tumor cell contact; few remain quiescent
+collagen1_protein_level,8.0,3.0,18.0,fold-change,Massive collagen deposition is a cardinal feature of PDAC desmoplasia; several-fold above normal pancreatic tissue
+vegf_tissue_concentration,150,50,400,pg/mg protein,PDAC produces moderate VEGF driven by hypoxia but vascularity remains poor due to stromal compression of vessels

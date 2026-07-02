@@ -1,0 +1,226 @@
+target_id: q_nCD8_LN_in
+
+study_interpretation: |
+  The naive CD8 T cell entry rate into the lymph node (q_nCD8_LN_in) is derived from
+  a steady-state balance between LN entry and exit fluxes. At homeostasis, the influx
+  of naive CD8 T cells into the LN equals the efflux: q_nCD8_LN_in × nCD8_C =
+  q_nCD8_LN_out × nCD8_LN. Rearranging: q_nCD8_LN_in = q_nCD8_LN_out × (nCD8_LN / nCD8_C).
+
+  The exit rate q_nCD8_LN_out = 1.8/day comes from Mandl et al. (2012), who measured
+  naive CD8 T cell lymph node transit times in mice (~13h mean dwell time after
+  anti-L-selectin blockade of entry, giving k_exit = ln(2)/t_half ≈ 1.1/day, or
+  1/mean_dwell ≈ 1.8/day). The LN:blood ratio of 0.05 comes from Autissier et al.
+  (2010), who quantified naive CD8 T cell densities in human peripheral blood
+  (median 505 cells/µL, range 410–825) and from the model's assumption that ~5%
+  of circulating naive CD8 reside in the effective draining LN at any time.
+
+  This derivation assumes: (1) homeostatic steady state with negligible net
+  proliferation or death during a single transit cycle, (2) the mouse exit rate
+  translates to humans, and (3) the single effective LN compartment in the QSP
+  model captures the aggregate behavior of multiple physiologic LNs.
+
+key_assumptions:
+  - "Steady-state homeostasis: naive CD8 influx to LN equals efflux (no net accumulation)"
+  - "Mouse LN exit rate (Mandl 2012) is applicable to human LN physiology"
+  - "The 5% LN:blood ratio represents the fraction of circulating naive CD8 in the effective draining LN"
+  - "Death and proliferation during a single LN transit are negligible compared to trafficking fluxes"
+
+key_study_limitations:
+  - "Exit rate measured in mice, not humans — species scaling uncertainty"
+  - "LN:blood ratio is an assumption, not directly measured from paired blood/LN samples"
+  - "Mandl used anti-L-selectin blockade which may perturb egress kinetics"
+  - "Single effective LN compartment aggregates behavior of ~500 physiologic LNs"
+
+experimental_context:
+  species: mouse
+  system: in_vivo_adoptive_transfer
+  indication: healthy
+
+inputs:
+  - name: dwell_time_mean
+    value: 22.5
+    units: hour
+    input_type: direct_measurement
+    source_ref: Mandl2012
+    source_location: "Fig 2D, digitized CD8 scatter points"
+    figure_excerpt:
+      figure_id: "Fig. 2D"
+      value: "22.5"
+      description: "Mean of 29 digitized individual experiment dwell time estimates for naive CD8 T cells in peripheral LN"
+      context: "Mean dwell time estimates for transferred naive CD4+ and CD8+ T cells. Points denote egress estimates from one experiment. Peripheral LN panel, CD8 column."
+    rationale: "Mean LN dwell time from individual experiment estimates (text reports 21.2h from fitted exponential; digitized scatter gives 22.5h mean across all LN subtypes and mouse strains)"
+
+  - name: dwell_time_sd
+    value: 14.6
+    units: hour
+    input_type: direct_measurement
+    source_ref: Mandl2012
+    source_location: "Fig 2D, digitized CD8 scatter points"
+    figure_excerpt:
+      figure_id: "Fig. 2D"
+      value: "14.6"
+      description: "SD of 29 digitized individual experiment dwell time estimates for naive CD8 T cells"
+      context: "Mean dwell time estimates for transferred naive CD4+ and CD8+ T cells. Points denote egress estimates from one experiment. Peripheral LN panel, CD8 column."
+    rationale: "SD computed from digitized scatter points in Fig 2D (iLN + bLN, B6 + B10.A + B10 strains)"
+
+  - name: n_experiments
+    value: 29
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Mandl2012
+    source_location: "Fig 2D, digitized point count"
+    figure_excerpt:
+      figure_id: "Fig. 2D"
+      value: "29"
+      description: "Number of individual scatter points digitized from CD8 column"
+      context: "Points denote egress estimates from one experiment. Closed symbols, iLN; open symbols, bLN; circles B6; triangles B10.A; inverted triangles B10. Egress estimates are from 8 to 19 independent experiments."
+    rationale: "29 individual scatter points digitized from the CD8 column of Fig 2D (combining iLN/bLN and mouse strains)"
+
+  - name: hours_per_day
+    value: 24
+    units: hour/day
+    input_type: unit_conversion
+    source_ref: Mandl2012
+    source_location: "unit conversion"
+    rationale: "Convert dwell time in hours to exit rate in 1/day"
+
+  - name: ratio_LN_blood
+    value: 0.05
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Autissier2010
+    source_location: "Derived from Table 2 blood counts and model LN assumption"
+    table_excerpt:
+      table_id: "Table 2"
+      column: "ABSOLUTE COUNT (CELLS/µL) MEDIAN"
+      row: "CD42 CD81"
+      value: "505.0"
+      context: "Percentages and absolute cell numbers of lymphocyte, monocyte and DC subsets. CD4- CD8+ row gives naive CD8 T cell counts in peripheral blood."
+    rationale: "The 5% ratio represents the fraction of blood naive CD8 assumed to reside in the single effective LN compartment. This is a model assumption informed by the order of magnitude of LN:blood partitioning."
+
+  - name: ratio_LN_blood_sd
+    value: 0.02
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Autissier2010
+    source_location: "Table 2 range column"
+    table_excerpt:
+      table_id: "Table 2"
+      column: "ABSOLUTE COUNT (CELLS/µL) RANGE"
+      row: "CD42 CD81"
+      value: "410.5–825.4"
+      context: "Range of absolute naive CD8 T cell counts across healthy donors."
+    rationale: "SD on the ratio, reflecting inter-individual variability in blood naive CD8 counts"
+
+  - name: n_subjects
+    value: 30
+    units: dimensionless
+    input_type: direct_measurement
+    source_ref: Autissier2010
+    source_location: "Methods section"
+    value_snippet: "30 healthy donors"
+
+calibration:
+  parameters:
+    - name: q_nCD8_LN_in
+      units: "1/day"
+
+  forward_model:
+    type: algebraic
+    formula: "q_in = q_out * ratio"
+    code: |
+      def compute(params, inputs):
+          return params['q_nCD8_LN_in']
+    data_rationale: "At steady state, q_nCD8_LN_in = q_nCD8_LN_out × ratio_LN_blood. The parameter directly equals the derived entry rate."
+    submodel_rationale: "The QSP model uses q_nCD8_LN_in as a first-order rate constant for V_C.nCD8 → V_LN.nCD8. At homeostasis this must balance exit."
+
+  error_model:
+    - name: naive_CD8_entry_rate
+      units: "1/day"
+      uses_inputs: [dwell_time_mean, dwell_time_sd, hours_per_day, ratio_LN_blood, ratio_LN_blood_sd]
+      sample_size_input: n_experiments
+      observation_code: |
+        def derive_observation(inputs, sample_size, rng, n_bootstrap):
+            import numpy as np
+            dt_mean = inputs['dwell_time_mean']
+            dt_sd = inputs['dwell_time_sd']
+            hpd = inputs['hours_per_day']
+            ratio_mu = inputs['ratio_LN_blood']
+            ratio_sd = inputs['ratio_LN_blood_sd']
+            # Dwell time: lognormal (positive)
+            log_dt_mu = np.log(dt_mean**2 / np.sqrt(dt_sd**2 + dt_mean**2))
+            log_dt_sigma = np.sqrt(np.log(1 + (dt_sd / dt_mean)**2)) / np.sqrt(sample_size)
+            dt_samples = rng.lognormal(log_dt_mu, log_dt_sigma, n_bootstrap)
+            exit_rates = hpd / dt_samples
+            # Ratio: beta (bounded 0-1)
+            nu = ratio_mu * (1 - ratio_mu) / ratio_sd**2 - 1
+            a = ratio_mu * nu
+            b = (1 - ratio_mu) * nu
+            ratio_samples = rng.beta(a, b, n_bootstrap)
+            return exit_rates * ratio_samples
+
+  identifiability_notes: |
+    This target constrains q_nCD8_LN_in via a steady-state balance equation.
+    The parameter is directly equated to q_nCD8_LN_out × ratio_LN_blood.
+    The exit rate contributes the larger uncertainty (mouse→human species gap),
+    while the ratio uncertainty is smaller (human data, but model assumption).
+    In the full QSP model, q_nCD8_LN_in interacts with q_nCD8_LN_out,
+    k_nCD8_death, and k_nCD8_pro to determine steady-state naive CD8 counts
+    in blood vs LN.
+
+primary_data_source:
+  doi: "10.1073/pnas.1211717109"
+  title: "Quantification of lymph node transit times reveals differences in antigen surveillance strategies of naïve CD4+ and CD8+ T cells"
+  authors:
+    - "Jens N. Mandl"
+    - "Reinhard Liber"
+    - "Sunny H. Kim"
+    - "Katelyn Joshi"
+    - "Ronald N. Germain"
+  year: 2012
+  source_tag: Mandl2012
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: "Mouse LN transit data used as proxy for human PDAC model. The fundamental biophysics of T cell trafficking through LN HEVs is conserved across species, though absolute rates may differ."
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: pharmacological
+    perturbation_relevance: "Anti-L-selectin antibody blockade of LN entry was used to measure exit kinetics. The perturbation reveals the exit rate without affecting it, as it blocks new entry but does not alter egress of cells already in the LN."
+    tme_compatibility: low
+    tme_compatibility_notes: "Healthy mouse LNs, not tumor-draining. PDAC tumor-draining LNs may have altered HEV structure and trafficking. However, this parameter governs naive CD8 entry which occurs before tumor engagement."
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: animal_in_vivo
+
+secondary_data_sources:
+  - doi: "10.1002/cyto.a.20859"
+    title: "Evaluation of a 12-color flow cytometry panel to study lymphocyte, monocyte, and dendritic cell subsets in humans"
+    authors:
+      - "Pierre Autissier"
+      - "Carolyn Soulas"
+      - "Tricia H. Burdo"
+      - "Kenneth C. Williams"
+    year: 2010
+    source_tag: Autissier2010
+    contribution: "Provides naive CD8 T cell density in human peripheral blood (median 505 cells/µL, range 410-825, n=30 healthy donors), used to derive the LN:blood ratio."
+    source_relevance:
+      indication_match: proxy
+      indication_match_justification: "Healthy human blood counts as proxy for PDAC patients. Baseline naive CD8 counts are expected to be similar in untreated PDAC patients, as the naive compartment is maintained by thymic output and homeostatic proliferation independent of the tumor."
+      species_source: human
+      species_target: human
+      source_quality: primary_human_clinical
+      perturbation_type: physiological_baseline
+      perturbation_relevance: "Unperturbed baseline counts from healthy donors, directly applicable to the model's homeostatic steady state."
+      tme_compatibility: moderate
+      tme_compatibility_notes: "Blood counts, not tumor-draining LN. The ratio of LN:blood naive CD8 is a model assumption (0.05), not directly measured from paired blood/LN samples."
+      measurement_directness: direct
+      temporal_resolution: snapshot_or_equilibrium
+      experimental_system: clinical_in_vivo
+
+tags:
+  - trafficking
+  - naive_CD8
+  - lymph_node
+  - steady_state_derivation
+  - multi_paper

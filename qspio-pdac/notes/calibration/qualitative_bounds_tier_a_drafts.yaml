@@ -1,0 +1,325 @@
+# DRAFT — Tier A proposed qualitative bounds (not yet in tests/qualitative_bounds.yaml)
+#
+# Scope after self-review: only bounds that (a) would actually fail a broken
+# model and (b) have a plausible defensible literature source. Wide-band
+# absolute cytokine/chemokine concentration bounds were removed — they belong
+# in notes/calibration/pdac_cytokine_chemokine_targets.csv as calibration
+# targets, not here.
+#
+# Before promotion each entry needs: (a) verbatim `evidence_snippet` from a
+# real paper, (b) verified DOI or PMID, (c) numerics traceable to that source.
+# Fill via `mcp__maple__extract_target` or targeted literature lookup — do
+# NOT fabricate citations (see feedback_no_fabricated_citations.md).
+#
+# Enum values below conform to Source / SourceRelevanceAssessment schema:
+#   indication_match: exact | related | proxy | unrelated
+#   source_quality: primary_human_clinical | primary_human_in_vitro |
+#                   primary_animal_in_vivo | primary_animal_in_vitro |
+#                   review_article | textbook | non_peer_reviewed
+#   perturbation_type: physiological_baseline | pathological_state |
+#                      pharmacological | genetic_perturbation
+#   tme_compatibility: high | moderate | low
+#   indication_match_justification: min 50 chars
+#   perturbation_relevance / tme_compatibility_notes: min 30 chars
+
+bounds:
+
+# =============================================================================
+# CD4+ T helper composition
+# =============================================================================
+
+- bound_id: cd4_fraction_range_diagnosis
+  description: |
+    CD4+ fraction of CD3+ T cells at PDAC diagnosis. CD4 Th cells provide help
+    required for sustained CD8 effector function and IFNg production.
+  lower: 0.25
+  upper: 0.55
+  units: dimensionless
+  rationale: |
+    Carstens 2017 multiplex IHC on n=56 PDAC reports CD4 ~36% and CD8 ~47% of
+    CD3+ T cells. Band 0.25–0.55 spans typical PDAC variability while failing
+    models that drop CD4 near zero (no Th help) or make CD4 dominant (not
+    observed in PDAC TIL).
+  evidence_snippet: |
+    TODO — verbatim quote from Carstens 2017 (doi:10.1038/ncomms15095)
+    reporting CD4 and CD8 percentages of CD3+ intratumoral cells.
+  primary_data_source:
+    source_tag: Carstens2017
+    title: Spatial computation of intratumoral T cells correlates with survival of patients with pancreatic cancer
+    first_author: Carstens
+    year: 2017
+    doi: 10.1038/ncomms15095
+    source_relevance:
+      indication_match: exact
+      indication_match_justification: Human PDAC multiplex IHC of resected treatment-naive primary tumors; species and disease context match the model exactly.
+      species_source: human
+      species_target: human
+      source_quality: primary_human_clinical
+      perturbation_type: physiological_baseline
+      perturbation_relevance: Observational measurement of treatment-naive PDAC specimens; no experimental perturbation applied.
+      tme_compatibility: high
+      tme_compatibility_notes: Treatment-naive resected PDAC with characteristic desmoplastic, immune-excluded TME matching the model baseline.
+  category: cell_composition
+  tags:
+  - cd4
+  - t_helper
+  - composition
+
+- bound_id: cd4_cd8_ratio_range_diagnosis
+  description: |
+    CD4:CD8 ratio of intratumoral T cells at PDAC diagnosis. Bounded more
+    tightly than the individual CD4/CD8 fractions because the ratio is a
+    more stable landmark across scoring methods.
+  lower: 0.5
+  upper: 1.5
+  units: dimensionless
+  rationale: |
+    Carstens 2017 implies CD4/CD8 ~0.77 from reported density ratios; broader
+    PDAC TIL literature centers the ratio in 0.6–1.2. Band 0.5–1.5 tolerates
+    patient-level heterogeneity while flagging CD4 collapse or CD4 dominance.
+  evidence_snippet: |
+    TODO — verbatim quote from Carstens 2017 (doi:10.1038/ncomms15095) giving
+    CD4 and CD8 densities, and a secondary PDAC TIL source for the ratio.
+  primary_data_source:
+    source_tag: Carstens2017
+    title: Spatial computation of intratumoral T cells correlates with survival of patients with pancreatic cancer
+    first_author: Carstens
+    year: 2017
+    doi: 10.1038/ncomms15095
+    source_relevance:
+      indication_match: exact
+      indication_match_justification: Human PDAC multiplex IHC of resected treatment-naive primary tumors; species and disease context match the model exactly.
+      species_source: human
+      species_target: human
+      source_quality: primary_human_clinical
+      perturbation_type: physiological_baseline
+      perturbation_relevance: Observational measurement of treatment-naive PDAC specimens; no experimental perturbation applied.
+      tme_compatibility: high
+      tme_compatibility_notes: Treatment-naive resected PDAC with characteristic desmoplastic, immune-excluded TME matching the model baseline.
+  category: cell_composition
+  tags:
+  - cd4
+  - cd8
+  - ratio
+
+# =============================================================================
+# Cytokine: IL-12 ceiling only
+# =============================================================================
+
+- bound_id: il12_tme_max_diagnosis
+  description: |
+    Maximum IL-12p70 concentration in PDAC TME at diagnosis. PDAC is an
+    IL-12-low TME; elevated IL-12 would indicate unrealistic cDC1 activation
+    at baseline and would spuriously drive Th1 polarization.
+  upper: 1.0e-3
+  units: micromolar
+  rationale: |
+    IL-12p70 in most solid-tumor serum/tissue panels is at or below assay
+    detection limit (<1–10 pg/mL). MW ~70 kDa → 10 pg/mL ≈ 1.4e-4 µM. Ceiling
+    of 1e-3 µM allows measurement noise but still fails models with
+    biologically implausible cDC1-driven Th1 baseline.
+  evidence_snippet: |
+    TODO — extract from a PDAC-specific cytokine panel reporting IL-12p70
+    below detection (candidates: Bazhin 2014, Mitsunaga 2013).
+  primary_data_source:
+    source_tag: TODO_pdac_il12
+    title: TODO — PDAC cytokine panel reporting IL-12p70
+    first_author: TODO
+    year: 2014
+    doi: 10.0000/TODO
+    source_relevance:
+      indication_match: exact
+      indication_match_justification: Target source must be a PDAC-specific serum or tissue cytokine panel; placeholder until extraction fills this in.
+      species_source: human
+      species_target: human
+      source_quality: primary_human_clinical
+      perturbation_type: physiological_baseline
+      perturbation_relevance: Observational cytokine profiling of treatment-naive PDAC specimens; no experimental perturbation applied.
+      tme_compatibility: moderate
+      tme_compatibility_notes: Serum and tissue IL-12p70 are routinely reported below assay detection in PDAC cohorts.
+  category: baseline_tme
+  tags:
+  - cytokine
+  - il12
+
+# =============================================================================
+# PD-L1 expression on cancer cells
+# =============================================================================
+
+- bound_id: pdl1_positive_cancer_fraction_tps5
+  description: |
+    Fraction of PDAC specimens / cancer cells PD-L1-positive at the common
+    TPS ≥5% cutoff. The checkpoint drug target — must match IHC-derived
+    distributions. Cutoff is explicit because PDAC PD-L1 positivity is
+    strongly cutoff-dependent.
+  lower: 0.05
+  upper: 0.40
+  units: dimensionless
+  rationale: |
+    Across PDAC IHC cohorts, TPS ≥5% positivity is commonly reported in
+    15–35% of cases (varies by antibody clone and cohort). Band 5–40%
+    allows inter-study variability. A second companion bound at TPS ≥1%
+    can be added later (typically 30–60% positive).
+  evidence_snippet: |
+    TODO — candidate sources: Nomi 2007 (doi:10.1158/1078-0432.CCR-06-1869),
+    Birnbaum 2019, or Karakhanova 2015. Confirm the exact TPS cutoff used.
+  primary_data_source:
+    source_tag: TODO_pdac_pdl1
+    title: TODO — PDAC PD-L1 IHC cohort reporting TPS-based positivity
+    first_author: TODO
+    year: 2019
+    doi: 10.0000/TODO
+    source_relevance:
+      indication_match: exact
+      indication_match_justification: Target source must be a PDAC IHC cohort with explicit TPS cutoff; placeholder until extraction fills this in.
+      species_source: human
+      species_target: human
+      source_quality: primary_human_clinical
+      perturbation_type: physiological_baseline
+      perturbation_relevance: Observational IHC quantification of treatment-naive PDAC resection specimens; no experimental perturbation.
+      tme_compatibility: high
+      tme_compatibility_notes: Resected treatment-naive PDAC matches model baseline; TPS cutoff must be reported explicitly.
+  category: baseline_tme
+  tags:
+  - pdl1
+  - checkpoint
+  - cancer_cell
+
+# =============================================================================
+# CXCL12 / CXCR4 axis — perturbation test
+# =============================================================================
+
+- bound_id: cxcl12_blockade_cd8_increase_min
+  description: |
+    Minimum fold-increase in intratumoral CD8 density upon CXCL12 / CXCR4
+    blockade. Quantitative (not merely directional) recruitment test for the
+    CXCL12-mediated T-cell exclusion axis.
+  lower: 1.3
+  units: dimensionless
+  rationale: |
+    Feig 2013 and follow-on PDAC GEMM studies show CXCR4 antagonism
+    (AMD3100) drives several-fold CD8 infiltration increases and synergy
+    with checkpoint blockade. A floor of 1.3× intratumoral CD8 over
+    baseline is conservative relative to reported 2–5× effects; any lower
+    indicates the model's CXCL12 Hill is too weak to matter.
+  evidence_snippet: |
+    TODO — verbatim quote from Feig 2013 (doi:10.1073/pnas.1320318110) on
+    CD8 T-cell accumulation after AMD3100 in KPC tumors.
+  primary_data_source:
+    source_tag: Feig2013
+    title: Targeting CXCL12 from FAP-expressing carcinoma-associated fibroblasts synergizes with anti-PD-L1 immunotherapy in pancreatic cancer
+    first_author: Feig
+    year: 2013
+    doi: 10.1073/pnas.1320318110
+    source_relevance:
+      indication_match: exact
+      indication_match_justification: KPC GEMM of pancreatic ductal adenocarcinoma; the CXCL12-CXCR4 mechanism maps directly onto the model's CXCL12 Hill.
+      species_source: mouse
+      species_target: human
+      source_quality: primary_animal_in_vivo
+      perturbation_type: pharmacological
+      perturbation_relevance: CXCR4 antagonism with AMD3100 is the same pharmacological mechanism as blocking the CXCL12 Hill in the model.
+      tme_compatibility: moderate
+      tme_compatibility_notes: KPC desmoplastic TME approximates human PDAC but is murine; mouse-to-human widens the acceptable fold-change band.
+  category: treatment_response
+  tags:
+  - chemokine
+  - cxcl12
+  - cd8
+  - recruitment
+
+# =============================================================================
+# ECM pore size & stiffness
+# =============================================================================
+
+- bound_id: ecm_pore_size_range_diagnosis
+  description: |
+    Effective ECM inter-fiber pore size (d_pore) in desmoplastic PDAC at
+    diagnosis. Gates APC and T-cell migration via H_pore_T / H_pore_APC.
+  lower: 0.05
+  upper: 0.50
+  units: micrometer
+  rationale: |
+    Electron microscopy and second-harmonic-generation imaging of dense
+    collagen give effective pores ~50–500 nm in fibrotic tissue, with PDAC
+    at the lower end. T-cell nuclear diameter ~4–5 µm, so sub-µm pores
+    actively restrict migration — the physiologically meaningful range.
+  evidence_snippet: |
+    TODO — Wolf 2013 (doi:10.1083/jcb.201210152) for pore-size-dependent
+    migration; PDAC-specific value from Provenzano 2012 or similar SHG paper.
+  primary_data_source:
+    source_tag: TODO_pdac_pore
+    title: TODO — PDAC-specific ECM pore size measurement
+    first_author: TODO
+    year: 2013
+    doi: 10.0000/TODO
+    source_relevance:
+      indication_match: related
+      indication_match_justification: Pore-size measurements come from dense-stroma imaging (PDAC or other fibrotic contexts); related but not always strictly PDAC.
+      species_source: human
+      species_target: human
+      source_quality: primary_human_in_vitro
+      perturbation_type: physiological_baseline
+      perturbation_relevance: Observational imaging of fixed specimens; no active perturbation applied to the ECM architecture.
+      tme_compatibility: moderate
+      tme_compatibility_notes: Imaging modalities (EM, SHG) differ in effective-pore definition; widen band accordingly.
+  category: baseline_tme
+  tags:
+  - ecm
+  - pore_size
+  - migration
+
+- bound_id: ecm_stiffness_range_diagnosis
+  description: |
+    Tissue stiffness (Young's modulus) in PDAC at diagnosis. Gates
+    mechanotransduction via H_stiff_Texh (CD8 exhaustion) and H_stiff_fib
+    (YAP/TAZ CAF activation).
+  lower: 1.0
+  upper: 50.0
+  units: kilopascal
+  rationale: |
+    AFM and shear-wave elastography of PDAC report 5–30 kPa versus ~1 kPa
+    for normal pancreas — roughly an order-of-magnitude stiffening. Band
+    1–50 kPa allows modality differences and tumor heterogeneity while
+    failing models that produce normal-pancreas-like stiffness in PDAC.
+  evidence_snippet: |
+    TODO — Rubiano 2018 (doi:10.1002/cam4.1398) or Nabavizadeh 2020
+    elastography of PDAC; confirm absolute stiffness values.
+  primary_data_source:
+    source_tag: TODO_pdac_stiffness
+    title: TODO — PDAC elastography or AFM stiffness measurement
+    first_author: TODO
+    year: 2018
+    doi: 10.0000/TODO
+    source_relevance:
+      indication_match: exact
+      indication_match_justification: Target source must be a PDAC-specific stiffness measurement (elastography or AFM); placeholder until extraction fills this in.
+      species_source: human
+      species_target: human
+      source_quality: primary_human_clinical
+      perturbation_type: physiological_baseline
+      perturbation_relevance: Observational stiffness quantification of PDAC vs adjacent normal pancreas; no experimental perturbation.
+      tme_compatibility: high
+      tme_compatibility_notes: PDAC stiffness is ~10x elevated vs normal pancreas; modality variance accommodated by the 1–50 kPa band.
+  category: baseline_tme
+  tags:
+  - ecm
+  - stiffness
+  - mechanotransduction
+
+
+# =============================================================================
+# DEMOTED: absolute concentration bounds to extract as CalibrationTargets
+# (Not bounds — these belong in pdac_cytokine_chemokine_targets.csv as
+#  proper CalibrationTarget extractions with distributions. Listed here so
+#  the audit trail of what was demoted-and-why is preserved.)
+# =============================================================================
+# - IFNg TME concentration        — extract; model's IFNg arm is now linear
+#                                   sub-saturating slope (2026-04 refactor),
+#                                   making an absolute μM bound less meaningful
+# - TGFb TME concentration        — extract; requires active-vs-total split
+# - IL-10 TME concentration       — extract
+# - IL-6 TME concentration        — extract; PDAC serum IL-6 is characteristically elevated
+# - CXCL12 TME concentration      — extract; perturbation bound above covers the axis qualitatively
+# - CCL2 TME concentration        — extract
+# - APC-PD-L1 positive fraction   — defer until PDAC-specific or high-quality pan-cancer DC data found

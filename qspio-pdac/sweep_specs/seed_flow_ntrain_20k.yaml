@@ -1,0 +1,33 @@
+# seed × flow × n_train_subsample grid, all from the 20k pool.
+#
+# n_train_subsample limits the training rows AFTER the 90/10 split (so test
+# set size stays at 10% of valid pool). At 20k raw sims the joint NaN filter
+# retained ~3382 train rows in the previous run — tests whether NPE is
+# still data-limited by subsampling down from that.
+sweep_name: seed_flow_ntrain_20k
+
+fixed:
+  prcc_tier: null
+  run_posterior_predictive: false
+  cache_sampling_seed: 2025
+  num_total_simulations: 20000
+
+axes:
+  - name: seed
+    values: [2025, 2029, 2033]
+
+  - name: flow
+    values:
+      - {npe_hidden_features: 128, npe_num_transforms: 7}
+      - {npe_hidden_features: 192, npe_num_transforms: 9}
+      - {npe_hidden_features: 256, npe_num_transforms: 11}
+
+  - name: n_train_subsample
+    # null (yaml) → Python None → use all valid train rows.
+    values: [1000, 2000, 3000, null]
+
+sbatch:
+  partition: shared
+  time: "02:00:00"
+  cpus_per_task: 4
+  mem: "32G"

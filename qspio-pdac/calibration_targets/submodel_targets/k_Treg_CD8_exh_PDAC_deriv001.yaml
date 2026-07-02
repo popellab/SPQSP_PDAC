@@ -1,0 +1,298 @@
+target_id: k_Treg_CD8_exh
+inputs:
+- name: t_exhaustion_days
+  value: 14.0
+  units: day
+  input_type: direct_measurement
+  source_ref: Sawant2019
+  source_location: Methods / Figure 3d legend ("day 14 B16 tumor-bearing")
+  value_snippet: Treg cell fractions and NDLN Foxp3YFP CD4+ Teff control were FACS
+    sorted from day 14 B16 tumor-bearing Il10GFP.Ebi3Tom.Foxp3Cre-YFP mice.
+- name: f_exh_WT_mean
+  value: 0.526
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Sawant2019
+  source_location: Figure 3d, CD8+ T cells, Foxp3Cre-YFP quadrant numbers
+  figure_excerpt:
+    figure_id: Figure 3d
+    value: '52.6'
+    description: Upper-right quadrant (PD-1hi TIM3+) percentage among CD8+ TILs in
+      B16 tumors from Foxp3Cre-YFP mice at day 14
+    context: B16-F10 melanoma, intradermal, day 14; CD8+ tumor-infiltrating lymphocytes
+      stained for PD-1 and TIM3; numbers indicate percentage of gated CD8+ cells in
+      each quadrant.
+- name: f_exh_DKO_mean
+  value: 0.001
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Sawant2019
+  source_location: Figure 3d, CD8+ T cells, Il10L/L.Ebi3L/L-Tom.Foxp3Cre-YFP quadrant
+    numbers
+  figure_excerpt:
+    figure_id: Figure 3d
+    value: '0.1'
+    description: Upper-right quadrant (PD-1hi TIM3+) percentage among CD8+ TILs in
+      B16 tumors from Il10L/L.Ebi3L/L-Tom.Foxp3Cre-YFP double cytokine-deficient mice
+      at day 14
+    context: B16-F10 melanoma, intradermal, day 14; CD8+ tumor-infiltrating lymphocytes
+      stained for PD-1 and TIM3; numbers indicate percentage of gated CD8+ cells in
+      each quadrant.
+- name: n_mice_WT
+  value: 13.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Sawant2019
+  source_location: Figure 3d legend and main text
+  value_snippet: d, Representative flow plots ... Foxp3Cre-YFP (n=13), Il10L/L.Foxp3Cre-YFP
+    (n=9), Ebi3L/L-Tom.Foxp3Cre-YFP (n=11), and Il10L/L.Ebi3L/L-Tom.Foxp3Cre-YFP (n=10)
+    mice.
+- name: n_mice_DKO
+  value: 10.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Sawant2019
+  source_location: Figure 3d legend and main text
+  value_snippet: d, Representative flow plots ... Foxp3Cre-YFP (n=13), Il10L/L.Foxp3Cre-YFP
+    (n=9), Ebi3L/L-Tom.Foxp3Cre-YFP (n=11), and Il10L/L.Ebi3L/L-Tom.Foxp3Cre-YFP (n=10)
+    mice.
+calibration:
+  parameters:
+  - name: k_Treg_CD8_exh
+    units: 1/day
+    nuisance: false
+  - name: k_CD8_exh_basal_effective
+    units: 1/day
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -6.9078
+      sigma: 1.5
+  forward_model:
+    data_rationale: Sawant2019 reports, at day 14 in B16 tumors, the percentage of
+      CD8+ tumor-infiltrating lymphocytes in the PD-1hi TIM3+ quadrant for wild-type
+      vs Treg-specific Il10/Ebi3 double-knockout mice. These PD-1hi TIM3+ cells operationally
+      define the exhausted CD8+ TIL compartment. Comparing the exhausted fraction
+      between genotypes at a fixed tumor age directly constrains the net rate at which
+      effector CD8+ T cells transition into exhaustion, and how much of that rate
+      depends on Treg-derived IL-10/IL-35 versus basal, Treg-independent mechanisms.
+    submodel_rationale: In the full PDAC QSP model, Treg-mediated CD8 exhaustion in
+      the tumor is represented by a first-order transition V_T.CD8 -> V_T.CD8_exh
+      with rate k_Treg_CD8_exh * V_T.CD8 * Tregs_/(V_T.CD8+Tregs_+cell) * H_IL10.
+      Under conditions where intratumoral Treg density and IL-10/IL-35 are saturating
+      (as in wild-type B16 tumors at day 14), the product Tregs_/(V_T.CD8+Tregs_+cell)
+      * H_IL10 effectively approaches 1, so the Treg-driven contribution to the exhaustion
+      rate approaches k_Treg_CD8_exh. In Il10/Ebi3 double-knockout Treg mice, Treg-derived
+      IL-10 and IL-35 are absent while other exhaustion pathways (chronic TCR stimulation
+      by tumor, PD-1/PD-L1, stiffness) remain intact; this corresponds to setting
+      the Treg term to zero while retaining a basal, composite exhaustion rate. Modeling
+      the exhausted CD8 fraction as f_j(t) = 1 - exp(-k_exh_j t) with k_exh_WT = k_CD8_exh_basal_effective
+      + k_Treg_CD8_exh and k_exh_DKO = k_CD8_exh_basal_effective therefore provides
+      a mechanistically consistent algebraic reduction of the QSP transition that
+      isolates k_Treg_CD8_exh while bundling non-Treg contributions into a single
+      nuisance rate k_CD8_exh_basal_effective.
+    type: algebraic
+    formula: For each genotype j, the fraction of exhausted CD8+ T cells at tumor
+      age t is f_j = 1 - exp(-k_exh_j * t), where k_exh_WT = k_CD8_exh_basal_effective
+      + k_Treg_CD8_exh (saturating Treg-derived IL-10/IL-35 in WT) and k_exh_DKO =
+      k_CD8_exh_basal_effective (no Treg-derived IL-10/IL-35 in Il10/Ebi3 double-knockout).
+    code: "def compute(params, inputs):\n    import numpy as np\n    t = inputs['t_exhaustion_days']\
+      \  # tumor age at measurement (days)\n    k_basal = params['k_CD8_exh_basal_effective']\n\
+      \    k_treg = params['k_Treg_CD8_exh']\n\n    # Effective exhaustion rates per\
+      \ genotype, reflecting QSP reaction:\n    # rate_Treg = k_Treg_CD8_exh * (Tregs_/(CD8+Tregs_+cell))\
+      \ * H_IL10\n    # For WT B16 at day 14, we assume Treg density and IL-10/IL-35\
+      \ are saturating,\n    # so (Tregs_/(CD8+Tregs_+cell))*H_IL10 -> 1. For Il10/Ebi3\
+      \ double KO, Treg-derived\n    # IL-10 and IL-35 are absent, so this product\
+      \ -> 0 and the Treg-mediated term\n    # drops out, leaving only basal exhaustion\
+      \ pathways.\n    k_exh_WT = k_basal + k_treg\n    k_exh_DKO = k_basal\n\n  \
+      \  f_WT = 1.0 - np.exp(-k_exh_WT * t)\n    f_DKO = 1.0 - np.exp(-k_exh_DKO *\
+      \ t)\n\n    return {\n        'f_WT_d14': f_WT,\n        'f_DKO_d14': f_DKO,\n\
+      \    }"
+  error_model:
+  - name: WT_exhausted_fraction_d14
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['f_WT_d14']"
+    units: dimensionless
+    uses_inputs:
+    - f_exh_WT_mean
+    - n_mice_WT
+    sample_size_input: n_mice_WT
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['f_exh_WT_mean']\n    # No empirical\
+      \ uncertainty is reported for quadrant percentages; we treat the\n    # plotted\
+      \ value as the group mean and generate a degenerate bootstrap\n    # distribution\
+      \ concentrated at that mean.\n    return np.full(n_bootstrap, mean)"
+    n_bootstrap: 10000
+  - name: DKO_exhausted_fraction_d14
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['f_DKO_d14']"
+    units: dimensionless
+    uses_inputs:
+    - f_exh_DKO_mean
+    - n_mice_DKO
+    sample_size_input: n_mice_DKO
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['f_exh_DKO_mean']\n    # No empirical\
+      \ uncertainty is reported for quadrant percentages; we treat the\n    # plotted\
+      \ value as the group mean and generate a degenerate bootstrap\n    # distribution\
+      \ concentrated at that mean.\n    return np.full(n_bootstrap, mean)"
+    n_bootstrap: 10000
+  identifiability_notes: 'With two genotypes (WT and Il10/Ebi3 double-knockout) measured
+    at a single tumor age, this target provides two data points constraining two rate
+    parameters: the basal composite exhaustion rate (k_CD8_exh_basal_effective) and
+    the Treg-mediated increment (k_Treg_CD8_exh). These parameters will be moderately
+    correlated: only their sums (k_basal + k_Treg for WT vs k_basal for DKO) are directly
+    inferred from the exhausted fractions. The present specification treats the reported
+    quadrant percentages as exact group means (degenerate bootstrap), so statistical
+    uncertainty is understated and most of the variance in posterior samples will
+    reflect translation and model structure rather than measurement error. Additional
+    QSP targets for k_CD8_basal_exh, k_C_CD8_exh, or stiffness-mediated exhaustion
+    will be needed to fully disentangle basal vs non-Treg pathways and to translate
+    the mouse B16 context to human PDAC tumors.'
+experimental_context:
+  species: mouse
+  system: animal_in_vivo
+  cell_lines:
+  - name: B16-F10
+    species: mouse
+    tissue_origin: skin
+    cell_type: melanoma
+    source: ATCC; cultured in complete RPMI as described
+  cell_types:
+  - name: CD8+ tumor-infiltrating T cells
+    phenotype: CD44hi, intratumoral effector CD8 T cells; exhausted subset defined
+      as PD-1hi TIM3+
+    isolation_method: enzymatic digestion of B16 tumors with collagenase/dispase followed
+      by flow cytometric gating on live CD45+CD3+CD8+ cells
+    source: B16-F10 tumors grown intradermally in C57BL/6 background mice with or
+      without Treg-specific Il10/Ebi3 deletion
+  indication: B16-F10 melanoma (proxy solid tumor for PDAC TME-related Treg-mediated
+    exhaustion)
+study_interpretation: "Sawant2019 shows that, in B16 melanoma at day 14, approximately\
+  \ half of intratumoral CD8+ T cells in wild-type mice are in a PD-1hi TIM3+ multi\u2013\
+  inhibitory-receptor+ state, whereas this exhausted fraction is nearly abolished\
+  \ in mice whose Treg cells cannot produce either IL-10 or IL-35 (Ebi3). This implies\
+  \ that Treg-derived inhibitory cytokines contribute a large additive component to\
+  \ the effective rate at which tumor-infiltrating CD8+ T cells transition into an\
+  \ exhausted state, over and above basal exhaustion driven by persistent antigen,\
+  \ PD-1/PD-L1, and stromal factors. By mapping the exhausted fraction at a fixed\
+  \ tumor age to a first-order state transition with and without the Treg-dependent\
+  \ term, this submodel infers how much faster exhaustion proceeds in the presence\
+  \ of fully functional IL-10+/IL-35+ Tregs. The resulting estimate of k_Treg_CD8_exh\
+  \ represents the maximal Treg-driven exhaustion rate under saturating IL-10/IL-35\
+  \ conditions and can be ported, with appropriate uncertainty inflation, to the PDAC\
+  \ QSP model where similar Treg-mediated cytokine pathways operate alongside PDAC-specific\
+  \ myeloid and stromal suppression."
+key_assumptions:
+- PD-1hi TIM3+ CD8+ tumor-infiltrating T cells in B16 tumors are an appropriate operational
+  definition of functionally exhausted CD8+ T cells for the purposes of this calibration.
+- The quadrant percentages shown on the representative flow plots in Figure 3d are
+  representative of the group means for each genotype; lack of reported error bars
+  means measurement uncertainty is not explicitly modeled and the plotted means are
+  treated as exact.
+- Over the 14-day period from tumor inoculation to analysis, the net CD8->CD8_exh
+  transition can be approximated by a constant effective first-order rate, such that
+  the exhausted fraction follows f(t) = 1 - exp(-k_exh t). Effects of proliferation,
+  death, and recruitment are absorbed into the effective rate and the definition of
+  the exhausted fraction at the measurement time.
+- In wild-type B16 tumors at day 14, intratumoral Treg density and IL-10/IL-35 production
+  are sufficiently high that the QSP gating factor Tregs_/(CD8+Tregs_+cell)*H_IL10
+  is effectively saturating (approaches 1), so the Treg-mediated contribution to the
+  exhaustion rate is well approximated by k_Treg_CD8_exh.
+- In Il10/Ebi3 double-knockout Treg mice, other exhaustion pathways (e.g., chronic
+  TCR stimulation by cancer cells, PD-1/PD-L1 signaling, stiffness) remain active,
+  but the specific Treg-derived IL-10/IL-35 term in the exhaustion reaction is effectively
+  zero; these residual pathways are lumped into the nuisance parameter k_CD8_exh_basal_effective.
+- "Mouse B16 melanoma provides a qualitative but not quantitative match to human PDAC\
+  \ with respect to Treg-mediated exhaustion; substantial translation uncertainty\
+  \ is expected due to species differences and PDAC\u2019s dense desmoplastic and\
+  \ myeloid-rich microenvironment."
+key_study_limitations:
+- The tumor model is B16 melanoma in C57BL/6 mice rather than PDAC; both indication
+  and tumor microenvironment differ substantially from human pancreatic cancer, necessitating
+  conservative uncertainty when translating k_Treg_CD8_exh.
+- Exhaustion is inferred from surface expression of PD-1 and TIM3 (and other inhibitory
+  receptors) rather than direct functional assays of cytokine production or cytotoxicity,
+  so PD-1hi TIM3+ may not perfectly correspond to irreversible functional exhaustion.
+- Only a single tumor age (day 14) is used, limiting the ability to distinguish time-varying
+  rates or to verify the first-order exhaustion assumption.
+- The quadrant percentages used here come from representative flow plots rather than
+  bar graphs with explicit error bars, so the lack of an empirical SD or SEM likely
+  understates measurement uncertainty in the calibration target.
+- Treg-specific deletion of Il10 and Ebi3 removes IL-10 and IL-35 production from
+  Tregs but not necessarily from other cell types (e.g., myeloid cells), so the mapping
+  between this manipulation and the QSP term H_IL10 may be approximate.
+primary_data_source:
+  doi: 10.1038/s41590-019-0346-9
+  pmid: '30988409'
+  title: Adaptive plasticity of IL-10+ and IL-35+ Treg cells cooperatively promotes
+    tumor T cell exhaustion
+  authors:
+  - Sawant
+  - Yano H
+  - Chikina M
+  - Zhang Q
+  - Liao M
+  - Liu C
+  - Callahan DJ
+  - Sun Z
+  - Sun T
+  - Tabib T
+  - Pennathur A
+  - Corry DB
+  - Luketich JD
+  - Lafyatis R
+  - Chen W
+  - Poholek AC
+  - Bruno TC
+  - Workman CJ
+  - Vignali DAA
+  year: 2019
+  source_tag: Sawant2019
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The primary data are from murine B16 melanoma,
+      BrafPten melanoma, EL4 thymoma, and NSCLC models rather than pancreatic ductal
+      adenocarcinoma. These solid tumors share broad features of chronic antigen exposure
+      and Treg-mediated immunosuppression with PDAC, but differ in tissue of origin,
+      stromal composition, and degree of immune exclusion. We therefore use B16 melanoma
+      as a mechanistic proxy to quantify the relative contribution of Treg-derived
+      IL-10/IL-35 to CD8 exhaustion, while allowing substantial uncertainty when extrapolating
+      to PDAC.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: genetic_perturbation
+    perturbation_relevance: The key comparison uses mice with Treg-specific deletion
+      of Il10 and Ebi3, which ablates IL-10 and IL-35 production specifically from
+      Foxp3+ Treg cells. This genetic perturbation isolates the Treg-derived component
+      of cytokine-driven exhaustion while leaving other exhaustion pathways intact.
+      We interpret the difference in exhausted CD8 fractions between wild-type and
+      double-knockout as an estimate of the maximal Treg-mediated contribution to
+      the exhaustion rate under otherwise physiological tumor-bearing conditions,
+      recognizing that complete loss of IL-10/IL-35 represents a lower bound on Treg-driven
+      exhaustion in unmanipulated tumors.
+    tme_compatibility: low
+    tme_compatibility_notes: "B16 melanoma grows in the skin and develops a relatively\
+      \ T cell\u2013permissive microenvironment with limited desmoplasia compared\
+      \ to human PDAC, which is characterized by dense collagenous stroma, extensive\
+      \ CAF infiltration, and strong myeloid-driven immune suppression. As a result,\
+      \ the absolute magnitude and possibly even the dominant drivers of CD8 exhaustion\
+      \ may differ by an order of magnitude or more between B16 and PDAC. We therefore\
+      \ treat the inferred k_Treg_CD8_exh as a mechanistic prior for PDAC with inflated\
+      \ uncertainty, focusing on relative rather than absolute rates."
+    measurement_directness: single_inversion
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: animal_in_vivo
+tags:
+- CD8_exhaustion
+- Treg
+- IL10
+- IL35
+- B16_melanoma
+- k_Treg_CD8_exh
+- flow_cytometry
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

@@ -1,0 +1,274 @@
+study_interpretation: |
+  This calibration target is based on a neoadjuvant platform trial in which patients with resectable pancreatic ductal adenocarcinoma (PDAC) received GVAX vaccine alone (arm A) or GVAX plus nivolumab (arm B) prior to surgery. The paper prospectively collected paired pre-treatment core biopsies and post-treatment surgical resection specimens from 19 patients whose tumors were suitable for multiplex immunohistochemistry (mIHC). In Figures 1F and 1G, the authors quantified the densities of multiple immune cell subsets in non-lymphoid aggregate (non-LA) tumor areas before and after treatment for each patient, expressing density as the percentage of all nucleated cells within annotated ROIs. For arm B (GVAX + nivolumab, n = 10), CD8+ T cell density in non-LA tumor areas increased substantially between baseline biopsy and post-treatment resection. We interpret this as a treatment-induced fold-increase in intratumoral CD8+ T cell density over approximately 2 weeks of neoadjuvant therapy. To align with the QSP model, we map the experimental percentage-based densities to a dimensionless fold-change in the total number of CD8+ T cells in the primary tumor compartment from baseline (pre-immunotherapy) to day 21 (approximate time of resection), using CD8(t)/CD8(t0) as the model observable. The magnitude and uncertainty of this fold-change are derived from approximate mean ± SD values for pre- and post-treatment CD8+ T cell fractions read from Figure 1G and propagated via a lognormal Monte Carlo model.
+key_assumptions:
+- |
+  Intratumoral CD8+ T cell "density" measured in the paper is calculated as the percentage of all nucleated cells within multiplex IHC ROIs in non-LA tumor areas. We assume this percentage is proportional to the true volumetric CD8+ T cell density in the primary tumor and that proportionality constants (e.g., section thickness, tumor cellularity) cancel when computing the pre/post fold-change.
+- |
+  Approximate numerical values for baseline and post-treatment CD8+ T cell fractions in arm B (0.05 ± 0.015 and 0.15 ± 0.04, respectively, as fractions of all cells) are obtained by manual visual estimation from Figure 1G rather than from tabulated data. We assume these approximations are sufficiently accurate for calibration of the fold-change magnitude but acknowledge potential systematic error of order ~10–20%.
+- |
+  CD8+ T cell fractions across patients at each timepoint are modeled as lognormal random variables to reflect positive, right-skewed biological variability and to avoid non-physical negative densities. This choice may slightly overestimate the contribution of high-density outliers to the fold-change distribution compared with a true, unknown underlying distribution.
+- |
+  The Monte Carlo procedure treats pre- and post-treatment CD8+ T cell fractions as independent across patients when computing the distribution of post/pre fold-change because the paper reports only group-level means and SDs and not the covariance structure of paired measurements. This likely overestimates the variance of the fold-change observable by neglecting within-patient correlation but preserves the central tendency implied by the reported means.
+- |
+  We approximate the time between baseline biopsy and post-treatment resection as 21 days (2 weeks after one neoadjuvant treatment cycle) for mapping to the QSP model timeline, consistent with the text stating that surgical resection occurred 2 weeks after one treatment; this is close to the requested day 21 calibration time point.
+key_study_limitations:
+- |
+  CD8+ T cell densities are reported as percentages of all nucleated cells in ROIs rather than as absolute cells per unit area or volume; while appropriate for a fold-change observable, this limits direct comparison to absolute density predictions and assumes that total cell density and ROI sampling are comparable between baseline biopsies and post-treatment resections.
+- |
+  Pre-treatment biopsies and post-treatment resections sample different spatial regions of the same primary tumor (endoscopic core biopsy versus surgical specimen). Spatial heterogeneity in immune infiltration could introduce additional variability in the apparent fold-change that is not explicitly modeled here.
+- |
+  The sample size for arm B is small (n = 10) and the CD8+ T cell density values are extracted manually from Figure 1G rather than from a numeric table, introducing uncertainty in the exact mean and SD estimates used for calibration.
+- |
+  Pre-treatment biopsy specimens did not contain lymphoid aggregates (LAs), so pre/post comparisons are limited to non-LA tumor areas; the calibrated fold-change therefore reflects changes in CD8+ T cells in non-LA tumor regions only and may underestimate or overestimate whole-tumor average changes if LAs contribute substantially to overall CD8+ T cell burden.
+- |
+  The article does not provide exact dosing (mg/kg) and scheduling details for GVAX and nivolumab within this specific arm, relying instead on reference to the clinical trial (NCT02451982). As a result, the pharmacokinetic exposure underlying the observed fold-change is not fully specified within this source and must be approximated from external protocol information if needed for mechanistic PK/PD modeling.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        """Compute fold-change in intratumoral CD8+ T cell count relative to baseline.
+
+        The observable is defined as CD8_T(t) / CD8_T(t0), where CD8_T is the
+        total number of CD8+ T cells in the primary tumor compartment (V_T.CD8).
+
+        This provides a dimensionless fold-change trajectory over time. The
+        calibration target uses the value at day 21 post-treatment.
+        """
+        import numpy as np
+
+        cd8 = species_dict['V_T.CD8']  # Quantity array with units of 'cell'
+
+        # Use a small epsilon to avoid numerical division-by-zero if the
+        # baseline CD8+ T cell count is extremely small in a simulated patient.
+        baseline = cd8[0]
+        eps = 1e-12 * baseline.units
+        effective_baseline = baseline + eps
+
+        fold_change = cd8 / effective_baseline
+        return fold_change
+
+  units: dimensionless
+  species:
+  - V_T.CD8
+  constants: []
+  support: positive_unbounded
+  mapping_rationale: |
+    The paper quantifies CD8+ T cell "density" in non-LA tumor areas as the percentage of all nucleated cells within multiplex IHC regions of interest (ROIs). For the QSP model, we map this to the fold-change in the absolute number of CD8+ T cells in the primary tumor compartment (V_T.CD8) relative to the baseline value prior to treatment. Because both the experimental quantity and the model quantity are proportional to the underlying CD8+ T cell density in the tumor (up to a constant factor that cancels in the ratio), using CD8(t)/CD8(t0) provides a consistent dimensionless fold-change observable that reflects treatment-induced changes in intratumoral CD8+ T cell infiltration.
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: on_treatment
+    specifier: |
+      Neoadjuvant granulocyte-macrophage colony-stimulating factor (GM-CSF)-secreting allogeneic PDAC vaccine (GVAX) plus nivolumab (anti-PD-1) in resectable PDAC, as part of a randomized neoadjuvant platform trial; baseline core biopsy prior to any immunotherapy, followed by one cycle of GVAX + nivolumab and surgical resection 2 weeks later (arm B).
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Primary PDAC tumor (non-lymphoid aggregates [non-LA] tumor areas) from pre-treatment endoscopic biopsy and matched post-treatment surgical resection specimens.
+  assay_type: |
+    Multiplex immunohistochemistry with quantitative cell segmentation and phenotyping.
+scenario:
+  description: |
+    Neoadjuvant GVAX plus nivolumab immunotherapy in patients with resectable PDAC, with paired pre-treatment biopsy and post-treatment resection specimens analyzed by multiplex immunohistochemistry to quantify intratumoral immune cell subsets in non-lymphoid aggregate (non-LA) tumor areas.
+  interventions:
+  - intervention_description: |
+      Baseline endoscopic core biopsy of the primary PDAC tumor obtained before initiation of neoadjuvant immunotherapy; tissue processed as formalin-fixed, paraffin-embedded (FFPE) blocks for multiplex immunohistochemistry.
+  - intervention_description: |
+      Neoadjuvant treatment with GVAX (granulocyte-macrophage colony-stimulating factor-secreting allogeneic PDAC vaccine) plus nivolumab (anti-PD-1 antibody) in arm B of the platform trial. Patients were randomized to receive GVAX alone (arm A) or GVAX + nivolumab (arm B) as neoadjuvant therapy and subsequently underwent surgical resection 2 weeks after one treatment. Exact GVAX cell dose and nivolumab mg/kg dosing are described in the clinical trial protocol (NCT02451982) but not numerically specified in this article.
+  - intervention_description: |
+      Surgical resection of the primary PDAC tumor approximately 2 weeks after the neoadjuvant GVAX + nivolumab treatment, with multiple ROIs selected from FFPE sections of the resected tumor for multiplex immunohistochemistry analysis of immune cell subsets in LA and non-LA tumor areas.
+empirical_data:
+  median:
+  - 3.028
+  ci95:
+  - - 1.4
+    - 6.55
+  units: dimensionless
+  sample_size: 10
+  sample_size_rationale: |
+    Figure 1G legend states: "Summary of the density of all immune cell subtypes analyzed as indicated in the paired pre-treatment versus post-treatment non-LA tumor areas from the same arm A patients (F, n = 6) and arm B patients (G, n = 10)." We use n = 10 arm B (GVAX + nivolumab) patients with paired pre- and post-treatment measurements.
+  index_values:
+  - 21.0
+  index_unit: day
+  index_type: time
+  inputs:
+  - name: cd8_pre_mean
+    value: 0.05
+    units: dimensionless
+    description: |
+      Approximate mean baseline fraction of CD8+ T cells among all cells in the region of interest (ROI) in pre-treatment non-LA tumor areas for arm B (GVAX + nivolumab) patients. Values were visually estimated from Figure 1G, which plots mean ± SD of CD8+ T cells as a percentage of all cells in the ROI.
+    source_ref: Li2022_CancerCell_PDAC_AntiPD1
+    value_location: Figure 1G
+    value_snippet: |
+      (F and G) Summary of the density of all immune cell subtypes analyzed as indicated in the paired pre-treatment versus post-treatment non-LA tumor areas from the same arm A patients (F, n = 6) and arm B patients (G, n = 10). Data shown as the mean ± SD; comparison by paired t test; *p < 0.05, **p < 0.01, ***p < 0.001; all others, not significant.
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: figure
+    figure_id: Figure 1G
+    extraction_method: manual
+    extraction_notes: |
+      Mean baseline CD8+ T cell density for arm B estimated from the height of the blue pre-treatment CD8+ T cell points and error bars in Figure 1G, using the y axis labeled "% of All Cells in the ROI". The plotted values cluster around 5% of all cells; converted here to a dimensionless fraction (0.05).
+  - name: cd8_pre_sd
+    value: 0.015
+    units: dimensionless
+    description: |
+      Approximate standard deviation of baseline CD8+ T cell fraction among all cells in the ROI in pre-treatment non-LA tumor areas for arm B (GVAX + nivolumab) patients, visually estimated from the error bars in Figure 1G.
+    source_ref: Li2022_CancerCell_PDAC_AntiPD1
+    value_location: Figure 1G
+    value_snippet: |
+      Data shown as the mean ± SD; comparison by paired t test; *p < 0.05, **p < 0.01, ***p < 0.001; all others, not significant.
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: figure
+    figure_id: Figure 1G
+    extraction_method: manual
+    extraction_notes: |
+      Baseline CD8+ T cell SD estimated from the vertical extent of error bars for the blue pre-treatment CD8+ T cell group in Figure 1G, corresponding to roughly ±1.5 percentage points around the mean; converted to 0.015 as a dimensionless fraction.
+    dispersion_type: sd
+    dispersion_type_rationale: |
+      Figure 1G caption explicitly states 'Data shown as the mean ± SD', confirming error bars represent standard deviations.
+  - name: cd8_post_mean
+    value: 0.15
+    units: dimensionless
+    description: |
+      Approximate mean post-treatment fraction of CD8+ T cells among all cells in the ROI in post-treatment non-LA tumor areas for arm B (GVAX + nivolumab) patients, visually estimated from Figure 1G.
+    source_ref: Li2022_CancerCell_PDAC_AntiPD1
+    value_location: Figure 1G
+    value_snippet: |
+      (F and G) Summary of the density of all immune cell subtypes analyzed as indicated in the paired pre-treatment versus post-treatment non-LA tumor areas from the same arm A patients (F, n = 6) and arm B patients (G, n = 10). Data shown as the mean ± SD; comparison by paired t test; *p < 0.05, **p < 0.01, ***p < 0.001; all others, not significant.
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: figure
+    figure_id: Figure 1G
+    extraction_method: manual
+    extraction_notes: |
+      Post-treatment CD8+ T cell mean for arm B estimated from the red post-treatment CD8+ T cell points and error bars in Figure 1G, which cluster around 15% of all cells in the ROI; converted to 0.15 as a dimensionless fraction.
+  - name: cd8_post_sd
+    value: 0.04
+    units: dimensionless
+    description: |
+      Approximate standard deviation of post-treatment CD8+ T cell fraction among all cells in the ROI in post-treatment non-LA tumor areas for arm B (GVAX + nivolumab) patients, visually estimated from Figure 1G.
+    source_ref: Li2022_CancerCell_PDAC_AntiPD1
+    value_location: Figure 1G
+    value_snippet: |
+      Data shown as the mean ± SD; comparison by paired t test; *p < 0.05, **p < 0.01, ***p < 0.001; all others, not significant.
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: figure
+    figure_id: Figure 1G
+    extraction_method: manual
+    extraction_notes: |
+      Post-treatment CD8+ T cell SD estimated from the vertical extent of error bars for the red post-treatment CD8+ T cell group in Figure 1G, corresponding to roughly ±4 percentage points around the mean; converted to 0.04 as a dimensionless fraction.
+    dispersion_type: sd
+    dispersion_type_rationale: |
+      Figure 1G caption explicitly states 'Data shown as the mean ± SD', confirming error bars represent standard deviations.
+  assumptions:
+  - name: n_mc_samples
+    value: 200000.0
+    units: dimensionless
+    description: |
+      Number of Monte Carlo samples used in the parametric bootstrap to propagate uncertainty from mean ± SD estimates of CD8+ T cell fractions to the distribution of the fold-change observable.
+    rationale: |
+      200,000 samples provide stable estimates of the median and 95% uncertainty bounds for the fold-change distribution while keeping computation feasible.
+  - name: lognormal_cd8_density_distribution
+    value: 1.0
+    units: dimensionless
+    description: |
+      Indicator flag that CD8+ T cell fractions (pre- and post-treatment) are modeled with lognormal, rather than normal, distributions when sampling across patients.
+    rationale: |
+      Immune cell fractions are positive and right-skewed; modeling them as lognormal avoids negative values and better reflects multiplicative biological variability.
+  - name: ignore_pre_post_correlation
+    value: 0.0
+    units: dimensionless
+    description: |
+      Assumes independence between pre- and post-treatment CD8+ T cell fractions when sampling paired values for the fold-change calculation.
+    rationale: |
+      The paper provides group-level means and SDs but not the covariance between pre- and post-treatment CD8+ T cell fractions. Without access to patient-level data, we conservatively treat pre- and post-treatment measurements as independent when generating Monte Carlo samples, acknowledging that this likely overestimates the variance of the fold-change.
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        import math
+
+        rng = np.random.default_rng(42)
+
+        pre_mean = inputs['cd8_pre_mean']  # fraction of all cells (dimensionless)
+        pre_sd = inputs['cd8_pre_sd']
+        post_mean = inputs['cd8_post_mean']
+        post_sd = inputs['cd8_post_sd']
+
+        n_mc_samples = 200000  # Monte Carlo sample size
+
+        def sample_lognormal(mean_q, sd_q):
+            """Sample a lognormal distribution whose mean and SD match mean_q and sd_q.
+
+            mean_q and sd_q are Pint Quantities with the same (dimensionless) units.
+            """
+            m = float(mean_q.magnitude)
+            s = float(sd_q.magnitude)
+            # Avoid division by zero or negative values
+            if m <= 0.0:
+                raise ValueError('Mean for lognormal sampling must be positive.')
+            if s <= 0.0:
+                # Degenerate case: no variability
+                samples = np.full(n_mc_samples, m) * mean_q.units
+                return samples
+            sigma2 = math.log(1.0 + (s ** 2) / (m ** 2))
+            sigma = math.sqrt(sigma2)
+            mu = math.log(m) - 0.5 * sigma2
+            raw_samples = rng.lognormal(mu, sigma, n_mc_samples)
+            samples = raw_samples * mean_q.units
+            return samples
+
+        pre_samples = sample_lognormal(pre_mean, pre_sd)
+        post_samples = sample_lognormal(post_mean, post_sd)
+
+        # Fold-change in CD8+ T cell fraction (post / pre) per virtual patient
+        fold_samples = (post_samples / pre_samples).to('dimensionless')
+
+        median_obs = np.median(fold_samples)
+        ci95_lower = np.percentile(fold_samples, 2.5)
+        ci95_upper = np.percentile(fold_samples, 97.5)
+
+        return {
+            'median_obs': median_obs,
+            'ci95_lower': ci95_lower,
+            'ci95_upper': ci95_upper,
+        }
+primary_data_source:
+  source_tag: Li2022_CancerCell_PDAC_AntiPD1
+  title: |
+    Multi-omic analyses of changes in the tumor microenvironment of pancreatic adenocarcinoma following neoadjuvant treatment with anti-PD-1 therapy
+  first_author: Li
+  year: 2022
+  doi: 10.1016/j.ccell.2022.10.001
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: |
+      Primary study cohort consists of human resectable PDAC patients treated with neoadjuvant GVAX, matching the model indication.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: pharmacological
+    perturbation_relevance: |
+      GVAX neoadjuvant immunotherapy.
+    tme_compatibility: high
+    tme_compatibility_notes: |
+      Resected PDAC tumors post-immunotherapy. Non-LA tumor areas represent the bulk desmoplastic TME.
+    validation_warnings:
+    - |
+      Values digitized from scatter plots, not tabulated data. Reading precision ±0.1-0.5%.
+secondary_data_sources: []
+calibration_target_id: cd8_fold_increase_gvax_nivo_d21
+cancer_type: PDAC
+tags:
+- ai-generated
+logfire_trace_id: 019c68166f0b34e3f0a6abfd50279f89
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium

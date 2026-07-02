@@ -1,0 +1,233 @@
+target_id: k_IL10_sec
+inputs:
+- name: AAM_cell_density_exponent
+  value: 6.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Katakura2004
+  source_location: Methods, Determination of soluble factors from AAMphi
+  value_snippet: "AAMphi were cultured at the cell density of 1 \xD7 10^6 cells/ml\
+    \ for 24"
+- name: AAM_cell_density_per_mL
+  value: 1000000.0
+  units: cell/mL
+  input_type: derived_arithmetic
+  rationale: "Convert the reported density of 1 \xD7 10^6 cells/ml into an explicit\
+    \ numeric cell density by raising 10 to the reported exponent."
+  source_ref: Katakura2004
+  source_location: Methods, Determination of soluble factors from AAMphi
+  source_inputs:
+  - AAM_cell_density_exponent
+  formula: 10 ** AAM_cell_density_exponent
+- name: AAM_incubation_time_hr
+  value: 24.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Katakura2004
+  source_location: Results, Fig. 2 legend and Methods, Determination of soluble factors
+    from AAMphi
+  value_snippet: "AAMphi were cultured without any stimulation for 24\u201348 h, and\
+    \ the culture fluids harvested were assayed for IL-10 using ELISA."
+- name: IL10_AAM_24h_mean_ng_per_mL
+  value: 0.6
+  units: ng/mL
+  input_type: direct_measurement
+  source_ref: Katakura2004
+  source_location: Results, Fig. 2F
+  figure_excerpt:
+    figure_id: Figure 2F
+    value: ~0.6
+    description: "IL-10 concentration in culture supernatants from AAMphi at 24 h\
+      \ (first time point) cultured at 1\xD710^6 cells/ml without stimulation"
+    context: "Time-course of IL-10 (ng/ml) produced by AAMphi vs resident macrophages\
+      \ cultured at 1\xD710^6 cells/ml; y-axis labeled IL-10 (ng/ml), x-axis 24 and\
+      \ 48 h."
+- name: IL10_AAM_24h_sd_ng_per_mL
+  value: 0.1
+  units: ng/mL
+  input_type: direct_measurement
+  source_ref: Katakura2004
+  source_location: Results, Fig. 2F
+  figure_excerpt:
+    figure_id: Figure 2F
+    value: "error bar height \u22480.1"
+    description: Approximate SD from error bar on AAMphi IL-10 24 h bar
+    context: "Error bars represent mean \xB1 SEM as stated in Statistical analysis\
+      \ section; magnitude visually estimated from bar chart."
+- name: n_replicates_IL10_AAM
+  value: 3.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: "Sample size for ELISA cultures is not explicitly stated, but immunology\
+    \ experiments in this paper are typically performed in triplicate; we take n=3\
+    \ independent wells contributing to the mean \xB1 SEM shown in Fig. 2."
+  source_ref: Katakura2004
+  source_location: Statistical analysis section
+  value_snippet: "Data are presented as mean \xB1 SEM."
+calibration:
+  parameters:
+  - name: k_IL10_sec
+    units: nanomole/cell/day
+    nuisance: false
+  forward_model:
+    data_rationale: "Katakura2004 cultured alternatively activated macrophages (AAMphi)\
+      \ at a defined density of 1\xD710^6 cells/ml without stimulation and measured\
+      \ IL-10 concentration in the culture supernatant after 24 h. Over this short\
+      \ period, IL-10 accumulation is well-approximated by constant per-cell secretion\
+      \ into a well-mixed medium with negligible depletion."
+    submodel_rationale: "In the full QSPIO-PDAC model, IL-10 production in the tumor\
+      \ compartment is modeled as a zero-order source term proportional to the number\
+      \ of M2-like macrophages: d(IL10)/dt = k_IL10_sec * Mac_M2 \u2212 k_IL10_deg\
+      \ * IL10. The batch accumulation model reproduces this linear per-cell secretion\
+      \ mechanism in an in vitro context (no clearance term over 24 h), allowing direct\
+      \ inference of k_IL10_sec from the measured IL-10 concentration at a known cell\
+      \ density."
+    type: batch_accumulation
+    secretion_rate: k_IL10_sec
+    cell_count:
+      input_ref: AAM_cell_density_per_mL
+    incubation_time:
+      input_ref: AAM_incubation_time_hr
+    molecular_weight: '18600.0'
+    medium_volume: '1.0'
+    unit_conversion_factor: '0.0416667'
+  error_model:
+  - name: IL10_AAM_24h_concentration
+    units: ng/mL
+    uses_inputs:
+    - IL10_AAM_24h_mean_ng_per_mL
+    - IL10_AAM_24h_sd_ng_per_mL
+    - n_replicates_IL10_AAM
+    sample_size_input: n_replicates_IL10_AAM
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['IL10_AAM_24h_mean_ng_per_mL']\n\
+      \    sd = inputs['IL10_AAM_24h_sd_ng_per_mL']\n    cv = sd / mean if mean >\
+      \ 0 else 0.0\n    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean)\
+      \ - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: With a single time point at a known cell density, the batch
+    accumulation model constrains only the product k_IL10_sec * incubation_time *
+    cell_density * molecular_weight. Since incubation_time and cell_density are fixed
+    by the experimental design and we take molecular_weight as a fixed constant (18.6
+    kDa monomer), k_IL10_sec is effectively identifiable from this dataset. The main
+    uncertainties arise from (1) approximate digitization of the IL-10 concentration
+    and its SD from Fig. 2F, (2) the assumed triplicate sample size n=3, and (3) biological
+    translation from burn-associated AAMphi to PDAC tumor-associated M2 macrophages.
+    No additional QSP parameters are entangled with k_IL10_sec in this submodel, so
+    there are no strong parameter correlations within the target itself; correlations
+    will arise only through hierarchical priors across other IL-10-related parameters
+    in the full QSP model.
+experimental_context:
+  species: mouse
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: peritoneal macrophages
+    phenotype: alternatively activated macrophages (AAMphi) isolated from burn-injured
+      mice
+    isolation_method: Adherent peritoneal exudate cells collected 2 days after third-degree
+      thermal injury (approx 15% TBSA) and selected by short-term adherence on fibronectin-coated
+      dishes
+    source: "Male BALB/c mice, 8\u201311 weeks old"
+  culture_conditions:
+    substrate: fibronectin-coated plastic dishes
+    serum_concentration: 2.0
+    serum_concentration_units: percent_FBS
+    oxygen_level: normoxic incubator (5% CO2, 37C)
+    culture_type: 2d_monolayer
+    medium: RPMI 1640 supplemented with 2% FBS for adhesion, then complete medium
+      (RPMI 1640 + 10% FBS) for cytokine production
+    duration: "AAMphi cultured at 1\xD710^6 cells/ml without stimulation for 24\u2013\
+      48 h before supernatants were harvested for IL-10 ELISA"
+    notes: AAMphi derived in vivo from mice 2 days after third-degree burn (approx
+      15% TBSA), then cultured ex vivo at defined cell density for soluble factor
+      measurements.
+  indication: thermal_burn_injury
+study_interpretation: "Katakura2004 shows that alternatively activated macrophages\
+  \ (AAMphi), functionally similar to M2 macrophages, constitutively secrete IL-10\
+  \ when cultured ex vivo at a known density of 1\xD710^6 cells/ml. After 24 h without\
+  \ additional stimulation, IL-10 accumulates in the supernatant to approx 0.6 ng/ml.\
+  \ Assuming negligible IL-10 degradation over this short time and using a simple\
+  \ linear accumulation model, this measurement directly informs the per-cell IL-10\
+  \ secretion rate parameter k_IL10_sec used in the QSPIO-PDAC model for tumor-associated\
+  \ M2 macrophages."
+key_assumptions:
+- IL-10 degradation and cellular uptake over 24 h in static culture are negligible
+  compared with production, so IL-10 concentration increases approximately linearly
+  with time.
+- The ELISA readout in Fig. 2F reflects the concentration of bioactive IL-10 monomer
+  with an effective molecular weight of approximately 18.6 kDa, consistent with the
+  monomer convention used in the IL10_50 target.
+- AAMphi derived from burn-injured peritoneal exudates have IL-10 secretion rates
+  comparable in order of magnitude to PDAC tumor-associated M2 macrophages; differences
+  in activation stimuli and tissue context are captured as additional translation
+  uncertainty at the model level.
+- "The cell density during the 24 h secretion assay remains effectively constant (minimal\
+  \ proliferation or death of AAMphi), so the reported 1\xD710^6 cells/ml can be treated\
+  \ as time-invariant."
+- "The approximate mean and SD for IL-10 concentration at 24 h read from Fig. 2F (0.6\
+  \ \xB1 0.1 ng/ml) adequately represent the underlying experimental variability,\
+  \ and the number of replicates is taken as n=3 based on typical practice in this\
+  \ study."
+key_study_limitations:
+- Macrophages were obtained from thermally injured mice and then cultured ex vivo,
+  not from PDAC tumors, so their activation state and IL-10 secretion rates may differ
+  from tumor-associated macrophages in PDAC.
+- IL-10 concentrations and error bars were estimated from a bar chart (Fig. 2F) rather
+  than reported numerically in a table, introducing digitization uncertainty.
+- "The exact number of replicate wells contributing to each mean \xB1 SEM is not explicitly\
+  \ stated; we take triplicates (n=3), which may mis-estimate experimental variability."
+- Only a single early time point (24 h) is used for calibration; potential nonlinearity
+  in IL-10 accumulation or onset of degradation between 24 and 48 h is not explicitly
+  modeled.
+- The culture system lacks key features of the PDAC tumor microenvironment (dense
+  desmoplastic stroma, hypoxia, complex cytokine milieu), so inferred rates may represent
+  upper bounds relative to in vivo secretion in PDAC tumors.
+primary_data_source:
+  doi: 10.4049/jimmunol.172.3.1407
+  title: CCL17 and IL-10 as Effectors That Enable Alternatively Activated Macrophages
+    to Inhibit the Generation of Classically Activated Macrophages
+  authors:
+  - Tatsushi Katakura
+  - Masaru Miyazaki
+  - Makiko Kobayashi
+  - David N. Herndon
+  - Fujio Suzuki
+  year: 2004
+  source_tag: Katakura2004
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study uses alternatively activated peritoneal
+      macrophages from thermally injured mice as a model of immunosuppressive macrophages.
+      These AAMphi are not derived from pancreatic tumors but share functional characteristics
+      (high IL-10 production, immunosuppression) with tumor-associated M2 macrophages
+      in PDAC. We therefore treat them as a mechanistic proxy for PDAC TAMs, with
+      substantial translation uncertainty due to different tissue context and injury-driven
+      activation.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: pathological_state
+    perturbation_relevance: "Severe thermal injury induces systemic inflammation and\
+      \ skews macrophages toward an alternatively activated, IL-10\u2013producing\
+      \ phenotype. The ex vivo secretion rates measured here likely represent an activated\
+      \ upper range for M2-like macrophages rather than basal secretion in PDAC, so\
+      \ they are used as order-of-magnitude constraints on k_IL10_sec."
+    tme_compatibility: low
+    tme_compatibility_notes: Burn-associated peritoneal exudate macrophages experience
+      an acute systemic inflammatory environment, whereas PDAC tumor-associated macrophages
+      reside in a chronic, desmoplastic, hypoxic tumor microenvironment. These differences
+      in stromal architecture and inflammatory cues may shift IL-10 secretion rates
+      by an order of magnitude, so substantial additional uncertainty is applied when
+      translating to PDAC.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_primary
+tags:
+- IL10
+- macrophage
+- M2
+- secretion_rate
+- PDAC_proxy
+extraction_model: gpt-4.1
+extraction_reasoning_effort: medium

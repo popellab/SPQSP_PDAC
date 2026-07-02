@@ -1,0 +1,431 @@
+target_id: TGFb_50_col_sec
+inputs:
+- name: TGFb_MW_kDa
+  value: 25.0
+  units: kilodalton
+  input_type: reference_value
+  rationale: Approximate molecular weight of mature TGF-beta (22-25 kDa) treated as
+    25 kDa for ng/mL to nM conversion.
+  source_ref: Fine1987
+  source_location: Introduction
+  value_snippet: Transforming growth factor-beta (TGF-beta) is a 22-25-kDa protein
+    derived from both normal tissues and transformed cells.
+- name: TGFb_dose0_ngml
+  value: 0.0
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3 x-axis
+  figure_excerpt:
+    figure_id: Figure 3
+    value: '0'
+    description: Zero TGF-beta condition on x-axis labeled in ng/ml
+    context: Dose-response of total nondialyzable hydroxyproline at 24 h versus TGF-beta
+      concentration.
+- name: TGFb_dose0p1_ngml
+  value: 0.1
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3 x-axis
+  figure_excerpt:
+    figure_id: Figure 3
+    value: '0.1'
+    description: TGF-beta dose 0.1 ng/ml on x-axis
+    context: Dose-response of total nondialyzable hydroxyproline at 24 h versus TGF-beta
+      concentration.
+- name: TGFb_dose1_ngml
+  value: 1.0
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3 x-axis
+  figure_excerpt:
+    figure_id: Figure 3
+    value: '1.0'
+    description: TGF-beta dose 1.0 ng/ml on x-axis
+    context: Dose-response of total nondialyzable hydroxyproline at 24 h versus TGF-beta
+      concentration.
+- name: TGFb_dose10_ngml
+  value: 10.0
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3 x-axis
+  figure_excerpt:
+    figure_id: Figure 3
+    value: '10'
+    description: TGF-beta dose 10 ng/ml on x-axis
+    context: Dose-response of total nondialyzable hydroxyproline at 24 h versus TGF-beta
+      concentration.
+- name: TGFb_dose0_nM
+  value: 0.0
+  units: nanomolar
+  input_type: derived_arithmetic
+  rationale: Convert 0 ng/ml TGF-beta to nanomolar using molecular weight 25 kDa (conc_nM
+    = conc_ngml / MW_kDa).
+  source_ref: Fine1987
+  source_location: Figure 3 x-axis
+  source_inputs:
+  - TGFb_dose0_ngml
+  - TGFb_MW_kDa
+  formula: TGFb_dose0_ngml / TGFb_MW_kDa
+- name: TGFb_dose0p1_nM
+  value: 0.004
+  units: nanomolar
+  input_type: derived_arithmetic
+  rationale: Convert 0.1 ng/ml TGF-beta to nanomolar using molecular weight 25 kDa
+    (conc_nM = conc_ngml / MW_kDa).
+  source_ref: Fine1987
+  source_location: Figure 3 x-axis
+  source_inputs:
+  - TGFb_dose0p1_ngml
+  - TGFb_MW_kDa
+  formula: TGFb_dose0p1_ngml / TGFb_MW_kDa
+- name: TGFb_dose1_nM
+  value: 0.04
+  units: nanomolar
+  input_type: derived_arithmetic
+  rationale: Convert 1.0 ng/ml TGF-beta to nanomolar using molecular weight 25 kDa
+    (conc_nM = conc_ngml / MW_kDa).
+  source_ref: Fine1987
+  source_location: Figure 3 x-axis
+  source_inputs:
+  - TGFb_dose1_ngml
+  - TGFb_MW_kDa
+  formula: TGFb_dose1_ngml / TGFb_MW_kDa
+- name: TGFb_dose10_nM
+  value: 0.4
+  units: nanomolar
+  input_type: derived_arithmetic
+  rationale: Convert 10 ng/ml TGF-beta to nanomolar using molecular weight 25 kDa
+    (conc_nM = conc_ngml / MW_kDa).
+  source_ref: Fine1987
+  source_location: Figure 3 x-axis
+  source_inputs:
+  - TGFb_dose10_ngml
+  - TGFb_MW_kDa
+  formula: TGFb_dose10_ngml / TGFb_MW_kDa
+- name: hyp_0_nmol_mean
+  value: 6.4
+  units: nanomole
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3, 0 ng/ml bar
+  figure_excerpt:
+    figure_id: Figure 3
+    value: ~6.4
+    description: Bar height for total nondialyzable hydroxyproline at 0 ng/ml TGF-beta,
+      24 h
+    context: Total hydroxyproline (nmol/culture) in confluent quiescent fibroblast
+      cultures after 24 h exposure to TGF-beta at indicated concentrations.
+- name: hyp_0_nmol_sem
+  value: 0.75
+  units: nanomole
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3, 0 ng/ml error bar
+  figure_excerpt:
+    figure_id: Figure 3
+    value: ~7.2 (SE tip)
+    description: Error bar tip height for 0 ng/ml condition; SEM approximated as difference
+      between tip and bar height (~7.15 - 6.40 = 0.75 nmol)
+    context: Error bars represent 1 S.E. (n = 4).
+- name: hyp_0p1_nmol_mean
+  value: 8.51
+  units: nanomole
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3, 0.1 ng/ml bar
+  figure_excerpt:
+    figure_id: Figure 3
+    value: ~8.5
+    description: Bar height for total nondialyzable hydroxyproline at 0.1 ng/ml TGF-beta,
+      24 h
+    context: Total hydroxyproline (nmol/culture) in confluent quiescent fibroblast
+      cultures after 24 h exposure to TGF-beta at indicated concentrations.
+- name: hyp_0p1_nmol_sem
+  value: 0.67
+  units: nanomole
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3, 0.1 ng/ml error bar
+  figure_excerpt:
+    figure_id: Figure 3
+    value: ~9.2 (SE tip)
+    description: Error bar tip height for 0.1 ng/ml condition; SEM approximated as
+      difference between tip and bar height (~9.18 - 8.51 = 0.67 nmol)
+    context: Error bars represent 1 S.E. (n = 4).
+- name: hyp_1_nmol_mean
+  value: 11.54
+  units: nanomole
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3, 1.0 ng/ml bar
+  figure_excerpt:
+    figure_id: Figure 3
+    value: ~11.5
+    description: Bar height for total nondialyzable hydroxyproline at 1.0 ng/ml TGF-beta,
+      24 h
+    context: Total hydroxyproline (nmol/culture) in confluent quiescent fibroblast
+      cultures after 24 h exposure to TGF-beta at indicated concentrations.
+- name: hyp_1_nmol_sem
+  value: 1.01
+  units: nanomole
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3, 1.0 ng/ml error bar
+  figure_excerpt:
+    figure_id: Figure 3
+    value: ~12.6 (SE tip)
+    description: Error bar tip height for 1.0 ng/ml condition; SEM approximated as
+      difference between tip and bar height (~12.56 - 11.54 = 1.02 nmol)
+    context: Error bars represent 1 S.E. (n = 4).
+- name: hyp_10_nmol_mean
+  value: 12.31
+  units: nanomole
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3, 10 ng/ml bar
+  figure_excerpt:
+    figure_id: Figure 3
+    value: ~12.3
+    description: Bar height for total nondialyzable hydroxyproline at 10 ng/ml TGF-beta,
+      24 h
+    context: Total hydroxyproline (nmol/culture) in confluent quiescent fibroblast
+      cultures after 24 h exposure to TGF-beta at indicated concentrations.
+- name: hyp_10_nmol_sem
+  value: 0.46
+  units: nanomole
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3, 10 ng/ml error bar
+  figure_excerpt:
+    figure_id: Figure 3
+    value: ~12.8 (SE tip)
+    description: Error bar tip height for 10 ng/ml condition; SEM approximated as
+      difference between tip and bar height (~12.76 - 12.31 = 0.45 nmol)
+    context: Error bars represent 1 S.E. (n = 4).
+- name: n_replicates_collagen
+  value: 4.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fine1987
+  source_location: Figure 3 legend
+  value_snippet: Data are expressed as mean +/- 1 S.E. (n = 4).
+calibration:
+  parameters:
+  - name: TGFb_50_col_sec
+    units: nanomolarity
+    nuisance: false
+  - name: Coll_baseline_nmol
+    units: nanomole
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 1.9
+      sigma: 1.0
+  - name: Coll_max_nmol
+    units: nanomole
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 2.4
+      sigma: 1.0
+  forward_model:
+    data_rationale: Fine1987 reports a 24 h dose-response of total nondialyzable hydroxyproline
+      (nmol/culture) versus TGF-beta concentration (0, 0.1, 1, 10 ng/ml) in confluent
+      quiescent human lung fibroblast cultures. At 24 h, collagen accumulation is
+      approximately proportional to the TGF-beta-stimulated collagen secretion rate,
+      so a Hill-type dose-response directly constrains the EC50 for TGF-beta-induced
+      collagen synthesis.
+    submodel_rationale: 'In the full QSPIO-PDAC model, TGFb_50_col_sec appears in
+      a saturating activation term controlling myCAF collagen secretion: f_col_basal
+      + (1 - f_col_basal) * TGFb / (TGFb_50_col_sec + TGFb). At a fixed time point,
+      collagen accumulation should follow the same Hill-type dependence on TGF-beta
+      concentration. Using a direct Hill fit with n_hill fixed to 1.0 reproduces this
+      mechanistic usage of TGFb_50_col_sec as the half-maximal concentration for TGF-beta-driven
+      collagen secretion.'
+    type: direct_fit
+    curve: hill
+    ec50: TGFb_50_col_sec
+    n_hill: '1.0'
+    baseline: Coll_baseline_nmol
+    maximum: Coll_max_nmol
+    intercept: '0.0'
+  error_model:
+  - name: collagen_0ng
+    units: nanomole
+    uses_inputs:
+    - hyp_0_nmol_mean
+    - hyp_0_nmol_sem
+    - n_replicates_collagen
+    x_input: TGFb_dose0_nM
+    sample_size_input: n_replicates_collagen
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['hyp_0_nmol_mean']\n    sem = inputs['hyp_0_nmol_sem']\n\
+      \    sd = sem * np.sqrt(sample_size)\n    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0\
+      \ + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2.0\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: collagen_0p1ng
+    units: nanomole
+    uses_inputs:
+    - hyp_0p1_nmol_mean
+    - hyp_0p1_nmol_sem
+    - n_replicates_collagen
+    x_input: TGFb_dose0p1_nM
+    sample_size_input: n_replicates_collagen
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['hyp_0p1_nmol_mean']\n    sem = inputs['hyp_0p1_nmol_sem']\n\
+      \    sd = sem * np.sqrt(sample_size)\n    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0\
+      \ + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2.0\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: collagen_1ng
+    units: nanomole
+    uses_inputs:
+    - hyp_1_nmol_mean
+    - hyp_1_nmol_sem
+    - n_replicates_collagen
+    x_input: TGFb_dose1_nM
+    sample_size_input: n_replicates_collagen
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['hyp_1_nmol_mean']\n    sem = inputs['hyp_1_nmol_sem']\n\
+      \    sd = sem * np.sqrt(sample_size)\n    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0\
+      \ + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2.0\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: collagen_10ng
+    units: nanomole
+    uses_inputs:
+    - hyp_10_nmol_mean
+    - hyp_10_nmol_sem
+    - n_replicates_collagen
+    x_input: TGFb_dose10_nM
+    sample_size_input: n_replicates_collagen
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['hyp_10_nmol_mean']\n    sem = inputs['hyp_10_nmol_sem']\n\
+      \    sd = sem * np.sqrt(sample_size)\n    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0\
+      \ + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2.0\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  identifiability_notes: Four dose levels (0, 0.004, 0.04, 0.4 nM TGF-beta) with mean
+    +/- SEM collagen measurements constrain a three-parameter Hill curve (baseline,
+    maximum, EC50) with n_hill fixed to 1.0. The amplitude parameters (Coll_baseline_nmol,
+    Coll_max_nmol) will be somewhat correlated, but the EC50 (TGFb_50_col_sec) is
+    primarily determined by the relative shift between the 0.1 and 1 ng/ml points
+    and is reasonably identifiable. Because the data come from lung fibroblasts rather
+    than pancreatic stellate cells/myCAFs, an additional translation uncertainty will
+    be applied at the model level when combining this target with PDAC-specific data.
+    This target does not constrain the absolute collagen secretion rate k_col_myCAF_sec
+    or the basal fraction f_col_basal, only the TGF-beta sensitivity of the secretion
+    term.
+experimental_context:
+  species: human
+  system: in_vitro_cell_line
+  cell_lines:
+  - name: IMR-90
+    species: human
+    tissue_origin: embryonic lung
+    cell_type: fibroblast
+    source: Institute for Medical Research, Camden, NJ
+  culture_conditions:
+    substrate: tissue culture plastic in 35-mm dishes
+    serum_concentration: 0.4
+    serum_concentration_units: percent
+    oxygen_level: normoxic (5% CO2, 95% air)
+    culture_type: 2d_monolayer
+    medium: Dulbecco's modified Eagle's medium with 10% fetal bovine serum (growth)
+      then 0.4% serum (quiescence)
+    supplements: penicillin 100 units/ml, streptomycin 10 microgram/ml, nonessential
+      amino acids 0.1 mM; ascorbate 50 microgram/ml during labeling
+    duration: Cells grown to confluence then rendered quiescent for 24-48 h before
+      24 h TGF-beta exposure with [3H]proline labeling
+    notes: Confluent quiescent fibroblasts in low-serum medium; TGF-beta added acutely
+      at varying doses in serum-free or 0.4% serum conditions.
+study_interpretation: Fine1987 demonstrates that purified TGF-beta acutely stimulates
+  collagen synthesis in confluent quiescent human embryonic lung fibroblasts in a
+  dose-dependent manner, with a 2- to 3-fold increase in total hydroxyproline over
+  24 h between 0 and 1-10 ng/ml TGF-beta. Treating the 24 h collagen accumulation
+  as proportional to the collagen secretion rate, the hydroxyproline vs TGF-beta dose-response
+  in Figure 3 provides a direct constraint on the half-maximal concentration (EC50)
+  for TGF-beta-induced collagen secretion. This EC50 is interpreted as a generic fibroblast
+  sensitivity parameter that can serve as a prior for the TGFb_50_col_sec parameter
+  governing myCAF collagen secretion in the PDAC QSP model.
+key_assumptions:
+- Collagen accumulation over the first 24 h after TGF-beta addition is approximately
+  linear in time and proportional to the steady collagen secretion rate, so a static
+  Hill fit to hydroxyproline vs TGF-beta accurately reflects the secretion EC50.
+- Human embryonic lung fibroblasts (IMR-90) have a similar TGF-beta sensitivity for
+  collagen secretion as pancreatic stellate cells/myCAFs in PDAC, so the inferred
+  EC50 can be used as a mechanistic prior with additional translation uncertainty.
+- The active TGF-beta species used in vitro corresponds functionally to the TGF-beta
+  species represented in the QSP model, and its potency in terms of molar concentration
+  is comparable between systems.
+- The culture conditions (confluence, 2D monolayer, low serum) do not dramatically
+  alter the intrinsic TGF-beta signaling sensitivity of fibroblasts relative to their
+  behavior in vivo in a desmoplastic tumor microenvironment.
+- Hydroxyproline measurement captures predominantly fibrillar type I/III collagen,
+  which is the relevant ECM component represented in the model's collagen state variable.
+key_study_limitations:
+- Cell type is human embryonic lung fibroblasts rather than pancreatic stellate cells
+  or myofibroblastic CAFs, so tissue- and lineage-specific differences in TGF-beta
+  signaling and collagen secretion may exist.
+- Experiments are performed in 2D monolayer culture with low serum and no tumor microenvironmental
+  cues (stiffness, hypoxia, inflammatory cytokines), which could shift TGF-beta sensitivity
+  compared with in vivo PDAC stroma.
+- Only a single time point (24 h) is used for the dose-response; any time dependence
+  of EC50 or nonlinearity in accumulation over time is not captured.
+- Sample size per condition is modest (n = 4), and uncertainties are reported as SEM
+  rather than SD, which can underestimate biological variability if not corrected.
+- The molecular weight of TGF-beta is approximated as 25 kDa for unit conversion;
+  the true value (22-25 kDa) introduces a small additional uncertainty in molar concentration
+  estimates.
+primary_data_source:
+  pmid: '3029129'
+  title: The Effect of Transforming Growth Factor-beta on Cell Proliferation and Collagen
+    Formation by Lung Fibroblasts
+  authors:
+  - Fine A
+  - Goldstein RH
+  year: 1987
+  source_tag: Fine1987
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study uses human embryonic lung fibroblasts
+      rather than pancreatic stellate cells or PDAC-associated CAFs. However, the
+      parameter of interest is the intrinsic TGF-beta concentration-response for collagen
+      secretion, which is a core fibroblast function expected to be qualitatively
+      conserved across fibroblast lineages. Thus, lung fibroblasts provide a mechanistic
+      proxy for CAFs in PDAC, with additional uncertainty for tissue-specific differences.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: Exogenous recombinant TGF-beta is added at defined concentrations
+      to quiescent fibroblast cultures, directly probing the dose-response for collagen
+      synthesis. These conditions likely bracket the physiological range of active
+      TGF-beta exposure experienced by fibroblasts in vivo, so the inferred EC50 can
+      be treated as an approximate physiological sensitivity with some adjustment
+      for in vivo context during global calibration.
+    tme_compatibility: moderate
+    tme_compatibility_notes: The in vitro system lacks the complex desmoplastic and
+      immunosuppressive tumor microenvironment of PDAC (3D matrix, stiffness gradients,
+      inflammatory cytokines), which may modulate TGF-beta signaling strength and
+      collagen secretion rates. Nonetheless, the core SMAD signaling machinery and
+      receptor-ligand affinity governing EC50 are expected to be similar, so the main
+      difference is modeled as an added translation uncertainty rather than a completely
+      different mechanism.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_cell_line
+tags:
+- TGFbeta
+- collagen
+- fibroblast
+- ECM
+- dose_response
+- PDAC_proxy
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

@@ -1,0 +1,28 @@
+observable,estimate,ci95_lo,ci95_hi,units,reasoning
+cancer_cell_density_baseline,600,150,1500,cells/mm2,22% epithelial area fraction × 3000 cells/mm2 within glands; wide range from differentiation grade
+cd8_density_baseline,30,5,150,cells/mm2,265 immune/mm² × 25% T cells × 45% CD8; cold tumor with sparse infiltration
+cd4_helper_density,25,5,90,cells/mm2,265 immune × 25% T cells × 55% CD4 × 70% non-Treg helpers
+treg_density_baseline,12,3,45,cells/mm2,265 immune × 25% T cells × 55% CD4 × 30% Treg (enriched by CCL22/TGFb)
+cdc1_density_baseline,2,0.3,8,cells/mm2,265 immune × 3% DCs × 25% cDC1 (minority cross-presenting subset)
+cdc2_density_baseline,4,1,15,cells/mm2,265 immune × 3% DCs × 50% cDC2 (dominant DC subset)
+tam_density,130,40,400,cells/mm2,50% of 265 immune cells; macrophages dominate PDAC immune infiltrate
+mdsc_density,30,8,100,cells/mm2,12% of 265 immune cells; abundant suppressive myeloid population
+total_til_density,67,15,250,cells/mm2,Sum of CD8 (30) + CD4 Th (25) + Treg (12) = 67
+cd8_exhausted_fraction,0.70,0.40,0.90,dimensionless,Chronic antigen exposure + IL-10/TGFb drive majority of CD8s to PD-1+ exhaustion
+th_exhausted_fraction,0.45,0.20,0.70,dimensionless,CD4 Th cells upregulate PD-1 at ~65% the rate of CD8 due to less direct TCR engagement
+cd8_treg_ratio,2.5,0.5,8.0,dimensionless,Direct ratio from density estimates: 30 CD8 / 12 Treg = 2.5
+cd8_treg_ratio_alt,2.0,0.5,7.0,dimensionless,Independent: cold tumors typically 1-4; PDAC moderately immunosuppressive → ~2
+treg_fraction_cd4,0.32,0.15,0.55,dimensionless,12 Treg / (12 Treg + 25 Th) = 0.32; Treg enrichment 3-5× over blood
+treg_fraction_cd4_alt,0.28,0.12,0.50,dimensionless,Blood Treg ~8% of CD4 × 3.5× TME enrichment factor = 0.28
+treg_fraction_baseline,0.18,0.07,0.35,dimensionless,12 Treg / 67 total TILs = 0.18
+m1_m2_ratio,0.33,0.10,0.80,dimensionless,CSF-1/IL-10/TGFb drive ~75% M2 polarization; ratio 0.25/0.75 = 0.33
+m2_macrophage_fraction,0.75,0.55,0.90,dimensionless,Strong M2 skew from TME cytokines; 75% of CD68+ are CD163+
+apc_maturation_ratio,0.20,0.05,0.45,dimensionless,TGFb/IL-10/VEGF suppress DC maturation; only ~20% reach DC-LAMP+ state
+icaf_fraction_of_caf,0.30,0.15,0.50,dimensionless,iCAF-myCAF equilibrium: IL-1 drives iCAF state; ~30% in typical PDAC
+mycaf_fraction_of_caf,0.55,0.35,0.70,dimensionless,TGFb-driven dominant population producing ECM and desmoplastic stroma
+apcaf_fraction_of_caf,0.10,0.03,0.25,dimensionless,Rarest CAF subtype; MHC-II+ but lacking co-stimulation; remainder after iCAF+myCAF
+apcaf_fraction_of_caf_alt,0.08,0.02,0.20,dimensionless,Geometric mean of 5-15% range from scRNA-seq CAF subtyping studies
+stromal_fraction,0.70,0.50,0.85,dimensionless,PDAC among most desmoplastic solid tumors; 70% stroma by volume
+psc_activation_ratio,0.85,0.65,0.95,dimensionless,TGFb/PDGF activate nearly all PSCs near tumor; only periphery remains quiescent
+collagen1_protein_level,8,3,20,fold-change,Normal pancreas ~1.5 mg/g collagen I; PDAC deposits ~10-12 mg/g → ~8× increase
+vegf_tissue_concentration,300,80,800,pg/mg protein,Normal pancreas ~75 pg/mg × 4-fold PDAC elevation; hypovascular despite VEGF

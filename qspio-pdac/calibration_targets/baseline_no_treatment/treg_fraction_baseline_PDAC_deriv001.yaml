@@ -1,0 +1,211 @@
+study_interpretation: |
+  Kiryu et al. (BMC Cancer 2021) analyzed immune-cell infiltrates in the tumor microenvironment of 85 patients with pancreatic ductal adenocarcinoma who underwent R0 surgical resection. Formalin-fixed, paraffin-embedded primary tumor specimens were sectioned at 4 micrometers and stained by single-plex chromogenic immunohistochemistry for CD3, CD4, CD8, PD-1, and Foxp3. The authors report median densities from 10 random tumor fields at 400x: CD3+ = 942.5 cells/mm^2, CD4+ = 153.1 cells/mm^2, CD8+ = 111.2 cells/mm^2, and Foxp3+ = 48.5 cells/mm^2. For calibration, we derive the Foxp3+ fraction among all T cells as Foxp3+/CD3+ = 48.5/942.5 = 0.0515. Using this ratio rather than absolute density avoids the need to estimate tumor tissue area (and its dominant stromal component in PDAC), since the area factor cancels in the ratio. Both densities come from the same cohort and tissue sections, ensuring internal consistency.
+key_assumptions:
+- |
+  The Foxp3+/CD3+ ratio (48.5/942.5 = 0.0515) is derived from paper-reported median densities measured on serial sections from the same cohort. Because both numerator and denominator are expressed as cells/mm^2 of tumor area, the tissue area cancels, eliminating any dependence on stromal fraction or cellularity.
+- |
+  Foxp3+ cells identified by single-marker IHC are interpreted as regulatory T cells (Tregs), acknowledging that transient Foxp3 expression in activated conventional CD4+ T cells may introduce some contamination but is standard for Treg quantification in FFPE tissues.
+- |
+  CD3+ cells are taken as a proxy for all T cells in the tumor, mapping to the sum of all T cell species in the model (CD8, Th, Treg, and their exhausted counterparts). CD3 is a pan-T-cell marker expressed on virtually all T cell subsets regardless of functional state.
+- |
+  Because the study reports only median densities without any dispersion metric (no SD, SEM, or IQR), a coefficient of variation of 1.0 (100%) is assumed for the ratio to construct a lognormal uncertainty distribution. This is a conservative estimate; the true CV of the ratio may be lower since both numerator and denominator are measured on the same sections (positive correlation reduces ratio variance).
+- |
+  Patients are treated as systemically treatment-naive at the time of tissue sampling because the study does not report any neoadjuvant chemotherapy or radiotherapy; chemotherapy was administered to 80% of patients only upon recurrence after surgery.
+key_study_limitations:
+- |
+  Single-center retrospective cohort from a Japanese institution (n=85), which may limit generalizability to broader PDAC populations and different treatment settings.
+- |
+  Foxp3+ and CD3+ T cell densities were measured on separate serial sections with single-marker chromogenic IHC, which may introduce section-to-section variability compared to multiplex staining on a single slide.
+- |
+  The paper reports only median densities without any dispersion measure (no SD, SEM, or IQR for any marker), requiring an assumed coefficient of variation for uncertainty quantification.
+- |
+  Single-marker Foxp3 IHC cannot fully distinguish suppressive Tregs from transiently Foxp3-expressing effector CD4+ T cells, potentially biasing the estimated Treg fraction upward.
+- |
+  CD4+ (153.1) + CD8+ (111.2) = 264.3 cells/mm^2 is substantially less than CD3+ (942.5 cells/mm^2), suggesting that single-marker CD4/CD8 IHC underdetects T cell subsets relative to the pan-T-cell CD3 marker. This discrepancy does not affect the Foxp3+/CD3+ ratio but indicates variable staining sensitivity across markers.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        # Fraction of Foxp3+ regulatory T cells among all T cells
+        # in the primary tumor compartment (analogous to Foxp3+/CD3+ from IHC).
+        treg = species_dict['V_T.Treg']
+        cd8 = species_dict['V_T.CD8']
+        th = species_dict['V_T.Th']
+        cd8_exh = species_dict['V_T.CD8_exh']
+        th_exh = species_dict['V_T.Th_exh']
+
+        total_t = treg + cd8 + th + cd8_exh + th_exh
+        frac = (treg / total_t)
+        return frac
+
+  units: dimensionless
+  species:
+  - V_T.Treg
+  - V_T.CD8
+  - V_T.Th
+  - V_T.CD8_exh
+  - V_T.Th_exh
+  constants: []
+  support: unit_interval
+  mapping_rationale: |
+    The paper reports median IHC densities (cells/mm^2) for Foxp3+ and CD3+ T cells on serial 4-um FFPE sections from the same PDAC cohort. Taking the ratio Foxp3+/CD3+ = 48.5/942.5 yields the fraction of Foxp3+ T cells among all T cells, independent of tissue area and stromal fraction. In the QSP model, CD3+ maps to the sum of all T cell species in V_T (CD8, Th, Treg, and exhausted counterparts), so the observable is V_T.Treg / (V_T.Treg + V_T.CD8 + V_T.Th + V_T.CD8_exh + V_T.Th_exh).
+  experimental_denominator: CD3+ T cells (pan-T-cell marker, 942.5 cells/mm^2 from same cohort/sections)
+  model_denominator_species:
+  - V_T.Treg
+  - V_T.CD8
+  - V_T.Th
+  - V_T.CD8_exh
+  - V_T.Th_exh
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: |
+      Patients underwent R0 surgical resection for PDAC with no neoadjuvant systemic therapy reported; 80% later received chemotherapy only after recurrence, so tumors at the time of resection are treated as treatment-naive for systemic therapy.
+  stage: null
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Formalin-fixed, paraffin-embedded primary PDAC tumor tissue from R0 surgical resections.
+  assay_type: Single-plex chromogenic immunohistochemistry for Foxp3 and CD3 on serial 4-micrometer sections.
+scenario:
+  description: |
+    Untreated primary PDAC tumor at the time of R0 surgical resection, before any adjuvant or recurrence-directed systemic therapy.
+  interventions:
+  - intervention_description: |
+      No systemic anti-cancer therapy prior to surgery; patients underwent standard R0 pancreatic resection as initial treatment, and tumor tissue obtained at surgery was used for immunohistochemistry.
+empirical_data:
+  median:
+  - 0.0515
+  ci95:
+  - - 0.01008
+    - 0.263
+  units: dimensionless
+  sample_size: 85
+  sample_size_rationale: |
+    n=85 consecutive PDAC patients who underwent R0 resection between January 2005 and March 2019 and had both Foxp3+ and CD3+ T cell densities assessed on resected tumor tissue.
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs:
+  - name: foxp3_density_median
+    value: 48.5
+    units: cell / millimeter**2
+    description: |
+      Reported median Foxp3+ T cell density in PDAC tumor areas from 10 random fields at 400x magnification on 4-um sections.
+    source_ref: Kiryu2021_Foxp3_Treg_PDAC
+    value_location: |
+      Results section, paragraph on Foxp3+ T cell density.
+    value_snippet: |
+      The average of Foxp3+ T cell numbers from 10 random tumor areas was 48.5 /mm^{2}.
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: cd3_density_median
+    value: 942.5
+    units: cell / millimeter**2
+    description: |
+      Reported median CD3+ T cell density in PDAC tumor areas from the same cohort, same counting methodology (10 random fields, 400x, 4-um sections). Used as denominator to derive the Foxp3+/CD3+ fraction.
+    source_ref: Kiryu2021_Foxp3_Treg_PDAC
+    value_location: |
+      Results section, paragraph on TIL density.
+    value_snippet: |
+      The average of CD3+ T cell numbers from 10 random tumor areas was 942.5 /mm^{2}.
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: assumed_cv_fraction
+    value: 1.0
+    units: dimensionless
+    description: |
+      Assumed coefficient of variation (CV = 1.0) for the Foxp3+/CD3+ ratio, used to construct a lognormal uncertainty distribution when no dispersion data is available.
+    source_ref: Kiryu2021_Foxp3_Treg_PDAC
+    value_location: |
+      No dispersion data reported; CV assumed based on typical immune cell density variability.
+    value_snippet: |
+      Neither standard deviation nor interquartile range was reported for any immune cell density measurement; CV assumed at 1.0 as a conservative estimate.
+    input_type: inferred_estimate
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  assumptions:
+  - name: assumed_cv_fraction
+    value: 1.0
+    units: dimensionless
+    description: |
+      Assumed coefficient of variation for the Foxp3+/CD3+ ratio used to construct a lognormal distribution around the derived central value.
+    rationale: |
+      The study reports only median cell densities without any dispersion measure. Published immune cell fractions in solid tumors commonly show coefficients of variation on the order of 50-200%. We assume CV=1.0 (100%) as a conservative estimate. The true CV of the ratio may be lower than for individual densities since both are measured on the same tissue sections (positive covariance reduces ratio variance).
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import math
+
+        foxp3 = inputs['foxp3_density_median']
+        cd3 = inputs['cd3_density_median']
+        cv = inputs['assumed_cv_fraction']
+
+        # Derive the Foxp3+/CD3+ fraction as point estimate
+        ratio = (foxp3 / cd3).to('dimensionless')
+        m = ratio.magnitude
+
+        # Lognormal parameters from median and CV
+        # CV^2 = exp(sigma^2) - 1  =>  sigma = sqrt(log(1 + CV^2))
+        sigma = math.sqrt(math.log(1.0 + cv.magnitude**2))
+
+        # 95% CI for lognormal with given median and sigma
+        z = 1.96
+        lower = m * math.exp(-z * sigma)
+        upper = m * math.exp(z * sigma)
+
+        return {
+            'median_obs': ratio,
+            'ci95_lower': lower * ureg.dimensionless,
+            'ci95_upper': upper * ureg.dimensionless,
+        }
+primary_data_source:
+  source_tag: Kiryu2021_Foxp3_Treg_PDAC
+  title: |
+    Prognostic value of immune factors in the tumor microenvironment of patients with pancreatic ductal adenocarcinoma
+  first_author: Kiryu
+  year: 2021
+  doi: 10.1186/s12885-021-08911-4
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: Human PDAC patient specimens, directly matching the model indication and disease context.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Observational measurement of treatment-naive PDAC specimens; no experimental perturbation applied.
+    tme_compatibility: high
+    tme_compatibility_notes: Resected PDAC specimens with characteristic desmoplastic, immune-excluded TME matching model
+      assumptions.
+    validation_warnings: []
+secondary_data_sources: []
+calibration_target_id: treg_fraction_baseline
+cancer_type: PDAC
+tags:
+- ai-generated
+- human-curated
+logfire_trace_id: 019c683eb4f589714ad01f91ac3c523b
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium

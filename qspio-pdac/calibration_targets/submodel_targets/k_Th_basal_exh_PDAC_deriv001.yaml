@@ -1,0 +1,403 @@
+target_id: k_Th_basal_exh
+inputs:
+- name: IL2_d0_mean_raw
+  value: 775.1798561151
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 0 bar
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~7.8e2 (arbitrary y-units)
+    description: Bar height for IL-2 secretion at day 0 in chronic CD3/CD28-stimulated
+      CD4+ memory T cells
+    context: "ELISA-based quantification of IL-2 secretion after 8\u201310 h restimulation\
+      \ at day 0 of chronic stimulation; y-axis labeled in pg/mL but absolute value\
+      \ digitized from bar height"
+- name: IL2_d0_tip_raw
+  value: 841.726618705
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 0 error bar tip
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~8.4e2 (arbitrary y-units)
+    description: Upper error-bar tip for IL-2 secretion at day 0
+    context: "Error bars reported as mean \xB1 variability across 3 replicates; digitized\
+      \ as bar-top position"
+- name: IL2_d0_sd_raw
+  value: 66.5467625899
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Approximate standard deviation for IL-2 at day 0 taken as the distance
+    between mean bar height and the upper error-bar tip in the digitized plot
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 0 bar and error bar
+  source_inputs:
+  - IL2_d0_tip_raw
+  - IL2_d0_mean_raw
+  formula: IL2_d0_tip_raw - IL2_d0_mean_raw
+- name: IL2_d6_mean_raw
+  value: 17.9856115108
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 6 bar
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~1.8e1 (arbitrary y-units)
+    description: Bar height for IL-2 secretion at day 6 in chronic CD3/CD28-stimulated
+      CD4+ memory T cells
+    context: "ELISA-based quantification of IL-2 secretion after 8\u201310 h restimulation\
+      \ at day 6 of chronic stimulation"
+- name: IL2_d6_tip_raw
+  value: 46.7625899281
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 6 error bar tip
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~4.7e1 (arbitrary y-units)
+    description: Upper error-bar tip for IL-2 secretion at day 6
+    context: "Error bars reported as mean \xB1 variability across 3 replicates; digitized\
+      \ as bar-top position"
+- name: IL2_d6_sd_raw
+  value: 28.7769784173
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Approximate standard deviation for IL-2 at day 6 taken as the distance
+    between mean bar height and the upper error-bar tip in the digitized plot
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 6 bar and error bar
+  source_inputs:
+  - IL2_d6_tip_raw
+  - IL2_d6_mean_raw
+  formula: IL2_d6_tip_raw - IL2_d6_mean_raw
+- name: IL2_d10_mean_raw
+  value: 7.1942446043
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 10 bar
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~7.2 (arbitrary y-units)
+    description: Bar height for IL-2 secretion at day 10 in chronic CD3/CD28-stimulated
+      CD4+ memory T cells
+    context: "ELISA-based quantification of IL-2 secretion after 8\u201310 h restimulation\
+      \ at day 10 of chronic stimulation"
+- name: IL2_d10_tip_raw
+  value: 12.5899280576
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 10 error bar tip
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~1.26e1 (arbitrary y-units)
+    description: Upper error-bar tip for IL-2 secretion at day 10
+    context: "Error bars reported as mean \xB1 variability across 3 replicates; digitized\
+      \ as bar-top position"
+- name: IL2_d10_sd_raw
+  value: 5.3956834533
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Approximate standard deviation for IL-2 at day 10 taken as the distance
+    between mean bar height and the upper error-bar tip in the digitized plot
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 10 bar and error bar
+  source_inputs:
+  - IL2_d10_tip_raw
+  - IL2_d10_mean_raw
+  formula: IL2_d10_tip_raw - IL2_d10_mean_raw
+- name: IL2_d12_mean_raw
+  value: 5.3956834532
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 12 bar
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~5.4 (arbitrary y-units)
+    description: Bar height for IL-2 secretion at day 12 in chronic CD3/CD28-stimulated
+      CD4+ memory T cells
+    context: "ELISA-based quantification of IL-2 secretion after 8\u201310 h restimulation\
+      \ at day 12 of chronic stimulation"
+- name: IL2_d12_tip_raw
+  value: 12.5899280576
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 12 error bar tip
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~1.26e1 (arbitrary y-units)
+    description: Upper error-bar tip for IL-2 secretion at day 12
+    context: "Error bars reported as mean \xB1 variability across 3 replicates; digitized\
+      \ as bar-top position"
+- name: IL2_d12_sd_raw
+  value: 7.1942446044
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Approximate standard deviation for IL-2 at day 12 taken as the distance
+    between mean bar height and the upper error-bar tip in the digitized plot
+  source_ref: Lawton2024
+  source_location: Figure 1C, IL-2, day 12 bar and error bar
+  source_inputs:
+  - IL2_d12_tip_raw
+  - IL2_d12_mean_raw
+  formula: IL2_d12_tip_raw - IL2_d12_mean_raw
+- name: n_replicates_IL2
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Lawton2024
+  source_location: Figure 1C legend and Methods
+  value_snippet: C) ELISA-based quantification of secreted cytokines (IL-2, IFN-gamma,
+    TNF-alpha) on days 0, 6, 10, and 12, 3 replicates per time point.
+calibration:
+  parameters:
+  - name: k_Th_basal_exh
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: "Lawton2024 measured IL-2 secretion from human memory CD4+ T cells\
+      \ subjected to continuous CD3/CD28 bead stimulation, with 8\u201310 h restimulation\
+      \ assays at days 0, 6, 10, and 12. The rapid, approximately monotonic loss of\
+      \ IL-2 output over time is interpreted as the loss of functional Th cells under\
+      \ chronic TCR engagement, which is well approximated by a first-order decay\
+      \ in the functional Th fraction."
+    submodel_rationale: In the full PDAC QSP model, k_Th_basal_exh multiplies the
+      tumor Th cell count in a basal exhaustion reaction V_T.Th -> V_T.Th_exh that
+      is proportional to chronic antigen burden via a cancer-cell-dependent Hill factor.
+      Under PDAC conditions with large tumor cell numbers this factor is near-saturating
+      (approximately 1), so the effective per-cell exhaustion rate approaches k_Th_basal_exh.
+      The Lawton2024 in vitro system imposes sustained, saturating CD3/CD28 stimulation
+      without tumor cells, which we interpret as an in vitro realization of this saturated
+      basal exhaustion process. The submodel therefore represents the decay of the
+      functional Th fraction with rate k_Th_basal_exh under saturating chronic stimulation,
+      neglecting explicit tumor-cell dependence but preserving the same first-order
+      dependence on the Th pool.
+    independent_variable:
+      name: time
+      units: day
+      span:
+      - 0.0
+      - 12.0
+    state_variables:
+    - name: Th_func
+      units: dimensionless
+      initial_condition:
+        value: 1.0
+        rationale: Functional Th fraction at the onset of chronic CD3/CD28 stimulation
+          is normalized to 1.0; subsequent measurements of IL-2 secretion are treated
+          as proportional to this fraction.
+    type: first_order_decay
+    rate_constant: k_Th_basal_exh
+  error_model:
+  - name: IL2_day6
+    observable:
+      type: identity
+      state_variables:
+      - Th_func
+    units: dimensionless
+    uses_inputs:
+    - IL2_d6_mean_raw
+    - IL2_d6_sd_raw
+    - n_replicates_IL2
+    evaluation_points:
+    - 6.0
+    sample_size_input: n_replicates_IL2
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['IL2_d6_mean_raw']\n    sd = inputs['IL2_d6_sd_raw']\n\
+      \    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln\
+      \ = np.log(mean) - sigma_ln**2 / 2.0\n    return rng.lognormal(mu_ln, sigma_ln\
+      \ / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: IL2_day10
+    observable:
+      type: identity
+      state_variables:
+      - Th_func
+    units: dimensionless
+    uses_inputs:
+    - IL2_d10_mean_raw
+    - IL2_d10_sd_raw
+    - n_replicates_IL2
+    evaluation_points:
+    - 10.0
+    sample_size_input: n_replicates_IL2
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['IL2_d10_mean_raw']\n    sd = inputs['IL2_d10_sd_raw']\n\
+      \    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln\
+      \ = np.log(mean) - sigma_ln**2 / 2.0\n    return rng.lognormal(mu_ln, sigma_ln\
+      \ / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: IL2_day12
+    observable:
+      type: identity
+      state_variables:
+      - Th_func
+    units: dimensionless
+    uses_inputs:
+    - IL2_d12_mean_raw
+    - IL2_d12_sd_raw
+    - n_replicates_IL2
+    evaluation_points:
+    - 12.0
+    sample_size_input: n_replicates_IL2
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['IL2_d12_mean_raw']\n    sd = inputs['IL2_d12_sd_raw']\n\
+      \    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln\
+      \ = np.log(mean) - sigma_ln**2 / 2.0\n    return rng.lognormal(mu_ln, sigma_ln\
+      \ / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: k_Th_basal_exh is constrained here by three IL-2 measurements
+    (days 6, 10, 12) under a simple first-order decay model with a fixed, normalized
+    initial condition. Because all time points are under a common, saturating CD3/CD28
+    stimulation regime, the data primarily inform an effective exhaustion half-life
+    (on the order of a few days) rather than separating basal vs tumor-dependent components
+    of exhaustion. Absolute IL-2 secretion per functional cell and any non-zero long-term
+    functional plateau are not identifiable and are absorbed into the normalization
+    and model residuals. The early, very rapid decline (day 0 to day 6) means that
+    the posterior for k_Th_basal_exh may prefer values higher than the current prior
+    median (~0.05 1/day), with limited ability to distinguish small differences among
+    faster rates; this target should therefore be combined with additional in vivo
+    or tumor-context data (e.g., CD4 exhaustion kinetics in PDAC) for tighter, context-matched
+    constraints.
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: CD4+ memory T cells
+    phenotype: CD4+ CD45RO+ human memory T cells
+    isolation_method: Negative selection of CD4+ CD45RO+ T cells from PBMCs using
+      magnetic beads, followed by plastic adherence to deplete monocytes
+    source: Peripheral blood from healthy adult donors
+  culture_conditions:
+    substrate: Tissue culture plastic
+    serum_concentration: 5.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic (5% CO2 incubator)
+    culture_type: 2d_monolayer
+    medium: AIM-V with 5% heat-inactivated human AB serum
+    supplements: Low-dose IL-2 (30 U/mL during initial expansion; low IL-2 maintenance
+      during chronic CD3/CD28 stimulation)
+    duration: Up to 12 days of continuous CD3/CD28 Dynabead stimulation with media
+      and bead refresh every 2 days
+    notes: "CD4+ CD45RO+ memory T cells from two healthy donors were expanded and\
+      \ then subjected to chronic CD3/CD28 Dynabead stimulation for 12 days; cytokine\
+      \ secretion was assayed after 8\u201310 h acute restimulation at the indicated\
+      \ days."
+study_interpretation: "Chronic CD3/CD28 bead stimulation of human memory CD4+ T cells\
+  \ in Lawton2024 induces a progressive loss of IL-2 secretion upon brief restimulation,\
+  \ along with acquisition of exhaustion markers. Treating IL-2 output as proportional\
+  \ to the fraction of functional Th cells, the time-course of IL-2 decline provides\
+  \ an estimate of the effective first-order rate at which functional Th cells transition\
+  \ into an exhausted, non\u2013IL-2\u2013producing state under saturating chronic\
+  \ TCR engagement. This rate is mapped to k_Th_basal_exh in the PDAC QSP model under\
+  \ the assumption that both systems represent the saturated limit of chronic antigen-driven\
+  \ Th exhaustion."
+key_assumptions:
+- "IL-2 secretion measured after 8\u201310 h restimulation is proportional to the\
+  \ number of functional, non-exhausted Th cells present at each chronic stimulation\
+  \ time point, with similar per-cell secretion capacity across time."
+- Chronic CD3/CD28 bead stimulation without exogenous inhibitory cytokines approximates
+  the saturated basal TCR-driven exhaustion process represented by k_Th_basal_exh
+  in the tumor model, ignoring additional PDAC-specific suppressive signals such as
+  TGFbeta, IL-10, and nutrient deprivation.
+- The cancer-cell-dependent Hill factor in the full reaction rate, C_total/(C_total
+  + K_C_exh + cell), is approximately 1 both in advanced PDAC tumors and in the in
+  vitro model under strong CD3/CD28 engagement, so that the effective exhaustion rate
+  is dominated by k_Th_basal_exh.
+- Digitized bar heights and error bars from Figure 1C are linearly proportional to
+  the underlying IL-2 concentrations reported on the pg/mL axis; using these arbitrary
+  linear units preserves relative kinetics and is sufficient for inferring a time
+  constant.
+- Error bars in Figure 1C are interpreted as approximating one standard deviation
+  across three biological replicates, so the distance between the mean bar and upper
+  error-bar tip is used as SD for parametric bootstrap.
+key_study_limitations:
+- The in vitro system uses polyclonal CD3/CD28 antibody-coated beads and IL-2 supplementation
+  rather than tumor antigen and a complex PDAC tumor microenvironment, so the inferred
+  rate may overestimate exhaustion speed in vivo.
+- IL-2 is an early, highly sensitive functional readout that is lost more rapidly
+  than other effector functions such as IFN-gamma; thus k_Th_basal_exh inferred from
+  IL-2 decline may correspond to a faster functional exhaustion component than phenotypic
+  PD-1 acquisition alone.
+- Bar heights and error bars were digitized from a published figure rather than obtained
+  from raw ELISA values, introducing additional uncertainty in absolute scale and
+  variability estimates.
+- The model treats the decay in functional Th fraction as a single-exponential process
+  with zero long-term plateau, whereas the true biology likely involves multiple exhaustion
+  states and potential residual functionality, which could bias the inferred rate
+  upward.
+- Only two donors and three replicate wells per time point were used in Lawton2024,
+  limiting the robustness of population-level variability estimates and potentially
+  underrepresenting inter-donor heterogeneity relevant to PDAC patients.
+primary_data_source:
+  doi: 10.1371/journal.pbio.3002943
+  title: Multiomic profiling of chronically activated CD4+ T cells identifies drivers
+    of exhaustion and metabolic reprogramming
+  authors:
+  - Lawton
+  - Inge
+  - Blum
+  - Smith-Mahoney
+  - Bolzan
+  - Lin
+  - McConney
+  - Porter
+  - Moore
+  - Youssef
+  - Tharani
+  - Varelas
+  - Denis
+  - Wong
+  - Padhorny
+  - Kozakov
+  - Siggers
+  - Wuchty
+  - Snyder-Cappione
+  - Emili
+  year: 2024
+  source_tag: Lawton2024
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study uses human memory CD4+ T cells from
+      healthy donors stimulated in vitro with CD3/CD28 beads to induce exhaustion,
+      whereas the QSP model targets helper T-cell exhaustion in the pancreatic ductal
+      adenocarcinoma tumor microenvironment. Mechanistic features of chronic TCR-driven
+      exhaustion (loss of IL-2 and IFN-gamma, PD-1 up-regulation) are conserved, but
+      there is no tumor, stroma, or PDAC-specific antigen context, so translation
+      requires assuming that the basic exhaustion kinetics are similar across indications.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: Continuous anti-CD3/CD28 bead stimulation with low-dose
+      IL-2 provides strong, non-physiological but mechanistically relevant TCR signaling
+      that drives Th cells into an exhaustion-like state. This likely yields an upper
+      bound on the basal exhaustion rate under maximal chronic stimulation, which
+      is then mapped to k_Th_basal_exh representing saturated tumor antigen exposure.
+    tme_compatibility: low
+    tme_compatibility_notes: The in vitro culture lacks the dense desmoplastic stroma,
+      hypoxia, nutrient competition, and immunosuppressive myeloid and regulatory
+      T-cell populations characteristic of PDAC. These factors can both accelerate
+      and decelerate apparent exhaustion kinetics compared with pure TCR-driven stimulation,
+      so substantial additional uncertainty is expected when translating rates into
+      the PDAC tumor setting.
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_primary
+tags:
+- Th_exhaustion
+- CD4_T_cells
+- chronic_CD3_CD28
+- in_vitro
+- IL2_decay
+- k_Th_basal_exh
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

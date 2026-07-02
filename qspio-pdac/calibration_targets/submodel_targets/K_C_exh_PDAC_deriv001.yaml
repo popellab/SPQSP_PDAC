@@ -1,0 +1,411 @@
+target_id: K_C_exh
+inputs:
+- name: lcmv_dose_low_multiplier
+  value: 2.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Materials and Methods, Infection Protocols
+  value_snippet: "Mice were inoculated i.v. with low dose, 2 \xD7 10^4 pfu; medium\
+    \ dose, 2 \xD7 10^5 pfu; and high dose, 2 \xD7 10^6 pfu of LCMV clone 13."
+- name: lcmv_dose_low_log10
+  value: 4.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Materials and Methods, Infection Protocols
+  value_snippet: "Mice were inoculated i.v. with low dose, 2 \xD7 10^4 pfu; medium\
+    \ dose, 2 \xD7 10^5 pfu; and high dose, 2 \xD7 10^6 pfu of LCMV clone 13."
+- name: lcmv_dose_medium_multiplier
+  value: 2.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Materials and Methods, Infection Protocols
+  value_snippet: "Mice were inoculated i.v. with low dose, 2 \xD7 10^4 pfu; medium\
+    \ dose, 2 \xD7 10^5 pfu; and high dose, 2 \xD7 10^6 pfu of LCMV clone 13."
+- name: lcmv_dose_medium_log10
+  value: 5.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Materials and Methods, Infection Protocols
+  value_snippet: "Mice were inoculated i.v. with low dose, 2 \xD7 10^4 pfu; medium\
+    \ dose, 2 \xD7 10^5 pfu; and high dose, 2 \xD7 10^6 pfu of LCMV clone 13."
+- name: lcmv_dose_high_multiplier
+  value: 2.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Materials and Methods, Infection Protocols
+  value_snippet: "Mice were inoculated i.v. with low dose, 2 \xD7 10^4 pfu; medium\
+    \ dose, 2 \xD7 10^5 pfu; and high dose, 2 \xD7 10^6 pfu of LCMV clone 13."
+- name: lcmv_dose_high_log10
+  value: 6.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Materials and Methods, Infection Protocols
+  value_snippet: "Mice were inoculated i.v. with low dose, 2 \xD7 10^4 pfu; medium\
+    \ dose, 2 \xD7 10^5 pfu; and high dose, 2 \xD7 10^6 pfu of LCMV clone 13."
+- name: lcmv_dose_low_pfu
+  value: 20000.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Convert textual dose 2 \xD7 10^4 pfu into an absolute plaque-forming\
+    \ unit value using multiplier 2 and power of 10^4."
+  source_ref: Cornberg2013
+  source_location: Materials and Methods, Infection Protocols
+  source_inputs:
+  - lcmv_dose_low_multiplier
+  - lcmv_dose_low_log10
+  formula: lcmv_dose_low_multiplier * 10**lcmv_dose_low_log10
+- name: lcmv_dose_medium_pfu
+  value: 200000.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Convert textual dose 2 \xD7 10^5 pfu into an absolute plaque-forming\
+    \ unit value using multiplier 2 and power of 10^5."
+  source_ref: Cornberg2013
+  source_location: Materials and Methods, Infection Protocols
+  source_inputs:
+  - lcmv_dose_medium_multiplier
+  - lcmv_dose_medium_log10
+  formula: lcmv_dose_medium_multiplier * 10**lcmv_dose_medium_log10
+- name: lcmv_dose_high_pfu
+  value: 2000000.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Convert textual dose 2 \xD7 10^6 pfu into an absolute plaque-forming\
+    \ unit value using multiplier 2 and power of 10^6."
+  source_ref: Cornberg2013
+  source_location: Materials and Methods, Infection Protocols
+  source_inputs:
+  - lcmv_dose_high_multiplier
+  - lcmv_dose_high_log10
+  formula: lcmv_dose_high_multiplier * 10**lcmv_dose_high_log10
+- name: np396_ratio_low_mean
+  value: 2.5441
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Figure 2C, day 13 spleen, NP396, low dose
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: ~2.54
+    description: Bar height for ratio of IFNg+TNFa+ to IFNg+ NP396-specific CD8 T
+      cells, low-dose LCMV clone 13, day 13 spleen
+    context: Panel showing ratios for NP396, GP33, NP205 at low, medium, and high
+      doses.
+- name: np396_ratio_low_bar_tip
+  value: 2.8382
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Figure 2C, day 13 spleen, NP396, low dose error bar
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: ~2.84
+    description: Error-bar tip for NP396 low-dose bar, representing mean plus error
+    context: "Error bars plotted on NP396 ratio bars; text states values are mean\
+      \ \xB1 error across mice."
+- name: np396_ratio_med_mean
+  value: 1.3235
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Figure 2C, day 13 spleen, NP396, medium dose
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: ~1.32
+    description: Bar height for ratio of IFNg+TNFa+ to IFNg+ NP396-specific CD8 T
+      cells, medium-dose LCMV clone 13, day 13 spleen
+    context: Panel showing ratios for NP396, GP33, NP205 at low, medium, and high
+      doses.
+- name: np396_ratio_med_bar_tip
+  value: 1.4265
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Figure 2C, day 13 spleen, NP396, medium dose error bar
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: ~1.43
+    description: Error-bar tip for NP396 medium-dose bar, representing mean plus error
+    context: "Error bars plotted on NP396 ratio bars; text states values are mean\
+      \ \xB1 error across mice."
+- name: np396_ratio_high_mean
+  value: 1.1471
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Figure 2C, day 13 spleen, NP396, high dose
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: ~1.15
+    description: Bar height for ratio of IFNg+TNFa+ to IFNg+ NP396-specific CD8 T
+      cells, high-dose LCMV clone 13, day 13 spleen
+    context: Panel showing ratios for NP396, GP33, NP205 at low, medium, and high
+      doses.
+- name: np396_ratio_high_bar_tip
+  value: 1.2647
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Figure 2C, day 13 spleen, NP396, high dose error bar
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: ~1.26
+    description: Error-bar tip for NP396 high-dose bar, representing mean plus error
+    context: "Error bars plotted on NP396 ratio bars; text states values are mean\
+      \ \xB1 error across mice."
+- name: n_mice_fig2c_np396
+  value: 5.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Cornberg2013
+  source_location: Figure 2 legend
+  value_snippet: "(**p < 0.01; n = 5\u20137 mice/group)."
+- name: n_effective_fig2c_np396
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: The error bars in Figure 2C are described as mean +/- SEM. The
+    |bar_tip - mean| digitized distances are therefore SEMs on the mean; the
+    error model uses these directly as the SD of the bootstrap distribution for
+    the mean and sets sample_size = 1 to avoid a second sqrt(n) division that
+    would double-count the n_mice averaging. (Setting sample_size = n_mice while
+    treating the SEM as an SD would shrink the effective uncertainty by a factor
+    of n relative to a single-mouse SD, over-weighting this proxy target.)
+  source_ref: Cornberg2013
+  source_location: Error-model choice; see identifiability_notes.
+calibration:
+  parameters:
+  - name: K_C_exh
+    units: cell
+    nuisance: false
+  forward_model:
+    data_rationale: "Cornberg2013 infected C57BL/6 mice intravenously with three different\
+      \ doses of LCMV clone 13 (2\xD710^4, 2\xD710^5, 2\xD710^6 pfu) and at day 13\
+      \ measured, for each dose, the ratio of IFNg+TNFa+ to total IFNg+ NP396-specific\
+      \ CD8 T cells in spleen. Loss of polyfunctional TNFa production at higher inocula\
+      \ is a standard functional readout of CD8 T cell exhaustion. These three doses\
+      \ thus provide a coarse antigen-dose versus exhaustion relationship at a fixed\
+      \ late time point."
+    submodel_rationale: In the full PDAC QSP model, K_C_exh sets the cancer cell number
+      at which chronic antigen exposure half-maximally drives CD8 T cells into the
+      exhausted state via a saturating term C_total/(C_total + K_C_exh + cell). This
+      is mathematically equivalent to a Hill function with n=1 relating effective
+      antigen load to the fraction of cells entering exhaustion. Here, we treat viral
+      inoculum as a proxy for chronic antigen load and fit a Hill curve f_exh(dose)
+      = dose/(dose + K_C_exh) to the exhaustion fraction inferred from the NP396 polyfunctionality
+      data, preserving the same functional dependence on antigen load as in the full
+      model.
+    type: direct_fit
+    curve: hill
+    ec50: K_C_exh
+    n_hill: '1.0'
+    baseline: '0.0'
+    maximum: '1.0'
+    intercept: '0.0'
+  error_model:
+  - name: np396_exhaustion_medium
+    units: dimensionless
+    uses_inputs:
+    - np396_ratio_low_mean
+    - np396_ratio_low_bar_tip
+    - np396_ratio_med_mean
+    - np396_ratio_med_bar_tip
+    - n_mice_fig2c_np396
+    x_input: lcmv_dose_medium_pfu
+    sample_size_input: n_effective_fig2c_np396
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_low = inputs['np396_ratio_low_mean']\n   \
+      \ tip_low = inputs['np396_ratio_low_bar_tip']\n    mean_med = inputs['np396_ratio_med_mean']\n\
+      \    tip_med = inputs['np396_ratio_med_bar_tip']\n\n    sd_low = abs(tip_low\
+      \ - mean_low)\n    sd_med = abs(tip_med - mean_med)\n\n    cv_low = sd_low /\
+      \ mean_low if mean_low > 0 else 0.0\n    cv_med = sd_med / mean_med if mean_med\
+      \ > 0 else 0.0\n\n    sigma_ln_low = np.sqrt(np.log(1.0 + cv_low**2)) if cv_low\
+      \ > 0 else 0.0\n    mu_ln_low = np.log(mean_low) - sigma_ln_low**2 / 2.0 if\
+      \ mean_low > 0 else 0.0\n\n    sigma_ln_med = np.sqrt(np.log(1.0 + cv_med**2))\
+      \ if cv_med > 0 else 0.0\n    mu_ln_med = np.log(mean_med) - sigma_ln_med**2\
+      \ / 2.0 if mean_med > 0 else 0.0\n\n    if sigma_ln_low > 0:\n        low_samples\
+      \ = rng.lognormal(mu_ln_low, sigma_ln_low / np.sqrt(sample_size), n_bootstrap)\n\
+      \    else:\n        low_samples = np.full(n_bootstrap, mean_low)\n\n    if sigma_ln_med\
+      \ > 0:\n        med_samples = rng.lognormal(mu_ln_med, sigma_ln_med / np.sqrt(sample_size),\
+      \ n_bootstrap)\n    else:\n        med_samples = np.full(n_bootstrap, mean_med)\n\
+      \n    exhaustion_samples = 1.0 - med_samples / np.maximum(low_samples, 1e-12)\n\
+      \    exhaustion_samples = np.clip(exhaustion_samples, 0.0, 1.0)\n    return\
+      \ exhaustion_samples\n"
+    n_bootstrap: 10000
+  - name: np396_exhaustion_high
+    units: dimensionless
+    uses_inputs:
+    - np396_ratio_low_mean
+    - np396_ratio_low_bar_tip
+    - np396_ratio_high_mean
+    - np396_ratio_high_bar_tip
+    - n_mice_fig2c_np396
+    x_input: lcmv_dose_high_pfu
+    sample_size_input: n_effective_fig2c_np396
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_low = inputs['np396_ratio_low_mean']\n   \
+      \ tip_low = inputs['np396_ratio_low_bar_tip']\n    mean_high = inputs['np396_ratio_high_mean']\n\
+      \    tip_high = inputs['np396_ratio_high_bar_tip']\n\n    sd_low = abs(tip_low\
+      \ - mean_low)\n    sd_high = abs(tip_high - mean_high)\n\n    cv_low = sd_low\
+      \ / mean_low if mean_low > 0 else 0.0\n    cv_high = sd_high / mean_high if\
+      \ mean_high > 0 else 0.0\n\n    sigma_ln_low = np.sqrt(np.log(1.0 + cv_low**2))\
+      \ if cv_low > 0 else 0.0\n    mu_ln_low = np.log(mean_low) - sigma_ln_low**2\
+      \ / 2.0 if mean_low > 0 else 0.0\n\n    sigma_ln_high = np.sqrt(np.log(1.0 +\
+      \ cv_high**2)) if cv_high > 0 else 0.0\n    mu_ln_high = np.log(mean_high) -\
+      \ sigma_ln_high**2 / 2.0 if mean_high > 0 else 0.0\n\n    if sigma_ln_low >\
+      \ 0:\n        low_samples = rng.lognormal(mu_ln_low, sigma_ln_low / np.sqrt(sample_size),\
+      \ n_bootstrap)\n    else:\n        low_samples = np.full(n_bootstrap, mean_low)\n\
+      \n    if sigma_ln_high > 0:\n        high_samples = rng.lognormal(mu_ln_high,\
+      \ sigma_ln_high / np.sqrt(sample_size), n_bootstrap)\n    else:\n        high_samples\
+      \ = np.full(n_bootstrap, mean_high)\n\n    exhaustion_samples = 1.0 - high_samples\
+      \ / np.maximum(low_samples, 1e-12)\n    exhaustion_samples = np.clip(exhaustion_samples,\
+      \ 0.0, 1.0)\n    return exhaustion_samples\n"
+    n_bootstrap: 10000
+  identifiability_notes: This target constrains K_C_exh through two exhaustion fraction
+    measurements (medium and high inoculum) at a fixed late time point, assuming the
+    Hill coefficient n=1 and maximal exhaustion fraction of 1. With only two nontrivial
+    doses, K_C_exh is moderately but not tightly identifiable; higher n values or
+    additional free parameters (e.g., nonzero baseline exhaustion) would be underdetermined.
+    The Figure 2C error bars are reported as mean +/- SEM (n = 5-7 mice/group);
+    the digitized |bar_tip - mean| values are used directly as effective SDs of
+    the bootstrap mean with sample_size = 1 to avoid double-dividing by sqrt(n).
+    No additional per-mouse SDs are imputed, so this target encodes SEM-level
+    uncertainty on the NP396 ratios; broader between-mouse variability and the
+    gap to PDAC biology are carried by translation_sigma during joint calibration.
+    The digitized Figure 2C values exceed 1 (low-dose ratio ~2.54), which is
+    incompatible with a literal ratio of IFNg+TNFa+ to IFNg+ single-positive cells
+    (bounded at 1); the plotted quantity is more consistent with a ratio to a
+    reference (e.g., fold-change relative to a control) or a dual-positive vs
+    single-positive comparator. K_C_exh is therefore fit to the fractional loss
+    of the ratio relative to the low-dose reference (1 - med/low, 1 - high/low),
+    which remains valid irrespective of the exact normalization convention, and
+    is interpreted as an abstract antigen-load EC50 rather than a literal
+    PDAC-cell threshold. Units are inherited from viral pfu (treated as an
+    abstract antigen-load scale, not an explicit mapping to cell counts); carrying
+    K_C_exh forward to cancer-cell C_total relies on translation sigma and the
+    gating Hill structure rather than a biophysical pfu-to-cell conversion.
+    The NP396 epitope is high-affinity and strongly driven to deletion at high
+    antigen loads, so its exhaustion curve may represent an upper bound compared
+    to other epitopes; however, the model assumes a shared antigen-threshold
+    K_C_exh across epitopes, treating epitope-to-epitope variation as noise rather
+    than inferring separate thresholds.
+experimental_context:
+  species: mouse
+  system: animal_in_vivo
+  cell_types:
+  - name: CD8 T cell
+    phenotype: virus-specific effector CD8 T cells (LCMV NP396 epitope)
+    isolation_method: endogenous CD8 T cells analyzed directly ex vivo from spleen
+    source: C57BL/6 male mice infected intravenously with LCMV clone 13
+  indication: systemic LCMV clone 13 infection (chronic viral infection model)
+study_interpretation: Cornberg2013 demonstrates that increasing the inoculum of the
+  chronic LCMV clone 13 strain drives progressive functional exhaustion of virus-specific
+  CD8 T cells, quantified as loss of polyfunctional IFNg+TNFa+ responses. By treating
+  inoculum dose as a proxy for cumulative antigen load and mapping the fraction of
+  lost polyfunction at day 13 onto a simple Hill function, this target provides an
+  approximate antigen-load EC50 for CD8 exhaustion. We reuse this EC50 structure to
+  inform the PDAC QSP parameter K_C_exh, which controls how tumor-cell burden tunes
+  the rate of CD8 exhaustion via a saturating C_total/(C_total+K_C_exh) term. Although
+  viral infection is a proxy for solid tumor antigen exposure, the data still encode
+  how a rapidly increasing antigen load forces CD8 effectors into an exhausted state,
+  which is mechanistically analogous to chronic neoantigen exposure in PDAC.
+key_assumptions:
+- Viral inoculum is proportional to the effective chronic antigen load that drives
+  CD8 exhaustion, and its saturating relationship to exhaustion fraction can be mapped
+  onto the cancer-cell-based term C_total/(C_total + K_C_exh) used in the PDAC QSP
+  model.
+- The NP396-specific CD8 T cell response, which is strongly driven to functional impairment
+  and deletion at high viral loads, is representative of the generic behavior of tumor-specific
+  CD8 T cells with respect to antigen-load-driven exhaustion, even though epitope-specific
+  thresholds may differ.
+- Day 13 post infection in this high-dose chronic LCMV model approximates a quasi-steady
+  state for the exhaustion fraction, so that the observed loss of polyfunction primarily
+  reflects the steady-state dependence on antigen load rather than transient kinetics.
+- Error bars in Figure 2C (NP396 ratios) are reported as mean +/- SEM; the
+  digitized |bar_tip - mean| values are used as effective SDs for the bootstrap
+  distribution of the mean with sample_size = 1, which preserves the SEM-level
+  uncertainty without double-dividing by sqrt(n_mice). Between-mouse variability
+  is not separately recovered here and is carried by translation_sigma.
+- Viral plaque-forming units are treated as equivalent to an abstract antigen-load
+  unit that can be numerically associated with cancer cell numbers in the QSP model
+  through the shared parameter K_C_exh, even though the biophysical relationship between
+  infected cell numbers and tumor cells is not explicitly modeled.
+key_study_limitations:
+- The experimental system is a systemic chronic viral infection in C57BL/6 mice rather
+  than a desmoplastic human PDAC tumor; the structure, distribution, and durability
+  of antigen presentation differ substantially, so the inferred K_C_exh primarily
+  encodes a qualitative threshold rather than a quantitatively precise PDAC value.
+- Antigen load is varied through viral inoculum and subsequent replication, not by
+  directly controlling the number of antigen-bearing cells, and the mapping from inoculum
+  units to total infected-cell burden is unknown, introducing uncertainty when translating
+  to a cancer-cell-based K_C_exh.
+- "Only three inoculum doses are tested, and the exhaustion readout for NP396 is available\
+  \ at a single late time point, which limits the ability to identify more complex\
+  \ dose\u2013response shapes or to separate kinetic from steady-state effects."
+- Digitized bar heights and error bars from Figure 2C introduce additional manual-extraction
+  uncertainty, and the exact definition of the error bars (SD vs SEM) is not explicitly
+  stated in the text.
+- Data are for a single high-affinity viral epitope (NP396), which is known to undergo
+  preferential deletion at high antigen loads; other epitopes (e.g., GP33, NP205)
+  may exhibit different exhaustion thresholds that are not captured in this simplified
+  single-parameter fit.
+primary_data_source:
+  doi: 10.3389/fimmu.2013.00475
+  title: Clonal exhaustion as a mechanism to protect against severe immunopathology
+    and death from an overwhelming CD8 T cell response
+  authors:
+  - Cornberg
+  - Kenney
+  - Chen
+  - Waggoner
+  - Kim
+  - Dienes
+  - Welsh
+  - Selin
+  year: 2013
+  source_tag: Cornberg2013
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The source study uses a chronic LCMV clone 13
+      infection model in C57BL/6 mice to study CD8 T cell exhaustion, whereas the
+      target QSP model focuses on human pancreatic ductal adenocarcinoma (PDAC). Both
+      contexts involve chronic antigen exposure leading to functional CD8 impairment
+      driven by PD-1 and other inhibitory pathways, but the tissue site, pathogen
+      type, and stromal context differ substantially. We therefore use LCMV inoculum
+      as a mechanistic proxy for chronic tumor antigen load rather than a disease-matched
+      measurement.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: pathological_state
+    perturbation_relevance: Mice are subjected to a systemic viral infection that
+      establishes high and persistent antigen loads, driving CD8 exhaustion. This
+      is not a pharmacological or genetic perturbation but a disease model in which
+      the extent of antigen exposure is controlled by inoculum dose. We assume that
+      the qualitative relationship between antigen load and CD8 exhaustion is conserved
+      and can be applied to tumor antigen exposure in PDAC.
+    tme_compatibility: low
+    tme_compatibility_notes: The LCMV clone 13 model involves widespread viral infection
+      of multiple organs with relatively unconstrained CD8 trafficking, in contrast
+      to the highly desmoplastic, T cell-excluded microenvironment of PDAC. Stromal
+      barriers, myeloid suppression, and CAF-driven stiffness are largely absent in
+      the viral model, so absolute antigen thresholds for exhaustion may differ by
+      orders of magnitude. We therefore interpret the inferred K_C_exh mainly as a
+      qualitative indicator of where exhaustion becomes important, not as a quantitatively
+      precise PDAC threshold.
+    measurement_directness: proxy_observable
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: animal_in_vivo
+tags:
+- CD8_exhaustion
+- antigen_dose_response
+- viral_proxy_for_PDAC
+- K_C_exh
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

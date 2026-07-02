@@ -1,0 +1,138 @@
+study_interpretation: |
+  Mechanistic-prior cal target on the continuous C1 fold-change C1(d21) / C1(0)
+  for the neoadjuvant GVAX + nivolumab scenario gvax_nivo_neoadjuvant_zheng2022.
+  Splits the magnitude claim ("the tumor should respond, at least mildly, to
+  GVAX + nivo over 21 days") off the timing-only target
+  tumor_min_follows_cd8_peak_gvax_nivo_mechanistic, so that each target encodes
+  one biology claim and the timing target can NaN-gate cleanly when no
+  shrinkage occurs (instead of feeding a sentinel into the NPE loss). Closest
+  literature anchor: Lutz 2011, Le 2015, Zheng 2022 — reported clinical
+  benefit in vaccine + CPI combinations in PDAC is modest at best, so the
+  prior centers on mild shrinkage with a wide CI admitting "essentially
+  unchanged" outcomes.
+key_assumptions:
+- |
+  Mechanistic prior: GVAX + nivolumab applied in the 21-day neoadjuvant
+  window of NCT02451982 produces, on the cohort scale, at most modest
+  tumor-cell-count change. The Zheng 2022 cohort (paired pre-treatment
+  biopsy + post-treatment resection) reports CD8 fold-change but does not
+  report per-patient tumor-volume measurements at d21, so this is a
+  mechanistic prior rather than a primary-data target.
+- |
+  Median 0.85 chosen mildly below 1.0 to encode the directional claim
+  "vaccine + CPI should slow or mildly reverse tumor growth in 21 days",
+  consistent with the published mIHC evidence of CD8 infiltration without
+  a dramatic published anti-tumor effect. CI95 [0.5, 1.4] admits both
+  meaningful response (down to 50% C1 fold) and growth comparable to
+  untreated (up to 40% expansion).
+- |
+  Distribution width chosen so this target acts as a directional sanity
+  rail, not a tight likelihood driver. The companion timing target
+  (tumor_min_follows_cd8_peak_gvax_nivo_mechanistic, mass-center
+  formulation) NaN-gates when C1 does not fall below baseline — so this
+  magnitude target is the ONLY signal pushing the model toward shrinkage
+  in the gvax_nivo 21-day window, the timing target only constrains
+  timing once shrinkage is achieved.
+key_study_limitations:
+- |
+  No primary literature source reports per-patient C1 fold-change at d21
+  in the resectable + neoadjuvant GVAX + nivolumab population. The Zheng
+  2022 paired mIHC data is on CD8 infiltration, not on tumor cellularity
+  or absolute size at d21. Mechanistic prior status is appropriate.
+- |
+  CI95 width is deliberately wide so this target nudges rather than
+  dominates the likelihood. Tightening would require either a primary
+  cohort with per-patient d21 tumor measurements, or a preclinical
+  PDAC GVAX-nivo time-course paper.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        import numpy as np
+        c1 = species_dict['V_T.C1']
+        if c1.size == 0 or c1[0] <= 0:
+            return np.full_like(c1, np.nan, dtype=float)
+        return c1 / c1[0]
+
+  units: dimensionless
+  species:
+  - V_T.C1
+  constants: []
+  support: positive_unbounded
+  mapping_rationale: |
+    End fold-change C1(d21) / C1(0). Greater than 1.0 indicates net
+    growth; below 1.0 indicates net shrinkage by d21. Mechanistic prior
+    centers on mild shrinkage (median 0.85) with a wide CI admitting
+    either response or untreated-comparable growth.
+  experimental_denominator: null
+  model_denominator_species: null
+  unmodeled_denominator_components: null
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: on_treatment
+    specifier: |
+      Resectable PDAC receiving neoadjuvant GVAX + nivolumab (Arm B of
+      NCT02451982), 21-day window from first vaccine dose to surgical
+      resection. Mechanistic prior; the published cohort does not report
+      per-patient C1 fold-change at d21.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: null
+  assay_type: null
+scenario:
+  description: |
+    21-day neoadjuvant GVAX + nivolumab scenario (gvax_nivo_neoadjuvant_zheng2022);
+    mechanistic-prior directional cal target on the continuous d21 C1
+    fold-change. Companion to the mass-center timing target
+    tumor_min_follows_cd8_peak_gvax_nivo_mechanistic.
+  interventions:
+  - intervention_description: |
+      GVAX + nivolumab per gvax_nivo_neoadjuvant_zheng2022 scenario YAML.
+empirical_data:
+  median:
+  - 0.8374
+  ci95:
+  - - 0.5
+    - 1.4
+  units: dimensionless
+  sample_size: 1
+  sample_size_rationale: |
+    Mechanistic prior; sample size 1 denotes a single soft-prior
+    assertion. The CI95 [0.5, 1.4] carries the directional uncertainty
+    about per-patient d21 C1 fold-change under GVAX + nivolumab.
+  index_values:
+  - 21.0
+  index_unit: day
+  index_type: time
+  inputs: []
+  assumptions: []
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        rng = np.random.default_rng(42)
+        lo, hi = 0.5, 1.4
+        mu = 0.5 * (np.log(lo) + np.log(hi))
+        sigma = (np.log(hi) - np.log(lo)) / (2.0 * 1.96)
+        samples = rng.lognormal(mu, sigma, 100000) * ureg.dimensionless
+        return {
+            'median_obs': np.median(samples),
+            'ci95_lower': np.percentile(samples, 2.5),
+            'ci95_upper': np.percentile(samples, 97.5),
+        }
+epistemic_basis: mechanistic
+primary_data_source: null
+secondary_data_sources: []
+calibration_target_id: tumor_fold_d21_gvax_nivo_mechanistic
+cancer_type: PDAC
+tags:
+- mechanistic_prior
+- treated_directional

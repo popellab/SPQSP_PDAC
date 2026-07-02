@@ -1,0 +1,261 @@
+target_id: d_crit_T_n_pore_PDAC_deriv001
+study_interpretation: 'T cell transmigration through rigid polycarbonate filters decreases sharply between 5 um and 1 um pore
+  diameter, with ~90% inhibition at 3 um. This constrains the critical pore diameter for T cell physical arrest at approximately
+  3-4 um (consistent with the reported nuclear compression limit of ~10% of relaxed cross-section, i.e., 3 um^2 from 30 um^2).
+  Both d_crit_T and n_pore are exposed for joint calibration with collagen gel migration data which will refine n_pore downward.
+
+  '
+key_assumptions:
+- Concanavalin A-stimulated T blasts are representative of activated TILs
+- Nuclear deformability is the rate-limiting physical constraint
+- Filter pore arrest threshold transfers to collagen pore arrest threshold
+- Hill function adequately captures the pore-size exclusion relationship
+key_study_limitations:
+- Rigid cylindrical pores vs irregular 3D collagen pore geometry
+- CD4+ T blasts only; CD8+ TILs may have slightly different nuclear mechanics
+- 2D transmigration vs 3D interstitial migration
+- Short assay duration (5h for T blasts) may not capture slower migration modes
+- n=3-5 per condition limits statistical power
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: CD4+ T blasts
+    source: peripheral blood from healthy donors
+    isolation_method: 'Positive immunomagnetic separation using anti-CD4+ mAb and Dynabeads. Purity >95% by flow cytometry.
+      Stimulated with 1.25 ug/ml concanavalin A for 48h prior to transmigration assay.
+
+      '
+  culture_conditions:
+    medium: T-cell medium (TCM; RPMI 1640 supplemented with Hepes, L-glutamine, 2-mercaptoethanol, nonessential amino acids)
+    supplements: 100 U/ml IL-2, 10% FCS
+    duration: 48h stimulation, then 5h transmigration assay
+  indication: general_immunology
+primary_data_source:
+  doi: 10.1083/jcb.201210152
+  source_tag: Wolf2013
+  title: 'Physical limits of cell migration: Control by ECM space and nuclear deformation and tuning by proteolysis and traction
+    force'
+  year: 2013
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'T cell physical migration limits are cell-intrinsic (nuclear size and deformability)
+      and not disease-specific. The arrest threshold measured in healthy donor T blasts applies to tumor-infiltrating T cells
+      in PDAC. The main uncertainty is whether chronic activation/exhaustion in the TME alters nuclear mechanics (limited
+      evidence for this).
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: 'Spontaneous transmigration of concanavalin A-activated T blasts through polycarbonate filters.
+      No pharmacological or genetic perturbation applied to the transmigration assay itself. Concanavalin A activation mimics
+      TCR-stimulated T cell blasting which increases motility and deformability.
+
+      '
+    measurement_directness: direct
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_primary
+    tme_compatibility: moderate
+    tme_compatibility_notes: In vitro filter assay captures intrinsic cell physical limits but not TME-specific factors (chemokine
+      gradients, ECM composition, stromal cell interactions). The physical arrest threshold is expected to be conserved but
+      the effective transition sharpness in heterogeneous collagen may differ (n_pore lower in vivo than in filter assay).
+secondary_data_sources: []
+inputs:
+- name: pore_diameter_5um
+  value: 5.0
+  units: micrometer
+  input_type: direct_measurement
+  source_ref: Wolf2013
+  source_location: Materials and methods, Filter transmigration assay
+  value_snippet: Transwell chambers with polycarbonate filters containing 5-, 3-, 1-, and 0.45-um diameter pore sizes
+- name: pore_diameter_3um
+  value: 3.0
+  units: micrometer
+  input_type: direct_measurement
+  source_ref: Wolf2013
+  source_location: Materials and methods, Filter transmigration assay
+  value_snippet: Transwell chambers with polycarbonate filters containing 5-, 3-, 1-, and 0.45-um diameter pore sizes
+- name: pore_diameter_1um
+  value: 1.0
+  units: micrometer
+  input_type: direct_measurement
+  source_ref: Wolf2013
+  source_location: Materials and methods, Filter transmigration assay
+  value_snippet: Transwell chambers with polycarbonate filters containing 5-, 3-, 1-, and 0.45-um diameter pore sizes
+- name: transmigration_5um
+  value: 100.0
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wolf2013
+  source_location: Figure 7A
+  value_snippet: The cell number in the bottom compartment was normalized to transmigration through 5-um pores as 100% reference
+- name: transmigration_5um_sd
+  value: 15.0
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wolf2013
+  source_location: Figure 7A
+  figure_excerpt:
+    figure_id: Figure 7A
+    description: Transmigration of different cell types through polycarbonate membranes
+    value: '15'
+    context: 'Series: T blasts, pore diameter 5 um. SD estimated from error bar: lower bar reaches ~85% from mean of 100%.
+      SD = 100 - 85 = 15%.
+
+      '
+- name: transmigration_3um
+  value: 9.0
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wolf2013
+  source_location: Figure 7A
+  figure_excerpt:
+    figure_id: Figure 7A
+    description: Transmigration of different cell types through polycarbonate membranes
+    value: '9'
+    context: 'Series: T blasts, pore diameter 3 um. T blast transmigration at 3 um pore, normalized to 5 um = 100%. Log-scale
+      y-axis. n=3-5.
+
+      '
+- name: transmigration_3um_sd
+  value: 1.0
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wolf2013
+  source_location: Figure 7A
+  figure_excerpt:
+    figure_id: Figure 7A
+    description: Transmigration of different cell types through polycarbonate membranes
+    value: '1'
+    context: 'Series: T blasts, pore diameter 3 um. SD estimated from error bar: lower bar reaches ~8% from mean of 9%. SD
+      = 9 - 8 = 1%.
+
+      '
+- name: transmigration_1um
+  value: 0.001
+  units: percent
+  input_type: direct_measurement
+  source_ref: Wolf2013
+  source_location: Figure 7A
+  figure_excerpt:
+    figure_id: Figure 7A
+    description: Transmigration of different cell types through polycarbonate membranes
+    value: '0.001'
+    context: 'Series: T blasts, pore diameter 1 um. T blast transmigration at 1 um pore, at or below detection limit. No discernible
+      error bar. Log-scale y-axis.
+
+      '
+- name: normalization_factor
+  value: 100.0
+  units: percent
+  input_type: unit_conversion
+  source_ref: Wolf2013
+  source_location: Figure 7A legend
+  value_snippet: The cell number in the bottom compartment was normalized to transmigration through 5-um pores as 100% reference
+  rationale: Transmigration normalized to 5 um pore = 100%.
+- name: detection_floor
+  value: 0.001
+  units: percent
+  input_type: reference_value
+  source_ref: Wolf2013
+  source_location: Figure 7A
+  value_snippet: The cell number in the bottom compartment was normalized to transmigration through 5-um pores as 100% reference
+  rationale: Floor value for bootstrap resampling of the 3 um ratio to prevent log(0)
+    when the resampled reference is near zero.
+- name: censored_obs_sd_pct
+  value: 1.0
+  units: percent
+  input_type: reference_value
+  source_ref: Wolf2013
+  source_location: Figure 7A
+  value_snippet: The cell number in the bottom compartment was normalized to transmigration through 5-um pores as 100% reference
+  rationale: SD for half-normal observation model at 1 um pore where transmigration is
+    at or below detection limit. Set to 1% to encode a gentle constraint that
+    transmigration should be low without imposing unrealistic precision on a
+    censored measurement.
+- name: n_experiments
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Wolf2013
+  source_location: Figure 7A legend
+  value_snippet: n = 3-5
+  rationale: Conservative lower bound of reported range (3-5 independent experiments).
+calibration:
+  parameters:
+  - name: d_crit_T
+    units: micrometer
+  - name: n_pore
+    units: dimensionless
+  forward_model:
+    type: algebraic
+    formula: transmigration = (d_pore / d_crit_T)^n_pore / (1 + (d_pore / d_crit_T)^n_pore)
+    code: "def compute(params, inputs):\n    d_crit = params['d_crit_T']\n    n = params['n_pore']\n\
+      \    norm = inputs['normalization_factor']\n    d_pore = inputs['_x']  # injected\
+      \ per error model entry via x_input\n    # Numerically stable sigmoid: avoids overflow\
+      \ in ratio**n for large n\n    log_ratio_n = n * np.log(d_pore / d_crit)\n    #\
+      \ sigmoid(x) = 1/(1+exp(-x)), stable for all x\n    transmigration = 1.0 / (1.0\
+      \ + np.exp(-log_ratio_n))\n    return transmigration * norm\n"
+    data_rationale: 'Transwell filter transmigration assay with precisely manufactured polycarbonate pores (5, 3, 1, 0.45
+      um diameter). CD4+ T blasts stimulated with concanavalin A. Transmigration normalized to 5 um pores as 100%. n=3-5 independent
+      experiments per condition.
+
+      '
+    submodel_rationale: 'The full QSP model uses H_pore_T = 1/(1+(d_pore/d_crit_T)^n_pore). This submodel constrains both
+      d_crit_T (physical arrest threshold) and n_pore (transition sharpness). The filter data has rigid uniform pores so it
+      will favor high n_pore (~15); joint calibration with collagen gel data (Sapudom, Wolf Fig 6A) will pull n_pore toward
+      lower values reflecting pore size heterogeneity in real tissue.
+
+      '
+  error_model:
+  - name: transmigration_at_5um
+    units: percent
+    x_input: pore_diameter_5um
+    uses_inputs:
+    - transmigration_5um
+    - transmigration_5um_sd
+    - normalization_factor
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['transmigration_5um']\n    sd = inputs['transmigration_5um_sd']\n    n = int(inputs['n_experiments'])\n   \
+      \ # Bootstrap: 5 um is the normalization reference (100 +/- 15%)\n    return rng.normal(mean, sd / np.sqrt(n), size=n_bootstrap)\n"
+  - name: transmigration_at_3um
+    units: percent
+    x_input: pore_diameter_3um
+    uses_inputs:
+    - transmigration_3um
+    - transmigration_3um_sd
+    - transmigration_5um
+    - transmigration_5um_sd
+    - normalization_factor
+    - detection_floor
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean_3um\
+      \ = inputs['transmigration_3um']\n    sd_3um = inputs['transmigration_3um_sd']\n    mean_5um = inputs['transmigration_5um']\n\
+      \    sd_5um = inputs['transmigration_5um_sd']\n    norm = inputs['normalization_factor']\n    floor = inputs['detection_floor']\n\
+      \    n = int(inputs['n_experiments'])\n    # Bootstrap: resample normalized transmigration at 3 um\n    bootstrap =\
+      \ np.zeros(n_bootstrap)\n    for i in range(n_bootstrap):\n        ref = rng.normal(mean_5um, sd_5um / np.sqrt(n))\n\
+      \        obs = rng.normal(mean_3um, sd_3um / np.sqrt(n))\n        bootstrap[i] = max(obs / ref * norm, floor)\n    return\
+      \ bootstrap\n"
+  - name: transmigration_at_1um
+    units: percent
+    x_input: pore_diameter_1um
+    uses_inputs:
+    - transmigration_1um
+    - censored_obs_sd_pct
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n\
+      \    sd = inputs['censored_obs_sd_pct']\n\
+      \    # Censored: signal at/below detection. Half-normal centered at 0\n\
+      \    return np.abs(rng.normal(0, sd, size=n_bootstrap))\n"
+  identifiability_notes: 'All 3 pore sizes (5, 3, 1 um) are used as error model entries. The 3 um point (transition region)
+    is most informative for the d_crit_T/n_pore tradeoff. The 5 um point (100% reference) anchors the upper asymptote. The
+    1 um point (~0%) constrains the lower tail and prevents n_pore from being too low. Together they over-determine the 2-parameter
+    Hill function, breaking the d_crit/n_pore degeneracy that exists with a single point.
+
+    '

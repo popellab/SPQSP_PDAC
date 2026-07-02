@@ -1,0 +1,17 @@
+observable,estimate,ci95_lo,ci95_hi,units,reasoning
+tumor_doubling_time,60,30,130,days,Derived from typical 3→4cm growth over ~75d on serial imaging; wide range reflects differentiation grade variability
+cd8_pct_nonLA_gvax_d21,0.025,0.010,0.050,dimensionless,Baseline 1.5% × 1.7 fold GVAX-induced T cell recruitment at 14 days
+cd4_pct_nonLA_gvax_d21,0.021,0.008,0.040,dimensionless,Helper 1.0%×1.8 plus Treg 0.5%×0.6 after cyclophosphamide depletion and GVAX CD4 priming
+treg_pct_nonLA_gvax_d21,0.004,0.001,0.010,dimensionless,Baseline 0.5% × 0.6 cyclophosphamide depletion × 1.15 partial rebound
+cd8exh_pct_nonLA_gvax_d21,0.012,0.004,0.025,dimensionless,50% of GVAX-recruited CD8s upregulate PD-1 in immunosuppressive TME
+m1tam_pct_nonLA_gvax_d21,0.013,0.005,0.025,dimensionless,Baseline 1% × 1.3 from GM-CSF-mediated monocyte recruitment and M1 shift
+m2tam_pct_nonLA_gvax_d21,0.025,0.012,0.045,dimensionless,Baseline 3% × 0.85 modest reduction as some M2 repolarize toward M1
+cd8_pct_nonLA_gvax_nivo_d21,0.033,0.015,0.060,dimensionless,GVAX 2.5% × 1.3 additional nivo-mediated reinvigoration and proliferation
+cd4_pct_nonLA_gvax_nivo_d21,0.024,0.010,0.045,dimensionless,GVAX 2.1% × 1.15 modest nivo effect on CD4 compartment
+treg_pct_nonLA_gvax_nivo_d21,0.005,0.001,0.012,dimensionless,GVAX Tregs × 1.1 as PD-1 blockade slightly stabilizes residual Tregs
+cd8exh_pct_nonLA_gvax_nivo_d21,0.009,0.002,0.022,dimensionless,55% PD-1+ among more CD8s but 50% IHC detection loss from nivo epitope competition
+m1tam_pct_nonLA_gvax_nivo_d21,0.015,0.006,0.030,dimensionless,GVAX M1 × 1.18 from increased IFNg secretion by reinvigorated T cells
+m2tam_pct_nonLA_gvax_nivo_d21,0.022,0.010,0.040,dimensionless,GVAX M2 × 0.90 as IFNg promotes modest M2-to-M1 repolarization
+cd8_fold_increase_gvax_nivo_d21,2.2,1.2,4.5,dimensionless,GVAX+nivo CD8 3.3% divided by untreated baseline 1.5%
+m1_m2_ratio_gvax_nivo_d21,0.68,0.20,1.50,dimensionless,M1 1.5% / M2 2.2%; improved from untreated ratio of ~0.33
+treg_fraction_gvax_nivo_d21,0.09,0.03,0.20,dimensionless,Tregs 0.5% / CD3+ 5.7%; reduced from untreated ~22% by cyclophosphamide

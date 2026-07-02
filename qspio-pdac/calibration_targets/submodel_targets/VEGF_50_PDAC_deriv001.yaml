@@ -1,0 +1,215 @@
+target_id: VEGF_50
+inputs:
+- name: VPF_EC50_growth_ngml
+  value: 2.0
+  units: nanogram/milliliter
+  input_type: direct_measurement
+  source_ref: Connolly1989
+  source_location: Results text, p.1474, paragraph beginning 'Dose response and specificity
+    of VPF mitogenic activity'
+  value_snippet: Exposure to 0.5-10 ng/ml VPF increased cell numbers in growth experiments
+    by two- to threefold with a half-maximal growth stimulation observed at ~2 ng/ml
+    (5 x 10^-11 M) VPF.
+- name: VPF_EC50_growth_pgml
+  value: 2000.0
+  units: picogram/milliliter
+  input_type: derived_arithmetic
+  rationale: Convert the reported half-maximal VPF/VEGF concentration for bovine aortic
+    endothelial cell growth from ng/ml to pg/ml (1 ng/ml = 1000 pg/ml) to match the
+    VEGF_50 parameter units.
+  source_ref: Connolly1989
+  source_location: Derived from VPF_EC50_growth_ngml value in Results text, p.1474
+  source_inputs:
+  - VPF_EC50_growth_ngml
+  formula: 1000.0 * VPF_EC50_growth_ngml
+- name: n_effective_samples
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Treat the reported ~2 ng/ml half-maximal concentration as a single effective
+    estimate rather than a sample mean, since no replicate-level statistics are reported.
+  source_ref: Connolly1989
+  source_location: Results text, p.1474 (EC50 described qualitatively, not with explicit
+    n)
+calibration:
+  parameters:
+  - name: VEGF_50
+    units: picogram/milliliter
+    nuisance: false
+  forward_model:
+    data_rationale: "Connolly1989 quantified the dose\u2013response of purified vascular\
+      \ permeability factor (VEGF-A) on bovine aortic endothelial cell proliferation\
+      \ and reported that half-maximal stimulation of cell growth over 5 days occurred\
+      \ at approximately 2 ng/ml VPF. This directly provides an EC50-like concentration\
+      \ for endothelial proliferative/angiogenic signaling, which we map to the VEGF_50\
+      \ parameter controlling VEGF-dependent tumor vasculature growth in the QSP model."
+    submodel_rationale: In the full QSPIO-PDAC model, VEGF_50 appears in the Hill
+      term VEGF / (VEGF + VEGF_50) that modulates the rate k_vas_growth * C_total
+      of vasculature-dependent tumor carrying capacity K. This Hill term represents
+      the fractional activation of endothelial/angiogenic signaling by local VEGF.
+      Under the assumption that the EC50 for endothelial proliferation in vitro approximates
+      the EC50 for angiogenic drive in vivo, we equate VEGF_50 to the EC50 for endothelial
+      cell growth measured by Connolly1989. The algebraic submodel therefore predicts
+      that the observable EC50 (in pg/mL) equals the parameter VEGF_50 used mechanistically
+      in the full model.
+    type: algebraic
+    formula: EC50 for endothelial cell growth (pg/mL) equals VEGF_50 parameter used
+      for vasculature-dependent tumor carrying capacity.
+    code: "def compute(params, inputs):\n    # Forward model predicts the VEGF concentration\
+      \ (in pg/mL)\n    # that yields half-maximal endothelial proliferative/angiogenic\
+      \ response.\n    # In the full QSP model, VEGF_50 appears in the Hill function\n\
+      \    # VEGF / (VEGF + VEGF_50) controlling vasculature-dependent\n    # tumor\
+      \ carrying capacity growth. Here we identify this EC50\n    # directly with\
+      \ the experimentally measured EC50 for bovine\n    # aortic endothelial cell\
+      \ growth.\n    return params['VEGF_50']"
+  error_model:
+  - name: VEGF_EC50_growth_BAE
+    units: picogram/milliliter
+    uses_inputs:
+    - VPF_EC50_growth_pgml
+    - n_effective_samples
+    sample_size_input: n_effective_samples
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['VPF_EC50_growth_pgml']\n    # No\
+      \ quantitative uncertainty is reported for the EC50; approximate\n    # the\
+      \ spread using a Poisson-like scaling where SD ~ sqrt(mean).\n    sd = np.sqrt(mean)\n\
+      \    return rng.normal(mean, sd / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  identifiability_notes: "This target directly equates the QSP parameter VEGF_50 with\
+    \ an experimentally estimated EC50 for endothelial cell growth, so VEGF_50 is\
+    \ identifiable up to the approximate uncertainty implied by the Poisson-like bootstrap\
+    \ used here. No additional parameters are included because Connolly1989 reports\
+    \ only the half-maximal concentration textually, without a full tabulated dose\u2013\
+    response curve from which to fit a Hill slope or maximum effect. The main limitations\
+    \ are translation from bovine aortic endothelial cells in vitro to human tumor\
+    \ vasculature in PDAC and the approximate nature of the reported EC50; these are\
+    \ discussed qualitatively in the study limitations."
+experimental_context:
+  species: bovine
+  system: in_vitro_cell_line
+  cell_lines:
+  - name: BAE (bovine aortic endothelial cells, clone JVO17A)
+    species: bovine
+    tissue_origin: aorta
+    cell_type: vascular endothelial cells
+    source: Isolated as described by Olander et al. 1982; maintained in DME plus 10%
+      calf serum
+  culture_conditions:
+    substrate: standard tissue culture plastic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic (standard incubator conditions, 5% CO2)
+    culture_type: 2d_monolayer
+    medium: DME plus 10% calf serum
+    duration: 'Growth assay: 5 days in the presence of VPF; [3H]thymidine assay: 24
+      h after serum deprivation and VPF addition'
+    notes: BAE cells were grown to confluence in DME + 10% calf serum, then either
+      made sparse for 5-day growth assays or serum-deprived and exposed to VPF for
+      24 h for [3H]thymidine incorporation.
+study_interpretation: "Connolly1989 demonstrated that purified vascular permeability\
+  \ factor (now known as VEGF-A) is a potent and specific mitogen for vascular endothelial\
+  \ cells in vitro and quantified its concentration\u2013response behavior on bovine\
+  \ aortic endothelial cell proliferation. The half-maximal stimulation of cell number\
+  \ over 5 days occurred at about 2 ng/ml VPF, providing a direct estimate of the\
+  \ VEGF concentration that yields half-maximal endothelial proliferative/angiogenic\
+  \ signaling. In the QSPIO-PDAC model, VEGF_50 is the half-maximal VEGF concentration\
+  \ in the Hill term that controls vasculature-dependent tumor carrying capacity growth.\
+  \ By identifying VEGF_50 with this experimentally measured EC50 (after unit conversion\
+  \ to pg/ml), this submodel constrains VEGF_50 to lie near 2,000 pg/ml, consistent\
+  \ with the existing prior median (~2,410 pg/ml) and grounded in classic in vitro\
+  \ endothelial biology. The translation from bovine aortic endothelial cells in monoculture\
+  \ to human tumor vasculature in PDAC is a major source of uncertainty, which is\
+  \ documented qualitatively rather than via a dedicated uncertainty-factor input."
+key_assumptions:
+- Guinea pig vascular permeability factor (VPF) used by Connolly1989 is functionally
+  equivalent to mammalian VEGF-A with respect to endothelial mitogenic/angiogenic
+  signaling, so its EC50 on bovine endothelial cells is representative of VEGF-A potency.
+- The half-maximal concentration for bovine aortic endothelial cell proliferation
+  in vitro approximates the half-maximal VEGF concentration for angiogenic drive and
+  tumor vasculature growth in vivo, enabling direct mapping to the VEGF_50 parameter
+  in the QSP model.
+- Differences in species (bovine vs. human), endothelial bed (aortic macrovascular
+  vs. tumor microvascular), and culture conditions primarily affect scaling and variability
+  rather than order-of-magnitude sensitivity to VEGF, so a single EC50 value remains
+  informative as a mechanistic anchor.
+- "The textual description of half-maximal growth at ~2 ng/ml reflects an underlying\
+  \ quantitative analysis of the dose\u2013response curve; we therefore treat it as\
+  \ the best available point estimate of the EC50, acknowledging unquantified uncertainty\
+  \ that is approximated by a Poisson-like bootstrap."
+- The growth EC50 (~2 ng/ml) is more relevant to the VEGF_50 parameter controlling
+  vasculature-dependent carrying capacity than the lower EC50 (~0.1 ng/ml) reported
+  for [3H]thymidine incorporation, which reflects a more sensitive early DNA-synthesis
+  endpoint rather than net proliferative expansion.
+key_study_limitations:
+- Experiments were performed in vitro using bovine aortic endothelial cells in 2D
+  monolayer culture, not human tumor-associated microvascular endothelial cells within
+  the complex desmoplastic stroma of PDAC; this may shift the effective VEGF EC50
+  in vivo.
+- The reported EC50 for growth (~2 ng/ml) is given approximately in the text rather
+  than as a fitted parameter with confidence intervals; no replicate-level statistics
+  are available, so uncertainty in this estimate cannot be quantified directly.
+- Culture conditions (DME + 10% calf serum) include other growth factors and serum
+  components that may modulate VEGF signaling sensitivity compared with serum-poor
+  or interstitial fluid conditions in tumors.
+- The assay endpoint is total endothelial cell number after 5 days of VPF exposure,
+  which conflates proliferation, survival, and contact inhibition effects and may
+  not map one-to-one onto angiogenic sprouting or vessel density.
+- BAE cells are macrovascular endothelial cells from bovine aorta; their VEGF receptor
+  expression and downstream signaling may differ quantitatively from human tumor microvascular
+  endothelial cells in PDAC.
+primary_data_source:
+  doi: 10.1172/JCI114322
+  title: Tumor Vascular Permeability Factor Stimulates Endothelial Cell Growth and
+    Angiogenesis
+  authors:
+  - Daniel T. Connolly
+  - Deborah M. Heuvelman
+  - Rick Nelson
+  - Jitka V. Olander
+  - Barry L. Eppley
+  - John J. Delfino
+  - Ned R. Siegel
+  - Richard M. Leimgruber
+  - Joseph Feder
+  year: 1989
+  source_tag: Connolly1989
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: "Connolly1989 studies endothelial responses to\
+      \ vascular permeability factor/VEGF-A purified from guinea pig tumor cell\u2013\
+      conditioned medium using bovine aortic endothelial cells in vitro. While not\
+      \ specific to pancreatic ductal adenocarcinoma, the work interrogates fundamental\
+      \ VEGF\u2013endothelial cell interactions that underlie angiogenesis in many\
+      \ tissues. We therefore treat these data as a mechanistic proxy for VEGF sensitivity\
+      \ of tumor vasculature in PDAC, acknowledging that tissue- and disease-specific\
+      \ factors (ECM sequestration, receptor expression, hypoxia) may shift quantitative\
+      \ sensitivities."
+    species_source: bovine
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: "Purified VPF/VEGF-A was applied to endothelial cells\
+      \ without pharmacological inhibitors or genetic perturbations, providing a baseline\
+      \ concentration\u2013response of endothelial proliferation to VEGF signaling.\
+      \ This is intended to approximate physiological VEGF\u2013receptor interactions\
+      \ rather than drug-modified states."
+    tme_compatibility: low
+    tme_compatibility_notes: The experiments use isolated bovine aortic endothelial
+      cells in 2D culture with serum, lacking the dense collagenous stroma, pericytes,
+      immune cells, and hypoxic gradients characteristic of the PDAC tumor microenvironment.
+      As a result, absolute VEGF concentrations required to drive angiogenesis in
+      PDAC may differ from those measured here, and we expect at least an order-of-magnitude
+      uncertainty when translating these in vitro EC50 values to the in vivo PDAC
+      context.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_cell_line
+tags:
+- VEGF
+- angiogenesis
+- endothelial_cells
+- EC50
+- vasculature
+- QSPIO-PDAC
+extraction_model: gpt-4.5
+extraction_reasoning_effort: medium

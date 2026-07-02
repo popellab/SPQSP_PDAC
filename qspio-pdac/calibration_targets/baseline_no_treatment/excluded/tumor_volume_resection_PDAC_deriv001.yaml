@@ -1,0 +1,315 @@
+study_interpretation: |
+  Tran et al. measured tumor size (largest macroscopic diameter) on resection specimens from 315 consecutive treatment-naive patients with surgically resected PDAC at Oslo University Hospital (2015–2020). Neoadjuvantly treated tumors were excluded. Using the standard 2D-macro pathology approach, the cohort had a mean diameter of 30 ± 10 mm (median 30 mm, IQR 23–35 mm, range 9–110 mm). T-stage distribution was T1 12%, T2 73%, T3 15% (AJCC 8th edition). We model the diameter distribution as lognormal (matching reported mean and SD) and convert to tumor volume assuming spherical geometry, yielding a median volume of ~12 cm³ (95% CI ~1.8–82 cm³). The observable computes total tumor tissue volume from all modeled species (cancer cells, CAFs, immune cells, ECM) using the same cell volumes and ECM density as the stromal_fraction target, ensuring internal consistency between the two targets.
+key_assumptions:
+- |
+  Tumor diameter reported as the largest macroscopic dimension on the resection specimen (2D-macro approach) is used as the primary measurement. The study also reports a more comprehensive 3D-micro approach (median 36 mm) but we use 2D-macro as it reflects standard clinical pathology practice.
+- |
+  Tumors are approximated as spheres for converting diameter to volume (V = pi/6 · D^3). While PDACs are infiltrative and irregular, spherical approximation is adequate for order-of-magnitude volume estimation for calibration.
+- |
+  The distribution of tumor diameters across patients is modeled as lognormal, consistent with strictly positive, right-skewed size data. Lognormal parameters are derived from the reported mean and SD.
+- |
+  The reported ±10 mm is a standard deviation based on the study's reporting conventions for continuous variables (mean ± SD).
+key_study_limitations:
+- |
+  Single-center study from Oslo University Hospital. While the cohort is large (n=315) and consecutive, generalizability to other populations or institutions may vary.
+- |
+  The 2D-macro approach may underestimate true tumor extent compared to the 3D-micro approach (which yielded median 36 mm vs 30 mm). T-stage was reclassified upward in 45% of cases when using the comprehensive approach. The calibration target reflects standard pathology reporting, not the maximum possible tumor size.
+- |
+  Tumor shape is assumed spherical for volume conversion, whereas PDAC tumors are often irregular and infiltrative within a desmoplastic stroma, introducing systematic uncertainty in absolute volume estimates.
+- |
+  The total tumor tissue volume is computed from the same cell-volume and ECM-density constants as the stromal_fraction target. The same geometric assumptions (spherical cells, 150 mg/mL ECM density) apply. Unmodeled stromal components (endothelial cells, pericytes, nerves, vascular lumen) are excluded, so the computed volume is a lower bound on true tissue volume.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        """Compute total tumor tissue volume from all modeled species.
+
+        Total volume = cancer cell volume + CAF volume + immune cell volume + ECM volume
+
+        Uses the same cell volumes and ECM density as the stromal_fraction target,
+        ensuring internal consistency between tumor volume and stromal fraction.
+        """
+        import numpy as np
+
+        # Cancer cells
+        C1 = species_dict['V_T.C1']
+
+        # CAF subtypes
+        iCAF = species_dict['V_T.iCAF']
+        myCAF = species_dict['V_T.myCAF']
+        apCAF = species_dict['V_T.apCAF']
+
+        # Lymphocyte-sized immune cells
+        CD8 = species_dict['V_T.CD8']
+        Th = species_dict['V_T.Th']
+        Treg = species_dict['V_T.Treg']
+        MDSC = species_dict['V_T.MDSC']
+        cDC1 = species_dict['V_T.cDC1']
+        cDC2 = species_dict['V_T.cDC2']
+
+        # Macrophages (larger)
+        Mac_M1 = species_dict['V_T.Mac_M1']
+        Mac_M2 = species_dict['V_T.Mac_M2']
+
+        # ECM mass
+        ECM = species_dict['V_T.ECM']
+
+        # Cell volumes in mL (from constants)
+        vol_cancer = constants['vol_cancer_cell']
+        vol_caf = constants['vol_CAF']
+        vol_lymph = constants['vol_lymphocyte']
+        vol_mac = constants['vol_macrophage']
+        ecm_density = constants['ecm_tissue_density']
+
+        # Volume contributions (mL = cm³)
+        cancer_vol = C1 * vol_cancer
+        caf_vol = (iCAF + myCAF + apCAF) * vol_caf
+        lymph_vol = (CD8 + Th + Treg + MDSC + cDC1 + cDC2) * vol_lymph
+        mac_vol = (Mac_M1 + Mac_M2) * vol_mac
+        ecm_vol = ECM / ecm_density
+
+        total_vol = cancer_vol + caf_vol + lymph_vol + mac_vol + ecm_vol
+        return total_vol
+
+  units: centimeter**3
+  species:
+  - V_T.C1
+  - V_T.iCAF
+  - V_T.myCAF
+  - V_T.apCAF
+  - V_T.CD8
+  - V_T.Th
+  - V_T.Treg
+  - V_T.MDSC
+  - V_T.cDC1
+  - V_T.cDC2
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  - V_T.ECM
+  constants:
+  - name: vol_cancer_cell
+    value: 2.572e-09
+    units: milliliter / cell
+    biological_basis: |
+      Spherical volume from pdac_cancer_cell_diameter = 17 µm: V = π/6 × (17e-4 cm)³ = 2.572e-9 mL.
+    source_type: derived_from_reference_db
+    reference_db_name: null
+    reference_db_names:
+    - pdac_cancer_cell_diameter
+    source_tag: null
+  - name: vol_CAF
+    value: 1.767e-09
+    units: milliliter / cell
+    biological_basis: |
+      Spherical volume from fibroblast_diameter = 15 µm: V = π/6 × (15e-4 cm)³ = 1.767e-9 mL.
+    source_type: derived_from_reference_db
+    reference_db_name: null
+    reference_db_names:
+    - fibroblast_diameter
+    source_tag: null
+  - name: vol_lymphocyte
+    value: 1.796e-10
+    units: milliliter / cell
+    biological_basis: |
+      Spherical volume from t_cell_diameter = 7 µm: V = π/6 × (7e-4 cm)³ = 1.796e-10 mL. Used for CD8, Th, Treg, NK, MDSC, cDC1, cDC2.
+    source_type: derived_from_reference_db
+    reference_db_name: null
+    reference_db_names:
+    - t_cell_diameter
+    source_tag: null
+  - name: vol_macrophage
+    value: 4.189e-09
+    units: milliliter / cell
+    biological_basis: |
+      Spherical volume from macrophage_diameter = 20 µm: V = π/6 × (20e-4 cm)³ = 4.189e-9 mL.
+    source_type: derived_from_reference_db
+    reference_db_name: null
+    reference_db_names:
+    - macrophage_diameter
+    source_tag: null
+  - name: ecm_tissue_density
+    value: 150.0
+    units: milligram / milliliter
+    biological_basis: |
+      Effective density of hydrated desmoplastic ECM in PDAC tissue (100-200 mg/mL). Converts ECM mass (mg) to tissue volume (mL).
+    source_type: reference_db
+    reference_db_name: ecm_tissue_density
+    reference_db_names:
+    - ecm_tissue_density
+    source_tag: null
+  support: positive
+  mapping_rationale: |
+    Clinical tumor volume is the total tissue volume of the resected mass, including cancer cells, stroma (CAFs, ECM), and immune infiltrate. The observable reconstructs this total tissue volume from all modeled species using the same cell-volume and ECM-density constants as the stromal_fraction target. This ensures the two targets are internally consistent: if the model predicts the right stromal fraction AND the right total volume, it necessarily has the right cancer cell count. Unmodeled components (endothelial cells, nerves, vascular lumen) are excluded, making the computed volume a slight underestimate.
+  experimental_denominator: null
+  model_denominator_species: null
+  unmodeled_denominator_components: |
+    Endothelial cells, pericytes, neural elements, and vascular lumen volume are not modeled. Their combined contribution is assumed small relative to ECM + cancer cells + CAFs.
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: |
+      All 315 patients were treatment-naive; neoadjuvantly treated tumors were explicitly excluded from the cohort.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Primary PDAC resection specimens from pancreatoduodenectomy (72%), distal pancreatectomy (27%), or total pancreatectomy (1%).
+  assay_type: |
+    Gross pathology measurement of largest tumor diameter (2D-macro approach) on formalin-fixed resection specimens, with AJCC 8th edition T-staging.
+scenario:
+  description: |
+    Consecutive treatment-naive patients with surgically resected PDAC at Oslo University Hospital (2015–2020). Tumor size was measured as the largest macroscopic diameter on the resection specimen using standard pathology examination (2D-macro approach).
+  interventions:
+  - intervention_description: |
+      Surgical resection of primary PDAC via pancreatoduodenectomy (n=227, 72%), distal pancreatectomy (n=84, 27%), or total pancreatectomy (n=4, 1%). No neoadjuvant therapy was administered; neoadjuvantly treated patients were excluded.
+empirical_data:
+  median:
+  - 11.97
+  ci95:
+  - - 1.78
+    - 82.16
+  units: centimeter**3
+  sample_size: 315
+  sample_size_rationale: |
+    315 consecutive resected PDAC cases from Oslo University Hospital (2015–2020). Neoadjuvantly treated tumors were excluded. All 315 were histologically confirmed ductal adenocarcinoma.
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs:
+  - name: mean_tumor_diameter
+    value: 30.0
+    units: millimeter
+    description: |
+      Mean largest macroscopic tumor diameter across 315 treatment-naive resected PDAC specimens (2D-macro approach).
+    source_ref: Tran2022_TumorSize
+    value_location: Results, Table 1
+    value_snippet: |
+      2D-macro: Mean (SD) 30 (10) mm, Median (IQR) 30 (23-35) mm, Range 9-110 mm.
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: sd_tumor_diameter
+    value: 10.0
+    units: millimeter
+    description: |
+      Standard deviation of largest macroscopic tumor diameter across the 315 resected PDAC specimens.
+    source_ref: Tran2022_TumorSize
+    value_location: Results, Table 1
+    value_snippet: |
+      2D-macro: Mean (SD) 30 (10) mm, Median (IQR) 30 (23-35) mm, Range 9-110 mm.
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: sd
+    dispersion_type_rationale: |
+      The study reports values as "Mean (SD)" throughout tables. The ±10 mm is explicitly labeled as SD.
+  assumptions:
+  - name: n_mc_samples
+    value: 100000.0
+    units: dimensionless
+    description: |
+      Number of Monte Carlo samples used to approximate the distribution of tumor volume from the reported mean and SD of diameter.
+    rationale: |
+      100,000 samples provide stable estimates of the median and 95% confidence interval (<1% Monte Carlo error) while keeping computation inexpensive.
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        import math
+
+        # Extract inputs as Pint quantities
+        mean_d = inputs['mean_tumor_diameter'].to('millimeter')
+        sd_d = inputs['sd_tumor_diameter'].to('millimeter')
+        n_samples = int(inputs['n_mc_samples'].magnitude)
+
+        # Work in magnitudes (dimensionless) to compute lognormal parameters
+        mean_mag = mean_d.magnitude
+        sd_mag = sd_d.magnitude
+
+        # Lognormal parameterization that matches mean and SD of diameter
+        mu_log = np.log(mean_mag ** 2 / np.sqrt(mean_mag ** 2 + sd_mag ** 2))
+        sigma_log = np.sqrt(np.log(1.0 + (sd_mag ** 2) / (mean_mag ** 2)))
+
+        rng = np.random.default_rng(42)
+
+        # Sample diameters in mm and immediately reattach units
+        diameters = rng.lognormal(mu_log, sigma_log, n_samples) * ureg('millimeter')
+
+        # Convert diameter -> volume assuming spherical tumors:
+        # V = (pi / 6) * D^3
+        volumes_mm3 = (math.pi / 6.0) * (diameters ** 3)
+
+        # Convert mm^3 -> cm^3; 1 cm^3 = 1000 mm^3, handled by Pint conversion
+        volumes_cm3 = volumes_mm3.to('centimeter**3')
+
+        median_obs = np.median(volumes_cm3)
+        ci95_lower = np.percentile(volumes_cm3, 2.5)
+        ci95_upper = np.percentile(volumes_cm3, 97.5)
+
+        return {
+            'median_obs': median_obs,
+            'ci95_lower': ci95_lower,
+            'ci95_upper': ci95_upper,
+        }
+primary_data_source:
+  source_tag: Tran2022_TumorSize
+  title: |
+    Tumour Size and T-Stage in Pancreatic Cancer Resection Specimens Depend on the Pathology Examination Approach
+  first_author: Tran
+  year: 2022
+  doi: 10.3390/cancers14102471
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: |
+      The source cohort consists exclusively of patients with pathologically confirmed PDAC undergoing surgical resection at a single high-volume center. All patients were treatment-naive (neoadjuvant excluded). Tumor size is measured on the primary pancreatic tumor resection specimen, matching the target indication (PDAC) and compartment (primary tumor) exactly.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: pathological_state
+    perturbation_relevance: |
+      Tumor size is measured in established PDAC at the time of resection, in a pathological disease state. This is appropriate because the calibration target is tumor burden at surgical resection.
+    tme_compatibility: high
+    tme_compatibility_notes: Resected PDAC specimens with standard pathological volume assessment, directly applicable to
+      model tumor volume.
+    validation_warnings: null
+secondary_data_sources:
+- source_tag: PDAC_Reference_CellDiameters
+  title: |
+    Curated reference values for cell diameters (cancer 17 µm, T cell 7 µm, fibroblast 15 µm, macrophage 20 µm) and ECM tissue density (150 mg/mL)
+  first_author: ReferenceDB
+  year: 2024
+  doi_or_url: null
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: Curated reference values specific to PDAC tumor geometry and cellular composition.
+    species_source: human
+    species_target: human
+    source_quality: review_article
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Reference constants for unit conversions and normalization; no perturbation context.
+    tme_compatibility: high
+    tme_compatibility_notes: PDAC-specific reference values curated from primary literature.
+    validation_warnings: []
+calibration_target_id: tumor_volume_resection
+cancer_type: PDAC
+tags:
+- ai-generated
+- human-reviewed
+logfire_trace_id: 019c6ef12aeb0392e3f735971ec68c6a
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium

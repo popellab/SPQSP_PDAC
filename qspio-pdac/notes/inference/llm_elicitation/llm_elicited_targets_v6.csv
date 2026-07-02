@@ -1,0 +1,28 @@
+observable,estimate,ci95_lo,ci95_hi,units,reasoning
+cancer_cell_density_baseline,1050,500,2200,cells/mm2,3000 total cells/mm2 × 35% epithelial fraction; reduced by desmoplastic stromal expansion
+cd8_density_baseline,55,12,160,cells/mm2,500 immune/mm2 × 30% T cells × 35% CD8; scarce in this cold tumor
+cd4_helper_density,45,12,120,cells/mm2,~80 total CD4/mm2 minus 40% Tregs; CD4 helpers modestly outnumber CD8s
+treg_density_baseline,35,10,85,cells/mm2,~80 total CD4/mm2 × 40% Treg fraction; enriched by TGF-β-rich stroma
+cdc1_density_baseline,3,0.5,12,cells/mm2,~15 total DCs/mm2 × 20% cDC1 fraction; genuinely sparse in PDAC
+cdc2_density_baseline,10,3,30,cells/mm2,~15 total DCs/mm2 × 65% cDC2 fraction; 3-4× more abundant than cDC1
+tam_density,320,130,600,cells/mm2,500 immune/mm2 × 55% TAM fraction; dominant immune population often underappreciated
+mdsc_density,80,25,200,cells/mm2,~350 total myeloid/mm2 × 22% MDSC fraction; substantial but hard to quantify by IHC
+total_til_density,135,45,350,cells/mm2,Sum of CD8(55) + CD4h(45) + Treg(35); ~27% of immune infiltrate consistent with myeloid dominance
+cd8_exhausted_fraction,0.70,0.45,0.90,dimensionless,Overwhelming myeloid suppression + chronic antigen → most infiltrating CD8s are PD-1+
+th_exhausted_fraction,0.40,0.20,0.65,dimensionless,CD4 helpers express PD-1 less than CD8s but still substantial in PDAC suppressive milieu
+cd8_treg_ratio,1.6,0.5,4.5,dimensionless,55 CD8 / 35 Treg = 1.57; low ratio reflects immunosuppressive PDAC environment
+cd8_treg_ratio_alt,1.4,0.4,4.0,dimensionless,Independent estimate from functional suppression perspective; nearly 1:1 CD8:Treg in many patients
+treg_fraction_cd4,0.44,0.20,0.65,dimensionless,35 Treg / (35+45) total CD4 = 0.44; PDAC enriches Tregs among CD4s
+treg_fraction_cd4_alt,0.40,0.18,0.60,dimensionless,Independent estimate; TGF-β-driven Treg conversion puts fraction at high end for solid tumors
+treg_fraction_baseline,0.26,0.10,0.45,dimensionless,35 Treg / 135 total CD3 = 0.26; about one-quarter of T cells are regulatory
+m1_m2_ratio,0.25,0.10,0.50,dimensionless,~20% M1 vs ~80% M2; PDAC stroma/hypoxia/IL-10 strongly drive M2 polarization
+m2_macrophage_fraction,0.80,0.65,0.92,dimensionless,CD163+ fraction of CD68+ TAMs; PDAC is profoundly M2-skewed due to TME cytokines
+apc_maturation_ratio,0.15,0.05,0.30,dimensionless,TAM-derived IL-10 and MDSC arginase suppress DC maturation; most DCs remain immature
+icaf_fraction_of_caf,0.30,0.15,0.50,dimensionless,iCAFs drive myeloid recruitment via IL-6; present but not dominant subtype
+mycaf_fraction_of_caf,0.55,0.35,0.72,dimensionless,myCAFs produce ECM and are the dominant CAF subtype driving desmoplasia
+apcaf_fraction_of_caf,0.10,0.03,0.22,dimensionless,Rarest CAF subtype; MHC-II+ population that may promote Treg differentiation
+apcaf_fraction_of_caf_alt,0.12,0.04,0.25,dimensionless,Independent estimate from scRNA-seq proportions; small but distinct cluster
+stromal_fraction,0.70,0.50,0.85,dimensionless,PDAC is among the most desmoplastic tumors; stroma typically 60-80% of volume
+psc_activation_ratio,0.85,0.65,0.95,dimensionless,Normal ~5% activated; in established PDAC nearly all PSCs become αSMA+ myofibroblastic
+collagen1_protein_level,8.0,4.0,16.0,fold-change,Massive collagen deposition in PDAC stroma; 6-10× above normal pancreatic interstitium
+vegf_tissue_concentration,250,80,600,pg/mg protein,Hypoxia-driven HIF-1α plus TAM-secreted VEGF; elevated 3-5× over normal despite hypovascularity

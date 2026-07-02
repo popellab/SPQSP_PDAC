@@ -1,0 +1,230 @@
+direction: right
+
+# ========= GLOBAL STYLES =========
+**.style.font-size: 24
+
+# ========= COMPARTMENTS AS CONTAINERS =========
+
+blood: Blood {
+  style.fill: "#fce8e8"
+  style.stroke: "#cc4444"
+  direction: right
+
+  Th: Th
+  Treg: Treg
+  Teff: Teff
+  Cy: Cy {style.fill: "#ffcccc"}
+}
+
+dln: Primary dLNs {
+  style.fill: "#fff3e0"
+  style.stroke: "#cc8833"
+  direction: down
+
+  nTCD8: nTCD8
+  Teff: Teff
+  nTCD4: nTCD4
+  Treg: Treg
+  Th: Th
+  IL2: IL-2 {shape: circle}
+  mcDC1: mcDC1
+  mcDC2: mcDC2
+}
+
+tumor: Primary Tumor {
+  style.fill: "#e8f5e9"
+  style.stroke: "#44aa44"
+  direction: down
+
+  # === T cells (single instance each) ===
+  Th: Th
+  Treg: Treg
+  Teff: Teff
+  Texh: Texh
+
+  # === Signaling molecules (single instance each) ===
+  PDL1: PD-L1 {shape: circle}
+  IFNg: IFNγ {shape: circle}
+  IL12: IL-12 {shape: circle}
+  IL10: IL-10 {shape: circle}
+  TGFb: TGF-β {shape: circle}
+  CCL2: CCL2 {shape: circle}
+  CCL5: CCL5 {shape: circle}
+  CXCL12: CXCL12 {shape: circle}
+  NO: NO {shape: circle}
+  ArgI: ArgI {shape: circle}
+  ECM: ECM {shape: circle}
+  PDGF: PDGF {shape: circle}
+  IL6: IL-6 {shape: circle}
+
+  # === Myeloid ===
+  M1: M1 Mac
+  M2: M2 Mac
+  MDSC: MDSC
+
+  # === Cancer ===
+  Cancer: Cancer {
+    style.fill: "#ffe0e0"
+  }
+  Debris: Debris {shape: circle}
+
+  # === DCs ===
+  cDC1: cDC1
+  cDC2: cDC2
+  mcDC1: mcDC1
+  mcDC2: mcDC2
+
+  # === Stroma/CAFs ===
+  qPSC: qPSC
+  myCAF: myCAF
+  iCAF: iCAF
+  apCAF: apCAF
+}
+
+injection: Intradermal Injection {
+  style.fill: "#e0f7fa"
+  style.stroke: "#00838f"
+  direction: down
+
+  GVAX: GVAX {style.fill: "#b2ebf2"}
+  GMCSF: GM-CSF {shape: circle}
+  P1: Debris {shape: circle}
+  APC: APC
+  mAPC: mAPC
+}
+
+# ========= BLOOD INTERNAL =========
+blood.Cy -> blood.Treg: {
+  style.stroke: "#cc3333"
+  target-arrowhead.shape: cf-one
+}
+blood.Cy -> blood.Teff: {
+  style.stroke: "#cc3333"
+  target-arrowhead.shape: cf-one
+}
+
+# ========= BLOOD <-> dLN =========
+
+# ========= dLN INTERNAL =========
+dln.nTCD8 -> dln.Teff: {style.stroke: "#3366cc"}
+dln.nTCD4 -> dln.Treg: {style.stroke: "#3366cc"}
+dln.nTCD4 -> dln.Th: {style.stroke: "#3366cc"}
+dln.nTCD4 -> dln.IL2: {style.stroke: "#3366cc"}
+# IL-2 modulates T cell expansion
+dln.IL2 -> dln.Treg: {style.stroke: "#009688"; style.stroke-dash: 3}
+dln.IL2 -> dln.Teff: {style.stroke: "#009688"; style.stroke-dash: 3}
+# DC priming
+dln.mcDC1 -> dln.nTCD8: {style.stroke: "#009688"; style.stroke-dash: 3}
+dln.mcDC2 -> dln.nTCD4: {style.stroke: "#009688"; style.stroke-dash: 3}
+
+# ========= dLN -> BLOOD =========
+dln.Teff -> blood.Teff: {style.stroke: "#3366cc"}
+dln.Treg -> blood.Treg: {style.stroke: "#3366cc"}
+dln.Th -> blood.Th: {style.stroke: "#3366cc"}
+
+# ========= BLOOD -> TUMOR =========
+blood.Th -> tumor.Th: {style.stroke: "#3366cc"}
+blood.Treg -> tumor.Treg: {style.stroke: "#3366cc"}
+blood.Teff -> tumor.Teff: {style.stroke: "#3366cc"}
+
+# ========= TUMOR: Immune signaling =========
+tumor.IFNg -> tumor.PDL1: {style.stroke: "#3366cc"}
+tumor.Th -> tumor.IFNg: {style.stroke: "#3366cc"}
+tumor.Teff -> tumor.IFNg: {style.stroke: "#3366cc"}
+# CXCL12 inhibits T cell entry
+tumor.CXCL12 -> tumor.Teff: {
+  style.stroke: "#cc3333"
+  target-arrowhead.shape: cf-one
+}
+
+# ========= TUMOR: Myeloid =========
+tumor.M2 -> tumor.IL10: {style.stroke: "#3366cc"}
+tumor.M2 -> tumor.TGFb: {style.stroke: "#3366cc"}
+tumor.M1 -> tumor.IL12: {style.stroke: "#3366cc"}
+tumor.mcDC1 -> tumor.IL12: {style.stroke: "#3366cc"}
+tumor.CCL2 -> tumor.M1: {style.stroke: "#009688"; style.stroke-dash: 3}
+tumor.M1 <-> tumor.M2: {style.stroke: "#9933cc"}
+tumor.MDSC -> tumor.NO: {style.stroke: "#3366cc"}
+tumor.MDSC -> tumor.ArgI: {style.stroke: "#3366cc"}
+tumor.CCL2 -> tumor.MDSC: {style.stroke: "#009688"; style.stroke-dash: 3}
+
+# ========= TUMOR: Cancer =========
+tumor.Cancer -> tumor.CCL2: {style.stroke: "#3366cc"}
+tumor.Cancer -> tumor.CCL5: {style.stroke: "#3366cc"}
+tumor.Cancer -> tumor.Debris: {style.stroke: "#3366cc"}
+tumor.Cancer -> tumor.PDGF: {style.stroke: "#3366cc"}
+tumor.M1 -> tumor.Cancer: {
+  style.stroke: "#cc3333"
+  target-arrowhead.shape: cf-one
+}
+tumor.Teff -> tumor.Cancer: {
+  style.stroke: "#cc3333"
+  target-arrowhead.shape: cf-one
+}
+
+# ========= TUMOR: T cell effector =========
+tumor.Th -> tumor.Treg: {style.stroke: "#3366cc"}
+tumor.Treg -> tumor.TGFb: {style.stroke: "#3366cc"}
+tumor.Th -> tumor.Texh: {style.stroke: "#3366cc"}
+tumor.Teff -> tumor.Texh: {style.stroke: "#3366cc"}
+tumor.Treg -> tumor.Teff: {
+  style.stroke: "#cc3333"
+  target-arrowhead.shape: cf-one
+}
+tumor.apCAF -> tumor.Treg: {style.stroke: "#3366cc"}
+
+# CCL5 recruits Tregs
+tumor.CCL5 -> tumor.Treg: {style.stroke: "#009688"; style.stroke-dash: 3}
+
+# ECM/TGFb inhibitions
+tumor.ECM -> tumor.Teff: {
+  style.stroke: "#cc3333"
+  target-arrowhead.shape: cf-one
+}
+tumor.TGFb -> tumor.Teff: {
+  style.stroke: "#cc3333"
+  target-arrowhead.shape: cf-one
+}
+
+# ========= TUMOR: DCs =========
+tumor.Debris -> tumor.cDC1: {style.stroke: "#009688"; style.stroke-dash: 3}
+tumor.cDC1 -> tumor.mcDC1: {style.stroke: "#3366cc"}
+tumor.cDC2 -> tumor.mcDC2: {style.stroke: "#3366cc"}
+tumor.mcDC1 -> dln.mcDC1: {style.stroke: "#3366cc"}
+tumor.mcDC2 -> dln.mcDC2: {style.stroke: "#3366cc"}
+tumor.IL12 -> tumor.cDC1: {style.stroke: "#009688"; style.stroke-dash: 3}
+tumor.IL10 -> tumor.cDC2: {
+  style.stroke: "#cc3333"
+  target-arrowhead.shape: cf-one
+}
+
+# ========= TUMOR: Stroma/CAFs =========
+tumor.qPSC -> tumor.myCAF: {style.stroke: "#3366cc"}
+tumor.qPSC -> tumor.iCAF: {style.stroke: "#3366cc"}
+tumor.qPSC -> tumor.apCAF: {style.stroke: "#3366cc"}
+tumor.TGFb -> tumor.qPSC: {style.stroke: "#009688"; style.stroke-dash: 3}
+tumor.PDGF -> tumor.qPSC: {style.stroke: "#009688"; style.stroke-dash: 3}
+tumor.myCAF -> tumor.ECM: {style.stroke: "#3366cc"}
+tumor.iCAF -> tumor.CXCL12: {style.stroke: "#3366cc"}
+tumor.myCAF -> tumor.TGFb: {style.stroke: "#3366cc"}
+tumor.iCAF -> tumor.IL6: {style.stroke: "#3366cc"}
+# Cancer produces CCL2 (not iCAF) — already shown on line 169
+tumor.iCAF <-> tumor.myCAF: {style.stroke: "#9933cc"}
+# IL-6 modulates MDSC recruitment, M1->M2 polarization, and iCAF differentiation (not cancer directly)
+tumor.IL6 -> tumor.MDSC: {style.stroke: "#009688"; style.stroke-dash: 3}
+tumor.IL6 -> tumor.M2: {style.stroke: "#009688"; style.stroke-dash: 3}
+
+# ========= CYCLOPHOSPHAMIDE =========
+blood.Cy -> tumor.Treg: {
+  style.stroke: "#cc3333"
+  target-arrowhead.shape: cf-one
+}
+
+# ========= INJECTION SITE =========
+injection.GVAX -> injection.GMCSF: {style.stroke: "#3366cc"}
+injection.GVAX -> injection.P1: {style.stroke: "#3366cc"}
+injection.APC -> injection.mAPC: {style.stroke: "#3366cc"}
+injection.GMCSF -> injection.APC: {style.stroke: "#009688"; style.stroke-dash: 3}
+injection.GMCSF -> injection.mAPC: {style.stroke: "#009688"; style.stroke-dash: 3}
+injection.P1 -> injection.mAPC: {style.stroke: "#009688"; style.stroke-dash: 3}
+injection.mAPC -> dln.mcDC2: {style.stroke: "#3366cc"}

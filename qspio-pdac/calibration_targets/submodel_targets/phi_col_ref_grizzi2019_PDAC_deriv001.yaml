@@ -1,0 +1,202 @@
+target_id: phi_col_ref_grizzi2019_PDAC_deriv001
+study_interpretation: |
+  Grizzi et al. 2019 quantified Sirius-red-stained collagen surface in
+  human pancreatic tissue using computer-aided image analysis. They
+  reported normal pancreas (n=5 cases, 50 ROIs) collagen surface
+  fraction = 2.23 +/- 0.28% (Table 2, Sirius red, mean +/- SD per
+  Methods 'Data are expressed as mean +/- standard deviation').
+
+  In the QSP-IO PDAC model, phi_col_ref is the reference normal-pancreas
+  collagen volume fraction used as the normalization point in two
+  power-law rules: d_pore = d_pore_ref*(phi_col_ref/phi_collagen)^0.5
+  (pore-size scaling) and stiffness = E_ref*(phi_collagen/phi_col_ref)^n_stiff
+  (stiffness scaling). The picrosirius-red area fraction is the
+  histological-convention reading of phi (collagen-stained area / total
+  tissue area in tissue cross-sections), and Grizzi 2019 is the
+  cleanest direct primary measurement in normal human pancreas
+  available in the literature.
+
+  Note: the model's current value phi_col_ref = 0.12 was attributed to
+  Apte 2004 in parameters_PDAC.m, but (a) the PMID 15247571 listed is
+  verifiably WRONG (intervertebral disc paper) and (b) the intended
+  Apte 2004 paper PMID 15367883 is a review that does not actually
+  report 0.10-0.15 for normal pancreas. The 0.12 anchor is more
+  consistent with whole-stromal-area methods (Masson trichrome,
+  Movat pentachrome) than with picrosirius-specific staining. This
+  target adopts the picrosirius-specific convention, in line with
+  the Wolf 2013 (d_pore_ref) and Rubiano 2018 (stiffness power law)
+  submodel targets that already use Sirius-red-style fibrillar-
+  collagen normalization.
+key_assumptions:
+- |
+  Sirius-red staining specifically labels fibrillar collagen
+  (types I and III); the resulting area fraction is the picrosirius
+  collagen volume fraction in tissue cross-sections under the
+  Delesse principle. This is the convention adopted by the Wolf 2013
+  and Rubiano 2018 submodel targets that share phi_col_ref.
+- |
+  Normal pancreas surgical specimens are representative of in vivo
+  reference state. Grizzi 2019 sampled tissue from non-tumorous
+  resections; subclinical pathology near disease boundaries is
+  unlikely to substantially shift the area fraction.
+- |
+  Reported uncertainty 0.28% is across all 50 ROIs (10 ROIs per case
+  x 5 cases). The reported SD therefore mixes within-case and
+  between-case variability. For the population-level reference value
+  phi_col_ref, the standard error of the patient-level mean is more
+  relevant; we treat sample_size = n_cases = 5 in the bootstrap to
+  conservatively represent population uncertainty.
+key_study_limitations:
+- |
+  Small biological replicate count (n=5 normal cases). Pilot study.
+  Population-level uncertainty is therefore limited by patient
+  count, not by within-case ROI count.
+- |
+  Sirius-red picrosirius staining is specific to fibrillar collagens
+  (types I, III) and does not capture basement membrane collagen
+  (type IV) or proteoglycans. Some downstream Hill functions
+  (e.g., H_pore which gates immune cell migration) may respond to
+  the broader matrix structure, not just fibrillar collagen.
+  Translation sigma absorbs this directness mismatch.
+- |
+  RGB-based segmentation thresholds in Sirius red image analysis
+  vary across labs. The Grizzi 2019 method (Image-Pro Plus
+  computer-aided image analysis) is one common implementation;
+  absolute values can shift +/- 30% across implementations.
+experimental_context:
+  species: human
+  system: ex_vivo_tissue
+  cell_lines: null
+  cell_types: null
+  culture_conditions: null
+  indication: PDAC
+primary_data_source:
+  doi: 10.1186/s12967-019-1817-3
+  source_tag: Grizzi2019
+  title: |
+    Computer-aided assessment of the extra-cellular matrix during
+    pancreatic carcinogenesis: a pilot study
+  authors:
+  - Grizzi
+  year: 2019
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: |
+      Direct measurement of Sirius-red collagen area fraction in
+      normal human pancreas tissue (n=5 cases, 50 ROIs). Anchors
+      the reference state for phi_col_ref by definition.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: |
+      Normal pancreatic tissue from non-tumorous surgical resections.
+      Represents the healthy baseline state for the model parameter.
+    tme_compatibility: high
+    tme_compatibility_notes: |
+      Direct ex vivo measurement on human pancreas histology slides.
+      Sirius-red is the appropriate stain for fibrillar collagen
+      volume fraction matching the convention used in the paired
+      Wolf 2013 and Rubiano 2018 submodel targets.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: ex_vivo
+secondary_data_sources: []
+inputs:
+- name: collagen_area_normal_mean_pct
+  value: 2.23
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Grizzi2019
+  source_location: Table 2, normal pancreas (nPA) row, Sirius-red surface column
+  table_excerpt:
+    table_id: Table 2
+    column: Sirius-red stained surface (%)
+    row: normal pancreas (nPA)
+    value: '2.23'
+    context: |
+      Mean Sirius-red stained surface (%) in normal human pancreas.
+      Methods state 'Data are expressed as mean +/- standard deviation'.
+- name: collagen_area_normal_sd_pct
+  value: 0.28
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Grizzi2019
+  source_location: Table 2, normal pancreas (nPA) row, Sirius-red surface column
+  table_excerpt:
+    table_id: Table 2
+    column: Sirius-red stained surface (%)
+    row: normal pancreas (nPA)
+    value: '0.28'
+    context: |
+      Standard deviation of Sirius-red stained surface (%) in normal
+      human pancreas (mixed within- and between-case variability
+      across 50 ROIs from 5 cases).
+- name: n_normal_cases
+  value: 5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Grizzi2019
+  source_location: Table 1, normal pancreas (nPA) row
+  value_snippet: 'normal pancreas (nPA): n=5'
+calibration:
+  parameters:
+  - name: phi_col_ref
+    units: dimensionless
+  forward_model:
+    type: algebraic
+    formula: phi_col_ref = (Sirius-red collagen area fraction in normal pancreas)
+    code: |
+      def compute(params, inputs):
+          # Convert percent (from data) to dimensionless fraction (the
+          # model parameter convention).
+          return 100.0 * params['phi_col_ref']
+    data_rationale: |
+      Sirius-red picrosirius collagen-area measurement in normal
+      pancreas IS the empirical definition of phi_col_ref under
+      the morphometric / Delesse convention. The forward model is
+      a unit-conversion identity: prediction (in %) = 100 * phi_col_ref
+      (which is dimensionless 0-1).
+    submodel_rationale: |
+      The QSP model uses phi_col_ref as the normal-pancreas reference
+      collagen volume fraction in d_pore = d_pore_ref *
+      (phi_col_ref/phi_collagen)^0.5 and stiffness = E_ref *
+      (phi_collagen/phi_col_ref)^n_stiff. Anchoring it to the
+      picrosirius area fraction matches the convention used by the
+      Wolf 2013 and Rubiano 2018 submodel targets that share this
+      parameter through joint inference.
+  error_model:
+  - name: collagen_area_normal_pct
+    units: dimensionless
+    uses_inputs:
+    - collagen_area_normal_mean_pct
+    - collagen_area_normal_sd_pct
+    - n_normal_cases
+    sample_size_input: n_normal_cases
+    observation_code: |
+      def derive_observation(inputs, sample_size, rng, n_bootstrap):
+          import numpy as np
+          mean = inputs['collagen_area_normal_mean_pct']
+          sd = inputs['collagen_area_normal_sd_pct']
+          # Population-level mean of Sirius-red collagen area in
+          # normal pancreas. n=5 patient cases is the relevant
+          # denominator for SE of the population mean (treating the
+          # reported SD as across-ROI; SE_population_mean ~ SD/sqrt(n).
+          # Lognormal bootstrap because area % is positive-bounded
+          # and CV (~12%) puts mass safely above zero.
+          cv = sd / mean
+          sigma_ln = np.sqrt(np.log(1 + cv**2))
+          mu_ln = np.log(mean) - sigma_ln**2 / 2
+          return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)
+  identifiability_notes: |
+    Single parameter (phi_col_ref), single measurement. Algebraic
+    identity (modulo unit conversion %->fraction). Fully identified.
+    Joint inference with Wolf 2013 (d_pore_ref + phi_col_ref) and
+    Rubiano 2018 (E_ref + n_stiff + phi_col_ref) targets sharpens
+    the joint posterior on phi_col_ref through three independent
+    physical relationships (pore-size scaling, stiffness power law,
+    direct Sirius-red area).
+tags:
+- ai-generated
+- ecm-anchor-audit
+extraction_model: claude-opus-4-7

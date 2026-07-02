@@ -1,0 +1,465 @@
+target_id: IL6_50_M2_fernando2014
+tags:
+- ai-generated
+- macrophage-module
+extraction_model: claude-opus-4-6
+study_interpretation: 'Fernando et al. (2014) measured arginase activity as a function of IL-6
+
+  concentration in mouse bone marrow-derived macrophages (BMDMs) co-treated with
+
+  IL-4+IL-13 (20 ng/mL each) for 48h. Five IL-6 doses were tested: 0, 0.01, 0.1,
+
+  1, and 10 ng/mL (n=4).
+
+
+  Arginase activity showed a clear sigmoidal dose-response: no effect at 0.01
+
+  ng/mL, marginal increase at 0.1 ng/mL, significant enhancement at 1 ng/mL
+
+  (p<0.05), and maximal enhancement at 10 ng/mL (p<0.01). IL-6 alone (without
+
+  IL-4+IL-13) had no effect on arginase at any dose.
+
+
+  The threshold at ~1 ng/mL (0.048 nM) constrains the EC50 for IL-6 enhancement
+
+  of M2 macrophage polarization. The model uses H_IL6_M2 = IL6/(IL6_50_M2 + IL6)
+
+  in an OR-gate with TGFb and IL-10 for M1->M2 polarization, making this
+
+  augmentation model a direct mapping.
+
+  '
+key_assumptions:
+- 'Arginase activity is a valid functional readout for M2 macrophage polarization.
+
+  Arginase-1 is a canonical M2/AAM marker that directly reflects the STAT3/STAT6-
+
+  driven M2 program.
+
+  '
+- 'The IL-6 dose-response on arginase activity maps to the model''s H_IL6_M2 Hill
+
+  function. In the model, IL-6 acts as one of three independent drivers of M2
+
+  polarization (OR-gate with TGFb and IL-10). The experimental design (IL-6 added
+
+  to IL-4+IL-13) tests IL-6 augmentation of an existing M2 signal, which is
+
+  consistent with this OR-gate structure.
+
+  '
+- 'The n=1 Hill function in the QSP model is appropriate. The dose-response data
+
+  shows a gradual transition between 0.1 and 10 ng/mL spanning ~2 log units,
+
+  consistent with n~1 Hill coefficient.
+
+  '
+- 'IL-6 concentrations in ng/mL are converted to nM using MW of 21 kDa for mouse
+
+  IL-6. The recombinant IL-6 used (Cedarlane) is mouse IL-6.
+
+  '
+key_study_limitations:
+- 'Mouse BMDMs, not human macrophages. Mouse and human macrophage IL-6 signaling
+
+  differs in receptor expression and downstream effectors. Human data (Figure 4)
+
+  shows similar enhancement but at a single 10 ng/mL dose only.
+
+  '
+- 'IL-6 enhancement requires IL-4+IL-13 co-stimulation. IL-6 alone does not drive
+
+  M2 polarization. The EC50 measured here is for augmentation of an existing M2
+
+  program, not de novo polarization. However, the model''s OR-gate structure is
+
+  consistent with this behavior.
+
+  '
+- 'Arginase activity (enzymatic assay) is a single readout. Other M2 markers
+
+  (CD206, Ym1, RELMalpha) were measured only at single IL-6 doses (Figure 1),
+
+  not as dose-response curves.
+
+  '
+experimental_context:
+  species: mouse
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: bone marrow-derived macrophages (BMDMs)
+    source: BALB/c and C57/Bl6 mice
+    isolation_method: 'Bone marrow cultured in RPMI1640 + 20% FBS + M-CSF (20 ng/mL) for 7 days
+
+      for BMDM differentiation. Stimulated with IL-4+IL-13 (20 ng/mL each) +/-
+
+      IL-6 for 48h.
+
+      '
+  culture_conditions:
+    medium: RPMI1640, 20% FBS, 1.2% GlutaMAX, 2.4% pen-strep, M-CSF 20 ng/mL
+    duration: 7 days differentiation + 48h IL-4+IL-13+/-IL-6 treatment
+  indication: general_immunology
+primary_data_source:
+  doi: 10.1371/journal.pone.0094188
+  title: 'The Pro-Inflammatory Cytokine, Interleukin-6, Enhances the Polarization
+
+    of Alternatively Activated Macrophages
+
+    '
+  authors:
+  - Fernando
+  - Reyes
+  - Iannuzzi
+  - Leung
+  - McKay
+  year: 2014
+  source_tag: Fernando2014
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'Mouse BMDMs from BALB/c and C57/Bl6 mice, not PDAC-specific. IL-6/STAT3
+
+      signaling in macrophages is conserved across tissues, but the PDAC TME has
+
+      additional immunosuppressive factors (TGFb, IL-10, hypoxia) that may modulate
+
+      IL-6 sensitivity. The EC50 for IL-6 receptor signaling is a biophysical
+
+      property of the IL-6/IL-6R/gp130 complex and should be relatively conserved.
+
+      '
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: 'Recombinant IL-6 dose titration with IL-4+IL-13 co-stimulation. The
+
+      co-stimulation provides the M2-permissive context; IL-6 dose varies.
+
+      This maps to the model''s OR-gate where IL-6 augments M2 polarization
+
+      driven by other signals.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro BMDM culture lacks ECM stiffness, hypoxia, and cancer cell
+
+      paracrine factors present in PDAC TME. Macrophage IL-6R expression may
+
+      differ between BMDMs and tumor-associated macrophages. However, the
+
+      IL-6/gp130 signaling axis is well-conserved.
+
+      '
+    measurement_directness: single_inversion
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_primary
+secondary_data_sources: []
+inputs:
+- name: IL6_dose_0
+  value: 0
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: '0'
+    description: IL-6 dose 0 ng/mL (no IL-6 control)
+    context: IL-6 dose-response on arginase activity in AAMs
+- name: IL6_dose_001
+  value: 0.01
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: '0.01'
+    description: IL-6 dose 0.01 ng/mL
+    context: IL-6 dose-response on arginase activity in AAMs
+- name: IL6_dose_01
+  value: 0.1
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: '0.1'
+    description: IL-6 dose 0.1 ng/mL
+    context: IL-6 dose-response on arginase activity in AAMs
+- name: IL6_dose_1
+  value: 1
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: '1'
+    description: IL-6 dose 1 ng/mL
+    context: IL-6 dose-response, threshold dose. *p<0.05
+- name: IL6_dose_10
+  value: 10
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: '10'
+    description: IL-6 dose 10 ng/mL
+    context: IL-6 dose-response, maximal dose. **p<0.01
+- name: arginase_dose0_mean
+  value: 0.225
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: ~0.22
+    description: Arginase activity at 0 ng/mL IL-6 (IL-4+IL-13 condition)
+    context: Black bars, arginase activity (U/10^6 cells), n=4
+- name: arginase_dose0_sem
+  value: 0.034
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: +/- ~0.03
+    description: SEM at 0 ng/mL IL-6
+    context: Error bars represent SEM, n=4
+- name: arginase_dose001_mean
+  value: 0.234
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: ~0.23
+    description: Arginase activity at 0.01 ng/mL IL-6
+    context: Black bars, no significant difference from 0 dose
+- name: arginase_dose001_sem
+  value: 0.024
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: +/- ~0.02
+    description: SEM at 0.01 ng/mL IL-6
+    context: Error bars represent SEM, n=4
+- name: arginase_dose01_mean
+  value: 0.287
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: ~0.29
+    description: Arginase activity at 0.1 ng/mL IL-6
+    context: Black bars, marginal increase
+- name: arginase_dose01_sem
+  value: 0.029
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: +/- ~0.03
+    description: SEM at 0.1 ng/mL IL-6
+    context: Error bars represent SEM, n=4
+- name: arginase_dose1_mean
+  value: 0.703
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: ~0.70
+    description: Arginase activity at 1 ng/mL IL-6
+    context: Black bars, *p<0.05 vs 0-0.1 ng/mL
+- name: arginase_dose1_sem
+  value: 0.046
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: +/- ~0.05
+    description: SEM at 1 ng/mL IL-6
+    context: Error bars represent SEM, n=4
+- name: arginase_dose10_mean
+  value: 1.169
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: ~1.17
+    description: Arginase activity at 10 ng/mL IL-6
+    context: Black bars, **p<0.01 vs 0-0.1 ng/mL
+- name: arginase_dose10_sem
+  value: 0.172
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2A
+  figure_excerpt:
+    figure_id: Figure 2A
+    value: +/- ~0.17
+    description: SEM at 10 ng/mL IL-6
+    context: Error bars represent SEM, n=4
+- name: n_replicates
+  value: 4
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Fernando2014
+  source_location: Figure 2 legend
+  value_snippet: n = 4
+- name: IL6_MW_Da
+  value: 21000
+  units: dimensionless
+  input_type: reference_value
+  rationale: Molecular weight of mouse IL-6 (21 kDa). Standard reference value for unit conversion.
+  source_ref: Fernando2014
+  source_location: N/A
+calibration:
+  parameters:
+  - name: IL6_50_M2
+    units: nanomolarity
+  - name: baseline_arginase
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -1.5
+      sigma: 0.5
+  - name: max_arginase
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.2
+      sigma: 0.5
+  - name: n_IL6_M2
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.5
+  forward_model:
+    type: algebraic
+    formula: arginase = baseline + (max - baseline) * IL6_nM^n / (EC50^n + IL6_nM^n)
+    data_rationale: 'Five-point IL-6 dose-response on arginase activity in IL-4+IL-13-treated
+      BMDMs. The steep transition between 0.1 and 1 ng/mL (0.287 to 0.703)
+      requires a Hill coefficient n > 1 to capture the threshold-like response.
+      The sigmoidal curve constrains EC50, and the Hill coefficient absorbs
+      the steepness of the dose-response.
+      '
+    submodel_rationale: "The QSP model uses H_IL6_M2 = IL6/(IL6_50_M2 + IL6) (n=1) as one of three\nOR-gate factors in M1->M2 polarization:\n\
+      \  rate = k_M2_pol * Mac_M1 * (1 - (1-H_TGFb)*(1-H_IL10)*(1-H_IL6_M2))\nThe in vitro arginase readout at fixed IL-4+IL-13\
+      \ with varying IL-6 directly\nprobes the IL-6 Hill function component. The nuisance Hill coefficient\nn_IL6_M2 absorbs\
+      \ the steepness difference between the in vitro dose-response\nand the n=1 QSP model; EC50 remains the primary constrained parameter.\n"
+    code: "def compute(params, inputs):\n    import numpy as np\n    ec50 = params['IL6_50_M2']\n    baseline = params['baseline_arginase']\n\
+      \    maximum = params['max_arginase']\n    n = params['n_IL6_M2']\n    mw = inputs['IL6_MW_Da']\n    doses = {\n        'dose_0':\
+      \ inputs['IL6_dose_0'],\n        'dose_001': inputs['IL6_dose_001'],\n        'dose_01': inputs['IL6_dose_01'],\n       \
+      \ 'dose_1': inputs['IL6_dose_1'],\n        'dose_10': inputs['IL6_dose_10'],\n    }\n    results = {}\n    for key, d_ng\
+      \ in doses.items():\n        d_nM = d_ng / mw * 1e6\n        h = d_nM**n / (ec50**n + d_nM**n) if d_nM > 0 else 0.0\n\
+      \        results[key] = baseline + (maximum - baseline) * h\n    return results\n"
+  error_model:
+  - name: arginase_at_0
+    units: dimensionless
+    uses_inputs:
+    - arginase_dose0_mean
+    - arginase_dose0_sem
+    - n_replicates
+    sample_size_input: n_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['arginase_dose0_mean']\n    sem = inputs['arginase_dose0_sem']\n    sd = sem * np.sqrt(inputs['n_replicates'])\n\
+      \    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['dose_0']\n"
+  - name: arginase_at_001
+    units: dimensionless
+    uses_inputs:
+    - arginase_dose001_mean
+    - arginase_dose001_sem
+    - n_replicates
+    sample_size_input: n_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['arginase_dose001_mean']\n    sem = inputs['arginase_dose001_sem']\n    sd = sem * np.sqrt(inputs['n_replicates'])\n\
+      \    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['dose_001']\n"
+  - name: arginase_at_01
+    units: dimensionless
+    uses_inputs:
+    - arginase_dose01_mean
+    - arginase_dose01_sem
+    - n_replicates
+    sample_size_input: n_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['arginase_dose01_mean']\n    sem = inputs['arginase_dose01_sem']\n    sd = sem * np.sqrt(inputs['n_replicates'])\n\
+      \    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['dose_01']\n"
+  - name: arginase_at_1
+    units: dimensionless
+    uses_inputs:
+    - arginase_dose1_mean
+    - arginase_dose1_sem
+    - n_replicates
+    sample_size_input: n_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['arginase_dose1_mean']\n    sem = inputs['arginase_dose1_sem']\n    sd = sem * np.sqrt(inputs['n_replicates'])\n\
+      \    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['dose_1']\n"
+  - name: arginase_at_10
+    units: dimensionless
+    uses_inputs:
+    - arginase_dose10_mean
+    - arginase_dose10_sem
+    - n_replicates
+    sample_size_input: n_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['arginase_dose10_mean']\n    sem = inputs['arginase_dose10_sem']\n    sd = sem * np.sqrt(inputs['n_replicates'])\n\
+      \    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['dose_10']\n"
+  identifiability_notes: 'IL6_50_M2 is well-constrained by the 5-point dose-response. The transition
+
+    from no effect (0.01-0.1 ng/mL) to near-maximal (10 ng/mL) spans ~2 log
+
+    units, pinning the EC50 between 0.1 and 1 ng/mL (~0.005-0.05 nM).
+
+
+    baseline_arginase and max_arginase (nuisance) are constrained by the
+
+    asymptotes: baseline by the 0 and 0.01 ng/mL points (~0.23), max by the
+
+    10 ng/mL point (~1.17). All three parameters are identifiable from the
+
+    5-point curve.
+
+    '

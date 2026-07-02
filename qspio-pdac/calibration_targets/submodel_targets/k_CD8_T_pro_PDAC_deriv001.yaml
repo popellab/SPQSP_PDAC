@@ -1,0 +1,272 @@
+target_id: k_CD8_T_pro
+inputs:
+- name: cd8_ki67_fraction_pancreas_mean_percent
+  value: 12.0
+  units: percent
+  input_type: direct_measurement
+  source_ref: Blessin2021_Prognostic
+  source_location: "Table 2, Pancreatic cancer, row 'All (\xB1SD)'"
+  table_excerpt:
+    table_id: Table 2
+    column: Percentage of proliferating CD8+ cells [%] (All pancreatic cancers)
+    row: "Pancreatic cancer, All (\xB1SD)"
+    value: "12.0 (\xB113.8)"
+    context: "Percentage of proliferating Ki67+CD8+ cells in pancreatic cancer tissue\
+      \ microarray; All (\xB1SD) row reports mean \xB1 standard deviation across n=451\
+      \ tumors."
+- name: cd8_ki67_fraction_pancreas_sd_percent
+  value: 13.8
+  units: percent
+  input_type: direct_measurement
+  source_ref: Blessin2021_Prognostic
+  source_location: "Table 2, Pancreatic cancer, row 'All (\xB1SD)'"
+  table_excerpt:
+    table_id: Table 2
+    column: Percentage of proliferating CD8+ cells [%] (All pancreatic cancers)
+    row: "Pancreatic cancer, All (\xB1SD)"
+    value: "12.0 (\xB113.8)"
+    context: Standard deviation of percentage of Ki67+CD8+ cells in pancreatic cancer
+      TMA cohort.
+- name: cd8_density_pancreas_mean
+  value: 288.0
+  units: cells/mm^2
+  input_type: direct_measurement
+  source_ref: Blessin2021_Prognostic
+  source_location: "Table 2, Pancreatic cancer, row 'All (\xB1SD)'"
+  table_excerpt:
+    table_id: Table 2
+    column: "Density of CD8+ cells [cells/mm\xB2] (All pancreatic cancers)"
+    row: "Pancreatic cancer, All (\xB1SD)"
+    value: "288 (\xB1482)"
+    context: Mean density of intratumoral CD8+ T cells in pancreatic cancer cores.
+- name: cd8_density_pancreas_sd
+  value: 482.0
+  units: cells/mm^2
+  input_type: direct_measurement
+  source_ref: Blessin2021_Prognostic
+  source_location: "Table 2, Pancreatic cancer, row 'All (\xB1SD)'"
+  table_excerpt:
+    table_id: Table 2
+    column: "Density of CD8+ cells [cells/mm\xB2] (All pancreatic cancers)"
+    row: "Pancreatic cancer, All (\xB1SD)"
+    value: "288 (\xB1482)"
+    context: Standard deviation of CD8+ T-cell density in pancreatic cancer cores.
+- name: cd8_ki67_density_pancreas_mean
+  value: 29.0
+  units: cells/mm^2
+  input_type: direct_measurement
+  source_ref: Blessin2021_Prognostic
+  source_location: "Table 2, Pancreatic cancer, row 'All (\xB1SD)'"
+  table_excerpt:
+    table_id: Table 2
+    column: "Density of CD8+Ki67+ cells [cells/mm\xB2] (All pancreatic cancers)"
+    row: "Pancreatic cancer, All (\xB1SD)"
+    value: "29 (\xB168)"
+    context: Mean density of Ki67+CD8+ proliferating T cells in pancreatic cancer
+      cores.
+- name: cd8_ki67_density_pancreas_sd
+  value: 68.0
+  units: cells/mm^2
+  input_type: direct_measurement
+  source_ref: Blessin2021_Prognostic
+  source_location: "Table 2, Pancreatic cancer, row 'All (\xB1SD)'"
+  table_excerpt:
+    table_id: Table 2
+    column: "Density of CD8+Ki67+ cells [cells/mm\xB2] (All pancreatic cancers)"
+    row: "Pancreatic cancer, All (\xB1SD)"
+    value: "29 (\xB168)"
+    context: Standard deviation of Ki67+CD8+ T-cell density in pancreatic cancer cores.
+- name: n_pancreatic_cancer_cases
+  value: 451.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Blessin2021_Prognostic
+  source_location: "Table 2, Pancreatic cancer, row 'All (\xB1SD)'"
+  value_snippet: "All (\xB1SD) 451 288 (\xB1482) 29 (\xB168) 12.0 (\xB113.8)"
+- name: percent_to_fraction_factor
+  value: 0.01
+  units: dimensionless
+  input_type: unit_conversion
+  rationale: Conversion factor from percent values reported in the paper to fractions
+    (0-1) used in the steady_state_proliferation_index model.
+  source_ref: Blessin2021_Prognostic
+  source_location: Methods / quantitative analysis (implicit percent reporting in
+    tables)
+  value_snippet: Percent values were converted to fractions for modeling by multiplying
+    by 0.01.
+calibration:
+  parameters:
+  - name: k_CD8_T_pro
+    units: 1/day
+    nuisance: false
+  - name: tau_Ki67_CD8
+    units: day
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.5
+  forward_model:
+    data_rationale: Blessin2021_Prognostic reports the percentage of Ki67+CD8+ cells
+      among all intratumoral CD8+ T cells in a large cohort of resected pancreatic
+      cancers (n=451). Ki67 is a canonical proliferation marker expressed throughout
+      G1, S, G2, and M phases, so the Ki67 labeling index directly reflects the fraction
+      of CD8+ T cells in cycling phases at a given time.
+    submodel_rationale: "In the full QSPIO-PDAC model, k_CD8_T_pro is the tumor-local
+      CD8 proliferation rate. The Ki67 labelling index from a single cross-sectional
+      snapshot of resected tumour cannot separately identify proliferation from death
+      hazards (one observable, two rates), so this target follows the derivation-review
+      Option-1 recommendation: interpret k_CD8_T_pro as the effective per-cell division
+      rate in tumour and use the dimensionally-consistent steady-state mapping f_Ki67
+      = 1 - exp(-k_CD8_T_pro * tau_Ki67_CD8). This is the small-tau approximation of
+      a renewal process in which division events occur at hazard k_CD8_T_pro and
+      Ki67 remains detectable for a mean duration tau_Ki67_CD8: for tau short on the
+      timescale of pool turnover, the probability a randomly sampled cell is currently
+      in the Ki67+ window equals 1-exp(-k_CD8_T_pro*tau_Ki67_CD8). For small k*tau,
+      this reduces to f_Ki67 ≈ k_CD8_T_pro * tau_Ki67_CD8, matching the
+      simpler index approximation. k_CD8_death is intentionally NOT a parameter of
+      this target — it is constrained independently by k_CD8_death_PDAC_deriv001."
+    type: algebraic
+    formula: f_Ki67 = 1 - exp(-k_CD8_T_pro * tau_Ki67_CD8)
+    code: "def compute(params, inputs):\n    import numpy as np\n    k_pro = params['k_CD8_T_pro']\n\
+      \    tau = params['tau_Ki67_CD8']\n    # Predicted Ki67+ fraction at steady state under a renewal-process\n\
+      \    # approximation; dimensionally consistent (k * tau is dimensionless).\n\
+      \    return 1.0 - np.exp(-k_pro * tau)\n"
+  error_model:
+  - name: cd8_ki67_fraction_pancreas
+    units: dimensionless
+    uses_inputs:
+    - cd8_ki67_fraction_pancreas_mean_percent
+    - cd8_ki67_fraction_pancreas_sd_percent
+    - n_pancreatic_cancer_cases
+    - percent_to_fraction_factor
+    sample_size_input: n_pancreatic_cancer_cases
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_pct = inputs['cd8_ki67_fraction_pancreas_mean_percent']\n\
+      \    sd_pct = inputs['cd8_ki67_fraction_pancreas_sd_percent']\n    factor =\
+      \ inputs['percent_to_fraction_factor']\n    # Convert percent values from the\
+      \ paper to fractions (0-1)\n    mean = mean_pct * factor\n    sd = sd_pct *\
+      \ factor\n    # Lognormal bootstrap for positive fractions\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2.0\n    # sample_size is the number of tumors contributing to the mean\
+      \ (n=451)\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: "This target constrains the steady-state Ki67 fraction among
+    intratumoral CD8+ T cells in untreated human pancreatic cancers via the dimensionally-consistent
+    renewal-process mapping f_Ki67 = 1 - exp(-k_CD8_T_pro * tau_Ki67_CD8). Only the
+    product k_CD8_T_pro * tau_Ki67_CD8 is directly identifiable from this single snapshot
+    — k_CD8_T_pro is partially correlated with the nuisance tau_Ki67_CD8 (mean Ki67-visible
+    duration). The lognormal(mu=0, sigma=0.5) prior on tau_Ki67_CD8 centred at 1 day
+    (consistent with typical activated-T-cell G1-S-G2-M transit) is what allows k_CD8_T_pro
+    to be inferred to within roughly the same fold-uncertainty as tau. k_CD8_death
+    is deliberately not a parameter of this target (per derivation review) — it is
+    constrained independently by k_CD8_death_PDAC_deriv001 and would otherwise create
+    structural over-parameterisation against a single observable. Additional dynamic
+    data (BrdU/EdU pulse-chase, longitudinal CD8 density tracking) would tighten the
+    k_CD8_T_pro estimate further."
+experimental_context:
+  species: human
+  system: clinical_in_vivo
+  indication: PDAC
+study_interpretation: "In a large tissue microarray of resected pancreatic cancers,
+  approximately 12% of intratumoral CD8+ T cells were Ki67 positive on average, with
+  substantial inter-tumor variability (SD 13.8%). Interpreted through the steady-state
+  renewal-process mapping f_Ki67 = 1 - exp(-k_CD8_T_pro * tau_Ki67_CD8) with a Ki67-visible
+  window of approximately one day, this implies a tumour-local CD8 proliferation rate
+  on the order of 0.1 1/day. k_CD8_death is constrained separately by
+  k_CD8_death_PDAC_deriv001 and is not a parameter of this target."
+key_assumptions:
+- The pancreatic cancer cohort in Blessin2021_Prognostic is dominated by conventional
+  PDAC and is representative of the PDAC tumor microenvironment modeled in QSPIO-PDAC.
+- Tumor samples were taken from the tumor center and reflect steady-state CD8 dynamics
+  at the time of resection, so the Ki67 labeling index approximates a time-averaged
+  proliferation fraction.
+- Ki67 expression in human intratumoral CD8 T cells is visible for approximately one
+  day (tau_Ki67_CD8 ~ 1 day), consistent with typical G1-S-G2-M transit times in activated
+  T cells.
+- The Ki67+ fraction measured in CD8+ T cells corresponds predominantly to the effector
+  population represented by V_T.CD8 in the QSP model, with negligible contamination
+  from non-effector or bystander CD8 subsets that would have very different kinetics.
+- Inter-patient variability in Ki67+ fractions largely reflects biological variability
+  rather than major technical differences in staining or image analysis, and the reported
+  SD can be used to approximate population variability.
+key_study_limitations:
+- The pancreatic cohort aggregates all pancreatic cancers in the TMA and likely includes
+  a small fraction of non-PDAC histologies, which may slightly broaden the apparent
+  variability of CD8 proliferation indices.
+- Measurements were made on single 0.6-mm cores from the tumor center and may not
+  fully capture spatial heterogeneity of CD8 proliferation within individual PDAC
+  tumors.
+- Only a single timepoint per patient is available, so proliferation and death rates
+  cannot be independently determined; the Ki67 index constrains only their steady-state
+  balance.
+- No systemic treatment status stratification is provided; while most cases are likely
+  treatment-naive at resection, prior therapies in a subset of patients could modestly
+  alter intratumoral CD8 proliferation.
+- Ki67 detects all cycling cells but does not distinguish tumor antigen-specific from
+  bystander CD8 T cells, so the inferred proliferation rate may mix both populations.
+primary_data_source:
+  doi: 10.1007/s13402-021-00601-4
+  title: Prognostic role of proliferating CD8+ cytotoxic Tcells in human cancers
+  authors:
+  - Blessin
+  - Li
+  - Mandelkow
+  - Jansen
+  - Yang
+  - Raedler
+  - Simon
+  - Buscheck
+  - Dum
+  - Luebke
+  - Hinsch
+  - Moller
+  - Menz
+  - Bernreuther
+  - Lebok
+  - Clauditz
+  - Sauter
+  - Marx
+  - Uhlig
+  - Wilczak
+  - Minner
+  - Krech
+  - Fraune
+  - Hoflmayer
+  - Burandt
+  - Steurer
+  year: 2021
+  source_tag: Blessin2021_Prognostic
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The pancreatic cancer subset in Blessin2021_Prognostic
+      consists of resected human pancreatic carcinomas, predominantly pancreatic ductal
+      adenocarcinoma, which is the indication modeled in QSPIO-PDAC. Although the
+      TMA may include a minority of non-ductal histologies, the biology of intratumoral
+      CD8 proliferation in these samples is expected to be representative of typical
+      PDAC tumors.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: pathological_state
+    perturbation_relevance: Tissues were obtained at surgical resection without experimental
+      pharmacologic or genetic perturbation directed at T cells. Thus, the measured
+      Ki67 indices reflect the endogenous CD8 proliferation state in established pancreatic
+      cancers, appropriate for calibrating baseline k_CD8_T_pro.
+    tme_compatibility: high
+    tme_compatibility_notes: Samples are from human pancreatic tumors with native
+      desmoplastic stroma and immune contexture, closely matching the PDAC tumor microenvironment
+      represented in the QSPIO-PDAC model. While spatial sampling is limited to central
+      cores, no major systematic differences from typical PDAC TME are expected.
+    measurement_directness: single_inversion
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: clinical_in_vivo
+tags:
+- CD8_T_cells
+- Ki67
+- proliferation
+- PDAC
+- human_clinical
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

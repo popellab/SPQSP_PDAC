@@ -1,0 +1,495 @@
+target_id: ifng_50_cxcl9_antonelli2010
+inputs:
+- name: ifng_dose_1
+  value: 500
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a x-axis
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: '500'
+    description: First IFNg dose on x-axis (U/ml)
+    context: CXCL9 release from thyroid follicular cells stimulated by increasing doses of IFNgamma (U/ml)
+- name: ifng_dose_2
+  value: 1000
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a x-axis
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: '1000'
+    description: Second IFNg dose (U/ml)
+    context: IFNg 1000
+- name: ifng_dose_3
+  value: 5000
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a x-axis
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: '5000'
+    description: Third IFNg dose (U/ml)
+    context: IFNg 5000
+- name: ifng_dose_4
+  value: 10000
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a x-axis
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: '10000'
+    description: Fourth IFNg dose (U/ml)
+    context: IFNg 10000
+- name: cxcl9_control
+  value: 0.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Results, Section 3
+  value_snippet: In primary thyrocyte cultures, CXCL9 and CXCL10 were undetectable in the supernatant.
+- name: cxcl9_mean_1
+  value: 44.4
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: ~44
+    description: Mean CXCL9 (pg/ml) at IFNg 500 U/ml
+    context: CXCL9 release from thyroid follicular cells, IFNgamma dose response
+- name: cxcl9_sem_1
+  value: 6.7
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: +/- ~7
+    description: SEM error bar at IFNg 500 U/ml
+    context: Bars are means +/- S.E.M.
+- name: cxcl9_mean_2
+  value: 155.1
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: ~155
+    description: Mean CXCL9 (pg/ml) at IFNg 1000 U/ml
+    context: CXCL9 release from thyroid follicular cells, IFNgamma dose response
+- name: cxcl9_sem_2
+  value: 17.4
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: +/- ~17
+    description: SEM error bar at IFNg 1000 U/ml
+    context: Bars are means +/- S.E.M.
+- name: cxcl9_mean_3
+  value: 248.9
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: ~249
+    description: Mean CXCL9 (pg/ml) at IFNg 5000 U/ml
+    context: CXCL9 release from thyroid follicular cells, IFNgamma dose response
+- name: cxcl9_sem_3
+  value: 20.8
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: +/- ~21
+    description: SEM error bar at IFNg 5000 U/ml
+    context: Bars are means +/- S.E.M.
+- name: cxcl9_mean_4
+  value: 256.7
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: ~257
+    description: Mean CXCL9 (pg/ml) at IFNg 10000 U/ml
+    context: CXCL9 release from thyroid follicular cells, IFNgamma dose response
+- name: cxcl9_sem_4
+  value: 18.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 1a
+  figure_excerpt:
+    figure_id: Figure 1a
+    value: +/- ~19
+    description: SEM error bar at IFNg 10000 U/ml
+    context: Bars are means +/- S.E.M.
+- name: cxcl10_mean_1
+  value: 12.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 2a
+  figure_excerpt:
+    figure_id: Figure 2a
+    value: ~12
+    description: Mean CXCL10 (pg/ml) at IFNg 500 U/ml
+    context: CXCL10 release from thyroid follicular cells stimulated by increasing doses of IFNgamma
+- name: cxcl10_sem_1
+  value: 2.9
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 2a
+  figure_excerpt:
+    figure_id: Figure 2a
+    value: +/- ~3
+    description: SEM error bar for CXCL10 at IFNg 500 U/ml
+    context: Bars are means +/- S.E.M.
+- name: cxcl10_mean_2
+  value: 43.2
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 2a
+  figure_excerpt:
+    figure_id: Figure 2a
+    value: ~43
+    description: Mean CXCL10 (pg/ml) at IFNg 1000 U/ml
+    context: CXCL10 release from thyroid follicular cells
+- name: cxcl10_sem_2
+  value: 5.2
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 2a
+  figure_excerpt:
+    figure_id: Figure 2a
+    value: +/- ~5
+    description: SEM error bar for CXCL10 at IFNg 1000 U/ml
+    context: Bars are means +/- S.E.M.
+- name: cxcl10_mean_3
+  value: 95.1
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 2a
+  figure_excerpt:
+    figure_id: Figure 2a
+    value: ~95
+    description: Mean CXCL10 (pg/ml) at IFNg 5000 U/ml
+    context: CXCL10 release from thyroid follicular cells
+- name: cxcl10_sem_3
+  value: 6.6
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 2a
+  figure_excerpt:
+    figure_id: Figure 2a
+    value: +/- ~7
+    description: SEM error bar for CXCL10 at IFNg 5000 U/ml
+    context: Bars are means +/- S.E.M.
+- name: cxcl10_mean_4
+  value: 127.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 2a
+  figure_excerpt:
+    figure_id: Figure 2a
+    value: ~128
+    description: Mean CXCL10 (pg/ml) at IFNg 10000 U/ml
+    context: CXCL10 release from thyroid follicular cells
+- name: cxcl10_sem_4
+  value: 6.1
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Figure 2a
+  figure_excerpt:
+    figure_id: Figure 2a
+    value: +/- ~6
+    description: SEM error bar for CXCL10 at IFNg 10000 U/ml
+    context: Bars are means +/- S.E.M.
+- name: n_preparations
+  value: 3
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Antonelli2010
+  source_location: Section 2.2
+  value_snippet: All experiments were repeated three times with the three different cell preparations.
+calibration:
+  parameters:
+  - name: IFNg_50_CXCL9
+    units: nanomolarity
+  - name: ifng_specific_activity
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 16.81
+      sigma: 0.5
+  - name: cxcl9_maximum
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 5.55
+      sigma: 0.3
+  - name: cxcl10_maximum
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 5.0
+      sigma: 0.5
+  forward_model:
+    type: algebraic
+    formula: 'CXCL9_output = cxcl9_max * IFNg_nM / (IFNg_50_CXCL9 + IFNg_nM)
+
+      CXCL10_output = cxcl10_max * IFNg_nM / (IFNg_50_CXCL9 + IFNg_nM)
+
+      where IFNg_nM = dose_U_per_mL / (SA_U_per_mg * MW_kDa)
+
+      '
+    code: "def compute(params, inputs):\n    ec50 = params['IFNg_50_CXCL9']\n    sa = params['ifng_specific_activity']\n \
+      \   cxcl9_max = params['cxcl9_maximum']\n    cxcl10_max = params['cxcl10_maximum']\n\n    # Convert U/mL to nM: (U/mL)\
+      \ / (U/mg) = mg/mL = g/L; then / MW(g/mol) = mol/L; * 1e9 = nM\n    # Equivalently: nM = dose / (sa * MW_kDa) * 1e6\n\
+      \    mw_ifng_kda = 17.0\n\n    def dose_to_nM(dose_u_per_ml):\n        return\
+      \ dose_u_per_ml / (sa * mw_ifng_kda) * 1e6\n\n    def hill(dose_u_per_ml, maximum):\n        conc_nM = dose_to_nM(dose_u_per_ml)\n\
+      \        return maximum * conc_nM / (ec50 + conc_nM)\n\n    return {\n        'cxcl9_dose1': hill(inputs['ifng_dose_1'],\
+      \ cxcl9_max),\n        'cxcl9_dose2': hill(inputs['ifng_dose_2'], cxcl9_max),\n        'cxcl9_dose3': hill(inputs['ifng_dose_3'],\
+      \ cxcl9_max),\n        'cxcl9_dose4': hill(inputs['ifng_dose_4'], cxcl9_max),\n        'cxcl10_dose1': hill(inputs['ifng_dose_1'],\
+      \ cxcl10_max),\n        'cxcl10_dose2': hill(inputs['ifng_dose_2'], cxcl10_max),\n        'cxcl10_dose3': hill(inputs['ifng_dose_3'],\
+      \ cxcl10_max),\n        'cxcl10_dose4': hill(inputs['ifng_dose_4'], cxcl10_max),\n    }\n"
+    data_rationale: IFNg dose-response for CXCL9 and CXCL10 secretion measured by ELISA. Both chemokines are induced via the
+      same JAK-STAT1 pathway and share the IFNg EC50 parameter in the QSP model. Using both chemokines from the same experiment
+      doubles the data constraining IFNg_50_CXCL9.
+    submodel_rationale: The QSP model uses H_IFNg_CXCL9 = IFNg/(IFNg_50_CXCL9 + IFNg) to gate CXCL9/10 production. The forward
+      model replicates this Hill function with a unit conversion (U/mL -> nM via specific activity) as a nuisance parameter.
+      CXCL9 and CXCL10 share the EC50 but have independent maxima.
+  error_model:
+  - name: cxcl9_500U
+    units: dimensionless
+    uses_inputs:
+    - cxcl9_mean_1
+    - cxcl9_sem_1
+    - n_preparations
+    sample_size_input: n_preparations
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['cxcl9_dose1']\n"
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['cxcl9_mean_1']\n    sem = inputs['cxcl9_sem_1']\n    sd = sem * np.sqrt(sample_size)\n    return rng.normal(mean,\
+      \ sd / np.sqrt(sample_size), n_bootstrap)\n"
+  - name: cxcl9_1000U
+    units: dimensionless
+    uses_inputs:
+    - cxcl9_mean_2
+    - cxcl9_sem_2
+    - n_preparations
+    sample_size_input: n_preparations
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['cxcl9_dose2']\n"
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['cxcl9_mean_2']\n    sem = inputs['cxcl9_sem_2']\n    sd = sem * np.sqrt(sample_size)\n    return rng.normal(mean,\
+      \ sd / np.sqrt(sample_size), n_bootstrap)\n"
+  - name: cxcl9_5000U
+    units: dimensionless
+    uses_inputs:
+    - cxcl9_mean_3
+    - cxcl9_sem_3
+    - n_preparations
+    sample_size_input: n_preparations
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['cxcl9_dose3']\n"
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['cxcl9_mean_3']\n    sem = inputs['cxcl9_sem_3']\n    sd = sem * np.sqrt(sample_size)\n    return rng.normal(mean,\
+      \ sd / np.sqrt(sample_size), n_bootstrap)\n"
+  - name: cxcl9_10000U
+    units: dimensionless
+    uses_inputs:
+    - cxcl9_mean_4
+    - cxcl9_sem_4
+    - n_preparations
+    sample_size_input: n_preparations
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['cxcl9_dose4']\n"
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['cxcl9_mean_4']\n    sem = inputs['cxcl9_sem_4']\n    sd = sem * np.sqrt(sample_size)\n    return rng.normal(mean,\
+      \ sd / np.sqrt(sample_size), n_bootstrap)\n"
+  - name: cxcl10_500U
+    units: dimensionless
+    uses_inputs:
+    - cxcl10_mean_1
+    - cxcl10_sem_1
+    - n_preparations
+    sample_size_input: n_preparations
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['cxcl10_dose1']\n"
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['cxcl10_mean_1']\n    sem = inputs['cxcl10_sem_1']\n    sd = sem * np.sqrt(sample_size)\n    return rng.normal(mean,\
+      \ sd / np.sqrt(sample_size), n_bootstrap)\n"
+  - name: cxcl10_1000U
+    units: dimensionless
+    uses_inputs:
+    - cxcl10_mean_2
+    - cxcl10_sem_2
+    - n_preparations
+    sample_size_input: n_preparations
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['cxcl10_dose2']\n"
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['cxcl10_mean_2']\n    sem = inputs['cxcl10_sem_2']\n    sd = sem * np.sqrt(sample_size)\n    return rng.normal(mean,\
+      \ sd / np.sqrt(sample_size), n_bootstrap)\n"
+  - name: cxcl10_5000U
+    units: dimensionless
+    uses_inputs:
+    - cxcl10_mean_3
+    - cxcl10_sem_3
+    - n_preparations
+    sample_size_input: n_preparations
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['cxcl10_dose3']\n"
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['cxcl10_mean_3']\n    sem = inputs['cxcl10_sem_3']\n    sd = sem * np.sqrt(sample_size)\n    return rng.normal(mean,\
+      \ sd / np.sqrt(sample_size), n_bootstrap)\n"
+  - name: cxcl10_10000U
+    units: dimensionless
+    uses_inputs:
+    - cxcl10_mean_4
+    - cxcl10_sem_4
+    - n_preparations
+    sample_size_input: n_preparations
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['cxcl10_dose4']\n"
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['cxcl10_mean_4']\n    sem = inputs['cxcl10_sem_4']\n    sd = sem * np.sqrt(sample_size)\n    return rng.normal(mean,\
+      \ sd / np.sqrt(sample_size), n_bootstrap)\n"
+  identifiability_notes: 'IFNg_50_CXCL9 is constrained by the dose-response shape across 500-10000 U/mL for both CXCL9 and
+    CXCL10 (8 data points total). The EC50 and specific activity are partially confounded (both affect the effective nM concentration
+    at which response saturates), but the prior on SA from R&D Systems specifications provides an informative anchor. The
+    two independent maxima (CXCL9 vs CXCL10) are well-identified from the plateau levels. CXCL9 appears nearly saturated by
+    5000 U/mL while CXCL10 is still rising at 10000 U/mL, providing differential information about the EC50-SA relationship.
+
+    '
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_lines:
+  - name: primary thyrocytes
+    source: Normal thyroid tissue from 5 patients (3 parathyroidectomy, 2 laryngeal intervention)
+  cell_types:
+  - name: thyroid follicular cell
+    source: primary cultures from normal human thyroid tissue
+  culture_conditions:
+    medium: RPMI 1640 + 10% FBS + 2 mM glutamine + 50 mg/l penicillin/streptomycin
+    notes: '3000 cells seeded onto 96-well plates. After 24h, growth medium removed,
+
+      cells washed in PBS, incubated in phenol red and serum-free medium with
+
+      IFNgamma (R&D Systems) for 24h. CXCL9 and CXCL10 measured by ELISA
+
+      (R&D Systems kits). All experiments repeated 3 times with 3 cell preparations.
+
+      '
+study_interpretation: 'IFNgamma dose-dependently induces CXCL9 and CXCL10 secretion from primary human thyrocytes. CXCL9 reaches
+  near-saturation by 5000 U/mL while CXCL10 is still rising at 10000 U/mL, suggesting either differential sensitivity or different
+  maximal induction capacities. The dose-response shape constrains IFNg_50_CXCL9 via the Hill function, with the U/mL to nM
+  conversion (specific activity) treated as a nuisance parameter to absorb lot-to-lot variability. IFNgamma was the most potent
+  stimulus compared to IFNalpha and IFNbeta for both CXCL9 and CXCL10.
+
+  '
+key_assumptions:
+- JAK-STAT1 pathway EC50 for CXCL9/10 induction is conserved across cell types
+- CXCL9 and CXCL10 share the same IFNg EC50 (both induced via JAK-STAT1)
+- Specific activity of R&D Systems IFNg is approximately 2e7 U/mg (lognormal prior, sigma=0.5)
+- IFNg MW = 17 kDa (monomer) used for U/mL to nM conversion
+- 24h incubation is sufficient for steady-state secretion
+key_study_limitations:
+- Thyrocytes, not PDAC TME cell types (tumor cells, macrophages, DCs)
+- All tested doses likely well above EC50; curve is mostly in the saturated range
+- U/mL to nM conversion depends on IFNg specific activity (lot-dependent, not reported)
+- SEM reported with n=3 cell preparations; small sample size
+- Serum-free conditions may alter receptor expression or signaling
+primary_data_source:
+  doi: 10.1016/j.cyto.2010.01.009
+  source_tag: Antonelli2010
+  title: 'Interferon-alpha, -beta and -gamma induce CXCL9 and CXCL10 secretion by human thyrocytes: Modulation by peroxisome
+    proliferator-activated receptor-gamma agonists'
+  authors:
+  - Antonelli
+  - Ferrari SM
+  - Fallahi P
+  - Ghiri E
+  - Crescioli C
+  - Romagnani P
+  - Vitti P
+  - Serio M
+  - Ferrannini E
+  year: 2010
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'Primary human thyrocytes used as a model for IFNg-induced CXCL9/10 secretion. The JAK-STAT1
+      signaling pathway mediating IFNg -> CXCL9/10 induction is conserved across epithelial and stromal cell types. In the
+      PDAC model, CXCL9/10 is produced by tumor cells, M1 macrophages, and cDC1s — all of which use the same IFNg receptor
+      and JAK-STAT1 pathway. The EC50 for IFNg-induced CXCL9/10 reflects receptor-proximal signaling and is expected to be
+      similar across cell types expressing comparable IFNgR densities.
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: 'Exogenous recombinant IFNg at graded concentrations (500-10000 U/mL).
+
+      This is a standard dose-response design measuring the intrinsic
+
+      IFNg -> CXCL9/10 secretion pathway. The pharmacological doses span
+
+      a physiologically relevant range and the dose-response shape directly
+
+      constrains the EC50 parameter.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro thyrocyte monoculture lacks TME context (no immune cells, ECM, or competing cytokines).
+      IFNg receptor density and downstream signaling may differ between thyrocytes and PDAC TME cell types. However, the JAK-STAT1
+      pathway is highly conserved and the EC50 is primarily determined by receptor affinity and signaling threshold, not cell-type-specific
+      factors.
+
+      '
+    measurement_directness: single_inversion
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_primary
+tags:
+- IFNgamma
+- CXCL9
+- CXCL10
+- EC50
+- dose-response
+- JAK-STAT1
+- thyrocytes

@@ -1,0 +1,326 @@
+target_id: k_C_CD8_exh
+inputs:
+- name: tex_exposure_duration_day
+  value: 3.0
+  units: day
+  input_type: direct_measurement
+  source_ref: Fang2026
+  source_location: Figure 7A and Methods, In Vitro Coculture Assay
+  value_snippet: "The experimental groups were subsequently treated with PD-L1+ EVs\
+    \ or PD-L1KO EVs (6\xD710^8 particles), whereas the control group received PBS\
+    \ for an additional 3 days."
+- name: texprog_pdl1ko_mean_percent
+  value: 29.0
+  units: percent
+  input_type: direct_measurement
+  source_ref: Fang2026
+  source_location: Figure 7B, Texprog panel, PD-L1KO EVs group
+  figure_excerpt:
+    figure_id: Figure 7B
+    value: "~29% Texprog (PD-1+TCF-1+TIM-3\u2212) in PD-L1KO EV group"
+    description: Mean height of Texprog bar for PD-L1KO EVs after 3-day EV exposure,
+      digitized across six biological replicates.
+    context: "Flow cytometry quantifying Texprog (PD-1+TCF-1+TIM-3\u2212CD8+ T) percentages\
+      \ after 5 days of anti-CD3/CD28+IL-2 activation followed by 3 days with PBS,\
+      \ PD-L1+ EVs, or PD-L1KO EVs."
+- name: texprog_pdl1ko_sd_percent
+  value: 4.9
+  units: percent
+  input_type: direct_measurement
+  source_ref: Fang2026
+  source_location: Figure 7B, Texprog panel, PD-L1KO EVs group
+  figure_excerpt:
+    figure_id: Figure 7B
+    value: SD ~4.9 percentage points
+    description: Standard deviation of Texprog percentages for PD-L1KO EVs, computed
+      from six digitized replicate bars.
+    context: Error bars in the Texprog PD-L1KO group represent variability across
+      biological replicates; exact SD not printed in text and was derived from digitized
+      bar heights.
+- name: texterm_pdl1plus_mean_percent
+  value: 9.8
+  units: percent
+  input_type: direct_measurement
+  source_ref: Fang2026
+  source_location: Figure 7B, Texterm panel, PD-L1+ EVs group
+  figure_excerpt:
+    figure_id: Figure 7B
+    value: ~9.8% Texterm in PD-L1+ EV group
+    description: "Mean height of Texterm (PD-1+TCF-1\u2212TIM-3+CD8+ T) bar for PD-L1+\
+      \ EVs after 3-day EV exposure, digitized across six biological replicates."
+    context: Flow cytometry quantifying Texterm (terminally exhausted) CD8+ T cells
+      after 3 days with PD-L1+ EVs vs PD-L1KO EVs or PBS.
+- name: texterm_pdl1ko_mean_percent
+  value: 8.2
+  units: percent
+  input_type: direct_measurement
+  source_ref: Fang2026
+  source_location: Figure 7B, Texterm panel, PD-L1KO EVs group
+  figure_excerpt:
+    figure_id: Figure 7B
+    value: ~8.2% Texterm in PD-L1KO EV group
+    description: Mean height of Texterm bar for PD-L1KO EVs condition, digitized across
+      six biological replicates.
+    context: Same Texterm panel as above, comparing PD-L1+ EVs, PD-L1KO EVs, and PBS
+      controls.
+- name: delta_texterm_mean_percent
+  value: 1.6
+  units: percent
+  input_type: derived_arithmetic
+  rationale: Mean incremental Texterm fraction attributable to PD-L1 signaling, estimated
+    as the difference between PD-L1+ EV and PD-L1KO EV mean percentages after the
+    same 3-day exposure.
+  source_ref: Fang2026
+  source_location: Figure 7B, Texterm panel (PD-L1+ EVs minus PD-L1KO EVs)
+  figure_excerpt:
+    figure_id: Figure 7B
+    value: ~1.6 percentage point increase
+    description: Difference in Texterm percentage between PD-L1+ EV and PD-L1KO EV
+      conditions, computed from digitized replicate pairs.
+    context: Each pair of PD-L1+ EV and PD-L1KO EV bars at the same replicate index
+      was subtracted to obtain per-replicate differences; these were averaged to get
+      the mean increase in Texterm cells attributable to PD-L1 on EVs.
+  source_inputs:
+  - texterm_pdl1plus_mean_percent
+  - texterm_pdl1ko_mean_percent
+  formula: texterm_pdl1plus_mean_percent - texterm_pdl1ko_mean_percent
+- name: delta_texterm_sd_percent
+  value: 1.4
+  units: percent
+  input_type: direct_measurement
+  source_ref: Fang2026
+  source_location: Figure 7B, Texterm panel (PD-L1+ EVs minus PD-L1KO EVs)
+  figure_excerpt:
+    figure_id: Figure 7B
+    value: SD ~1.4 percentage points
+    description: "Standard deviation of per-replicate differences (Texterm_PD-L1+\
+      \ EV \u2212 Texterm_PD-L1KO EV) across six paired replicates."
+    context: Per-replicate Texterm differences between PD-L1+ EV and PD-L1KO EV bars
+      were computed from Figure 7B; their sample standard deviation was used as the
+      uncertainty on the incremental Texterm fraction.
+- name: n_replicates_tex
+  value: 6.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: The number of biological replicates per EV treatment group (n = 6) is
+    inferred from the six distinct bars per condition in Figure 7B and used as the
+    sample size for the bootstrap; it is not explicitly printed as 'n=6' in the text.
+  source_ref: Fang2026
+  source_location: Figure 7B
+  value_snippet: Six bars per treatment group (PBS, PD-L1+ EVs, PD-L1KO EVs) are visible
+    in Figure 7B, corresponding to six biological replicates per condition.
+calibration:
+  parameters:
+  - name: k_C_CD8_exh
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: "Fang2026 Figure 7B reports percentages of Texprog (PD-1+TCF-1+TIM-3\u2212\
+      ) and Texterm (PD-1+TCF-1\u2212TIM-3+) CD8+ T cells after 3 days of exposure\
+      \ to PD-L1+ EVs or PD-L1KO EVs, following identical 5-day anti-CD3/CD28+IL-2\
+      \ activation. The incremental increase in Texterm cells in the PD-L1+ EV condition\
+      \ relative to PD-L1KO EVs over a known 3-day window is naturally modeled as\
+      \ a first-order transition from Texprog to Texterm with a constant hazard rate."
+    submodel_rationale: "In the full QSPIO-PDAC model, k_C_CD8_exh multiplies the\
+      \ number of intratumoral CD8+ T cells and PDL1-dependent gating terms to drive\
+      \ a first-order transition from functional CD8 effectors to exhausted CD8_exh\
+      \ cells. The Fang2026 in vitro system exposes pre-activated human CD8+ T cells\
+      \ to a high, approximately constant level of PD-L1 carried on tumor-derived\
+      \ EVs, with no other changing tumor variables. Under the assumptions that (i)\
+      \ PD-L1 signaling is saturating and sustained, (ii) the effective cancer-cell/PD-L1\
+      \ gating term C_total/(C_total+V_T.CD8+cell)*H_PD1_C1 is approximately 1 and\
+      \ constant over the 3-day window, and (iii) other exhaustion pathways (basal\
+      \ TCR-driven, Treg- or stiffness-mediated) are identical in PD-L1+ and PD-L1KO\
+      \ EV cultures, the incremental Texprog\u2192Texterm conversion rate induced\
+      \ by PD-L1+ EVs can be identified with k_C_CD8_exh. The algebraic forward model\
+      \ implements the analytical solution of the corresponding two-state first-order\
+      \ transition (Texprog to Texterm) under these simplifying but mechanistically\
+      \ aligned conditions."
+    type: algebraic
+    formula: delta_f_texterm_percent = f_prog_baseline_percent * (1 - exp(-k_C_CD8_exh
+      * T_exposure))
+    code: "def compute(params, inputs):\n    import numpy as np\n    k = params['k_C_CD8_exh']\
+      \  # PD-L1-driven exhaustion rate constant (per day)\n    T = inputs['tex_exposure_duration_day']\
+      \  # duration of PD-L1+ EV exposure (days)\n    # Baseline fraction of Texprog\
+      \ cells among CD8+ T cells under PD-L1-negative conditions (PD-L1KO EVs)\n \
+      \   f_prog_pct = inputs['texprog_pdl1ko_mean_percent']\n    f_prog = f_prog_pct\
+      \ / 100.0\n    # First-order conversion of Texprog to Texterm driven by PD-L1+\
+      \ EVs over time T,\n    # assuming other exhaustion pathways are the same in\
+      \ PD-L1+ and PD-L1KO groups.\n    delta_fraction = f_prog * (1.0 - np.exp(-k\
+      \ * T))\n    # Return incremental Texterm percentage (percentage points)\n \
+      \   return delta_fraction * 100.0\n"
+  error_model:
+  - name: delta_texterm_pdL1plus_minus_ko
+    units: percent
+    uses_inputs:
+    - delta_texterm_mean_percent
+    - delta_texterm_sd_percent
+    sample_size_input: n_replicates_tex
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['delta_texterm_mean_percent']\n \
+      \   sd = inputs['delta_texterm_sd_percent']\n    # Assume approximately normal\
+      \ measurement noise on the incremental Texterm percentage\n    # and scale by\
+      \ sqrt(n) to obtain the SE of the mean.\n    se = sd / np.sqrt(sample_size)\n\
+      \    return rng.normal(mean, se, n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: "This target uses a single timepoint (3-day) measurement\
+    \ of the incremental increase in Texterm cells in PD-L1+ EV cultures relative\
+    \ to PD-L1KO EVs to constrain a single rate constant k_C_CD8_exh. The model assumes\
+    \ that (1) Texprog fraction at the start of EV exposure is well represented by\
+    \ the Texprog percentage measured under PD-L1KO EVs, (2) non\u2013PD-L1-mediated\
+    \ exhaustion pathways are identical between PD-L1+ and PD-L1KO groups and thus\
+    \ cancel in the difference, and (3) PD-L1 signaling is effectively saturating\
+    \ so that the QSP gating term C_total/(C_total+V_T.CD8+cell)*H_PD1_C1 \u2248 1.\
+    \ Under these assumptions, the incremental Texprog\u2192Texterm conversion over\
+    \ 3 days is uniquely determined by k_C_CD8_exh and the baseline Texprog pool,\
+    \ so the parameter is locally identifiable from this dataset. However, because\
+    \ there is only a single exposure duration, potential time dependence or reversibility\
+    \ of exhaustion cannot be constrained, and any deviation of the in vitro conditions\
+    \ from saturating PD-L1 or stable Texprog pool size will be absorbed into the\
+    \ inferred value of k_C_CD8_exh. The resulting posterior should therefore be interpreted\
+    \ as an effective PD-L1-driven exhaustion rate under strong, constant PD-1/PD-L1\
+    \ signaling, not as a universal physiological rate across all tumor microenvironments."
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: CD8+ T cells
+    phenotype: pre-activated human peripheral blood CD8+ T cells
+    isolation_method: CD8+ T cells were isolated from PBMCs of healthy volunteers
+      by flow cytometry sorting.
+    source: Peripheral blood from healthy volunteers, as described in the Patient
+      Cohort and Sample Collection and In Vitro Coculture Assay sections.
+  culture_conditions:
+    substrate: standard tissue culture plastic (48-well plates)
+    serum_concentration: 10.0
+    serum_concentration_units: percent FBS
+    oxygen_level: normoxic incubator conditions (not explicitly specified, assumed
+      21% O2)
+    culture_type: 2d_monolayer
+    medium: RPMI 1640 or DMEM supplemented with 10% FBS or exosome-free FBS and 1%
+      penicillin-streptomycin
+    supplements: "5 ug/mL anti-CD3 plus 2.5 ug/mL anti-CD28 and 25 ng/mL IL-2 during\
+      \ the initial 5-day activation; 6\xD710^8 PD-L1+ EVs or PD-L1KO EVs added once\
+      \ at the start of the 3-day exhaustion phase, with PBS as control."
+    duration: 5 days initial activation with anti-CD3/CD28+IL-2 followed by 3 days
+      of EV or PBS exposure.
+    notes: CD8+ T cells from healthy donors were first polyclonally activated for
+      5 days with anti-CD3/CD28 and IL-2, then exposed to tumor-derived extracellular
+      vesicles (EVs) isolated from HNSCC cell lines for 3 additional days before flow
+      cytometry phenotyping of Texprog and Texterm subsets.
+study_interpretation: "The Fang2026 in vitro coculture assay demonstrates that PD-L1\
+  \ carried on tumor-derived EVs from HNSCC cells modestly but consistently increases\
+  \ the fraction of terminally exhausted CD8+ T cells (Texterm, PD-1+TCF-1\u2212TIM-3+)\
+  \ over a 3-day exposure window compared with PD-L1KO EVs. Because the EV preparations\
+  \ and culture conditions are otherwise matched, the incremental rise in Texterm\
+  \ cells can be attributed to PD-1/PD-L1 signaling. Modeling this as a first-order\
+  \ transition from Texprog to Texterm over the 3-day exposure, and assuming saturating\
+  \ PD-L1 signaling, allows the incremental Texprog\u2192Texterm transition rate to\
+  \ be identified with the QSP parameter k_C_CD8_exh, which governs PD-L1-dependent\
+  \ CD8 exhaustion in the tumor compartment. Although the system uses HNSCC-derived\
+  \ EVs and peripheral blood CD8+ T cells from healthy donors rather than PDAC tumor-infiltrating\
+  \ lymphocytes, the PD-1/PD-L1 exhaustion axis is shared across solid tumors, making\
+  \ this a reasonable mechanistic proxy for the PD-L1-driven component of CD8 exhaustion\
+  \ kinetics in PDAC."
+key_assumptions:
+- PD-L1 expression on tumor-derived EVs in the Fang2026 assay produces sustained,
+  near-saturating PD-1 signaling over the 3-day exposure, so that the QSP gating term
+  C_total/(C_total+V_T.CD8+cell)*H_PD1_C1 can be approximated as 1 in the submodel.
+- "Non\u2013PD-L1-mediated exhaustion pathways (basal TCR-driven exhaustion, Treg-mediated\
+  \ exhaustion, stiffness-mediated effects) are identical in PD-L1+ EV and PD-L1KO\
+  \ EV cultures and cancel when analyzing the incremental Texterm increase between\
+  \ these two conditions."
+- The baseline pool of Texprog cells available for PD-L1-driven conversion during
+  the 3-day exposure is well represented by the Texprog percentage measured under
+  PD-L1KO EVs, and this pool does not change dramatically over the 3-day window.
+- Total CD8+ T cell numbers remain approximately constant over the 3-day EV exposure,
+  so changes in Texterm percentages primarily reflect state transitions rather than
+  large differences in proliferation or death between conditions.
+- Exhaustion kinetics mediated by PD-1/PD-L1 signaling in human peripheral blood CD8+
+  T cells exposed to HNSCC-derived EVs are similar in order of magnitude to those
+  of tumor-infiltrating CD8+ T cells interacting with PD-L1+ PDAC cells in vivo.
+key_study_limitations:
+- 'Cancer indication differs: Fang2026 studies HNSCC-derived EVs, whereas the QSP
+  model targets PDAC; tumor-intrinsic drivers of PD-L1 expression and the surrounding
+  stroma differ substantially between these cancers, adding translation uncertainty.'
+- The experimental system uses peripheral blood CD8+ T cells from healthy donors activated
+  with anti-CD3/CD28, not PDAC tumor-infiltrating CD8+ T cells that have experienced
+  chronic antigen exposure and a highly immunosuppressive microenvironment.
+- PD-L1 is presented on circulating extracellular vesicles rather than directly on
+  tumor cell surfaces as in the QSP reaction term; although both signal through PD-1,
+  local concentration and synaptic geometry may differ.
+- Only a single exposure duration (3 days) is available, limiting the ability to test
+  model assumptions such as constant hazard rate or to detect potential saturation
+  or reversibility of exhaustion over longer timescales.
+- "The incremental increase in Texterm fraction induced by PD-L1+ EVs is modest (~1\u2013\
+  2 percentage points), so measurement noise and digitization uncertainty can materially\
+  \ affect the inferred rate constant; bootstrap-based uncertainty quantification\
+  \ is therefore critical."
+- "The submodel neglects possible back-transition from Texterm to Texprog and ignores\
+  \ any PD-L1 effects on proliferation or survival of different CD8+ T cell subsets,\
+  \ focusing solely on the Texprog\u2192Texterm transition."
+primary_data_source:
+  doi: 10.1002/advs.202516348
+  title: PD-L1 on Tumor-Derived Extracellular Vesicles Induces CD8+ T Cell Terminal
+    Exhaustion and Mediates Anti-PD-1 Resistance in Head and Neck Squamous Cell Carcinoma
+  authors:
+  - Ruihua Fang
+  - Bixue Huang
+  - Yun Li
+  - Zhimou Cai
+  - Yicheng Deng
+  - Xiaoqing Cen
+  - Wei Sun
+  - Jinhong Zhang
+  - Zhenglin Xu
+  - Wenbin Guo
+  - Yi Lyu
+  - Shiyun Luo
+  - Zhesheng Chen
+  - Kexing Lyu
+  - Weiping Wen
+  - Wenbin Lei
+  year: 2025
+  source_tag: Fang2026
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study is performed in head and neck squamous
+      cell carcinoma (HNSCC) models using HNSCC-derived tumor cells and extracellular
+      vesicles, whereas the QSP model targets pancreatic ductal adenocarcinoma (PDAC).
+      Both are solid epithelial tumors in highly immunosuppressive microenvironments
+      that exploit PD-1/PD-L1 signaling to exhaust CD8+ T cells. While stromal composition
+      and mutational landscapes differ, the proximal PD-1/PD-L1 exhaustion pathway
+      and transcriptional programs (e.g., BATF-driven terminal exhaustion) are conserved
+      across solid tumors, so HNSCC data provide a mechanistic but not indication-exact
+      proxy for PDAC CD8 exhaustion kinetics.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: CD8+ T cells are exposed in vitro to high, non-physiological
+      concentrations of tumor-derived PD-L1+ extracellular vesicles, which likely
+      represent a supra-physiological level of PD-1/PD-L1 engagement compared with
+      typical in vivo exposure in PDAC. As such, the inferred k_C_CD8_exh should be
+      interpreted as an upper-bound or high-signal estimate of the PD-L1-driven exhaustion
+      rate, to be down-weighted appropriately when extrapolating to physiological
+      PDAC conditions.
+    tme_compatibility: low
+    tme_compatibility_notes: The in vitro system lacks the dense desmoplastic stroma,
+      hypovascularity, and complex myeloid and regulatory T cell networks that characterize
+      the PDAC tumor microenvironment. These features in PDAC are known to compound
+      T cell dysfunction and may alter effective exhaustion kinetics. Therefore, although
+      the proximal PD-1/PD-L1 signaling module is shared, quantitative rates measured
+      in this simplified HNSCC EV coculture are expected to differ, potentially by
+      an order of magnitude, from those in intact PDAC tumors.
+    measurement_directness: single_inversion
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_primary
+tags:
+- CD8_exhaustion
+- PD1_PDL1
+- extracellular_vesicles
+- HNSCC_proxy_for_PDAC
+- Texprog_Texterm_transition
+- in_vitro_primary_T_cells
+extraction_model: gpt-4.1-mini
+extraction_reasoning_effort: high

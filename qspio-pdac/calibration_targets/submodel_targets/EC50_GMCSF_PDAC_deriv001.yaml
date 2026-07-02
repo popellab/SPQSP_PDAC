@@ -1,0 +1,291 @@
+study_interpretation: 'Guthridge2006 provides quantitative dose-response data for GM-CSF signaling in human myeloid cells,
+
+  measuring EC50 for survival (0.44 pM) and proliferation (5.5 pM) via STAT5 phosphorylation. The study
+
+  identifies a binary signaling switch at ~10 pM: below this threshold, GM-CSF activates only Ser585/PI3K
+
+  (survival), while above it, Tyr577/JAK2/STAT5 signaling drives proliferation and activation. For DC
+
+  maturation at a GVAX injection site, the relevant EC50 is the proliferation/activation threshold (~5-10 pM
+
+  = 0.005-0.01 nM), not the survival EC50. However, the standard in vitro DC differentiation protocol uses
+
+  10-20 ng/mL (0.7-1.4 nM), which is well above the signaling EC50, suggesting that additional factors
+
+  (receptor density, cooperative signaling, or competing cytokines) raise the effective EC50 in tissue.
+
+  The model EC50 should reflect the functional half-maximal response for APC recruitment and
+
+  maturation, which is bounded below by the signaling EC50 (~10 pM) and above by standard
+
+  culture concentrations (~1 nM).
+
+  '
+key_assumptions:
+- 'The GM-CSF Hill function in the QSP model (H_GMCSF = GMCSF/(EC50_GMCSF + GMCSF)) represents
+
+  a lumped EC50 for APC recruitment and maturation, not a single molecular binding event.
+
+  '
+- 'TF-1 myeloid cell EC50 values from Guthridge2006 are a reasonable proxy for DC/APC responsiveness
+
+  to GM-CSF, given that both are myeloid lineage cells expressing the same GM-CSF receptor complex.
+
+  '
+- 'The effective EC50 in tissue is higher than the in vitro signaling EC50 due to receptor density,
+
+  competing ligands, and tissue diffusion barriers.
+
+  '
+- 'Standard DC culture concentrations (0.7-1.4 nM) represent saturating conditions well above EC50.
+
+  '
+key_study_limitations:
+- 'Guthridge2006 uses TF-1 erythroleukemia cells, not primary DCs. EC50 may differ for tissue-resident
+
+  APCs at an intradermal injection site.
+
+  '
+- 'No direct measurement of GM-CSF EC50 for DC maturation specifically exists; the calibration
+
+  relies on TF-1 cell signaling data as a proxy.
+
+  '
+experimental_context:
+  species: human
+  system: in_vitro_immortalized
+  cell_lines:
+  - name: TF-1
+    source: ATCC CRL-2003
+    passage_range: null
+  cell_types: null
+  culture_conditions: null
+  indication: PDAC
+primary_data_source:
+  doi: 10.1038/sj.emboj.7600948
+  title: 'Growth factor pleiotropy is controlled by a receptor Tyr/Ser motif that acts as a binary switch
+
+    '
+  authors:
+  - Mark A Guthridge
+  - Joanna M Barry
+  - Fiona C Stomski
+  - Frank-Dietmar Böhmer
+  - Angel F Lopez
+  year: 2006
+  source_tag: Guthridge2006
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'GM-CSF receptor signaling and EC50 are properties of myeloid cells (DCs, macrophages)
+
+      and are not disease-specific. The receptor complex (GMRalpha + betac) and downstream
+
+      signaling are the same regardless of cancer type. TF-1 erythroleukemia cells serve as a
+
+      mechanistic proxy for DC/APC responsiveness to GM-CSF (same receptor, different cell type).
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: 'TF-1 cells were stimulated with varying GM-CSF concentrations to measure dose-response
+
+      EC50 for proliferation and survival. The measured EC50 represents the half-maximal
+
+      concentration for receptor-mediated signaling, which is an intrinsic property of the
+
+      GM-CSF receptor complex. This value directly constrains the model''s EC50_GMCSF parameter
+
+      without scaling, as both represent the same biochemical quantity (half-maximal receptor
+
+      activation). The in vitro context eliminates confounding tissue factors.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro dose-response data from TF-1 cells and receptor binding studies. The injection
+
+      site environment differs from purified cell culture (tissue diffusion, receptor
+
+      heterogeneity, competing cytokines), but the fundamental receptor pharmacology is conserved.
+
+      '
+    measurement_directness: direct
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_cell_line
+    validation_warnings: null
+secondary_data_sources:
+- doi: 10.3389/fimmu.2019.02679
+  url: null
+  title: 'The Pleiotropic Effects of the GM-CSF Rheostat on Myeloid Cell Differentiation and Function
+
+    '
+  authors:
+  - Yifan Zhan
+  - Andrew D Lew
+  - Andrew M Lew
+  year: 2019
+  source_tag: Zhan2019
+  contribution: 'Demonstrates concentration-dependent DC differentiation outcomes: 0.3 ng/mL (21 pM) increases
+
+    cDC1/cDC2/pDC, while 100 ng/mL (6.9 nM) shifts toward macrophages with loss of cDC1.
+
+    Establishes the biologically relevant concentration range for GM-CSF effects on APCs.
+
+    '
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'GM-CSF receptor signaling and EC50 are properties of myeloid cells (DCs, macrophages)
+
+      and are not disease-specific. The receptor complex (GMRalpha + betac) and downstream
+
+      signaling are the same regardless of cancer type. TF-1 erythroleukemia cells serve as a
+
+      mechanistic proxy for DC/APC responsiveness to GM-CSF (same receptor, different cell type).
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: 'TF-1 cells were stimulated with varying GM-CSF concentrations to measure dose-response
+
+      EC50 for proliferation and survival. The measured EC50 represents the half-maximal
+
+      concentration for receptor-mediated signaling, which is an intrinsic property of the
+
+      GM-CSF receptor complex. This value directly constrains the model''s EC50_GMCSF parameter
+
+      without scaling, as both represent the same biochemical quantity (half-maximal receptor
+
+      activation). The in vitro context eliminates confounding tissue factors.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro dose-response data from TF-1 cells and receptor binding studies. The injection
+
+      site environment differs from purified cell culture (tissue diffusion, receptor
+
+      heterogeneity, competing cytokines), but the fundamental receptor pharmacology is conserved.
+
+      '
+    measurement_directness: direct
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_cell_line
+    validation_warnings: null
+target_id: EC50_GMCSF_guthridge2006
+tags:
+- ai-generated
+- obed-priority
+extraction_model: claude-opus-4-6
+extraction_reasoning_effort: high
+inputs:
+- name: ec50_proliferation_tf1
+  value: 5.5
+  units: picomolarity
+  input_type: direct_measurement
+  source_ref: Guthridge2006
+  source_location: 'Results section and Figure 3A: dose-response curve for TF-1 proliferation
+
+    '
+  value_snippet: 'The ED 50 for TF-1 survival was 0.44 pM, while the ED 50 for cell proliferation was 5.5 pM (Figure 3A)
+
+    '
+- name: ec50_survival_tf1
+  value: 0.44
+  units: picomolarity
+  input_type: direct_measurement
+  source_ref: Guthridge2006
+  source_location: 'Results section and Figure 3A: dose-response curve for TF-1 survival
+
+    '
+  value_snippet: 'The ED 50 for TF-1 survival was 0.44 pM, while the ED 50 for cell proliferation was 5.5 pM (Figure 3A)
+
+    '
+- name: ec50_activation_neutrophil
+  value: 1.6
+  units: picomolarity
+  input_type: direct_measurement
+  source_ref: Guthridge2006
+  source_location: 'Results section and Figure 3B: dose-response curve for neutrophil CD11b activation
+
+    '
+  value_snippet: 'in primary human neutrophils the ED 50 for survival was 0.02 pM and the ED 50 for the upregulation of the
+    activation marker CD11b was 1.6 pM (Figure 3B)
+
+    '
+- name: pm_per_nM
+  value: 1000.0
+  units: dimensionless
+  input_type: unit_conversion
+  rationale: 'Conversion factor from picomolarity to nanomolarity (1 nM = 1000 pM).
+
+    Needed to convert the Guthridge2006 EC50 (reported in pM) to model units (nM).
+
+    '
+  source_ref: Guthridge2006
+  source_location: unit conversion
+- name: n_guthridge2006_experiments
+  value: 2
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Guthridge2006
+  source_location: 'Figure 3 caption
+
+    '
+  value_snippet: 'Results shown are representative of at least two experiments. Error bars indicate standard deviations.
+
+    '
+calibration:
+  parameters:
+  - name: EC50_GMCSF
+    units: nanomolarity
+  forward_model:
+    data_rationale: 'Guthridge2006 provides direct EC50 measurements for GM-CSF-stimulated proliferation (5.5 pM)
+
+      and survival (0.44 pM) in TF-1 myeloid cells, and activation EC50 (1.6 pM) in primary
+
+      neutrophils. The proliferation/activation EC50s are the most relevant functional readouts
+
+      for DC maturation/activation.
+
+      '
+    submodel_rationale: 'The QSP model uses a simple Hill function H_GMCSF = GMCSF/(EC50_GMCSF + GMCSF) to gate
+
+      APC recruitment and maturation at the GVAX injection site. EC50_GMCSF is a single lumped
+
+      parameter that can be directly constrained by dose-response EC50 measurements.
+
+      '
+    independent_variable: null
+    state_variables: null
+    type: algebraic
+    formula: EC50_GMCSF ≈ EC50 for myeloid activation (proliferation/CD11b)
+    code: "def compute(params, inputs):\n    return params['EC50_GMCSF']  # nM, compared to observed EC50\n"
+  error_model:
+  - name: ec50_gmcsf_guthridge2006
+    observable: null
+    units: nanomolarity
+    uses_inputs:
+    - ec50_proliferation_tf1
+    - ec50_activation_neutrophil
+    - pm_per_nM
+    evaluation_points: null
+    sample_size_input: n_guthridge2006_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    pm_per_nM\
+      \ = inputs['pm_per_nM']  # 1000\n    # Two myeloid activation EC50s from Guthridge2006:\n    # TF-1 proliferation (5.5\
+      \ pM) and neutrophil CD11b activation (1.6 pM)\n    ec50_tf1_nM = inputs['ec50_proliferation_tf1'] / pm_per_nM\n   \
+      \ ec50_neut_nM = inputs['ec50_activation_neutrophil'] / pm_per_nM\n    # Lognormal parametric bootstrap from the two\
+      \ point estimates\n    log_vals = np.log([ec50_tf1_nM, ec50_neut_nM])\n    mu = np.mean(log_vals)\n    sigma = np.std(log_vals,\
+      \ ddof=1)\n    return rng.lognormal(mean=mu, sigma=sigma, size=n_bootstrap)\n"
+  identifiability_notes: 'EC50_GMCSF is structurally identifiable from dose-response data as the half-maximal
+
+    concentration in a simple Hill function. The main uncertainty is translational: the
+
+    in vitro EC50 (5.5 pM for TF-1 proliferation) may not directly equal the effective
+
+    tissue EC50 due to receptor expression differences between cell types and the complexity
+
+    of the injection site microenvironment.
+
+    '

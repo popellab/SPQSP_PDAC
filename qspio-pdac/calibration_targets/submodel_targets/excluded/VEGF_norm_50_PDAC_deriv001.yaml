@@ -1,0 +1,239 @@
+target_id: VEGF_norm_50
+inputs:
+- name: vegf_ec50_pM_mean
+  value: 650.0
+  units: picomolar
+  input_type: direct_measurement
+  source_ref: Akeson2010
+  source_location: Results text and Figure 1E
+  value_snippet: Relative VEGFR2 tyrosine phosphorylation (pY/R2) was determined for
+    lysates from 3 or 4 independent HMVEC cultures at each VEGF-A concentration and
+    half maximal pY/R2 response (EC50) of 650pM was determined using dose-response
+    analysis of Prism4 (GraphPad).
+- name: n_vegfr2_ec50_replicates
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Akeson2010
+  source_location: Figure 1 legend
+  value_snippet: Relative VEGFR2 tyrosine phosphorylation (pY/R2) was determined for
+    lysates from 3 or 4 independent HMVEC cultures at each VEGF-A concentration.
+- name: vegf_ec50_pM_rel_unc
+  value: 0.3
+  units: dimensionless
+  input_type: reference_value
+  rationale: Assumed 30% relative uncertainty (approximate coefficient of variation)
+    for the EC50 estimated from non-linear dose-response fit in primary endothelial
+    cells, reflecting typical 2-3 fold uncertainty in biochemical EC50 measurements
+    when formal confidence intervals are not reported.
+  source_ref: Akeson2010
+  source_location: Methods and Figure 1
+  value_snippet: Relative VEGFR2 tyrosine phosphorylation (pY/R2) was determined for
+    lysates from 3 or 4 independent HMVEC cultures at each VEGF-A concentration and
+    half maximal pY/R2 response (EC50) of 650pM was determined using dose-response
+    analysis of Prism4 (GraphPad).
+- name: VEGFA165_dimer_MW_kDa
+  value: 46.0
+  units: kilodalton
+  input_type: reference_value
+  rationale: Approximate molecular mass of VEGF-A165 as a disulfide-linked homodimeric
+    glycoprotein, as reported in Ferrara 1996 and related biochemical characterizations;
+    used to convert EC50 from pM to pg/mL.
+  source_ref: Ferrara1996
+  source_location: Text
+  value_snippet: VEGF165 is a heparin-binding, homodimeric glycoprotein with an apparent
+    molecular mass of approximately 46 kDa.
+calibration:
+  parameters:
+  - name: VEGF_norm_50
+    units: picogram/milliliter
+    nuisance: false
+  forward_model:
+    data_rationale: "Akeson2010 quantified the dose-response of VEGFR2 tyrosine autophosphorylation\
+      \ in primary human lung microvascular endothelial cells exposed for 2 minutes\
+      \ to graded soluble VEGF-A165 (0\u20132.38 nM) and reported an EC50 of 650 pM\
+      \ for pY/R2 at 2 minutes. This directly characterizes the ligand concentration\
+      \ scale required for half-maximal VEGFR2 activation in microvascular endothelium."
+    submodel_rationale: In the PDAC QSP model, VEGF_norm_50 represents the VEGF concentration
+      (pg/mL) producing half-maximal endothelial functional activation/normalization
+      through VEGFR2 signaling. Assuming that the acute EC50 for VEGFR2 autophosphorylation
+      in lung microvascular endothelial cells approximates the EC50 for endothelial
+      activation in PDAC vasculature, we relate the mass-based VEGF_norm_50 to the
+      molar EC50 (pM) measured in Akeson2010 using the VEGF-A165 dimer molecular weight.
+    type: algebraic
+    formula: EC50_pM = VEGF_norm_50 / VEGFA165_dimer_MW_kDa
+    code: "def compute(params, inputs):\n    import numpy as np\n    vegf_norm_50\
+      \ = params['VEGF_norm_50']          # pg/mL\n    mw_kda = inputs['VEGFA165_dimer_MW_kDa']\
+      \      # kDa\n    return vegf_norm_50 / mw_kda"
+  error_model:
+  - name: vegfr2_autophos_ec50_pM
+    units: picomolar
+    uses_inputs:
+    - vegf_ec50_pM_mean
+    - vegf_ec50_pM_rel_unc
+    - n_vegfr2_ec50_replicates
+    sample_size_input: n_vegfr2_ec50_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['vegf_ec50_pM_mean']\n    rel_unc\
+      \ = inputs['vegf_ec50_pM_rel_unc']\n    sd = mean * rel_unc\n    sigma_ln =\
+      \ np.sqrt(np.log(1 + (sd / mean) ** 2))\n    mu_ln = np.log(mean) - sigma_ln\
+      \ ** 2 / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size),\
+      \ n_bootstrap)"
+    n_bootstrap: 10000
+  identifiability_notes: This target constrains a single QSP parameter, VEGF_norm_50,
+    by linking it algebraically to the EC50 for VEGFR2 autophosphorylation measured
+    in primary human lung microvascular endothelial cells. Because the forward model
+    depends on only one parameter and there is one effective measurement (the EC50
+    estimate), the parameter is structurally identifiable within this submodel. The
+    dominant uncertainty arises from (i) the experimental error in the EC50 fit (approximated
+    here by an assumed ~30% relative uncertainty) and (ii) biological translation
+    from acute in vitro lung microvascular EC signaling to in vivo PDAC vasculature.
+    No additional QSP parameters are included, so this target informs only the absolute
+    scale of VEGF_norm_50 and does not resolve potential correlations with other angiogenic
+    or vascular normalization parameters in the full model.
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_lines:
+  - name: HMVEC-L (human lung microvascular endothelial cells)
+    species: human
+    tissue_origin: lung microvasculature
+    cell_type: primary microvascular endothelial cells
+    source: Lonza
+    passage_range: < P8
+  culture_conditions:
+    substrate: standard tissue culture plastic
+    serum_concentration: 1.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+    medium: EGM-2 MV (Lonza EGM bullet kit)
+    supplements: Growth factor mix from EGM-2 MV; VEGF-A and bFGF omitted during overnight
+      starvation; VEGF-A165 added at stimulation
+    duration: "Overnight growth factor starvation followed by 0\u201310 min VEGF-A\
+      \ stimulation for phosphorylation assays; 1\u201324 h for gene expression assays"
+    notes: Primary human lung microvascular endothelial cells (HMVEC-L) were used
+      before passage 8, starved overnight without VEGF-A and bFGF, and then stimulated
+      with recombinant human VEGF-A165 at concentrations from 0 to 2.38 nM. VEGFR2
+      autophosphorylation was quantified at 2 minutes for EC50 estimation.
+study_interpretation: Akeson2010 demonstrates that primary human lung microvascular
+  endothelial cells sense and respond to VEGF-A165 over a relatively narrow concentration
+  range, with an EC50 of 650 pM for VEGFR2 tyrosine autophosphorylation at 2 minutes.
+  By converting this molar EC50 to a mass concentration using the VEGF-A165 dimer
+  molecular weight, we anchor the QSP parameter VEGF_norm_50 to an experimentally
+  measured ligand concentration scale for half-maximal endothelial VEGFR2 activation.
+  This provides a mechanistically grounded estimate of the VEGF level required to
+  substantially engage VEGFR2 signaling in microvascular endothelium, which is assumed
+  to approximate the activation threshold of PDAC vasculature.
+key_assumptions:
+- VEGF_norm_50 in the PDAC QSP model represents the VEGF concentration (pg/mL) that
+  produces half-maximal activation of endothelial VEGFR2 signaling, comparable to
+  the EC50 for VEGFR2 autophosphorylation reported by Akeson2010.
+- The acute 2-minute EC50 for VEGFR2 autophosphorylation in primary human lung microvascular
+  endothelial cells approximates the functional activation threshold for PDAC endothelium,
+  despite tissue- and context-specific differences in receptor expression and downstream
+  signaling.
+- VEGF-A165 is the dominant VEGF isoform driving endothelial activation in both the
+  Akeson2010 system and the PDAC tumor microenvironment, so using the VEGF-A165 dimer
+  molecular weight for unit conversion is appropriate.
+- The EC50 estimate of 650 pM from Akeson2010 has an approximate relative uncertainty
+  of 30%, reflecting typical variability in EC50 values derived from non-linear dose-response
+  fits when explicit confidence intervals are not reported.
+- Differences between in vitro growth-factor-starved endothelial monolayers and in
+  vivo PDAC vasculature (shear stress, perivascular support, stromal compression)
+  primarily affect the effective VEGF concentration at the endothelial surface rather
+  than fundamentally changing the intrinsic VEGFR2 binding EC50.
+key_study_limitations:
+- The experimental system uses primary human lung microvascular endothelial cells
+  in 2D culture, not PDAC tumor endothelium in vivo; endothelial phenotype and VEGFR2
+  expression level may differ from PDAC vasculature.
+- The measured EC50 reflects very acute signaling (2-minute exposure) and receptor
+  autophosphorylation rather than longer-term functional endpoints such as permeability,
+  proliferation, or angiogenic sprouting.
+- Only a single EC50 value (650 pM) is reported without explicit confidence intervals
+  or replicate-level EC50 estimates, so uncertainty in the dose-response fit must
+  be approximated.
+- VEGF-A165 concentrations used in vitro (up to ~2 nM) may exceed typical steady-state
+  VEGF levels in PDAC tumors, and local matrix-bound VEGF gradients in vivo are not
+  captured by the well-mixed culture model.
+- The study focuses on normal developmental and homeostatic endothelial responses
+  rather than the abnormal, compressive, and often hypoxic microenvironment of established
+  PDAC tumors, which may alter VEGF sensitivity.
+primary_data_source:
+  doi: 10.1016/j.mvr.2010.02.001
+  title: 'Endothelial cell activation in a VEGF-A gradient: relevance to cell fate
+    decisions'
+  authors:
+  - Ann Akeson
+  - Amanda Herman
+  - Diane Wiginton
+  - James Greenberg
+  year: 2010
+  source_tag: Akeson2010
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study uses primary human lung microvascular
+      endothelial cells to analyze VEGF-A165-induced VEGFR2 activation during organogenesis,
+      whereas the QSP model targets endothelial activation in pancreatic ductal adenocarcinoma
+      (PDAC) tumors. Endothelial VEGFR2 binding kinetics and acute signaling are expected
+      to be broadly conserved across vascular beds, but organ-specific context (lung
+      versus pancreas), developmental stage, and tumor-associated remodeling introduce
+      uncertainty when extrapolating the EC50 to PDAC vasculature.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Endothelial cells were exposed to exogenous VEGF-A165
+      at concentrations spanning the physiological to supraphysiological range without
+      pharmacologic inhibitors or genetic perturbations; the measured EC50 for VEGFR2
+      autophosphorylation reflects intrinsic receptor-ligand binding and early signaling
+      properties rather than drug-modified kinetics.
+    tme_compatibility: moderate
+    tme_compatibility_notes: Primary lung microvascular endothelial cells in 2D culture
+      lack the dense desmoplastic stroma, abnormal shear stress, and chronic inflammatory
+      milieu of PDAC tumors. These differences may shift the effective VEGF concentration
+      experienced by endothelial cells, but the intrinsic VEGFR2 affinity and early
+      autophosphorylation response are likely similar, so the Akeson2010 EC50 is used
+      as an approximate activation scale with added translation uncertainty.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_primary
+secondary_data_sources:
+- url: https://pubmed.ncbi.nlm.nih.gov/9059329/
+  title: Vascular endothelial growth factor
+  authors:
+  - Napoleone Ferrara
+  year: 1996
+  source_tag: Ferrara1996
+  contribution: Provided the approximate molecular mass of VEGF-A165 as a homodimeric
+    glycoprotein (~46 kDa), used to convert the EC50 for VEGFR2 autophosphorylation
+    from molar (pM) to mass (pg/mL) units.
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: Ferrara1996 is a broad review of VEGF biochemistry
+      and biology across multiple tissues and disease contexts, not specific to PDAC.
+      The molecular weight of VEGF-A165 is, however, a general biochemical property
+      and is expected to be identical in PDAC and the systems discussed in the review.
+    species_source: human
+    species_target: human
+    source_quality: review_article
+    perturbation_type: physiological_baseline
+    perturbation_relevance: The review summarizes biochemical characterization of
+      recombinant and native VEGF-A165 under baseline conditions without pharmacologic
+      perturbation; the reported molecular mass is an intrinsic property of the protein.
+    tme_compatibility: high
+    tme_compatibility_notes: The molecular weight of VEGF-A165 does not depend on
+      the tumor microenvironment, so differences between the systems discussed in
+      Ferrara1996 and PDAC vasculature do not meaningfully affect the applicability
+      of this parameter.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_cell_line
+tags:
+- VEGF
+- endothelial
+- EC50
+- angiogenesis
+- PDAC_proxy
+extraction_model: gpt-4.1
+extraction_reasoning_effort: medium

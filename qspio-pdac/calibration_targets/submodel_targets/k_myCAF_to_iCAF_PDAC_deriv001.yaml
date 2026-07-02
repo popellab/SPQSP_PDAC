@@ -1,0 +1,479 @@
+target_id: k_myCAF_to_iCAF
+inputs:
+- name: iCAF_frac_ctrl_mean_pct
+  value: 2.6471
+  units: percent
+  input_type: direct_measurement
+  source_ref: Zhang2025
+  source_location: Figure S1I, Bar0 (4Q + DMSO, IL-6+ CAFs)
+  figure_excerpt:
+    figure_id: Figure S1I
+    value: ~2.6
+    description: Mean percentage of IL-6+ CAFs in control condition (4 mM glutamine
+      + DMSO), first bar of the graph labeled 'IL-6+ CAFs (%)'.
+    context: Murine PDAC CAFs cultured for ~48 h in 4 mM glutamine with DMSO; flow
+      cytometry quantifies IL-6+ cells as percent of total CAFs.
+- name: iCAF_frac_ctrl_sem_pct
+  value: 0.2647
+  units: percent
+  input_type: direct_measurement
+  source_ref: Zhang2025
+  source_location: Figure S1I, Bar0 error bar (4Q + DMSO, IL-6+ CAFs)
+  figure_excerpt:
+    figure_id: Figure S1I
+    value: error bar height ~0.26
+    description: SEM of IL-6+ CAF percentage in control condition, inferred from the
+      difference between bar height and error bar tip for Bar0.
+    context: Error bars in the IL-6+ CAFs (%) bar graph represent SEM across biological
+      replicates.
+- name: iCAF_frac_EIPA_mean_pct
+  value: 10.6471
+  units: percent
+  input_type: direct_measurement
+  source_ref: Zhang2025
+  source_location: Figure S1I, Bar1 (0.2 mM Q + 25 uM EIPA, IL-6+ CAFs)
+  figure_excerpt:
+    figure_id: Figure S1I
+    value: ~10.6
+    description: Mean percentage of IL-6+ CAFs after low glutamine (0.2 mM) plus 25
+      uM EIPA for ~48 h, second bar of the IL-6+ CAFs (%) graph.
+    context: Murine PDAC CAFs cultured under glutamine depletion with macropinocytosis
+      inhibitor EIPA; IL-6+ fraction increased relative to control.
+- name: iCAF_frac_EIPA_sem_pct
+  value: 1.5
+  units: percent
+  input_type: direct_measurement
+  source_ref: Zhang2025
+  source_location: Figure S1I, Bar1 error bar (0.2 mM Q + 25 uM EIPA, IL-6+ CAFs)
+  figure_excerpt:
+    figure_id: Figure S1I
+    value: error bar height ~1.5
+    description: SEM of IL-6+ CAF percentage under low glutamine + EIPA, inferred
+      from difference between bar height and error bar tip for Bar1.
+    context: Error bars in the IL-6+ CAFs (%) bar graph represent SEM across four
+      biological replicates.
+- name: iCAF_frac_EHT_mean_pct
+  value: 12.7059
+  units: percent
+  input_type: direct_measurement
+  source_ref: Zhang2025
+  source_location: Figure S1I, Bar2 (0.2 mM Q + 20 uM EHT1864, IL-6+ CAFs)
+  figure_excerpt:
+    figure_id: Figure S1I
+    value: ~12.7
+    description: Mean percentage of IL-6+ CAFs after low glutamine (0.2 mM) plus 20
+      uM EHT1864 for ~48 h, third bar of the IL-6+ CAFs (%) graph.
+    context: Murine PDAC CAFs cultured under glutamine depletion with Rac inhibitor
+      EHT1864; IL-6+ fraction further increased relative to control.
+- name: iCAF_frac_EHT_sem_pct
+  value: 2.2059
+  units: percent
+  input_type: direct_measurement
+  source_ref: Zhang2025
+  source_location: Figure S1I, Bar2 error bar (0.2 mM Q + 20 uM EHT1864, IL-6+ CAFs)
+  figure_excerpt:
+    figure_id: Figure S1I
+    value: error bar height ~2.2
+    description: SEM of IL-6+ CAF percentage under low glutamine + EHT1864, inferred
+      from difference between bar height and error bar tip for Bar2.
+    context: Error bars in the IL-6+ CAFs (%) bar graph represent SEM across biological
+      replicates.
+- name: iCAF_frac_n_replicates
+  value: 4.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: The Figure S1I legend and Methods of Zhang2025 indicate n = 4 biological
+    replicates per condition for IL-6+ CAF flow cytometry; this sample size is used
+    to convert SEM to SD in the observation model.
+  source_ref: Zhang2025
+  source_location: Figure S1I legend / Methods (flow cytometry, n = 4)
+- name: t_EIPA_days
+  value: 2.0
+  units: day
+  input_type: reference_value
+  rationale: Zhang2025 Figure S1H and Methods state that CAFs were cultured under
+    low glutamine plus macropinocytosis inhibitor for approximately 48 h prior to
+    flow cytometry; 48 h is approximated as 2.0 days for rate constant estimation.
+  source_ref: Zhang2025
+  source_location: Figure S1H legend / Methods (CAF cultures for 48 h)
+- name: H_IL1_eff_ctrl
+  value: 0.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Control CAF cultures in 4 mM glutamine with DMSO lack exogenous IL-1
+    stimulation or metabolic stress; effective IL-1 Hill function for myCAF->iCAF
+    conversion is approximated as zero in this baseline condition.
+  source_ref: Zhang2025
+  source_location: Methods (no IL-1 added in control conditions)
+- name: H_IL1_eff_EIPA
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Low glutamine plus macropinocytosis inhibition (EIPA or EHT1864) induces
+    a strong intrinsic inflammatory iCAF program. For mapping onto the QSP IL-1-dependent
+    myCAF->iCAF reaction, this state is treated as an effectively maximal IL-1 Hill
+    activation (H_IL1_eff = 1.0).
+  source_ref: Zhang2025
+  source_location: Main text (metabolic stress induces intrinsic inflammatory program)
+- name: f_IL6_iCAF_fixed
+  value: 0.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: The QSP model includes an IL-6 autocrine feedback factor (1 + f_IL6_iCAF
+    * H_IL6_iCAF). In the short-term in vitro CAF plasticity assays used here, this
+    feedback is not separately identifiable from the primary IL-1-like drive, so it
+    is fixed to zero, making the multiplicative factor equal to 1 while retaining
+    the correct functional form.
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S4E (autocrine LIF/IL-6 production)
+- name: H_IL6_iCAF_ctrl
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Under control culture conditions, IL-6 signaling in CAFs is assumed to
+    be at a low but non-zero basal level; with f_IL6_iCAF_fixed set to 0.0, the exact
+    value of H_IL6_iCAF does not affect the rate but preserves the gating term structure.
+  source_ref: Biffi2019
+  source_location: Figure 1E–G (basal NF-kB and IL-6 are low in quiescent PSCs)
+- name: H_IL6_iCAF_EIPA
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Metabolic stress plus macropinocytosis inhibition elevates inflammatory
+    cytokines including IL-6, but since f_IL6_iCAF_fixed is 0.0, setting H_IL6_iCAF_EIPA
+    = 1.0 preserves the (1 + f_IL6_iCAF * H_IL6_iCAF) structure without influencing
+    the effective rate.
+  source_ref: Zhang2025
+  source_location: Figure 1E, 2E–2F (upregulation of Il6 under low Q + EIPA)
+- name: H_TGFb_ctrl
+  value: 0.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: In these in vitro CAF plasticity experiments, no exogenous TGFbeta is
+    added; endogenous TGFbeta production is modest compared to myCAF-rich PDAC stroma.
+    For mapping to the QSP TGFbeta Hill term in the iCAF->myCAF reaction, baseline
+    cultures are approximated as having negligible TGFbeta drive (H_TGFb = 0).
+  source_ref: Biffi2019
+  source_location: Results (TGFbeta treatment is required to strongly induce myCAF
+    markers in vitro)
+- name: H_TGFb_EIPA
+  value: 0.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Low glutamine plus macropinocytosis inhibition in Zhang2025 does not
+    involve addition of exogenous TGFbeta; the focus is on metabolic stress. Thus,
+    for these conditions, the effective TGFbeta Hill factor driving iCAF->myCAF conversion
+    is approximated as zero.
+  source_ref: Zhang2025
+  source_location: Methods / Results (no TGFbeta supplementation reported in metabolic
+    stress assays)
+calibration:
+  parameters:
+  - name: k_myCAF_to_iCAF
+    units: 1/day
+    nuisance: false
+  - name: k_iCAF_to_myCAF
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: Zhang2025 reports that murine PDAC CAFs cultured in 2D with standard
+      glutamine (4 mM) are >97% alpha-SMAhigh IL-6− (myCAF-like) with <3% IL-6+ cells,
+      whereas combining glutamine depletion (0.2 mM) with macropinocytosis inhibition
+      (EIPA or EHT1864) for approximately 48 h increases the IL-6+ CAF fraction to
+      ~10–13% without differential proliferation or death. This provides a direct
+      estimate of the net rate at which myCAF-like cells convert into IL-6+ inflammatory
+      CAFs under a strong, intrinsic pro-inflammatory stimulus over 2 days.
+    submodel_rationale: 'In the full QSPIO-PDAC model, myCAF and iCAF populations
+      interconvert via first-order reactions: myCAF -> iCAF at rate k_myCAF_to_iCAF
+      * H_IL1_eff * (1 + f_IL6_iCAF * H_IL6_iCAF) and iCAF -> myCAF at rate k_iCAF_to_myCAF
+      * H_TGFb, where H_IL1_eff and H_TGFb are effective IL-1 and TGFbeta Hill functions.
+      The algebraic submodel solves the corresponding two-state linear system analytically
+      for multiple experimental conditions, treating low-glutamine plus macropinocytosis
+      inhibition as a maximal H_IL1_eff stimulus with negligible H_TGFb. This preserves
+      the mechanistic structure of the QSP reactions while using the observed change
+      in IL-6+ CAF fraction over 2 days to constrain the underlying interconversion
+      rates.'
+    type: algebraic
+    formula: 'Two-state first-order interconversion between myCAF and iCAF phenotypes
+      with condition-dependent effective rates: myCAF --(k_myCAF_to_iCAF * H_IL1_eff
+      * (1 + f_IL6_iCAF * H_IL6_iCAF))--> iCAF and iCAF --(k_iCAF_to_myCAF * H_TGFb)-->
+      myCAF. Under metabolic stress (low glutamine + macropinocytosis inhibition),
+      H_IL1_eff is near maximal and H_TGFb ~ 0, yielding net myCAF-to-iCAF conversion
+      over 2 days.'
+    code: "def compute(params, inputs):\n    import numpy as np\n\n    # QSP parameters\n\
+      \    k_fwd = params['k_myCAF_to_iCAF']      # 1/day\n    k_rev = params['k_iCAF_to_myCAF']\
+      \      # 1/day\n\n    # Shared IL-6 feedback factor (fixed to zero in this target\
+      \ to preserve form)\n    f_IL6 = inputs['f_IL6_iCAF_fixed']     # dimensionless\n\
+      \n    # Baseline (control) condition: 4 mM glutamine + DMSO\n    H_IL1_ctrl\
+      \ = inputs['H_IL1_eff_ctrl']          # approximated as 0.0 (no IL-1 / metabolic\
+      \ stress)\n    H_IL6_ctrl = inputs['H_IL6_iCAF_ctrl']        # taken as 1.0;\
+      \ does not affect rate when f_IL6=0\n    H_TGFb_ctrl = inputs['H_TGFb_ctrl']\
+      \           # approximated as 0.0 (no exogenous TGFbeta)\n\n    # Effective\
+      \ forward and reverse rates under control\n    k_fwd_ctrl = k_fwd * H_IL1_ctrl\
+      \ * (1.0 + f_IL6 * H_IL6_ctrl)\n    k_rev_ctrl = k_rev * H_TGFb_ctrl\n\n   \
+      \ # Initial iCAF fraction in control cultures (from IL-6+ CAF percentage)\n\
+      \    i0_ctrl_pct = inputs['iCAF_frac_ctrl_mean_pct']   # percent of IL-6+ CAFs\
+      \ at baseline\n    i0_ctrl = i0_ctrl_pct / 100.0                     # fraction\
+      \ 0-1\n    my0_ctrl = 1.0 - i0_ctrl\n\n    t_EIPA = inputs['t_EIPA_days']  \
+      \                  # duration of metabolic stress (EIPA/EHT) in days (~2.0)\n\
+      \n    # Control: H_IL1=0, H_TGFb=0 => no interconversion, fraction unchanged\n\
+      \    # (Avoids 0/0 gradient issues in JAX autodiff)\n    i_ctrl_t = i0_ctrl\n\
+      \n    # Metabolic-stress condition (0.2 mM glutamine + macropinocytosis inhibitor\
+      \ EIPA or EHT1864)\n    H_IL1_EIPA = inputs['H_IL1_eff_EIPA']            # approximated\
+      \ as 1.0: strong intrinsic inflammatory drive\n    H_IL6_EIPA = inputs['H_IL6_iCAF_EIPA']\
+      \          # taken as 1.0; with f_IL6=0 this preserves form only\n    H_TGFb_EIPA\
+      \ = inputs['H_TGFb_EIPA']             # approximated as 0.0: no added TGFbeta\
+      \ in these assays\n\n    k_fwd_EIPA = k_fwd * H_IL1_EIPA * (1.0 + f_IL6 * H_IL6_EIPA)\n\
+      \    # H_TGFb_EIPA=0 => k_rev_EIPA=0, my_ss=0; simplify to avoid 0/0 grad\n\
+      \    my_EIPA_t = my0_ctrl * np.exp(-k_fwd_EIPA * t_EIPA)\n    i_EIPA_t = 1.0\
+      \ - my_EIPA_t\n\n    # For the Rac inhibitor EHT1864 condition, we assume\
+      \ a similar level of metabolic stress\n    # and thus use the same effective\
+      \ rates as for EIPA.\n    i_EHT_t = i_EIPA_t\n\n    # Return predicted IL-6+\
+      \ CAF percentages after 2 days under each condition\n    return {\n        'log_frac_iCAF_ctrl_48h_pct':\
+      \ np.log(np.maximum(100.0 * i_ctrl_t, 1e-10)),\n        'log_frac_iCAF_EIPA_48h_pct':\
+      \ np.log(np.maximum(100.0 * i_EIPA_t, 1e-10)),\n        'log_frac_iCAF_EHT_48h_pct':\
+      \ np.log(np.maximum(100.0 * i_EHT_t, 1e-10)),\n    }"
+  error_model:
+  - name: ctrl_IL6pos_frac_48h
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['log_frac_iCAF_ctrl_48h_pct']\n"
+    units: percent
+    uses_inputs:
+    - iCAF_frac_ctrl_mean_pct
+    - iCAF_frac_ctrl_sem_pct
+    - iCAF_frac_n_replicates
+    sample_size_input: iCAF_frac_n_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['iCAF_frac_ctrl_mean_pct']\n    sem\
+      \ = inputs['iCAF_frac_ctrl_sem_pct']\n    sd = sem * np.sqrt(sample_size)\n\
+      \    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu = np.log(mean)\n\
+      \    return rng.normal(mu, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: EIPA_IL6pos_frac_48h
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['log_frac_iCAF_EIPA_48h_pct']\n"
+    units: percent
+    uses_inputs:
+    - iCAF_frac_EIPA_mean_pct
+    - iCAF_frac_EIPA_sem_pct
+    - iCAF_frac_n_replicates
+    sample_size_input: iCAF_frac_n_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['iCAF_frac_EIPA_mean_pct']\n    sem\
+      \ = inputs['iCAF_frac_EIPA_sem_pct']\n    sd = sem * np.sqrt(sample_size)\n\
+      \    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu = np.log(mean)\n\
+      \    return rng.normal(mu, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: EHT_IL6pos_frac_48h
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['log_frac_iCAF_EHT_48h_pct']\n"
+    units: percent
+    uses_inputs:
+    - iCAF_frac_EHT_mean_pct
+    - iCAF_frac_EHT_sem_pct
+    - iCAF_frac_n_replicates
+    sample_size_input: iCAF_frac_n_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['iCAF_frac_EHT_mean_pct']\n    sem\
+      \ = inputs['iCAF_frac_EHT_sem_pct']\n    sd = sem * np.sqrt(sample_size)\n \
+      \   cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu = np.log(mean)\n\
+      \    return rng.normal(mu, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: This target primarily constrains the net myCAF-to-iCAF conversion
+    rate under a strong intrinsic pro-inflammatory/metabolic-stress stimulus over
+    approximately 2 days. Because reverse conversion (iCAF-to-myCAF) is negligible
+    in the absence of exogenous TGFbeta (H_TGFb approximated as 0), the data effectively
+    identify k_myCAF_to_iCAF * H_IL1_eff under near-maximal H_IL1_eff, with only weak
+    information on k_iCAF_to_myCAF. The IL-6 feedback factor is fixed to zero in this
+    target to avoid degeneracy with k_myCAF_to_iCAF while preserving the correct multiplicative
+    form in the rate law. Additional submodels that include explicit TGFbeta stimulation
+    (e.g., Biffi2019 organoid co-cultures with TGFbeta) are recommended to better
+    constrain k_iCAF_to_myCAF and the balance between forward and reverse interconversion
+    in vivo.
+experimental_context:
+  species: mouse
+  system: in_vitro_cell_line
+  cell_lines:
+  - name: murine PDAC-derived CAFs
+    species: mouse
+    tissue_origin: pancreas
+    cell_type: cancer-associated fibroblast
+    source: EKPC (KrasLSL-G12D/+;Trp53LSL-R172H/+;Pdx1-Cre) tumor-derived CAFs immortalized
+      with SV40 T antigen, as described in Zhang2025
+    passage_range: early passages (<20) in DMEM with 10% FBS
+  culture_conditions:
+    substrate: tissue-culture plastic (2D monolayer)
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic (5% CO2, atmospheric O2)
+    culture_type: 2d_monolayer
+    medium: DMEM high glucose with 10% FBS, 100 U/mL pen-strep, 20 mM HEPES
+    supplements: 4 mM or 0.2 mM glutamine; 25 uM EIPA or 20 uM EHT1864 as indicated
+    duration: Approximately 48 h treatment under each condition before flow cytometry
+    notes: CAF cultures were derived from murine PDAC tumors and then immortalized
+      with SV40 T antigen; macropinocytosis inhibition was achieved pharmacologically
+      (EIPA or Rac inhibitor EHT1864) under glutamine-restricted conditions.
+  indication: pancreatic ductal adenocarcinoma
+study_interpretation: 'Zhang2025 demonstrated that PDAC-derived CAFs exhibit substantial
+  phenotypic plasticity under metabolic stress: when glutamine is depleted and macropinocytosis
+  is inhibited, an initially myCAF-dominated culture (>97% alpha-SMAhigh IL-6−) acquires
+  a several-fold increase in IL-6+ inflammatory CAFs within ~2 days, without selective
+  proliferation or death of a pre-existing iCAF subpopulation. Interpreted through
+  the QSPIO-PDAC framework, these data indicate that the intrinsic myCAF->iCAF interconversion
+  process can operate on a timescale of order 1–2 weeks at baseline (consistent with
+  current priors) and is pushed toward its maximal effective rate under strong metabolic
+  stress, corresponding to near-maximal IL-1-like drive and negligible TGFbeta-mediated
+  reversion in the model. This target therefore anchors k_myCAF_to_iCAF by matching
+  the observed change in IL-6+ CAF fraction over 2 days, while allowing k_iCAF_to_myCAF
+  to remain weakly constrained in the absence of explicit TGFbeta stimulation.'
+key_assumptions:
+- IL-6 positivity (by intracellular staining) is treated as a proxy for the iCAF phenotype,
+  and IL-6− alpha-SMAhigh CAFs as myCAFs, consistent with Zhang2025 and prior PDAC
+  CAF literature.
+- Total CAF number and overall proliferation/death rates are assumed similar across
+  conditions over 48 h, so changes in the IL-6+ fraction primarily reflect phenotypic
+  switching rather than differential growth or survival of subpopulations.
+- Low glutamine plus macropinocytosis inhibition is modeled as an effective maximal
+  activation of the IL-1-dependent myCAF->iCAF pathway (H_IL1_eff ~ 1) with negligible
+  TGFbeta drive (H_TGFb ~ 0), capturing an upper bound on the effective forward interconversion
+  rate relevant to IL-1-rich PDAC environments.
+- IL-6 autocrine feedback on iCAF formation, present in the full QSP model as (1 +
+  f_IL6_iCAF * H_IL6_iCAF), is fixed to zero in this target because the available
+  data cannot distinguish its contribution from that of the primary forward rate constant;
+  this simplification preserves the multiplicative structure without adding unidentifiable
+  degrees of freedom.
+- Control cultures (4 mM glutamine + DMSO) are assumed to have negligible net myCAF<->iCAF
+  interconversion over 2 days, consistent with the very small change in IL-6+ fraction
+  reported by Zhang2025; thus k_myCAF_to_iCAF * H_IL1_eff and k_iCAF_to_myCAF * H_TGFb
+  are effectively zero in this condition.
+- Percentages reported in flow cytometry plots and bar graphs are treated as mean
+  ± SEM across four biological replicates; SEM is converted to SD using the reported
+  n for parametric bootstrap of the observation.
+key_study_limitations:
+- The stimulus driving myCAF-to-iCAF conversion in Zhang2025 is metabolic stress (glutamine
+  depletion plus macropinocytosis inhibition), not IL-1 itself. Mapping this to the
+  IL-1-dependent H_IL1_eff gating term in the QSP model assumes that the intrinsic
+  plasticity timescale under metabolic stress is comparable to that under strong IL-1
+  drive, which may introduce systematic uncertainty.
+- CAF cultures are derived from murine PDAC tumors and immortalized with SV40 T antigen;
+  their interconversion kinetics may differ quantitatively from primary human CAFs
+  in vivo, and immortalization could alter stress responses.
+- The experiments provide only a single post-treatment time point (~48 h) for the
+  IL-6+ fraction under metabolic stress, limiting the ability to distinguish forward
+  (myCAF->iCAF) from reverse (iCAF->myCAF) rate constants; the present target therefore
+  focuses on constraining the effective forward rate under conditions where reverse
+  conversion is negligible.
+- IL-6 positivity is an imperfect surrogate for the full iCAF transcriptional program;
+  some alpha-SMA+ IL-6+ cells may represent intermediate states between myCAF and
+  iCAF, which are lumped into the iCAF compartment in this two-state model.
+- No direct measurements of TGFbeta levels or TGFbeta-driven iCAF->myCAF conversion
+  are available in Zhang2025; hence k_iCAF_to_myCAF remains weakly informed and will
+  require additional targets (e.g., TGFbeta-stimulation experiments from Biffi2019)
+  for precise calibration.
+primary_data_source:
+  doi: 10.1016/j.ccell.2025.06.021
+  title: Macropinocytosis maintains CAF subtype identity under metabolic stress in
+    pancreatic cancer
+  authors:
+  - Zhang
+  - Ling L
+  - Murad R
+  - Maganti S
+  - Manceau A
+  - Hetrick HA
+  - Neff M
+  - Galapate CM
+  - Grenier SF
+  - Carrette F
+  - Duong-Polk K
+  - Bagchi A
+  - Scott DA
+  - Altman Y
+  - Hope JL
+  - Lowy AM
+  - Bradley LM
+  - Commisso C
+  year: 2025
+  source_tag: Zhang2025
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The study uses murine models of pancreatic ductal
+      adenocarcinoma (PDAC) and PDAC tumor–derived CAFs to investigate CAF plasticity
+      and macropinocytosis under metabolic stress, directly matching the PDAC indication
+      of the QSPIO-PDAC model, though species differences remain.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: Macropinocytosis inhibition with EIPA or EHT1864 under
+      low glutamine represents a strong, non-physiological perturbation used to reveal
+      the intrinsic capacity and timescale of CAF subtype switching. The resulting
+      rates are interpreted as upper bounds on IL-1-driven myCAF->iCAF conversion
+      in vivo rather than baseline physiological values.
+    tme_compatibility: moderate
+    tme_compatibility_notes: The experiments are performed with murine PDAC-derived
+      CAFs cultured in 2D monolayer under defined nutrient conditions, lacking the
+      full 3D desmoplastic matrix, immune infiltrate, and cytokine milieu of PDAC
+      tumors. Thus, while they capture intrinsic CAF plasticity, in vivo interconversion
+      in human PDAC may be slower or modulated by additional signals.
+    measurement_directness: proxy_observable
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_cell_line
+secondary_data_sources:
+- doi: 10.1158/2159-8290.CD-18-0710
+  title: IL1-Induced JAK/STAT Signaling Is Antagonized by TGFbeta to Shape CAF Heterogeneity
+    in Pancreatic Ductal Adenocarcinoma
+  authors:
+  - Biffi
+  - Oni TE
+  - Spielman B
+  - Hao Y
+  - Elyada E
+  - Park Y
+  - Preall J
+  - Tuveson DA
+  year: 2019
+  source_tag: Biffi2019
+  contribution: Provides mechanistic evidence in PDAC that IL-1 signaling drives acquisition
+    of an inflammatory iCAF phenotype via LIF/JAK/STAT and that TGFbeta signaling
+    antagonizes this process and promotes myofibroblastic myCAFs, supporting the mapping
+    between metabolic-stress-induced iCAF formation and the IL-1- and TGFbeta-gated
+    myCAF<->iCAF reactions in the QSP model.
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: Biffi2019 uses mouse and human PDAC organoid–PSC
+      co-cultures and in vivo PDAC models to dissect IL-1- and TGFbeta-driven CAF
+      heterogeneity, directly matching the PDAC indication and CAF biology represented
+      in the QSPIO-PDAC model.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: The study applies exogenous IL-1alpha, TGFbeta, and pathway
+      inhibitors (JAKi, TGFbetaRi, IKKbeta inhibitor) to drive or block CAF subtype
+      transitions. These perturbations demonstrate the directions and qualitative
+      timescales of IL-1- and TGFbeta-driven switching but are not used quantitatively
+      in this target; instead they justify treating metabolic-stress-induced iCAFs
+      as mechanistically analogous to IL-1-driven iCAFs in the model.
+    tme_compatibility: moderate
+    tme_compatibility_notes: Most quantitative data come from in vitro PSC/CAF cultures
+      and organoid co-cultures, which recapitulate key signaling pathways but lack
+      full tumor architecture and immune components. Nonetheless, CAF subtype markers
+      and spatial distributions in KPC tumors closely match those observed in human
+      PDAC, supporting the qualitative translation of signaling mechanisms.
+    measurement_directness: proxy_observable
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_primary
+tags:
+- CAF_plasticity
+- myCAF_to_iCAF
+- PDAC
+- macropinocytosis
+- glutamine_depletion
+- IL1_signaling
+- TGFbeta_signaling
+extraction_model: claude-3.7-sonnet-20250219
+extraction_reasoning_effort: high

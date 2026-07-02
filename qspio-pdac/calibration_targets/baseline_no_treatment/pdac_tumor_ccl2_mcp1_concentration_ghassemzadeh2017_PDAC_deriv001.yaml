@@ -1,0 +1,186 @@
+calibration_target_id: pdac_tumor_ccl2_mcp1_concentration_ghassemzadeh2017
+cancer_type: PDAC
+tags:
+- PDAC
+- CCL2
+- MCP-1
+- tumor_tissue
+- cytokine
+- human
+- clinical_resection
+epistemic_basis: literature
+study_interpretation: Ghassem-Zadeh et al. quantified MCP-1/CCL2 protein in human pancreatic tissue homogenates from pathologically confirmed pancreatic ductal adenocarcinoma (PDAC) patients using multiplex cytokine analysis, normalizing cytokine abundance to total tissue protein. The calibration target uses the reported PDAC tissue MCP-1/CCL2 concentration (pg per mg total protein) as a direct human PDAC tumor-tissue absolute cytokine measurement, converted to nM tumor concentration using an explicit in-tissue soluble-protein-density assumption. This matches the conversion approach used by the IL-1 and IL-6 targets extracted from the same paper.
+key_assumptions:
+- MCP-1 and CCL2 are treated as synonymous measurements of the model species V_T.CCL2.
+- The PDAC pancreatic tissue homogenates are treated as representative of resectable untreated tumor tissue.
+- Conversion from pg/mg total protein to pg/mL tumor assumes 50-100 mg soluble protein per mL wet tumor tissue (uniform), matching the IL-1 and IL-6 sibling targets from the same paper. The ratio of cytokine to total protein in the tissue is invariant under post-extraction dilution to the assay input concentration of 600 ug/mL — that dilution scales both quantities equally and cannot enter the conversion.
+- MCP-1/CCL2 molecular weight is approximated as 8.6 kDa for conversion from mass concentration to molarity.
+- The reported median and IQR are modeled with a lognormal distribution because chemokine concentrations are positive and right-skewed; the lognormal closure recovers sigma_log analytically from the IQR (sigma = arcsinh(IQR/(2*median))/z, z=0.6745).
+key_study_limitations:
+- Small PDAC tissue cohort (n=12) limits precision of the population distribution.
+- The measurement is normalized to total extracted protein rather than directly per tumor volume, so comparison to a tumor-compartment molar concentration requires a tissue protein density assumption.
+- The tissue homogenate includes bulk tumor microenvironment and adjacent stromal/immune components; it does not identify the cellular source of MCP-1.
+- A previous version of this target erroneously used the assay-input dilution buffer protein concentration (600 ug/mL) as the divisor in the model-side observable code, inflating the effective "expected pg/mg" by 75/0.6 = 125x and inverting the misspec verdict. Documented here so the conversion rationale stays intact across re-extractions.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        ccl2 = species_dict['V_T.CCL2']
+        return ccl2
+  units: nanomolar
+  species:
+  - V_T.CCL2
+  constants: []
+  support: positive
+  mapping_rationale: The QSP model species V_T.CCL2 is already represented as a tumor-compartment molar concentration, so the observable simply returns the model concentration in nanomolar. The empirical datum is converted externally from tissue homogenate pg/mg total protein to nM tumor concentration via in-tissue protein density.
+  experimental_denominator: null
+  model_denominator_species: null
+  unmodeled_denominator_components: null
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: null
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: Frozen pancreatic tissue homogenates from pathologically confirmed PDAC surgical specimens
+  assay_type: multiplex cytokine analysis
+scenario:
+  description: Baseline MCP-1/CCL2 protein concentration measured in PDAC pancreatic tissue homogenates at surgical tissue collection.
+  interventions:
+  - intervention_description: No intervention (baseline surgical tissue collection; no experimental treatment applied before cytokine measurement).
+empirical_data:
+  median:
+  - 1.1905
+  ci95:
+  - - 0.0858
+    - 17.0138
+  units: nanomolar
+  sample_size: 12
+  sample_size_rationale: n=12 PDAC pancreatic tissue samples for the tissue homogenate multiplex assay, reported in Table 4. Median and CI95 in nM are derived from the paper's pg/mg total protein values via the in-tissue protein density assumption (50-100 mg/mL uniform); the distribution_code recomputes them from inputs.
+  inputs:
+  - name: mcp1_median_pg_per_mg_protein
+    value: 140.45
+    units: picogram / milligram
+    description: Reported PDAC pancreatic tissue MCP-1 median concentration normalized to total protein.
+    source_ref: GhassemZadeh2017
+    value_location: Table 4
+    value_snippet: MCP-1 AIP vs CP AIP vs PDAC 303.70/509.70/12 303.70/509.70/12 158.94/206.72/12 140.45/286.84/12
+    table_excerpt:
+      table_id: Table 4
+      row: MCP-1
+      column: PDAC pancreatic tissue
+      value: '140.45'
+      context: Pancreatic tissue homogenate cytokine concentrations expressed as pg/mg total protein; PDAC group n = 12.
+    input_type: direct_parameter
+    source_type: table
+    dispersion_type: null
+  - name: mcp1_iqr_pg_per_mg_protein
+    value: 286.84
+    units: picogram / milligram
+    description: Reported interquartile range width for PDAC pancreatic tissue MCP-1 normalized to total protein.
+    source_ref: GhassemZadeh2017
+    value_location: Table 4
+    value_snippet: MCP-1 AIP vs CP AIP vs PDAC 303.70/509.70/12 303.70/509.70/12 158.94/206.72/12 140.45/286.84/12
+    table_excerpt:
+      table_id: Table 4
+      row: MCP-1
+      column: PDAC pancreatic tissue
+      value: '286.84'
+      context: Pancreatic tissue homogenate cytokine concentrations expressed as pg/mg total protein; PDAC group median 140.45 and n = 12.
+    input_type: direct_parameter
+    source_type: table
+    dispersion_type: iqr
+    dispersion_type_rationale: Table 4 labels the dispersion statistic as IQR for cytokine concentrations; it is reported as a single IQR width rather than separate Q1 and Q3.
+  - name: pdac_tissue_n
+    value: 12
+    units: dimensionless
+    description: Number of PDAC pancreatic tissue homogenate samples contributing to the Table 4 MCP-1 summary.
+    source_ref: GhassemZadeh2017
+    value_location: Table 4
+    value_snippet: MCP-1 AIP vs CP AIP vs PDAC 303.70/509.70/12 303.70/509.70/12 158.94/206.72/12 140.45/286.84/12
+    table_excerpt:
+      table_id: Table 4
+      row: MCP-1
+      column: PDAC pancreatic tissue
+      value: '12'
+      context: PDAC sample size for pancreatic tissue MCP-1 summary with median 140.45 and IQR 286.84 pg/mg total protein.
+    input_type: direct_parameter
+    source_type: table
+    dispersion_type: null
+  assumptions:
+  - name: protein_density_low
+    value: 50
+    units: milligram / milliliter
+    description: Lower bound for soluble protein content per wet tumor volume used to convert pg/mg protein to pg/mL tissue.
+    rationale: Tissue cytokines are normalized to total protein; PDAC tumor soluble-protein recovery varies by sample and lysis protocol. A broad 50-100 mg/mL range is used so conversion uncertainty dominates appropriately. Matches the IL-1 / IL-6 sibling targets from the same paper.
+  - name: protein_density_high
+    value: 100
+    units: milligram / milliliter
+    description: Upper bound for soluble protein content per wet tumor volume used to convert pg/mg protein to pg/mL tissue.
+    rationale: The range brackets plausible wet-tissue protein densities and avoids overconfidence in converting protein-normalized homogenate data to tissue-volume concentration.
+  - name: mcp1_molecular_weight
+    value: 8600
+    units: gram / mole
+    description: Approximate molecular weight of human MCP-1/CCL2 used for mass-to-molar conversion.
+    rationale: Human MCP-1/CCL2 is an approximately 8.6 kDa chemokine (UniProt P13500); 8600 g/mol is used as a representative conversion value.
+  - name: n_mc_samples
+    value: 100000
+    units: dimensionless
+    description: Monte Carlo sample count for propagating lognormal cytokine and protein-density uncertainty.
+    rationale: Large sample count provides stable percentiles for the derived calibration distribution.
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    rng = np.random.default_rng(42)\n    median = inputs['mcp1_median_pg_per_mg_protein']\n    iqr = inputs['mcp1_iqr_pg_per_mg_protein']\n    n_samples = int(inputs['n_mc_samples'].magnitude)\n    z = 0.6744897501960817\n    ratio = (iqr / median).to('dimensionless').magnitude\n    sigma_log = np.arcsinh(ratio / 2.0) / z\n    mu_log = np.log(median.magnitude)\n    pg_per_mg = rng.lognormal(mu_log, sigma_log, n_samples) * median.units\n    protein_low = inputs['protein_density_low'].to('milligram / milliliter')\n    protein_high = inputs['protein_density_high'].to('milligram / milliliter')\n    protein_density = rng.uniform(protein_low.magnitude, protein_high.magnitude, n_samples) * protein_low.units\n    mw = inputs['mcp1_molecular_weight'].to('gram / mole')\n    mass_conc = (pg_per_mg * protein_density).to('picogram / milliliter')\n    molar = (mass_conc.to('gram / liter') / mw).to('nanomolar')\n    return {\n        'median_obs': np.median(molar),\n        'ci95_lower': np.percentile(molar, 2.5),\n        'ci95_upper': np.percentile(molar, 97.5),\n    }\n"
+primary_data_source:
+  source_tag: GhassemZadeh2017
+  title: Distinct pathophysiological cytokine profiles for discrimination between autoimmune pancreatitis, chronic pancreatitis, and pancreatic ductal adenocarcinoma
+  first_author: Ghassem-Zadeh
+  year: 2017
+  doi: 10.1186/s12967-017-1227-3
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The source includes pathologically confirmed human PDAC pancreatic tissue homogenates, matching the requested PDAC indication.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: The target uses baseline surgical tissue measurements rather than pharmacologic perturbation data.
+    tme_compatibility: high
+    tme_compatibility_notes: Human PDAC bulk pancreatic tissue homogenates preserve the overall desmoplastic tumor microenvironment composition at the level of soluble-protein abundance, although spatial information is lost.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: clinical_in_vivo
+    validation_warnings:
+    - Reported as pg/mg total protein rather than molar concentration per tumor volume; conversion to nM uses an in-tissue protein density assumption (50-100 mg/mL uniform) that introduces ~2x variance into the empirical CI95.
+secondary_data_sources:
+- source_tag: UniProt_CCL2_P13500
+  title: UniProtKB - P13500 (CCL2_HUMAN), C-C motif chemokine 2
+  first_author: UniProt Consortium
+  year: 2026
+  doi_or_url: https://www.uniprot.org/uniprotkb/P13500/entry
+  source_relevance:
+    indication_match: unrelated
+    indication_match_justification: UniProt is used only for the molecular identity and approximate mass of human CCL2, not for disease-specific biology.
+    species_source: human
+    species_target: human
+    source_quality: non_peer_reviewed
+    perturbation_type: physiological_baseline
+    perturbation_relevance: No perturbation; molecular mass is a sequence-derived property of human CCL2.
+    tme_compatibility: moderate
+    tme_compatibility_notes: Tumor microenvironment compatibility is not relevant for molecular weight; human protein identity matches the target species.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: clinical_in_vivo
+    validation_warnings:
+    - Used only to source the approximate 8.6 kDa human MCP-1/CCL2 molecular mass.
+derivation_id: pdac_ccl2_mcp1_ghassemzadeh2017_v2
+derivation_timestamp: '2026-05-10T00:00:00Z'
+extraction_model: openai_api
+extraction_reasoning_effort: high

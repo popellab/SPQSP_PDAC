@@ -1,0 +1,28 @@
+observable,estimate,ci95_lo,ci95_hi,units,reasoning
+cancer_cell_density_baseline,400,150,800,cells/mm2,PDAC tumor nests are compressed by dense desmoplastic stroma occupying 60-80% of tissue so epithelial cellularity is moderate compared to other carcinomas
+cd8_density_baseline,50,15,120,cells/mm2,PDAC is an immunologically cold tumor with poor T cell infiltration and exclusion by the desmoplastic barrier
+cd4_helper_density,40,10,100,cells/mm2,CD4 helpers are sparse in PDAC and slightly less abundant than CD8s in most cold tumors though this varies
+treg_density_baseline,30,10,70,cells/mm2,Tregs are disproportionately enriched relative to effector T cells in the immunosuppressive PDAC microenvironment
+cdc1_density_baseline,5,1,15,cells/mm2,BATF3+ cDC1s are exceptionally rare in PDAC which contributes to failed cross-priming and immune evasion
+cdc2_density_baseline,10,3,25,cells/mm2,cDC2s are somewhat more abundant than cDC1s but still sparse and often immature in the immunosuppressive milieu
+tam_density,120,50,250,cells/mm2,Macrophages are one of the most abundant immune populations in PDAC recruited by CSF1 and CCL2 from the tumor and stroma
+mdsc_density,50,15,120,cells/mm2,MDSCs accumulate in PDAC driven by GM-CSF and IL-6 secretion from tumor cells and iCAFs
+total_til_density,120,40,280,cells/mm2,Sum of CD8 CD4-helper and Treg populations reflecting overall poor lymphocyte infiltration in this cold tumor
+cd8_exhausted_fraction,0.65,0.40,0.85,dimensionless,Chronic antigen exposure plus TGFb IL-10 and PD-L1 in the TME drive most infiltrating CD8s toward an exhausted PD-1+ phenotype
+th_exhausted_fraction,0.40,0.20,0.60,dimensionless,CD4 helper exhaustion occurs but is less pronounced than CD8 exhaustion in most solid tumors including PDAC
+cd8_treg_ratio,1.5,0.5,4.0,dimensionless,The characteristically low CD8-to-Treg ratio in PDAC reflects both poor effector infiltration and active Treg recruitment
+cd8_treg_ratio_alt,1.8,0.6,4.5,dimensionless,Independent estimate allowing slightly higher ratio given measurement variability across biopsy sites and staining protocols
+treg_fraction_cd4,0.40,0.25,0.60,dimensionless,Tregs constitute a disproportionately large share of the CD4 compartment in PDAC due to TGFb-driven conversion and selective recruitment
+treg_fraction_cd4_alt,0.35,0.20,0.55,dimensionless,Independent estimate slightly lower reflecting variability in Foxp3 staining thresholds and intratumoral heterogeneity
+treg_fraction_baseline,0.25,0.12,0.40,dimensionless,Tregs as a fraction of all CD3+ cells is substantial in PDAC but diluted by the CD8 compartment
+m1_m2_ratio,0.30,0.10,0.60,dimensionless,PDAC strongly skews macrophage polarization toward M2 via IL-10 TGFb and lactic acid in the hypoxic TME
+m2_macrophage_fraction,0.75,0.60,0.90,dimensionless,The immunosuppressive milieu of PDAC favors M2 polarization with CD163+ macrophages dominating the TAM population
+apc_maturation_ratio,0.15,0.05,0.30,dimensionless,DC maturation is actively suppressed in PDAC by IL-10 VEGF and TGFb leading to mostly immature tolerogenic DCs
+icaf_fraction_of_caf,0.35,0.20,0.50,dimensionless,iCAFs are a major CAF subtype in PDAC maintained by IL-1 signaling and spatially enriched in tumor-distal stroma
+mycaf_fraction_of_caf,0.50,0.35,0.65,dimensionless,myCAFs are typically the dominant CAF population in PDAC driven by direct TGFb signaling from tumor-proximal contact
+apcaf_fraction_of_caf,0.15,0.05,0.25,dimensionless,apCAFs represent a minor subpopulation that paradoxically promotes immune evasion by presenting antigen to CD4 cells without costimulation
+apcaf_fraction_of_caf_alt,0.12,0.04,0.22,dimensionless,Independent estimate reflecting uncertainty in MHC-II staining specificity and overlap with macrophage contamination
+stromal_fraction,0.70,0.55,0.85,dimensionless,PDAC is among the most desmoplastic solid tumors with stroma typically comprising the majority of tumor volume
+psc_activation_ratio,0.85,0.70,0.95,dimensionless,Nearly all PSCs in established PDAC tumors are activated by TGFb PDGF and other paracrine signals from tumor and immune cells
+collagen1_protein_level,8.0,4.0,15.0,fold-change_vs_normal,Massive collagen deposition is a hallmark of PDAC desmoplasia with the ECM becoming increasingly crosslinked and dense
+vegf_tissue_concentration,100,30,250,pg/mg_total_protein,Hypoxia drives HIF-1a-mediated VEGF production but the overall concentration is moderate as PDAC remains poorly vascularized despite angiogenic signaling

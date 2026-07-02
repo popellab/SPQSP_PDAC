@@ -1,0 +1,3732 @@
+metadata:
+  generated_by: qsp_inference.audit.report
+  n_parameters: 116
+  n_samples: 8000
+  freshness:
+    comp_04a9871cb394a15c:
+      content_hash: ce692e356d4fa6fcc2d4f76151880830128d0471385b8f7154b645f2fa356a7f
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          ArgI_50_Treg_PDAC_deriv001.yaml: 9091c88b5eaa12e88abe901b576d3a64566460fdfeaa02a6dd79412071fade20
+        prior_rows:
+          ArgI_50_Treg: aeaad495e7375deb8d4d085978b1f03f29bc52fcb70418d26fd2b84d8652c28c
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_050fdef732451b2d:
+      content_hash: d5f45a47b54fea3b6b14594b7c92134634071a410f403a055f34bdf44de22a56
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_C1_death_PDAC_deriv001.yaml: cb1412063bd92a6505297fb3231c64304ee7e217fd0f46b4fbcacad642b67661
+        prior_rows:
+          k_C1_death: 00796caa06fa6b4df22fa99d8231472bace3a8a0dfb876e4dbaddf2ed6c33fcc
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_05669aae261db4eb:
+      content_hash: e578749bd2635422baa581215c12f6b02bc4d8db57740695460a1149699145d1
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_M1_pol_PDAC_deriv002.yaml: 2907b0c13a0de49e2bb9421378b29cb9941823c4afec342178e8769d95d194d8
+          k_M2_pol_PDAC_deriv001.yaml: 4ab10aec7942f97c543d3624666cd14249a46caa73f67ddaf8661ca1a03ea8d9
+          k_Mac_death_PDAC_deriv001.yaml: a205489c0c53b82de82889b6f6d0aa9ea9a0d08f7e7bbc740ce02139156e62e0
+          k_Mac_rec_PDAC_deriv001.yaml: 850c8ea781977e9b751d3d29b6c2e21c5e4621f82b53f01408758ce147b182df
+        prior_rows:
+          k_M1_pol: f5cf4529e7055e99f28b76b9c61cbdf865cc16ea84c97216d191bcee3af97d41
+          k_M2_pol: 38e6ca92f8dd7ab7ecd3e07f9785c204e684e12e65be8cf7a4ceaf4329958591
+          k_Mac_death: 17cb929eeb5c712a6e316858fbb629831df8db948be37704efe9eed1ceff8866
+          k_Mac_rec: bede06cdd99b4179d757944db5010f7627d079a86f5aa853c68a264684f7ae45
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_067ca79070739950:
+      content_hash: 7f13e25c2d982cc1ee0203cc49e0546d4253797974b3956d3475427ec16d2b95
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_CCL5_sec_iCAF_PDAC_deriv001.yaml: 63462656a190822eca7aac4f2bd3f7fb789f484b1191c76dc6a239e6e9978f76
+        prior_rows:
+          k_CCL5_sec_iCAF: 573614be3ad4b9a96f2ea6f9c890d15aaa748de0464ca5bb32cd2d736d17c054
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_06b81bdc13d5d08b:
+      content_hash: 46193aae87d0c4f6262058c07233fa5ef4d3c64e25435892add9befa4ff64ef8
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_MDSC_rec_PDAC_deriv001.yaml: 5a26da8044914f6edd8f8094a4bc647b29788e418fe3acec0398bfd9ea0278c0
+        prior_rows:
+          k_MDSC_death: 641fc26604993a2eddd72840ba0b26712a9c1dcd7fdd73a59abe63a9cabce617
+          k_MDSC_rec: 4bf432df71d429cd616a3a2332a66066cefdc8b977c76216c169a81c556e1027
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_06f55cf093dc55f0:
+      content_hash: 4799787d6c058bc4cdbc5be7882724ff385db933653cb0e01241bb7400aff524
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_C_CD8_exh_PDAC_deriv001.yaml: a6d512e7013762a6924475293d0a877bbf63750ba48f2c8a121c73aac24274b8
+        prior_rows:
+          k_C_CD8_exh: abde397c1f3bc3c3a737bb72469f840d43b80f26e97214bf9e8d5b455030d92f
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_073ba324ef84e245:
+      content_hash: f2793b57537350f5f281d3f209b1d95a05a15e6840a7a5f45eec1d23f8abf0ff
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          d_crit_T_n_pore_PDAC_deriv001.yaml: 79bd99b53074ad65cad90919ea926be31192a1764970f1c441e0c90ebd8c0e58
+        prior_rows:
+          d_crit_T: 3789720f2a6e32e3a8a50b5750dd08661252ba507d426d31e1523a2cdc196458
+          n_pore: 738bab1d3606326b73664489354e06ad9b3974d58c2921bc73c71270d48f99f4
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_0aaa89485e167dbb:
+      content_hash: f242b8c8b36903c58ca55642540d1e1b55d27b6d1f44f81f41e847cc2b5e3e6d
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          f_col_basal_PDAC_deriv001.yaml: 8d33991724ca19d90a99f09607a27f05c0f8dda1fb1df9c49e6b7da36c92fb54
+          k_col_myCAF_sec_PDAC_deriv001.yaml: 12a1b9927062cb5cc568105ad0e22bc707b772987cd43d1e189a7c88eeb9ac15
+        prior_rows:
+          f_col_basal: 6ca0fc7b82113ad9df132aab6af92d036297abfd7b8f4438f7bb222ace3f09e3
+          k_col_myCAF_sec: 88fed311f743f0dd6a42fae7236cb9ddcdc722f685bc0385f655bc4bb7a524de
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_0ba3c007e5cd49f4:
+      content_hash: f176dd73a024cd91f94c7a8283d0024fbcdee02f1182c5f9ab4d29003ad01e83
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_CD8_T_pro_PDAC_deriv001.yaml: 8c62093eff89e4ad9e6c8e94a4e7e311283cec0e6b36c05cf951ea4b9d22148a
+        prior_rows:
+          k_CD8_T_pro: 01d08b96cc9e462333852684ae17d141c419c0b2cf75e6844d8cc448688a1fbb
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_0d596bcd6402106e:
+      content_hash: 909d4f8796358d6e4eaed4f810d959364b2456bf83f164ab2b0d2903fcda0031
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          IL10_50_PDAC_deriv001.yaml: 5a93bbd52fca57f976504d9a9962cd7655d0f0f44fcc07703931ca83734696ed
+        prior_rows:
+          IL10_50: d662859a08d883cbcf706fa058ad200fd21f990efedb4fb88bd495187c726491
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_0e06a13492ea35b9:
+      content_hash: 397be724200e2b46ff6a04bd672f0fb6e9b7a14cd5d78bc7f8990ab935c3baa4
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_IL12_sec_PDAC_deriv001.yaml: d2199d5f644323693a2b03d2b6e46acd19ce5d554fd9573c6d804155cea48233
+        prior_rows:
+          k_IL12_sec: 9cbd3f81d1f0c9610ccff4ee9eaddd223fda49a8b0ca5851f3d4957bb2b11d16
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_0e6e19ebf8ed8872:
+      content_hash: c421c5b2ac168367a65899074cc1c42f1a112ddc5e22b0832a7ab6bf09add5b1
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_IL2_deg_PDAC_deriv001.yaml: 9c3f78ac2a3a96f8cb82e4047e7fee81cd632ccd5cbd5b36f7ad918c46401926
+        prior_rows:
+          k_IL2_deg: 15ce15b590623820d3f74af43035a175826b6f7d21e64b9ec71073d5fadbb0b9
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_112e4c20cc44fe10:
+      content_hash: 09c0d96073b99300254003ae0992c0a4a6a2e4d95c0a39906bc1b471197c3f56
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_IL6_sec_iCAF_PDAC_deriv001.yaml: 788fcd87531f5aacc924188721fb9bacdcf4a48e57720df662cf23a3e5156ee7
+        prior_rows:
+          k_IL6_deg: 1770032e5cacbbaa7c2c76ae8c084dbfb7dcff0fc726ac67a8ad85c7d6716f36
+          k_IL6_sec_iCAF: c0c1982f7b3d4de1d30671255d787b0d551d0c1ae877c3c8f578d098cee73686
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_11d9e0e9f49b2d20:
+      content_hash: 905e864a4d7447cf46b7058de8fcee7203d2b532c680cae8575d307021b350ff
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_TGFb_Tsec_PDAC_deriv001.yaml: c50ba6391997a4f74f5592ae17a0ee3728985162532b8a17333ab9de8364b53c
+        prior_rows:
+          k_TGFb_Tsec: a959b665c694bfda4a539b9edd5fbd20c4822b8db2c16f194a869f7072d530b7
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_183d8ed05a412e69:
+      content_hash: ed918835ca4bb716f719c30e4c8a8ccc2fb0959be66230d033a40544c65b6d6a
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_CD8_basal_exh_PDAC_deriv001.yaml: fbecb22c0859ae1f6738f20a50f4dfdddc7c81321adc48fa6924b936dbafad02
+          k_CD8_death_PDAC_deriv001.yaml: e1261d75fe978e74f03d7b05be8a3383fdfa72e34ec8e182d7cae72da23f9633
+        prior_rows:
+          k_CD8_basal_exh: 5e0199639a776793319f71f61a847daf40d5ff504fd41dc930447b0fad1e05af
+          k_CD8_death: e6ad1717fbb10e98bdf5102d7851637b7024ae6a55ce0f0cab52ac16891a467f
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_1cbaf35a2eee654a:
+      content_hash: 2e28c5ab35fd517877068a304b67b5323c113451810e2a52ba4314d84b52cc8b
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          EC50_GMCSF_PDAC_deriv001.yaml: 133aa8d381e600a5689bca4af28785d3ea3a1e1d2bf954878aaade09cf581867
+        prior_rows:
+          EC50_GMCSF: 7a0d3f67201ac623389d46c02c8832b5c513afc92f59f5af5259c6d7f5dad0f7
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_268b5e2a45208123:
+      content_hash: 46f12e4f0cf46a477390ea1a149de7d2c5e63663500f21ccdde59f7c6169651b
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_APC_death_PDAC_deriv001.yaml: 5aa2c3ecc6bfd5d81b4a6077414c4c00db0deb9ea2fb6b2a600b551b4985c51f
+        prior_rows:
+          k_APC_death: 8fe930f06bcab3ad99ef6116a5cd03b9500f705b0d3357f7310d8ccf301800e2
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_3918b676041ea784:
+      content_hash: cdfe8313a21b556b3b5d6cbb7db62d55eb4fe0d569517bfafb3727142bb33406
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_myCAF_death_PDAC_deriv001.yaml: 4f16a5d2bc28e1aaa2672fbe80ca25ac1190fb54574c9ad3fc0622253a1dd052
+        prior_rows:
+          k_apCAF_death: 2fcf57bb1901a12fd8c2c4ab2b41fe50776b2530ca5d69940576f8a8ee45dfbd
+          k_iCAF_death: c40fb61d61a9141f7a369062ca88da088f6c79316fd165e35b71a6f6ef63d737
+          k_myCAF_death: 698bea6bdb240383f586d3de38a748990d697cc634948ba9fa82d36532bf8b13
+          k_qpsc_death: 96056601be591bbeac6ccdd3182f6b18629e2e0a24864a8c303442954374ea6c
+        submodel_config_slice: c5ad6c34ece01cf03d8634ce73a35bc988314fa415b3f71ede656c604383267c
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_3af67ac87b06f918:
+      content_hash: c1ee053649f6cb1650c706e287ca90cca66a1bd5fd62c3305975c9cdd7ee9733
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_vas_myCAF_sec_PDAC_deriv001.yaml: 114b0f8ff92c779fc49da33321141662e621d0af3a3d0735c48596516f5bbbf0
+        prior_rows:
+          k_vas_myCAF_sec: 66dfbcb2087f562fcad9826ae9992dcdca748ad3b297647d50573241d45f168e
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_3be3cfd10a688d19:
+      content_hash: 16228ea98c36d7a73b1be2cc73094f33272078f480a5c766ff747dab941c8357
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          TGFb_50_col_sec_PDAC_deriv001.yaml: 55b6e56686a0ff44c4416caf62e9eb6049bb7ed1b6e3859bcf1528e58d4f7d37
+        prior_rows:
+          TGFb_50_col_sec: 693979bd43e52a00eb6eb53a6d0908d35a4da0dc3266c37a81823b5e0fab442c
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_42b824e5642fc539:
+      content_hash: 3beb3294f972291c0ec193b2f2e290a05b1eb31a5322f634fb421d0923c5d387
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          n_CD8_clones_PDAC_deriv001.yaml: 2b3fb5e6e65d7f2a02d2938a0eef95e82547bf5bcc6ad1ecd8fb5a549c880bf3
+        prior_rows:
+          n_CD8_clones: 5d487cdae4e20e231ccce29ebf809b2cbd1c292f2d045d1c9d59fe15b6b77c98
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_458e9264e756529f:
+      content_hash: 939a8ef1e7257c0f109a656ad1b6ec803fecced5fa07e26560d039caf4d63f9c
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          n_CD4_clones_PDAC_deriv001.yaml: a8037386bdc49e3effbe2d41b5e28e2847e8b99340d52ec59fc0defd91be62c3
+        prior_rows:
+          n_CD4_clones: 8830cf1508532b426afd10a5f05b3aa2593d22a4f2338d14ccb6c630b0b97966
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_476426d2f461f0fe:
+      content_hash: ab37076c559f0da26493ae48856644ce657623a2c577b1ba03c7796408b9c728
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          Ve_T_PDAC_deriv001.yaml: ebf7765031b715a87276bc25278b49f32637d92e42e11c442cf355911d4175e8
+        prior_rows:
+          Ve_T: a45646d4c44d8c1537fb1cd44d7eb5f4371b0117d08b3f69ce2cbb831fc95d92
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_479e5d518ff37bc1:
+      content_hash: 1c3e2e0bede6514eff0c11bb7e4edbb021b4b6a777f6020eccb5cbeb371b5f93
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          IL1_50_PDAC_deriv001.yaml: 6c609b160929051b5dc042d9c46a2cd4383c0523281fa9008c7b4977d6a4eb88
+        prior_rows:
+          IL1_50: 15912d5f49adc0b2e18873e2eda071b1ed91709ee3bb1a2cd826b909eed5c69b
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_49b27f1261cc4c4f:
+      content_hash: 9af23f89e0d3f9624ccd6c24e8b2f9063b913667e970bee87f442dd26d630a4e
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          K_C_exh_PDAC_deriv001.yaml: 2d2a00c30bb7b5c7a6af8a44ae3136abb8fb5594a1a367ac27897ec08886352b
+        prior_rows:
+          K_C_exh: 4a37e11039cdb77da404482c5f9bfafefa3259998ca664013b1c6b308215dc65
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_4d345584ed2b8d3c:
+      content_hash: eb95dba1b6ad3ac72a18fb27b1a5c6b82d991445fcb2254824185aaf9c27b830
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_myCAF_prolif_PDAC_deriv001.yaml: 176d6d435063e9c83eaa8d1a52ee6b8b811b63041795857d9d9707d54338a8b0
+        prior_rows:
+          k_myCAF_prolif: d3b2ef038dd8444b7cc98aad42f0d6e63af71bc3847cd4dc87fba6ddbd38b41c
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_4f5b559da3484311:
+      content_hash: a7db7586d6e14a1da23346ee52bb7a281f131c42cd8c42fb72c9a756115da24f
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_Treg_CD8_exh_PDAC_deriv001.yaml: 64fac6a49e9a2a7e5af69608dbcc4d4dbe1ff229e291cc505bdfa5d718e1e27d
+        prior_rows:
+          k_Treg_CD8_exh: 8bcfeb8ca1b215032313fdfbfa01391fafac822be91e201f95427f7d8aa82ecb
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_631cf56c2356cafa:
+      content_hash: cbccaa69bf0b6c35b58946d38d80f177e65126d26758b608e7adb2ef2d6a33dd
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          N_IL2_CD8_PDAC_deriv001.yaml: e99e66a8c3bb32c175504d94ad90fdc8d164db1e2fff11c36edf218eae585f93
+        prior_rows:
+          N_IL2_CD8: 18dfa219b367471ff3720d92f726d7a8fbfd2a6b147ce3a5082041aefb9659b5
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_632193b8a8793078:
+      content_hash: 66787f045562b945cc58376b10d33b3b82bdc0d1d6a562d2096b50a91cc74e55
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          IL6_50_M2_PDAC_deriv001.yaml: 815341cdd8eff6907c8385b008557a5bbccd99d9f49e02d51273b9eaf99cd551
+          IL6_50_MDSC_PDAC_deriv001.yaml: ed2a58a279377565733fc163e8a1cf2c46e6c471878258a869eddcfcab230911
+        prior_rows:
+          IL6_50_M2: 1bcaceb7de14275aa4b0acc7005bda6181377ef13276b8e756a997afc6319284
+          IL6_50_MDSC: d17a4c6927a58dfc768ffdac8c00825a09f57db76a6b9e7d24cbcb197684fc02
+          IL6_50_iCAF: 4deefdae16e0dacf9cbc1dcffb9bc434c3e44e2538b9fb4386fbd757bd3d2e66
+        submodel_config_slice: e2e0dcd6f94350fae0613312b0ba1b16df4b2439d25660e286ce8799b9105361
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_660d69460d846e37:
+      content_hash: 7245dda3b1f4e1cbcaf638676faaac7086163a15dbe10c4cd618a14cb059ef95
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          TGFb_50_CAF_act_PDAC_deriv001.yaml: cf2392c565348768b3c894722b813a39bc85bacfa7e3e7c5eb5fcecaa79ccc07
+          k_PSC_to_apCAF_PDAC_deriv001.yaml: 81fe13a2cc987c9e3de78b49b0549433df70cf647752f18e59dd1f55ba19fbff
+          k_psc_activation_PDAC_deriv002.yaml: 3c8e2ab413fb01f35653feb381ee0cfcecf52b9506c93dfc8b0ea21729547b41
+          psc_activation_myCAF_PDAC_deriv001.yaml: c9558312375abe8a581b066937428d1db63ff564126b2d667aba12b11c3377b2
+        prior_rows:
+          TGFb_50_CAF_act: 6c5e321e39e1ea5a8f350705f6700fb78917d605a748ff1012c41c24cb03a525
+          k_PSC_to_apCAF: c58dd4e6c0da28fb3161dc92290d87796ce74f4a2af523d8dcf27b761b821095
+          k_PSC_to_iCAF: 1bf415217f91242a4211f5e65bf64cd7ae0edfcafa4f2cf735f01379d5bfdcc3
+          k_PSC_to_myCAF: 1459512892dbfd254e7ac9a2615fa4add1e184dfdf039cc9b85b4ff55c36b095
+          k_myCAF_prolif: d3b2ef038dd8444b7cc98aad42f0d6e63af71bc3847cd4dc87fba6ddbd38b41c
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_6737184644a1db03:
+      content_hash: 5123f7e4ace277a12809492dfdb32ea046458af7116836c059581a2cc6b4fa8a
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_TGFb_Th_exh_TGFb_50_Th_exh_PDAC_deriv001.yaml: 
+            1630cf4b0d764d02f889addbc7e754fadfd9314f573359e7424ddd4a7352511a
+        prior_rows:
+          TGFb_50_Th_exh: b4a08c1e1c5a0b6cf79729ce5a3c6e8c7cd40e9188dcc763e89869543a90af26
+          k_TGFb_Th_exh: b2b2f2eb32c49b4f83eb8f3b25ed634ed2bdab0b54e79537a0d5fe1941f26b27
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_690ca4c42afd950d:
+      content_hash: 946ee60110f98a138b40ab0b0ef5ae3a878d1f915dec8559051ff9b39a4a72b7
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_vas_decay_PDAC_deriv001.yaml: c435e569be1e5f37ba61ac152a5c22f7d44d1fc73ab36423d1d39eea79e21a05
+        prior_rows:
+          k_vas_decay: aa578bd39a0e23a76f59f9f68d9de64542df0ee4a33491963f24bf20b0c73ca6
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_6ad1171dc9a723ba:
+      content_hash: f143479aae815615e4bdee144ce0ed8086d2193dc4d0b4785436295a531ab0de
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_vas_growth_PDAC_deriv001.yaml: 688e344093ecf5d6f97702496e2ec8b2ef469e1c885055731f54359b6a75c605
+        prior_rows:
+          k_vas_growth: 418b66e6242320703368d499b3ff6bcf728ddba02aa60c0aa18ce9715f642e44
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_6baaf27b883c839b:
+      content_hash: 762fcb3fd8d3a0859c79348e8049b1125af51b24f86762df312f188345a84f84
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_IFNg_Tsec_PDAC_deriv001.yaml: 1662a0d9905cedd6c046458346f052e4002307e2125b6b810d153295611a0cd8
+        prior_rows:
+          k_IFNg_Tsec: d01c3846ff4a3f6949124ea37f8af6998978d1646bd0a44a7f456f8c6a78ce92
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_6c4b064e9c7784f0:
+      content_hash: a89907235348c3af7a2c32bc9f480d5eadbb4817b256bdbcc62fb1bc67c4485a
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_IL2_cons_PDAC_deriv001.yaml: fd0b1fc3a9feaa8ae3eed0830393f5e756e297fe5881d58b58847226a8a02b04
+        prior_rows:
+          IL2_50_Treg: ecf752efc87a5b8a854d14825ddfc6c7b4af4016d36f4e5db1ab8ed7bf532b62
+          k_IL2_cons: c60e45561d6f7ee3671aec1fb91e6bad7eb5bcb60b29f443eaf1105cfeef0560
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_729a062fccb844c5:
+      content_hash: 10597008a77716c2649ea99cccffc2319043d0ade5426b04b8fbcf81a9441236
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_Treg_death_PDAC_deriv001.yaml: 0048dc8e41eb71932b8a474d71d1607cbf260adcd641f9204161ec1f8d3c5b61
+          k_nCD8_death_PDAC_deriv001.yaml: 08075453bb81d0d9ef92b3f5d8600368e93d648324103cf174f2e70e353bc522
+          k_nTreg_death_PDAC_deriv001.yaml: 303ab2a063d005d82b5af8b969c4e6e28d5d06de7d498ec87fbe28275146cd23
+        prior_rows:
+          k_Treg_death: 15813097212f080753d9e80574122020a47d04f528d63e3e17dee9a008b0fc5d
+          k_nCD8_death: 1bcd303a926c48c0bdd31ad2498b5c45ef64ddb3a9cb5b31f8902cea4dc791c3
+          k_nTreg_death: f57950cd9eac0d2e028601723b1568236c7d0df5841f5ab76a0d48a2f40ab38a
+        submodel_config_slice: 2e6f409d16f7dcc10f25777d9fe6db9294b72c4fb09ee143ae8bcad7d6f4bc4e
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_7e12bc4b27c060b8:
+      content_hash: f7ce22c77d98016b0157e30842d50cbb2d8dc4e9a00c94f96c0a086cc683dc02
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_apCAF_prolif_PDAC_deriv001.yaml: 743aac292deb1409703c361120bdbc844e8d204a0db4c6f2be693bfd093bf50a
+        prior_rows:
+          k_apCAF_prolif: 2cae4fc4b6cc735a963dd10a2b36cae720b519f99146df637c34646f44284656
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_7e5357a777c5d5b0:
+      content_hash: 6cf0cddc3c00626df173352aee43e0406e1236c7a237a1373f8ab445ad5ccf06
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          TGFb_50_APC_PDAC_deriv001.yaml: 62b31a904780a405c9528edf4ee8c378bed0ee701112a4a7bcff8d09db1ad24d
+          TGFb_50_PDAC_deriv001.yaml: 0c990591819eccef7a3593be2fbd43edd1ef3d8d6e185b96bf53b796a1b005db
+          TGFb_50_Teff_PDAC_deriv001.yaml: 091216e220fdf7b50d5975a1ef17adf9ba6fa722ef6c0c8c334a3be398ffb905
+        prior_rows:
+          TGFb_50: 915d7eb6692b0e0e15de1ca80d55416f60c9721ca96ab48f7334f94c6f4b9f50
+          TGFb_50_APC: 02b50d0ec1d5c649b81702374a2748733731739ee2f335c76ab420e7e2eae1a5
+          TGFb_50_Teff: f1d820a7a4d5f13286109f1300246d645577222023a567700bdb3b805a9d50bf
+        submodel_config_slice: be9774862cf6d5976eb5a622abfffa49db2c7620223442b0e7bddef08a53517a
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_7e6e340609988a0d:
+      content_hash: e7c7920b07e552ce78a57ca8cc6f5affb729396827fc47b82c7775856ae2b608
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          CXCL12_50_Texcl_PDAC_deriv001.yaml: e1079e86980982bce142ac52e50bf13f0c7e8e4b7973c5f2fcf74452f3147cc4
+        prior_rows:
+          CXCL12_50_Texcl: 15ee9d3d0efad3e896c5b9a8da326d82aa69402ad3486e612d2ddd27d98e886f
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_7e9e6f54c1219884:
+      content_hash: e24d9281249fcbe871e040b95dd98c9e8e66339dda8cbe93c6dd3a5520bd8083
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_APC_mat_cDC1_PDAC_deriv001.yaml: b9fe43320baf8796d3dff1a505f4612becb78956939f1da9d7a3b7f1969efc62
+        prior_rows:
+          k_APC_mat_cDC1: ad7f007d2c2c1f8eb440b9d48557a678c9427e734cfcbc1a3adcdf4e7e3bc55d
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_87a539f953d497c6:
+      content_hash: a94cdc88ce32d8d0a06f085f814666599a19aec7a4463746835460a10e21e151
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_T_activation_per_APC_PDAC_deriv001.yaml: 77ac8d7eb7c05c53ce2470a225ca6ae4a8603e2d44e3b6a6828dd6bcf890ecc0
+        prior_rows:
+          k_T_activation_per_APC: b883d0ab24ea8b8bccbb6df062c7aafaf9e5f5dadfdd0dbb6a2eb132d1b5219c
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_88d22b0165be22ff:
+      content_hash: a6531980ce43655c2f51898bf17a32788ccb362d8bb6995119162b768a78ccd5
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          q_nCD8_P_out_PDAC_deriv001.yaml: 771fd88be0ea1117d843602e3385cbafae25915b2beb816997ab410dfa947c79
+        prior_rows:
+          q_nCD8_P_out: e903b4b075031858d0b5e6b632acdccd37d6513a62bc2babc00707460abb42ee
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_92e3b15fea8ca7ee:
+      content_hash: 57c6bc091a05b4ee3f69eaf00f7ffc1855f74093763c77392af29b5e47de4305
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_IL2_sec_PDAC_deriv001.yaml: ab855357b173bd0b5877b3591918a88fc786d0446c296e46721a3a56d7ec3f43
+        prior_rows:
+          k_IL2_sec: 9087db17fad53ceed4d11b2f6abdcfd5bff53769b0ecb5a8d43b1a41c09ae677
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_9cc0c210716a9ddf:
+      content_hash: bc22cbdae8f70d264db033a228927590b5b1a3f389f70687c4d05b505f096ecd
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          CD28_CD8X_50_PDAC_deriv001.yaml: d1176639d59fa66760662b3f99408a1588a78c9e2c3190980a1af11e1c1a0603
+        prior_rows:
+          CD28_CD8X_50: bfa6021ee572ec576f557c62ed81145b4afecc29991e1698c913050fb83ea7bc
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_9d1335337ea502ad:
+      content_hash: ef45aed7a4f42bfc5a864294a126f86f1d4ce4063e9c3ddbcfbcbf9e3e0260c4
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_CD8_exh_death_PDAC_deriv001.yaml: e7ffd45c7b212a03c9ad09ef099175734c766ca501aa142113fc584e004023de
+        prior_rows:
+          k_CD8_exh_death: 27eae0efa8c273f18a4baf88c5f785699e01a03841deef6ec35363cfd43ed1ca
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_9eaf7c8e841d6ddf:
+      content_hash: 0255779be8bc4632d1d5855ea4c224976baba7d7fc80c7faa8afff07a5957ca9
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_IL1_sec_PDAC_deriv001.yaml: d1bc8aca4cf9621cd9107a4cc350e6c6ddd78efb14dcde8a4da3bd3d9cd207b2
+        prior_rows:
+          k_IL1_deg: 9e90301c3cd9d09a63be5051addd43d1fd6d084b43dd870db94c8e16a2423e90
+          k_IL1_sec: 43d26c489545adc1496bc2ca2f7ffa86a96fab48afff747c7c1f4da3455d8f46
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_9f0dbd5660ec5e62:
+      content_hash: a6cc71233efc83bc64f6a69b38e7a6ab0fa79c73b054eac58d6a5eb01aceb613
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_CAF_encounter_PDAC_deriv001.yaml: 8cdff14474f76cae8c8000b04daa43556d0f4d7c9befda5cde98d26ad6f9b6b0
+        prior_rows:
+          k_CAF_const: 33fd6bf524b18be4d30c3d80d7df58818cc45c039a1f96a1f41cc83936274108
+          k_CAF_encounter: ee69766c87523200d8bb05bcbd8745e23ac4c2423723b24e4980f213e97683f4
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_a016656e20ed2340:
+      content_hash: 8f246fc4eee69196559c01e85739cf39a0cff2be92fb2f8530d1b9201e44fdb7
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_Th_to_Treg_PDAC_deriv001.yaml: 7c10743a48cd8953aee9626d61e49af06852ee7c6078b1440b64254a6237a6be
+        prior_rows:
+          k_Th_to_Treg: be8f80607f603d22e95f23ba5a37e9572c59ec3aa4e4bf728074225b55de960c
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_a3fe163ece038a0a:
+      content_hash: d6466e33e4b2cf6678175c51c5d3ed3136a70564afdbdbf85d9636331e0716c9
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_MMP_M2_PDAC_deriv001.yaml: 2e622d6ec1ae598632c4a826bfb68a7ceade8db9fc741aff18e6d7225ba45ae9
+          k_col_deg_PDAC_deriv001.yaml: 2bb2b8e0c70e8521faf6b3922e9db345b26a8a754399060d6712cd091bfb5ca7
+        prior_rows:
+          k_MMP_M2: fd8d2b3a8f372f18fae93ef10bc2d88cbda226fda66eb23da2e83ad16ee7e9f0
+          k_col_deg: 6ef26fd67e626455ce2b6c20128ff2ebef6da7d572606fda531cc7808d4e36a6
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_a497401d6ca8fddb:
+      content_hash: fe3f31216bc8d02fb79191138c78f3a80aba1d974c22c1de1a406de24910aacd
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_TGFb_sec_myCAF_PDAC_deriv001.yaml: b675c91b0b93a86bf8a9d698a58d091365723e65edd48304a369bb3fa075fa07
+        prior_rows:
+          k_TGFb_sec_myCAF: 0cf1ed7292592f193123300710f42fe5189998f5f85b65c303c6556c10a76393
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_a6c9cff27feaa43a:
+      content_hash: eeff71948232ad6b5b542571f568ec1501cc0762a4296de539a24df30253b56f
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          rho_CD8_max_PDAC_deriv001.yaml: 7319e92f2cd946cf00eceef3befd35e749c463d6431b72d5f5227064e89bbec3
+        prior_rows:
+          rho_CD8_max: fba6bdc91a2625d5f98b2ba4938a0b171f7aac2e8d58ebff608d1e239927c99e
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_a810174bc8f4e103:
+      content_hash: 7b2dfbc7beb049d9cef7d882df8768c6b6ac86a1ad67cd1896308170dd08eee6
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_C1_growth_PDAC_deriv001.yaml: 507934f3bfa698215260a7bd17004a43872ccf7ebeafa65d6e2486ff7da3fd28
+          k_C1_growth_PDAC_deriv002.yaml: 0e249f1574c4f9a04cb3512a02c80eab7bdf47f685f4faaf2beb40f32daec545
+          k_C1_growth_intrinsic_PDAC_deriv001.yaml: 51fe0f71a6573d6da675fd34f461a96f689a1be0ca6d3ee9d2c720e41b17ef97
+        prior_rows:
+          k_C1_growth: 516c2d7ebfc5de3d864e0d33c67edf94497ea7d63e850a1735827d6f9ccf88b1
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_a91e1622dadfccc7:
+      content_hash: f7f6ed38e8a9756e650987cdfbc230a164a0a1939b19163823a4b0059471a972
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_cell_clear_PDAC_deriv001.yaml: c36d4a66fb86b6019128e8a39b1a267c7373946043f35584b447bb6fb9fb62c0
+        prior_rows:
+          k_cell_clear: 21bb60eded87caa29ffaf6058f8673139b9a338ba56c3e9b7c6a0ddccf5c884f
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_ab95bb2c5e4a19fd:
+      content_hash: 07eba4d049e2b4bb22cb6ee3c399d76c762855edfe6f49f6f0dfa056a88a89b5
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          IL1_50_CXCL8_PDAC_deriv001.yaml: b1df1b53efb72e20bd51f936b130fcffa9727a14170e010fd49ddb83b19779d4
+          IL1_50_IL6_PDAC_deriv001.yaml: 7f2b07b223d9cb77d61bf76935106cfa08f74c37a9418d106b3aaf72fa95e6c2
+        prior_rows:
+          IL1_50: 15912d5f49adc0b2e18873e2eda071b1ed91709ee3bb1a2cd826b909eed5c69b
+          n_IL1: 6c725a6b3fb35447750a8f6281d5626b518cbca0a99674dd7df46bc779c86ae3
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_ace7b497599dc2ee:
+      content_hash: 421b1b1a52500f0c9c53b0c52dd92fa091e1180b1c3dd562765f1daf4636efe1
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          IL12_50_PDAC_deriv001.yaml: 970e4f479f6cbc9a4a9883aa161b32173ad8da1eccd1257b5da7460222f8ab3d
+        prior_rows:
+          IL12_50: 81e35e160ea6346b6aaf4b4601a4d7afd842c9878d5fcd45a45a35da9a49b8ab
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_aeb62f8d22a649b4:
+      content_hash: 7194a57dbbdde93e8b936e69b97e7cce6ef701001ae731ed881012681d89422c
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_Th_pro_tumor_PDAC_deriv001.yaml: cc973c79a07a86bb44a9da673791aaa23ffc836155adf8c154f3bfe4ac3353a5
+        prior_rows:
+          k_Th_pro_tumor: a2f01bbf2c5b1703a51b6a9bc36bb1f44620e42ee79dcbe79fd020187cd2f1ff
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_b3ca409d902ea51c:
+      content_hash: 5d78583b469d49bfb0ab8c4c8174bbcf1eb9a1c7a485ab2c87e9f5dfbdb4e601
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          caf_interconversion_PDAC_deriv001.yaml: 4c72ab29e6c1577a3b1c584c1c76e57decd9f55658ebdbb4f6f6d6d667506776
+        prior_rows:
+          IL1_50: 15912d5f49adc0b2e18873e2eda071b1ed91709ee3bb1a2cd826b909eed5c69b
+          TGFb_50_CAF_act: 6c5e321e39e1ea5a8f350705f6700fb78917d605a748ff1012c41c24cb03a525
+          TGFb_50_IL1R1: 6eee72c253091e2ca201dd527c3e79f6a03e08da4670141c87e56cf5c11f9537
+          k_iCAF_prolif: c2afcc2be8cbb9796261695fc1e1dda305b6b473b4f1499e6b16c1f0b66ada53
+          k_iCAF_to_myCAF: a68e3aeacb0ab84cb4783f8a659a1d9de521642253ab3ed616bd846d99550a7a
+          k_myCAF_prolif: d3b2ef038dd8444b7cc98aad42f0d6e63af71bc3847cd4dc87fba6ddbd38b41c
+          k_myCAF_to_iCAF: 4122ae263a3812b0fa4452ca5da6e60a19795b0882a180549d0c445f21387391
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_b8c5b8a8d0659d39:
+      content_hash: 248810dfe24e3e73334a7ba6c89ecebe3f312893ce252f46d57e409edbab2698
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_CXCL12_sec_cancer_PDAC_deriv001.yaml: 8e48169c02b0e5dfb65136d1318d7f02d21b129a0baed8d6a7583008af585be2
+          k_CXCL12_sec_iCAF_PDAC_deriv001.yaml: 68f7a99943edd14a9773086674599befb74f6939a4121df4d86d5a6319b453bd
+          k_CXCL12_sec_iCAF_PDAC_deriv002.yaml: c2c6c8989cc214160d1f50698c64a35ce4d5abb38f2f41a99cfd5b28dcb82ee6
+        prior_rows:
+          k_CXCL12_deg: efa08bb694a9250a4c8f1b0b7842bd3f4aed6145827745053370c9405204b043
+          k_CXCL12_sec_cancer: 8b67fbbd537aa831c38e162ac5221d2c87bc453a575f868ad399f5912c906400
+          k_CXCL12_sec_iCAF: 3a71d54aaf056f6271a08a9d3d4b99af69d005b0eb187c4e9d5cb330b0344339
+        submodel_config_slice: 0928834dc382b4c61a001dcf2e01db4c0a8f3c8ac34158ea16f01770ec9f923b
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_bfb43a0410c0c29f:
+      content_hash: 8d7c598c167755f0aff26766fc65e1daeb1366424a05f82d7a6fcec56ef82c2e
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          K_M1_phago_PDAC_deriv001.yaml: b139a870c29bc506127b372ecd62a7d350cd49d190dac7193496156a8718c508
+        prior_rows:
+          K_M1_phago: 77f60387ac1f1490cb8c3de052de99a78257cfc76c69cb0c217857bf66aaf080
+          k_M1_phago: 0520598eff7c77a97fb44e6735cf5a77671a06890c4c80339d22f13509985c60
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_c0a34a027e99e16c:
+      content_hash: 3beafb7214a4e78f6ba871b1a0e4798e98ec297c74fe08f34f0af5ab6d150780
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_Treg_pro_tumor_PDAC_deriv001.yaml: 7668c404cb0c74add1bc3e7b978fbdcaf7269cf3b9bedd7af42c095f95f37695
+        prior_rows:
+          k_Treg_pro_tumor: ea0a40459fd5f5d18772f4670bcfcb5123a9a029cdf74ee99420cdb6f02a7ae4
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_c468fbc29dbd0719:
+      content_hash: accab5afab45b94c7ae62311d80838079a0fd46308e898000bb32af64cfe6f56
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          p1_50_PDAC_deriv001.yaml: 93782640d20ce6f5c5192d03a5ad0db5424f97a678d3402c0a39ea67d5c6015d
+        prior_rows:
+          p1_50: 4f56308e89b075b223e38aff6ab7b77f9acc368320118166e315a3b869031c47
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_cd1a51c8f2932b41:
+      content_hash: 3aaf9b9d6091db4a302a2562ecc00f6f2e99a58d41ba8939e23b33a784842ab8
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          E_50_fib_PDAC_deriv001.yaml: cb2720a99879db9ea11beb642a6b8933984edbf2596972b7bce9daa7fda4d3d2
+        prior_rows:
+          E_50_fib: f626e254cf3ea9d5b356f6910bc52005ed695757a24756c47355be0976fb07d3
+          n_fib: 015798d1a50778a7b30de53ef3ea56b0e4e3079f8e2ccd13f35080b867f939f9
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_cd24c8beab1b0352:
+      content_hash: d29b76cd9235f4f5f4515fbec9c0e89bbc6b2baa9d26dd221b81c5a7b338ee3e
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_Th_basal_exh_PDAC_deriv001.yaml: 239633cb618eeee1b63e9297f36626b0184eecde7d1853894d94edc1df03d91c
+        prior_rows:
+          k_Th_basal_exh: af77b09f6112e979d373ced1580e96a8f4c4d1ff35b220955e543294ad1d4b69
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_cd5857cc904dc046:
+      content_hash: 9508372390fce684330c61d02b9ab504966a054b78cf6239625242f2e8fcb902
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          f_IL6_iCAF_PDAC_deriv001.yaml: 480a6e007c0ab46aea1cc3681e38956db38c10db42ffae9544a66cd4f734f3ab
+        prior_rows:
+          f_IL6_iCAF: 5ac55793c5cd225c936d771f4b6073b275357fd5ab600b118f79a69d54e09ea6
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_cfd1a32a3568f8fb:
+      content_hash: b8d5eaf46a0ca047886bfc141b4be9309435cdfb89398adf36220e2896f87b2f
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_stiff_CD8_exh_PDAC_deriv001.yaml: 2a8ea07fd2f9624e431b2de3a6b7d4b69e2a286f5f274634aad9d6bc8f1c4484
+        prior_rows:
+          k_stiff_CD8_exh: a80a4ceafd783aaf67189faa3f6807a0b49fc21b0037b78902589f76698c79c1
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_d20acc70ea768360:
+      content_hash: f844078f8e8ecb85677bef9b06a5205209dbb3215ad4bfe0f81b0219507c04c5
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_CCL2_sec_PDAC_deriv001.yaml: 1555c9847471195a7b03f729199d310258b371f1e30404c1553a404eb6aa5920
+        prior_rows:
+          k_CCL2_sec: 05c1895e1c076284e149820aafa4b4c07bf9febe8e3f711c1bc52638cd8e7072
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_d28d6af3b81ede7e:
+      content_hash: a0c8b435a41aafb1a05db7cbaaa08ab12bf2a3c4440155010722c4524a4e770d
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          VEGF_50_PDAC_deriv001.yaml: 89806cd94a150b58435b57c8c964b821fb875781622918a4f7fa8dbaa2376c2c
+        prior_rows:
+          VEGF_50: 17f65c223fe65aee2b044f56f240dde063ed517033ec4c63c09873336767e645
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_d3cd0a415b1fce33:
+      content_hash: 8530472085b2d3b0ff3b606b76efa1ad22cee30257163c3f1ed8434b03f07571
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_myCAF_to_iCAF_PDAC_deriv001.yaml: c3879f84625b92f5832053c76ff5a7b6a4aaea13ac2243b76954e968a2c93adf
+        prior_rows:
+          k_iCAF_to_myCAF: a68e3aeacb0ab84cb4783f8a659a1d9de521642253ab3ed616bd846d99550a7a
+          k_myCAF_to_iCAF: 4122ae263a3812b0fa4452ca5da6e60a19795b0882a180549d0c445f21387391
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_d5d54252d4c91086:
+      content_hash: a6bc201fcc2dbe4b61608eb1339b480d84802e9b2be3746918d55d611a60d5a2
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          q_Treg_T_in_PDAC_deriv001.yaml: 13a075c179b2378ee082db1feee1f701cc28685d66c9a52122cc8dde2499126d
+        prior_rows:
+          q_Treg_T_in: abd82bef3dd0640bba79b6022d35ad6659583c64bfe2865b5a6d424f793cfe36
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_d7c5099c73f3d260:
+      content_hash: 3711a705f1e998917eafc4d2629dd79251e8745968d62a7d1d6dec7f76fd655d
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          f_stroma_max_ogawa2021_PDAC_deriv001.yaml: 1dd5cb16f9e29e5d580c8f397b85fedd9785655cc71f8424a3f1b08ac46c9fea
+        prior_rows:
+          f_stroma_max: c3263099cabaa6c734e1ccd9f43edccbe2d442b71b9de6b6db36c5a58f3404ea
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_dafcf3d1307a5001:
+      content_hash: 83e10de26b3b3820961f0d8661ed99b25b606c3db02ce6e57787da1a959a9ed1
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          q_nCD8_LN_in_PDAC_deriv001.yaml: 09053cf1ad13c48d59a04266bf89f25a2aa7507b4a98c23b154bc56afadc7129
+        prior_rows:
+          q_nCD8_LN_in: 65f76d5752c143574ff8b845f8bbbb3392d0c9e3729de3fc93f3f23eca1e41d7
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_dcf734b04d304c4f:
+      content_hash: 7401af7c17bd8229c3eea5531340f17657dbed1fdc784504172e239c5e0c2fe6
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          rho_Treg_max_PDAC_deriv001.yaml: 1f93bb573b4ec81b48a1eb50353b2189779232bbae215e57acdc9b3def5cd5f3
+        prior_rows:
+          rho_Treg_max: 900107caaad66fe92f6376721eff973bc131dee76713f277c9ef73ade1614bee
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_e41538195f3b7ce8:
+      content_hash: 1431fcd88e9a63852da4ad3f6dd42c347a30dc8513dcc0df5b26006266dd324b
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_stroma_support_PDAC_deriv001.yaml: 6d7c56896947a10b0fdafd70662460ff0b98e6b0e4ebcf0c963843a9a63ad929
+          k_stroma_support_hwang2008_PDAC_deriv001.yaml: 
+            450dc422815f1f30f5b2fcea0fcd29783a1ba4a3dcf0c30a82f01d89ff0616f3
+        prior_rows:
+          k_stroma_support: b4cfdfd6ab3ae08f37a5beccfa06cb163b19bea10110aeec243b7eafe166e172
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_e44cf3ab8df4651e:
+      content_hash: a47070b71d8908c6d3ecc9e015b994f510022720b1fbf9a0364eeb6f7f9341d2
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          caf_prolif_rates_PDAC_deriv001.yaml: a841a9b6ebc69f2d19a235545b9982d786eac534602a6806417b18a4812568e7
+        prior_rows:
+          k_iCAF_prolif: c2afcc2be8cbb9796261695fc1e1dda305b6b473b4f1499e6b16c1f0b66ada53
+          k_myCAF_prolif: d3b2ef038dd8444b7cc98aad42f0d6e63af71bc3847cd4dc87fba6ddbd38b41c
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_efabbf8d4168f11a:
+      content_hash: a269e2556bbfa5b6241bb009bb8165534689cc1b0d9d075d31a46f4de4274803
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          IL2_50_PDAC_deriv001.yaml: 678b6bb455e33aeb683dd625c257a3612deadc237e599a0d5a83d882c978615d
+        prior_rows:
+          IL2_50: 8ee15900810e9e4cda4e5fe612ea4a9ac8fd80528fd3af7e933d9f1c460ba9c6
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_f11dd76dc076f3fe:
+      content_hash: ce2c95a8b9335147ff5c9f0e0453b8b44cbb0ca13588b9534b10c13cee172953
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_vas_Csec_PDAC_deriv001.yaml: 4594aff59ba56ed51a732042a02445dbb32dca283261cc75400eb5067308fbf0
+        prior_rows:
+          k_vas_Csec: 74b8ad6b6f5d09ea02c98e404d77887428f19973d19966540db90e41f148831d
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_f11e4e4a4fa5fca7:
+      content_hash: eb3fbc186157d4973b6b8487bb8abe742af0801eb3b45c3f3ad748a5bf6971b3
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          phi_col_50_Kmax_PDAC_deriv001.yaml: f3250e1b957f8ca18b0e7594eba15c6557261e4097a22799518d8845351fb094
+        prior_rows:
+          phi_col_50_Kmax: 054d3a5f44d0327fcb76423cfefbeda15f0f7357b0ac67140ccbbbf1406d221e
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_f648d49c0f0655fa:
+      content_hash: 2463d79f8e75ab78f4810bb8caa1a9b8749d3de640497cccd592876fc66265cd
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          n_T_expansion_burst_PDAC_deriv001.yaml: ca6fb886ca35898fb5083f149b7a2a1477ffa2672ad84c4318785101246c799c
+        prior_rows:
+          k_CD8_pro: c5b9e2aa8a6f2389677caba0ee892c95cfa40c73507628744f09fbcbd361e73f
+          n_T_expansion_burst: 1c721ea8547b7533b56b91304032b53291c38005034b97658a8d17940a93c34e
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_f65f2bb98dc47450:
+      content_hash: a569de2488fa71ce6884722bba9660e8420c9bec16058af56380c39d007bde53
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          E_ref_PDAC_deriv001.yaml: bdf521b7ec3c9788df39175eb5917ca356868c3c796ff4008d83d7df41ca9a67
+          d_pore_ref_phi_col_ref_PDAC_deriv001.yaml: fa0b3950b39491e832e715a233e332619c346e0fd8448623e7196fc14c785136
+          phi_col_ref_grizzi2019_PDAC_deriv001.yaml: 27bc87497f32fb35b86ccdbb6cdd7a0ff3ebe3985797c8fbb8f13e962990f311
+          rho_collagen_valderrama1991_PDAC_deriv001.yaml: 
+            c01b1c44df816787008ce06c4762cd936f4728d3f652000045bda6b5f7fceef3
+          stiffness_collagen_power_law_PDAC_deriv001.yaml: 
+            4a25e108d9b7c1f810a95171b5076b45b95e9713447dc8519bd46c4c73ee7516
+        prior_rows:
+          E_ref: 8c894f7464fedc05e07af477a0d3a37b853ea76de3fc24de5b8c48540fdb7c9f
+          d_pore_ref: c2596c6450f55fc5f6dde73bc24a89899e46f47aafd40ca4b4e3c161bfe662f1
+          n_stiff: f7c8f9f022c3e1baf3493c88c4ef694d40020f692c898ab9a14598709f23a792
+          phi_col_ref: 282a78e0f45df8c9a3b41ec2b2714b1d665b6b80e590044e0d05dbbe5de3f716
+          rho_collagen: 970802c07bb269c001ab216a743265d0038a9cf48e8f4f553f78e5165dbcdcfb
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_f7411ffea4e03e6f:
+      content_hash: f396e8c2303fc23449a514146beaa18d313cd85060d6fe77eaaf3a6667eeeb80
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_APC_mature_ID_PDAC_deriv001.yaml: 778ce8364c1ec08a3fac0161154b7521b78b27b851265dde1a84f66fc7a80c3c
+        prior_rows:
+          k_APC_mature_ID: f71c8e4243efe2c765042e119fe58941435610e6532b4ad08ad90fea00a56ee2
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_fc451f291aaa4b8b:
+      content_hash: f6d66ba55cb50b68d3a6bfb26e7314223b052f8ad2198b18110ffa31aa94d36e
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          rho_Th_max_PDAC_deriv001.yaml: 0481678a6bff0e8497a89d71a5f2ff63f312fb8434322942a0902375a5771d6f
+        prior_rows:
+          rho_Th_max: a236c3c098f27e4aa44993165a2e6a4fe1fea9aafb06ed4039e8d95cf73c63ea
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_fe439970e4a893c2:
+      content_hash: 04dc372ae301045ca683470b6a1360caaf03192cb0437724d267977417b8a4ef
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          E_50_Texh_IFNg_PDAC_deriv001.yaml: 3b0e87192fef91e29aff0556bab1444ebf1461772c55bb426d3afa5f340d5dab
+          E_50_Texh_TNFa_PDAC_deriv001.yaml: 87ce0cf386d0a4a3ceb256789ab53c6750135aeb12859d513783230d53e1be40
+        prior_rows:
+          E_50_Texh: 12db405f4f1cc19ab9558c17dcbedb89ca12ded578a788deae432395536d5432
+          n_Texh: c13503e44c91929a12ff37eab6627b181c87c2dec5abf5b214dc764cd7ef0cad
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+    comp_ffba82d1dc6d2798:
+      content_hash: 3d816a0061ae2fbf9793a64fb299194eec2266d4c579c8c4fe6acd554d01e16a
+      inputs:
+        qsp_inference_version: 0.1.0
+        target_yamls:
+          k_APC_mig_PDAC_deriv001.yaml: ee629409482749ac02189d20c4f77bbd836723b489dede080ea735b62cfcdbf9
+          k_mAPC_death_PDAC_deriv001.yaml: ca3405b649f8902326e0066d138ee797f186880759d1d869b670c033a133e67a
+        prior_rows:
+          k_APC_mig: a460ff9881ef16901503547a66740778cdc635788251c30b393641a8cbb30d7d
+          k_mAPC_death: 49680ace14bca6996dd7372842c66d942d26f32b59dac83d40943168ba5ab755
+        submodel_config_slice: empty
+        reference_values: eb20506fbd0c5ffe92f389e064e1aa90000e46edc700d9c058d69ba325f8640a
+parameters:
+- name: ArgI_50_Treg
+  marginal:
+    distribution: lognormal
+    mu: -1.013859
+    sigma: 0.99883
+    median: 0.362816
+    cv: 1.308409
+  source_targets:
+  - ArgI_50_Treg
+- name: CD28_CD8X_50
+  marginal:
+    distribution: lognormal
+    mu: 5.077573
+    sigma: 0.692672
+    median: 160.384391
+    cv: 0.784692
+  source_targets:
+  - CD28_CD8X_50
+- name: CXCL12_50_Texcl
+  marginal:
+    distribution: lognormal
+    mu: 1.823001
+    sigma: 0.628266
+    median: 6.190407
+    cv: 0.695676
+  source_targets:
+  - CXCL12_50_Texcl_PDAC_deriv001
+- name: EC50_GMCSF
+  marginal:
+    distribution: lognormal
+    mu: -5.820503
+    sigma: 0.593684
+    median: 0.002966
+    cv: 0.650049
+  source_targets:
+  - EC50_GMCSF_guthridge2006
+- name: E_50_Texh
+  marginal:
+    distribution: lognormal
+    mu: 1.167022
+    sigma: 0.773493
+    median: 3.212413
+    cv: 0.904991
+  source_targets:
+  - E_50_Texh_IFNg_saitakis2017
+  - E_50_Texh_TNFa_saitakis2017
+- name: E_50_fib
+  marginal:
+    distribution: lognormal
+    mu: 1.811826
+    sigma: 0.670132
+    median: 6.121614
+    cv: 0.752904
+  source_targets:
+  - E_50_fib_YAP_chang2025
+- name: E_ref
+  marginal:
+    distribution: lognormal
+    mu: -0.379166
+    sigma: 0.234019
+    median: 0.684432
+    cv: 0.23726
+  source_targets:
+  - E_ref_normal_pancreas_rubiano2018
+  - stiffness_collagen_power_law_rubiano2018
+- name: IL10_50
+  marginal:
+    distribution: lognormal
+    mu: 1.976594
+    sigma: 0.537671
+    median: 7.218118
+    cv: 0.578975
+  source_targets:
+  - IL10_50
+- name: IL12_50
+  marginal:
+    distribution: lognormal
+    mu: 2.663099
+    sigma: 0.702936
+    median: 14.340663
+    cv: 0.799408
+  source_targets:
+  - IL12_50
+- name: IL1_50
+  marginal:
+    distribution: lognormal
+    mu: -3.475924
+    sigma: 1.072966
+    median: 0.030933
+    cv: 1.470428
+  source_targets:
+  - IL1_50_CXCL8_ciminieri2023
+  - IL1_50_IL6_ciminieri2023
+  - IL1_50
+  - caf_interconversion_biffi2019
+- name: IL2_50
+  marginal:
+    distribution: lognormal
+    mu: -1.193531
+    sigma: 0.324
+    median: 0.303149
+    cv: 0.332692
+  source_targets:
+  - il2_50_dejong1998
+- name: IL2_50_Treg
+  marginal:
+    distribution: lognormal
+    mu: -4.237967
+    sigma: 0.477789
+    median: 0.014437
+    cv: 0.5064
+  source_targets:
+  - k_IL2_cons
+- name: IL6_50_M2
+  marginal:
+    distribution: lognormal
+    mu: -4.165487
+    sigma: 0.803248
+    median: 0.015522
+    cv: 0.952042
+  source_targets:
+  - IL6_50_M2_fernando2014
+  group: IL6_EC50s
+- name: IL6_50_MDSC
+  marginal:
+    distribution: lognormal
+    mu: -4.164033
+    sigma: 0.810554
+    median: 0.015545
+    cv: 0.963842
+  source_targets:
+  - IL6_50_MDSC
+  group: IL6_EC50s
+- name: K_C_exh
+  marginal:
+    distribution: lognormal
+    mu: 18.361101
+    sigma: 1.016355
+    median: 94216012.036549
+    cv: 1.345147
+  source_targets:
+  - K_C_exh
+- name: K_M1_phago
+  marginal:
+    distribution: lognormal
+    mu: 0.425731
+    sigma: 0.813691
+    median: 1.530708
+    cv: 0.96894
+  source_targets:
+  - K_M1_phago
+- name: N_IL2_CD8
+  marginal:
+    distribution: normal
+    mu: 5.933638
+    sigma: 0.944416
+    median: 5.933638
+    cv: 0.159163
+  source_targets:
+  - N_IL2_CD8_Castro2012_IL2IC_OT1_fold
+- name: TGFb_50
+  marginal:
+    distribution: lognormal
+    mu: -3.086317
+    sigma: 1.087829
+    median: 0.04567
+    cv: 1.505114
+  source_targets:
+  - TGFb_50
+  group: TGFb_EC50_immune
+- name: TGFb_50_APC
+  marginal:
+    distribution: gamma
+    shape: 1.57081
+    scale: 0.020345
+    median: 0.025491
+    cv: 0.797881
+  source_targets:
+  - TGFb_50_APC_PDAC_deriv001
+  group: TGFb_EC50_immune
+- name: TGFb_50_CAF_act
+  marginal:
+    distribution: lognormal
+    mu: -4.019334
+    sigma: 0.81023
+    median: 0.017965
+    cv: 0.963317
+  source_targets:
+  - TGFb_50_CAF_act_bachem1992
+  - caf_interconversion_biffi2019
+  - k_psc_activation_myCAF_bachem1993
+  - psc_activation_myCAF_biffi2019
+- name: TGFb_50_IL1R1
+  marginal:
+    distribution: lognormal
+    mu: -2.787089
+    sigma: 0.784494
+    median: 0.0616
+    cv: 0.9222
+  source_targets:
+  - caf_interconversion_biffi2019
+- name: TGFb_50_Teff
+  marginal:
+    distribution: lognormal
+    mu: -2.795849
+    sigma: 0.707572
+    median: 0.061063
+    cv: 0.806106
+  source_targets:
+  - TGFb_50_Teff
+  group: TGFb_EC50_immune
+- name: TGFb_50_Th_exh
+  marginal:
+    distribution: lognormal
+    mu: -2.140857
+    sigma: 0.946668
+    median: 0.117554
+    cv: 1.204253
+  source_targets:
+  - k_TGFb_Th_exh+TGFb_50_Th_exh
+- name: TGFb_50_col_sec
+  marginal:
+    distribution: lognormal
+    mu: -2.626569
+    sigma: 0.710914
+    median: 0.072326
+    cv: 0.810954
+  source_targets:
+  - TGFb_50_col_sec
+- name: VEGF_50
+  marginal:
+    distribution: gamma
+    shape: 4.157534
+    scale: 533.408682
+    median: 2042.621143
+    cv: 0.490436
+  source_targets:
+  - VEGF_50
+- name: Ve_T
+  marginal:
+    distribution: gamma
+    shape: 9.840198
+    scale: 0.037582
+    median: 0.357369
+    cv: 0.318785
+  source_targets:
+  - Ve_T_PDAC_wang2023_deriv001
+- name: d_crit_T
+  marginal:
+    distribution: invgamma
+    shape: 19.746793
+    scale: 90.429488
+    median: 4.657838
+    cv: 0.237378
+  source_targets:
+  - d_crit_T_n_pore_PDAC_deriv001
+- name: d_pore_ref
+  marginal:
+    distribution: lognormal
+    mu: 1.811578
+    sigma: 0.320566
+    median: 6.120098
+    cv: 0.328981
+  source_targets:
+  - d_pore_ref_phi_col_ref_PDAC_deriv001
+- name: f_IL6_iCAF
+  marginal:
+    distribution: lognormal
+    mu: 0.461847
+    sigma: 0.562975
+    median: 1.587003
+    cv: 0.610673
+  source_targets:
+  - f_IL6_iCAF
+- name: f_col_basal
+  marginal:
+    distribution: lognormal
+    mu: -1.382393
+    sigma: 0.378844
+    median: 0.250977
+    cv: 0.392852
+  source_targets:
+  - f_col_basal_tgfb_fold_illsley2000
+  - k_col_myCAF_sec_illsley2000
+- name: f_stroma_max
+  marginal:
+    distribution: lognormal
+    mu: 0.37403
+    sigma: 0.715282
+    median: 1.45358
+    cv: 0.817316
+  source_targets:
+  - f_stroma_max_ogawa2021_PDAC_deriv001
+- name: k_APC_death
+  marginal:
+    distribution: lognormal
+    mu: -1.825127
+    sigma: 0.280408
+    median: 0.161197
+    cv: 0.286011
+  source_targets:
+  - k_APC_death
+- name: k_APC_mat_cDC1
+  marginal:
+    distribution: lognormal
+    mu: 1.180484
+    sigma: 0.50777
+    median: 3.25595
+    cv: 0.542327
+  source_targets:
+  - k_APC_mat_cDC1
+- name: k_APC_mature_ID
+  marginal:
+    distribution: lognormal
+    mu: 1.033606
+    sigma: 0.697946
+    median: 2.811184
+    cv: 0.792234
+  source_targets:
+  - k_APC_mature_ID_dc_maturation_kinetics
+- name: k_APC_mig
+  marginal:
+    distribution: lognormal
+    mu: 0.800837
+    sigma: 0.587855
+    median: 2.227405
+    cv: 0.642495
+  source_targets:
+  - k_APC_mig
+- name: k_C1_death
+  marginal:
+    distribution: lognormal
+    mu: -5.277545
+    sigma: 0.543901
+    median: 0.005105
+    cv: 0.586719
+  source_targets:
+  - k_C1_death
+- name: k_C1_growth
+  marginal:
+    distribution: invgamma
+    shape: 30.517789
+    scale: 1.49455
+    median: 0.049513
+    cv: 0.187259
+  source_targets:
+  - k_C1_growth_pdac_human_vdt_ahn2017
+  - k_C1_growth_pdac_tumor_doubling_jang2015
+  - k_C1_growth_intrinsic
+- name: k_CAF_const
+  marginal:
+    distribution: lognormal
+    mu: 12.521973
+    sigma: 0.451745
+    median: 274298.760971
+    cv: 0.475803
+  source_targets:
+  - k_CAF_encounter
+- name: k_CAF_encounter
+  marginal:
+    distribution: lognormal
+    mu: 13.825175
+    sigma: 1.000703
+    median: 1009711.005922
+    cv: 1.31229
+  source_targets:
+  - k_CAF_encounter
+- name: k_CCL2_sec
+  marginal:
+    distribution: lognormal
+    mu: -22.781038
+    sigma: 0.530882
+    median: 0.0
+    cv: 0.57058
+  source_targets:
+  - k_CCL2_sec
+- name: k_CCL5_sec_iCAF
+  marginal:
+    distribution: lognormal
+    mu: -21.362921
+    sigma: 0.270246
+    median: 0.0
+    cv: 0.275256
+  source_targets:
+  - k_CCL5_sec_iCAF_kawka2014
+- name: k_CD8_T_pro
+  marginal:
+    distribution: lognormal
+    mu: -2.527041
+    sigma: 0.53686
+    median: 0.079895
+    cv: 0.57797
+  source_targets:
+  - k_CD8_T_pro
+- name: k_CD8_basal_exh
+  marginal:
+    distribution: lognormal
+    mu: -3.001337
+    sigma: 1.009688
+    median: 0.049721
+    cv: 1.331061
+  source_targets:
+  - k_CD8_basal_exh
+- name: k_CD8_death
+  marginal:
+    distribution: gamma
+    shape: 8.505164
+    scale: 0.006362
+    median: 0.052001
+    cv: 0.342893
+  source_targets:
+  - k_CD8_basal_exh
+  - k_CD8_death
+- name: k_CD8_exh_death
+  marginal:
+    distribution: lognormal
+    mu: -1.804292
+    sigma: 1.006874
+    median: 0.164591
+    cv: 1.325158
+  source_targets:
+  - k_CD8_exh_death
+- name: k_CD8_pro
+  marginal:
+    distribution: invgamma
+    shape: 6.888101
+    scale: 7.392396
+    median: 1.12727
+    cv: 0.452303
+  source_targets:
+  - n_T_expansion_burst_Butz1998
+- name: k_CXCL12_deg
+  marginal:
+    distribution: lognormal
+    mu: 0.53077
+    sigma: 0.481372
+    median: 1.700241
+    cv: 0.510652
+  source_targets:
+  - k_CXCL12_sec_cancer
+  - k_CXCL12_sec_iCAF_PDAC_deriv001
+  - k_CXCL12_sec_iCAF_PDAC_deriv002
+- name: k_CXCL12_sec_cancer
+  marginal:
+    distribution: lognormal
+    mu: -23.168326
+    sigma: 0.553642
+    median: 0.0
+    cv: 0.598905
+  source_targets:
+  - k_CXCL12_sec_cancer
+  group: CXCL12_secretion_rates
+- name: k_CXCL12_sec_iCAF
+  marginal:
+    distribution: lognormal
+    mu: -22.075689
+    sigma: 0.568699
+    median: 0.0
+    cv: 0.617935
+  source_targets:
+  - k_CXCL12_sec_iCAF_PDAC_deriv001
+  - k_CXCL12_sec_iCAF_PDAC_deriv002
+  group: CXCL12_secretion_rates
+- name: k_C_CD8_exh
+  marginal:
+    distribution: gamma
+    shape: 4.830159
+    scale: 0.006076
+    median: 0.027351
+    cv: 0.455008
+  source_targets:
+  - k_C_CD8_exh
+- name: k_IFNg_Tsec
+  marginal:
+    distribution: lognormal
+    mu: -27.213935
+    sigma: 0.415671
+    median: 0.0
+    cv: 0.43429
+  source_targets:
+  - k_ifng_tsec_biller2001
+- name: k_IL12_sec
+  marginal:
+    distribution: lognormal
+    mu: -23.330025
+    sigma: 0.46752
+    median: 0.0
+    cv: 0.494269
+  source_targets:
+  - k_IL12_sec
+- name: k_IL1_deg
+  marginal:
+    distribution: lognormal
+    mu: 0.985256
+    sigma: 0.450124
+    median: 2.678497
+    cv: 0.473916
+  source_targets:
+  - k_IL1_sec_PDAC_deriv001
+- name: k_IL1_sec
+  marginal:
+    distribution: lognormal
+    mu: -23.861425
+    sigma: 0.550277
+    median: 0.0
+    cv: 0.594685
+  source_targets:
+  - k_IL1_sec_PDAC_deriv001
+- name: k_IL2_cons
+  marginal:
+    distribution: lognormal
+    mu: -26.99576
+    sigma: 0.649666
+    median: 0.0
+    cv: 0.724644
+  source_targets:
+  - k_IL2_cons
+- name: k_IL2_deg
+  marginal:
+    distribution: lognormal
+    mu: -2.389894
+    sigma: 0.605855
+    median: 0.091639
+    cv: 0.665946
+  source_targets:
+  - k_IL2_deg_human_pk_lotze1985
+- name: k_IL2_sec
+  marginal:
+    distribution: lognormal
+    mu: -24.522878
+    sigma: 0.674885
+    median: 0.0
+    cv: 0.759549
+  source_targets:
+  - k_IL2_sec
+- name: k_IL6_deg
+  marginal:
+    distribution: lognormal
+    mu: 1.871568
+    sigma: 0.43747
+    median: 6.498477
+    cv: 0.45926
+  source_targets:
+  - k_IL6_sec_iCAF_saga2018
+- name: k_IL6_sec_iCAF
+  marginal:
+    distribution: lognormal
+    mu: -23.382118
+    sigma: 0.561333
+    median: 0.0
+    cv: 0.608596
+  source_targets:
+  - k_IL6_sec_iCAF_saga2018
+- name: k_M1_phago
+  marginal:
+    distribution: lognormal
+    mu: -0.736077
+    sigma: 0.440476
+    median: 0.478989
+    cv: 0.46273
+  source_targets:
+  - K_M1_phago
+- name: k_M1_pol
+  marginal:
+    distribution: lognormal
+    mu: -3.305845
+    sigma: 0.913676
+    median: 0.036668
+    cv: 1.142087
+  source_targets:
+  - k_M1_pol_k_M2_pol_ratio_DeSimoni2023_PDAC_IHC
+  - k_Mac_rec_Chen2015_CD68_PDAC_IHC
+- name: k_M2_pol
+  marginal:
+    distribution: invgamma
+    shape: 13.651131
+    scale: 7.71752
+    median: 0.579425
+    cv: 0.292965
+  source_targets:
+  - k_M1_pol_k_M2_pol_ratio_DeSimoni2023_PDAC_IHC
+  - k_M2_pol
+  - k_Mac_rec_Chen2015_CD68_PDAC_IHC
+- name: k_MDSC_death
+  marginal:
+    distribution: lognormal
+    mu: -3.715356
+    sigma: 0.619789
+    median: 0.024347
+    cv: 0.68436
+  source_targets:
+  - k_MDSC_rec_Hong2015_B16_MDSC_fraction
+- name: k_MDSC_rec
+  marginal:
+    distribution: lognormal
+    mu: 11.498464
+    sigma: 0.604663
+    median: 98564.260507
+    cv: 0.664382
+  source_targets:
+  - k_MDSC_rec_Hong2015_B16_MDSC_fraction
+- name: k_MMP_M2
+  marginal:
+    distribution: lognormal
+    mu: -18.348588
+    sigma: 1.199644
+    median: 0.0
+    cv: 1.793627
+  source_targets:
+  - k_MMP_M2
+- name: k_Mac_death
+  marginal:
+    distribution: lognormal
+    mu: -3.151462
+    sigma: 0.307261
+    median: 0.04279
+    cv: 0.314658
+  source_targets:
+  - k_M1_pol_k_M2_pol_ratio_DeSimoni2023_PDAC_IHC
+  - k_Mac_death
+  - k_Mac_rec_Chen2015_CD68_PDAC_IHC
+- name: k_Mac_rec
+  marginal:
+    distribution: lognormal
+    mu: 13.520568
+    sigma: 0.471128
+    median: 744574.542341
+    cv: 0.498521
+  source_targets:
+  - k_M1_pol_k_M2_pol_ratio_DeSimoni2023_PDAC_IHC
+  - k_Mac_rec_Chen2015_CD68_PDAC_IHC
+- name: k_PSC_to_apCAF
+  marginal:
+    distribution: normal
+    mu: 0.048813
+    sigma: 0.000744
+    median: 0.048813
+    cv: 0.015249
+  source_targets:
+  - k_PSC_to_apCAF
+- name: k_PSC_to_iCAF
+  marginal:
+    distribution: lognormal
+    mu: -8.755863
+    sigma: 2.109752
+    median: 0.000158
+    cv: 9.204187
+  source_targets:
+  - k_PSC_to_apCAF
+- name: k_PSC_to_myCAF
+  marginal:
+    distribution: invgamma
+    shape: 23.912356
+    scale: 4.440991
+    median: 0.188338
+    cv: 0.213627
+  source_targets:
+  - TGFb_50_CAF_act_bachem1992
+  - k_PSC_to_apCAF
+  - k_psc_activation_myCAF_bachem1993
+  - psc_activation_myCAF_biffi2019
+- name: k_TGFb_Th_exh
+  marginal:
+    distribution: lognormal
+    mu: -0.833073
+    sigma: 0.787366
+    median: 0.434711
+    cv: 0.926729
+  source_targets:
+  - k_TGFb_Th_exh+TGFb_50_Th_exh
+- name: k_TGFb_Tsec
+  marginal:
+    distribution: lognormal
+    mu: -25.195089
+    sigma: 0.458506
+    median: 0.0
+    cv: 0.483694
+  source_targets:
+  - k_TGFb_Tsec
+- name: k_TGFb_sec_myCAF
+  marginal:
+    distribution: lognormal
+    mu: -19.481594
+    sigma: 0.727751
+    median: 0.0
+    cv: 0.835637
+  source_targets:
+  - k_TGFb_sec_myCAF_bachem1992
+- name: k_T_activation_per_APC
+  marginal:
+    distribution: lognormal
+    mu: -13.761958
+    sigma: 1.520696
+    median: 1e-06
+    cv: 3.016587
+  source_targets:
+  - k_T_activation_per_APC
+- name: k_Th_basal_exh
+  marginal:
+    distribution: gamma
+    shape: 2.465554
+    scale: 0.007906
+    median: 0.01693
+    cv: 0.636858
+  source_targets:
+  - k_Th_basal_exh
+- name: k_Th_pro_tumor
+  marginal:
+    distribution: lognormal
+    mu: -1.762421
+    sigma: 0.550762
+    median: 0.171629
+    cv: 0.595293
+  source_targets:
+  - k_Th_pro_tumor
+- name: k_Th_to_Treg
+  marginal:
+    distribution: lognormal
+    mu: -3.652336
+    sigma: 0.747597
+    median: 0.02593
+    cv: 0.865303
+  source_targets:
+  - k_Th_to_Treg
+- name: k_Treg_CD8_exh
+  marginal:
+    distribution: lognormal
+    mu: -2.379174
+    sigma: 0.940791
+    median: 0.092627
+    cv: 1.192979
+  source_targets:
+  - k_Treg_CD8_exh
+- name: k_Treg_death
+  marginal:
+    distribution: gamma
+    shape: 9.76642
+    scale: 0.007855
+    median: 0.074115
+    cv: 0.319987
+  source_targets:
+  - k_Treg_death
+  - k_nCD8_death
+- name: k_Treg_pro_tumor
+  marginal:
+    distribution: lognormal
+    mu: -2.030407
+    sigma: 0.517967
+    median: 0.131282
+    cv: 0.55473
+  source_targets:
+  - k_Treg_pro_tumor
+- name: k_apCAF_prolif
+  marginal:
+    distribution: lognormal
+    mu: -3.026771
+    sigma: 1.206485
+    median: 0.048472
+    cv: 1.81303
+  source_targets:
+  - k_apCAF_prolif
+- name: k_cell_clear
+  marginal:
+    distribution: lognormal
+    mu: -2.280068
+    sigma: 1.042822
+    median: 0.102277
+    cv: 1.402421
+  source_targets:
+  - k_cell_clear
+- name: k_col_deg
+  marginal:
+    distribution: lognormal
+    mu: -5.494775
+    sigma: 0.494817
+    median: 0.004108
+    cv: 0.526708
+  source_targets:
+  - k_MMP_M2
+  - k_col_deg_hepatic_fsr_decaris2015
+- name: k_col_myCAF_sec
+  marginal:
+    distribution: lognormal
+    mu: -17.029465
+    sigma: 0.610537
+    median: 0.0
+    cv: 0.672108
+  source_targets:
+  - k_col_myCAF_sec_illsley2000
+- name: k_iCAF_prolif
+  marginal:
+    distribution: normal
+    mu: 0.245573
+    sigma: 0.110941
+    median: 0.245573
+    cv: 0.451765
+  source_targets:
+  - caf_interconversion_biffi2019
+  - caf_prolif_rates_biffi2019
+- name: k_iCAF_to_myCAF
+  marginal:
+    distribution: lognormal
+    mu: -2.299946
+    sigma: 1.000226
+    median: 0.100264
+    cv: 1.311301
+  source_targets:
+  - caf_interconversion_biffi2019
+  - k_myCAF_to_iCAF
+- name: k_mAPC_death
+  marginal:
+    distribution: lognormal
+    mu: -0.449382
+    sigma: 0.32948
+    median: 0.638022
+    cv: 0.338627
+  source_targets:
+  - k_APC_mig
+  - k_mAPC_death
+- name: k_myCAF_death
+  marginal:
+    distribution: lognormal
+    mu: -3.625507
+    sigma: 0.813565
+    median: 0.026636
+    cv: 0.968736
+  source_targets:
+  - k_myCAF_death_kisseleva2012
+  group: CAF_death_rates
+- name: k_myCAF_prolif
+  marginal:
+    distribution: invgamma
+    shape: 23.674827
+    scale: 17.871596
+    median: 0.76563
+    cv: 0.214794
+  source_targets:
+  - caf_interconversion_biffi2019
+  - caf_prolif_rates_biffi2019
+  - k_myCAF_prolif_bachem1992
+  - k_psc_activation_myCAF_bachem1993
+  - psc_activation_myCAF_biffi2019
+- name: k_myCAF_to_iCAF
+  marginal:
+    distribution: lognormal
+    mu: -3.008218
+    sigma: 0.65163
+    median: 0.04938
+    cv: 0.727332
+  source_targets:
+  - caf_interconversion_biffi2019
+  - k_myCAF_to_iCAF
+- name: k_nCD8_death
+  marginal:
+    distribution: lognormal
+    mu: -6.860229
+    sigma: 0.6784
+    median: 0.001049
+    cv: 0.764482
+  source_targets:
+  - k_nCD8_death
+  group: naive_T_death_rates
+- name: k_nTreg_death
+  marginal:
+    distribution: lognormal
+    mu: -6.762133
+    sigma: 0.686839
+    median: 0.001157
+    cv: 0.776397
+  source_targets:
+  - k_nTreg_death
+  group: naive_T_death_rates
+- name: k_stiff_CD8_exh
+  marginal:
+    distribution: lognormal
+    mu: -2.937152
+    sigma: 0.451667
+    median: 0.053016
+    cv: 0.475712
+  source_targets:
+  - k_stiff_CD8_exh
+- name: k_stroma_support
+  marginal:
+    distribution: lognormal
+    mu: 0.08511
+    sigma: 0.706048
+    median: 1.088837
+    cv: 0.803901
+  source_targets:
+  - k_stroma_support
+  - k_stroma_support_hwang2008_PDAC_deriv001
+- name: k_vas_Csec
+  marginal:
+    distribution: lognormal
+    mu: -5.649997
+    sigma: 0.27499
+    median: 0.003518
+    cv: 0.280271
+  source_targets:
+  - k_vas_Csec
+- name: k_vas_decay
+  marginal:
+    distribution: lognormal
+    mu: -5.566469
+    sigma: 0.946188
+    median: 0.003824
+    cv: 1.20333
+  source_targets:
+  - k_vas_decay
+- name: k_vas_growth
+  marginal:
+    distribution: gamma
+    shape: 1.723988
+    scale: 0.096376
+    median: 0.135362
+    cv: 0.76161
+  source_targets:
+  - k_vas_growth
+- name: k_vas_myCAF_sec
+  marginal:
+    distribution: lognormal
+    mu: -5.273536
+    sigma: 0.496913
+    median: 0.005125
+    cv: 0.529226
+  source_targets:
+  - k_vas_myCAF_sec_erkan2009
+- name: n_CD4_clones
+  marginal:
+    distribution: lognormal
+    mu: 3.569328
+    sigma: 1.080395
+    median: 35.492717
+    cv: 1.487668
+  source_targets:
+  - n_CD4_clones
+- name: n_CD8_clones
+  marginal:
+    distribution: lognormal
+    mu: 2.399104
+    sigma: 0.263872
+    median: 11.013299
+    cv: 0.268532
+  source_targets:
+  - n_CD8_clones_Meng2023_PDAC
+- name: n_IL1
+  marginal:
+    distribution: invgamma
+    shape: 2.86749
+    scale: 1.439285
+    median: 0.566217
+    cv: 1.073663
+  source_targets:
+  - IL1_50_CXCL8_ciminieri2023
+  - IL1_50_IL6_ciminieri2023
+- name: n_T_expansion_burst
+  marginal:
+    distribution: lognormal
+    mu: 6.683521
+    sigma: 0.695644
+    median: 799.128196
+    cv: 0.788938
+  source_targets:
+  - n_T_expansion_burst_Butz1998
+- name: n_Texh
+  marginal:
+    distribution: lognormal
+    mu: -0.363497
+    sigma: 0.503687
+    median: 0.695241
+    cv: 0.537389
+  source_targets:
+  - E_50_Texh_IFNg_saitakis2017
+  - E_50_Texh_TNFa_saitakis2017
+- name: n_fib
+  marginal:
+    distribution: lognormal
+    mu: -0.458402
+    sigma: 0.450444
+    median: 0.632293
+    cv: 0.474289
+  source_targets:
+  - E_50_fib_YAP_chang2025
+- name: n_pore
+  marginal:
+    distribution: gamma
+    shape: 22.040481
+    scale: 0.159735
+    median: 3.467532
+    cv: 0.213005
+  source_targets:
+  - d_crit_T_n_pore_PDAC_deriv001
+- name: n_stiff
+  marginal:
+    distribution: gamma
+    shape: 9.632582
+    scale: 0.065884
+    median: 0.612814
+    cv: 0.322202
+  source_targets:
+  - stiffness_collagen_power_law_rubiano2018
+- name: p1_50
+  marginal:
+    distribution: lognormal
+    mu: -7.070297
+    sigma: 0.725518
+    median: 0.00085
+    cv: 0.832338
+  source_targets:
+  - p1_50
+- name: phi_col_50_Kmax
+  marginal:
+    distribution: gamma
+    shape: 5.61325
+    scale: 0.2925
+    median: 1.545474
+    cv: 0.422078
+  source_targets:
+  - phi_col_50_Kmax
+- name: phi_col_ref
+  marginal:
+    distribution: lognormal
+    mu: -3.35013
+    sigma: 0.21901
+    median: 0.03508
+    cv: 0.221662
+  source_targets:
+  - d_pore_ref_phi_col_ref_PDAC_deriv001
+  - phi_col_ref_grizzi2019_PDAC_deriv001
+  - rho_collagen_valderrama1991_PDAC_deriv001
+  - stiffness_collagen_power_law_rubiano2018
+- name: q_Treg_T_in
+  marginal:
+    distribution: lognormal
+    mu: -9.363624
+    sigma: 0.548792
+    median: 8.6e-05
+    cv: 0.592826
+  source_targets:
+  - q_Treg_T_in
+- name: q_nCD8_LN_in
+  marginal:
+    distribution: lognormal
+    mu: -2.617036
+    sigma: 0.472666
+    median: 0.073019
+    cv: 0.500336
+  source_targets:
+  - q_nCD8_LN_in
+- name: q_nCD8_P_out
+  marginal:
+    distribution: invgamma
+    shape: 9.236918
+    scale: 65.655488
+    median: 7.372209
+    cv: 0.371726
+  source_targets:
+  - q_nCD8_P_out
+- name: rho_CD8_max
+  marginal:
+    distribution: lognormal
+    mu: 17.288587
+    sigma: 0.468957
+    median: 32235763.399437
+    cv: 0.495961
+  source_targets:
+  - rho_CD8_max
+- name: rho_Th_max
+  marginal:
+    distribution: gamma
+    shape: 2.180824
+    scale: 4705717.724403
+    median: 8743552.360725
+    cv: 0.677158
+  source_targets:
+  - rho_Th_max_ihc_karakhanova2015
+- name: rho_Treg_max
+  marginal:
+    distribution: lognormal
+    mu: 17.062989
+    sigma: 0.600946
+    median: 25725399.242843
+    cv: 0.659515
+  source_targets:
+  - rho_Treg_max
+- name: rho_collagen
+  marginal:
+    distribution: lognormal
+    mu: -1.544606
+    sigma: 0.455793
+    median: 0.213396
+    cv: 0.480522
+  source_targets:
+  - rho_collagen_valderrama1991_PDAC_deriv001
+copula:
+  type: gaussian
+  parameters:
+  - E_50_fib
+  - E_ref
+  - IL1_50
+  - IL2_50_Treg
+  - IL6_50_M2
+  - IL6_50_MDSC
+  - K_M1_phago
+  - TGFb_50
+  - TGFb_50_APC
+  - TGFb_50_IL1R1
+  - TGFb_50_Teff
+  - TGFb_50_Th_exh
+  - d_crit_T
+  - d_pore_ref
+  - f_col_basal
+  - k_CXCL12_deg
+  - k_CXCL12_sec_cancer
+  - k_CXCL12_sec_iCAF
+  - k_IL1_deg
+  - k_IL1_sec
+  - k_IL2_cons
+  - k_IL6_deg
+  - k_IL6_sec_iCAF
+  - k_M1_phago
+  - k_M2_pol
+  - k_MDSC_death
+  - k_MDSC_rec
+  - k_Mac_death
+  - k_Mac_rec
+  - k_PSC_to_apCAF
+  - k_PSC_to_iCAF
+  - k_PSC_to_myCAF
+  - k_TGFb_Th_exh
+  - k_col_myCAF_sec
+  - k_nCD8_death
+  - k_nTreg_death
+  - n_fib
+  - n_pore
+  - n_stiff
+  - phi_col_ref
+  - rho_collagen
+  correlation:
+  - - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.1085
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - -0.3208
+    - 0.0697
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0566
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.6686
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.7485
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.7485
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.5356
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.2497
+    - 0.0
+    - 0.5342
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.2497
+    - 1.0
+    - 0.0
+    - 0.376
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0566
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.5342
+    - 0.376
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.1342
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - -0.6637
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - -0.0812
+    - -0.2174
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - -0.427
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.7481
+    - 0.704
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.7481
+    - 1.0
+    - 0.6807
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.704
+    - 0.6807
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.6899
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.6899
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.6686
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.3043
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.3043
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.5356
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.2027
+    - 0.0707
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.2785
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.2785
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.2027
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.3964
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0707
+    - 0.0
+    - 0.0
+    - 0.3964
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - -0.8594
+    - 0.8573
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - -0.8594
+    - 1.0
+    - -0.9943
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.8573
+    - -0.9943
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.1342
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - -0.427
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.9199
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.9199
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.1085
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - -0.6637
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - -0.3208
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - -0.0812
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    - 0.3817
+    - -0.1001
+  - - 0.0
+    - 0.0697
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - -0.2174
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.3817
+    - 1.0
+    - -0.2925
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - -0.1001
+    - -0.2925
+    - 1.0

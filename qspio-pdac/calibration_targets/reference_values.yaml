@@ -1,0 +1,811 @@
+version: "1.0"
+values:
+
+# =============================================================================
+# ANATOMY
+# =============================================================================
+
+- name: blood_volume
+  display_name: Adult blood volume
+  value: 5.0
+  units: liter
+  category: anatomy
+  species: human
+  source:
+    description: Standard adult blood volume
+  typical_range: [4.5, 5.5]
+
+- name: body_weight
+  display_name: Adult body weight
+  value: 70.0
+  units: kilogram
+  category: anatomy
+  species: human
+  source:
+    description: Standard adult reference body weight
+  typical_range: [50.0, 100.0]
+
+# =============================================================================
+# GEOMETRY / CONVERSIONS
+# =============================================================================
+
+- name: ihc_section_volume_3um
+  display_name: IHC section volume per mm^2 (3 um)
+  value: 3.0e-06
+  units: centimeter**3 / millimeter**2
+  category: geometry
+  species: human
+  source:
+    description: Standard 3-um paraffin section; volume = 3e-4 cm * 0.01 cm^2 per mm^2
+  notes: |
+    Use this to convert IHC cell densities (cells/mm^2) to volumetric
+    densities (cells/cm^3). Multiply cells/mm^2 by 1/section_volume.
+    Used for Chen2015 PDAC TAM data (3-um sections).
+
+- name: ihc_section_volume_4um
+  display_name: IHC section volume per mm^2 (4 um)
+  value: 4.0e-06
+  units: centimeter**3 / millimeter**2
+  category: geometry
+  species: human
+  source:
+    description: Standard 4-um paraffin section; volume = 4e-4 cm * 0.01 cm^2 per mm^2
+  notes: |
+    Use this to convert IHC cell densities (cells/mm^2) to volumetric
+    densities (cells/cm^3). Multiply cells/mm^2 by 1/section_volume.
+
+- name: ihc_section_volume_5um
+  display_name: IHC section volume per mm^2 (5 um)
+  value: 5.0e-06
+  units: centimeter**3 / millimeter**2
+  category: geometry
+  species: human
+  source:
+    description: Standard 5-um paraffin section; volume = 5e-4 cm * 0.01 cm^2 per mm^2
+  notes: |
+    Use this to convert IHC cell densities (cells/mm^2) to volumetric
+    densities (cells/cm^3). Multiply cells/mm^2 by 1/section_volume.
+    Used for Jiang2014 PDAC FOXP3+ data (5-um sections).
+
+# =============================================================================
+# CIRCULATING CELL COUNTS (human, healthy adult)
+# =============================================================================
+
+- name: circulating_cd8_count
+  display_name: Circulating CD8+ T cell count
+  value: 2.5e+9
+  units: cell
+  uncertainty:
+    sd: 1.0e+9
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Median 505 cells/uL (range 411-825) in 9 healthy adults x 5L blood volume.
+      Autissier 2010 Table 2, 12-color flow cytometry panel.
+    pmid: "20099249"
+    authors: Autissier et al.
+    year: 2010
+  model_species: V_C.CD8
+  typical_range: [2.0e+9, 4.1e+9]
+  notes: |
+    May be reduced by 30-50% in advanced cancer patients due to lymphopenia.
+
+- name: circulating_cd4_count
+  display_name: Circulating CD4+ T cell count
+  value: 4.3e+9
+  units: cell
+  uncertainty:
+    sd: 1.5e+9
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Median 860.7 cells/uL (range 521-1173) in 9 healthy adults x 5L blood volume.
+      Autissier 2010 Table 2, 12-color flow cytometry panel.
+    pmid: "20099249"
+    authors: Autissier et al.
+    year: 2010
+  model_species: V_C.CD4
+  typical_range: [2.6e+9, 5.9e+9]
+
+- name: circulating_treg_count
+  display_name: Circulating Treg count
+  value: 2.0e+8
+  units: cell
+  uncertainty:
+    sd: 1.0e+8
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Approximately 2-6% of circulating CD4+ T cells (FoxP3+ gating).
+      Liyanage 2002 reports 8.6% CD4+CD25+ in normal donors (n=35);
+      modern FoxP3+CD127lo gating yields lower fractions (2-6%).
+    pmid: "12193750"
+    doi: 10.4049/jimmunol.169.5.2756
+    authors: Liyanage et al.
+    year: 2002
+  model_species: V_C.Treg
+  typical_range: [0.9e+8, 4.3e+8]
+
+- name: circulating_treg_count_pdac
+  display_name: Circulating Treg count in PDAC patients
+  value: 5.7e+8
+  units: cell
+  uncertainty:
+    sd: 3.0e+8
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Derived from CD4+ absolute count (860.7 cells/uL, Autissier 2010) *
+      blood volume (5e6 uL) * Treg fraction in pancreas cancer patients
+      (0.132, Liyanage 2002): 860.7 * 5e6 * 0.132 = 5.68e8 cells.
+    doi: 10.4049/jimmunol.169.5.2756
+    authors: Liyanage et al.
+    year: 2002
+  model_species: V_C.Treg
+  typical_range: [2.0e+8, 1.5e+9]
+  notes: |
+    PDAC-specific estimate using elevated Treg fraction (13.2% of CD4+)
+    reported in pancreas cancer patients (Liyanage 2002, PMID 12193750),
+    combined with healthy adult CD4+ counts (Autissier 2010, PMID 20099249)
+    and standard blood volume. Higher than healthy circulating_treg_count
+    (~2e8) due to cancer-associated Treg expansion. Use this as source_pool
+    for steady_state_density models of Treg trafficking into PDAC tumors.
+
+- name: circulating_monocyte_count
+  display_name: Circulating monocyte count
+  value: 2.3e+9
+  units: cell
+  uncertainty:
+    sd: 0.7e+9
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Median 455.7 cells/uL (range 310-605) in 9 healthy adults x 5L blood volume.
+      Autissier 2010 Table 2, 12-color flow cytometry panel. Clinical range
+      200-800 cells/uL (StatPearls NBK604207).
+    pmid: "20099249"
+    authors: Autissier et al.
+    year: 2010
+  typical_range: [1.0e+9, 3.0e+9]
+
+# =============================================================================
+# TISSUE CELL DENSITIES (human PDAC)
+# =============================================================================
+
+- name: pdac_cd45_density_mm2
+  display_name: Total CD45+ leukocyte density in PDAC (IHC)
+  value: 1000.0
+  units: cell / millimeter**2
+  uncertainty:
+    sd: 500.0
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Estimated from sum of immune subset densities. Tahkola 2019 reports
+      CD3+ ~396 cells/mm^2 and CD8+ ~120 cells/mm^2 in PDAC whole sections.
+      Porembka 2012 reports myeloid cells are ~66% of CD45+ cells in
+      PDAC peripheral blood (not tumor tissue); used here as rough proxy
+      for tumor myeloid:lymphoid ratio. Total CD45+ estimated as ~3x T cell density.
+    doi: 10.1007/s00428-019-02549-1
+    authors: Tahkola et al.
+    year: 2019
+  typical_range: [500.0, 2000.0]
+  notes: |
+    Highly variable across patients and tumor regions. PDAC stroma is
+    myeloid-dominated (Porembka 2012). Tumor center has lower density
+    than invasive margin.
+
+- name: pdac_cd45_density_volumetric
+  display_name: Total CD45+ leukocyte volumetric density in PDAC
+  value: 2.5e+8
+  units: cell / milliliter
+  uncertainty:
+    sd: 2.0e+8
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Derived from IHC density (~1000 cells/mm^2) divided by section
+      volume (4e-6 cm^3/mm^2) with cell-counting correction factor ~2x.
+      Consistent with Liudahl 2021 spatial profiling of 135 PDAC specimens.
+    doi: 10.1158/2159-8290.CD-20-0841
+    authors: Liudahl et al.
+    year: 2021
+  typical_range: [1.0e+8, 1.0e+9]
+  notes: |
+    Use this as parent_density in steady_state_fraction models when
+    the observable is a fraction of CD45+ cells.
+
+# =============================================================================
+# TUMOR PROPERTIES (human PDAC)
+# =============================================================================
+
+- name: pdac_tumor_volume_resectable
+  display_name: Resectable PDAC tumor volume
+  value: 10.0
+  units: milliliter
+  uncertainty:
+    sd: 8.0
+  category: tumor_properties
+  species: human
+  source:
+    description: Typical resectable PDAC volume from imaging studies
+  typical_range: [3.0, 30.0]
+
+- name: pdac_total_tumor_cells
+  display_name: Total tumor cell count in resectable PDAC
+  value: 1.0e+9
+  units: cell
+  uncertainty:
+    sd: 5.0e+8
+  category: tumor_properties
+  species: human
+  source:
+    description: |
+      Estimated from tumor volume (~10 mL) and tumor cellularity
+      (~1e8 cells/mL in desmoplastic PDAC with ~20-30% tumor fraction)
+  typical_range: [5.0e+8, 5.0e+9]
+
+# =============================================================================
+# CYTOKINE / CHEMOKINE KINETICS
+# =============================================================================
+
+- name: ccl2_half_life
+  display_name: CCL2 (MCP-1) effective tissue half-life
+  value: 0.1
+  units: day
+  uncertainty:
+    sd: 0.05
+  category: kinetics
+  species: human
+  source:
+    description: |
+      Effective tissue half-life (~2.4 hr) used in QSP modeling to capture
+      local chemokine turnover. No direct human PK data for free CCL2;
+      plasma clearance in mice is <1 min (Deshmane 2009). The 2.4 hr value
+      accounts for proteoglycan binding, local production, and receptor-mediated
+      uptake in tissue, not just free plasma clearance.
+    pmid: "36310035"
+    authors: Quaranta et al.
+    year: 2023
+  typical_range: [0.02, 0.5]
+  notes: |
+    This is a modeling parameter, not a directly measured PK value.
+    Free plasma CCL2 clears in seconds-to-minutes; tissue-bound CCL2
+    has much longer effective residence times.
+
+- name: il2_half_life
+  display_name: IL-2 plasma half-life
+  value: 0.007
+  units: day
+  category: kinetics
+  species: human
+  source:
+    description: |
+      Distribution half-life 6.9 min, terminal half-life 85 min in humans
+      after IV bolus. The 10-min value (0.007 day) reflects initial
+      distribution phase, appropriate for local tissue dynamics.
+    pmid: "2317789"
+    authors: Konrad et al.
+    year: 1990
+  typical_range: [0.003, 0.02]
+  notes: |
+    Konrad 1990 is the definitive human IL-2 PK study (IV rIL-2 in cancer patients).
+    Terminal t1/2 ~85 min reflects renal clearance; distribution t1/2 ~7 min
+    reflects tissue uptake. Use 0.007 day for rapid local clearance in QSP models.
+
+- name: ifng_half_life
+  display_name: IFN-gamma plasma half-life
+  value: 0.02
+  units: day
+  category: kinetics
+  species: human
+  source:
+    description: |
+      Plasma half-life 25-35 min in humans after IV infusion.
+      Kurzrock 1985 reported t1/2 ~25-30 min in cancer patients.
+      Consistent with Rutenfranz 1988 (~35 min).
+    pmid: "3921249"
+    authors: Kurzrock et al.
+    year: 1985
+  typical_range: [0.01, 0.05]
+  notes: |
+    0.02 day = 28.8 min, consistent with clinical PK data.
+    IFN-gamma clearance is primarily renal.
+
+# =============================================================================
+# MOLECULAR WEIGHTS
+# =============================================================================
+
+- name: ccl2_molecular_weight_mature
+  display_name: Mature human CCL2 (MCP-1) molecular weight
+  value: 8679.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      Mature human CCL2 (UniProt P13500, residues 24-99, 76 amino acids)
+      after signal peptide cleavage. The precursor includes a 23-residue
+      signal peptide (MW ~11025 Da). ELISA kits calibrated against mature
+      recombinant CCL2 should use 8679 Da for mass-to-mole conversion.
+  typical_range: [8600.0, 8800.0]
+  notes: |
+    DrugBank/UniProt report 11024.87 for the full precursor (99 aa).
+    The secreted, bioactive form is the mature protein (76 aa, 8679 Da).
+    Use mature MW for converting in vitro secretion assay data (pg or ng)
+    to molar secretion rates (nmol/cell/day).
+
+- name: tgfb1_molecular_weight
+  display_name: TGF-beta1 homodimer molecular weight
+  value: 25000.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      Active TGF-beta1 is a 25 kDa homodimer (2x 12.5 kDa monomers).
+      UniProt P01137. ELISA kits typically measure the active dimer.
+  typical_range: [24000.0, 26000.0]
+
+- name: ifng_molecular_weight
+  display_name: IFN-gamma homodimer molecular weight
+  value: 34000.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      Active IFN-gamma is a ~34 kDa homodimer (2x 17 kDa monomers).
+      UniProt P01579. Glycosylation adds ~3-5 kDa variability.
+  typical_range: [30000.0, 40000.0]
+
+- name: il10_molecular_weight
+  display_name: IL-10 homodimer molecular weight
+  value: 37000.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      Active IL-10 is a ~37 kDa homodimer (2x 18.5 kDa monomers).
+      UniProt P22301.
+  typical_range: [35000.0, 39000.0]
+
+- name: il6_molecular_weight
+  display_name: IL-6 molecular weight
+  value: 21000.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      IL-6 is a ~21 kDa monomer. UniProt P05231.
+      Glycosylated forms range 21-28 kDa.
+  typical_range: [21000.0, 28000.0]
+
+- name: il12_molecular_weight
+  display_name: IL-12 heterodimer molecular weight
+  value: 70000.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      IL-12 is a ~70 kDa heterodimer of p35 (~35 kDa) and p40 (~40 kDa).
+      UniProt P29459 (p35), P29460 (p40).
+  typical_range: [65000.0, 75000.0]
+
+- name: vegfa_molecular_weight
+  display_name: VEGF-A165 homodimer molecular weight
+  value: 38200.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      VEGF-A165 homodimer: 2x 19,167 Da monomers = 38,334 Da (non-glycosylated).
+      UniProt P15692 (isoform VEGF165, residues 27-191, 165 aa per chain).
+      Glycosylated forms 39-42 kDa; ELISA standards are typically non-glycosylated
+      recombinant protein. Use 38.2 kDa for mass-to-mole conversion of ELISA data.
+  typical_range: [38000.0, 42000.0]
+  notes: |
+    The 45 kDa figure commonly cited includes glycosylation and may refer to
+    SDS-PAGE apparent MW. Sequence-based MW is 38.2 kDa for the homodimer.
+
+- name: ccl5_molecular_weight
+  display_name: CCL5 (RANTES) molecular weight
+  value: 7851.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      Mature CCL5/RANTES is 68 amino acids, ~7.85 kDa. UniProt P13501.
+  typical_range: [7800.0, 8000.0]
+
+- name: cxcl9_molecular_weight
+  display_name: CXCL9 (MIG) molecular weight
+  value: 11693.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      Mature CXCL9/MIG is 103 amino acids, ~11.7 kDa. UniProt Q07325.
+  typical_range: [11500.0, 12000.0]
+
+- name: cxcl12_molecular_weight
+  display_name: CXCL12 (SDF-1alpha) molecular weight
+  value: 7960.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      Mature CXCL12-alpha/SDF-1alpha is 68 amino acids, ~7.96 kDa.
+      UniProt P48061.
+  typical_range: [7900.0, 8100.0]
+
+- name: arginase1_molecular_weight
+  display_name: Arginase I monomer molecular weight
+  value: 35000.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      Arginase I monomer is ~35 kDa (active form is a homotrimer ~105 kDa).
+      UniProt P05089. ELISA kits typically report in ng/mL of monomer.
+  typical_range: [34000.0, 36000.0]
+
+# =============================================================================
+# CELL GEOMETRY (human)
+# =============================================================================
+
+- name: pdac_cancer_cell_diameter
+  display_name: PDAC cancer cell diameter
+  value: 17.0
+  units: micrometer
+  category: geometry
+  species: human
+  source:
+    description: |
+      Average PDAC ductal adenocarcinoma cell diameter from histomorphometry.
+      PDAC cells are moderately pleomorphic (15-20 um range).
+  typical_range: [15.0, 20.0]
+  notes: |
+    Cross-sectional area = pi*(d/2)^2 = pi*(8.5 um)^2 = 227 um^2 = 2.27e-4 mm^2.
+    Use for converting model cell counts to IHC areal densities.
+
+- name: pdac_cancer_cell_cross_section
+  display_name: PDAC cancer cell cross-sectional area
+  value: 2.27e-4
+  units: millimeter**2 / cell
+  category: geometry
+  species: human
+  source:
+    description: |
+      pi * (8.5 um)^2 = 227 um^2 = 2.27e-4 mm^2 per cell.
+      Derived from pdac_cancer_cell_diameter (17 um) assuming spherical cells.
+  typical_range: [1.77e-4, 3.14e-4]
+  notes: |
+    Use as conversion factor in observable.constants for IHC density targets.
+    This is a geometric approximation; actual tumor tissue has lumens,
+    stroma, and variable packing, so true area per cell in a tissue
+    section is larger.
+
+- name: t_cell_diameter
+  display_name: T cell diameter
+  value: 7.0
+  units: micrometer
+  category: geometry
+  species: human
+  source:
+    description: |
+      Resting T lymphocyte diameter ~7 um (6-8 um range). Activated T cells
+      are larger (~10-12 um). Bufi 2015 measured resting T cells at 6.8 ± 0.4 um
+      by micropipette aspiration.
+    pmid: "26775433"
+    authors: Bufi et al.
+    year: 2015
+  typical_range: [6.0, 12.0]
+
+- name: macrophage_diameter
+  display_name: Macrophage diameter
+  value: 20.0
+  units: micrometer
+  category: geometry
+  species: human
+  source:
+    description: |
+      Tissue macrophage diameter ~15-25 um depending on activation state.
+      Krombach 1997 measured human alveolar macrophages at 21.2 ± 0.4 um
+      by light microscopy. 20 um is a standard value for tissue macrophages.
+    pmid: "9400735"
+    authors: Krombach et al.
+    year: 1997
+  typical_range: [15.0, 25.0]
+
+- name: dendritic_cell_diameter
+  display_name: Dendritic cell diameter
+  value: 13.0
+  units: micrometer
+  category: geometry
+  species: human
+  source:
+    description: |
+      Mature myeloid dendritic cell diameter ~12-15 um (immature ~10-12 um,
+      activated/mature ~14-18 um with dendrites). 13 um is a midpoint used in
+      mIHC overcounting (Abercrombie) corrections for FFPE sections of CLEC9A+
+      cDC1 and CD1c+ cDC2 in PDAC tumor tissue (Plesca 2022).
+    doi: 10.3390/cancers14051216
+    authors: Plesca et al.
+    year: 2022
+  typical_range: [10.0, 15.0]
+  notes: |
+    Used as Abercrombie correction term `d` in 2D->3D conversion for cDC1/cDC2
+    densities measured by mIHC: counted_cells/mm^2 = (cells/V_T) * (t + d).
+
+- name: mdsc_diameter
+  display_name: MDSC (myeloid-derived suppressor cell) diameter
+  value: 12.0
+  units: micrometer
+  category: geometry
+  species: human
+  source:
+    description: |
+      MDSCs are heterogeneous: granulocytic/PMN-MDSCs ~10-13 um (neutrophil-like),
+      monocytic/M-MDSCs ~13-18 um (monocyte-like). 12 um is a population-weighted
+      midpoint reflecting the PDAC mix (PMN-dominant per Stromnes 2014). Bain
+      2014 reports human peripheral blood neutrophils at 9.5-12.5 um.
+    pmid: "24574412"
+    authors: Bain et al.
+    year: 2014
+  typical_range: [10.0, 15.0]
+  notes: |
+    Used as Abercrombie correction term in 2D->3D conversion for MDSC density
+    observables. Source data (Sivagnanam Neutrophil/Eosinophil mIHC) treats
+    PMN-MDSCs as a subset of the neutrophil compartment.
+
+- name: fibroblast_diameter
+  display_name: Fibroblast/CAF diameter
+  value: 15.0
+  units: micrometer
+  category: geometry
+  species: human
+  source:
+    description: |
+      Quiescent fibroblasts ~10-12 um; activated CAFs/PSCs in PDAC are
+      larger (~15-20 um) with stellate morphology. 15 um represents
+      an effective spherical diameter for volume estimation.
+  typical_range: [10.0, 20.0]
+
+- name: ecm_tissue_density
+  display_name: Hydrated ECM tissue density in PDAC
+  value: 150.0
+  units: milligram / milliliter
+  category: tissue_composition
+  species: human
+  source:
+    description: |
+      Effective density of hydrated desmoplastic ECM in PDAC. Dense collagen
+      networks contain ~10-20% dry protein by weight (dry collagen density
+      ~1300 mg/mL). With interstitial water and proteoglycans, effective
+      tissue density is 100-200 mg/mL. Used to convert ECM mass (mg) to
+      volume (mL) in stromal fraction calculations.
+    reference: "Erkan 2012, PMID: 22710569"
+    pmid: "22710569"
+    authors: Erkan et al.
+    year: 2012
+  typical_range: [100.0, 200.0]
+  notes: |
+    This is the BULK density of hydrated ECM gel (mass per volume of gel),
+    NOT the collagen protein concentration within extracellular space
+    (~20 mg/mL, used as the model parameter ECM_density in parameters_PDAC.m).
+    Higher values (200 mg/mL) for densely packed collagen; lower (100 mg/mL)
+    for looser stroma.
+
+# =============================================================================
+# PDAC TISSUE COMPOSITION
+# =============================================================================
+
+- name: pdac_cellularity_fraction
+  display_name: PDAC tumor cellularity fraction
+  value: 0.15
+  units: dimensionless
+  category: tumor_properties
+  species: human
+  source:
+    description: |
+      PDAC is highly desmoplastic with typically 5-20% tumor cellularity.
+      Raphael 2017 (TCGA PAAD) reports median neoplastic cellularity of 0.34
+      but notes that pathologist-estimated cellularity is often ~0.15 for
+      microdissected samples; values as low as 5% are common. Stroma
+      constitutes 80-95% of tumor mass in most PDAC.
+    pmid: "28810144"
+    doi: 10.1158/2159-8290.CD-17-0140
+    authors: Raphael et al.
+    year: 2017
+  typical_range: [0.05, 0.30]
+  notes: |
+    Use for converting whole-tumor measurements to cancer-cell-specific values.
+    Lower cellularity (5-15%) in highly desmoplastic tumors (majority of PDAC);
+    higher (20-30%) in cellular/"squamous" variants. The 0.15 value represents
+    a typical resectable PDAC; use 0.10 for ultra-desmoplastic cases.
+
+- name: pdac_stromal_fraction
+  display_name: PDAC stromal fraction
+  value: 0.85
+  units: dimensionless
+  category: tumor_properties
+  species: human
+  source:
+    description: |
+      Complement of cellularity (1 - 0.15 = 0.85). PDAC stroma includes
+      fibroblasts/PSCs, ECM (collagen, hyaluronan), vasculature, and immune
+      infiltrate. Consistent with Raphael 2017 and Erkan 2012.
+    pmid: "28810144"
+    authors: Raphael et al.
+    year: 2017
+  typical_range: [0.70, 0.95]
+
+- name: normal_pancreas_lactate
+  display_name: Normal pancreas tissue lactate concentration
+  value: 11.0
+  units: millimole / liter
+  category: tissue_composition
+  species: human
+  source:
+    description: |
+      Normal pancreas total tissue lactate = 11.0 ± 2.5 nmol/mg (n=9)
+      by HR-MAS 1H NMR on fresh-frozen surgical specimens.
+      Assumes tissue density ~1 g/mL, so nmol/mg ≈ mmol/L.
+    reference: "Battini 2017 PMID: 28298227"
+    pmid: "28298227"
+    doi: 10.1186/s12916-017-0810-z
+    authors: Battini et al.
+    year: 2017
+  typical_range: [5.0, 16.0]
+  notes: |
+    Total tissue lactate (intracellular + extracellular), not blood/interstitial
+    lactate (~1-2 mM). Use as denominator for tumor_lactate_fold_change targets.
+    PDAC tissue lactate = 16.1 ± 4.7 nmol/mg (fold ~1.47x, same study).
+    Note: PMID 28366159 was a duplicate entry deleted from PubMed; use 28298227.
+
+- name: normal_pancreas_glucose
+  display_name: Normal pancreas tissue glucose concentration
+  value: 1.225
+  units: millimole / liter
+  category: tissue_composition
+  species: human
+  source:
+    description: |
+      Normal pancreas total tissue glucose = 1.2247 ± 0.6158 nmol/mg (n=9)
+      by HR-MAS 1H NMR on fresh-frozen surgical specimens.
+      Assumes tissue density ~1 g/mL, so nmol/mg ≈ mmol/L.
+    reference: "Battini 2017 PMID: 28298227"
+    pmid: "28298227"
+    doi: 10.1186/s12916-017-0810-z
+    authors: Battini et al.
+    year: 2017
+  typical_range: [0.3, 2.5]
+  notes: |
+    Total tissue glucose (intracellular + extracellular). Much lower than blood
+    glucose (~5 mM) due to cellular uptake. PDAC tissue glucose = 1.31 ± 1.10
+    nmol/mg (p=0.79 vs PP, not significant; same study).
+    Note: PMID 28366159 was a duplicate entry deleted from PubMed; use 28298227.
+
+- name: normal_pancreas_collagen
+  display_name: Normal pancreas collagen content (dry weight)
+  value: 5.0
+  units: microgram / milligram
+  category: tissue_composition
+  species: human
+  source:
+    description: |
+      Normal pancreas collagen content ~3-8 ug/mg tissue (dry weight).
+      Imamura 1995 measured hydroxyproline in normal human pancreas and
+      converted to collagen content (~5 ug/mg). PDAC desmoplasia increases
+      this 5-20x.
+    pmid: "8532652"
+    authors: Imamura et al.
+    year: 1995
+  typical_range: [3.0, 8.0]
+  notes: |
+    Per mg DRY tissue. Multiply by pancreas_dry_weight_fraction (~0.22)
+    to get per mg wet tissue (~1.1 ug/mg). Use as denominator for
+    collagen1_protein_level fold-change targets.
+
+- name: pancreas_dry_weight_fraction
+  display_name: Pancreas dry weight fraction
+  value: 0.22
+  units: dimensionless
+  category: tissue_composition
+  species: human
+  source:
+    description: |
+      Human pancreas water content ~75-80%, giving dry weight fraction
+      ~0.20-0.25. Value of 0.22 from Noblet 2018 tissue composition data
+      and consistent with ICRP Reference Man soft tissue values.
+    doi: "10.1186/s13014-018-0971-8"
+    authors: Noblet et al.
+    year: 2018
+  typical_range: [0.20, 0.25]
+  notes: |
+    Use to convert dry-weight collagen content (Imamura 1995) to wet-weight
+    basis for comparison with model ECM concentrations (mg/mL).
+
+# =============================================================================
+# CIRCULATING CELL COUNTS (additional)
+# =============================================================================
+
+- name: circulating_nk_count
+  display_name: Circulating NK cell count
+  value: 2.0e+9
+  units: cell
+  uncertainty:
+    sd: 1.0e+9
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Median 432.7 cells/uL (range 175-716) in 9 healthy adults x 5L blood volume
+      = 2.16e9. Autissier 2010 Table 2, CD56+CD3- gating. Clinical reference
+      range ~100-700 cells/uL (Caligiuri 2008).
+    pmid: "20099249"
+    authors: Autissier et al.
+    year: 2010
+  typical_range: [5.0e+8, 3.5e+9]
+  notes: |
+    May be reduced in PDAC patients. NK cells are extremely rare in
+    PDAC tumors (< 1% of TILs) despite adequate circulating numbers.
+
+- name: circulating_dc_count
+  display_name: Circulating dendritic cell count
+  value: 3.0e+8
+  units: cell
+  uncertainty:
+    sd: 1.5e+8
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Median 60.3 cells/uL (range 30-112) in 9 healthy adults x 5L blood volume
+      = 3.0e8. Autissier 2010 Table 2, Lin-HLA-DR+ gating. Collin 2018 review
+      gives 10-20 x 10^6/L total blood DCs. cDC1 (BDCA-3+/CD141+) ~10% of
+      total DCs; cDC2 (BDCA-1+/CD1c+) ~60%; pDC ~30%.
+    pmid: "20099249"
+    authors: Autissier et al.
+    year: 2010
+  typical_range: [1.5e+8, 5.6e+8]
+- name: ffpe_section_thickness
+  display_name: FFPE tissue section thickness for mIHC
+  value: 4.0
+  units: micrometer
+  category: geometry
+  species: human
+  source:
+    description: |
+      Standard FFPE tissue section thickness for multiplex immunohistochemistry
+      (typical 3-5 micrometer range across published studies). Set to 4 micrometer
+      midpoint to match the Plesca 2022 submodel target convention used for
+      APC0_cDC2_T calibration. Used in density observables to project the model's
+      3D volumetric density (cells/mL) into a 2D mIHC-equivalent density
+      (cells/mm^2 of section) via density_2D = (cells/V_T) * thickness.
+    doi: 10.3390/cancers14051216
+    authors: Plesca et al.
+    year: 2022
+  typical_range: [3.0, 5.0]
+  notes: |
+    Used as `section_thickness_um` in calibration_targets/baseline_no_treatment/
+    *_density_*.yaml constants block. The 25% uncertainty across the typical
+    range is dwarfed by other prior uncertainties on per-V_T cell densities;
+    future refinement could extract per-paper thicknesses from each density
+    target's source Methods section.

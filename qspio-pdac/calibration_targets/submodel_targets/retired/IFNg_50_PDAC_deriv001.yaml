@@ -1,0 +1,245 @@
+target_id: IFNg_50
+inputs:
+- name: IFNg_halfmax_ng_per_ml
+  value: 20.0
+  units: ng / milliliter
+  input_type: direct_measurement
+  source_ref: Gao2016
+  source_location: "Results section, p.349-350; Figure 1A-b. Text: 'levels reached\
+    \ half maximal expression when exposed to 20 ng/ml IFN-\u03B3 for 24 h.'"
+  value_snippet: "levels reached half maximal expression when exposed to 20 ng/ml\
+    \ IFN-\u03B3 for 24 h"
+- name: n_IFNg_dose_response_reps
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Gao2016
+  source_location: Figure 1 legend
+  value_snippet: "Data are presented as the means \xB1 SD from three independent experiments."
+- name: IFNg_MW_kDa
+  value: 17.0
+  units: kilodalton
+  input_type: reference_value
+  rationale: Approximate molecular weight of interferon-gamma monomer used to convert
+    ng/mL concentrations to molarity.
+  source_ref: IFNg_MW_Uniprot
+  source_location: Uniprot human IFNG entry
+- name: IFNg_halfmax_pM
+  value: 1176.0
+  units: picomolarity
+  input_type: derived_arithmetic
+  rationale: 'Conversion from IFN-gamma concentration in ng/mL to picomolarity using
+    molecular weight in kDa: pM = 1000 * (ng/mL) / MW_kDa.'
+  source_ref: Gao2016
+  source_location: "Derived from 20 ng/ml IFN-\u03B3 half-maximal dose and IFNg molecular\
+    \ weight"
+  source_inputs:
+  - IFNg_halfmax_ng_per_ml
+  - IFNg_MW_kDa
+  formula: 1000.0 * IFNg_halfmax_ng_per_ml / IFNg_MW_kDa
+- name: IFNg_halfmax_alpha
+  value: 0.2
+  units: dimensionless
+  input_type: reference_value
+  rationale: Assumed 20% relative variability factor on the half-maximal IFN-gamma
+    concentration, since the paper reports an approximate value without a formal confidence
+    interval; 20% is typical for biological dose-response EC50 estimates.
+  source_ref: Gao2016
+  source_location: Assumption based on typical variability of cytokine dose-response
+    EC50 estimates
+calibration:
+  parameters:
+  - name: IFNg_50
+    units: picomolarity
+    nuisance: false
+  forward_model:
+    data_rationale: Gao2016 reports that NOS2 expression in RAW 264.7 macrophages
+      reaches approximately half-maximal levels at 20 ng/mL IFN-gamma after 24 h stimulation,
+      based on a graded dose-response (0-100 ng/mL). Treating NOS2 as an M1 activation
+      marker, this half-maximal dose directly informs the EC50 for IFN-gamma-driven
+      M1-like polarization.
+    submodel_rationale: 'In the full QSPIO-PDAC model, IFNg_50 is the half-maximal
+      IFN-gamma concentration in the Hill-type activation term governing M2-to-M1
+      polarization: rate = k_M1_pol * Mac_M2 * (1 - (1-IL12/(IL12+IL12_50))*(1-IFNg/(IFNg+IFNg_50))).
+      When IL-12 drive is negligible, this reduces to a standard Hill function IFNg/(IFNg+IFNg_50).
+      The concentration at which NOS2 (an M1 marker) reaches half-maximal induction
+      therefore provides a direct constraint on IFNg_50, interpreted here in molar
+      units (pM) after converting the reported 20 ng/mL dose using the interferon-gamma
+      molecular weight.'
+    type: algebraic
+    formula: C_half_pM = IFNg_50
+    code: "def compute(params, inputs):\n    # Predict the IFN-gamma concentration\
+      \ (in pM) that yields half-maximal NOS2 induction.\n    # In the QSP model,\
+      \ the IFNg_50 parameter is defined as this half-maximal concentration.\n   \
+      \ return params['IFNg_50']\n"
+  error_model:
+  - name: IFNg_halfmax_concentration
+    units: picomolarity
+    uses_inputs:
+    - IFNg_halfmax_pM
+    - n_IFNg_dose_response_reps
+    - IFNg_halfmax_alpha
+    sample_size_input: n_IFNg_dose_response_reps
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['IFNg_halfmax_pM']\n    alpha = inputs['IFNg_halfmax_alpha']\n\
+      \    sigma_ln = np.sqrt(np.log(1.0 + alpha**2))\n    mu_ln = np.log(mean) -\
+      \ sigma_ln**2 / 2.0\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: This target provides a single algebraic constraint equating
+    the model parameter IFNg_50 (half-maximal IFN-gamma concentration for M2-to-M1
+    polarization) to the experimentally observed half-maximal IFN-gamma dose required
+    for NOS2 induction in RAW 264.7 macrophages, after unit conversion to pM. With
+    one measurement and one parameter, IFNg_50 is in principle well identified from
+    this data point alone, modulo the assumed uncertainty on the EC50 estimate and
+    translation from RAW 264.7 activation to human PDAC tumor-associated macrophages.
+    The lognormal observation model with an assumed ~20% relative variability factor
+    captures typical experimental variability but does not constrain potential differences
+    between resting-to-M1 activation (experiment) and true M2-to-M1 repolarization
+    (model), which will need to be accounted for via broader priors or additional
+    targets in future work.
+experimental_context:
+  species: mouse
+  system: in_vitro_cell_line
+  cell_lines:
+  - name: RAW 264.7
+    species: mouse
+    tissue_origin: peritoneal macrophage-like tumor
+    cell_type: macrophage-like cell line
+    source: American Type Culture Collection (ATCC)
+  culture_conditions:
+    substrate: standard tissue culture plastic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+    medium: DMEM + 10% fetal bovine serum
+    duration: "Serum-starved overnight, then stimulated with IFN-gamma \xB1 IL-17\
+      \ for up to 48 h"
+    notes: Murine RAW 264.7 macrophage-like cells were serum-deprived overnight prior
+      to cytokine stimulation; NOS2 was measured after 24 h IFN-gamma exposure for
+      the dose-response experiment used here.
+  indication: inflammatory macrophage activation model (non-PDAC)
+study_interpretation: The Gao2016 study quantifies NOS2 induction and NO production
+  in murine RAW 264.7 macrophages in response to graded IFN-gamma stimulation with
+  or without IL-17. NOS2 and NO are canonical markers of classically activated (M1-like)
+  macrophages. The authors explicitly report that NOS2 protein levels reach approximately
+  half-maximal expression at 20 ng/mL IFN-gamma after 24 h, based on densitometric
+  analysis of a detailed dose-response curve. Treating NOS2 as a proxy for M1 polarization
+  and assuming that IL-12 drive is negligible in this in vitro setting, this half-maximal
+  IFN-gamma dose provides a direct estimate of the EC50 for IFN-gamma-mediated M1
+  activation. After conversion to molar units, this EC50 is used to constrain the
+  QSP parameter IFNg_50, which appears in the Hill-type term controlling IFN-gamma-dependent
+  M2-to-M1 polarization in the PDAC tumor microenvironment.
+key_assumptions:
+- NOS2 induction and NO production in RAW 264.7 macrophages are treated as quantitative
+  proxies for M1-like polarization and thus for the functional output of IFN-gamma-driven
+  M2-to-M1 polarization in the QSP model.
+- The reported half-maximal NOS2 expression at 20 ng/mL IFN-gamma corresponds to the
+  concentration at which the IFN-gamma Hill function in the polarization reaction
+  reaches 0.5, justifying the identification of this dose (after unit conversion)
+  with IFNg_50.
+- IL-12 levels in the RAW 264.7 culture system are assumed to be low enough that the
+  IL-12-dependent component of the joint IFN-gamma/IL-12 activation term does not
+  materially shift the apparent IFN-gamma EC50, so that the effective IFN-gamma sensitivity
+  can be mapped to IFNg_50 without explicitly modeling IL-12.
+- The molecular weight of interferon-gamma is approximated as 17 kDa for conversion
+  between ng/mL and molar concentration; differences between murine and human IFN-gamma
+  masses are small relative to other biological uncertainties.
+- Because Gao2016 does not provide an explicit confidence interval for the 20 ng/mL
+  half-maximal estimate, a modest relative variability factor (~20%) is assumed in
+  the observation model to capture experimental variability in the EC50.
+- Differences between murine RAW 264.7 macrophage-like cells in 2D culture and human
+  tumor-associated macrophages in PDAC (including species, activation history, and
+  stromal context) are assumed to introduce order-of-magnitude translation uncertainty
+  that will be handled by the prior and by combining this target with additional macrophage-related
+  data in the full calibration.
+key_study_limitations:
+- The experiment uses murine RAW 264.7 macrophage-like cells rather than primary human
+  tumor-associated macrophages, introducing species and cell-line artifacts.
+- The measured response is NOS2/NO induction in resting macrophages, not explicit
+  repolarization from an M2 phenotype, which may exhibit different IFN-gamma sensitivity.
+- The PDAC tumor microenvironment includes strong stromal, hypoxic, and cytokine-mediated
+  modulation of macrophage state that are not represented in the simplified in vitro
+  culture, so in vivo effective IFN-gamma EC50 values could differ substantially.
+- The half-maximal IFN-gamma dose (20 ng/mL) is inferred from densitometric quantification
+  of western blots and described qualitatively in the text, without a formal fitted
+  EC50 value or reported confidence interval.
+- Only a single time point (24 h) is assessed for the full IFN-gamma dose-response,
+  limiting the ability to separate kinetic effects from steady-state dose sensitivity.
+primary_data_source:
+  doi: 10.3892/ijmm.2015.2433
+  title: IL-17 intensifies IFN-gamma-induced NOS2 upregulation in RAW 264.7 cells
+    by further activating STAT1 and NF-kappaB
+  authors:
+  - GAO
+  year: 2015
+  source_tag: Gao2016
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study investigates IFN-gamma-driven NOS2 induction
+      in murine RAW 264.7 macrophages as a model of inflammatory macrophage activation,
+      whereas the QSPIO-PDAC model targets human tumor-associated macrophages in pancreatic
+      ductal adenocarcinoma. Macrophage IFN-gamma signaling and NOS2 regulation are
+      conserved across contexts, but the absence of a desmoplastic tumor microenvironment,
+      stromal signals, and chronic M2 polarization means that the effective IFN-gamma
+      EC50 in this system is only a mechanistic proxy for the PDAC setting and may
+      differ by orders of magnitude.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: Macrophages are stimulated with exogenous recombinant
+      IFN-gamma at supraphysiologic concentrations to map a full dose-response curve
+      for NOS2 induction. This provides a quantitative characterization of pathway
+      sensitivity but likely overestimates the IFN-gamma levels required for activation
+      in vivo, where chronic exposure and co-stimulatory cytokines modulate responsiveness.
+      The inferred EC50 should therefore be interpreted as a context-dependent estimate
+      that may need down-scaling for human PDAC.
+    tme_compatibility: low
+    tme_compatibility_notes: RAW 264.7 cells grown on plastic in standard medium lack
+      the dense collagenous stroma, hypoxia, heterogeneous cytokine milieu, and chronic
+      immunosuppressive signals characteristic of PDAC. In particular, desmoplasia,
+      tumor-derived IL-10 and TGFbeta, and CAF-derived factors that shape macrophage
+      polarization are absent. As a result, the IFN-gamma concentration required to
+      induce NOS2 in this system could be substantially higher than in vivo, and translation
+      to PDAC TAMs is expected to carry at least an order-of-magnitude uncertainty.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_cell_line
+secondary_data_sources:
+- url: https://www.uniprot.org/uniprot/P01579
+  title: Interferon gamma (IFNG) UniProt entry
+  source_tag: IFNg_MW_Uniprot
+  contribution: Provided the approximate molecular weight (~17 kDa) of interferon-gamma
+    used to convert Gao2016 IFN-gamma concentrations from ng/mL to molar units (pM).
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The UniProt entry characterizes the biochemical
+      properties of human interferon-gamma and is used solely to obtain the molecular
+      weight for unit conversion. While not specific to PDAC, the molecular mass of
+      IFN-gamma is invariant across indications, so this serves as a generic biophysical
+      reference.
+    species_source: human
+    species_target: human
+    source_quality: textbook
+    perturbation_type: physiological_baseline
+    perturbation_relevance: The molecular weight reported reflects the native cytokine
+      and is not tied to any particular perturbation; it is used only for stoichiometric
+      unit conversion.
+    tme_compatibility: high
+    tme_compatibility_notes: The molecular weight of interferon-gamma is a fundamental
+      biochemical property and does not depend on the tumor microenvironment; thus,
+      TME compatibility is effectively complete for the purpose of unit conversion.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_cell_line
+tags:
+- IFNg_50
+- macrophage_activation
+- IFN_gamma
+- NOS2
+- RAW2647
+- EC50_estimate
+extraction_model: gpt-4.1
+extraction_reasoning_effort: medium

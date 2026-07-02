@@ -1,0 +1,100 @@
+# MATLAB
+*.m~
+*.asv
+startup.m
+*.mat
+.sim_outputs.json
+
+# Python virtual environment
+venv/
+env/
+.env
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node modules and React
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE and OS
+.DS_Store
+.claude
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+
+# Generated/large files
+*.html
+sources
+*.xlsx
+*.pdf
+
+# LaTeX intermediate files
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+scratch
+batch_jobs
+cache
+
+sbi-logs
+morris-cache
+results/
+
+# Generated figures and slide previews
+figures/
+**/figures/
+presentations/slide_previews/
+
+# Quarto rendering artifacts
+**/libs/bootstrap/
+**/libs/clipboard/
+**/libs/quarto-html/
+
+.coverage
+.qsp-hpc/
+model_catalog.txt
+workflows/local_test.py
+
+validation-outputs
+
+# Audit report generated images
+notes/calibration/parameter_audit_report_files/*.png
+notes/calibration/parameter_audit_report_files/*.svg
+notes/priors/
+metadata-storage/to-review/
+
+jobs
+to-review
+
+.mcp.json
+
+# Submodel comparison cache
+calibration_targets/submodel_targets/.compare_cache/
+# Aggregate inference output written by qsp-inference's run_comparison()
+# into the same dir as schema-validated submodel targets — ignore locally
+# so the SubmodelTarget schema validator doesn't try to parse it (scope
+# creep to move it in qsp-inference; safe to ignore here).
+calibration_targets/submodel_targets/compare_inference_results.yaml
+
+# Office temp files
+~$*
+
+# Staged extraction working directory
+work/
+
+# Source PDFs for submodel target extraction (large, per-paper subfolders)
+calibration_targets/submodel_targets/papers/
+
+# Rendered presentation HTML (build output of marp .md sources)
+presentations/*.html

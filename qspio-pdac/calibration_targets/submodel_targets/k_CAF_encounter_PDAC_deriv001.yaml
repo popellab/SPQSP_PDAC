@@ -1,0 +1,488 @@
+target_id: k_CAF_encounter
+inputs:
+- name: psc_density_mean_per_g
+  value: 200000.0
+  units: cell/gram
+  input_type: direct_measurement
+  source_ref: Apte1998
+  source_location: Results, Freshly isolated cells from rat pancreas, Yield and viability
+  value_snippet: The yield of stellate shaped cells was 200000 (1400) cells per g
+    pancreas (n=4 isolations).
+- name: psc_density_sem_per_g
+  value: 1400.0
+  units: cell/gram
+  input_type: direct_measurement
+  source_ref: Apte1998
+  source_location: Results, Freshly isolated cells from rat pancreas, Yield and viability
+  value_snippet: The yield of stellate shaped cells was 200 000 (1400) cells per g
+    pancreas (n=4 isolations).
+- name: n_psc_normal
+  value: 4.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Apte1998
+  source_location: Methods and Results (n=4 rats)
+  value_snippet: The yield of stellate shaped cells was 200 000 (1400) cells per g
+    pancreas (n=4 isolations).
+- name: pancreas_density_g_per_mL
+  value: 1.0
+  units: gram/milliliter
+  input_type: reference_value
+  rationale: Assume soft pancreatic tissue has density ~1 g/mL so that 1 g of pancreas
+    corresponds approximately to 1 mL of tissue volume.
+  source_ref: Apte1998
+  source_location: Not explicitly stated; standard tissue density assumption.
+- name: time_week4_days
+  value: 28.0
+  units: day
+  input_type: reference_value
+  rationale: Four weeks after tumor implantation, assuming 7 days per week (4 x 7
+    = 28 days).
+  source_ref: Tansi2024
+  source_location: Tumors excised at 4 weeks post implantation (Methods, Results).
+- name: time_week8_days
+  value: 56.0
+  units: day
+  input_type: reference_value
+  rationale: Eight weeks after tumor implantation, assuming 7 days per week (8 x 7
+    = 56 days).
+  source_ref: Tansi2024
+  source_location: Tumors excised at 8 weeks post implantation (Methods, Results).
+- name: time_week10_days
+  value: 70.0
+  units: day
+  input_type: reference_value
+  rationale: Ten weeks after tumor implantation, assuming 7 days per week (10 x 7
+    = 70 days). Tumors at 10-11 weeks in the paper are summarized as 10-week tumors
+    in Figure 8.
+  source_ref: Tansi2024
+  source_location: Tumors excised at 10/11 weeks post implantation, summarized as
+    10-week tumors in Figure 8.
+- name: psc_frac_w4_mean
+  value: 0.011428571428571429
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Tansi2024
+  source_location: Figure 8B, Panc-1-fl tumors, 4 weeks
+  figure_excerpt:
+    figure_id: Figure 8B
+    value: ~1.1% naive PSCs at 4 weeks (Panc-1-fl)
+    description: Bar height for naive vitamin A-positive pancreatic stellate cells
+      in 4-week Panc-1-fl tumors, expressed as % of total counted cells.
+    context: Semiquantitative analysis of naive pancreatic stellate cells and mature
+      fibroblasts in orthotopic Panc-1-fl and BxPC-3 tumors at 4, 8, and 10 weeks
+      post implantation.
+- name: psc_frac_w4_sd
+  value: 0.018095238095238095
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Tansi2024
+  source_location: Figure 8B, Panc-1-fl tumors, 4 weeks
+  figure_excerpt:
+    figure_id: Figure 8B
+    value: Error bar from ~1.1% up to ~3.0% at 4 weeks
+    description: Height of the error bar above the 4-week Panc-1-fl naive PSC bar,
+      interpreted as standard deviation of the % naive PSCs.
+    context: Figure legend states that error bars represent standard deviations (S.D.).
+- name: n_psc_w4
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Figure 8 legend indicates that each bar represents 1-3 animals. Exact
+    n per time point is not specified; for conservative uncertainty, we treat the
+    reported SD as the variability of a single effective sample (sample_size=1) rather
+    than converting to a smaller SE.
+  source_ref: Tansi2024
+  source_location: Figure 8 legend and Section 2.5
+- name: psc_frac_w8_mean
+  value: 0.030476190476190476
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Tansi2024
+  source_location: Figure 8B, Panc-1-fl tumors, 8 weeks
+  figure_excerpt:
+    figure_id: Figure 8B
+    value: ~3.0% naive PSCs at 8 weeks (Panc-1-fl)
+    description: Bar height for naive vitamin A-positive pancreatic stellate cells
+      in 8-week Panc-1-fl tumors, expressed as % of total counted cells.
+    context: Semiquantitative analysis of naive pancreatic stellate cells and mature
+      fibroblasts in orthotopic Panc-1-fl and BxPC-3 tumors at 4, 8, and 10 weeks
+      post implantation.
+- name: psc_frac_w8_sd
+  value: 0.028571428571428574
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Tansi2024
+  source_location: Figure 8B, Panc-1-fl tumors, 8 weeks
+  figure_excerpt:
+    figure_id: Figure 8B
+    value: Error bar from ~3.0% up to ~5.9% at 8 weeks
+    description: Height of the error bar above the 8-week Panc-1-fl naive PSC bar,
+      interpreted as standard deviation of the % naive PSCs.
+    context: Figure legend states that error bars represent standard deviations (S.D.).
+- name: n_psc_w8
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Exact number of mice contributing to the 8-week bar is not shown (1-3
+    animals). To avoid underestimating uncertainty, we treat the reported SD as arising
+    from a single effective sample (sample_size=1).
+  source_ref: Tansi2024
+  source_location: Figure 8 legend and Section 2.5
+- name: psc_frac_w10_mean
+  value: 0.09333333333333334
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Tansi2024
+  source_location: Figure 8B, Panc-1-fl tumors, 10 weeks
+  figure_excerpt:
+    figure_id: Figure 8B
+    value: ~9.3% naive PSCs at 10 weeks (Panc-1-fl)
+    description: Bar height for naive vitamin A-positive pancreatic stellate cells
+      in 10-week Panc-1-fl tumors, expressed as % of total counted cells.
+    context: Semiquantitative analysis of naive pancreatic stellate cells and mature
+      fibroblasts in orthotopic Panc-1-fl and BxPC-3 tumors at 4, 8, and 10 weeks
+      post implantation.
+- name: psc_frac_w10_sd
+  value: 0.030476190476190476
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Tansi2024
+  source_location: Figure 8B, Panc-1-fl tumors, 10 weeks
+  figure_excerpt:
+    figure_id: Figure 8B
+    value: Error bar from ~9.3% up to ~12.4% at 10 weeks
+    description: Height of the error bar above the 10-week Panc-1-fl naive PSC bar,
+      interpreted as standard deviation of the % naive PSCs.
+    context: Figure legend states that error bars represent standard deviations (S.D.).
+- name: n_psc_w10
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Exact number of mice contributing to the 10-week bar is not specified
+    (1-3 animals). To remain conservative, the SD is treated as reflecting a single
+    effective sample (sample_size=1).
+  source_ref: Tansi2024
+  source_location: Figure 8 legend and Section 2.5
+calibration:
+  parameters:
+  - name: k_CAF_encounter
+    units: cell/(milliliter*day)
+    nuisance: false
+  - name: k_CAF_const
+    units: cell/milliliter
+    nuisance: false
+  - name: psc_frac_scale
+    units: milliliter/cell
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -14.5
+      sigma: 1.0
+  forward_model:
+    data_rationale: Apte1998 directly quantifies the density of stellate shaped cells
+      (PSCs) per gram of normal rat pancreas, anchoring the constitutive PSC density
+      k_CAF_const. Tansi2024 provides a time course of naive vitamin A positive PSC
+      fractions within orthotopic Panc-1-fl PDAC tumors at 4, 8, and 10 weeks after
+      implantation. Interpreting the rise of naive PSC fraction with tumor age as
+      reflecting encounter and recruitment of resident quiescent PSCs, a first-order
+      approach-to-plateau model for PSC density over time is appropriate.
+    submodel_rationale: 'In the full QSP PDAC model, quiescent PSCs (qPSC) in the
+      tumor compartment are created by a volumetric encounter term with surrounding
+      pancreas: rate = k_CAF_encounter * V_T * (k_CAF_const - (qPSC/V_T)) / k_CAF_const.
+      For a fixed tumor volume this implies that the qPSC density satisfies dq/dt
+      = (k_CAF_encounter/k_CAF_const)*(k_CAF_const - q), a first-order approach to
+      the constitutive density k_CAF_const. The algebraic solution used here preserves
+      this mechanistic structure exactly by expressing qPSC density as a function
+      of k_CAF_encounter, k_CAF_const, and tumor age, and mapping density to the experimentally
+      reported naive PSC fraction via a nuisance scaling parameter.'
+    type: algebraic
+    formula: qPSC_density(t) = k_CAF_const * (1 - exp(-(k_CAF_encounter/k_CAF_const)
+      * t)); naive PSC fraction(t) = psc_frac_scale * qPSC_density(t); normal pancreas
+      PSC density (cells/g) = k_CAF_const / pancreas_density_g_per_mL
+    code: "def compute(params, inputs):\n    import numpy as np\n    k_enc = params['k_CAF_encounter']\
+      \  # cell/(mL*day)\n    k_const = params['k_CAF_const']    # cell/mL\n    scale\
+      \ = params['psc_frac_scale']   # mL/cell, maps density to dimensionless fraction\n\
+      \n    t4 = inputs['time_week4_days']\n    t8 = inputs['time_week8_days']\n \
+      \   t10 = inputs['time_week10_days']\n\n    # Effective first-order approach\
+      \ rate (1/day)\n    lam = k_enc / k_const\n\n    def q_density(t):\n       \
+      \ # Density of quiescent PSCs (cells/mL) assuming negligible initial density\n\
+      \        return k_const * (1.0 - np.exp(-lam * t))\n\n    q4 = q_density(t4)\n\
+      \    q8 = q_density(t8)\n    q10 = q_density(t10)\n\n    # Predicted naive PSC\
+      \ fractions (dimensionless, 0-1)\n    frac4 = scale * q4\n    frac8 = scale\
+      \ * q8\n    frac10 = scale * q10\n\n    # Normal pancreas PSC density in cells\
+      \ per gram (Apte1998)\n    dens_per_mL = k_const\n    dens_per_g = dens_per_mL\
+      \ / inputs['pancreas_density_g_per_mL']\n\n    return {\n        'psc_frac_w4':\
+      \ frac4,\n        'psc_frac_w8': frac8,\n        'psc_frac_w10': frac10,\n \
+      \       'psc_density_normal': dens_per_g,\n    }\n"
+  error_model:
+  - name: psc_frac_week4
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['psc_frac_w4']\n"
+    units: dimensionless
+    uses_inputs:
+    - psc_frac_w4_mean
+    - psc_frac_w4_sd
+    - n_psc_w4
+    - time_week4_days
+    - time_week8_days
+    - time_week10_days
+    - pancreas_density_g_per_mL
+    sample_size_input: n_psc_w4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['psc_frac_w4_mean']\n    sd = inputs['psc_frac_w4_sd']\n\
+      \    # Use lognormal bootstrap for positive fractions; fall back to normal if\
+      \ mean is extremely small\n    if mean <= 0.0:\n        sd_eff = sd / np.sqrt(sample_size)\n\
+      \        return rng.normal(mean, sd_eff, n_bootstrap)\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: psc_frac_week8
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['psc_frac_w8']\n"
+    units: dimensionless
+    uses_inputs:
+    - psc_frac_w8_mean
+    - psc_frac_w8_sd
+    - n_psc_w8
+    - time_week4_days
+    - time_week8_days
+    - time_week10_days
+    - pancreas_density_g_per_mL
+    sample_size_input: n_psc_w8
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['psc_frac_w8_mean']\n    sd = inputs['psc_frac_w8_sd']\n\
+      \    if mean <= 0.0:\n        sd_eff = sd / np.sqrt(sample_size)\n        return\
+      \ rng.normal(mean, sd_eff, n_bootstrap)\n    cv = sd / mean\n    sigma_ln =\
+      \ np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2\n\
+      \    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: psc_frac_week10
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['psc_frac_w10']\n"
+    units: dimensionless
+    uses_inputs:
+    - psc_frac_w10_mean
+    - psc_frac_w10_sd
+    - n_psc_w10
+    - time_week4_days
+    - time_week8_days
+    - time_week10_days
+    - pancreas_density_g_per_mL
+    sample_size_input: n_psc_w10
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['psc_frac_w10_mean']\n    sd = inputs['psc_frac_w10_sd']\n\
+      \    if mean <= 0.0:\n        sd_eff = sd / np.sqrt(sample_size)\n        return\
+      \ rng.normal(mean, sd_eff, n_bootstrap)\n    cv = sd / mean\n    sigma_ln =\
+      \ np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2\n\
+      \    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: psc_density_normal_cells_per_g
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['psc_density_normal']\n"
+    units: cell/gram
+    uses_inputs:
+    - psc_density_mean_per_g
+    - psc_density_sem_per_g
+    - n_psc_normal
+    - pancreas_density_g_per_mL
+    sample_size_input: n_psc_normal
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['psc_density_mean_per_g']\n    sem\
+      \ = inputs['psc_density_sem_per_g']\n    # Convert SEM to SD using n\n    sd\
+      \ = sem * np.sqrt(sample_size)\n    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1\
+      \ + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: 'The submodel jointly constrains k_CAF_const (constitutive
+    PSC density) and k_CAF_encounter (volumetric PSC encounter rate) using two kinds
+    of measurements: (1) Apte1998 directly measures PSC yield per gram of normal rat
+    pancreas, which maps almost one-to-one onto k_CAF_const after accounting for tissue
+    density and incomplete recovery; (2) Tansi2024 provides three time points (4,
+    8, 10 weeks) of naive PSC fraction within Panc-1-fl orthotopic PDAC tumors, which,
+    under a first-order approach-to-plateau assumption, constrain primarily the ratio
+    k_CAF_encounter/k_CAF_const (the effective first-order rate 1/tau). Because only
+    three tumor-age points are available and absolute PSC density in tumors is not
+    known, k_CAF_encounter and k_CAF_const are partially correlated: increases in
+    k_CAF_const can be offset by proportionate increases in k_CAF_encounter to maintain
+    the same time constant. The naive PSC fraction data determine the time scale tau
+    reasonably well, while the Apte yield measurement anchors the absolute scale of
+    k_CAF_const. The nuisance scale parameter psc_frac_scale absorbs differences in
+    total cell density and staining efficiency between normal pancreas and tumor sections;
+    it is expected to be highly correlated with k_CAF_const but does not affect the
+    inferred time constant. The model does not explicitly represent PSC activation
+    into myCAF or iCAF phenotypes, so parameters such as k_PSC_to_myCAF are not constrained
+    by this target. Additional longitudinal data on absolute PSC and CAF densities
+    per unit tumor volume, or more frequent time points, would further disentangle
+    k_CAF_encounter from k_CAF_const.'
+experimental_context:
+  species: mixed_human_mouse
+  system: animal_in_vivo
+  cell_lines:
+  - name: Panc-1-fl
+    species: human
+    tissue_origin: pancreas
+    cell_type: pancreatic ductal adenocarcinoma cell line, mkate2 fluorescently labeled
+    source: Friedrich Schiller University Jena / ATCC-like PDAC line
+  - name: BxPC-3
+    species: human
+    tissue_origin: pancreas
+    cell_type: pancreatic ductal adenocarcinoma cell line
+    source: Friedrich Schiller University Jena / ATCC-like PDAC line
+  indication: pancreatic ductal adenocarcinoma
+study_interpretation: Apte1998 shows that normal rat pancreas contains a substantial
+  resident population of periacinar stellate shaped cells (pancreatic stellate cells,
+  PSCs), comprising about 4% of all pancreatic cells and yielding approximately 2
+  x 10^5 stellate shaped cells per gram of pancreas by enzymatic isolation. This provides
+  a direct quantitative anchor for the constitutive PSC density in pancreatic tissue
+  (k_CAF_const) toward which the QSP model's volumetric PSC encounter term drives.
+  Tansi2024 establishes orthotopic PDAC xenografts (Panc-1-fl, BxPC-3) in mouse pancreas
+  and tracks tumor morphology and stromal composition over time. Their semiquantitative
+  histology shows that naive vitamin A positive PSCs are initially rare within 4-week
+  Panc-1-fl tumors, then increase at 8 weeks and more markedly by 10 weeks, while
+  tumors are still growing locally. Interpreting this monotonic rise in naive PSC
+  fraction as reflecting ongoing encounter and recruitment of resident PSCs as the
+  tumor expands into surrounding pancreas, a first-order approach-to-plateau model
+  for PSC density versus tumor age is biologically reasonable and consistent with
+  the QSP implementation of k_CAF_encounter. By fitting this time course along with
+  the absolute PSC yield per gram of pancreas, the submodel infers a plausible constitutive
+  PSC density and the implied encounter rate required to reach that density on the
+  observed time scale.
+key_assumptions:
+- Pancreatic tissue density is approximately 1 g/mL, so that 2 x 10^5 PSCs per g pancreas
+  from Apte1998 can be treated as 2 x 10^5 PSCs per mL for calibrating k_CAF_const.
+- The yield of 2 x 10^5 stellate shaped cells per g pancreas underestimates the true
+  PSC density because of incomplete enzymatic recovery and purity <100%; using it
+  as the target for k_CAF_const therefore yields a conservative (lower-bound) estimate
+  of constitutive PSC density.
+- Naive vitamin A positive PSC counts in Tansi2024 (percent of stained cells in tumor
+  sections) scale linearly with underlying qPSC density per unit tumor volume, with
+  all geometric and staining factors absorbed into a single nuisance scaling parameter.
+- Tumor volume changes and heterogeneity are neglected in the PSC encounter dynamics;
+  PSC accumulation is modeled as a function of tumor age only, consistent with a volumetric
+  encounter rate acting on an effectively growing but unmeasured interface.
+- Initial qPSC density within the nascent orthotopic tumor at the time of implantation
+  is negligible relative to the constitutive density, so the solution of the first-order
+  approach-to-plateau ODE can assume qPSC(0) ~ 0.
+- Rat normal pancreas PSC density and mouse pancreas PSC density underlying the orthotopic
+  xenografts are similar enough that Apte1998 can be used to anchor k_CAF_const for
+  a human PDAC QSP model, acknowledging added translation uncertainty.
+- The three available tumor age points (4, 8, 10 weeks) in Tansi2024 are sufficient
+  to capture the dominant time scale of PSC accumulation, even though the true saturation
+  may occur later than 10 weeks.
+key_study_limitations:
+- Apte1998 reports PSC yield after enzymatic digestion of normal rat pancreas with
+  ~75% purity and >80% viability; the isolation efficiency is unknown, so the measured
+  2 x 10^5 cells/g likely underestimates the true in situ PSC density.
+- Both Apte1998 and Tansi2024 are based on rodent tissues (rat and mouse host pancreas),
+  whereas the QSP model targets human PDAC; species differences in PSC abundance and
+  behavior are not explicitly corrected beyond broader translation uncertainty.
+- The naive PSC fractions in Tansi2024 are semiquantitative, based on immunohistochemical
+  staining and image analysis on 1-3 animals per time point, and may be biased by
+  field selection and staining efficiency.
+- Absolute tumor volumes and interface geometry from Tansi2024 are not directly incorporated
+  into the submodel; PSC encounter is inferred only as a function of tumor age, which
+  may miss dependence on tumor size or local microenvironment.
+- The submodel ignores downstream activation of qPSCs into myofibroblastic and inflammatory
+  CAFs, even though these processes are important sinks for qPSC in the full QSP model,
+  potentially leading to an effective encounter rate that absorbs some activation
+  dynamics.
+- The mapping from naive PSC fraction within tumor tissue assumes relatively constant
+  total nuclear density across tumors and time points, which may not hold in late-stage,
+  highly fibrotic tumors.
+- Tansi2024 uses human PDAC cell lines implanted into immunodeficient nude mice; the
+  stromal and immune microenvironment differs from that of human PDAC in patients,
+  particularly regarding immune composition and chronic inflammation.
+primary_data_source:
+  doi: 10.1136/gut.43.1.128
+  pmid: '9703476'
+  title: 'Periacinar stellate shaped cells in rat pancreas: identification, isolation,
+    and culture'
+  authors:
+  - Apte
+  - Haber PS
+  - Applegate TL
+  - Norton ID
+  - McCaughan GW
+  - Korsten MA
+  - Pirola RC
+  - Wilson JS
+  year: 1998
+  source_tag: Apte1998
+  source_relevance:
+    indication_match: related
+    indication_match_justification: The study characterizes stellate shaped cells
+      in healthy rat pancreas, quantifying their abundance and yield. While it does
+      not involve pancreatic ductal adenocarcinoma directly, it provides baseline
+      PSC density in normal pancreatic tissue, which is mechanistically upstream of
+      PDAC-associated CAFs and is used as the constitutive PSC density toward which
+      the QSP PDAC model drives when tumors expand into adjacent normal pancreas.
+    species_source: rat
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Rats were chow-fed without experimental fibrosis or cancer,
+      so the measured PSC density reflects physiological baseline conditions in healthy
+      pancreas. This is appropriate for calibrating the constitutive PSC density term
+      representing resident PSCs in non-tumorous pancreatic tissue.
+    tme_compatibility: moderate
+    tme_compatibility_notes: The normal rat pancreas lacks the desmoplastic stroma
+      and chronic inflammatory milieu of human PDAC, but the basic periacinar localization
+      and vitamin A storing phenotype of PSCs are conserved. The main impact is that
+      PSC density may differ from peri-tumoral human pancreas, and activation status
+      is lower, introducing at least a 2-3x translation uncertainty.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: animal_in_vivo
+secondary_data_sources:
+- doi: 10.3390/ijms25115619
+  title: Identifying the Morphological and Molecular Features of a Cell-Based Orthotopic
+    Pancreatic Cancer Mouse Model during Growth over Time
+  authors:
+  - Tansi
+  - Schrepper A
+  - Schwarzer M
+  - Teichgraber U
+  - Hilger I
+  year: 2024
+  source_tag: Tansi2024
+  contribution: Provided time course of naive vitamin A positive pancreatic stellate
+    cell fractions in orthotopic Panc-1-fl PDAC tumors at 4, 8, and 10 weeks after
+    implantation, which constrains the time scale of PSC accumulation within tumors.
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The study uses human pancreatic ductal adenocarcinoma
+      cell lines (Panc-1-fl and BxPC-3) implanted orthotopically into the mouse pancreas
+      to generate PDAC-like tumors. Although performed in mice, the tumor type, desmoplastic
+      stroma, and CAF-rich microenvironment directly model human PDAC biology.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: pathological_state
+    perturbation_relevance: Tumors are allowed to grow without therapeutic intervention,
+      representing the natural progression of PDAC-like tumors in an orthotopic microenvironment.
+      This is appropriate for constraining baseline PSC encounter and accumulation
+      dynamics in the absence of stromal-targeted therapy.
+    tme_compatibility: moderate
+    tme_compatibility_notes: Orthotopic xenografts recapitulate key features of PDAC
+      desmoplasia, including PSC-derived CAFs and collagen-rich stroma, but are grown
+      in immunodeficient nude mice with reduced adaptive immunity and potentially
+      accelerated growth relative to human PDAC. This leads to some uncertainty when
+      mapping tumor-age-dependent PSC accumulation to human disease time scales.
+    measurement_directness: proxy_observable
+    temporal_resolution: timecourse
+    experimental_system: animal_in_vivo
+tags:
+- PDAC
+- pancreatic stellate cell
+- cancer associated fibroblast
+- stromal encounter
+- desmoplasia
+- orthotopic xenograft
+- rat pancreas
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

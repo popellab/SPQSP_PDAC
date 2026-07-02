@@ -1,0 +1,280 @@
+target_id: k_vas_growth
+inputs:
+- name: VascDens_early_mean_ortho
+  value: 100.0
+  units: cm/cm^2
+  input_type: direct_measurement
+  source_ref: Tsuzuki2001
+  source_location: Table 1, Angiogenesis, orthotopic PANC-1, early stage (4 wk)
+  table_excerpt:
+    table_id: Table 1
+    column: Vascular density (cm/cm^2)
+    row: Orthotopic PANC-1, early stage (4 wk)
+    value: "100 \xB1 14"
+    context: "Quantitative physiologic parameters in PANC-1 tumors at early (4 wk)\
+      \ and late (8 wk) stages; values are mean \xB1 SD, N = 3\u201312 per group."
+- name: VascDens_early_sd_ortho
+  value: 14.0
+  units: cm/cm^2
+  input_type: direct_measurement
+  source_ref: Tsuzuki2001
+  source_location: Table 1, Angiogenesis, orthotopic PANC-1, early stage (4 wk)
+  table_excerpt:
+    table_id: Table 1
+    column: Vascular density (cm/cm^2)
+    row: Orthotopic PANC-1, early stage (4 wk)
+    value: "100 \xB1 14"
+    context: "Quantitative physiologic parameters in PANC-1 tumors at early (4 wk)\
+      \ and late (8 wk) stages; values are mean \xB1 SD, N = 3\u201312 per group."
+- name: VascDens_late_mean_ortho
+  value: 124.0
+  units: cm/cm^2
+  input_type: direct_measurement
+  source_ref: Tsuzuki2001
+  source_location: Table 1, Angiogenesis, orthotopic PANC-1, late stage (8 wk)
+  table_excerpt:
+    table_id: Table 1
+    column: Vascular density (cm/cm^2)
+    row: Orthotopic PANC-1, late stage (8 wk)
+    value: "124 \xB1 17*"
+    context: "Quantitative physiologic parameters in PANC-1 tumors at early (4 wk)\
+      \ and late (8 wk) stages; values are mean \xB1 SD, N = 3\u201312 per group.\
+      \ *p<0.05 compared with ectopic tumor."
+- name: VascDens_late_sd_ortho
+  value: 17.0
+  units: cm/cm^2
+  input_type: direct_measurement
+  source_ref: Tsuzuki2001
+  source_location: Table 1, Angiogenesis, orthotopic PANC-1, late stage (8 wk)
+  table_excerpt:
+    table_id: Table 1
+    column: Vascular density (cm/cm^2)
+    row: Orthotopic PANC-1, late stage (8 wk)
+    value: "124 \xB1 17*"
+    context: "Quantitative physiologic parameters in PANC-1 tumors at early (4 wk)\
+      \ and late (8 wk) stages; values are mean \xB1 SD, N = 3\u201312 per group.\
+      \ *p<0.05 compared with ectopic tumor."
+- name: t_early_weeks
+  value: 4.0
+  units: week
+  input_type: direct_measurement
+  source_ref: Tsuzuki2001
+  source_location: Results, Table 1 caption and text describing early stage tumors
+  value_snippet: observed by intravital microscopy at 4 weeks and 8 weeks after tumor
+    implantation
+- name: t_late_weeks
+  value: 8.0
+  units: week
+  input_type: direct_measurement
+  source_ref: Tsuzuki2001
+  source_location: Results, Table 1 caption and text describing late stage tumors
+  value_snippet: observed by intravital microscopy at 4 weeks and 8 weeks after tumor
+    implantation
+- name: delta_t_weeks
+  value: 4.0
+  units: week
+  input_type: derived_arithmetic
+  rationale: Time interval between early and late vascular density measurements (8
+    wk - 4 wk).
+  source_ref: Tsuzuki2001
+  source_location: Results, early (4 wk) and late (8 wk) stages for vascular measurements
+  source_inputs:
+  - t_early_weeks
+  - t_late_weeks
+  formula: t_late_weeks - t_early_weeks
+- name: days_per_week
+  value: 7.0
+  units: day/week
+  input_type: reference_value
+  rationale: Convert reported time in weeks to days for consistency with QSP parameter
+    units (1/day).
+  source_ref: Tsuzuki2001
+  source_location: Methods and Results (times reported in weeks)
+- name: V_ortho_4w
+  value: 197.6
+  units: mm^3
+  input_type: direct_measurement
+  source_ref: Tsuzuki2001
+  source_location: Figure 2, orthotopic PANC-1 tumor volume at 4 weeks after implantation
+  figure_excerpt:
+    figure_id: Figure 2
+    value: ~200
+    description: Orthotopic PANC-1 tumor volume at 4 weeks post-implantation read
+      from growth curve
+    context: Tumor size measured weekly with calipers; orthotopic tumors grow faster
+      than ectopic tumors.
+- name: V_ortho_8w
+  value: 4371.5
+  units: mm^3
+  input_type: direct_measurement
+  source_ref: Tsuzuki2001
+  source_location: Figure 2, orthotopic PANC-1 tumor volume at 8 weeks after implantation
+  figure_excerpt:
+    figure_id: Figure 2
+    value: ~4400
+    description: Orthotopic PANC-1 tumor volume at 8 weeks post-implantation read
+      from growth curve
+    context: Tumor size measured weekly with calipers; orthotopic tumors grow faster
+      than ectopic tumors.
+- name: n_vasc_ortho_late
+  value: 3.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: "Table 1 reports N = 3\u201312 per group for physiologic parameters.\
+    \ A conservative sample size of 3 is assumed for orthotopic late-stage vascular\
+    \ density to avoid underestimating uncertainty."
+  source_ref: Tsuzuki2001
+  source_location: Table 1 footnote
+calibration:
+  parameters:
+  - name: k_vas_growth
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: Tsuzuki2001 reports functional vascular density (total vessel
+      length per area, cm/cm^2) for orthotopic PANC-1 tumors at 4 and 8 weeks after
+      implantation. Over this interval, vascular density increases modestly, while
+      tumor volume increases markedly. Treating vascular density as proportional to
+      the tumor carrying capacity K, we approximate its change as driven by cumulative
+      cancer cell burden between 4 and 8 weeks.
+    submodel_rationale: In the full QSP model, the vasculature-dependent carrying
+      capacity K is produced at rate k_vas_growth * C_total * VEGF/(VEGF + VEGF_50).
+      Between 4 and 8 weeks in the orthotopic PANC-1 model, we assume VEGF is saturating
+      so the Hill term is ~1, and approximate C_total dynamics from the observed exponential
+      tumor volume growth. This yields an algebraic relationship between k_vas_growth
+      and the observed change in vascular density, preserving the mechanistic dependence
+      on cumulative tumor burden while neglecting explicit vasculature decay over
+      this short window.
+    type: algebraic
+    formula: D_late = D_early + k_vas_growth * integral_{t_early}^{t_late} C_norm(t)
+      dt, with C_norm(t) approximated from orthotopic tumor volume growth between
+      4 and 8 weeks
+    code: "def compute(params, inputs):\n    import numpy as np\n    # QSP parameter\n\
+      \    k_vas = params['k_vas_growth']  # 1/day\n\n    # Experimental inputs\n\
+      \    D_early = inputs['VascDens_early_mean_ortho']  # cm/cm^2 at 4 weeks\n \
+      \   V4 = inputs['V_ortho_4w']  # mm^3\n    V8 = inputs['V_ortho_8w']  # mm^3\n\
+      \    dt_weeks = inputs['delta_t_weeks']  # weeks between measurements\n    days_per_week\
+      \ = inputs['days_per_week']  # 7 days/week\n\n    # Convert time interval to\
+      \ days\n    dt_days = dt_weeks * days_per_week\n\n    # Approximate orthotopic\
+      \ tumor volume growth between 4 and 8 weeks as exponential\n    # V(t) = V4\
+      \ * exp(r_tumor * t), with t in days and V(0) = V4 at 4 weeks\n    r_tumor =\
+      \ np.log(V8 / V4) / dt_days  # 1/day\n\n    # Normalize cancer cell burden to\
+      \ its value at 4 weeks so C_norm(0) = 1\n    # C_norm(t) = exp(r_tumor * t).\
+      \ This is proportional to C_total(t)/C_total(4 weeks).\n    integral_Cnorm\
+      \ = (np.exp(r_tumor * dt_days) - 1.0) / r_tumor\n\n  \
+      \  # Assume VEGF is in a saturating regime relative to VEGF_50 during 4\u2013\
+      8 weeks\n    # so VEGF / (VEGF + VEGF_50) \u2248 1.0.\n    H_vegf = 1.0\n\n\
+      \    # Algebraic prediction for late-stage vascular density (cm/cm^2)\n    D_late_pred\
+      \ = D_early + k_vas * H_vegf * integral_Cnorm\n    return D_late_pred"
+  error_model:
+  - name: vasc_density_late_ortho
+    units: cm/cm^2
+    uses_inputs:
+    - VascDens_late_mean_ortho
+    - VascDens_late_sd_ortho
+    sample_size_input: n_vasc_ortho_late
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['VascDens_late_mean_ortho']\n   \
+      \ sd = inputs['VascDens_late_sd_ortho']\n    # Assume reported \xB1 values are\
+      \ SD for vascular density measurements.\n    # Generate parametric bootstrap\
+      \ samples for the group mean.\n    return rng.normal(mean, sd / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: "This target constrains k_vas_growth using a single net change\
+    \ in orthotopic vascular density over a 4-week interval (4\u20138 weeks post-implantation),\
+    \ together with an exponential approximation to tumor volume growth. The model\
+    \ assumes VEGF is saturating relative to VEGF_50 in this window and neglects explicit\
+    \ vasculature decay (k_vas_decay). As a result, the inferred k_vas_growth represents\
+    \ an effective vasculature production rate under high-VEGF conditions and may\
+    \ partially absorb any unmodeled loss processes. With only one dynamic data point\
+    \ (early to late), k_vas_growth is only weakly identifiable and is correlated\
+    \ with assumptions about tumor volume dynamics; the QSP prior will play a substantial\
+    \ role in the posterior. Additional longitudinal vascular measurements (beyond\
+    \ two time points) or explicit data on vasculature regression would be needed\
+    \ to separately constrain growth and decay contributions."
+experimental_context:
+  species: mouse
+  system: animal_in_vivo
+  cell_lines:
+  - name: PANC-1
+    species: human
+    tissue_origin: pancreas
+    cell_type: ductal adenocarcinoma
+    source: ATCC, implanted as xenografts into SCID mice
+  indication: pancreatic ductal adenocarcinoma (orthotopic xenograft)
+study_interpretation: "Orthotopic human PANC-1 xenografts in SCID mice showed a modest\
+  \ increase in functional vascular density (100 \u2192 124 cm/cm^2) between 4 and\
+  \ 8 weeks post-implantation, while tumor volume increased by more than an order\
+  \ of magnitude. Treating vascular density as proportional to the vasculature-dependent\
+  \ tumor carrying capacity K, and approximating cancer cell burden via exponential\
+  \ tumor growth over this interval, allows estimation of an effective vasculature\
+  \ growth rate k_vas_growth under high-VEGF, late-stage PDAC conditions in the pancreatic\
+  \ microenvironment."
+key_assumptions:
+- Functional vascular density (cm/cm^2) measured by intravital microscopy is proportional
+  to the tumor carrying capacity K used in the QSP model.
+- "Between 4 and 8 weeks post-implantation, VEGF levels in orthotopic PANC-1 tumors\
+  \ are sufficiently high that VEGF/(VEGF + VEGF_50) \u2248 1, so the Hill term can\
+  \ be treated as saturating."
+- Orthotopic PANC-1 tumor volume growth between 4 and 8 weeks can be approximated
+  as exponential, and tumor cell number is proportional to tumor volume (constant
+  cell density).
+- "Vascular decay terms (involving k_vas_decay) are negligible over the 4\u20138 week\
+  \ interval compared to vasculature production, so net change in vascular density\
+  \ primarily reflects k_vas_growth-driven production."
+- "Reported \xB1 values in Table 1 for vascular density represent standard deviations\
+  \ rather than standard errors; N for orthotopic late-stage vascular density is conservatively\
+  \ taken as 3 to avoid underestimating uncertainty."
+- Heterogeneity across animals in vascular density and tumor growth can be represented
+  by a normal distribution of the group mean values.
+key_study_limitations:
+- Only two time points (4 and 8 weeks) are available for vascular density, limiting
+  temporal resolution and preventing separate identification of vasculature growth
+  and decay processes.
+- Vascular density is a functional measure (perfused vessels per area) rather than
+  a direct structural measurement of vessel number or cross-sectional area, and its
+  proportionality to the carrying capacity K is assumed rather than demonstrated.
+- Tumor volume measurements used to approximate cancer cell burden are obtained from
+  caliper measurements and may underestimate irregular tumor shapes or small satellite
+  lesions.
+- The orthotopic model uses human PANC-1 cells in immunodeficient SCID mice, lacking
+  adaptive immune components and some stromal complexity present in human PDAC.
+- VEGF protein levels are reported but not used explicitly in the forward model; assuming
+  VEGF saturation may not hold at all times or in all tumor regions.
+primary_data_source:
+  doi: 10.1038/labinvest.3780330
+  year: 2001
+  source_tag: Tsuzuki2001
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The study uses human PANC-1 ductal pancreatic
+      adenocarcinoma cells implanted orthotopically into the mouse pancreas, closely
+      modeling pancreatic ductal adenocarcinoma growth and vasculature in the pancreatic
+      microenvironment. Although performed in immunodeficient mice, the tumor type
+      and site directly correspond to the PDAC indication in the QSP model.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: physiological_baseline
+    perturbation_relevance: "Tumors grew under baseline conditions without anti-angiogenic\
+      \ or cytotoxic therapies during the 4\u20138 week window used here, so measured\
+      \ vascular density changes reflect intrinsic tumor-driven angiogenesis rather\
+      \ than pharmacologically perturbed dynamics."
+    tme_compatibility: high
+    tme_compatibility_notes: The orthotopic PANC-1 model recapitulates key aspects
+      of the pancreatic microenvironment, including local vasculature and stromal
+      context, although the desmoplastic response is less pronounced than in human
+      PDAC and adaptive immunity is absent in SCID mice. These differences may modestly
+      affect absolute angiogenic rates but not their qualitative dependence on tumor
+      burden.
+    measurement_directness: single_inversion
+    temporal_resolution: endpoint_pair
+    experimental_system: animal_in_vivo
+tags:
+- angiogenesis
+- vasculature
+- PDAC
+- orthotopic_xenograft
+- k_vas_growth
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

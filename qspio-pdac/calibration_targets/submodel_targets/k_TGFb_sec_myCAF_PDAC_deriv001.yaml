@@ -1,0 +1,268 @@
+target_id: k_TGFb_sec_myCAF_bachem1992
+tags:
+- ai-generated
+extraction_model: claude-opus-4-6
+extraction_reasoning_effort: high
+study_interpretation: 'Bachem et al. (1992) measured TGFbeta1 protein concentration in media conditioned
+
+  by rat liver perisinusoidal lipocytes (PL, equivalent to quiescent HSCs) and
+
+  myofibroblast-like cells (MFBLC, equivalent to fully activated HSCs/myofibroblasts)
+
+  using competitive radioligand binding assays. TGFbeta1 was measured in transiently
+
+  acidified conditioned media (to activate latent TGFbeta1) collected over 24 hours.
+
+
+  TGFbeta1 production was undetectable in early PL (day 3) and increased to
+
+  0.02 fmol/cell/d in PL at day 6, 0.13 fmol/cell/d in transitional cells (TC, day
+
+  10), and 0.20 fmol/cell/d in fully transformed MFBLC (secondary culture). This
+
+  progressive increase with activation state confirms that activated myofibroblasts
+
+  are the dominant source of TGFbeta1.
+
+  '
+key_assumptions:
+- 'MFBLC (secondary culture, 100% alpha-SMA+) represent the fully activated
+
+  myofibroblast phenotype equivalent to model myCAFs. The TGFbeta1 production
+
+  rate of 0.20 fmol/cell/d reflects the maximal secretion capacity under
+
+  standard culture conditions.
+
+  '
+- 'Rat hepatic stellate cell TGFbeta1 secretion rates are representative of
+
+  human pancreatic stellate cell / CAF secretion rates. HSCs and PSCs share
+
+  TGFbeta1-driven activation biology and autocrine TGFbeta1 production.
+
+  '
+- 'The measurement captures total active TGFbeta1 (acid-activated from latent
+
+  form). In vivo, only a fraction of secreted TGFbeta1 may be activated.
+
+  '
+- 'The per-cell production rate in fmol/cell/d maps directly to the model
+
+  parameter k_TGFb_sec_myCAF after unit conversion (fmol -> nmol).
+
+  '
+key_study_limitations:
+- 'Rat hepatic stellate cells, not human pancreatic CAFs. Species and organ
+
+  differences in TGFbeta1 production rates may exist.
+
+  '
+- 'In vitro 2D culture on plastic with 10% FCS. In vivo secretion rates in
+
+  the 3D tumor microenvironment may differ due to ECM interactions, hypoxia,
+
+  and paracrine signaling.
+
+  '
+- 'TGFbeta1 measured after transient acidification of conditioned media, which
+
+  activates all latent TGFbeta1. In vivo, latent TGFbeta1 activation is
+
+  regulated and only a fraction becomes active.
+
+  '
+- 'Table II reports values as "the mean of two different cultures" without SD.
+
+  The spread across activation states (PL-6d: 0.02, TC: 0.13, MFBLC: 0.20)
+
+  provides a measure of biological variability.
+
+  '
+experimental_context:
+  species: rat
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: hepatic stellate cell / myofibroblast-like cell
+    source: rat liver
+    isolation_method: 'Nycodenz density gradient from rat liver, primary culture 6-7 days
+
+      on uncoated plastic, then passaged to obtain MFBLC.
+
+      '
+  culture_conditions:
+    medium: DMEM with 10% FCS, conditioned for 24h in absence of FCS
+    duration: 24 hours conditioning
+  indication: liver_fibrosis
+primary_data_source:
+  doi: 10.1172/JCI115561
+  title: 'Activation of rat liver perisinusoidal lipocytes by transforming growth
+
+    factors derived from myofibroblastlike cells. A potential mechanism of
+
+    self perpetuation in liver fibrogenesis
+
+    '
+  authors:
+  - Bachem
+  - Meyer
+  - Melchior
+  - Sell
+  - Gressner
+  year: 1992
+  source_tag: Bachem1992
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'Rat hepatic stellate cell TGFbeta1 secretion as proxy for PDAC myCAF
+
+      TGFbeta1 secretion. HSCs and PSCs are functionally nearly identical
+
+      (vitamin A storage, alpha-SMA activation, TGFbeta-driven biology).
+
+      TGFbeta1 autocrine production is a conserved feature of myofibroblast
+
+      activation across organs.
+
+      '
+    species_source: rat
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: 'Cells are measured in standard culture conditions after full activation
+
+      (MFBLC, secondary culture). This represents the constitutive secretion
+
+      rate of activated myofibroblasts, not a pharmacologically perturbed state.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro culture on plastic provides strong activation but lacks the
+
+      3D ECM context, hypoxia, and paracrine signals of PDAC stroma.
+
+      TGFbeta1 production may differ in vivo.
+
+      '
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_primary
+secondary_data_sources: []
+inputs:
+- name: tgfb1_production_rate_mfblc
+  value: 0.2
+  units: fmol/(cell*day)
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Table II, MFBLC row, TGFbeta1 column
+  table_excerpt:
+    table_id: Table II
+    column: TGFbeta1 (fmol/cell/d)
+    row: MFBLC secondary culture
+    value: '0.20'
+    context: 'TGFalpha and TGFbeta1 Production Rate. Media were conditioned for 24 h
+
+      in the absence of FCS. Data points represent the mean TGFbeta1 production
+
+      rate per cell, calculated on the basis of TGFs concentration in conditioned
+
+      media and cell count (at least two different cultures).
+
+      '
+- name: tgfb1_production_rate_tc10d
+  value: 0.13
+  units: fmol/(cell*day)
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Table II, TC 10th d row, TGFbeta1 column
+  table_excerpt:
+    table_id: Table II
+    column: TGFbeta1 (fmol/cell/d)
+    row: TC 10th d
+    value: '0.13'
+    context: 'TC = transitional cell (primary culture 10th day, partially transformed).
+
+      TGFbeta1 production intermediate between early PL and fully transformed MFBLC.
+
+      '
+- name: tgfb1_production_rate_pl6d
+  value: 0.02
+  units: fmol/(cell*day)
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Table II, PL 6th d row, TGFbeta1 column
+  table_excerpt:
+    table_id: Table II
+    column: TGFbeta1 (fmol/cell/d)
+    row: PL 6th d
+    value: '0.02'
+    context: 'PL = perisinusoidal lipocyte (early primary culture, partially quiescent).
+
+      TGFbeta1 production just becoming detectable at day 6.
+
+      '
+- name: n_cultures
+  value: 2
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1992
+  source_location: Table II legend
+  value_snippet: 'the mean TGFα and TGFβ1 production rate per cell, which was calculated
+
+    on the basis of TGFs concentration in conditioned media and cell count
+
+    (at least two different cultures)
+
+    '
+calibration:
+  parameters:
+  - name: k_TGFb_sec_myCAF
+    units: nanomolarity*liter/(cell*day)
+  forward_model:
+    type: algebraic
+    formula: production_fmol = k_TGFb_sec_myCAF [nmol/(cell*day)] * 1e6 [fmol/nmol]
+    data_rationale: 'Bachem et al. 1992 measured TGFbeta1 production rates directly in
+
+      fmol/cell/d from conditioned media of MFBLC (fully activated HSC
+
+      myofibroblasts). The forward model converts the model parameter
+
+      k_TGFb_sec_myCAF from nmol/(cell*day) to fmol/(cell*day) for direct
+
+      comparison with the experimental measurement.
+
+      '
+    submodel_rationale: 'In the full model, k_TGFb_sec_myCAF appears in the reaction
+
+      null -> V_T.TGFb with rate k_TGFb_sec_myCAF * V_T.myCAF. The
+
+      parameter units are nM*L/(cell*day) = nmol/(cell*day). The per-cell
+
+      secretion rate is the quantity directly measured by Bachem.
+
+      '
+    code: "def compute(params, inputs):\n    # k_TGFb_sec_myCAF in nM*L/(cell*day) = nmol/(cell*day)\n    # Convert to fmol/(cell*day):\
+      \ multiply by 1e6\n    k = params['k_TGFb_sec_myCAF']\n    return k * 1e6\n"
+  error_model:
+  - name: tgfb1_secretion_mfblc
+    units: fmol/(cell*day)
+    uses_inputs:
+    - tgfb1_production_rate_mfblc
+    - tgfb1_production_rate_tc10d
+    - tgfb1_production_rate_pl6d
+    - n_cultures
+    sample_size_input: n_cultures
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    # Three\
+      \ activation-state measurements spanning quiescent to fully\n    # activated. MFBLC (0.20) is the target for myCAFs,\
+      \ but the spread\n    # across states captures real biological variability in secretion.\n    vals = np.array([\n  \
+      \      inputs['tgfb1_production_rate_pl6d'],\n        inputs['tgfb1_production_rate_tc10d'],\n        inputs['tgfb1_production_rate_mfblc'],\n\
+      \    ])\n    # Bootstrap: resample with replacement from the 3 measured values\n    idx = rng.integers(0, len(vals),\
+      \ size=n_bootstrap)\n    return vals[idx]\n"
+  identifiability_notes: 'Single parameter (k_TGFb_sec_myCAF) constrained by one primary measurement
+
+    (MFBLC TGFbeta1 production rate = 0.20 fmol/cell/d). The TC-10d intermediate
+
+    value (0.13) provides a consistency check and informs the spread. Main
+
+    uncertainty is in vitro to in vivo translation and species/organ extrapolation.
+
+    '

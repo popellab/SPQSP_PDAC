@@ -1,0 +1,235 @@
+target_id: phi_col_50_Kmax
+inputs:
+- name: Ashina2023_stromal_collagen_median_pct
+  value: 38.83870967741935
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ashina2023
+  source_location: Figure 1f (stromal collagen ratio vs T factor)
+  figure_excerpt:
+    figure_id: Figure 1f
+    value: "median \u2248 38.8%"
+    description: Median stromal collagen ratio (%) for one T-factor group from boxplot
+    context: "Y-axis stromal collagen ratio (%); boxplots stratified by T factor (1\u2013\
+      4) and stage (I\u2013III)."
+- name: Ashina2023_stromal_collagen_q75_pct
+  value: 48.258064516129025
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ashina2023
+  source_location: Figure 1f (stromal collagen ratio vs T factor)
+  figure_excerpt:
+    figure_id: Figure 1f
+    value: "upper quartile \u2248 48.3%"
+    description: Upper quartile (75th percentile) stromal collagen ratio (%) for the
+      same T-factor group from boxplot
+    context: "Y-axis stromal collagen ratio (%); boxplots stratified by T factor (1\u2013\
+      4) and stage (I\u2013III)."
+- name: Ashina2023_phi50_over_median_min_est
+  value: 1.24
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: "Approximated lower bound for phi_col_50_Kmax normalized to the median\
+    \ clinical collagen level, assuming that a 50% reduction in tumor carrying capacity,\
+    \ if present, would occur only at or above the upper quartile of observed stromal\
+    \ collagen ratios. The ratio uses one representative T-factor boxplot (median\
+    \ \u224838.8%, Q75 \u224848.3%)."
+  source_ref: Ashina2023
+  source_location: Figure 1f (stromal collagen ratio vs T factor)
+  source_inputs:
+  - Ashina2023_stromal_collagen_q75_pct
+  - Ashina2023_stromal_collagen_median_pct
+  formula: Ashina2023_stromal_collagen_q75_pct / Ashina2023_stromal_collagen_median_pct
+- name: Ashina2023_n_patients
+  value: 169.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Ashina2023
+  source_location: Methods, Patients
+  value_snippet: Thus, we analyzed 169 conventional patients with PDAC as the final
+    study population.
+calibration:
+  parameters:
+  - name: phi_col_50_Kmax
+    units: dimensionless
+    nuisance: false
+  forward_model:
+    data_rationale: "Ashina2023 reports whole-slide digital quantification of stromal\
+      \ collagen ratios (%) across 169 human PDACs. Digitized boxplots from Figure\
+      \ 1f give a representative median \u224838.8% and upper quartile \u224848.3%\
+      \ stromal collagen ratio in the cohort. We interpret the median clinical collagen\
+      \ level as the normalization point (phi_collagen = 1) for the QSP model. The\
+      \ submodel observable is the collagen threshold, in units of this median, at\
+      \ which the tumor carrying capacity K would be reduced by 50% (phi_col_50_Kmax)."
+    submodel_rationale: In the full QSPIO-PDAC model, phi_col_50_Kmax is the collagen
+      volume fraction at which the vasculature-dependent carrying capacity K is reduced
+      by half via an inhibitory Hill-type function of normalized collagen volume fraction
+      phi_collagen. The present algebraic submodel does not attempt to reproduce tumor
+      growth or survival dynamics explicitly; instead, it maps the abstract threshold
+      phi_col_50_Kmax onto the clinically observed distribution of stromal collagen
+      by expressing it in units of the median clinical collagen level from Ashina2023.
+      This preserves the mechanistic meaning of phi_col_50_Kmax as a threshold on
+      normalized collagen while allowing us to use population-level collagen distributions
+      to weakly constrain its magnitude.
+    type: algebraic
+    formula: phi50_norm = phi_col_50_Kmax (normalized to median clinical collagen
+      level)
+    code: "def compute(params, inputs):\n    import numpy as np\n    # Parameter:\
+      \ phi_col_50_Kmax is defined in the QSP model as the\n    # collagen volume\
+      \ fraction (normalized) at which the tumor carrying\n    # capacity K is reduced\
+      \ by 50% via an inhibitory Hill-type factor\n    # H_K(phi) = 1 / (1 + (phi\
+      \ / phi_col_50_Kmax)^n). The full QSP\n    # implementation uses phi_col_50_Kmax\
+      \ as a dimensionless threshold\n    # on the normalized collagen volume fraction\
+      \ phi_collagen.\n    #\n    # In this submodel we normalize phi_collagen by\
+      \ the clinical median\n    # stromal collagen ratio from Ashina2023, so that\
+      \ phi_collagen = 1\n    # corresponds to a typical PDAC tumor. Under this normalization,\n\
+      \    # phi_col_50_Kmax itself is already the threshold expressed in\n    # units\
+      \ of \"fold of median clinical collagen\". The observable we\n    # compare\
+      \ to data is therefore simply this normalized threshold.\n    phi50 = params['phi_col_50_Kmax']\n\
+      \    return phi50"
+  error_model:
+  - name: phi50_over_median_from_clinical_collagen_distribution
+    units: dimensionless
+    uses_inputs:
+    - Ashina2023_phi50_over_median_min_est
+    sample_size_input: Ashina2023_n_patients
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    # Lower-bound estimate for phi_col_50_Kmax normalized\
+      \ to the\n    # median clinical collagen level, taken as the ratio of the upper\n\
+      \    # quartile stromal collagen ratio (Q75) to the median stromal\n    # collagen\
+      \ ratio in Ashina2023 Figure 1f.\n    mean = inputs['Ashina2023_phi50_over_median_min_est']\n\
+      \    # In the absence of an empirical SD for this threshold, represent\n   \
+      \ # uncertainty by a simple uniform distribution spanning a 2-fold\n    # range\
+      \ around the lower-bound estimate.\n    low = mean / 2.0\n    high = mean *\
+      \ 2.0\n    return rng.uniform(low, high, n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: "This target uses the distribution of stromal collagen ratios\
+    \ in 169 human PDACs (Ashina2023) to express phi_col_50_Kmax in units of the median\
+    \ clinical collagen level. The quantitative constraint comes from the requirement\
+    \ that any 50% reduction in carrying capacity, if present, should occur only at\
+    \ or above the upper quartile of observed stromal collagen (Q75 \u2248 1.24-fold\
+    \ the median). We encode this as an observation on phi_col_50_Kmax with mean equal\
+    \ to this lower bound and a simple, very broad uniform uncertainty spanning 0.5x\u2013\
+    2x of that value. As a result, the posterior for phi_col_50_Kmax will be only\
+    \ weakly updated away from the prior, mainly disfavoring thresholds far below\
+    \ the clinical collagen range; upper bounds (phi_col_50_Kmax >> 1) remain essentially\
+    \ prior-dominated."
+experimental_context:
+  species: human
+  system: clinical_in_vivo
+  indication: pancreatic ductal adenocarcinoma
+study_interpretation: "Ashina2023 provides whole-slide digital quantification of stromal\
+  \ collagen ratios in a resected human PDAC cohort. The median stromal collagen ratio\
+  \ in one representative subgroup is \u224838.8%, with an upper quartile \u224848.3%.\
+  \ Combined with the lack of association between collagen ratio and pathological\
+  \ stage or T factor, and the observation that low-collagen tumors have worse survival,\
+  \ this supports a modeling choice where large reductions in tumor carrying capacity\
+  \ due to collagen occur only at or above the densest stromal levels seen clinically.\
+  \ By normalizing phi_collagen so that the clinical median corresponds to 1, the\
+  \ ratio Q75/median (\u22481.24) serves as a lower bound for the threshold phi_col_50_Kmax\
+  \ at which K would be reduced by half. The submodel therefore encodes a preference\
+  \ for phi_col_50_Kmax at or above unity (i.e., at or above typical clinical collagen\
+  \ levels), consistent with evidence that extensive stromal depletion can worsen\
+  \ outcomes."
+key_assumptions:
+- Stromal collagen ratio (%) measured by EVG staining in Ashina2023 is proportional
+  to the collagen volume fraction used in the QSP model, after normalization by the
+  cohort median.
+- The median stromal collagen ratio in Ashina2023 corresponds to phi_collagen = 1
+  in the QSP model (i.e., typical PDAC desmoplasia).
+- Any 50% reduction in tumor carrying capacity due to collagen (encoded by phi_col_50_Kmax)
+  would occur only at or above the upper quartile of observed stromal collagen; this
+  is approximated by centering the observable at the Q75/median ratio of stromal collagen
+  from Figure 1f.
+- Uncertainty in the mapping from stromal collagen distribution to the carrying-capacity
+  threshold is represented heuristically by a wide 2-fold uniform range around the
+  lower-bound estimate, rather than by an empirically derived SD.
+- Effects of collagen on tumor progression in Ashina2023 operate through multiple
+  mechanisms (immune infiltration, chemotherapy sensitivity, etc.); we assume that
+  these do not invert the qualitative inference that very low collagen should not
+  be modeled as strongly reducing tumor carrying capacity.
+key_study_limitations:
+- Ashina2023 does not report tumor growth rates, carrying capacity, or longitudinal
+  tumor size; the connection from stromal collagen distribution to a 50% reduction
+  threshold in K is indirect and relies on mechanistic reasoning.
+- Collagen measurements are 2D area fractions within stromal regions on EVG-stained
+  sections, not 3D volume fractions of collagen in the whole tumor, and may be affected
+  by sectioning and staining variability.
+- High vs low collagen groups in Ashina2023 differ in several covariates (e.g., histological
+  grade, CDKN2A/p16 alterations, immune infiltrates), so survival differences cannot
+  be uniquely attributed to physical effects on tumor carrying capacity.
+- Only a single representative subgroup from Figure 1f was digitized to derive the
+  median and upper quartile collagen values; other strata (different T factors or
+  stages) may have slightly different distributions.
+- The assumption that a 50% reduction in carrying capacity would occur only at or
+  above the upper quartile of observed stromal collagen is not directly tested in
+  the study and is encoded here with a broad, heuristic uncertainty range.
+primary_data_source:
+  doi: 10.1007/s00535-023-02020-8
+  title: A comprehensive analysis of tumor-stromal collagen in relation to pathological,
+    molecular, and immune characteristics and patient survival in pancreatic ductal
+    adenocarcinoma
+  authors:
+  - Ashina
+  - Masuda A
+  - Yamakawa K
+  - Hamada T
+  - Tsujimae M
+  - Tanaka T
+  - Toyama H
+  - Sofue K
+  - Shiomi H
+  - Sakai A
+  - Kobayashi T
+  - Abe S
+  - Gonda M
+  - Masuda S
+  - Inomata N
+  - Uemura H
+  - Kohashi S
+  - Nagao K
+  - Harada Y
+  - Miki M
+  - Juri N
+  - Irie Y
+  - Kanzawa M
+  - Itoh T
+  - Inoue J
+  - Imai T
+  - Fukumoto T
+  - Kodama Y
+  year: 2023
+  source_tag: Ashina2023
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The study cohort consists of 169 patients with
+      resected pancreatic ductal adenocarcinoma, the same disease indication as the
+      QSPIO-PDAC model. Tumor-stromal collagen is quantified directly in primary human
+      PDAC specimens, making the stromal composition highly relevant to the modeled
+      tumor microenvironment.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: pathological_state
+    perturbation_relevance: Patients underwent standard-of-care surgical resection
+      and perioperative chemotherapy regimens, but there was no experimental manipulation
+      of stromal collagen. The collagen measurements reflect the native, pathological
+      PDAC state rather than pharmacologically or genetically perturbed stroma, which
+      is appropriate for constraining baseline model parameters like phi_col_50_Kmax.
+    tme_compatibility: high
+    tme_compatibility_notes: The tumors are untreated human PDACs characterized by
+      dense desmoplastic stroma and immunosuppressive microenvironments, closely matching
+      the TME represented in the QSPIO-PDAC model. While inter-patient variability
+      in stromal composition exists, no major systematic differences from the modeled
+      indication are expected.
+    measurement_directness: proxy_observable
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: clinical_in_vivo
+tags:
+- collagen
+- stroma
+- carrying_capacity
+- PDAC
+- clinical_human
+extraction_model: claude-3.7
+extraction_reasoning_effort: medium

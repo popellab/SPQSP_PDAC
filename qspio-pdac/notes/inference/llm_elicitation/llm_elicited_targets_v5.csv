@@ -1,0 +1,28 @@
+observable,estimate,ci95_lo,ci95_hi,units,reasoning
+cancer_cell_density_baseline,750,300,1500,cells/mm2,Total cellularity ~3000/mm2 × 25% epithelial fraction in this stroma-dominant tumor
+cd8_density_baseline,45,10,150,cells/mm2,12% immune × 30% lymphocytes × 40% CD8 from ~3000 total cells
+cd4_helper_density,35,10,100,cells/mm2,CD4 total ~49/mm2 with 65% non-Treg helpers
+treg_density_baseline,18,5,55,cells/mm2,~35% of CD4+ compartment are Foxp3+ Tregs in PDAC
+cdc1_density_baseline,3,0.5,10,cells/mm2,DCs ~3% of immune cells with cDC1s ~25% of DC pool
+cdc2_density_baseline,5,1,15,cells/mm2,cDC2s ~45% of total DCs (~11/mm2)
+tam_density,200,80,450,cells/mm2,Macrophages dominate at ~55% of total immune infiltrate
+mdsc_density,60,15,150,cells/mm2,~15% of myeloid compartment across monocytic and granulocytic subtypes
+total_til_density,100,30,280,cells/mm2,Sum of CD8 (45) + CD4h (35) + Treg (18)
+cd8_exhausted_fraction,0.70,0.45,0.90,dimensionless,Chronic antigen and TGFb/IL-10 milieu drives most infiltrating CD8s to PD-1+
+th_exhausted_fraction,0.50,0.25,0.75,dimensionless,CD4 helpers upregulate PD-1 but less uniformly than CD8s
+cd8_treg_ratio,2.5,0.5,6.0,dimensionless,Direct ratio of CD8 (45) to Treg (18) density estimates
+cd8_treg_ratio_alt,2.0,0.5,5.0,dimensionless,Independent estimate emphasizing strong Treg enrichment by CAF-derived CCL5/TGFb
+treg_fraction_cd4,0.35,0.15,0.55,dimensionless,18 Tregs / (18 Tregs + 35 Th) = 0.34 from density estimates
+treg_fraction_cd4_alt,0.30,0.12,0.50,dimensionless,Independent estimate from TGFb-driven conversion and apCAF-mediated Treg induction
+treg_fraction_baseline,0.18,0.08,0.35,dimensionless,Tregs (18) as fraction of all CD3+ T cells (98)
+m1_m2_ratio,0.30,0.10,0.60,dimensionless,~25% M1 vs ~75% M2 due to IL-10/TGFb/hypoxia-driven polarization
+m2_macrophage_fraction,0.75,0.55,0.90,dimensionless,CD163+ M2 dominate in immunosuppressive PDAC stroma
+apc_maturation_ratio,0.20,0.05,0.40,dimensionless,Dense stroma and IL-10/TGFb impair DC maturation leaving ~80% immature
+icaf_fraction_of_caf,0.35,0.15,0.55,dimensionless,iCAFs occupy looser stroma distal to glands at ~35% of CAF pool
+mycaf_fraction_of_caf,0.50,0.30,0.70,dimensionless,myCAFs are dominant subtype adjacent to tumor glands producing collagenous matrix
+apcaf_fraction_of_caf,0.15,0.05,0.30,dimensionless,Residual fraction (1-0.35-0.50) consistent with apCAFs being smallest subtype
+apcaf_fraction_of_caf_alt,0.12,0.03,0.25,dimensionless,Independent estimate reflecting apCAFs as recently described and often near-absent
+stromal_fraction,0.75,0.55,0.90,dimensionless,PDAC is the most desmoplastic solid tumor with 70-80% stromal volume
+psc_activation_ratio,0.85,0.65,0.95,dimensionless,Most stellate cells in established PDAC are activated (aSMA+) with few quiescent remaining
+collagen1_protein_level,10,4,20,fold-change,PDAC collagen ~30% of tissue vs normal ~3% yielding ~10x fold-change
+vegf_tissue_concentration,350,100,800,pg/mg protein,Hypoxia drives 3-5x VEGF elevation over normal pancreas (~75 pg/mg) despite dense stroma sequestration

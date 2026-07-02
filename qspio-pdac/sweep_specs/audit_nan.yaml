@@ -1,0 +1,26 @@
+# Single-cell audit run: triggers per-observable NaN diagnostic in sbi_runner
+# after the 20k pool loads. Uses smallest flow + smallest train subsample so
+# training finishes quickly. The printed per-observable NaN rates and the
+# cache/nan_audit.csv it writes are the actual deliverable.
+sweep_name: audit_nan
+
+fixed:
+  prcc_tier: null
+  run_posterior_predictive: false
+  cache_sampling_seed: 2025
+  num_total_simulations: 20000
+
+axes:
+  - name: seed
+    values: [2025]
+  - name: flow
+    values:
+      - {npe_hidden_features: 128, npe_num_transforms: 7}
+  - name: n_train_subsample
+    values: [1000]
+
+sbatch:
+  partition: shared
+  time: "01:00:00"
+  cpus_per_task: 4
+  mem: "32G"

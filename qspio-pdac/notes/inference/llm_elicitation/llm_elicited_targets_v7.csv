@@ -1,0 +1,28 @@
+observable,estimate,ci95_lo,ci95_hi,units,reasoning
+cancer_cell_density_baseline,1200,400,2800,cells/mm2,4000 total cells/mm2 × 30% PanCK+ epithelial fraction; highly variable by differentiation grade
+cd8_density_baseline,90,15,250,cells/mm2,200 lymphocytes/mm² × 80% T cells × 55% CD8+; wide CI reflects cold tumor heterogeneity
+cd4_helper_density,42,10,110,cells/mm2,160 T cells/mm2 × 40% CD4+ × 65% non-Treg; sparse but consistent finding
+treg_density_baseline,25,8,70,cells/mm2,64 CD4+/mm² × 35% FoxP3+; reliably present even when CD8s are scarce
+cdc1_density_baseline,3,0.5,10,cells/mm2,600 myeloid × 3% DCs × 17% cDC1; rarest immune subset preferentially excluded from PDAC TME
+cdc2_density_baseline,8,2,22,cells/mm2,18 total DCs/mm² × 45% cDC2; more abundant than cDC1 but still rare
+tam_density,250,80,550,cells/mm2,600 myeloid × 60% macrophages moderated by tissue sampling; dominant immune population
+mdsc_density,60,15,180,cells/mm2,600 myeloid × 15%; conservative due to IHC quantification challenges
+total_til_density,160,50,400,cells/mm2,Sum of CD8 + CD4h + Treg (90+42+25); consistent with ~4% of total cellularity
+cd8_exhausted_fraction,0.68,0.40,0.88,dimensionless,Most intratumoral CD8s upregulate PD-1 from chronic antigen exposure; some bystanders remain PD-1−
+th_exhausted_fraction,0.42,0.18,0.65,dimensionless,Lower than CD8 exhaustion; Th2/Th17 subsets less prone to PD-1 upregulation than Th1
+cd8_treg_ratio,3.0,0.8,8.0,dimensionless,90 CD8 / 25 Treg moderated downward; Treg enrichment is a hallmark of PDAC
+cd8_treg_ratio_alt,2.5,0.7,7.0,dimensionless,Independent mental binning of trial biopsies into tertiles; geometric mean ~2.5
+treg_fraction_cd4,0.37,0.18,0.58,dimensionless,25 Treg / 67 total CD4+; high Treg enrichment typical of PDAC immunosuppressive milieu
+treg_fraction_cd4_alt,0.33,0.15,0.55,dimensionless,Independent estimate from trial FoxP3/CD4 co-staining; roughly 1 in 3 CD4+ cells are FoxP3+
+treg_fraction_baseline,0.16,0.06,0.30,dimensionless,25 FoxP3+ / 157 CD3+ T cells; Tregs are ~16% of total T cell infiltrate
+m1_m2_ratio,0.28,0.10,0.55,dimensionless,~22% M1 vs ~78% M2; PDAC TME strongly drives M2 polarization via TGFβ/IL-10/hypoxia
+m2_macrophage_fraction,0.78,0.60,0.92,dimensionless,CD163+ dominant among CD68+ TAMs; consistent with immunosuppressive TME
+apc_maturation_ratio,0.18,0.05,0.38,dimensionless,TGFβ/IL-10/VEGF impair DC maturation; only ~18% reach DC-LAMP+ mature state
+icaf_fraction_of_caf,0.35,0.15,0.55,dimensionless,Inflammatory CAFs are second-largest subtype; ~35% of total CAF pool in treatment-naive PDAC
+mycaf_fraction_of_caf,0.55,0.35,0.75,dimensionless,αSMA+ myofibroblastic CAFs dominate desmoplastic PDAC stroma; most conspicuous on IHC
+apcaf_fraction_of_caf,0.10,0.03,0.22,dimensionless,MHC-II+ antigen-presenting CAFs are minor but consistent population; fractions sum to ~1.0
+apcaf_fraction_of_caf_alt,0.08,0.02,0.20,dimensionless,Independent estimate; apCAFs are the recently described third subtype driving Treg induction
+stromal_fraction,0.75,0.55,0.90,dimensionless,PDAC is prototypically desmoplastic; 60-90% range reflecting differentiation grade variability
+psc_activation_ratio,0.85,0.65,0.95,dimensionless,Quiescent PSCs with vitamin A droplets are rare in established PDAC; vast majority activated
+collagen1_protein_level,10,4,22,fold-change,PDAC among most fibrotic solid tumors; massive collagen I deposition vs minimal normal pancreas baseline
+vegf_tissue_concentration,350,100,800,pg/mg protein,Moderate VEGF from hypoxia-driven expression; not as high as RCC but substantially above normal pancreas
