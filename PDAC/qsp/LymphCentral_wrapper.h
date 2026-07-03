@@ -39,6 +39,7 @@ struct QSPState {
     double teff_central;        // Effector T cells in central compartment
     double treg_central;        // Regulatory T cells in central compartment
     double th_central;
+    double bcell_central;       // Mature B cells in central compartment (SP_V_C_B)
 
     // Tumor compartment cell pools
     double teff_tumor;          // CD8+ T cells in tumor (SP_V_T_C1)
@@ -48,6 +49,9 @@ struct QSPState {
     double m1_tumor;
     double m2_tumor;
     double caf_tumor;
+    double bcell_tumor;         // B cells in tumor (SP_V_T_B)
+    double plasma_tumor;        // Plasma cells in tumor (SP_V_T_Plasma)
+    double tfh_tumor;           // Tfh cells in tumor (SP_V_T_Tfh)
 
     double cc_tumor;
     double cx_tumor;
@@ -130,6 +134,7 @@ public:
         int teff_recruited,
         int treg_recruited,
         int th_recruited,
+        int bcell_recruited,
         double abm_scaler
     );
 
@@ -228,6 +233,7 @@ private:
         int teff_recruited_last_step;
         int treg_recruited_last_step;
         int th_recruited_last_step;
+        int bcell_recruited_last_step;
         double abm_scaler;   // pre-computed (1-w)/w × lymphCC / (tumCC + eps)
     }_abm_signals;
 

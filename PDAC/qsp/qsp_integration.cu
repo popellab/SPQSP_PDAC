@@ -144,11 +144,12 @@ FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
     const int teff_recruited = FLAMEGPU->environment.getProperty<int>("ABM_TEFF_REC");
     const int th_recruited = FLAMEGPU->environment.getProperty<int>("ABM_TH_REC");
     const int treg_recruited = FLAMEGPU->environment.getProperty<int>("ABM_TREG_REC");
+    const int bcell_recruited = FLAMEGPU->environment.getProperty<int>("ABM_BCELL_REC");
 
     // Pass scaled events to wrapper (applied inside time_step via _apply_abm_feedback)
     // Note: cancer_deaths includes deaths from T cells, macrophages, and senescence
     g_lymph->update_from_abm(
-        cancer_deaths, teff_recruited, treg_recruited, th_recruited, abm_scaler);
+        cancer_deaths, teff_recruited, treg_recruited, th_recruited, bcell_recruited, abm_scaler);
 
     // Debug output of event counts (optional)
     // if (step % 50 == 0 && cancer_deaths > 0) {
@@ -176,6 +177,7 @@ FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
     FLAMEGPU->environment.setProperty<float>("qsp_teff_central", static_cast<float>(qsp_state.teff_central));
     FLAMEGPU->environment.setProperty<float>("qsp_treg_central", static_cast<float>(qsp_state.treg_central));
     FLAMEGPU->environment.setProperty<float>("qsp_th_central", static_cast<float>(qsp_state.th_central));
+    FLAMEGPU->environment.setProperty<float>("qsp_bcell_central", static_cast<float>(qsp_state.bcell_central));
 
     FLAMEGPU->environment.setProperty<float>("qsp_teff_tumor", static_cast<float>(qsp_state.teff_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_treg_tumor", static_cast<float>(qsp_state.treg_tumor));
@@ -184,6 +186,9 @@ FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
     FLAMEGPU->environment.setProperty<float>("qsp_m1_tumor", static_cast<float>(qsp_state.m1_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_m2_tumor", static_cast<float>(qsp_state.m2_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_caf_tumor", static_cast<float>(qsp_state.caf_tumor));
+    FLAMEGPU->environment.setProperty<float>("qsp_bcell_tumor", static_cast<float>(qsp_state.bcell_tumor));
+    FLAMEGPU->environment.setProperty<float>("qsp_plasma_tumor", static_cast<float>(qsp_state.plasma_tumor));
+    FLAMEGPU->environment.setProperty<float>("qsp_tfh_tumor", static_cast<float>(qsp_state.tfh_tumor));
 
     // Drug concentrations
     FLAMEGPU->environment.setProperty<float>("qsp_nivo_tumor", static_cast<float>(qsp_state.nivo_tumor));

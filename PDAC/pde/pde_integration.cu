@@ -2500,6 +2500,7 @@ FLAMEGPU_HOST_FUNCTION(copy_abm_counters_to_environment) {
     FLAMEGPU->environment.setProperty<int>("ABM_TREG_REC", static_cast<int>(counters[ABM_COUNT_TREG_REC]));
     FLAMEGPU->environment.setProperty<int>("ABM_MDSC_REC", static_cast<int>(counters[ABM_COUNT_MDSC_REC]));
     FLAMEGPU->environment.setProperty<int>("ABM_MAC_REC", static_cast<int>(counters[ABM_COUNT_MAC_REC]));
+    FLAMEGPU->environment.setProperty<int>("ABM_BCELL_REC", static_cast<int>(counters[ABM_COUNT_BCELL_REC]));
     nvtxRangePop();
 }
 

@@ -847,11 +847,13 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<int>("ABM_TREG_REC", 0);              // T regulatory cells recruited to tumor
     env.newProperty<int>("ABM_MDSC_REC", 0);              // MDSCs recruited to tumor
     env.newProperty<int>("ABM_MAC_REC", 0);               // Macrophages recruited to tumor
+    env.newProperty<int>("ABM_BCELL_REC", 0);             // B cells recruited to tumor (→ QSP V_C.B feedback)
 
     // QSP state (updated by solve_qsp_step host function)
     env.newProperty<float>("qsp_teff_central", 0.0f);
     env.newProperty<float>("qsp_treg_central", 0.0f);
     env.newProperty<float>("qsp_th_central", 0.0f);
+    env.newProperty<float>("qsp_bcell_central", 0.0f);   // systemic B pool (drives/receives B closure)
 
     env.newProperty<float>("qsp_teff_tumor", 0.0f);
     env.newProperty<float>("qsp_treg_tumor", 0.0f);
@@ -860,6 +862,9 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<float>("qsp_m1_tumor", 0.0f);
     env.newProperty<float>("qsp_m2_tumor", 0.0f);
     env.newProperty<float>("qsp_caf_tumor", 0.0f);
+    env.newProperty<float>("qsp_bcell_tumor", 0.0f);
+    env.newProperty<float>("qsp_plasma_tumor", 0.0f);
+    env.newProperty<float>("qsp_tfh_tumor", 0.0f);
 
     env.newProperty<float>("qsp_nivo_tumor", 0.0f);   // Nivolumab concentration in tumor
     env.newProperty<float>("qsp_cabo_tumor", 0.0f);   // Cabozantinib concentration in tumor

@@ -21,7 +21,7 @@ LymphCentralWrapper::LymphCentralWrapper()
     , _cabo_on(false), _cabo_dose(0.0), _cabo_interval_s(0.0), _cabo_doses_given(0)
     , _treatment_started(false), _treatment_start_time(0.0)
     , _nivo_next_dose_t(0.0), _cabo_next_dose_t(0.0) {
-    _abm_signals = {0, 0, 0, 0, 0.0};
+    _abm_signals = {0, 0, 0, 0, 0, 0.0};  // cancer_deaths, teff, treg, th, bcell, abm_scaler
 }
 
 // Destructor
@@ -119,6 +119,10 @@ bool LymphCentralWrapper::time_step_preSimulation(double t, double dt) {
         return false;
     }
     try {
+        // Apply ABM feedback during presim too (the coupled pre-treatment phase is
+        // our target: cancer-death→antigen and recruited-cell→central-pool decrement
+        // must act while the tumour grows to the diameter target). No drug dosing in presim.
+        _apply_abm_feedback();
         bool success = _qsp_model->solve(t, dt);
         if (success) {
             _current_time = t + dt;
@@ -177,13 +181,15 @@ void LymphCentralWrapper::update_from_abm(
     int teff_recruited,
     int treg_recruited,
     int th_recruited,
+    int bcell_recruited,
     double abm_scaler)
 {
-    _abm_signals.cancer_deaths_last_step  = cancer_deaths;
-    _abm_signals.teff_recruited_last_step = teff_recruited;
-    _abm_signals.treg_recruited_last_step = treg_recruited;
-    _abm_signals.th_recruited_last_step   = th_recruited;
-    _abm_signals.abm_scaler               = abm_scaler;
+    _abm_signals.cancer_deaths_last_step   = cancer_deaths;
+    _abm_signals.teff_recruited_last_step  = teff_recruited;
+    _abm_signals.treg_recruited_last_step  = treg_recruited;
+    _abm_signals.th_recruited_last_step    = th_recruited;
+    _abm_signals.bcell_recruited_last_step = bcell_recruited;
+    _abm_signals.abm_scaler                = abm_scaler;
 }
 
 // Get QSP state for ABM
@@ -199,6 +205,7 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         state.teff_central = 0.0;
         state.treg_central = 0.0;
         state.th_central = 0.0;
+        state.bcell_central = 0.0;
 
         state.teff_tumor = 0.0;
         state.treg_tumor = 0.0;
@@ -207,6 +214,9 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         state.m1_tumor = 0.0;
         state.m2_tumor = 0.0;
         state.caf_tumor = 0.0;
+        state.bcell_tumor = 0.0;
+        state.plasma_tumor = 0.0;
+        state.tfh_tumor = 0.0;
 
         state.cc_tumor = 0.0;
         state.cx_tumor = 0.0;
@@ -239,6 +249,7 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         state.teff_central = getVAR(CancerVCT::SP_V_C_CD8);
         state.treg_central = getVAR(CancerVCT::SP_V_C_Treg);
         state.th_central = getVAR(CancerVCT::SP_V_C_Th);
+        state.bcell_central = getVAR(CancerVCT::SP_V_C_B);
 
         // Tumor compartment - for initialization
         state.teff_tumor = getVAR(CancerVCT::SP_V_T_CD8);
@@ -251,6 +262,9 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         state.caf_tumor = getVAR(CancerVCT::SP_V_T_iCAF)
                         + getVAR(CancerVCT::SP_V_T_myCAF)
                         + getVAR(CancerVCT::SP_V_T_apCAF);
+        state.bcell_tumor = getVAR(CancerVCT::SP_V_T_B);
+        state.plasma_tumor = getVAR(CancerVCT::SP_V_T_Plasma);
+        state.tfh_tumor = getVAR(CancerVCT::SP_V_T_Tfh);
 
         state.cc_tumor = getVAR_RAW(CancerVCT::SP_V_T_C1);
         state.cx_tumor = getVAR(CancerVCT::SP_V_T_C_x);
@@ -417,10 +431,14 @@ void LymphCentralWrapper::_apply_abm_feedback() {
     double cent_t_eff = ode->getSpeciesVar(SP_V_C_CD8, false);
     double cent_t_reg = ode->getSpeciesVar(SP_V_C_Treg, false);
     double cent_t_h = ode->getSpeciesVar(SP_V_C_Th, false);
+    double cent_b   = ode->getSpeciesVar(SP_V_C_B, false);
 
     ode->setSpeciesVar(SP_V_C_CD8, std::max(0.0, cent_t_eff - _abm_signals.teff_recruited_last_step * scaler), false);
     ode->setSpeciesVar(SP_V_C_Treg, std::max(0.0, cent_t_reg - _abm_signals.treg_recruited_last_step * scaler), false);
     ode->setSpeciesVar(SP_V_C_Th, std::max(0.0, cent_t_h - _abm_signals.th_recruited_last_step * scaler), false);
+    // B cells recruited to tumor draw down the systemic (central) B pool, mirroring
+    // the T-cell feedback; the QSP B module then re-traffics/replenishes V_C.B.
+    ode->setSpeciesVar(SP_V_C_B, std::max(0.0, cent_b - _abm_signals.bcell_recruited_last_step * scaler), false);
 }
 
 } // namespace PDAC
