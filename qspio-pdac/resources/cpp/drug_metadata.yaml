@@ -79,3 +79,43 @@ drugs:
     dose_basis: direct      # scenarios already pre-convert (e.g. 200 mg/m² × 1.9 m² BSA = 380 mg)
     targets:
       - {species: V_C.Cy, fraction: 1.0}
+
+  # ---- PASS-01 cytotoxic chemotherapy ----
+  # Mass-unit drugs: species are milligram/liter, dose given in mg/m^2. Set mw:1
+  # so per_bsa -> dose = BSA_m2 * dose_mgm2 [mg]. Bolus (C++); MATLAB path infuses.
+  gemcitabine:
+    mw: 1.0
+    units: milligram
+    dose_basis: per_bsa
+    targets:
+      - {species: C_gem.gem, fraction: 1.0}
+
+  fluorouracil:
+    mw: 1.0
+    units: milligram
+    dose_basis: per_bsa
+    targets:
+      - {species: C_fu5.fu5, fraction: 1.0}
+
+  oxaliplatin:
+    mw: 1.0
+    units: milligram
+    dose_basis: per_bsa
+    targets:
+      - {species: C_oxa.oxa, fraction: 1.0}
+
+  irinotecan:
+    mw: 1.0
+    units: milligram
+    dose_basis: per_bsa
+    targets:
+      - {species: C_iri.iri, fraction: 1.0}
+
+  # nab-paclitaxel: species V_1.NabP is nanogram/milliliter (not mg/L); mw acts as
+  # a units-correction divisor, tuned empirically vs Dose/Vc after first run.
+  nab-paclitaxel:
+    mw: 1.0
+    units: milligram
+    dose_basis: per_bsa
+    targets:
+      - {species: V_1.NabP, fraction: 1.0}

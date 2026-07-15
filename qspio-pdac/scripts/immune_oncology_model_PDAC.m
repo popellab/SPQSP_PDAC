@@ -60,7 +60,7 @@ set(config.SolverOptions, 'AbsoluteToleranceScaling', false)
 % Cancer Modules
 % Initial amount is a placeholder; set_baseline_populations sets actual value from density priors
 model = cancer_module(model,'C1',params_out,1,'Gompertzian');
-% model = cancer_module(model,'C2',params_out,0); % chemotherapy-resistant clone
+model = cancer_module(model,'C2',params_out,0,'Gompertzian'); % chemotherapy-resistant clone (growth/death tied to C1 in resistance_module)
 % T cell Modules
 model = Treg_module(model,params_out);
 model = CCL5_Treg_module(model,params_out); % CCL5/CCR5-mediated Treg recruitment (Tan 2017)
@@ -93,13 +93,36 @@ model = cytokine_tcell_module(model, params_out);  % Centralized T-cell cytokine
 model = Tfh_module(model,params_out);
 model = Bcell_module(model,params_out);
 model = MDSC_module(model,params_out,{'C1'},'inostat',0,'drugName','entinostat');
-% model = nabpaclitaxel_module(model,params_out);
+model = nabpaclitaxel_module(model,params_out);  % trimmed: PK + Emax kill (no resistance/vascular)
 % model = cabozantinib_module(model,params_out); % Disabled due to numerical instability
+% Cytotoxic chemotherapy PK-PD (PASS-01: mFOLFIRINOX + gemcitabine/nab-paclitaxel).
+% Faithful per-drug popPK + Emax kill on V_T.C1. Modules are ADDED unconditionally;
+% which drugs are actually dosed is set per-scenario (schedule_dosing). Immuno PK
+% (aPD1/aPDL1/aCTLA4) is kept inert (never dosed) per PASS-01 (chemo-only trial).
+model = chemo_pk_module(model, 'gem', params_out, 1, 'linear', '');     % gemcitabine (GnP)
+model = chemo_pk_module(model, 'fu5', params_out, 0, 'mm', '');         % 5-fluorouracil (mFFX)
+model = chemo_pk_module(model, 'oxa', params_out, 2, 'linear', '');     % oxaliplatin (mFFX)
+model = chemo_pk_module(model, 'iri', params_out, 1, 'linear', 'sn38'); % irinotecan->SN-38 (mFFX)
 model = macrophage_module(model,params_out,{'C1'},'aCD47',0); % PK module in development for aCD47
 % Fibroblast Module
 model = fibroblast_module_enhanced(model,params_out);
 
 model = gvax_module(model, params_out, 'add_cyclophosphamide', true);
+
+% Aggregate cytotoxic drug effect E_chemo (complement-product of per-drug Emax).
+% Must run AFTER all 5 chemo drug modules (needs each Ct_<drug>/IC50_<drug>).
+% Shared downstream by resistance selection (C1->C2) and CA19-9 secretion suppression.
+model = chemo_effect_module(model);
+
+% Chemo-resistant clone coupling: C1->C2 drug-selected transition + growth/death
+% tie to C1. After cancer_module('C2') (needs V_T.C2, k_C2_*) and chemo_effect_module
+% (needs E_chemo); the per-drug C2 kill reactions live in the drug modules.
+model = resistance_module(model, params_out);
+
+% CA19-9 serum biomarker (secretion by live burden + shed from dying pool).
+% After cancer_module (needs C1/C_total/C_x) and chemo_effect_module (needs E_chemo);
+% standalone serum readout in V_C.
+model = ca199_module(model, params_out);
 
 % Aggregate observables (derived totals for cal-target denominators).
 % Must run after all species-adding modules so nucleated_total_T can

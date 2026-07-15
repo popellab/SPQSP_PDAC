@@ -49,6 +49,19 @@ addParameter(in,'entinostat_schedule',[0,7,55]);
 % NabPaclitaxel
 addParameter(in,'nabPaclitaxel_dose',100); % 100 mg/m2 Q3/4W
 addParameter(in,'nabPaclitaxel_schedule',[0,28,15]);
+% ---- PASS-01 cytotoxic chemotherapy (mg/m2; schedule [start,interval,repeat] in days) ----
+% Gemcitabine (GnP): 1000 mg/m2, 30-min IV, days 1/8/15 q28d
+addParameter(in,'gemcitabine_dose',1000);
+addParameter(in,'gemcitabine_schedule',[0,28,6]);
+% 5-Fluorouracil (mFOLFIRINOX): 2400 mg/m2, 46-h continuous IV, q14d (bolus dropped)
+addParameter(in,'fluorouracil_dose',2400);
+addParameter(in,'fluorouracil_schedule',[0,14,12]);
+% Oxaliplatin (mFOLFIRINOX): 85 mg/m2, 2-h IV, q14d
+addParameter(in,'oxaliplatin_dose',85);
+addParameter(in,'oxaliplatin_schedule',[0,14,12]);
+% Irinotecan (mFOLFIRINOX): 150 mg/m2, 90-min IV, q14d
+addParameter(in,'irinotecan_dose',150);
+addParameter(in,'irinotecan_schedule',[0,14,12]);
 % Cabozantinib - 40mg for combined therapy; 60mg for mono
 addParameter(in,'cabozantinib_dose',40); % 40 mg daily % [0,1,1] one dose [0,1,10] 10 doses
 % https://www.accessdata.fda.gov/drugsatfda_docs/label/2012/203756lbl.pdf
@@ -96,6 +109,11 @@ schedule_ENT = in.Results.entinostat_schedule;
 % NabPaclitaxel
 dose_nabp = in.Results.nabPaclitaxel_dose;
 schedule_nabp = in.Results.nabPaclitaxel_schedule;
+% Cytotoxic chemotherapy
+dose_gem = in.Results.gemcitabine_dose;   schedule_gem = in.Results.gemcitabine_schedule;
+dose_fu5 = in.Results.fluorouracil_dose;  schedule_fu5 = in.Results.fluorouracil_schedule;
+dose_oxa = in.Results.oxaliplatin_dose;   schedule_oxa = in.Results.oxaliplatin_schedule;
+dose_iri = in.Results.irinotecan_dose;    schedule_iri = in.Results.irinotecan_schedule;
 % Cabozantinib
 dose_cabo = in.Results.cabozantinib_dose;
 schedule_cabo = in.Results.cabozantinib_schedule;
@@ -191,6 +209,34 @@ doseObj_nabp_3.Active = true;
 doseObj_nabp_3.Interval = schedule_nabp(2);
 doseObj_nabp_3.TimeUnits = 'day';
 doseObj_nabp_3.RepeatCount = schedule_nabp(3);
+
+% ---- Cytotoxic chemotherapy (mg dose = mg/m2 x BSA; zero-order IV infusion) ----
+% Gemcitabine: days 1/8/15 q28d, 30-min infusion into C_gem.gem (3 dose objects,
+% each repeating every 28 d, offset 0/7/14 -> the d1/8/15 pattern; like nab-paclitaxel)
+doseObj_gem_1 = sbiodose('gem_1','Amount',dose_gem*patient_BSA,'AmountUnits','milligram','TargetName','C_gem.gem');
+doseObj_gem_1.Rate = doseObj_gem_1.Amount/30; doseObj_gem_1.RateUnits = 'milligram/minute';
+doseObj_gem_1.StartTime = schedule_gem(1); doseObj_gem_1.Interval = schedule_gem(2); doseObj_gem_1.TimeUnits = 'day'; doseObj_gem_1.RepeatCount = schedule_gem(3); doseObj_gem_1.Active = true;
+doseObj_gem_2 = sbiodose('gem_2','Amount',dose_gem*patient_BSA,'AmountUnits','milligram','TargetName','C_gem.gem');
+doseObj_gem_2.Rate = doseObj_gem_2.Amount/30; doseObj_gem_2.RateUnits = 'milligram/minute';
+doseObj_gem_2.StartTime = schedule_gem(1)+7; doseObj_gem_2.Interval = schedule_gem(2); doseObj_gem_2.TimeUnits = 'day'; doseObj_gem_2.RepeatCount = schedule_gem(3); doseObj_gem_2.Active = true;
+doseObj_gem_3 = sbiodose('gem_3','Amount',dose_gem*patient_BSA,'AmountUnits','milligram','TargetName','C_gem.gem');
+doseObj_gem_3.Rate = doseObj_gem_3.Amount/30; doseObj_gem_3.RateUnits = 'milligram/minute';
+doseObj_gem_3.StartTime = schedule_gem(1)+14; doseObj_gem_3.Interval = schedule_gem(2); doseObj_gem_3.TimeUnits = 'day'; doseObj_gem_3.RepeatCount = schedule_gem(3); doseObj_gem_3.Active = true;
+
+% 5-Fluorouracil: 46-h continuous infusion q14d into C_fu5.fu5
+doseObj_fu5 = sbiodose('fu5','Amount',dose_fu5*patient_BSA,'AmountUnits','milligram','TargetName','C_fu5.fu5');
+doseObj_fu5.Rate = doseObj_fu5.Amount/(46*60); doseObj_fu5.RateUnits = 'milligram/minute';
+doseObj_fu5.StartTime = schedule_fu5(1); doseObj_fu5.Interval = schedule_fu5(2); doseObj_fu5.TimeUnits = 'day'; doseObj_fu5.RepeatCount = schedule_fu5(3); doseObj_fu5.Active = true;
+
+% Oxaliplatin: 2-h infusion q14d into C_oxa.oxa
+doseObj_oxa = sbiodose('oxa','Amount',dose_oxa*patient_BSA,'AmountUnits','milligram','TargetName','C_oxa.oxa');
+doseObj_oxa.Rate = doseObj_oxa.Amount/120; doseObj_oxa.RateUnits = 'milligram/minute';
+doseObj_oxa.StartTime = schedule_oxa(1); doseObj_oxa.Interval = schedule_oxa(2); doseObj_oxa.TimeUnits = 'day'; doseObj_oxa.RepeatCount = schedule_oxa(3); doseObj_oxa.Active = true;
+
+% Irinotecan: 90-min infusion q14d into C_iri.iri (parent; SN-38 formed in-model)
+doseObj_iri = sbiodose('iri','Amount',dose_iri*patient_BSA,'AmountUnits','milligram','TargetName','C_iri.iri');
+doseObj_iri.Rate = doseObj_iri.Amount/90; doseObj_iri.RateUnits = 'milligram/minute';
+doseObj_iri.StartTime = schedule_iri(1); doseObj_iri.Interval = schedule_iri(2); doseObj_iri.TimeUnits = 'day'; doseObj_iri.RepeatCount = schedule_iri(3); doseObj_iri.Active = true;
 
 % Cabozantinib
 MW_cabo = 6.356E5; % milligrams per mole % https://www.accessdata.fda.gov/drugsatfda_docs/label/2012/203756lbl.pdf
@@ -299,6 +345,14 @@ for i = 1:N
             dose_schedule(i) = doseObj_treme;
         case 'nabPaclitaxel'
             dose_schedule(i) = doseObj_nabp_1;
+        case 'gemcitabine'
+            dose_schedule(i) = doseObj_gem_1;
+        case 'fluorouracil'
+            dose_schedule(i) = doseObj_fu5;
+        case 'oxaliplatin'
+            dose_schedule(i) = doseObj_oxa;
+        case 'irinotecan'
+            dose_schedule(i) = doseObj_iri;
         case 'cabozantinib'
             dose_schedule(i) = doseObj_cabo_1;
         case 'entinostat'
@@ -319,6 +373,9 @@ for i = 1:N
         case 'nabPaclitaxel'
             dose_schedule(end+1) = doseObj_nabp_2;
             dose_schedule(end+1) = doseObj_nabp_3;
+        case 'gemcitabine'
+            dose_schedule(end+1) = doseObj_gem_2;
+            dose_schedule(end+1) = doseObj_gem_3;
         case 'entinostat'
             dose_schedule(end+1) = doseObj_ENT_2;
         case 'cabozantinib'

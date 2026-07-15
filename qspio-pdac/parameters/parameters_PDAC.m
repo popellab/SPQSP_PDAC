@@ -1417,11 +1417,15 @@ params.MW_nabp.Notes = '(calculated)';
 params.Kc_nabp.Value = 8e7;
 params.Kc_nabp.Units = 'cell';
 params.Kc_nabp.Notes = '(estimated based on Kyle 2007, PMID: 17473214)';
-% Rate of chemo-resistance development to nab-paclitaxel
-params.k_C_resist_nab.Value = 1e-4;
-params.k_C_resist_nab.Units = '1/day';
-params.k_C_resist_nab.Notes = '(estimated)';
-% Number of folds increase of nab-paclitaxel IC50 in resistant cancer clones
+% Rate of drug-selected chemo-resistance development (C1 -> C2 transition).
+% Generalized from the old nab-paclitaxel-only k_C_resist_nab: the transition is
+% now driven by the aggregate chemo drug effect E_chemo (all 5 PASS-01 drugs),
+% so resistance is SELECTED by ongoing cytotoxic pressure rather than tied to a
+% single agent or the TGFb tone. Calibrated (free) in longitudinal burden fits.
+params.k_resist.Value = 1e-4;
+params.k_resist.Units = '1/day';
+params.k_resist.Notes = 'Drug-selected C1->C2 resistance-acquisition rate per unit E_chemo (estimated)';
+% Number of folds increase of cytotoxic IC50 in the resistant clone (cross-drug).
 params.r_resist.Value = 100;
 params.r_resist.Units = 'dimensionless';
 params.r_resist.Notes = '(Nemcova-Furstova 2016, PMID: 27664577)';
@@ -2533,4 +2537,97 @@ params.CD8_50_Tcap.derivedFrom = {};
 % pathway) and apCAF_50_Tcap (Hill EC50 for that pathway) removed after
 % counterfactual SBI showed the data prefers the pathway off. See the
 % block above for the diagnostic summary.
+
+% =====================================================================
+% CA19-9 serum biomarker (ca199_module) -- added 2026-07-13 for the
+% longitudinal tumor-burden calibration (PASS-01 serial CA19-9). The
+% absolute scale is nominal and owned by per-patient calibration; these
+% defaults set structure/order-of-magnitude only.
+% =====================================================================
+% CA19-9 secretion rate per live cancer cell (patient-level; non-secretors ~0)
+params.k_ca199_sec.Value = 1e-3;
+params.k_ca199_sec.Units = 'picogram/cell/day';
+params.k_ca199_sec.Notes = 'Nominal placeholder; per-patient calibrated to serum U/mL. PASS-01 longitudinal CA19-9.';
+params.k_ca199_sec.derivedFrom = {};
+% CA19-9 shedding rate from the dying/dead cancer-cell pool (lysis spike)
+params.k_ca199_shed.Value = 1e-3;
+params.k_ca199_shed.Units = 'picogram/cell/day';
+params.k_ca199_shed.Notes = 'Nominal placeholder; drives the transient CA19-9 rise on chemo-induced tumor lysis (release from V_T.C_x).';
+params.k_ca199_shed.derivedFrom = {};
+% CA19-9 serum first-order elimination rate (t_1/2 ~ 1-1.4 day)
+params.k_ca199_clear.Value = 0.5;
+params.k_ca199_clear.Units = '1/day';
+params.k_ca199_clear.Notes = 'Serum CA19-9 elimination; t_1/2 ~1.4 day. Prior-anchored placeholder, calibratable.';
+params.k_ca199_clear.derivedFrom = {};
+% CA19-9 secretion-suppression strength under aggregate chemo drug effect (v2).
+% k_sec_eff = k_ca199_sec/(1 + k_sec_suppress*E_chemo). At full drug effect,
+% per-cell secretion drops by 1/(1+k_sec_suppress) -> lets serum CA19-9 nadir
+% deeper than bulk burden. NOMINAL, calibrated.
+params.k_sec_suppress.Value = 5.0;
+params.k_sec_suppress.Units = 'dimensionless';
+params.k_sec_suppress.Notes = 'Chemo suppression of CA19-9 secretion; nominal, calibrated.';
+params.k_sec_suppress.derivedFrom = {};
+
+% Resistant-clone CA19-9 secretion fold-factor (v3/Update 3). Per-cell CA19-9
+% secretion of the resistant clone C2 relative to C1: secretion is weighted
+% (V_T.C1 + f_ca199_C2*V_T.C2) instead of bulk C_total. Decouples the biomarker
+% rise from bulk RECIST volume in progressors -- a modest resistant-nodule
+% volume can drive a large CA19-9 rebound (resistant PDAC clones commonly shift
+% secretory/glycosylation phenotype). f=1 recovers v3 (uniform secretion).
+% Dimensionless; calibrated. Lognormal prior can collapse to ~1 if unsupported.
+params.f_ca199_C2.Value = 10.0;
+params.f_ca199_C2.Units = 'dimensionless';
+params.f_ca199_C2.Notes = 'Fold-increase of per-cell CA19-9 secretion in resistant clone C2 vs C1; nominal, calibrated.';
+params.f_ca199_C2.derivedFrom = {};
+
+% =====================================================================
+% Cytotoxic chemotherapy PK-PD (chemo_pk_module) -- added 2026-07-13 for
+% PASS-01 (mFOLFIRINOX + gemcitabine/nab-paclitaxel). PK values are FIXED
+% literature popPK (mass units: L, L/h, mg/L, mg/h). PD potency params
+% (r_*, IC50_*, k_kill_*, Kc_*) are NOMINAL and CALIBRATED (the
+% population-level chemo-response params of the hierarchical fit).
+% Sources: gem Jiang 2008 PMID 17961191; 5-FU Terret 2000 DOI 10.1067/mcp.2000.109352;
+% oxaliplatin Nikanjam 2015 PMID 25557868; irinotecan/SN-38 Xie 2002 PMID 12235447.
+% =====================================================================
+% ---- Gemcitabine: 2-compartment linear ----
+params.V_gem_1.Value = 15;    params.V_gem_1.Units = 'liter';        params.V_gem_1.Notes = 'Gemcitabine central volume (Jiang 2008)'; params.V_gem_1.derivedFrom = {};
+params.V_gem_2.Value = 15;    params.V_gem_2.Units = 'liter';        params.V_gem_2.Notes = 'Gemcitabine peripheral volume (Jiang 2008)'; params.V_gem_2.derivedFrom = {};
+params.CL_gem.Value  = 162;   params.CL_gem.Units  = 'liter/hour';   params.CL_gem.Notes  = 'Gemcitabine clearance (Jiang 2008)'; params.CL_gem.derivedFrom = {};
+params.Q_gem_2.Value = 42;    params.Q_gem_2.Units = 'liter/hour';   params.Q_gem_2.Notes = 'Gemcitabine intercompartmental clearance (Jiang 2008)'; params.Q_gem_2.derivedFrom = {};
+params.r_gem.Value = 1.0;     params.r_gem.Units = 'dimensionless';  params.r_gem.Notes = 'Gemcitabine tumor:plasma penetration (nominal, calibrated)'; params.r_gem.derivedFrom = {};
+params.IC50_gem.Value = 10;   params.IC50_gem.Units = 'milligram/liter'; params.IC50_gem.Notes = 'Gemcitabine half-max kill conc (nominal, calibrated)'; params.IC50_gem.derivedFrom = {};
+params.k_kill_gem.Value = 1.0;params.k_kill_gem.Units = '1/day';     params.k_kill_gem.Notes = 'Gemcitabine max cancer-kill rate (nominal, calibrated)'; params.k_kill_gem.derivedFrom = {};
+params.Kc_gem.Value = 8e7;    params.Kc_gem.Units = 'cell';          params.Kc_gem.Notes = 'Half-max cancer number for cytotoxic diffusion (nabP analog)'; params.Kc_gem.derivedFrom = {};
+% ---- 5-Fluorouracil: 1-compartment Michaelis-Menten ----
+params.V_fu5_1.Value = 30;    params.V_fu5_1.Units = 'liter';        params.V_fu5_1.Notes = '5-FU distribution volume (Terret 2000)'; params.V_fu5_1.derivedFrom = {};
+params.Vmax_fu5.Value = 1390; params.Vmax_fu5.Units = 'milligram/hour'; params.Vmax_fu5.Notes = '5-FU DPD Vmax (Terret 2000)'; params.Vmax_fu5.derivedFrom = {};
+params.Km_fu5.Value = 5.57;   params.Km_fu5.Units = 'milligram/liter'; params.Km_fu5.Notes = '5-FU DPD Km (Terret 2000)'; params.Km_fu5.derivedFrom = {};
+params.r_fu5.Value = 1.0;     params.r_fu5.Units = 'dimensionless';  params.r_fu5.Notes = '5-FU tumor:plasma penetration (nominal, calibrated)'; params.r_fu5.derivedFrom = {};
+params.IC50_fu5.Value = 2.0;  params.IC50_fu5.Units = 'milligram/liter'; params.IC50_fu5.Notes = '5-FU half-max kill conc (nominal, calibrated)'; params.IC50_fu5.derivedFrom = {};
+params.k_kill_fu5.Value = 1.0;params.k_kill_fu5.Units = '1/day';     params.k_kill_fu5.Notes = '5-FU max cancer-kill rate (nominal, calibrated)'; params.k_kill_fu5.derivedFrom = {};
+params.Kc_fu5.Value = 8e7;    params.Kc_fu5.Units = 'cell';          params.Kc_fu5.Notes = 'Half-max cancer number for cytotoxic diffusion (nabP analog)'; params.Kc_fu5.derivedFrom = {};
+% ---- Oxaliplatin (free ultrafiltrate Pt): 3-compartment linear ----
+params.V_oxa_1.Value = 30;    params.V_oxa_1.Units = 'liter';        params.V_oxa_1.Notes = 'Oxaliplatin central volume (Nikanjam 2015)'; params.V_oxa_1.derivedFrom = {};
+params.V_oxa_2.Value = 435;   params.V_oxa_2.Units = 'liter';        params.V_oxa_2.Notes = 'Oxaliplatin peripheral volume 2 (Nikanjam 2015)'; params.V_oxa_2.derivedFrom = {};
+params.V_oxa_3.Value = 1183;  params.V_oxa_3.Units = 'liter';        params.V_oxa_3.Notes = 'Oxaliplatin deep volume 3 (Nikanjam 2015)'; params.V_oxa_3.derivedFrom = {};
+params.CL_oxa.Value = 16;     params.CL_oxa.Units = 'liter/hour';    params.CL_oxa.Notes = 'Oxaliplatin total clearance (Nikanjam 2015)'; params.CL_oxa.derivedFrom = {};
+params.Q_oxa_2.Value = 71;    params.Q_oxa_2.Units = 'liter/hour';   params.Q_oxa_2.Notes = 'Oxaliplatin Q2 (Nikanjam 2015)'; params.Q_oxa_2.derivedFrom = {};
+params.Q_oxa_3.Value = 5.3;   params.Q_oxa_3.Units = 'liter/hour';   params.Q_oxa_3.Notes = 'Oxaliplatin Q3 (Nikanjam 2015)'; params.Q_oxa_3.derivedFrom = {};
+params.r_oxa.Value = 1.0;     params.r_oxa.Units = 'dimensionless';  params.r_oxa.Notes = 'Oxaliplatin tumor:plasma penetration (nominal, calibrated)'; params.r_oxa.derivedFrom = {};
+params.IC50_oxa.Value = 1.0;  params.IC50_oxa.Units = 'milligram/liter'; params.IC50_oxa.Notes = 'Oxaliplatin half-max kill conc (nominal, calibrated)'; params.IC50_oxa.derivedFrom = {};
+params.k_kill_oxa.Value = 1.0;params.k_kill_oxa.Units = '1/day';     params.k_kill_oxa.Notes = 'Oxaliplatin max cancer-kill rate (nominal, calibrated)'; params.k_kill_oxa.derivedFrom = {};
+params.Kc_oxa.Value = 8e7;    params.Kc_oxa.Units = 'cell';          params.Kc_oxa.Notes = 'Half-max cancer number for cytotoxic diffusion (nabP analog)'; params.Kc_oxa.derivedFrom = {};
+% ---- Irinotecan: 2-compartment parent + SN-38 metabolite ----
+params.V_iri_1.Value = 40;    params.V_iri_1.Units = 'liter';        params.V_iri_1.Notes = 'Irinotecan central volume (Xie 2002)'; params.V_iri_1.derivedFrom = {};
+params.V_iri_2.Value = 220;   params.V_iri_2.Units = 'liter';        params.V_iri_2.Notes = 'Irinotecan peripheral volume (Xie 2002)'; params.V_iri_2.derivedFrom = {};
+params.CL_iri.Value = 31.6;   params.CL_iri.Units = 'liter/hour';    params.CL_iri.Notes = 'Irinotecan clearance (Xie 2002)'; params.CL_iri.derivedFrom = {};
+params.Q_iri_2.Value = 40;    params.Q_iri_2.Units = 'liter/hour';   params.Q_iri_2.Notes = 'Irinotecan intercompartmental clearance (Xie 2002)'; params.Q_iri_2.derivedFrom = {};
+params.V_sn38_1.Value = 2880; params.V_sn38_1.Units = 'liter';       params.V_sn38_1.Notes = 'SN-38 volume (Xie 2002, Fm=0.04)'; params.V_sn38_1.derivedFrom = {};
+params.CL_sn38.Value = 28.5;  params.CL_sn38.Units = 'liter/hour';   params.CL_sn38.Notes = 'SN-38 clearance (Xie 2002, Fm=0.04)'; params.CL_sn38.derivedFrom = {};
+params.Fm_iri.Value = 0.04;   params.Fm_iri.Units = 'dimensionless'; params.Fm_iri.Notes = 'Fraction irinotecan converted to SN-38 (Xie 2002)'; params.Fm_iri.derivedFrom = {};
+params.MWr_sn38.Value = 0.6688; params.MWr_sn38.Units = 'dimensionless'; params.MWr_sn38.Notes = 'MW(SN-38 392.4)/MW(irinotecan 586.7) for mass->mass conversion'; params.MWr_sn38.derivedFrom = {};
+params.r_iri.Value = 1.0;     params.r_iri.Units = 'dimensionless';  params.r_iri.Notes = 'SN-38 tumor:plasma penetration (nominal, calibrated)'; params.r_iri.derivedFrom = {};
+params.IC50_iri.Value = 0.02; params.IC50_iri.Units = 'milligram/liter'; params.IC50_iri.Notes = 'SN-38 half-max kill conc (nominal, calibrated)'; params.IC50_iri.derivedFrom = {};
+params.k_kill_iri.Value = 1.0;params.k_kill_iri.Units = '1/day';     params.k_kill_iri.Notes = 'SN-38 max cancer-kill rate (nominal, calibrated)'; params.k_kill_iri.derivedFrom = {};
+params.Kc_iri.Value = 8e7;    params.Kc_iri.Units = 'cell';          params.Kc_iri.Notes = 'Half-max cancer number for cytotoxic diffusion (nabP analog)'; params.Kc_iri.derivedFrom = {};
 
