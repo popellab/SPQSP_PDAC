@@ -37,7 +37,7 @@ def main():
     keep=[i for i,r in enumerate(res) if r is not None]
     theta_log=theta_log[keep]; trajs=[res[i] for i in keep]
     n=len(keep); print(f"SBC set: {n}/{N} valid sims ({(time.time()-t0):.0f}s)")
-    W = rng.uniform(400.0, F.W_MAX, size=n)
+    W = rng.uniform(90.0, F.W_MAX, size=n)
     X = np.stack([F.features_v2_from_grid(trajs[i][0],trajs[i][1],G.GRID,W[i]) for i in range(n)])
     X = F.add_noise_v2(X, rng=rng)
 

@@ -14,16 +14,19 @@ import numpy as np, pandas as pd, torch, matplotlib
 matplotlib.use("Agg"); import matplotlib.pyplot as plt
 from multiprocessing import Pool
 import features as F
-import gen_bank as G     # simulate(theta_log)->(sld_rel76,ca_rel76) on G.GRID
+
+ARM  = os.environ.get("ARM","GnP")           # 'GnP' or 'mFFX'
+SUF  = "" if ARM=="GnP" else f"_{ARM}"
+if ARM=="GnP":  import gen_bank as G          # simulate(theta_log)->(sld_rel76,ca_rel76) on G.GRID
+else:           import gen_bank_mffx as G
+PKL  = "npe_posterior_v2.pkl" if ARM=="GnP" else "npe_posterior_mffx.pkl"
 
 OUT  = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/burden_sbi_7-15-26")
-PDIR = OUT/"cohort"
-NAMES = ["k_C1_growth","k_C_nabp","IC50_nabp","Kc_nabp","r_nabp","k_cell_clear",
-         "k_ca199_shed","k_ca199_clear","k_sec_suppress","k_resist","r_resist","f_ca199_C2"]
+PDIR = OUT/f"cohort{SUF}"
 NPOST = int(os.environ.get("NPOST","40"))    # postpred draws per patient
 
-man = pd.read_csv(OUT/"cohort_manifest.csv"); man = man[man.usable].reset_index(drop=True)
-with open(OUT/"npe_posterior_v2.pkl","rb") as f: post = pickle.load(f)["posterior"]
+man = pd.read_csv(OUT/f"cohort{SUF}_manifest.csv"); man = man[man.usable].reset_index(drop=True)
+with open(OUT/PKL,"rb") as f: _P=pickle.load(f); post=_P["posterior"]; NAMES=list(_P["names"])
 
 def load(tag):
     s=pd.read_csv(PDIR/f"{tag}_SLD.csv"); c=pd.read_csv(PDIR/f"{tag}_CA.csv")
@@ -83,13 +86,13 @@ for _,r in man.iterrows():
     row["misspec"]= bool((scov<0.5) or (ccov<0.5)) if np.isfinite(scov) else True
     rows.append(row)
 res=pd.DataFrame(rows)
-res.to_csv(OUT/"cohort_posteriors.csv",index=False)
+res.to_csv(OUT/f"cohort{SUF}_posteriors.csv",index=False)
 nflag=res.misspec.sum()
-print(f"\ncohort_posteriors.csv written. misspec-flagged: {nflag}/{len(res)}")
+print(f"\n[{ARM}] cohort{SUF}_posteriors.csv written. misspec-flagged: {nflag}/{len(res)}")
 print(res[["tag","arm","W","CA_fin","f_ca199_C2_med","r_resist_med","k_resist_med","sld_cov","ca_cov","misspec"]].to_string(index=False))
 
-# ---- population figures ----
-key=["k_C1_growth","k_C_nabp","k_resist","r_resist","f_ca199_C2","k_sec_suppress"]
+# ---- population figures (SHARED params -> comparable across regimens) ----
+key=["k_C1_growth","k_cell_clear","k_resist","r_resist","f_ca199_C2","k_sec_suppress"]
 fig,ax=plt.subplots(2,3,figsize=(14,8))
 ok=~res.misspec
 for a,nm in zip(ax.flat,key):
@@ -99,14 +102,14 @@ for a,nm in zip(ax.flat,key):
     a.set_yscale('log'); a.set_xscale('log'); a.set_xlabel("CA19-9 final / baseline"); a.set_ylabel(f"{nm} (post median)")
     a.set_title(nm); a.grid(alpha=.3,which='both')
 ax.flat[0].legend(fontsize=8)
-plt.suptitle(f"GnP cohort (n={len(res)}) posterior medians vs response (CA19-9 final)")
-plt.tight_layout(); plt.savefig(OUT/"cohort_params.png",dpi=110); plt.close()
+plt.suptitle(f"{ARM} cohort (n={len(res)}) posterior medians vs response (CA19-9 final)")
+plt.tight_layout(); plt.savefig(OUT/f"cohort{SUF}_params.png",dpi=110); plt.close()
 
 # postpred coverage summary
 fig,ax=plt.subplots(1,2,figsize=(11,4))
 ax[0].hist(res.sld_cov.dropna(),bins=np.linspace(0,1,11),color='C0',alpha=.8); ax[0].set_title("SLD postpred coverage"); ax[0].axvline(.9,color='k',ls='--')
 ax[1].hist(res.ca_cov.dropna(),bins=np.linspace(0,1,11),color='C1',alpha=.8); ax[1].set_title("CA19-9 postpred coverage"); ax[1].axvline(.9,color='k',ls='--')
 for a in ax: a.set_xlabel("fraction of points in 90% band"); a.grid(alpha=.3)
-plt.tight_layout(); plt.savefig(OUT/"cohort_coverage.png",dpi=110); plt.close()
-print("figures: cohort_params.png, cohort_coverage.png")
+plt.tight_layout(); plt.savefig(OUT/f"cohort{SUF}_coverage.png",dpi=110); plt.close()
+print(f"figures: cohort{SUF}_params.png, cohort{SUF}_coverage.png")
 print("COHORT_DONE")

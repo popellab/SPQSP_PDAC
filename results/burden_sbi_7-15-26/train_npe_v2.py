@@ -19,7 +19,7 @@ NAMES = ["k_C1_growth","k_C_nabp","IC50_nabp","Kc_nabp","r_nabp","k_cell_clear",
          "k_ca199_shed","k_ca199_clear","k_sec_suppress","k_resist","r_resist","f_ca199_C2"]
 MU  = np.array([np.log(x) for x in [0.02,0.06,92.0,8e7,1.5,0.1,1e-3,0.5,20.0,1e-4,100.0,10.0]])
 SIG = np.array([0.6,0.9,1.2,0.6,0.4,0.7,1.2,0.6,1.5,1.5,1.0,1.5])
-W_LO = 400.0   # min plausible 1st-line window (days)
+W_LO = 90.0    # cover ALL patient 1st-line windows (min ~107d); was 400 (short-window patients were OOD)
 
 def main():
     d = np.load(OUT/"bank.npz")
