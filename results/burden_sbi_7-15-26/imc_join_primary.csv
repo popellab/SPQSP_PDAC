@@ -1,0 +1,25 @@
+family,label,param,feature,n,rho,p,direction,q,arm
+H1,growth <-> Ki67+ cancer frac,k_C1_growth_med,cancer_proliferating,43,-0.11250377529447297,0.472582874463977,+,0.472582874463977,
+H2,f_ca199_C2 <-> tumor_classical,f_ca199_C2_med,tumor_classical,43,0.12851102385986105,0.4114841325665846,two-sided,0.617226198849877,
+H2,f_ca199_C2 <-> ca_GATA6,f_ca199_C2_med,ca_GATA6,43,0.20481626818788,0.18766726577125606,two-sided,0.5630017973137682,
+H2,f_ca199_C2 <-> ca_CLDN18.2,f_ca199_C2_med,ca_CLDN18.2,43,-0.06106767886968846,0.6972680428922338,two-sided,0.6972680428922337,
+H3,r_resist_med <-> tumor_basal_intermediate,r_resist_med,tumor_basal_intermediate,43,0.04590758079130172,0.7700422655756153,two-sided,0.7700422655756153,
+H3,r_resist_med <-> ca_SMAD4,r_resist_med,ca_SMAD4,43,-0.1291150709755361,0.4092707534778951,two-sided,0.7700422655756153,
+H3,k_resist_med <-> tumor_basal_intermediate,k_resist_med,tumor_basal_intermediate,43,-0.08320749018423436,0.5957851849424206,two-sided,0.7700422655756153,
+H3,k_resist_med <-> ca_SMAD4,k_resist_med,ca_SMAD4,43,0.09392932648746603,0.5490975770900665,two-sided,0.7700422655756153,
+H4,GnP: k_C_nabp_med <-> lin_fibroblast,k_C_nabp_med,lin_fibroblast,20,-0.1413533834586466,0.552214438632242,-,0.9849400483404017,GnP
+H4,GnP: k_C_nabp_med <-> myCAF_of_real,k_C_nabp_med,myCAF_of_real,20,-0.004511278195488721,0.9849400483404017,-,0.9849400483404017,GnP
+H4,GnP: IC50_nabp_med <-> lin_fibroblast,IC50_nabp_med,lin_fibroblast,20,0.20902255639097742,0.37647233958713894,+,0.9849400483404017,GnP
+H4,GnP: IC50_nabp_med <-> myCAF_of_real,IC50_nabp_med,myCAF_of_real,20,0.022556390977443608,0.9247982163788796,+,0.9849400483404017,GnP
+H4,mFFX: k_kill_fu5_med <-> lin_fibroblast,k_kill_fu5_med,lin_fibroblast,23,0.2381422924901186,0.2738506728809404,-,0.7650893649010398,mFFX
+H4,mFFX: k_kill_fu5_med <-> myCAF_of_real,k_kill_fu5_med,myCAF_of_real,23,0.2005928853754941,0.35875590531189805,-,0.7650893649010398,mFFX
+H4,mFFX: k_kill_oxa_med <-> lin_fibroblast,k_kill_oxa_med,lin_fibroblast,23,-0.048418972332015815,0.826347838470786,-,0.964308343809637,mFFX
+H4,mFFX: k_kill_oxa_med <-> myCAF_of_real,k_kill_oxa_med,myCAF_of_real,23,-0.1689723320158103,0.4408617220657631,-,0.7650893649010398,mFFX
+H4,mFFX: k_kill_iri_med <-> lin_fibroblast,k_kill_iri_med,lin_fibroblast,23,-0.1422924901185771,0.5172025426940691,-,0.7758038140411037,mFFX
+H4,mFFX: k_kill_iri_med <-> myCAF_of_real,k_kill_iri_med,myCAF_of_real,23,-0.2272727272727273,0.29699219432941915,-,0.7650893649010398,mFFX
+H4,mFFX: IC50_fu5_med <-> lin_fibroblast,IC50_fu5_med,lin_fibroblast,23,-0.009881422924901188,0.9643083438096369,+,0.964308343809637,mFFX
+H4,mFFX: IC50_fu5_med <-> myCAF_of_real,IC50_fu5_med,myCAF_of_real,23,-0.23122529644268777,0.2884410695828934,+,0.7650893649010398,mFFX
+H4,mFFX: IC50_oxa_med <-> lin_fibroblast,IC50_oxa_med,lin_fibroblast,23,-0.2618577075098814,0.22743477193630315,+,0.7650893649010398,mFFX
+H4,mFFX: IC50_oxa_med <-> myCAF_of_real,IC50_oxa_med,myCAF_of_real,23,-0.06422924901185771,0.7709325113831805,+,0.964308343809637,mFFX
+H4,mFFX: IC50_iri_med <-> lin_fibroblast,IC50_iri_med,lin_fibroblast,23,-0.16699604743083005,0.4463021295256066,+,0.7650893649010398,mFFX
+H4,mFFX: IC50_iri_med <-> myCAF_of_real,IC50_iri_med,myCAF_of_real,23,0.016798418972332016,0.9393596194740437,+,0.964308343809637,mFFX
