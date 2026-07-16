@@ -590,6 +590,18 @@
       <A_s>900.0</A_s>
       <syn_CD8_C1>37.8</syn_CD8_C1>
       <syn_CD8_APC>37.8</syn_CD8_APC>
+      <V_1>15.8</V_1>
+      <V_2>1650.0</V_2>
+      <V_3>75.4</V_3>
+      <C_gem>15.0</C_gem>
+      <P1_gem>15.0</P1_gem>
+      <C_fu5>30.0</C_fu5>
+      <C_oxa>30.0</C_oxa>
+      <P1_oxa>435.0</P1_oxa>
+      <P2_oxa>1183.0</P2_oxa>
+      <C_iri>40.0</C_iri>
+      <P1_iri>220.0</P1_iri>
+      <C_sn38>2880.0</C_sn38>
       <syn_M_C>37.8</syn_M_C>
       <V_ID>0.0001</V_ID>
     </Compartment>
@@ -606,6 +618,7 @@
       <V_C_nB>100000000.0</V_C_nB>
       <V_C_B>0.0</V_C_B>
       <V_C_Cy>0.0</V_C_Cy>
+      <V_C_CA199>0.0</V_C_CA199>
       <V_P_nCD4>185344.827586207</V_P_nCD4>
       <V_P_Treg>0.0</V_P_Treg>
       <V_P_nCD8>113738.738738739</V_P_nCD8>
@@ -622,6 +635,7 @@
       <V_T_C1>1.0</V_T_C1>
       <V_T_K>10300.0</V_T_K>
       <V_T_VEGF>0.0</V_T_VEGF>
+      <V_T_C2>0.0</V_T_C2>
       <V_T_Treg>0.0</V_T_Treg>
       <V_T_CCL5>0.0</V_T_CCL5>
       <V_T_CD8>0.0</V_T_CD8>
@@ -749,6 +763,18 @@
       <syn_CD8_APC_CD86>0.0</syn_CD8_APC_CD86>
       <syn_CD8_APC_CTLA4_aCTLA4>0.0</syn_CD8_APC_CTLA4_aCTLA4>
       <syn_CD8_APC_CTLA4_aCTLA4_CTLA4>0.0</syn_CD8_APC_CTLA4_aCTLA4_CTLA4>
+      <V_1_NabP>0.0</V_1_NabP>
+      <V_2_NabP>0.0</V_2_NabP>
+      <V_3_NabP>0.0</V_3_NabP>
+      <C_gem_gem>0.0</C_gem_gem>
+      <P1_gem_gem>0.0</P1_gem_gem>
+      <C_fu5_fu5>0.0</C_fu5_fu5>
+      <C_oxa_oxa>0.0</C_oxa_oxa>
+      <P1_oxa_oxa>0.0</P1_oxa_oxa>
+      <P2_oxa_oxa>0.0</P2_oxa_oxa>
+      <C_iri_iri>0.0</C_iri_iri>
+      <P1_iri_iri>0.0</P1_iri_iri>
+      <C_sn38_sn38>0.0</C_sn38_sn38>
       <syn_M_C_CD47>600.0</syn_M_C_CD47>
       <syn_M_C_SIRPa>100.0</syn_M_C_SIRPa>
       <syn_M_C_CD47_SIRPa>0.0</syn_M_C_CD47_SIRPa>
@@ -804,6 +830,9 @@
       <k_vas_Csec>0.1</k_vas_Csec>
       <k_vas_deg>16.6</k_vas_deg>
       <VEGF_50>2410.0</VEGF_50>
+      <k_C2_growth>0.01</k_C2_growth>
+      <k_C2_death>0.0001</k_C2_death>
+      <k_C2_therapy>0.0</k_C2_therapy>
       <div_Treg>1160000.0</div_Treg>
       <n_CD4_clones>100.0</n_CD4_clones>
       <q_nCD4_LN_in>0.1</q_nCD4_LN_in>
@@ -1061,6 +1090,60 @@
       <H_ArgI_Treg>1.0</H_ArgI_Treg>
       <H_MDSC>1.0</H_MDSC>
       <H_IL6_MDSC>0.0</H_IL6_MDSC>
+      <Vmcl>8070.0</Vmcl>
+      <Kcl>40.2</Kcl>
+      <Q2>41.6</Q2>
+      <Vmt>325000.0</Vmt>
+      <Kt>4260.0</Kt>
+      <BSA>1.9</BSA>
+      <r_nabp>1.5</r_nabp>
+      <k_C_nabp>0.06</k_C_nabp>
+      <IC50_nabp>92.0</IC50_nabp>
+      <MW_nabp>853.9</MW_nabp>
+      <Kc_nabp>80000000.0</Kc_nabp>
+      <Ct_nabp>0.0</Ct_nabp>
+      <r_resist>100.0</r_resist>
+      <V_gem_1>15.0</V_gem_1>
+      <V_gem_2>15.0</V_gem_2>
+      <Q_gem_2>42.0</Q_gem_2>
+      <CL_gem>162.0</CL_gem>
+      <r_gem>1.0</r_gem>
+      <IC50_gem>10.0</IC50_gem>
+      <k_kill_gem>1.0</k_kill_gem>
+      <Kc_gem>80000000.0</Kc_gem>
+      <Ct_gem>0.0</Ct_gem>
+      <V_fu5_1>30.0</V_fu5_1>
+      <Vmax_fu5>1390.0</Vmax_fu5>
+      <Km_fu5>5.57</Km_fu5>
+      <r_fu5>1.0</r_fu5>
+      <IC50_fu5>2.0</IC50_fu5>
+      <k_kill_fu5>1.0</k_kill_fu5>
+      <Kc_fu5>80000000.0</Kc_fu5>
+      <Ct_fu5>0.0</Ct_fu5>
+      <V_oxa_1>30.0</V_oxa_1>
+      <V_oxa_2>435.0</V_oxa_2>
+      <Q_oxa_2>71.0</Q_oxa_2>
+      <V_oxa_3>1183.0</V_oxa_3>
+      <Q_oxa_3>5.3</Q_oxa_3>
+      <CL_oxa>16.0</CL_oxa>
+      <r_oxa>1.0</r_oxa>
+      <IC50_oxa>1.0</IC50_oxa>
+      <k_kill_oxa>1.0</k_kill_oxa>
+      <Kc_oxa>80000000.0</Kc_oxa>
+      <Ct_oxa>0.0</Ct_oxa>
+      <V_iri_1>40.0</V_iri_1>
+      <V_iri_2>220.0</V_iri_2>
+      <Q_iri_2>40.0</Q_iri_2>
+      <CL_iri>31.6</CL_iri>
+      <V_sn38_1>2880.0</V_sn38_1>
+      <CL_sn38>28.5</CL_sn38>
+      <Fm_iri>0.04</Fm_iri>
+      <MWr_sn38>0.6688</MWr_sn38>
+      <r_iri>1.0</r_iri>
+      <IC50_iri>0.02</IC50_iri>
+      <k_kill_iri>1.0</k_kill_iri>
+      <Kc_iri>80000000.0</Kc_iri>
+      <Ct_iri>0.0</Ct_iri>
       <k_Mac_rec>450000.0</k_Mac_rec>
       <k_Mac_death>0.05</k_Mac_death>
       <k_TGFb_Msec>2e-11</k_TGFb_Msec>
@@ -1197,6 +1280,13 @@
       <k_Cy_clear>2.5</k_Cy_clear>
       <k_Cy_Treg_deplete>0.15</k_Cy_Treg_deplete>
       <Cy_50_Treg>50.0</Cy_50_Treg>
+      <E_chemo>0.0</E_chemo>
+      <k_resist>0.0001</k_resist>
+      <k_ca199_sec>0.001</k_ca199_sec>
+      <k_ca199_shed>0.001</k_ca199_shed>
+      <k_ca199_clear>0.5</k_ca199_clear>
+      <k_sec_suppress>5.0</k_sec_suppress>
+      <f_ca199_C2>10.0</f_ca199_C2>
       <nucleated_total_T>0.0</nucleated_total_T>
     </Parameter>
   </init_value>
