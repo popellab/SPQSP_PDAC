@@ -40,6 +40,7 @@
   <ABM>
     <Environment>
       <SecPerSlice name="PARAM_SEC_PER_SLICE" type="float" val="pos" units="seconds">21600</SecPerSlice>
+      <presimAbmStartFrac name="PARAM_PRESIM_ABM_START_FRACTION" type="float" val="pr">0.90</presimAbmStartFrac>  <!-- Decoupled presim: QSP grows alone until this fraction of target volume, then ABM couples in. Added Jul 2026 (single-ledger rebuild). -->
       <recSiteFactor name="PARAM_REC_SITE_FACTOR" type="float" val="pos">1e5</recSiteFactor>
       <adhSiteDens name="PARAM_ADH_SITE_DENSITY" type="float" val="pos">1000</adhSiteDens>
       
@@ -93,7 +94,8 @@
     </TCD4>
     <MDSC>
       <lifespanSD name="PARAM_MDSC_LIFESPAN_SD" type="float" val="pos">1</lifespanSD>
-      <moveSteps name="PARAM_MDSC_MOVE_STEPS" type="int" val="pos">71</moveSteps> 
+      <moveSteps name="PARAM_MDSC_MOVE_STEPS" type="int" val="pos">71</moveSteps>
+      <recruit_p name="PARAM_MDSC_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- parametric mode only (unused in QSP-coupled sweep); added Jul 2026 -->
     </MDSC>
     <BCell>
       <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           
@@ -130,11 +132,13 @@
       <presentation_capacity name="PARAM_DC_PRESENTATION_CAPACITY" type="int" val="pos">25</presentation_capacity>  
       
       <antibody_maturation_50 name="PARAM_DC_ANTIBODY_50" type="float" val="pr">29.3</antibody_maturation_50>    
-      <antibody_maturation_boost name="PARAM_DC_ANTIBODY_BOOST" type="float" val="pr">3.95</antibody_maturation_boost>  
+      <antibody_maturation_boost name="PARAM_DC_ANTIBODY_BOOST" type="float" val="pr">3.95</antibody_maturation_boost>
+      <recruit_p name="PARAM_DC_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- parametric mode only (unused in QSP-coupled sweep); added Jul 2026 -->
     </DC>
     <Mac>
       <lifespanSD>1</lifespanSD>
-      <moveSteps name="PARAM_MAC_MOVE_STEPS" type="int" val="pos">18</moveSteps> 
+      <recruit_p name="PARAM_MAC_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- parametric mode only (unused in QSP-coupled sweep); added Jul 2026 -->
+      <moveSteps name="PARAM_MAC_MOVE_STEPS" type="int" val="pos">18</moveSteps>
       <hypoxia_threshold name="PARAM_MAC_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>  
       <m2_bias_strength name="PARAM_MAC_M2_BIAS_STRENGTH" type="float" val="pr">0.75</m2_bias_strength>     
     </Mac>
@@ -176,7 +180,8 @@
       <hev_ccl21_threshold name="PARAM_VAS_HEV_CCL21_TH" type="float" val="pr">5.0</hev_ccl21_threshold>         
       <hev_lymph_density_th name="PARAM_VAS_HEV_LYMPH_DENSITY_TH" type="float" val="pr">8000.0</hev_lymph_density_th> 
       <hev_recruit_boost name="PARAM_VAS_HEV_RECRUIT_BOOST" type="float" val="pr">5.0</hev_recruit_boost>           
-      <entry_adhesion_scale name="PARAM_ENTRY_ADHESION_SCALE" type="float" val="pr">0.05</entry_adhesion_scale>       
+      <entry_adhesion_scale name="PARAM_ENTRY_ADHESION_SCALE" type="float" val="pr">0.05</entry_adhesion_scale>
+      <recruit_alpha name="PARAM_RECRUIT_ALPHA" type="float" val="pr">0.3</recruit_alpha>  <!-- Single-ledger gap-closing relaxation rate: recruit = alpha*max(0, f*X_QSP_tumor - N_abm). Added Jul 2026; SBI-sampled. -->       
       <teff_ec50_cxcl9 name="PARAM_TEFF_EC50_CXCL9_REC" type="float" val="pr">10.0</teff_ec50_cxcl9>             
       <hev_revert_ccl21_th name="PARAM_VAS_HEV_REVERT_CCL21_TH" type="float" val="pr">0.5</hev_revert_ccl21_th> 
     </Vas>
