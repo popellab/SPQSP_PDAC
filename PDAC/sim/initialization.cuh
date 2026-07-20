@@ -89,31 +89,17 @@ struct SimulationConfig {
 };
 
 // ============================================================================
-// Agent Population Initialization Functions (QSP-seeded)
+// Agent Population Initialization Functions
 // ============================================================================
 
-void initializeFibroblastsFromQSP(
+// Resident quiescent-PSC (stroma) seeding. Places quiescent fibroblasts at a per-voxel
+// probability (from PARAM_DOMAIN_FIB_DENSITY); they activate + proliferate into CAF at run time.
+// (Retired Jul 2026: initializeTH/TReg/MDSC/MacsFromQSP — the QSP-population TME seeding — deleted;
+//  immune now emerge via QSP-coupled gap-closing recruitment, stroma from this resident field.)
+void seedQuiescentPSCs(
     flamegpu::AgentVector& fib_agents,
     int grid_x, int grid_y, int grid_z,
     double p_fib, std::vector<std::vector<int>>& occupied,
-    float life_mean);
-
-void initializeTHCellsFromQSP(
-    flamegpu::AgentVector& treg_agents,
-    int grid_x, int grid_y, int grid_z,
-    double p_th, std::vector<std::vector<int>>& occupied,
-    float life_mean, int div_limit, int div_interval);
-
-void initializeTRegCellsFromQSP(
-    flamegpu::AgentVector& treg_agents,
-    int grid_x, int grid_y, int grid_z,
-    double p_treg, std::vector<std::vector<int>>& occupied,
-    float life_mean, int div_limit, int div_interval);
-
-void initializeMDSCsFromQSP(
-    flamegpu::AgentVector& mdsc_agents,
-    int grid_x, int grid_y, int grid_z,
-    double p_mdsc, std::vector<std::vector<int>>& occupied,
     float life_mean);
 
 // Initialize Vascular Cells with random walk (HCC-style)
@@ -177,7 +163,7 @@ void preseed_ecm(
 // Initialize agent populations seeded from QSP steady-state (after QSP warmup)
 // Computes cluster_radius and immune cell counts from QSP tumor volume and species
 // Used by -i 0 (simple central cluster for quick testing)
-void initializeToQSP(
+void initializeSingleStem(
     flamegpu::CUDASimulation& simulation,
     flamegpu::ModelDescription& model,
     const SimulationConfig& config,

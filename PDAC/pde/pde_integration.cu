@@ -946,6 +946,14 @@ __global__ void compute_qfields_kernel(
     const int nvox = p.nx * p.ny * p.nz;
     const int idx  = z * (p.nx * p.ny) + y * p.nx + x;
 
+    // Single-ledger normalized scheme: this kernel writes only the SPATIAL SHAPE weight
+    //   w_type(v) = p_entry(Vvas) · type-gate(v)
+    // with NO magnitude (no central pool, no rate constant, no f, no clamp). The per-stream
+    // magnitude is applied on the host (recruit_systematic), which rescales each plane so
+    // Σ_v q = f·Φ_type (QSP mode) or = P_type·Σw (parametric mode). Because that host step
+    // normalizes by Σ_v w, any uniform factor here (entry_scale) cancels — REC_PORT/voxel-vol
+    // are retired. Vvas is the H_C2 spatial analog; gates mirror the QSP trafficking fluxes
+    // (CXCL12 exclusion for Teff/TH; CCL2 pure Hill ± IL-6 for myeloid; none for Treg/B/DC).
     const float vv = vvas[idx];
     const float p_entry = fminf(vv * entry_scale, 1.0f);
     if (p_entry <= 0.0f) {
@@ -953,49 +961,35 @@ __global__ void compute_qfields_kernel(
         return;
     }
 
-    // ── Effector (Teff/TH) gates: CXCL9/10 positive (CXCR3) × CXCL12 exclusion ──
+    // ── Effector (Teff/TH): CXCL12 (CXCR4) exclusion — matches QSP RF68/RF193 ──
     float cxcl12_local = (p.cxcl12_conc && p.cxcl12_ec50 > 0.0f) ? p.cxcl12_conc[idx] : 0.0f;
     float cxcl12_inhib = (p.cxcl12_ec50 > 0.0f) ? cxcl12_local / (cxcl12_local + p.cxcl12_ec50) : 0.0f;
-    float cxcl9_local  = (p.cxcl9_conc && p.cxcl9_ec50 > 0.0f) ? p.cxcl9_conc[idx] : 0.0f;
-    float cxcl9_gate   = (p.cxcl9_ec50 > 0.0f)
-        ? TEFF_CXCL9_GATE_FLOOR + (1.0f - TEFF_CXCL9_GATE_FLOOR) * (cxcl9_local / (cxcl9_local + p.cxcl9_ec50))
-        : 1.0f;
-    const float eff_gate = cxcl9_gate * (1.0f - cxcl12_inhib);
+    const float eff_gate = (1.0f - cxcl12_inhib);
+    qf[QS_TEFF * nvox + idx] = p_entry * eff_gate;
+    qf[QS_TH   * nvox + idx] = p_entry * eff_gate;
 
-    // Each per-type factor is a Bernoulli probability in the old two-roll path, so it is capped
-    // at 1 there (a coin flip can't exceed certainty). Clamp the gate to ≤1 before multiplying by
-    // p_entry so Σq equals the OLD expected recruit count exactly (mean rate unchanged). Matters
-    // for MDSC, whose (1+H_IL6) boost can exceed 1.
-    qf[QS_TEFF * nvox + idx] = p_entry * fminf(p.p_teff * eff_gate, 1.0f);
-    qf[QS_TH   * nvox + idx] = p_entry * fminf(p.p_th   * eff_gate, 1.0f);
+    // ── Treg: no cytokine gate — matches QSP RF36 (H_C2 only, carried by Vvas) ──
+    qf[QS_TREG * nvox + idx] = p_entry;
 
-    // ── Treg: CCL5/CCR5 boost ──
-    float ccl5_local = (p.ccl5_conc && p.ccl5_ec50 > 0.0f) ? p.ccl5_conc[idx] : 0.0f;
-    float ccl5_boost = (p.ccl5_ec50 > 0.0f) ? ccl5_local / (ccl5_local + p.ccl5_ec50) : 0.0f;
-    qf[QS_TREG * nvox + idx] = p_entry * fminf(p.p_treg * (1.0f + p.ccl5_ratio * ccl5_boost), 1.0f);
-
-    // ── MDSC: CCL2/CCR2 soft gate × IL-6 boost ──
-    float p_mdsc_eff = p.p_mdsc;
+    // ── MDSC: CCL2/CCR2 pure Hill × IL-6 boost — matches QSP RF241 ──
+    float mdsc_gate = 1.0f;
     if (p.ccl2_conc) {
         float c = p.ccl2_conc[idx];
-        float H = c / (c + p.ccl2_ec50_mdsc + 1e-30f);
-        p_mdsc_eff *= MYELOID_CCL2_GATE_FLOOR + (1.0f - MYELOID_CCL2_GATE_FLOOR) * H;
+        mdsc_gate *= c / (c + p.ccl2_ec50_mdsc + 1e-30f);
     }
     if (p.il6_conc) {
         float il6 = p.il6_conc[idx];
-        float H = il6 / (il6 + p.il6_ec50_mdsc + 1e-30f);
-        p_mdsc_eff *= (1.0f + H);
+        mdsc_gate *= (1.0f + il6 / (il6 + p.il6_ec50_mdsc + 1e-30f));
     }
-    qf[QS_MDSC * nvox + idx] = p_entry * fminf(p_mdsc_eff, 1.0f);
+    qf[QS_MDSC * nvox + idx] = p_entry * mdsc_gate;
 
-    // ── MAC: CCL2/CCR2 soft gate ──
-    float p_mac_eff = p.p_mac;
+    // ── MAC: CCL2/CCR2 pure Hill — matches QSP RF276 ──
+    float mac_gate = 1.0f;
     if (p.ccl2_conc) {
         float c = p.ccl2_conc[idx];
-        float H = c / (c + p.ccl2_ec50_mac + 1e-30f);
-        p_mac_eff *= MYELOID_CCL2_GATE_FLOOR + (1.0f - MYELOID_CCL2_GATE_FLOOR) * H;
+        mac_gate *= c / (c + p.ccl2_ec50_mac + 1e-30f);
     }
-    qf[QS_MAC * nvox + idx] = p_entry * fminf(p_mac_eff, 1.0f);
+    qf[QS_MAC * nvox + idx] = p_entry * mac_gate;
 
     // ── MAC spawn polarization P(M2) — mirrors recruit_all_kernel / state-step formula ──
     //   H_M1 = H(IFN-γ)+H(IL-12);  H_M2 = H(TGF-β)+H(IL-10)+H(IL-6);  default M2 if no signal.
@@ -1007,18 +1001,13 @@ __global__ void compute_qfields_kernel(
     if (p.il6_conc)      { float c = p.il6_conc[idx];      h_m2 += c / (c + p.mac_il6_ec50  + 1e-30f); }
     qf[QPLANE_PM2 * nvox + idx] = (h_m1 + h_m2 < 1e-9f) ? 1.0f : h_m2 / (h_m1 + h_m2);
 
-    // ── B cell: CXCL13/CXCR5 soft gate (TLS localization, floor for cold-start seeding) ──
-    float bgate = BCELL_CXCL13_GATE_FLOOR;
-    if (p.cxcl13_conc) {
-        float c = p.cxcl13_conc[idx];
-        float H = c / (c + p.cxcl13_ec50_bcell + 1e-30f);
-        bgate = BCELL_CXCL13_GATE_FLOOR + (1.0f - BCELL_CXCL13_GATE_FLOOR) * H;
-    }
-    qf[QS_BCELL * nvox + idx] = p_entry * fminf(p.p_bcell * bgate, 1.0f);
+    // ── B cell: no cytokine gate — matches QSP RF237 (q_Treg_T_in · H_C2, carried by Vvas).
+    //    The former CXCL13/CXCR5 soft gate (ABM-only TLS heuristic) is removed. ──
+    qf[QS_BCELL * nvox + idx] = p_entry;
 
     // ── DC: homeostatic per-subtype (no cytokine gate) ──
-    qf[QS_DC1 * nvox + idx] = p_entry * fminf(p.p_dc_cdc1, 1.0f);
-    qf[QS_DC2 * nvox + idx] = p_entry * fminf(p.p_dc_cdc2, 1.0f);
+    qf[QS_DC1 * nvox + idx] = p_entry;
+    qf[QS_DC2 * nvox + idx] = p_entry;
 }
 
 // ============================================================================
@@ -1415,11 +1404,12 @@ static RecruitKernelParams build_recruit_kernel_params(
     RecruitKernelParams p;
     p.nx = nx; p.ny = ny; p.nz = nz;
 
-    // T cell recruitment probabilities — only the three T-cell types are coupled
-    // to the QSP central compartment. recruitment_mode selects the source:
+    // Recruitment probabilities. The T-cell and B-cell streams are coupled to the QSP
+    // central compartment (their QSP trafficking flux is q_·_T_in · V_T · [central] · gates);
+    // MDSC/MAC/DC have no systemic reservoir in the QSP (flux is k_·_rec · V_T · gates), so
+    // their p is the derived rate constant alone. recruitment_mode selects the source:
     //   0 = QSP-coupled : p = qsp_*_central × PARAM_*_RECRUIT_K (rate constant)
     //   1 = PARAMETRIC  : p = PARAM_*_RECRUIT_P (direct XML probability, no QSP read)
-    // MDSC/MAC/B/DC recruitment below is already XML/PDE-driven and identical in both modes.
     const int recruitment_mode = FLAMEGPU->environment.getProperty<int>("recruitment_mode");
     qsp_teff = 0.0f; qsp_treg = 0.0f; qsp_th = 0.0f;
     if (recruitment_mode == 0) {
@@ -1434,6 +1424,9 @@ static RecruitKernelParams build_recruit_kernel_params(
         p.p_treg = std::min(FLAMEGPU->environment.getProperty<float>("PARAM_TREG_RECRUIT_P"), 1.0f);
         p.p_th   = std::min(FLAMEGPU->environment.getProperty<float>("PARAM_TH_RECRUIT_P"),   1.0f);
     }
+    // NOTE: the sampling fraction f and the per-stream magnitude Φ are now applied on the HOST
+    // in recruit_systematic (normalized f·Φ scheme), not here — compute_qfields_kernel emits
+    // only spatial shape weights. p.p_teff etc. below are retained for logging/parametric only.
 
     // T cell life/division params
     p.t_life_mean   = FLAMEGPU->environment.getProperty<float>("PARAM_T_CELL_LIFE_MEAN_SLICE");
@@ -1475,8 +1468,16 @@ static RecruitKernelParams build_recruit_kernel_params(
     p.mac_tgfb_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_EC50");
     p.mac_il6_ec50  = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL6_M2_EC50");
 
-    // B cell params
-    p.p_bcell = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_RECRUIT_K");
+    // B cell params. QSP couples B trafficking through the same functional form as the
+    // T cells (RF237 = q_Treg_T_in · V_T · [V_C_B] · H_C2), so B is central-pool-driven in
+    // mode 0 (PARAM_BCELL_RECRUIT_K is now QSP-derived from q_Treg_T_in, mirroring Th) and
+    // uses the parametric probability PARAM_BCELL_RECRUIT_P in mode 1.
+    if (recruitment_mode == 0) {
+        const float qsp_bcell = FLAMEGPU->environment.getProperty<float>("qsp_bcell_central");
+        p.p_bcell = std::min(qsp_bcell * FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_RECRUIT_K"), 1.0f);
+    } else {
+        p.p_bcell = std::min(FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_RECRUIT_P"), 1.0f);
+    }
     p.bcell_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_LIFE_MEAN");
     p.bcell_life_sd   = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_LIFE_SD");
     p.cxcl13_conc = g_pde_solver ? reinterpret_cast<const float*>(
@@ -2001,6 +2002,90 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
         default: break;
         }
     };
+
+    // ── Single-ledger per-stream magnitude. The kernel wrote pure spatial shape weights
+    //    w_type(v) = Vvas·gate; here we rescale each plane so its TOTAL is the number of type-Z
+    //    cells to recruit this step, then the sampler distributes that count by w:
+    //      QSP mode (0): SOFT GAP-CLOSING to the QSP tumor composition. The ABM window should
+    //        hold N_target,Z = f · X_QSP_tumor,Z cells (geometric f = min(1, V_box/V_T); the
+    //        window's volume-share of the whole tumor). Per step we recruit only the deficit,
+    //        relaxed by α:  recruit_Z = α · max(0, N_target,Z − N_abm,Z). ABM death/division run
+    //        free underneath — the controller pins the trajectory to f·X_QSP_tumor, it does not
+    //        force ABM removal to match the QSP. This self-caps abundant streams (e.g. B) and
+    //        replaces the old gross-influx flux (which over-populated efflux-limited types).
+    //      Parametric (1): Σ_v q = P_type·Σw  (per-voxel probability; no QSP, no normalization).
+    //    Only the N_QSTREAM recruitment planes are rescaled; the PM2 polarization plane is left. ──
+    {
+        auto envf = [&](const char* k){ return static_cast<double>(FLAMEGPU->environment.getProperty<float>(k)); };
+        const int rec_mode = FLAMEGPU->environment.getProperty<int>("recruitment_mode");
+        double scale[N_QSTREAM];
+        if (rec_mode == 0) {
+            const double NA    = envf("AVOGADROS");
+            const double alpha = envf("PARAM_RECRUIT_ALPHA");
+            // Geometric sampling fraction: fraction of the whole tumor VOLUME this window resolves.
+            // Uses total tumor content (V_T, all cell types + stroma), not cancer count — robust to
+            // intratumoral heterogeneity (a stroma-rich, cancer-poor window still gets its share).
+            const double voxel_m = FLAMEGPU->environment.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6;
+            const double V_box = static_cast<double>(nx) * ny * nz * voxel_m * voxel_m * voxel_m;
+            const double V_T   = envf("qsp_tum_vol");
+            const double f     = (V_T > 0.0) ? std::min(1.0, V_box / V_T) : 1.0;
+
+            // Target ABM population per stream = f · X_QSP_tumor,Z (cells). qsp_*_tumor are in mol → ×NA.
+            double Ntarget[N_QSTREAM];
+            Ntarget[QS_TEFF]  = f * envf("qsp_teff_tumor")  * NA;
+            Ntarget[QS_MDSC]  = f * envf("qsp_mdsc_tumor")  * NA;
+            Ntarget[QS_MAC]   = f * (envf("qsp_m1_tumor") + envf("qsp_m2_tumor")) * NA;
+            Ntarget[QS_BCELL] = f * envf("qsp_bcell_tumor") * NA;
+            // Th + Treg share one ABM agent (AGENT_TREG); DC1 + DC2 share AGENT_DC. Compute the
+            // combined deficit against the combined ABM count, then split by the QSP subtype ratio.
+            const double th_q = envf("qsp_th_tumor"), treg_q = envf("qsp_treg_tumor");
+            const double dc_q = envf("qsp_dc_tumor");
+            const double tcd4_target = f * (th_q + treg_q) * NA;
+            const double dc_target   = f * dc_q * NA;
+
+            // Current ABM counts (host-side; fresh — update_agent_counts ran earlier this step).
+            const double n_teff  = FLAMEGPU->agent(AGENT_TCELL).count();
+            const double n_tcd4  = FLAMEGPU->agent(AGENT_TREG).count();   // Th + Treg combined
+            const double n_mdsc  = FLAMEGPU->agent(AGENT_MDSC).count();
+            const double n_mac   = FLAMEGPU->agent(AGENT_MACROPHAGE).count();
+            const double n_bcell = FLAMEGPU->agent(AGENT_BCELL).count();
+            const double n_dc    = FLAMEGPU->agent(AGENT_DC).count();
+
+            // Per-stream recruit count = α·max(0, target − current). Split the shared TCD4/DC gaps.
+            double target[N_QSTREAM];
+            target[QS_TEFF]  = alpha * std::max(0.0, Ntarget[QS_TEFF]  - n_teff);
+            target[QS_MDSC]  = alpha * std::max(0.0, Ntarget[QS_MDSC]  - n_mdsc);
+            target[QS_MAC]   = alpha * std::max(0.0, Ntarget[QS_MAC]   - n_mac);
+            target[QS_BCELL] = alpha * std::max(0.0, Ntarget[QS_BCELL] - n_bcell);
+            const double tcd4_gap = alpha * std::max(0.0, tcd4_target - n_tcd4);
+            const double tcd4_den = th_q + treg_q + 1e-300;
+            target[QS_TH]   = tcd4_gap * (th_q   / tcd4_den);
+            target[QS_TREG] = tcd4_gap * (treg_q / tcd4_den);
+            const double dc_gap = alpha * std::max(0.0, dc_target - n_dc);
+            target[QS_DC1] = 0.5 * dc_gap;   // cDC1/cDC2 split 50/50 (subtype-resolved QSP DC not exported)
+            target[QS_DC2] = 0.5 * dc_gap;
+
+            for (int s = 0; s < N_QSTREAM; ++s) {
+                const float* q = &qf[static_cast<size_t>(s) * nvox];
+                double W = 0.0; for (int v = 0; v < nvox; ++v) W += q[v];
+                scale[s] = (W > 0.0) ? (target[s] / W) : 0.0;
+            }
+        } else {
+            scale[QS_TEFF]  = envf("PARAM_TEFF_RECRUIT_P");
+            scale[QS_TREG]  = envf("PARAM_TREG_RECRUIT_P");
+            scale[QS_TH]    = envf("PARAM_TH_RECRUIT_P");
+            scale[QS_MDSC]  = envf("PARAM_MDSC_RECRUIT_P");
+            scale[QS_MAC]   = envf("PARAM_MAC_RECRUIT_P");
+            scale[QS_BCELL] = envf("PARAM_BCELL_RECRUIT_P");
+            scale[QS_DC1]   = envf("PARAM_DC_RECRUIT_P");
+            scale[QS_DC2]   = envf("PARAM_DC_RECRUIT_P");
+        }
+        for (int s = 0; s < N_QSTREAM; ++s) {
+            const float sc = static_cast<float>(scale[s]);
+            float* q = &qf[static_cast<size_t>(s) * nvox];
+            for (int v = 0; v < nvox; ++v) q[v] *= sc;
+        }
+    }
 
     int drawnN[N_QSTREAM] = {0};
 

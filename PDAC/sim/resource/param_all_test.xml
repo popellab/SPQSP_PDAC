@@ -70,13 +70,14 @@
     <MDSC>
       <lifespanSD name="PARAM_MDSC_LIFESPAN_SD" type="float" val="pos">1</lifespanSD>
       <moveSteps name="PARAM_MDSC_MOVE_STEPS" type="int" val="pos">71</moveSteps> <!-- MAPLE posterior 71 (3.9 um/min). Kreisel2010 neutrophil proxy -->
+      <recruit_p name="PARAM_MDSC_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- PARAMETRIC recruitment_mode ONLY: per-entry per-step MDSC recruitment probability (no QSP). Needed because PARAM_MDSC_RECRUIT_K became a QSP flux-rate const (single-ledger, Jul 2026). Unused in QSP mode (Φ_mdsc = PARAM_MDSC_RECRUIT_K·V_T). SBI free param; 0.03 default, recalibrate. -->
     </MDSC>
     <BCell>
       <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           <!-- 60 steps x6h = 15d, mixed-pool mean (R8 2026-06-16): plasmablast 3-5d (Tellier2019) to naive ~42d (Fulcher1997). Manz2002 "3-8d" DROPPED (misattributed; Manz argues plasma long-lived). -->
       <lifespanSD name="PARAM_BCELL_LIFE_SD" type="float" val="pos">10</lifespanSD>
       <moveSteps name="PARAM_BCELL_MOVE_STEPS" type="int" val="pos">30</moveSteps>
-      <recruit_k name="PARAM_BCELL_RECRUIT_K" type="float" val="pr">1e-3</recruit_k>               <!-- Recruitment probability scalar. Recalibrated 2026-06-29 for the Vvas entry-point + CXCL13 soft-gate scheme (rebuild Step 4): per-entry rate = recruit_k·(floor + (1-floor)·H_cxcl13). Old 3.4e-6 was for the legacy dense source-marking and gave B≈0 under entry-point density. 1e-3 → B~1e3 minority (vs T~1.6e4) on 50³ abm_only. SBI free param. -->
-      <ec50_cxcl13_rec name="PARAM_BCELL_EC50_CXCL13_REC" type="float" val="pr">10.0</ec50_cxcl13_rec> <!-- CXCL13 EC50 for source marking [nM] -->
+      <recruit_p name="PARAM_BCELL_RECRUIT_P" type="float" val="pr">1e-3</recruit_p>               <!-- PARAMETRIC recruitment_mode ONLY: per-entry per-step B-cell recruitment probability (no QSP coupling), mirroring PARAM_*_RECRUIT_P for the T streams. Unused in QSP mode, where p_bcell = qsp_bcell_central * PARAM_BCELL_RECRUIT_K (K now QSP-derived from q_Treg_T_in; see DerivedParams). 1e-3 preserves the prior abm_only B minority (~1e3 vs T~1.6e4 on 50³). -->
+      <ec50_cxcl13_rec name="PARAM_BCELL_EC50_CXCL13_REC" type="float" val="pr">10.0</ec50_cxcl13_rec> <!-- UNUSED (single-ledger, Jul 2026): B recruitment no longer carries a CXCL13/CXCR5 soft gate — QSP RF237 has none. Retained (harmless) to avoid enum churn; safe to remove in a later cleanup. -->
       <div_interval name="PARAM_BCELL_DIV_CD" type="int" val="pos">2</div_interval>                <!-- 2 steps x 6h = 12h, within 6-12h centroblast cycle (tight measured 6-7h=1 step). Zhang1988 Immunol Lett "6 to 7 hours" + Liu1991 EJI BrdU. Victora2010/Gitlin2014 DROPPED (their "6hr" = imaging window, not cycle). -->
       <div_limit name="PARAM_BCELL_DIV_LIMIT" type="int" val="pos">6</div_limit>                   <!-- Max clonal expansion rounds -->
       <activation_timer_base name="PARAM_BCELL_ACTIVATION_TIMER" type="int" val="pos">40</activation_timer_base>  <!-- Steps before plasma differentiation (~10 days GC transit; TFH speedup halves to 5 days) -->
@@ -107,9 +108,11 @@
       <!-- Antibody immune complex boost on DC maturation -->
       <antibody_maturation_50 name="PARAM_DC_ANTIBODY_50" type="float" val="pr">29.3</antibody_maturation_50>    <!-- MAPLE posterior 29.3 nM. FcgRI KD (Bruhns2009) -->
       <antibody_maturation_boost name="PARAM_DC_ANTIBODY_BOOST" type="float" val="pr">3.95</antibody_maturation_boost>  <!-- MAPLE posterior 3.95. Regnault1999 -->
+      <recruit_p name="PARAM_DC_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- PARAMETRIC recruitment_mode ONLY: per-entry per-step DC recruitment probability (both cDC1/cDC2), no QSP. Needed because PARAM_DC_RECRUIT_K_* became QSP flux-rate consts (single-ledger, Jul 2026). Unused in QSP mode (Φ_dc = PARAM_DC_RECRUIT_K_*·V_T). SBI free param. -->
     </DC>
     <Mac>
       <lifespanSD>1</lifespanSD>
+      <recruit_p name="PARAM_MAC_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- PARAMETRIC recruitment_mode ONLY: per-entry per-step macrophage recruitment probability (no QSP). Needed because PARAM_MAC_RECRUIT_K became a QSP flux-rate const (single-ledger, Jul 2026). Unused in QSP mode (Φ_mac = PARAM_MAC_RECRUIT_K·V_T). SBI free param. -->
       <moveSteps name="PARAM_MAC_MOVE_STEPS" type="int" val="pos">18</moveSteps> <!-- MAPLE re-derive 2026-06-16: geo-mean of Chen2019 PNAS BMDM mobile 4.7 / confined 0.21 um/min = ~1 um/min x18 = 18 steps (broad bimodal prior). Was 30 ("1.6 um/min" not in paper). -->
       <hypoxia_threshold name="PARAM_MAC_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>  <!-- O2 mM below which M2 bias activates -->
       <m2_bias_strength name="PARAM_MAC_M2_BIAS_STRENGTH" type="float" val="pr">0.75</m2_bias_strength>     <!-- MAPLE posterior 0.75. Raggi2017, Leblond2016 -->
@@ -153,6 +156,7 @@
       <hev_lymph_density_th name="PARAM_VAS_HEV_LYMPH_DENSITY_TH" type="float" val="pr">8000.0</hev_lymph_density_th> <!-- ~1 cell in Moore neighborhood (1 voxel = 8000 um³) -->
       <hev_recruit_boost name="PARAM_VAS_HEV_RECRUIT_BOOST" type="float" val="pr">5.0</hev_recruit_boost>           <!-- Recruitment multiplier HEV vs PHALANX. 5x conservative model-design (R8 2026-06-16): Martinet2011 reports HEV-density/TIL CORRELATION (not 10x fold); comparator TLS-rich/free CD8 ~6.2x. Range [3,10]. -->
       <entry_adhesion_scale name="PARAM_ENTRY_ADHESION_SCALE" type="float" val="pr">0.05</entry_adhesion_scale>       <!-- media-2 Eq.4 collapsed: p_entry = Vvas * this (= rho_adhesion*Vvoxel/n_adhesion). Per-voxel immune extravasation entry-point probability per step. SBI-tunable knob; 0.05 ~ matches old ~few-percent vascular source density. Flagged for sensitivity analysis. -->
+      <recruit_alpha name="PARAM_RECRUIT_ALPHA" type="float" val="pr">0.3</recruit_alpha>       <!-- Single-ledger soft gap-closing relaxation rate (QSP mode). Per-step recruits of type Z = alpha*max(0, f*X_QSP_tumor,Z - N_abm,Z); ABM population relaxes to the QSP tumor composition (scaled by geometric f=min(1,V_box/V_T)) with time-constant ~1/alpha steps. alpha<1 damps step-to-step over-correction. SBI-tunable. -->
       <teff_ec50_cxcl9 name="PARAM_TEFF_EC50_CXCL9_REC" type="float" val="pr">10.0</teff_ec50_cxcl9>             <!-- rebuild Step 4b: CXCL9/10 (CXCR3-ligand) EC50 [nM] for the effector (CD8/Th) recruitment gate at Vvas entry points. CAF-density-sourced positive term (D1: avoids IFN-γ bistability). Soft-gate floor is hardcoded (TEFF_CXCL9_GATE_FLOOR constexpr). SBI free param; EC50-vs-field to be calibrated. gate-vs-roll semantics under review. -->
       <hev_revert_ccl21_th name="PARAM_VAS_HEV_REVERT_CCL21_TH" type="float" val="pr">0.5</hev_revert_ccl21_th> <!-- CCL21 nM below this → HEV reverts to PHALANX -->
     </Vas>
@@ -1448,21 +1452,24 @@
     <!-- Fibroblast lifespan -->
     <D name="PARAM_FIB_LIFE_MEAN" type="float" comment="mean fibroblast lifespan in timesteps"><![CDATA[1.0f / ((QP(CancerVCT::P_k_iCAF_death) + QP(CancerVCT::P_k_myCAF_death)) / 2.0) / t_step_sec]]></D>
 
-    <!-- Recruitment infrastructure -->
-    <Local var="site_per_voxel" type="double"><![CDATA[env.getProperty<float>("PARAM_ADH_SITE_DENSITY") * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE"), 3)]]></Local>
-    <Local var="site_per_port" type="double"><![CDATA[env.getProperty<float>("PARAM_REC_SITE_FACTOR")]]></Local>
-    <D name="PARAM_REC_PORT" type="float" comment="recruitment ports per voxel"><![CDATA[site_per_voxel / site_per_port]]></D>
+    <!-- Recruitment FLUX-RATE constants (single-ledger normalized f·Φ scheme, Jul 2026).
+         REC_PORT / entry_scale / voxel-volume are RETIRED from the recruitment magnitude: they
+         cancel in the spatial normalization q(v)=f·Φ·Vvas(v)·gate(v)/Σ Vvas·gate (see
+         recruit_systematic). Each K is now the QSP trafficking rate constant × dt × Avogadro,
+         so the whole-tumor per-step influx is  Φ_type = [central pool]·K·V_T  (lymphoid, mol→cells)
+         or  Φ_type = K·V_T  (myeloid/DC, no systemic reservoir).  Units: q[1/(m³·s)]·dt[s]·Nₐ[/mol]
+         → 1/(m³·mol);  ×central[mol]×V_T[m³] = dimensionless cell count.  V_T = qsp_tum_vol [m³]. -->
+    <D name="PARAM_TEFF_RECRUIT_K" type="float" comment="Teff trafficking flux-rate const (q_CD8_T_in·dt·Na)"><![CDATA[QP(CancerVCT::P_q_CD8_T_in) * t_step_sec * AVOGADROS]]></D>
+    <D name="PARAM_TREG_RECRUIT_K" type="float" comment="Treg trafficking flux-rate const (q_Treg_T_in·dt·Na)"><![CDATA[QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS]]></D>
+    <D name="PARAM_TH_RECRUIT_K" type="float" comment="Th trafficking flux-rate const (q_Treg_T_in·dt·Na)"><![CDATA[QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS]]></D>
+    <!-- B cell: QSP RF237 traffics B through the T-cell functional form with q_Treg_T_in. -->
+    <D name="PARAM_BCELL_RECRUIT_K" type="float" comment="B cell trafficking flux-rate const (q_Treg_T_in·dt·Na)"><![CDATA[QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS]]></D>
+    <D name="PARAM_MDSC_RECRUIT_K" type="float" comment="MDSC flux-rate const (k_MDSC_rec·dt·Na); Φ=K·V_T (no central)"><![CDATA[QP(CancerVCT::P_k_MDSC_rec) * t_step_sec * AVOGADROS]]></D>
+    <D name="PARAM_MAC_RECRUIT_K" type="float" comment="macrophage flux-rate const (k_Mac_rec·dt·Na); Φ=K·V_T (no central)"><![CDATA[QP(CancerVCT::P_k_Mac_rec) * t_step_sec * AVOGADROS]]></D>
 
-    <!-- Recruitment rate constants (QSP rate * dt * Avogadro * voxel_volume * ports) -->
-    <D name="PARAM_TEFF_RECRUIT_K" type="float" comment="T effector recruitment rate constant"><![CDATA[QP(CancerVCT::P_q_CD8_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT")]]></D>
-    <D name="PARAM_TREG_RECRUIT_K" type="float" comment="Treg recruitment rate constant"><![CDATA[QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT")]]></D>
-    <D name="PARAM_TH_RECRUIT_K" type="float" comment="Th recruitment rate constant"><![CDATA[QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT")]]></D>
-    <D name="PARAM_MDSC_RECRUIT_K" type="float" comment="MDSC recruitment rate constant"><![CDATA[QP(CancerVCT::P_k_MDSC_rec) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
-    <D name="PARAM_MAC_RECRUIT_K" type="float" comment="macrophage recruitment rate constant"><![CDATA[QP(CancerVCT::P_k_Mac_rec) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
-
-    <!-- DC recruitment: homeostatic rate = k_APC_death * APC0 * voxel_vol * Na * dt -->
-    <D name="PARAM_DC_RECRUIT_K_CDC1" type="float" comment="cDC1 recruitment rate per voxel per step"><![CDATA[QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC1_recruit_target_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
-    <D name="PARAM_DC_RECRUIT_K_CDC2" type="float" comment="cDC2 recruitment rate per voxel per step"><![CDATA[QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC2_recruit_target_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3)]]></D>
+    <!-- DC recruitment: homeostatic RF71/77 = k_APC_death·APC0·V_T; flux-rate const = k_APC_death·APC0·dt·Na -->
+    <D name="PARAM_DC_RECRUIT_K_CDC1" type="float" comment="cDC1 flux-rate const; Φ=K·V_T (no central)"><![CDATA[QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC1_recruit_target_T) * t_step_sec * AVOGADROS]]></D>
+    <D name="PARAM_DC_RECRUIT_K_CDC2" type="float" comment="cDC2 flux-rate const; Φ=K·V_T (no central)"><![CDATA[QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC2_recruit_target_T) * t_step_sec * AVOGADROS]]></D>
     <D name="PARAM_APC_TRANSMIG" type="float" comment="APC transmigration rate"><![CDATA[QP(CancerVCT::P_k_APC_mig)]]></D>
     <D name="PARAM_T0_CLONE" type="float" comment="T0 clonality"><![CDATA[QP(CancerVCT::P_n_CD4_clones)]]></D>
     <D name="PARAM_T1_CLONE" type="float" comment="T1 clonality"><![CDATA[QP(CancerVCT::P_n_CD8_clones)]]></D>

@@ -217,6 +217,7 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         state.bcell_tumor = 0.0;
         state.plasma_tumor = 0.0;
         state.tfh_tumor = 0.0;
+        state.dc_tumor = 0.0;
 
         state.cc_tumor = 0.0;
         state.cx_tumor = 0.0;
@@ -265,6 +266,8 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         state.bcell_tumor = getVAR(CancerVCT::SP_V_T_B);
         state.plasma_tumor = getVAR(CancerVCT::SP_V_T_Plasma);
         state.tfh_tumor = getVAR(CancerVCT::SP_V_T_Tfh);
+        state.dc_tumor = getVAR(CancerVCT::SP_V_T_cDC1) + getVAR(CancerVCT::SP_V_T_cDC2)
+                       + getVAR(CancerVCT::SP_V_T_mcDC1) + getVAR(CancerVCT::SP_V_T_mcDC2);
 
         state.cc_tumor = getVAR_RAW(CancerVCT::SP_V_T_C1);
         state.cx_tumor = getVAR(CancerVCT::SP_V_T_C_x);
@@ -321,29 +324,33 @@ double LymphCentralWrapper::get_tumor_volume() const {
     return _compute_tumor_volume(_qsp_model->getSystem());
 }
 
-// Compute tumor volume from any ODE system instance using SI species values
-// Formula matches get_state_for_abm() - uses getSpeciesVar(x, false) for moles
+// Compute tumor volume — MUST mirror the ODE's AUX_VAR_V_T exactly (ODE_system.cpp:1320-1323),
+// since that is the volume the QSP dynamics themselves use (RF68 trafficking, growth, drug PK).
+// The ODE is authoritative; this helper previously deviated on five terms and returned a volume
+// ~1e4× too large on collagen-rich tumors (silently inflating qsp_tum_vol → the presim volume
+// stopper and any V_T-based coupling). Corrected Jul 2026 to match the ODE term-for-term:
+//   C_total = C1 + C2;  T_total = Treg + CD8 + Th + Tfh;  M_total = Mac_M1 + Mac_M2 (NOT MDSC);
+//   + V_Tmin floor;  collagen contributes collagen / rho_collagen  (a volume = mass ÷ density,
+//   NOT the old collagen · rho / phi which is dimensionally mass²/vol).
 double LymphCentralWrapper::_compute_tumor_volume(CancerVCT::ODE_system* sys) const {
     using namespace CancerVCT;
 
     auto getS = [&](int idx) { return sys->getSpeciesVar(idx, false); };
 
-    double C_total = getS(SP_V_T_C1);  // Single cancer species in new SBML
-    double T_total = getS(SP_V_T_Treg) + getS(SP_V_T_CD8) + getS(SP_V_T_Th);
-    double M_total = getS(SP_V_T_Mac_M1) + getS(SP_V_T_Mac_M2) + getS(SP_V_T_MDSC);
-    double CAF_total = getS(SP_V_T_qPSC) + getS(SP_V_T_iCAF)
-                     + getS(SP_V_T_myCAF) + getS(SP_V_T_apCAF);
+    const double C_total = getS(SP_V_T_C1) + getS(SP_V_T_C2);
+    const double T_total = getS(SP_V_T_Treg) + getS(SP_V_T_CD8) + getS(SP_V_T_Th) + getS(SP_V_T_Tfh);
+    const double M_total = getS(SP_V_T_Mac_M1) + getS(SP_V_T_Mac_M2);
 
     double vol =
-        ((getS(SP_V_T_C_x) + C_total) * QP(P_vol_cell) +
-         (getS(SP_V_T_CD8_exh) + getS(SP_V_T_Th_exh) + T_total) * QP(P_vol_Tcell))
-            / QP(P_Ve_T)
-        + M_total * QP(P_vol_Mcell) / QP(P_Ve_T)
-        + getS(SP_V_T_qPSC) * QP(P_vol_qPSCcell) / QP(P_Ve_T)
-        + getS(SP_V_T_iCAF) * QP(P_vol_iCAFcell) / QP(P_Ve_T)
-        + getS(SP_V_T_myCAF) * QP(P_vol_myCAFcell) / QP(P_Ve_T)
-        + getS(SP_V_T_apCAF) * QP(P_vol_apCAFcell) / QP(P_Ve_T)
-        + getS(SP_V_T_collagen) * QP(P_rho_collagen) / QP(P_phi_collagen);
+        QP(P_V_Tmin)
+        + ((((getS(SP_V_T_C_x) + C_total) * QP(P_vol_cell))
+            + ((getS(SP_V_T_CD8_exh) + getS(SP_V_T_Th_exh) + T_total) * QP(P_vol_Tcell))
+            + M_total * QP(P_vol_Mcell)
+            + getS(SP_V_T_qPSC)  * QP(P_vol_qPSCcell)
+            + getS(SP_V_T_iCAF)  * QP(P_vol_iCAFcell)
+            + getS(SP_V_T_myCAF) * QP(P_vol_myCAFcell)
+            + getS(SP_V_T_apCAF) * QP(P_vol_apCAFcell)) / QP(P_Ve_T))
+        + getS(SP_V_T_collagen) / QP(P_rho_collagen);
 
     return vol;
 }
@@ -401,15 +408,25 @@ void LymphCentralWrapper::_apply_drug_doses(double t, double dt) {
 
 // Apply ABM feedback to ODE system (called at start of each time_step()).
 //
-// Converts discrete ABM event counts to ODE species changes:
-//   species_change = discrete_count × abm_scaler / AVOGADROS  (SI moles)
-//
-// Events applied:
-//   1. Cancer deaths  → increase antigen P0/P1 in tumor compartment
-//   2. Teff recruited → reduce V_C_CD8 (effector T cells in central compartment)
-//   3. TReg recruited → reduce V_C_Treg (regulatory T cells in central compartment)
-//   4. Th recruited   → reduce V_C_Th (helper T cells in central compartment)
+// SINGLE-LEDGER REDESIGN (Jul 2026): DISABLED — the ABM is now the stochastic,
+// spatially-resolved *realization* of the QSP, not a separate mass-exchanging
+// compartment. The QSP owns the burden ledger and runs its own complete
+// central→tumor trafficking (RF68 for CD8, RF36/193 Treg/Th, RF237 B, …) plus
+// its own cancer-death→antigen dynamics. The ABM must NOT edit QSP physical
+// state, or those quantities would be double-counted:
+//   - central pool would be debited twice (QSP RF68 + this feedback), the exact
+//     "two tumors sharing one blood pool" incoherence the redesign removes;
+//   - antigen P0/P1 would be fed both by QSP cancer death and by ABM deaths that
+//     are already a subset of the same lesion.
+// ABM→QSP coupling is now one-way tracking only (QSP central pools × f drive ABM
+// recruitment; see build_recruit_kernel_params / compute_qfields_kernel). The old
+// event-count feedback is retained below (commented) for reference / future
+// intensive (kill-efficiency) coupling, which is deliberately deferred.
 void LymphCentralWrapper::_apply_abm_feedback() {
+    // Intentionally a no-op: ABM does not mutate QSP species (single ledger).
+    return;
+
+    /* --- retired extensive feedback (double-counts under single ledger) ---
     if (!_is_initialized || !_qsp_model) return;
     if (_abm_signals.abm_scaler <= 0.0) return;
 
@@ -436,9 +453,8 @@ void LymphCentralWrapper::_apply_abm_feedback() {
     ode->setSpeciesVar(SP_V_C_CD8, std::max(0.0, cent_t_eff - _abm_signals.teff_recruited_last_step * scaler), false);
     ode->setSpeciesVar(SP_V_C_Treg, std::max(0.0, cent_t_reg - _abm_signals.treg_recruited_last_step * scaler), false);
     ode->setSpeciesVar(SP_V_C_Th, std::max(0.0, cent_t_h - _abm_signals.th_recruited_last_step * scaler), false);
-    // B cells recruited to tumor draw down the systemic (central) B pool, mirroring
-    // the T-cell feedback; the QSP B module then re-traffics/replenishes V_C.B.
     ode->setSpeciesVar(SP_V_C_B, std::max(0.0, cent_b - _abm_signals.bcell_recruited_last_step * scaler), false);
+    --- end retired feedback --- */
 }
 
 } // namespace PDAC

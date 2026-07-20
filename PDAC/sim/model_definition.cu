@@ -865,6 +865,7 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<float>("qsp_bcell_tumor", 0.0f);
     env.newProperty<float>("qsp_plasma_tumor", 0.0f);
     env.newProperty<float>("qsp_tfh_tumor", 0.0f);
+    env.newProperty<float>("qsp_dc_tumor", 0.0f);   // tumor DC (cDC1+cDC2+mcDC1+mcDC2); gap-closing target
 
     env.newProperty<float>("qsp_nivo_tumor", 0.0f);   // Nivolumab concentration in tumor
     env.newProperty<float>("qsp_cabo_tumor", 0.0f);   // Cabozantinib concentration in tumor

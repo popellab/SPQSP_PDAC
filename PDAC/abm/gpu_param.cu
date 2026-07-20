@@ -40,9 +40,10 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.TCD4.treg_recruit_p", "", "pr"},  // PARAM_TREG_RECRUIT_P
     {"Param.ABM.TCD4.th_recruit_p", "", "pr"},  // PARAM_TH_RECRUIT_P
     {"Param.ABM.MDSC.lifespanSD", "", "pos"},  // PARAM_MDSC_LIFESPAN_SD
+    {"Param.ABM.MDSC.recruit_p", "", "pr"},  // PARAM_MDSC_RECRUIT_P
     {"Param.ABM.BCell.lifespanMean", "", "pos"},  // PARAM_BCELL_LIFE_MEAN
     {"Param.ABM.BCell.lifespanSD", "", "pos"},  // PARAM_BCELL_LIFE_SD
-    {"Param.ABM.BCell.recruit_k", "", "pr"},  // PARAM_BCELL_RECRUIT_K
+    {"Param.ABM.BCell.recruit_p", "", "pr"},  // PARAM_BCELL_RECRUIT_P
     {"Param.ABM.BCell.ec50_cxcl13_rec", "", "pr"},  // PARAM_BCELL_EC50_CXCL13_REC
     {"Param.ABM.BCell.tls_speedup", "", "pr"},  // PARAM_BCELL_TLS_SPEEDUP
     {"Param.ABM.BCell.breg_fraction", "", "pr"},  // PARAM_BCELL_BREG_FRACTION
@@ -61,6 +62,8 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.DC.lifeMatureSD", "", "pos"},  // PARAM_DC_LIFE_MATURE_SD
     {"Param.ABM.DC.antibody_maturation_50", "", "pr"},  // PARAM_DC_ANTIBODY_50
     {"Param.ABM.DC.antibody_maturation_boost", "", "pr"},  // PARAM_DC_ANTIBODY_BOOST
+    {"Param.ABM.DC.recruit_p", "", "pr"},  // PARAM_DC_RECRUIT_P
+    {"Param.ABM.Mac.recruit_p", "", "pr"},  // PARAM_MAC_RECRUIT_P
     {"Param.ABM.Mac.hypoxia_threshold", "", "pr"},  // PARAM_MAC_HYPOXIA_TH
     {"Param.ABM.Mac.m2_bias_strength", "", "pr"},  // PARAM_MAC_M2_BIAS_STRENGTH
     {"Param.ABM.CancerCell.progGrowthRate", "", "pr"},  // PARAM_PROG_GROWTH_RATE
@@ -94,7 +97,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Vas.hev_lymph_density_th", "", "pr"},  // PARAM_VAS_HEV_LYMPH_DENSITY_TH
     {"Param.ABM.Vas.hev_recruit_boost", "", "pr"},  // PARAM_VAS_HEV_RECRUIT_BOOST
     {"Param.ABM.Vas.entry_adhesion_scale", "", "pr"},  // PARAM_ENTRY_ADHESION_SCALE
-    {"Param.Molecular.biofvm.CXCL9.fibRelease", "", "pr"},  // PARAM_FIB_CXCL9_RELEASE
+    {"Param.ABM.Vas.recruit_alpha", "", "pr"},  // PARAM_RECRUIT_ALPHA
     {"Param.ABM.Vas.teff_ec50_cxcl9", "", "pr"},  // PARAM_TEFF_EC50_CXCL9_REC
     {"Param.ABM.Vas.hev_revert_ccl21_th", "", "pr"},  // PARAM_VAS_HEV_REVERT_CCL21_TH
     {"Param.ABM.Fib.ECM_radius", "", "pr"},  // PARAM_FIB_ECM_RADIUS
@@ -272,6 +275,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.CXCL12.molecularWeight", "", "pr"},  // PARAM_CXCL12_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.CCL5.diffusivity", "", "pr"},  // PARAM_CCL5_DIFFUSIVITY
     {"Param.Molecular.biofvm.CCL5.molecularWeight", "", "pr"},  // PARAM_CCL5_MOLECULAR_WEIGHT
+    {"Param.Molecular.biofvm.CXCL9.fibRelease", "", "pr"},  // PARAM_FIB_CXCL9_RELEASE
     // Int parameters
     {"Param.ABM.Environment.Tumor.XSize", "microns", "pos"},  // PARAM_X_SIZE
     {"Param.ABM.Environment.Tumor.YSize", "microns", "pos"},  // PARAM_Y_SIZE
@@ -369,9 +373,10 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_TREG_RECRUIT_P", getFloat(PARAM_TREG_RECRUIT_P));
     env.newProperty<float>("PARAM_TH_RECRUIT_P", getFloat(PARAM_TH_RECRUIT_P));
     env.newProperty<float>("PARAM_MDSC_LIFESPAN_SD", getFloat(PARAM_MDSC_LIFESPAN_SD));
+    env.newProperty<float>("PARAM_MDSC_RECRUIT_P", getFloat(PARAM_MDSC_RECRUIT_P));
     env.newProperty<float>("PARAM_BCELL_LIFE_MEAN", getFloat(PARAM_BCELL_LIFE_MEAN));
     env.newProperty<float>("PARAM_BCELL_LIFE_SD", getFloat(PARAM_BCELL_LIFE_SD));
-    env.newProperty<float>("PARAM_BCELL_RECRUIT_K", getFloat(PARAM_BCELL_RECRUIT_K));
+    env.newProperty<float>("PARAM_BCELL_RECRUIT_P", getFloat(PARAM_BCELL_RECRUIT_P));
     env.newProperty<float>("PARAM_BCELL_EC50_CXCL13_REC", getFloat(PARAM_BCELL_EC50_CXCL13_REC));
     env.newProperty<float>("PARAM_BCELL_TLS_SPEEDUP", getFloat(PARAM_BCELL_TLS_SPEEDUP));
     env.newProperty<float>("PARAM_BCELL_BREG_FRACTION", getFloat(PARAM_BCELL_BREG_FRACTION));
@@ -390,6 +395,8 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_DC_LIFE_MATURE_SD", getFloat(PARAM_DC_LIFE_MATURE_SD));
     env.newProperty<float>("PARAM_DC_ANTIBODY_50", getFloat(PARAM_DC_ANTIBODY_50));
     env.newProperty<float>("PARAM_DC_ANTIBODY_BOOST", getFloat(PARAM_DC_ANTIBODY_BOOST));
+    env.newProperty<float>("PARAM_DC_RECRUIT_P", getFloat(PARAM_DC_RECRUIT_P));
+    env.newProperty<float>("PARAM_MAC_RECRUIT_P", getFloat(PARAM_MAC_RECRUIT_P));
     env.newProperty<float>("PARAM_MAC_HYPOXIA_TH", getFloat(PARAM_MAC_HYPOXIA_TH));
     env.newProperty<float>("PARAM_MAC_M2_BIAS_STRENGTH", getFloat(PARAM_MAC_M2_BIAS_STRENGTH));
     env.newProperty<float>("PARAM_PROG_GROWTH_RATE", getFloat(PARAM_PROG_GROWTH_RATE));
@@ -423,7 +430,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_VAS_HEV_LYMPH_DENSITY_TH", getFloat(PARAM_VAS_HEV_LYMPH_DENSITY_TH));
     env.newProperty<float>("PARAM_VAS_HEV_RECRUIT_BOOST", getFloat(PARAM_VAS_HEV_RECRUIT_BOOST));
     env.newProperty<float>("PARAM_ENTRY_ADHESION_SCALE", getFloat(PARAM_ENTRY_ADHESION_SCALE));
-    env.newProperty<float>("PARAM_FIB_CXCL9_RELEASE", getFloat(PARAM_FIB_CXCL9_RELEASE));
+    env.newProperty<float>("PARAM_RECRUIT_ALPHA", getFloat(PARAM_RECRUIT_ALPHA));
     env.newProperty<float>("PARAM_TEFF_EC50_CXCL9_REC", getFloat(PARAM_TEFF_EC50_CXCL9_REC));
     env.newProperty<float>("PARAM_VAS_HEV_REVERT_CCL21_TH", getFloat(PARAM_VAS_HEV_REVERT_CCL21_TH));
     env.newProperty<float>("PARAM_FIB_ECM_RADIUS", getFloat(PARAM_FIB_ECM_RADIUS));
@@ -601,6 +608,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_CXCL12_MOLECULAR_WEIGHT", getFloat(PARAM_CXCL12_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_CCL5_DIFFUSIVITY", getFloat(PARAM_CCL5_DIFFUSIVITY));
     env.newProperty<float>("PARAM_CCL5_MOLECULAR_WEIGHT", getFloat(PARAM_CCL5_MOLECULAR_WEIGHT));
+    env.newProperty<float>("PARAM_FIB_CXCL9_RELEASE", getFloat(PARAM_FIB_CXCL9_RELEASE));
 
     env.newProperty<int>("PARAM_X_SIZE", getInt(PARAM_X_SIZE));
     env.newProperty<int>("PARAM_Y_SIZE", getInt(PARAM_Y_SIZE));

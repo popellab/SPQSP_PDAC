@@ -358,41 +358,37 @@
     env.newProperty<float>("PARAM_FIB_LIFE_MEAN", 
                     1.0f / ((QP(CancerVCT::P_k_iCAF_death) + QP(CancerVCT::P_k_myCAF_death)) / 2.0) / t_step_sec);
 
-    double site_per_voxel = env.getProperty<float>("PARAM_ADH_SITE_DENSITY") * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE"), 3);
-
-    double site_per_port = env.getProperty<float>("PARAM_REC_SITE_FACTOR");
-
-    // recruitment ports per voxel
-    env.newProperty<float>("PARAM_REC_PORT", 
-                    site_per_voxel / site_per_port);
-
-    // T effector recruitment rate constant
+    // Teff trafficking flux-rate const (q_CD8_T_in·dt·Na)
     env.newProperty<float>("PARAM_TEFF_RECRUIT_K", 
-                    QP(CancerVCT::P_q_CD8_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT"));
+                    QP(CancerVCT::P_q_CD8_T_in) * t_step_sec * AVOGADROS);
 
-    // Treg recruitment rate constant
+    // Treg trafficking flux-rate const (q_Treg_T_in·dt·Na)
     env.newProperty<float>("PARAM_TREG_RECRUIT_K", 
-                    QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT"));
+                    QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS);
 
-    // Th recruitment rate constant
+    // Th trafficking flux-rate const (q_Treg_T_in·dt·Na)
     env.newProperty<float>("PARAM_TH_RECRUIT_K", 
-                    QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3) * env.getProperty<float>("PARAM_REC_PORT"));
+                    QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS);
 
-    // MDSC recruitment rate constant
+    // B cell trafficking flux-rate const (q_Treg_T_in·dt·Na)
+    env.newProperty<float>("PARAM_BCELL_RECRUIT_K", 
+                    QP(CancerVCT::P_q_Treg_T_in) * t_step_sec * AVOGADROS);
+
+    // MDSC flux-rate const (k_MDSC_rec·dt·Na); Φ=K·V_T (no central)
     env.newProperty<float>("PARAM_MDSC_RECRUIT_K", 
-                    QP(CancerVCT::P_k_MDSC_rec) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
+                    QP(CancerVCT::P_k_MDSC_rec) * t_step_sec * AVOGADROS);
 
-    // macrophage recruitment rate constant
+    // macrophage flux-rate const (k_Mac_rec·dt·Na); Φ=K·V_T (no central)
     env.newProperty<float>("PARAM_MAC_RECRUIT_K", 
-                    QP(CancerVCT::P_k_Mac_rec) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
+                    QP(CancerVCT::P_k_Mac_rec) * t_step_sec * AVOGADROS);
 
-    // cDC1 recruitment rate per voxel per step
+    // cDC1 flux-rate const; Φ=K·V_T (no central)
     env.newProperty<float>("PARAM_DC_RECRUIT_K_CDC1", 
-                    QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC1_recruit_target_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
+                    QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC1_recruit_target_T) * t_step_sec * AVOGADROS);
 
-    // cDC2 recruitment rate per voxel per step
+    // cDC2 flux-rate const; Φ=K·V_T (no central)
     env.newProperty<float>("PARAM_DC_RECRUIT_K_CDC2", 
-                    QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC2_recruit_target_T) * t_step_sec * AVOGADROS * std::pow(env.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6, 3));
+                    QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC2_recruit_target_T) * t_step_sec * AVOGADROS);
 
     // APC transmigration rate
     env.newProperty<float>("PARAM_APC_TRANSMIG", 

@@ -90,7 +90,7 @@
       <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           <!-- ABM steps (~15 days) -->
       <lifespanSD name="PARAM_BCELL_LIFE_SD" type="float" val="pos">10</lifespanSD>
       <moveSteps name="PARAM_BCELL_MOVE_STEPS" type="int" val="pos">30</moveSteps>
-      <recruit_k name="PARAM_BCELL_RECRUIT_K" type="float" val="pr">3.4e-6</recruit_k>             <!-- Recruitment probability scalar (calibrated 2026-05-06: ÷14500 from 0.05 to land near patient B cell density) -->
+      <recruit_p name="PARAM_BCELL_RECRUIT_P" type="float" val="pr">3.4e-6</recruit_p>             <!-- Recruitment probability scalar (calibrated 2026-05-06: ÷14500 from 0.05 to land near patient B cell density) -->
       <ec50_cxcl13_rec name="PARAM_BCELL_EC50_CXCL13_REC" type="float" val="pr">10.0</ec50_cxcl13_rec> <!-- CXCL13 EC50 for source marking [nM] -->
       <div_interval name="PARAM_BCELL_DIV_CD" type="int" val="pos">2</div_interval>                <!-- ~12h GC centroblast cycle (Victora2010, Gitlin2014) -->
       <div_limit name="PARAM_BCELL_DIV_LIMIT" type="int" val="pos">6</div_limit>                   <!-- Max clonal expansion rounds -->

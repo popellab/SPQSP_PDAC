@@ -666,208 +666,12 @@ void initializeCancerCellsRandom(
     std::cout << "Initialized " << (count - 1) << " cancer cells in cluster" << std::endl;
 }
 
-// Place T-helper cells (TCD4_TH) into the AGENT_TREG vector, testing
-// probability p_th per empty voxel.
-void initializeTHCellsFromQSP(
-    flamegpu::AgentVector& treg_agents,
-    int grid_x, int grid_y, int grid_z,
-    double p_th,
-    std::vector<std::vector<int>>& occupied,
-    float life_mean, float life_sd, int div_limit, int div_interval)
-{
-    int placed = 0;
-    for (int z = 0; z < grid_z; z++) {
-        for (int y = 0; y < grid_y; y++) {
-            for (int x = 0; x < grid_x; x++) {
-                // const int idx = z * grid_x * grid_y + y * grid_x + x;
-
-                const float rnd = static_cast<float>(rand()) / RAND_MAX;
-                if (rnd >= static_cast<float>(p_th)) continue;
-
-                // Use normal distribution: lifeMean + gaussian * lifeSD (Box-Muller)
-                float u1 = static_cast<float>(rand()) / RAND_MAX;
-                float u2 = static_cast<float>(rand()) / RAND_MAX;
-                if (u1 < 1e-6f) u1 = 1e-6f;
-                float z0 = std::sqrt(-2.0f * std::log(u1)) * std::cos(2.0f * 3.14159f * u2);
-                int life = static_cast<int>(life_mean + z0 * life_sd + 0.5f);
-                if (life < 1) life = 1;
-
-                float div_rnd = static_cast<float>(rand()) / RAND_MAX;
-                int div_cd = static_cast<int>(div_interval * div_rnd + 0.5f);
-
-                treg_agents.push_back();
-                flamegpu::AgentVector::Agent agent = treg_agents.back();
-                agent.setVariable<int>("x", x);
-                agent.setVariable<int>("y", y);
-                agent.setVariable<int>("z", z);
-                agent.setVariable<int>("cell_state", TCD4_TH);
-                agent.setVariable<int>("divide_flag", 0);
-                // agent.setVariable<int>("divide_cd", div_cd);
-                agent.setVariable<int>("divide_cd", div_interval);
-                agent.setVariable<int>("divide_limit", div_limit);
-                agent.setVariable<int>("life", life);
-
-                agent.setVariable<float>("TGFB_release_remain", 0.0f);
-
-                // Initialize molecular state
-                agent.setVariable<float>("PDL1_syn", 0.0f);
-                agent.setVariable<float>("CTLA4", 0.0f);
-                agent.setVariable<float>("IL2_exposure", 0.0f);
-
-                // Initialize neighbor counts
-                agent.setVariable<int>("neighbor_Tcell_count", 0);
-                agent.setVariable<int>("neighbor_Treg_count", 0);
-                agent.setVariable<int>("neighbor_cancer_count", 0);
-                agent.setVariable<int>("neighbor_all_count", 0);
-                agent.setVariable<int>("found_progenitor", 0);
-                agent.setVariable<unsigned int>("available_neighbors", 0u);
-
-                // Initialize life/death
-                agent.setVariable<int>("dead", 0);
-
-                // Initialize intent
-                agent.setVariable<int>("intent_action", 0);  // INTENT_NONE
-                agent.setVariable<int>("target_x", -1);
-                agent.setVariable<int>("target_y", -1);
-                agent.setVariable<int>("target_z", -1);
-
-                placed++;
-            }
-        }
-    }
-    std::cout << "  Placed " << placed << " TH cells (probability-based QSP)" << std::endl;
-}
-
-// Place regulatory T-cells (TCD4_TREG) into the AGENT_TREG vector, testing
-// probability p_treg per empty voxel.
-void initializeTRegCellsFromQSP(
-    flamegpu::AgentVector& treg_agents,
-    int grid_x, int grid_y, int grid_z,
-    double p_treg,
-    std::vector<std::vector<int>>& occupied,
-    float life_mean, float life_sd, int div_limit, int div_interval)
-{
-    int placed = 0;
-    for (int z = 0; z < grid_z; z++) {
-        for (int y = 0; y < grid_y; y++) {
-            for (int x = 0; x < grid_x; x++) {
-                // const int idx = z * grid_x * grid_y + y * grid_x + x;
-
-                const float rnd = static_cast<float>(rand()) / RAND_MAX;
-                if (rnd >= static_cast<float>(p_treg)) continue;
-
-                // Use normal distribution: lifeMean + gaussian * lifeSD (Box-Muller)
-                float u1 = static_cast<float>(rand()) / RAND_MAX;
-                float u2 = static_cast<float>(rand()) / RAND_MAX;
-                if (u1 < 1e-6f) u1 = 1e-6f;
-                float z0 = std::sqrt(-2.0f * std::log(u1)) * std::cos(2.0f * 3.14159f * u2);
-                int life = static_cast<int>(life_mean + z0 * life_sd + 0.5f);
-                if (life < 1) life = 1;
-
-                float div_rnd = static_cast<float>(rand()) / RAND_MAX;
-                int div_cd = static_cast<int>(div_interval * div_rnd + 0.5f);
-
-                treg_agents.push_back();
-                flamegpu::AgentVector::Agent agent = treg_agents.back();
-                agent.setVariable<int>("x", x);
-                agent.setVariable<int>("y", y);
-                agent.setVariable<int>("z", z);
-                agent.setVariable<int>("cell_state", TCD4_TREG);
-                agent.setVariable<int>("divide_flag", 0);
-                agent.setVariable<int>("divide_cd", div_cd);
-                agent.setVariable<int>("divide_limit", div_limit);
-                agent.setVariable<int>("life", life);
-                agent.setVariable<unsigned int>("det_tag", 0x30000000u + static_cast<unsigned int>(z*grid_x*grid_y + y*grid_x + x));
-
-                placed++;
-            }
-        }
-    }
-    std::cout << "  Placed " << placed << " TReg cells (probability-based QSP)" << std::endl;
-}
-
-// Place MDSCs into the AGENT_MDSC vector, testing probability p_mdsc per
-// empty voxel.
-void initializeMDSCsFromQSP(
-    flamegpu::AgentVector& mdsc_agents,
-    int grid_x, int grid_y, int grid_z,
-    double p_mdsc,
-    std::vector<std::vector<int>>& occupied,
-    float life_mean)
-{
-    int placed = 0;
-    for (int z = 0; z < grid_z; z++) {
-        for (int y = 0; y < grid_y; y++) {
-            for (int x = 0; x < grid_x; x++) {
-                // const int idx = z * grid_x * grid_y + y * grid_x + x;
-
-                const float rnd = static_cast<float>(rand()) / RAND_MAX;
-                if (rnd >= static_cast<float>(p_mdsc)) continue;
-
-                float life_rnd = static_cast<float>(rand()) / RAND_MAX;
-                int life = static_cast<int>(life_mean * std::log(1.0f / (life_rnd + 1e-4f)) + 0.5f);
-                if (life < 1) life = 1;
-
-                mdsc_agents.push_back();
-                flamegpu::AgentVector::Agent agent = mdsc_agents.back();
-                agent.setVariable<int>("x", x);
-                agent.setVariable<int>("y", y);
-                agent.setVariable<int>("z", z);
-                agent.setVariable<int>("life", life);
-                agent.setVariable<int>("intent_action", INTENT_NONE);
-                agent.setVariable<int>("target_x", -1);
-                agent.setVariable<int>("target_y", -1);
-                agent.setVariable<int>("target_z", -1);
-                agent.setVariable<unsigned int>("det_tag", 0x60000000u + static_cast<unsigned int>(z*grid_x*grid_y + y*grid_x + x));
-
-                placed++;
-            }
-        }
-    }
-    std::cout << "  Placed " << placed << " MDSCs (probability-based QSP)" << std::endl;
-}
-
-void initializeMacsFromQSP(
-    flamegpu::AgentVector& mac_agents,
-    int grid_x, int grid_y, int grid_z,
-    double p_mac,
-    std::vector<std::vector<int>>& occupied,
-    float life_mean)
-{
-    int placed = 0;
-    for (int z = 0; z < grid_z; z++) {
-        for (int y = 0; y < grid_y; y++) {
-            for (int x = 0; x < grid_x; x++) {
-                // const int idx = z * grid_x * grid_y + y * grid_x + x;
-
-                const float rnd = static_cast<float>(rand()) / RAND_MAX;
-                if (rnd >= static_cast<float>(p_mac)) continue;
-
-                float life_rnd = static_cast<float>(rand()) / RAND_MAX;
-                int life = static_cast<int>(life_mean * std::log(1.0f / (life_rnd + 1e-4f)) + 0.5f);
-                if (life < 1) life = 1;
-
-                mac_agents.push_back();
-                flamegpu::AgentVector::Agent agent = mac_agents.back();
-                agent.setVariable<int>("x", x);
-                agent.setVariable<int>("y", y);
-                agent.setVariable<int>("z", z);
-                agent.setVariable<int>("life", life);
-                agent.setVariable<int>("cell_state", MAC_M2);
-                agent.setVariable<unsigned int>("det_tag", 0x10000000u + static_cast<unsigned int>(z*grid_x*grid_y + y*grid_x + x));
-
-                placed++;
-            }
-        }
-    }
-    std::cout << "  Placed " << placed << " Macrophages (probability-based QSP)" << std::endl;
-}
 
 // ============================================================================
 // Fibroblast Initialization
 // ============================================================================
 
-void initializeFibroblastsFromQSP(
+void seedQuiescentPSCs(
     flamegpu::AgentVector& fib_agents,
     int grid_x, int grid_y, int grid_z,
     double p_fib,
@@ -907,7 +711,7 @@ void initializeFibroblastsFromQSP(
             }
         }
     }
-    std::cout << "  Placed " << placed << " Fibroblasts (quiescent, single-cell, probability-based QSP)" << std::endl;
+    std::cout << "  Placed " << placed << " quiescent PSCs (resident, density-based)" << std::endl;
 }
 
 // ============================================================================
@@ -1133,21 +937,24 @@ void preseed_ecm(
 // Master Initialization Function
 // ============================================================================
 
-void initializeToQSP(
+// CANONICAL initialization (Jul 2026 rewrite). Replaces the retired "initialize-to-QSP"
+// scheme (which seeded the whole TME from QSP tumor-compartment counts evaluated at the
+// seed-state QSP — meaningless at cancer≈1 cell, and it starved fibroblasts to ~9 cells).
+// Under the single-ledger coupling the TME must EMERGE:
+//   - cancer   : 1 stem cell at grid center (-i 0), or a cluster (-i 1)
+//   - immune   : NONE at init — recruited during the run by the QSP-coupled gap-closing
+//   - stroma   : resident quiescent PSCs at PARAM_DOMAIN_FIB_DENSITY (IMC density), which
+//                activate (TGFβ/IL1) and proliferate into CAF — a real resident field,
+//                not a QSP-derived probability.
+//   - vascular : resident network (unchanged).
+// The old initialize*FromQSP population-seeding functions have been retired.
+void initializeSingleStem(
     flamegpu::CUDASimulation& simulation,
     flamegpu::ModelDescription& model,
     const SimulationConfig& config,
     const LymphCentralWrapper& lymph)
 {
-    std::cout << "\n=== Initializing Agents from QSP State ===" << std::endl;
-
-    // Get QSP state after warmup
-    QSPState qsp = lymph.get_state_for_abm();
-    std::cout << "  QSP tumor volume  : " << qsp.tum_vol    << " cm^3" << std::endl;
-    std::cout << "  QSP cc_tumor (raw): " << qsp.cc_tumor  << " molecules" << std::endl;
-    std::cout << "  QSP Teff (SI)     : " << qsp.teff_tumor << std::endl;
-    std::cout << "  QSP Treg (SI)     : " << qsp.treg_tumor << std::endl;
-    std::cout << "  QSP MDSC (SI)     : " << qsp.mdsc_tumor << std::endl;
+    std::cout << "\n=== Canonical Init (single-stem cancer + resident PSC stroma) ===" << std::endl;
 
     // Cluster radius for -i 1 (cluster_radius mode). Read from XML so the
     // user can tune the initial tumor size without rebuilding. For -i 0
@@ -1157,39 +964,15 @@ void initializeToQSP(
     std::cout << "  cluster_radius  = " << cluster_radius
               << " voxels (frac=" << radius_frac << ")" << std::endl;
 
-    // -----------------------------------------------------------------------
-    // Immune cell placement probabilities (HCC pattern):
-    //
-    //   Teff: 0 at init (coefficient 0 in HCC)
-    //   Treg: per-voxel probability (user addition; HCC had coefficient 0)
-    //   TH  : p = 0.03 × (th   / total_immune_conc + ε)
-    //   MDSC: p =         mdsc  / (total_immune_conc + ε)
-    //
-    //   total_immune_conc = Teff + TH + Treg + MDSC  (all in SI, mol/m³)
-    //   CC is NOT in this denominator (it uses a separate fibroblast-style
-    //   formula in HCC).  ε = 1e-30 prevents division by zero.
-    // -----------------------------------------------------------------------
-    const double avogadros = 6.022140857e23;
-    const double cc_SI     = qsp.cc_tumor / avogadros;
-    const double eps = 1e-30;
-
-    const double p_th   = 0.03 * qsp.th_tumor   / (qsp.th_tumor + cc_SI + eps);
-    const double p_mdsc =        qsp.mdsc_tumor  / (qsp.mdsc_tumor + cc_SI + eps);
-    const double p_treg = 0.0;
-    const double p_mac  =        qsp.m2_tumor / (qsp.m2_tumor + cc_SI + eps);
-    double p_fib  =        qsp.caf_tumor / (qsp.caf_tumor + cc_SI + eps);
-    if (p_fib > 0.1) {
-		p_fib = 0.1;
-	} else if (p_fib < 0.001) {
-        p_fib = 0.001;
-    }
-
-
-    std::cout << "  p_treg = " << p_treg   << std::endl;
-    std::cout << "  p_th   = " << p_th   << std::endl;
-    std::cout << "  p_mdsc = " << p_mdsc << std::endl;
-    std::cout << "  p_mac  = " << p_mac  << std::endl;
-    std::cout << "  p_fib  = " << p_fib  << std::endl;
+    // Resident quiescent-PSC seeding probability from the IMC density (cells/mm³) × voxel volume.
+    // This is a real resident stromal field (activates + proliferates into CAF), independent of
+    // the QSP — it replaces the retired QSP-derived p_fib that floored at 0.001 (~9 cells).
+    const double voxel_mm  = static_cast<double>(config.voxel_size) / 1000.0;
+    const double voxel_mm3 = voxel_mm * voxel_mm * voxel_mm;
+    const double fib_density = model.Environment().getProperty<float>("PARAM_DOMAIN_FIB_DENSITY"); // cells/mm³
+    double p_fib = std::min(1.0, std::max(0.0, fib_density * voxel_mm3));
+    std::cout << "  resident PSC p_fib = " << p_fib
+              << " (density=" << fib_density << " cells/mm³)" << std::endl;
     // -----------------------------------------------------------------------
     // Read cell-lifecycle parameters from model environment (same as initializeAllAgents)
     // -----------------------------------------------------------------------
@@ -1244,62 +1027,24 @@ void initializeToQSP(
         simulation.setPopulationData(cancer_pop);
     }
 
-    // T cells: none at init — recruited during pre-simulation via QSP
-    {
-        flamegpu::AgentVector tcell_pop(model.Agent(AGENT_TCELL));
-        simulation.setPopulationData(tcell_pop);  // empty
-    }
+    // Immune cells (Teff, TH/TReg, MDSC, MAC): NONE at init — the QSP-coupled soft gap-closing
+    // recruits them during the run to track f·X_QSP_tumor. FLAMEGPU still needs an (empty)
+    // population set for every agent type.
+    { flamegpu::AgentVector tcell_pop(model.Agent(AGENT_TCELL)); simulation.setPopulationData(tcell_pop); }
+    { flamegpu::AgentVector treg_pop(model.Agent(AGENT_TREG));   simulation.setPopulationData(treg_pop); }
+    { flamegpu::AgentVector mdsc_pop(model.Agent(AGENT_MDSC));   simulation.setPopulationData(mdsc_pop); }
+    { flamegpu::AgentVector mac_pop(model.Agent(AGENT_MACROPHAGE)); simulation.setPopulationData(mac_pop); }
 
-    // TH and TReg cells: probability-based placement across all voxels
-    {
-        flamegpu::AgentVector treg_pop(model.Agent(AGENT_TREG));
-        initializeTHCellsFromQSP(
-            treg_pop,
-            config.grid_x, config.grid_y, config.grid_z,
-            p_th, occupied,
-            treg_life, treg_life_sd, treg_div_limit, treg_div_interval);
-        initializeTRegCellsFromQSP(
-            treg_pop,
-            config.grid_x, config.grid_y, config.grid_z,
-            p_treg, occupied,
-            treg_life, treg_life_sd, treg_div_limit, treg_div_interval);
-        std::cout << "  Placed " << treg_pop.size() << " TH/TReg cells" << std::endl;
-        simulation.setPopulationData(treg_pop);
-    }
-
-    // MDSCs: probability-based placement across all voxels
-    {
-        flamegpu::AgentVector mdsc_pop(model.Agent(AGENT_MDSC));
-        initializeMDSCsFromQSP(
-            mdsc_pop,
-            config.grid_x, config.grid_y, config.grid_z,
-            p_mdsc, occupied,
-            mdsc_life);
-        std::cout << "  Placed " << mdsc_pop.size() << " MDSCs" << std::endl;
-        simulation.setPopulationData(mdsc_pop);
-    }
-
-    // Macrophages: probability-based placement across all voxels
-    {
-        flamegpu::AgentVector mac_pop(model.Agent(AGENT_MACROPHAGE));
-        initializeMacsFromQSP(
-            mac_pop,
-            config.grid_x, config.grid_y, config.grid_z,
-            p_mac, occupied,
-            mac_life);
-        std::cout << "  Placed " << mac_pop.size() << " Macrophages" << std::endl;
-        simulation.setPopulationData(mac_pop);
-    }
-
-    // Fibroblasts: probability-based placement across all voxels
+    // Stroma: resident quiescent PSCs at PARAM_DOMAIN_FIB_DENSITY (not QSP-derived). They activate
+    // (TGFβ/IL1) and proliferate into CAF during the run.
     {
         flamegpu::AgentVector fib_pop(model.Agent(AGENT_FIBROBLAST));
-        initializeFibroblastsFromQSP(
+        seedQuiescentPSCs(
             fib_pop,
             config.grid_x, config.grid_y, config.grid_z,
             p_fib, occupied,
             fib_life);
-        std::cout << "  Placed " << fib_pop.size() << " Fibroblasts" << std::endl;
+        std::cout << "  Placed " << fib_pop.size() << " resident quiescent PSCs" << std::endl;
         simulation.setPopulationData(fib_pop);
     }
 
@@ -1351,7 +1096,7 @@ void initializeToQSP(
         simulation.setPopulationData(dc_pop);
     }
 
-    std::cout << "QSP-based agent initialization complete\n" << std::endl;
+    std::cout << "Canonical agent initialization complete\n" << std::endl;
 }
 
 // ============================================================================
@@ -1844,11 +1589,11 @@ void initializeSingleStemEdge(
 
     // ---- Quiescent PSCs at fixed density ----
     // The QSP-derived p_fib is meaningless without QSP coupling. Use a sane
-    // fixed probability; matches the upper clamp in initializeToQSP.
+    // fixed probability; matches the upper clamp in initializeSingleStem.
     {
         flamegpu::AgentVector fib_pop(model.Agent(AGENT_FIBROBLAST));
         const double p_fib_resident = 0.05;
-        initializeFibroblastsFromQSP(
+        seedQuiescentPSCs(
             fib_pop,
             gx, gy, gz,
             p_fib_resident, occupied,

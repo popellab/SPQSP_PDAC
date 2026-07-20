@@ -52,6 +52,7 @@ struct QSPState {
     double bcell_tumor;         // B cells in tumor (SP_V_T_B)
     double plasma_tumor;        // Plasma cells in tumor (SP_V_T_Plasma)
     double tfh_tumor;           // Tfh cells in tumor (SP_V_T_Tfh)
+    double dc_tumor;            // DCs in tumor (cDC1+cDC2+mcDC1+mcDC2); gap-closing target
 
     double cc_tumor;
     double cx_tumor;

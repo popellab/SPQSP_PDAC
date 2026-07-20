@@ -1126,13 +1126,13 @@ int main(int argc, const char** argv) {
         std::cout << "Initializing structured domain (-i 2, deprecated)..." << std::endl;
         PDAC::initializeStructuredDomain(simulation, *model, config, _lymph);
     } else {
-        // -i 0 (single_stem_center, default) and -i 1 (cluster_radius) share the
-        // same substrate (QSP-seeded immune/vasc/fib placement) — they differ only
-        // in how cancer cells are seeded. initializeToQSP branches on init_method.
+        // CANONICAL init. -i 0 (single_stem_center, default) and -i 1 (cluster_radius) differ
+        // only in cancer seeding (1 stem cell vs a cluster); both use resident-PSC stroma and
+        // recruit immune during the run (retired QSP-population seeding, Jul 2026).
         std::cout << "Initializing agents (-i " << config.init_method
                   << ", " << (config.init_method == 1 ? "cluster_radius" : "single_stem_center")
                   << ")..." << std::endl;
-        PDAC::initializeToQSP(simulation, *model, config, _lymph);
+        PDAC::initializeSingleStem(simulation, *model, config, _lymph);
     }
     std::cout.flush();
     init_lap("init_agents");

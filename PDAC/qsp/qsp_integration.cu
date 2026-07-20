@@ -55,6 +55,7 @@ void seed_qsp_env_properties(flamegpu::CUDASimulation& simulation) {
     simulation.setEnvironmentProperty<float>("qsp_teff_central", static_cast<float>(qsp_state.teff_central));
     simulation.setEnvironmentProperty<float>("qsp_treg_central", static_cast<float>(qsp_state.treg_central));
     simulation.setEnvironmentProperty<float>("qsp_th_central",   static_cast<float>(qsp_state.th_central));
+    simulation.setEnvironmentProperty<float>("qsp_bcell_central", static_cast<float>(qsp_state.bcell_central));
 
     simulation.setEnvironmentProperty<float>("qsp_teff_tumor",   static_cast<float>(qsp_state.teff_tumor));
     simulation.setEnvironmentProperty<float>("qsp_treg_tumor",   static_cast<float>(qsp_state.treg_tumor));
@@ -63,6 +64,7 @@ void seed_qsp_env_properties(flamegpu::CUDASimulation& simulation) {
     simulation.setEnvironmentProperty<float>("qsp_m1_tumor",     static_cast<float>(qsp_state.m1_tumor));
     simulation.setEnvironmentProperty<float>("qsp_m2_tumor",     static_cast<float>(qsp_state.m2_tumor));
     simulation.setEnvironmentProperty<float>("qsp_caf_tumor",    static_cast<float>(qsp_state.caf_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_dc_tumor",     static_cast<float>(qsp_state.dc_tumor));
 
     simulation.setEnvironmentProperty<float>("qsp_nivo_tumor",   static_cast<float>(qsp_state.nivo_tumor));
     simulation.setEnvironmentProperty<float>("qsp_cabo_tumor",   static_cast<float>(qsp_state.cabo_tumor));
@@ -189,6 +191,7 @@ FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
     FLAMEGPU->environment.setProperty<float>("qsp_bcell_tumor", static_cast<float>(qsp_state.bcell_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_plasma_tumor", static_cast<float>(qsp_state.plasma_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_tfh_tumor", static_cast<float>(qsp_state.tfh_tumor));
+    FLAMEGPU->environment.setProperty<float>("qsp_dc_tumor", static_cast<float>(qsp_state.dc_tumor));
 
     // Drug concentrations
     FLAMEGPU->environment.setProperty<float>("qsp_nivo_tumor", static_cast<float>(qsp_state.nivo_tumor));
