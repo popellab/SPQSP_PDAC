@@ -19,6 +19,13 @@ namespace PDAC{
 static LymphCentralWrapper* g_lymph = nullptr;
 double g_last_qsp_ms = 0.0;  // exposed for timing CSV
 
+// QSP integration-time offset [s]. The decoupled presim advances the ODE in a QSP-only warmup
+// (main.cu Phase A) before the coupled loop starts at ABM step 0; this offset keeps the time
+// passed to CVODE monotonic across the handoff (CVodeSetStopTime requires tstop ahead of the
+// solver's current internal time). Set once after the warmup; 0 otherwise.
+static double g_qsp_time_offset = 0.0;
+void set_qsp_time_offset(double t_offset_s) { g_qsp_time_offset = t_offset_s; }
+
 void set_lymph_pointer(LymphCentralWrapper* lymph) {
     g_lymph = lymph;
 }
@@ -160,9 +167,10 @@ FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
     //               << ", Teff_rec=" << teff_recruited << ", TReg_rec=" << treg_recruited << std::endl;
     // }
 
-    // Solve ODE for one ABM timestep (CPU-based)
+    // Solve ODE for one ABM timestep (CPU-based). Add the QSP-only-warmup offset so CVODE's
+    // integration time stays monotonic across the decoupled-presim handoff.
     double dt_abm = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
-    double t = static_cast<double>(step) * dt_abm;
+    double t = g_qsp_time_offset + static_cast<double>(step) * dt_abm;
     auto qsp_t0 = std::chrono::high_resolution_clock::now();
     if (g_lymph->is_presimulation_mode()) {
         g_lymph->time_step_preSimulation(t, dt_abm);

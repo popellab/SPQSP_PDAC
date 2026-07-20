@@ -42,6 +42,7 @@ namespace PDAC {
     extern void set_qsp_output_path(const std::string& path);
     extern void set_qsp_presim_output_path(const std::string& path);
     extern void seed_qsp_env_properties(flamegpu::CUDASimulation& simulation);
+    extern void set_qsp_time_offset(double t_offset_s);
 }
 
 namespace PDAC {
@@ -1149,6 +1150,10 @@ int main(int argc, const char** argv) {
         }
         std::cout << "  QSP-only warmup complete: " << qsp_only_steps << " steps, vol="
                   << _lymph.get_tumor_volume() << " m^3" << std::endl;
+        // Keep CVODE integration time monotonic: the coupled loop passes t = step·dt from step 0,
+        // so offset it by the warmup duration (else CVodeSetStopTime sees tstop behind the solver's
+        // internal time on the first coupled step).
+        PDAC::set_qsp_time_offset(static_cast<double>(qsp_only_steps) * dt);
         // Re-seed qsp_* env from the warmed-up state so the ABM's first coupled step reads the
         // grown values (solve_qsp_step overwrites them every step thereafter).
         PDAC::seed_qsp_env_properties(simulation);
