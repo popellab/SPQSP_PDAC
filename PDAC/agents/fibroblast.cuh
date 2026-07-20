@@ -586,7 +586,6 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide_confirm, flamegpu::MessageNone, flamegpu::Mes
     daughter.setVariable<int>("y", ny);
     daughter.setVariable<int>("z", nz);
     daughter.setVariable<int>("cell_state", cs);  // inherits parent state
-    daughter.setVariable<int>("life", FLAMEGPU->getVariable<int>("life"));
     daughter.setVariable<int>("divide_flag", 0);
     daughter.setVariable<int>("divide_cooldown", cd);
     daughter.setVariable<int>("divide_count", 0);
@@ -594,9 +593,20 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide_confirm, flamegpu::MessageNone, flamegpu::Mes
     daughter.setVariable<int>("persist_dir_y", 0);
     daughter.setVariable<int>("persist_dir_z", 0);
     // Child lineage tag: deterministic + distinct per birth, independent of FLAMEGPU birth order.
-    daughter.setVariable<unsigned int>("det_tag",
+    const unsigned int child_tag =
         det_rng_hash(det_tag ^ (static_cast<unsigned int>(tvidx) * 0x9E3779B1U)
-                     ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 0x85EBCA77U)));
+                     ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 0x85EBCA77U));
+    daughter.setVariable<unsigned int>("det_tag", child_tag);
+    // Daughter gets a FRESH exponential lifespan (mean PARAM_FIB_LIFE_MEAN), NOT the parent's
+    // remaining life. Inheriting parent.life (regression from the determinism rewrite, 3d6a6849)
+    // made each generation "born older" by the division cooldown, so lineages extinguished after
+    // ~lifespan/cooldown divisions and the whole stroma collapsed to 0. Deterministic: seeded from
+    // the child's det_tag. Matches the init lifespan sampling (life_mean·ln(1/U)).
+    unsigned int life_rng = child_tag ^ 0x0F1B11FEu;
+    const float fib_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_LIFE_MEAN");
+    int daughter_life = static_cast<int>(
+        fib_life_mean * logf(1.0f / (det_rng_uniform(life_rng) + 1e-4f)) + 0.5f);
+    daughter.setVariable<int>("life", daughter_life > 0 ? daughter_life : 1);
 
     // Record proliferation event
     auto* ec = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
