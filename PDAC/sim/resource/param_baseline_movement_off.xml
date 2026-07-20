@@ -3,6 +3,7 @@
   <ABM>
     <Environment>
       <SecPerSlice name="PARAM_SEC_PER_SLICE" type="float" val="pos" units="seconds">21600</SecPerSlice>
+      <presimAbmStartFrac name="PARAM_PRESIM_ABM_START_FRACTION" type="float" val="pr">0.90</presimAbmStartFrac>  <!-- decoupled presim (single-ledger, Jul 2026) -->
       <recSiteFactor name="PARAM_REC_SITE_FACTOR" type="float" val="pos">1e5</recSiteFactor>
       <adhSiteDens name="PARAM_ADH_SITE_DENSITY" type="float" val="pos">1000</adhSiteDens>  
       <Tumor>
@@ -53,6 +54,7 @@
     <MDSC>
       <lifespanSD name="PARAM_MDSC_LIFESPAN_SD" type="float" val="pos">1</lifespanSD>
       <moveSteps name="PARAM_MDSC_MOVE_STEPS" type="int" val="pos">71</moveSteps> 
+      <recruit_p name="PARAM_MDSC_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- parametric-mode only -->
     </MDSC>
     <BCell>
       <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           
@@ -90,10 +92,12 @@
       
       <antibody_maturation_50 name="PARAM_DC_ANTIBODY_50" type="float" val="pr">29.3</antibody_maturation_50>    
       <antibody_maturation_boost name="PARAM_DC_ANTIBODY_BOOST" type="float" val="pr">3.95</antibody_maturation_boost>  
+      <recruit_p name="PARAM_DC_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- parametric-mode only -->
     </DC>
     <Mac>
       <lifespanSD>1</lifespanSD>
       <moveSteps name="PARAM_MAC_MOVE_STEPS" type="int" val="pos">30</moveSteps> 
+      <recruit_p name="PARAM_MAC_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- parametric-mode only -->
       <hypoxia_threshold name="PARAM_MAC_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>  
       <m2_bias_strength name="PARAM_MAC_M2_BIAS_STRENGTH" type="float" val="pr">0.75</m2_bias_strength>     
     </Mac>
@@ -129,6 +133,7 @@
       <recovery_rate name="PARAM_VAS_RECOVERY_RATE" type="float" val="pr">0.05</recovery_rate>                  
       <kvl_dysfunctional name="PARAM_VAS_KVL_DYSFUNCTIONAL" type="float" val="pr">0.2</kvl_dysfunctional>           
       <hypoxia_threshold name="PARAM_VAS_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>          
+      <recruit_alpha name="PARAM_RECRUIT_ALPHA" type="float" val="pr">0.3</recruit_alpha>  <!-- gap-closing relaxation rate (single-ledger, Jul 2026) -->
       
       <hev_ccl21_threshold name="PARAM_VAS_HEV_CCL21_TH" type="float" val="pr">5.0</hev_ccl21_threshold>         
       <hev_lymph_density_th name="PARAM_VAS_HEV_LYMPH_DENSITY_TH" type="float" val="pr">8000.0</hev_lymph_density_th> 
