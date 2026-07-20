@@ -1118,6 +1118,42 @@ int main(int argc, const char** argv) {
     }
     init_lap("cuda_sim_create");
 
+    // ========== DECOUPLED PRESIM — PHASE A: QSP-only warmup (no ABM) ==========
+    // The QSP tumor grows autonomously via its own ODE (the ABM→QSP feedback is off), so
+    // there is no need to run the GPU ABM in lockstep while it grows from a seed to a 3.2 cm
+    // tumor (~9k full steps). Instead, grow the QSP ALONE (CVODE, ~1 ms/step vs ~140 ms for a
+    // full ABM step) until it reaches PARAM_PRESIM_ABM_START_FRACTION of the target volume; the
+    // ABM is then initialized (below) and couples in for the remaining growth (Phase C = the
+    // existing coupled presim loop). CVODE reinits at t0 each step so the absolute t is only a
+    // label — state carries forward; drugs are off in presim.
+    if (config.presim_qsp_enabled && config.presim_volume_target > 0.0) {
+        const double start_frac =
+            simulation.getEnvironmentProperty<float>("PARAM_PRESIM_ABM_START_FRACTION");
+        const double abm_start_vol = start_frac * config.presim_volume_target;
+        const double dt = simulation.getEnvironmentProperty<float>("PARAM_SEC_PER_SLICE");
+        _lymph.set_presimulation_mode(true);  // drugs off during warmup
+        std::cout << "\n=== Decoupled presim Phase A: QSP-only warmup ===" << std::endl;
+        std::cout << "  ABM couples in at " << start_frac << " × target = "
+                  << abm_start_vol << " m^3 (target " << config.presim_volume_target << ")" << std::endl;
+        double t = 0.0;
+        unsigned int qsp_only_steps = 0;
+        const unsigned int max_qsp_only = 200000;  // safety cap
+        while (_lymph.get_tumor_volume() < abm_start_vol && qsp_only_steps < max_qsp_only) {
+            _lymph.time_step_preSimulation(t, dt);
+            t += dt;
+            ++qsp_only_steps;
+            if (qsp_only_steps % 1000 == 0) {
+                std::cout << "  QSP-only step " << qsp_only_steps
+                          << ": vol=" << _lymph.get_tumor_volume() << " m^3" << std::endl;
+            }
+        }
+        std::cout << "  QSP-only warmup complete: " << qsp_only_steps << " steps, vol="
+                  << _lymph.get_tumor_volume() << " m^3" << std::endl;
+        // Re-seed qsp_* env from the warmed-up state so the ABM's first coupled step reads the
+        // grown values (solve_qsp_step overwrites them every step thereafter).
+        PDAC::seed_qsp_env_properties(simulation);
+    }
+
     // ========== INITIALIZE AGENTS ==========
     if (config.scenario == PDAC::SimulationConfig::Scenario::SingleStemEdge) {
         std::cout << "Initializing single-stem-edge scenario (resident vasc+PSC + 1 stem cell)..." << std::endl;
@@ -1153,7 +1189,9 @@ int main(int argc, const char** argv) {
     PDAC::set_qsp_output_path(qsp_seed_path);
     PDAC::set_qsp_presim_output_path(qsp_presim_path);
 
-    // ========== PRESIM PHASE (coupled ABM+QSP, drugs OFF) ==========
+    // ========== PRESIM — PHASE C: coupled ABM+QSP (drugs OFF) ==========
+    // (Phase A above grew the QSP alone to PARAM_PRESIM_ABM_START_FRACTION of target when
+    //  QSP-coupled + volume-stopped; here the ABM couples in and both run to the target.)
     // ABM and QSP step together from t=0. Drug dosing is gated off via the
     // wrapper's _presimulation_mode flag. Stopping criterion is the resolved
     // step count or volume target from precedence rules above.

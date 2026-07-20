@@ -11,6 +11,7 @@ namespace PDAC {
 const char* _gpu_param_description[][3] = {
     // Float parameters
     {"Param.ABM.Environment.SecPerSlice", "seconds", "pos"},  // PARAM_SEC_PER_SLICE
+    {"Param.ABM.Environment.presimAbmStartFrac", "", "pr"},  // PARAM_PRESIM_ABM_START_FRACTION
     {"Param.ABM.Environment.recSiteFactor", "", "pos"},  // PARAM_REC_SITE_FACTOR
     {"Param.ABM.Environment.adhSiteDens", "", "pos"},  // PARAM_ADH_SITE_DENSITY
     {"Param.ABM.Pharmacokinetics.nivoDoseIntervalTime", "", "pr"},  // PARAM_NIVO_DOSE_INTERVAL_TIME
@@ -344,6 +345,7 @@ void GPUParam::processInternalParams() {
 
 void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env) const {
     env.newProperty<float>("PARAM_SEC_PER_SLICE", getFloat(PARAM_SEC_PER_SLICE));
+    env.newProperty<float>("PARAM_PRESIM_ABM_START_FRACTION", getFloat(PARAM_PRESIM_ABM_START_FRACTION));
     env.newProperty<float>("PARAM_REC_SITE_FACTOR", getFloat(PARAM_REC_SITE_FACTOR));
     env.newProperty<float>("PARAM_ADH_SITE_DENSITY", getFloat(PARAM_ADH_SITE_DENSITY));
     env.newProperty<float>("PARAM_NIVO_DOSE_INTERVAL_TIME", getFloat(PARAM_NIVO_DOSE_INTERVAL_TIME));

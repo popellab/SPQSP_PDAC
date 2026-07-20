@@ -12,6 +12,7 @@
   <ABM>
     <Environment>
       <SecPerSlice name="PARAM_SEC_PER_SLICE" type="float" val="pos" units="seconds">21600</SecPerSlice>
+      <presimAbmStartFrac name="PARAM_PRESIM_ABM_START_FRACTION" type="float" val="pr">0.90</presimAbmStartFrac>  <!-- Decoupled presim (Jul 2026): the QSP grows ALONE (CVODE, no ABM, ~100x faster) until it reaches this fraction of the target tumor volume; then the ABM is initialized and couples in for the remaining growth. 1.0 = fully decoupled (ABM starts at target, no coupled runway — not recommended); lower = more coupled ABM equilibration during presim. Only used in QSP-coupled presim with the volume stopper. -->
       <recSiteFactor name="PARAM_REC_SITE_FACTOR" type="float" val="pos">1e5</recSiteFactor>
       <adhSiteDens name="PARAM_ADH_SITE_DENSITY" type="float" val="pos">1000</adhSiteDens>
       <!-- NOTE: the presim target tumor diameter is the single QSP param
