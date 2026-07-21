@@ -99,6 +99,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Vas.hev_recruit_boost", "", "pr"},  // PARAM_VAS_HEV_RECRUIT_BOOST
     {"Param.ABM.Vas.entry_adhesion_scale", "", "pr"},  // PARAM_ENTRY_ADHESION_SCALE
     {"Param.ABM.Vas.recruit_alpha", "", "pr"},  // PARAM_RECRUIT_ALPHA
+    {"Param.ABM.Vas.recruit_count_cv", "", "pr"},  // PARAM_RECRUIT_COUNT_CV
     {"Param.ABM.Vas.teff_ec50_cxcl9", "", "pr"},  // PARAM_TEFF_EC50_CXCL9_REC
     {"Param.ABM.Vas.hev_revert_ccl21_th", "", "pr"},  // PARAM_VAS_HEV_REVERT_CCL21_TH
     {"Param.ABM.Fib.ECM_radius", "", "pr"},  // PARAM_FIB_ECM_RADIUS
@@ -433,6 +434,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_VAS_HEV_RECRUIT_BOOST", getFloat(PARAM_VAS_HEV_RECRUIT_BOOST));
     env.newProperty<float>("PARAM_ENTRY_ADHESION_SCALE", getFloat(PARAM_ENTRY_ADHESION_SCALE));
     env.newProperty<float>("PARAM_RECRUIT_ALPHA", getFloat(PARAM_RECRUIT_ALPHA));
+    env.newProperty<float>("PARAM_RECRUIT_COUNT_CV", getFloat(PARAM_RECRUIT_COUNT_CV));
     env.newProperty<float>("PARAM_TEFF_EC50_CXCL9_REC", getFloat(PARAM_TEFF_EC50_CXCL9_REC));
     env.newProperty<float>("PARAM_VAS_HEV_REVERT_CCL21_TH", getFloat(PARAM_VAS_HEV_REVERT_CCL21_TH));
     env.newProperty<float>("PARAM_FIB_ECM_RADIUS", getFloat(PARAM_FIB_ECM_RADIUS));

@@ -1856,7 +1856,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
     const float cap = p.voxel_capacity;
     const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
     const unsigned int step = static_cast<unsigned int>(FLAMEGPU->getStepCounter());
-    const float count_cv = 0.10f;  // per-stream count CV; TODO promote to PARAM if calibration needs it
+    const float count_cv = FLAMEGPU->environment.getProperty<float>("PARAM_RECRUIT_COUNT_CV");  // per-stream demographic count CV (SBI-tunable)
 
     // ── Deterministic host RNG helpers (det_rng is __host__ __device__) ──
     auto det_normal = [](unsigned int& s) -> float {

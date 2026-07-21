@@ -167,6 +167,7 @@
       <kvl_dysfunctional name="PARAM_VAS_KVL_DYSFUNCTIONAL" type="float" val="pr">0.2</kvl_dysfunctional>           <!-- Pericyte-poor TIP: ~20% of mature O2 delivery -->
       <hypoxia_threshold name="PARAM_VAS_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_threshold>          <!-- O2 mM below which sprouts are dysfunctional -->
       <recruit_alpha name="PARAM_RECRUIT_ALPHA" type="float" val="pr">0.3</recruit_alpha>  <!-- gap-closing relaxation rate (single-ledger, Jul 2026) -->
+      <recruit_count_cv name="PARAM_RECRUIT_COUNT_CV" type="float" val="pr">0.10</recruit_count_cv>       <!-- Systematic-resampling per-stream count CV (SBI-tunable); promoted from hardcoded 0.10 (Jul 2026). See param_all_test.xml for the full note. -->
       <!-- HEV (High Endothelial Venule) differentiation -->
       <hev_ccl21_threshold name="PARAM_VAS_HEV_CCL21_TH" type="float" val="pr">5.0</hev_ccl21_threshold>         <!-- Unbound CCL21 min ~5 nM in LN paracortex -->
       <hev_lymph_density_th name="PARAM_VAS_HEV_LYMPH_DENSITY_TH" type="float" val="pr">8000.0</hev_lymph_density_th> <!-- ~1 cell in Moore neighborhood (1 voxel = 8000 um³) -->
