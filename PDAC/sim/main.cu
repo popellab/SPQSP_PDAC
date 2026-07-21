@@ -1249,24 +1249,7 @@ int main(int argc, const char** argv) {
     const unsigned int max_presim_steps = 100000;  // safety cap for volume stopper
     unsigned int presim_step_count = 0;
 
-    // Single-ledger seeded presim: when the QSP was grown alone (Phase A) and the ABM cancer was
-    // seeded to its box-share f·C1, Phase C is a FIXED brief coupled equilibration (immune
-    // gap-closes in, stroma responds) — NOT a grow-to-volume phase. A long Phase C lets seeded
-    // senescent cancer die off (finite lifespan) and fib overproliferate, drifting off the seed.
-    const bool couple_seed = config.presim_qsp_enabled && config.presim_volume_target > 0.0;
-    const unsigned int couple_steps = couple_seed
-        ? static_cast<unsigned int>(
-              simulation.getEnvironmentProperty<float>("PARAM_PRESIM_COUPLE_STEPS") + 0.5f)
-        : 0u;
-    if (couple_seed) {
-        std::cout << "  Stopper: single-ledger fixed coupled equilibration = "
-                  << couple_steps << " steps (cancer seeded to box-share)" << std::endl;
-    }
-
     auto presim_should_continue = [&]() -> bool {
-        if (couple_seed) {
-            return presim_step_count < couple_steps;   // highest precedence: seeded → fixed short Phase C
-        }
         if (config.presim_areal_from_cli) {
             const double n_vox = static_cast<double>(config.grid_x)
                                * config.grid_y * config.grid_z;
