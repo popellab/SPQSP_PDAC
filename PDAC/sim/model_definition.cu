@@ -812,12 +812,6 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     // the CSV schema matches across modes. Set per-phase by main.cu.
     env.newProperty<int>("step_qsp", 1);
 
-    // Single-ledger cancer hold: 1 during the coupled presim (the ABM cancer is seeded to its
-    // QSP box-share f·C1 and must HOLD there — the QSP owns tumor growth; organic ABM division
-    // would overshoot and squeeze the stroma), 0 for the main sim (division re-enabled). Death
-    // (immune killing) stays active either way. Set per-phase by main.cu; gates cancer_divide_reserve.
-    env.newProperty<int>("presim_hold_division", 0);
-
     // Recruitment coupling mode: 0 = QSP-coupled (T-cell recruitment probs come
     // from the central-compartment pools qsp_{teff,treg,th}_central × PARAM_*_RECRUIT_K),
     // 1 = PARAMETRIC (T-cell recruitment probs read straight from XML params

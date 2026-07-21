@@ -1214,11 +1214,6 @@ int main(int argc, const char** argv) {
     // Recruitment source tracks the coupling: qsp_abm → QSP-coupled (0),
     // abm_only → PARAMETRIC (1, T-cell recruitment from XML, QSP never read).
     simulation.setEnvironmentProperty<int>("recruitment_mode", config.presim_qsp_enabled ? 0 : 1);
-    // Single-ledger: hold ABM cancer at its seeded QSP box-share through the coupled presim
-    // (seedCancerToQSPShare seeds f·C1; freeze division so it doesn't overshoot). Only when
-    // coupled+volume-stopped — abm_only grows its tumor organically from the single stem.
-    simulation.setEnvironmentProperty<int>("presim_hold_division",
-        (config.presim_qsp_enabled && config.presim_volume_target > 0.0) ? 1 : 0);
 
     // (abm_only no longer requires --presim-steps: the volume stopper now uses the
     //  ABM-derived represented volume via get_presim_volume().)
@@ -1284,7 +1279,6 @@ int main(int argc, const char** argv) {
     // Switch to main-sim mode flag (may differ from presim mode).
     simulation.setEnvironmentProperty<int>("step_qsp", config.main_qsp_enabled ? 1 : 0);
     simulation.setEnvironmentProperty<int>("recruitment_mode", config.main_qsp_enabled ? 0 : 1);
-    simulation.setEnvironmentProperty<int>("presim_hold_division", 0);  // release cancer division for the main sim
 
     std::cout << "  Presim complete: " << presim_step_count << " steps, "
               << "tum_vol=" << cur_vol << " cm^3" << std::endl;

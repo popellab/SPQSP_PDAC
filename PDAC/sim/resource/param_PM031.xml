@@ -40,7 +40,7 @@
   <ABM>
     <Environment>
       <SecPerSlice name="PARAM_SEC_PER_SLICE" type="float" val="pos" units="seconds">21600</SecPerSlice>
-      <presimAbmStartFrac name="PARAM_PRESIM_ABM_START_FRACTION" type="float" val="pr">0.99</presimAbmStartFrac>  <!-- Decoupled presim: QSP grows alone until this fraction of target volume, then ABM couples in. Added Jul 2026 (single-ledger rebuild). -->
+      <presimAbmStartFrac name="PARAM_PRESIM_ABM_START_FRACTION" type="float" val="pr">0.90</presimAbmStartFrac>  <!-- Decoupled presim: QSP grows alone until this fraction of target volume, then ABM couples in. Added Jul 2026 (single-ledger rebuild). -->
       <recSiteFactor name="PARAM_REC_SITE_FACTOR" type="float" val="pos">1e5</recSiteFactor>
       <adhSiteDens name="PARAM_ADH_SITE_DENSITY" type="float" val="pos">1000</adhSiteDens>
       

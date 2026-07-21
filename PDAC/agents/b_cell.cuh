@@ -470,9 +470,6 @@ FLAMEGPU_AGENT_FUNCTION(bcell_move_commit, flamegpu::MessageNone, flamegpu::Mess
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(bcell_divide_reserve, flamegpu::MessageNone, flamegpu::MessageNone) {
     FLAMEGPU->setVariable<int>("div_target_vidx", -1);  // reset reservation each step
-    // Single-ledger: freeze division during the coupled presim — immune is gap-closed to f·X_QSP,
-    // so proliferation on top double-counts and overshoots (B cells blow up to ~40x target). Main sim re-enables.
-    if (FLAMEGPU->environment.getProperty<int>("presim_hold_division") != 0) return flamegpu::ALIVE;
     if (FLAMEGPU->getVariable<int>("divide_flag") != 1) return flamegpu::ALIVE;
     FLAMEGPU->setVariable<int>("divide_flag", 0);  // consume intent (re-set next step by state_step if eligible)
 

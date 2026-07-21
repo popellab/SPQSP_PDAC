@@ -171,11 +171,8 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_reserve, flamegpu::MessageNone, flamegpu::
     const int divideFlag = FLAMEGPU->getVariable<int>("divideFlag");
     const int divideCD   = FLAMEGPU->getVariable<int>("divideCD");
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-    // Single-ledger: during the coupled presim the ABM cancer is held at its seeded QSP box-share
-    // (f·C1) — the QSP owns tumor growth, so organic ABM division is frozen (death stays on).
     if (FLAMEGPU->getVariable<int>("dead") == 1 ||
-        divideFlag == 0 || divideCD > 0 || cell_state == CANCER_SENESCENT ||
-        FLAMEGPU->environment.getProperty<int>("presim_hold_division") != 0) {
+        divideFlag == 0 || divideCD > 0 || cell_state == CANCER_SENESCENT) {
         return flamegpu::ALIVE;
     }
 
