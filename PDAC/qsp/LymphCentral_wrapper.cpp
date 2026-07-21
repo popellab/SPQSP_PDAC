@@ -324,6 +324,13 @@ double LymphCentralWrapper::get_tumor_volume() const {
     return _compute_tumor_volume(_qsp_model->getSystem());
 }
 
+double LymphCentralWrapper::get_tumor_cancer_cells() const {
+    if (!_is_initialized || !_qsp_model) return 0.0;
+    // get_species_value → getSpeciesVar(idx, raw=true) = _species_var / unit_conv; for C1/C2
+    // unit_conv = 1/N_A, so this is the discrete cell count (matches the qsp_presim CSV + cc_tumor).
+    return get_species_value(CancerVCT::SP_V_T_C1) + get_species_value(CancerVCT::SP_V_T_C2);
+}
+
 // Compute tumor volume — MUST mirror the ODE's AUX_VAR_V_T exactly (ODE_system.cpp:1320-1323),
 // since that is the volume the QSP dynamics themselves use (RF68 trafficking, growth, drug PK).
 // The ODE is authoritative; this helper previously deviated on five terms and returned a volume

@@ -580,6 +580,89 @@ void seedSingleStemAtCenter(
     agent.setVariable<unsigned int>("stemID", id);
 }
 
+// Single-ledger cancer seeding (Jul 2026). At the Phase-C handoff the QSP tumor is already
+// grown (~90% of the diameter target via the decoupled Phase-A warmup), but the ABM cancer,
+// left to grow organically from 1 stem in the short coupled presim, never fills the box —
+// leaving cancer-depleted, immune/fib-flooded windows. Instead, seed the ABM cancer to its
+// geometric box-share N_seed = min(f·C1_QSP, box_capacity), f = V_box/V_T. The observable
+// lumps stem+prog (→ cancer_prog) vs sen (→ cancer_sen), so the only split that matters is the
+// senescent fraction (Ki67- fraction, an SBI param); stem fraction of the proliferating
+// remainder is a fixed CSC-consistent constant. Placement is uniform-random across the box
+// (dispersed cancer in interstitial stroma — PDAC's low-cellularity desmoplastic pattern);
+// spatial nesting is a possible refinement.
+void seedCancerToQSPShare(
+    flamegpu::AgentVector& cancer_pop,
+    int grid_x, int grid_y, int grid_z,
+    double voxel_m, double V_T_m3, double C1_cells,
+    float stem_div_interval, float prog_div_interval, int prog_max,
+    float senescent_mean_life, float sen_frac)
+{
+    const long long total_voxels = static_cast<long long>(grid_x) * grid_y * grid_z;
+    const double V_box = static_cast<double>(total_voxels) * voxel_m * voxel_m * voxel_m;
+    const double f = (V_T_m3 > 0.0) ? std::min(1.0, V_box / V_T_m3) : 1.0;
+    long long N_seed = static_cast<long long>(std::llround(f * C1_cells));
+    if (N_seed < 1) N_seed = 1;
+    if (N_seed > total_voxels) N_seed = total_voxels;   // cancer is exclusive (1 per voxel)
+    const float STEM_FRAC_OF_PROLIF = 0.05f;            // CSC-consistent; fixed (observable lumps stem+prog)
+
+    // Distinct random voxels: partial Fisher-Yates on the voxel-index list, take the first N_seed.
+    std::vector<int> vidx(static_cast<size_t>(total_voxels));
+    for (long long i = 0; i < total_voxels; ++i) vidx[static_cast<size_t>(i)] = static_cast<int>(i);
+    for (long long i = total_voxels - 1; i > 0; --i) {
+        long long j = static_cast<long long>(rand()) % (i + 1);
+        std::swap(vidx[static_cast<size_t>(i)], vidx[static_cast<size_t>(j)]);
+    }
+
+    unsigned int dt = 0;
+    long long n_stem = 0, n_prog = 0, n_sen = 0;
+    const int gxy = grid_x * grid_y;
+    for (long long k = 0; k < N_seed; ++k) {
+        const int vi = vidx[static_cast<size_t>(k)];
+        const int z = vi / gxy, rem = vi % gxy, y = rem / grid_x, x = rem % grid_x;
+        cancer_pop.push_back();
+        flamegpu::AgentVector::Agent agent = cancer_pop.back();
+        const int id = agent.getID();
+        agent.setVariable<int>("x", x);
+        agent.setVariable<int>("y", y);
+        agent.setVariable<int>("z", z);
+        agent.setVariable<unsigned int>("det_tag", ++dt);   // unique lineage tag (deterministic ties)
+        const float r = static_cast<float>(rand()) / (RAND_MAX + 1.0f);
+        if (r < sen_frac) {
+            agent.setVariable<int>("cell_state", CANCER_SENESCENT);
+            agent.setVariable<int>("divideFlag", 0);
+            agent.setVariable<int>("divideCD", 0);
+            agent.setVariable<int>("divideCountRemaining", 0);
+            agent.setVariable<unsigned int>("stemID", 0);
+            const float ru = static_cast<float>(rand()) / (RAND_MAX + 1.0f);
+            const int sl = static_cast<int>(-senescent_mean_life * logf(ru + 1e-4f) + 0.5f);
+            agent.setVariable<int>("life", sl > 0 ? sl : 1);
+            ++n_sen;
+        } else {
+            const float rs = static_cast<float>(rand()) / (RAND_MAX + 1.0f);
+            const float rf = static_cast<float>(rand()) / (RAND_MAX + 1.0f);
+            if (rs < STEM_FRAC_OF_PROLIF) {
+                agent.setVariable<int>("cell_state", CANCER_STEM);
+                agent.setVariable<int>("divideCD", static_cast<int>(stem_div_interval * rf) + 1);
+                agent.setVariable<int>("divideFlag", 1);
+                agent.setVariable<int>("divideCountRemaining", 0);
+                agent.setVariable<unsigned int>("stemID", static_cast<unsigned int>(id));
+                ++n_stem;
+            } else {
+                agent.setVariable<int>("cell_state", CANCER_PROGENITOR);
+                agent.setVariable<int>("divideCD", static_cast<int>(prog_div_interval * rf) + 1);
+                agent.setVariable<int>("divideFlag", 1);
+                agent.setVariable<int>("divideCountRemaining", 1 + (rand() % (prog_max > 0 ? prog_max : 1)));
+                agent.setVariable<unsigned int>("stemID", 0);
+                ++n_prog;
+            }
+        }
+    }
+    std::cout << "  [single-ledger] cancer seeded to box-share: f=" << f
+              << " C1_QSP=" << C1_cells << " cells -> N_seed=" << N_seed
+              << "  (stem " << n_stem << " / prog " << n_prog << " / sen " << n_sen
+              << ", sen_frac=" << sen_frac << ")" << std::endl;
+}
+
 void initializeCancerCellsRandom(
     flamegpu::AgentVector& cancer_agents,
     int grid_x, int grid_y, int grid_z,
@@ -1015,8 +1098,22 @@ void initializeSingleStem(
                 cluster_radius, stem_div, prog_div, prog_max, cancer_sen_life, celltype_cdf);
             std::cout << "  Placed " << cancer_pop.size() << " cancer cells (cluster r="
                       << cluster_radius << ")" << std::endl;
+        } else if (config.presim_qsp_enabled && config.presim_volume_target > 0.0
+                   && lymph.get_tumor_cancer_cells() > 1.0) {
+            // -i 0 + coupled single-ledger presim: the decoupled Phase-A warmup already grew the
+            // QSP tumor, so seed the ABM cancer to its geometric box-share f·C1 (else it grows from
+            // 1 stem in the short Phase C and the window ends cancer-depleted). See seedCancerToQSPShare.
+            const double voxel_m   = static_cast<double>(config.voxel_size) * 1e-6;   // µm → m
+            const double V_T_m3    = lymph.get_tumor_volume();
+            const double C1_cells  = lymph.get_tumor_cancer_cells();
+            const float  sen_frac  = model.Environment().getProperty<float>("PARAM_SEED_CANCER_SEN_FRAC");
+            seedCancerToQSPShare(
+                cancer_pop,
+                config.grid_x, config.grid_y, config.grid_z,
+                voxel_m, V_T_m3, C1_cells,
+                stem_div, prog_div, prog_max, cancer_sen_life, sen_frac);
         } else {
-            // -i 0 (default): single stem cell at grid center
+            // -i 0 (default): single stem cell at grid center (uncoupled / abm_only → grows organically)
             seedSingleStemAtCenter(
                 cancer_pop,
                 config.grid_x, config.grid_y, config.grid_z,

@@ -1214,6 +1214,11 @@ int main(int argc, const char** argv) {
     // Recruitment source tracks the coupling: qsp_abm → QSP-coupled (0),
     // abm_only → PARAMETRIC (1, T-cell recruitment from XML, QSP never read).
     simulation.setEnvironmentProperty<int>("recruitment_mode", config.presim_qsp_enabled ? 0 : 1);
+    // Single-ledger: hold ABM cancer at its seeded QSP box-share through the coupled presim
+    // (seedCancerToQSPShare seeds f·C1; freeze division so it doesn't overshoot). Only when
+    // coupled+volume-stopped — abm_only grows its tumor organically from the single stem.
+    simulation.setEnvironmentProperty<int>("presim_hold_division",
+        (config.presim_qsp_enabled && config.presim_volume_target > 0.0) ? 1 : 0);
 
     // (abm_only no longer requires --presim-steps: the volume stopper now uses the
     //  ABM-derived represented volume via get_presim_volume().)
@@ -1244,7 +1249,24 @@ int main(int argc, const char** argv) {
     const unsigned int max_presim_steps = 100000;  // safety cap for volume stopper
     unsigned int presim_step_count = 0;
 
+    // Single-ledger seeded presim: when the QSP was grown alone (Phase A) and the ABM cancer was
+    // seeded to its box-share f·C1, Phase C is a FIXED brief coupled equilibration (immune
+    // gap-closes in, stroma responds) — NOT a grow-to-volume phase. A long Phase C lets seeded
+    // senescent cancer die off (finite lifespan) and fib overproliferate, drifting off the seed.
+    const bool couple_seed = config.presim_qsp_enabled && config.presim_volume_target > 0.0;
+    const unsigned int couple_steps = couple_seed
+        ? static_cast<unsigned int>(
+              simulation.getEnvironmentProperty<float>("PARAM_PRESIM_COUPLE_STEPS") + 0.5f)
+        : 0u;
+    if (couple_seed) {
+        std::cout << "  Stopper: single-ledger fixed coupled equilibration = "
+                  << couple_steps << " steps (cancer seeded to box-share)" << std::endl;
+    }
+
     auto presim_should_continue = [&]() -> bool {
+        if (couple_seed) {
+            return presim_step_count < couple_steps;   // highest precedence: seeded → fixed short Phase C
+        }
         if (config.presim_areal_from_cli) {
             const double n_vox = static_cast<double>(config.grid_x)
                                * config.grid_y * config.grid_z;
@@ -1279,6 +1301,7 @@ int main(int argc, const char** argv) {
     // Switch to main-sim mode flag (may differ from presim mode).
     simulation.setEnvironmentProperty<int>("step_qsp", config.main_qsp_enabled ? 1 : 0);
     simulation.setEnvironmentProperty<int>("recruitment_mode", config.main_qsp_enabled ? 0 : 1);
+    simulation.setEnvironmentProperty<int>("presim_hold_division", 0);  // release cancer division for the main sim
 
     std::cout << "  Presim complete: " << presim_step_count << " steps, "
               << "tum_vol=" << cur_vol << " cm^3" << std::endl;

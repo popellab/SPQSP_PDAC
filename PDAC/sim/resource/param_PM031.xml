@@ -41,6 +41,7 @@
     <Environment>
       <SecPerSlice name="PARAM_SEC_PER_SLICE" type="float" val="pos" units="seconds">21600</SecPerSlice>
       <presimAbmStartFrac name="PARAM_PRESIM_ABM_START_FRACTION" type="float" val="pr">0.90</presimAbmStartFrac>  <!-- Decoupled presim: QSP grows alone until this fraction of target volume, then ABM couples in. Added Jul 2026 (single-ledger rebuild). -->
+      <presimCoupleSteps name="PARAM_PRESIM_COUPLE_STEPS" type="float" val="pr">30</presimCoupleSteps>  <!-- Single-ledger Phase-C coupled equilibration steps after cancer seeding (brief; box already at target composition). See param_all_test.xml. -->
       <recSiteFactor name="PARAM_REC_SITE_FACTOR" type="float" val="pos">1e5</recSiteFactor>
       <adhSiteDens name="PARAM_ADH_SITE_DENSITY" type="float" val="pos">1000</adhSiteDens>
       
@@ -183,6 +184,7 @@
       <entry_adhesion_scale name="PARAM_ENTRY_ADHESION_SCALE" type="float" val="pr">0.05</entry_adhesion_scale>
       <recruit_alpha name="PARAM_RECRUIT_ALPHA" type="float" val="pr">0.3</recruit_alpha>  <!-- Single-ledger gap-closing relaxation rate: recruit = alpha*max(0, f*X_QSP_tumor - N_abm). Added Jul 2026; SBI-sampled. -->       
       <recruit_count_cv name="PARAM_RECRUIT_COUNT_CV" type="float" val="pr">0.10</recruit_count_cv>       <!-- Systematic-resampling per-stream count CV (SBI-tunable); promoted from hardcoded 0.10 (Jul 2026). See param_all_test.xml for the full note. -->
+      <seed_cancer_sen_frac name="PARAM_SEED_CANCER_SEN_FRAC" type="float" val="pr">0.5</seed_cancer_sen_frac>       <!-- Single-ledger cancer seed senescent fraction (Ki67- tumor fraction). uniform[0,0.9], SBI-tunable. See param_all_test.xml. -->
       <teff_ec50_cxcl9 name="PARAM_TEFF_EC50_CXCL9_REC" type="float" val="pr">10.0</teff_ec50_cxcl9>             
       <hev_revert_ccl21_th name="PARAM_VAS_HEV_REVERT_CCL21_TH" type="float" val="pr">0.5</hev_revert_ccl21_th> 
     </Vas>

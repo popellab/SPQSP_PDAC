@@ -405,6 +405,8 @@ FLAMEGPU_AGENT_FUNCTION(tcell_write_to_occ_grid, flamegpu::MessageNone, flamegpu
 // must be wired OUTSIDE the divide-wave loop (reset_owner -> reserve -> confirm), like cancer.
 FLAMEGPU_AGENT_FUNCTION(tcell_divide_reserve, flamegpu::MessageNone, flamegpu::MessageNone) {
     FLAMEGPU->setVariable<int>("div_target_vidx", -1);  // reset reservation each step
+    // Single-ledger: freeze division during the coupled presim (immune gap-closed to f·X_QSP). Main sim re-enables.
+    if (FLAMEGPU->environment.getProperty<int>("presim_hold_division") != 0) return flamegpu::ALIVE;
 
     const int divide_flag  = FLAMEGPU->getVariable<int>("divide_flag");
     const int divide_cd    = FLAMEGPU->getVariable<int>("divide_cd");

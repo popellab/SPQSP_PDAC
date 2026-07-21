@@ -114,6 +114,14 @@ public:
     double get_tumor_volume() const;
 
     /**
+     * Live tumor cancer-cell count (C1 + C2), in DISCRETE CELLS (unit-converted,
+     * = getVAR_RAW). Used by the single-ledger presim to seed the ABM's cancer bulk
+     * to its geometric box-share f·C1 at the Phase-C handoff (else the ABM cancer,
+     * grown organically from 1 stem in the short coupled window, never fills the box).
+     */
+    double get_tumor_cancer_cells() const;
+
+    /**
      * Update QSP state from ABM signals (called before each QSP time step).
      * Stores scaled ABM events for application in _apply_abm_feedback().
      *
