@@ -444,6 +444,7 @@
         <uptake name="PARAM_O2_UPTAKE" type="float" val="pr">0.10</uptake>  
         <decayRate name="PARAM_O2_DECAY_RATE" type="float" val="pr">1e-5</decayRate>
         <molecularWeight name="PARAM_O2_MOLECULAR_WEIGHT" type="float" val="pr">16</molecularWeight>
+        <background name="PARAM_O2_BACKGROUND" type="float" val="pr">0.02</background>  <!-- Baseline dissolved O2 [mM] held at every voxel post-solve (diffuse background perfusion; vasculature not modeled as agents). Above the ~0.01 mM hypoxia thresholds, below C_blood 0.065 (PARAM_VAS_O2_CONC) so Krogh Vvas still adds O2 on top. Prevents a global HIF cascade in the avascular presim tumour. 0 disables. -->
       </O2>
       <IL1>
         <diffusivity name="PARAM_IL1_DIFFUSIVITY" type="float" val="pr">1.31e-7</diffusivity>            

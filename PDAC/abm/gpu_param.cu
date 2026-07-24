@@ -253,6 +253,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.O2.uptake", "", "pr"},  // PARAM_O2_UPTAKE
     {"Param.Molecular.biofvm.O2.decayRate", "", "pr"},  // PARAM_O2_DECAY_RATE
     {"Param.Molecular.biofvm.O2.molecularWeight", "", "pr"},  // PARAM_O2_MOLECULAR_WEIGHT
+    {"Param.Molecular.biofvm.O2.background", "", "pr"},  // PARAM_O2_BACKGROUND
     {"Param.Molecular.biofvm.IL1.diffusivity", "", "pr"},  // PARAM_IL1_DIFFUSIVITY
     {"Param.Molecular.biofvm.IL1.release.MacM1", "", "pr"},  // PARAM_MAC_M1_IL1_RELEASE
     {"Param.Molecular.biofvm.IL1.molecularWeight", "", "pr"},  // PARAM_IL1_MOLECULAR_WEIGHT
@@ -589,6 +590,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_O2_UPTAKE", getFloat(PARAM_O2_UPTAKE));
     env.newProperty<float>("PARAM_O2_DECAY_RATE", getFloat(PARAM_O2_DECAY_RATE));
     env.newProperty<float>("PARAM_O2_MOLECULAR_WEIGHT", getFloat(PARAM_O2_MOLECULAR_WEIGHT));
+    env.newProperty<float>("PARAM_O2_BACKGROUND", getFloat(PARAM_O2_BACKGROUND));
     env.newProperty<float>("PARAM_IL1_DIFFUSIVITY", getFloat(PARAM_IL1_DIFFUSIVITY));
     env.newProperty<float>("PARAM_MAC_M1_IL1_RELEASE", getFloat(PARAM_MAC_M1_IL1_RELEASE));
     env.newProperty<float>("PARAM_IL1_MOLECULAR_WEIGHT", getFloat(PARAM_IL1_MOLECULAR_WEIGHT));

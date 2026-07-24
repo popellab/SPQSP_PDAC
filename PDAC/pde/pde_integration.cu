@@ -216,6 +216,21 @@ __global__ void fill_ecm_kernel(float* ecm, int total_voxels, float value)
 }
 
 // ============================================================================
+// CUDA Kernel: Background O2 floor. Applied post-solve so every voxel holds at
+// least a baseline dissolved-O2 level (diffuse background perfusion that we do
+// NOT model as vascular agents). Prevents the whole avascular presim tumour from
+// sitting below the ~0.01 mM hypoxia thresholds and switching the HIF cascade on
+// globally (M1->M2 forcing, DC-maturation suppression, PDL1 up / MHC-I down).
+// Krogh Vvas delivery still adds O2 on top where vasculature is present, since
+// the floor (~0.02 mM) is below C_blood (PARAM_VAS_O2_CONC ~0.065 mM).
+// ============================================================================
+__global__ void floor_o2_kernel(float* o2_conc, int total_voxels, float background)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < total_voxels && o2_conc[idx] < background) o2_conc[idx] = background;
+}
+
+// ============================================================================
 // CUDA Kernel: Decay antigen grid (exponential decay each ABM step)
 // ============================================================================
 __global__ void decay_antigen_kernel(float* antigen, int total_voxels, float decay_factor)
@@ -359,6 +374,23 @@ FLAMEGPU_HOST_FUNCTION(solve_pde_step) {
             g_pde_solver->solve_timestep();
         }
     }
+    // Background O2 floor: hold every voxel at >= PARAM_O2_BACKGROUND so the avascular
+    // presim tumour never falls below the hypoxia thresholds and drives a global HIF
+    // cascade. Disabled when the param is 0 (its fallback if absent from the XML), so
+    // this is a no-op for unmodified parameter files.
+    const float o2_background = FLAMEGPU->environment.getProperty<float>("PARAM_O2_BACKGROUND");
+    if (o2_background > 0.0f) {
+        const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+        const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+        const int total_voxels = nx * ny * nz;
+        float* o2_conc = g_pde_solver->get_device_concentration_ptr(CHEM_O2);
+        const int threads = 256;
+        const int blocks = (total_voxels + threads - 1) / threads;
+        floor_o2_kernel<<<blocks, threads>>>(o2_conc, total_voxels, o2_background);
+        cudaDeviceSynchronize();
+    }
+
     auto pde_t1 = std::chrono::high_resolution_clock::now();
     g_last_pde_ms = std::chrono::duration<double, std::milli>(pde_t1 - pde_t0).count();
 
