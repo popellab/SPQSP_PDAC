@@ -623,7 +623,7 @@
       <V_C_aCTLA4>0.0</V_C_aCTLA4>
       <V_C_Th>0.0</V_C_Th>
       <V_C_Tfh>0.0</V_C_Tfh>
-      <V_C_nB>100000000.0</V_C_nB>
+      <V_C_nB>4300000.0</V_C_nB>
       <V_C_B>0.0</V_C_B>
       <V_C_Cy>0.0</V_C_Cy>
       <V_C_CA199>0.0</V_C_CA199>
@@ -696,7 +696,7 @@
       <V_LN_IL2>0.00019</V_LN_IL2>
       <V_LN_aTfh>0.0</V_LN_aTfh>
       <V_LN_Tfh>0.0</V_LN_Tfh>
-      <V_LN_nB>10000000.0</V_LN_nB>
+      <V_LN_nB>140000.0</V_LN_nB>
       <V_LN_aB>0.0</V_LN_aB>
       <V_LN_B>0.0</V_LN_B>
       <V_e_P0>1e-18</V_e_P0>
@@ -1073,7 +1073,7 @@
       <H_TGFb_Teff>1.0</H_TGFb_Teff>
       <H_TGFb_Th_exh>1.0</H_TGFb_Th_exh>
       <k_Tfh_act>10.0</k_Tfh_act>
-      <k_nB_in>1000000.0</k_nB_in>
+      <k_nB_in>25000.0</k_nB_in>
       <k_B_act>5.0</k_B_act>
       <n_B_clones>120.0</n_B_clones>
       <k_B_pro>1.0</k_B_pro>
