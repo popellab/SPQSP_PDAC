@@ -62,6 +62,7 @@
       <V_P_Tfh>0.0</V_P_Tfh>
       <V_P_B>0.0</V_P_B>
       <V_T_C_x>0.0</V_T_C_x>
+      <V_T_C_dmg>0.0</V_T_C_dmg>
       <V_T_CD8_exh>0.0</V_T_CD8_exh>
       <V_T_Th_exh>0.0</V_T_Th_exh>
       <V_T_C1>1.0</V_T_C1>
@@ -656,6 +657,7 @@
       <H_stiff_fib>0.0</H_stiff_fib>
       <phi_col_50_Kmax>2.0</phi_col_50_Kmax>
       <K_stiff_niche>100000.0</K_stiff_niche>
+      <C_max_cap>10000000000000.0</C_max_cap>
       <k_stroma_support>1.05</k_stroma_support>
       <vol_qPSCcell>1500.0</vol_qPSCcell>
       <vol_iCAFcell>2000.0</vol_iCAFcell>
@@ -717,6 +719,8 @@
       <k_ca199_sec>0.001</k_ca199_sec>
       <k_ca199_shed>0.001</k_ca199_shed>
       <k_ca199_clear>0.5</k_ca199_clear>
+      <k_dmg_acc>1.0</k_dmg_acc>
+      <k_dmg_rep>0.05</k_dmg_rep>
       <k_sec_suppress>5.0</k_sec_suppress>
       <f_ca199_C2>10.0</f_ca199_C2>
       <nucleated_total_T>0.0</nucleated_total_T>

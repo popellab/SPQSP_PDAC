@@ -119,3 +119,43 @@ drugs:
     dose_basis: per_bsa
     targets:
       - {species: V_1.NabP, fraction: 1.0}
+
+  # ── week-offset aliases for d1/8/15 q28d ──────────────────────────────────
+  # The C++ scenario parser (qsp_sim_main.cpp) reads exactly ONE
+  # [start, interval, repeat] triple per drug and cannot skip week 4, so a
+  # 3-weeks-on/1-week-off regimen is not expressible as a single entry. Listing
+  # the same agent three times with different start offsets and a 28-day
+  # interval reproduces it exactly:
+  #     <drug>      [ 0, 28, N]   -> day 1 of each cycle
+  #     <drug>-w2   [ 7, 28, N]   -> day 8
+  #     <drug>-w3   [14, 28, N]   -> day 15
+  # These are the SAME drug pointing at the SAME target species — they only
+  # exist to give the parser three schedule keys. Keep their pharmacology
+  # fields identical to the parent entry or the doses will diverge silently.
+  nab-paclitaxel-w2:
+    mw: 1.0
+    units: milligram
+    dose_basis: per_bsa
+    targets:
+      - {species: V_1.NabP, fraction: 1.0}
+
+  nab-paclitaxel-w3:
+    mw: 1.0
+    units: milligram
+    dose_basis: per_bsa
+    targets:
+      - {species: V_1.NabP, fraction: 1.0}
+
+  gemcitabine-w2:
+    mw: 1.0
+    units: milligram
+    dose_basis: per_bsa
+    targets:
+      - {species: C_gem.gem, fraction: 1.0}
+
+  gemcitabine-w3:
+    mw: 1.0
+    units: milligram
+    dose_basis: per_bsa
+    targets:
+      - {species: C_gem.gem, fraction: 1.0}

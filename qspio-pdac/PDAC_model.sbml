@@ -741,6 +741,11 @@
           <body xmlns="http://www.w3.org/1999/xhtml">Dead cancer cells in the tumour compartment</body>
         </notes>
       </species>
+      <species id="mwda3c0000_0002_4000_a000_da39c0000002" name="C_dmg" compartment="mw026862eb_87b1_405a_b373_64e65f51ca39" initialConcentration="0" substanceUnits="MWUSERUNIT_cell" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false">
+        <notes>
+          <body xmlns="http://www.w3.org/1999/xhtml">Accumulated chemotherapy-induced cell damage in the tumour, a SLOW state standing in for therapy-induced senescence (a dedicated senescent cancer compartment is the intended successor). Dimensionless once divided by `cell`. It exists because CA19-9 secretion suppression was driven by E_chemo, which is spiky - near 1 for hours after each bolus and ~0 between doses - so its time-average barely moves across the prior and k_sec_suppress measured dead (rho 0.014). Damage integrates that exposure, giving the suppression a duty cycle long enough to survive averaging. Biological warrant: therapy-induced senescence is well documented for gemcitabine and taxanes, and CA19-9 is sialyl-Lewis-a, a differentiation antigen, so damaged/dedifferentiated cells shedding less is the expected direction.</body>
+        </notes>
+      </species>
       <species id="mw6b9f3628_b00d_46cc_abc7_b42ec27709c7" name="CD8_exh" compartment="mw026862eb_87b1_405a_b373_64e65f51ca39" initialAmount="0" substanceUnits="MWUSERUNIT_cell" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false">
         <notes>
           <body xmlns="http://www.w3.org/1999/xhtml">Exhausted CD8 effector T cells</body>
@@ -4307,6 +4312,11 @@
           <body xmlns="http://www.w3.org/1999/xhtml">Max CAF population sustained by stiff ECM alone (mechanotransduction niche via YAP/TAZ). Allows fibrotic scar persistence post-therapy.</body>
         </notes>
       </parameter>
+      <parameter id="mwca9c0000_0001_4000_a000_c4a9c0000001" name="C_max_cap" value="1e13" units="MWUSERUNIT_cell" constant="true">
+        <notes>
+          <body xmlns="http://www.w3.org/1999/xhtml">Absolute ceiling on the cancer carrying capacity C_max. Without it C_max is strictly proportional to burden - the CAF capacity is f_stroma_max*C_total, so aPSC_total/C_total locks at ~1.85 and C_max/C_total at ~1.83 - which makes log(C_max/C_total) a constant and the Gompertz law exponential with no plateau. Stable disease then requires kill to exactly cancel exponential growth, a knife-edge: 11.9% of prior draws vs 39.1% of PASS-01 patients (results/curve_taxonomy_7-28-26). Applied as a smooth saturation C_max = raw/(1 + raw/C_max_cap) rather than a min() so the RHS stays differentiable for the analytic Jacobian. Default 1e13 cell is far above any reachable burden, so the model is unchanged until this is sampled.</body>
+        </notes>
+      </parameter>
       <parameter id="mwbef70d2e_7fb3_4833_aee1_755c758adfb7" name="k_stroma_support" value="1.05" units="dimensionless" constant="true">
         <notes>
           <body xmlns="http://www.w3.org/1999/xhtml">Stromal contribution to cancer carrying capacity. Joint submodel posterior median 1.05 (sigma 0.70) from Xu 2010 + Hwang 2008 (orthotopic dose-response). Hwang 1:5 vs 1:1 tumor mass scaling supports a small per-CAF contribution to cancer C_max.</body>
@@ -4578,6 +4588,16 @@
       <parameter id="mwc3c883fa_f70d_4135_8523_7e4ebe1595aa" name="k_ca199_clear" value="0.5" units="MWDERIVEDUNIT_1__day" constant="false">
         <notes>
           <body xmlns="http://www.w3.org/1999/xhtml">CA19-9 serum first-order elimination rate</body>
+        </notes>
+      </parameter>
+      <parameter id="mwda3c0000_0003_4000_a000_da39c0000003" name="k_dmg_acc" value="1.0" units="MWDERIVEDUNIT_1__day" constant="true">
+        <notes>
+          <body xmlns="http://www.w3.org/1999/xhtml">Damage accumulation rate per unit E_chemo. FIXED at 1/day and deliberately not sampled: it is exactly degenerate with k_sec_suppress (both scale the suppression), so sampling both would be unidentifiable. k_dmg_rep carries the timescale, k_sec_suppress the strength.</body>
+        </notes>
+      </parameter>
+      <parameter id="mwda3c0000_0004_4000_a000_da39c0000004" name="k_dmg_rep" value="0.05" units="MWDERIVEDUNIT_1__day" constant="true">
+        <notes>
+          <body xmlns="http://www.w3.org/1999/xhtml">Damage repair/reversal rate; sets how long chemo exposure is remembered (0.05/day is a ~14-day half-life). Steady-state damage is k_dmg_acc*mean(E_chemo)/k_dmg_rep, so a slower repair means deeper sustained CA19-9 suppression for the same drug exposure.</body>
         </notes>
       </parameter>
       <parameter id="mw7f50e6ed_5bfc_46ec_a5e2_0c40683d8626" name="k_sec_suppress" value="5" units="dimensionless" constant="false">
@@ -4988,6 +5008,8 @@
         </notes>
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
+            <divide/>
+<apply>
             <times/>
             <apply>
               <plus/>
@@ -5012,6 +5034,40 @@
               </apply>
             </apply>
           </apply>
+            <apply>
+              <plus/>
+              <cn type="integer"> 1 </cn>
+              <apply>
+                <divide/>
+<apply>
+            <times/>
+            <apply>
+              <plus/>
+              <ci> mw00904330_30e4_41ac_be07_46b853ce6b06 </ci>
+              <apply>
+                <times/>
+                <ci> mwbef70d2e_7fb3_4833_aee1_755c758adfb7 </ci>
+                <ci> mw2c9702a2_d5d0_4380_bcfd_5e3292c42355 </ci>
+              </apply>
+            </apply>
+            <apply>
+              <minus/>
+              <cn type="integer"> 1 </cn>
+              <apply>
+                <divide/>
+                <ci> mwf23ac8b9_5673_433e_84ad_5f33947bb13b </ci>
+                <apply>
+                  <plus/>
+                  <ci> mwf23ac8b9_5673_433e_84ad_5f33947bb13b </ci>
+                  <ci> mwc547081a_992a_4f58_a338_9a357b41f79d </ci>
+                </apply>
+              </apply>
+            </apply>
+          </apply>
+                <ci> mwca9c0000_0001_4000_a000_c4a9c0000001 </ci>
+              </apply>
+            </apply>
+            </apply>
         </math>
       </assignmentRule>
       <assignmentRule variable="mw863ece08_d26c_437a_ac88_81fea1f45b5d">
@@ -15821,7 +15877,7 @@
       </reaction>
       <reaction id="mw49922564_34d3_45b5_b0c7_06d0438277d1" name="Reaction_349" reversible="false">
         <notes>
-          <body xmlns="http://www.w3.org/1999/xhtml">CA19-9 secretion by live cancer cells (clone-weighted C1 + f_ca199_C2*C2), chemo-suppressed</body>
+          <body xmlns="http://www.w3.org/1999/xhtml">CA19-9 secretion by live cancer cells (clone-weighted C1 + f_ca199_C2*C2). Damage suppression applies to the SENSITIVE clone ONLY: sec = k_ca199_sec * (C1/(1 + k_sec_suppress*C_dmg/cell) + f_ca199_C2*C2). The resistant clone escapes it, on the same warrant that gives it an r_resist-fold higher IC50 - a clone tolerant enough to survive chemotherapy is not the clone being driven into therapy-induced senescence, and CA19-9 is a differentiation antigen, so the shedding change tracks the damage rather than the drug. Before 2026-07-29 the 1/(1+k*D) factor multiplied BOTH clone terms, which made the marker un-reboundable: therapy runs continuously, so damage never clears, so the C2 sweep could not show up in CA19-9. Ablation measured that directly - removing suppression GAINED rebounds (38.8% -> 45.8%, +19 draws net) while removing resistance LOST them (38.8% -> 6.2%, -85), i.e. suppression was masking the mechanism that produces rebound rather than competing with it. See results/resistance_7-29-26/.</body>
         </notes>
         <listOfProducts>
           <speciesReference species="mw10ef9c7e_26fc_4421_a8e7_761e24665387" stoichiometry="1"/>
@@ -15830,22 +15886,22 @@
           <math xmlns="http://www.w3.org/1998/Math/MathML">
             <apply>
               <times/>
-              <apply>
-                <divide/>
-                <ci> mw6dfdb045_88fc_4f29_a3bc_28f9914fb0f5 </ci>
-                <apply>
-                  <plus/>
-                  <cn type="integer"> 1 </cn>
-                  <apply>
-                    <times/>
-                    <ci> mw7f50e6ed_5bfc_46ec_a5e2_0c40683d8626 </ci>
-                    <ci> mw0fc7099b_97da_4b21_97b3_b17726862a5a </ci>
-                  </apply>
-                </apply>
-              </apply>
+              <ci> mw6dfdb045_88fc_4f29_a3bc_28f9914fb0f5 </ci>
               <apply>
                 <plus/>
-                <ci> mwd7b3f48c_b5ce_4201_bf18_87b588f9c924 </ci>
+                <apply>
+                  <divide/>
+                  <ci> mwd7b3f48c_b5ce_4201_bf18_87b588f9c924 </ci>
+                  <apply>
+                    <plus/>
+                    <cn type="integer"> 1 </cn>
+                    <apply>
+                      <times/>
+                      <ci> mw7f50e6ed_5bfc_46ec_a5e2_0c40683d8626 </ci>
+                      <apply><divide/><ci> mwda3c0000_0002_4000_a000_da39c0000002 </ci><ci> mw0ebcbcfd_1ae1_4b65_978f_4079890aa5d9 </ci></apply>
+                    </apply>
+                  </apply>
+                </apply>
                 <apply>
                   <times/>
                   <ci> mw80795b53_ecc5_425e_b95c_7a506f6049dd </ci>
@@ -15890,6 +15946,16 @@
             </apply>
           </math>
         </kineticLaw>
+      </reaction>
+      <reaction id="mwda3c0000_0005_4000_a000_da39c0000005" name="Reaction_dmg_acc" reversible="false">
+        <notes><body xmlns="http://www.w3.org/1999/xhtml">Chemo damage accumulation, driven by aggregate drug effect</body></notes>
+        <listOfProducts><speciesReference species="mwda3c0000_0002_4000_a000_da39c0000002" stoichiometry="1"/></listOfProducts>
+        <kineticLaw><math xmlns="http://www.w3.org/1998/Math/MathML"><apply><times/><ci> mwda3c0000_0003_4000_a000_da39c0000003 </ci><ci> mw0fc7099b_97da_4b21_97b3_b17726862a5a </ci><ci> mw0ebcbcfd_1ae1_4b65_978f_4079890aa5d9 </ci></apply></math></kineticLaw>
+      </reaction>
+      <reaction id="mwda3c0000_0006_4000_a000_da39c0000006" name="Reaction_dmg_rep" reversible="false">
+        <notes><body xmlns="http://www.w3.org/1999/xhtml">Damage repair / reversal (first order)</body></notes>
+        <listOfReactants><speciesReference species="mwda3c0000_0002_4000_a000_da39c0000002" stoichiometry="1"/></listOfReactants>
+        <kineticLaw><math xmlns="http://www.w3.org/1998/Math/MathML"><apply><times/><ci> mwda3c0000_0004_4000_a000_da39c0000004 </ci><ci> mwda3c0000_0002_4000_a000_da39c0000002 </ci></apply></math></kineticLaw>
       </reaction>
     </listOfReactions>
     <listOfEvents>
