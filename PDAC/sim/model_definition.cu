@@ -290,6 +290,7 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     treg.newVariable<int>("found_progenitor", 0);
     treg.newVariable<int>("neighbor_dc_mature_count", 0);
     treg.newVariable<int>("neighbor_bcell_count", 0);
+    treg.newVariable<int>("neighbor_apcaf_count", 0);   // apCAF contacts → Th→Treg conversion (ODE Flux332)
     treg.newVariable<float>("adh_p_move", 1.0f);  // Adhesion move probability (from matrix)
 
     // Cached bitmask of available neighbor voxels

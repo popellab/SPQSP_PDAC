@@ -43,6 +43,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_broadcast_location, flamegpu::MessageNone, flamegpu:
     if (cs == FIB_QUIESCENT)  sc_idx = SC_FIB_QUIESCENT;
     else if (cs == FIB_MYCAF) sc_idx = SC_FIB_MYCAF;
     else if (cs == FIB_ICAF)  sc_idx = SC_FIB_ICAF;
+    else if (cs == FIB_APCAF) sc_idx = SC_FIB_APCAF;
     else                       sc_idx = SC_FIB_FRC;
     atomicAdd(&sc[sc_idx], 1u);
 
@@ -363,6 +364,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
         if (cs == FIB_QUIESCENT)  death_idx = EVT_DEATH_FIB_QUIESCENT;
         else if (cs == FIB_MYCAF) death_idx = EVT_DEATH_FIB_MYCAF;
         else if (cs == FIB_ICAF)  death_idx = EVT_DEATH_FIB_ICAF;
+        else if (cs == FIB_APCAF) death_idx = EVT_DEATH_FIB_APCAF;
         else                       death_idx = EVT_DEATH_FIB_FRC;
         atomicAdd(&ec[death_idx], 1u);
         return flamegpu::DEAD;
@@ -419,6 +421,14 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
 
         if (det_rng_uniform(srs) < p_icaf) {
             FLAMEGPU->setVariable<int>("cell_state", FIB_ICAF);
+            return flamegpu::ALIVE;
+        }
+
+        // apCAF activation (ODE Flux307): k_PSC_to_apCAF * qPSC — first-order, ungated.
+        // The QSP has no cytokine gate on this transition, so the ABM does not add one.
+        const float k_apcaf = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_APCAF_ACTIVATION");
+        if (det_rng_uniform(srs) < k_apcaf) {
+            FLAMEGPU->setVariable<int>("cell_state", FIB_APCAF);
             return flamegpu::ALIVE;
         }
     }

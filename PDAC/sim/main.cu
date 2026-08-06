@@ -1438,6 +1438,7 @@ int main(int argc, const char** argv) {
                 if (s == PDAC::FIB_QUIESCENT)    init_states[PDAC::SC_FIB_QUIESCENT]++;
                 else if (s == PDAC::FIB_MYCAF)   init_states[PDAC::SC_FIB_MYCAF]++;
                 else if (s == PDAC::FIB_ICAF)    init_states[PDAC::SC_FIB_ICAF]++;
+                else if (s == PDAC::FIB_APCAF)   init_states[PDAC::SC_FIB_APCAF]++;
                 else                              init_states[PDAC::SC_FIB_FRC]++;
             }
         }
@@ -1464,7 +1465,7 @@ int main(int argc, const char** argv) {
             << "agentCount.Th.default,agentCount.Treg.default,agentCount.Tfh.default,agentCount.TCD4.naive,"
             << "agentCount.MDSC.default,"
             << "agentCount.MAC.M1,agentCount.MAC.M2,"
-            << "agentCount.FIB.quiescent,agentCount.FIB.myCAF,agentCount.FIB.iCAF,agentCount.FIB.FRC,"
+            << "agentCount.FIB.quiescent,agentCount.FIB.myCAF,agentCount.FIB.iCAF,agentCount.FIB.FRC,agentCount.FIB.apCAF,"
             << "agentCount.VAS.tip,agentCount.VAS.default,agentCount.VAS.collapsed,agentCount.VAS.hev,"
             << "agentCount.BCell.naive,agentCount.BCell.activated,agentCount.BCell.plasma,"
             << "agentCount.DC.cDC1_immature,agentCount.DC.cDC1_mature,agentCount.DC.cDC2_immature,agentCount.DC.cDC2_mature,"
@@ -1479,7 +1480,7 @@ int main(int argc, const char** argv) {
             << "prolif.MDSC.default,"
             << "prolif.cancer.stem,prolif.cancer.prog,prolif.cancer.sen,"
             << "prolif.MAC.M1,prolif.MAC.M2,"
-            << "prolif.FIB.quiescent,prolif.FIB.myCAF,prolif.FIB.iCAF,prolif.FIB.FRC,"
+            << "prolif.FIB.quiescent,prolif.FIB.myCAF,prolif.FIB.iCAF,prolif.FIB.FRC,prolif.FIB.apCAF,"
             << "prolif.VAS.tip,prolif.VAS.phalanx,"
             << "prolif.BCell.naive,prolif.BCell.activated,prolif.BCell.plasma,"
             // Death by state
@@ -1488,7 +1489,7 @@ int main(int argc, const char** argv) {
             << "death.MDSC.default,"
             << "death.cancer.stem,death.cancer.prog,death.cancer.sen,"
             << "death.MAC.M1,death.MAC.M2,"
-            << "death.FIB.quiescent,death.FIB.myCAF,death.FIB.iCAF,death.FIB.FRC,"
+            << "death.FIB.quiescent,death.FIB.myCAF,death.FIB.iCAF,death.FIB.FRC,death.FIB.apCAF,"
             << "death.VAS.tip,death.VAS.phalanx,death.VAS.collapsed,death.VAS.hev,"
             << "death.BCell.naive,death.BCell.activated,death.BCell.plasma,"
             << "death.DC.cDC1_immature,death.DC.cDC1_mature,death.DC.cDC2_immature,death.DC.cDC2_mature,"
@@ -1504,7 +1505,7 @@ int main(int argc, const char** argv) {
             << init_states[PDAC::SC_TH]          << "," << init_states[PDAC::SC_TREG] << "," << init_states[PDAC::SC_TFH] << "," << init_states[PDAC::SC_TCD4_NAIVE] << ","
             << init_states[PDAC::SC_MDSC]        << ","
             << init_states[PDAC::SC_MAC_M1]      << "," << init_states[PDAC::SC_MAC_M2]       << ","
-            << init_states[PDAC::SC_FIB_QUIESCENT] << "," << init_states[PDAC::SC_FIB_MYCAF] << "," << init_states[PDAC::SC_FIB_ICAF] << "," << init_states[PDAC::SC_FIB_FRC] << ","
+            << init_states[PDAC::SC_FIB_QUIESCENT] << "," << init_states[PDAC::SC_FIB_MYCAF] << "," << init_states[PDAC::SC_FIB_ICAF] << "," << init_states[PDAC::SC_FIB_FRC] << "," << init_states[PDAC::SC_FIB_APCAF] << ","
             << init_states[PDAC::SC_VAS_TIP]     << "," << init_states[PDAC::SC_VAS_PHALANX] << "," << init_states[PDAC::SC_VAS_COLLAPSED] << "," << init_states[PDAC::SC_VAS_HEV] << ","
             << init_states[PDAC::SC_BCELL_NAIVE]  << "," << init_states[PDAC::SC_BCELL_ACT] << "," << init_states[PDAC::SC_BCELL_PLASMA] << ","
             << init_states[PDAC::SC_DC_CDC1_IMMATURE] << "," << init_states[PDAC::SC_DC_CDC1_MATURE] << "," << init_states[PDAC::SC_DC_CDC2_IMMATURE] << "," << init_states[PDAC::SC_DC_CDC2_MATURE] << ","
@@ -1590,7 +1591,7 @@ int main(int argc, const char** argv) {
                 << host_states[PDAC::SC_TH] << "," << host_states[PDAC::SC_TREG] << "," << host_states[PDAC::SC_TFH] << "," << host_states[PDAC::SC_TCD4_NAIVE] << ","
                 << host_states[PDAC::SC_MDSC] << ","
                 << host_states[PDAC::SC_MAC_M1] << "," << host_states[PDAC::SC_MAC_M2] << ","
-                << host_states[PDAC::SC_FIB_QUIESCENT] << "," << host_states[PDAC::SC_FIB_MYCAF] << "," << host_states[PDAC::SC_FIB_ICAF] << "," << host_states[PDAC::SC_FIB_FRC] << ","
+                << host_states[PDAC::SC_FIB_QUIESCENT] << "," << host_states[PDAC::SC_FIB_MYCAF] << "," << host_states[PDAC::SC_FIB_ICAF] << "," << host_states[PDAC::SC_FIB_FRC] << "," << host_states[PDAC::SC_FIB_APCAF] << ","
                 << host_states[PDAC::SC_VAS_TIP] << "," << host_states[PDAC::SC_VAS_PHALANX] << "," << host_states[PDAC::SC_VAS_COLLAPSED] << "," << host_states[PDAC::SC_VAS_HEV] << ","
                 << host_states[PDAC::SC_BCELL_NAIVE] << "," << host_states[PDAC::SC_BCELL_ACT] << "," << host_states[PDAC::SC_BCELL_PLASMA] << ","
                 << host_states[PDAC::SC_DC_CDC1_IMMATURE] << "," << host_states[PDAC::SC_DC_CDC1_MATURE] << "," << host_states[PDAC::SC_DC_CDC2_IMMATURE] << "," << host_states[PDAC::SC_DC_CDC2_MATURE] << ","
@@ -1605,7 +1606,7 @@ int main(int argc, const char** argv) {
                 << host_events[PDAC::EVT_PROLIF_MDSC] << ","
                 << host_events[PDAC::EVT_PROLIF_CANCER_STEM] << "," << host_events[PDAC::EVT_PROLIF_CANCER_PROG] << "," << host_events[PDAC::EVT_PROLIF_CANCER_SEN] << ","
                 << host_events[PDAC::EVT_PROLIF_MAC_M1] << "," << host_events[PDAC::EVT_PROLIF_MAC_M2] << ","
-                << host_events[PDAC::EVT_PROLIF_FIB_QUIESCENT] << "," << host_events[PDAC::EVT_PROLIF_FIB_MYCAF] << "," << host_events[PDAC::EVT_PROLIF_FIB_ICAF] << "," << host_events[PDAC::EVT_PROLIF_FIB_FRC] << ","
+                << host_events[PDAC::EVT_PROLIF_FIB_QUIESCENT] << "," << host_events[PDAC::EVT_PROLIF_FIB_MYCAF] << "," << host_events[PDAC::EVT_PROLIF_FIB_ICAF] << "," << host_events[PDAC::EVT_PROLIF_FIB_FRC] << "," << host_events[PDAC::EVT_PROLIF_FIB_APCAF] << ","
                 << host_events[PDAC::EVT_PROLIF_VAS_TIP] << "," << host_events[PDAC::EVT_PROLIF_VAS_PHALANX] << ","
                 << host_events[PDAC::EVT_PROLIF_BCELL_NAIVE] << "," << host_events[PDAC::EVT_PROLIF_BCELL_ACT] << "," << host_events[PDAC::EVT_PROLIF_BCELL_PLASMA] << ","
                 // death by state
@@ -1614,7 +1615,7 @@ int main(int argc, const char** argv) {
                 << host_events[PDAC::EVT_DEATH_MDSC] << ","
                 << host_events[PDAC::EVT_DEATH_CANCER_STEM] << "," << host_events[PDAC::EVT_DEATH_CANCER_PROG] << "," << host_events[PDAC::EVT_DEATH_CANCER_SEN] << ","
                 << host_events[PDAC::EVT_DEATH_MAC_M1] << "," << host_events[PDAC::EVT_DEATH_MAC_M2] << ","
-                << host_events[PDAC::EVT_DEATH_FIB_QUIESCENT] << "," << host_events[PDAC::EVT_DEATH_FIB_MYCAF] << "," << host_events[PDAC::EVT_DEATH_FIB_ICAF] << "," << host_events[PDAC::EVT_DEATH_FIB_FRC] << ","
+                << host_events[PDAC::EVT_DEATH_FIB_QUIESCENT] << "," << host_events[PDAC::EVT_DEATH_FIB_MYCAF] << "," << host_events[PDAC::EVT_DEATH_FIB_ICAF] << "," << host_events[PDAC::EVT_DEATH_FIB_FRC] << "," << host_events[PDAC::EVT_DEATH_FIB_APCAF] << ","
                 << host_events[PDAC::EVT_DEATH_VAS_TIP] << "," << host_events[PDAC::EVT_DEATH_VAS_PHALANX] << "," << host_events[PDAC::EVT_DEATH_VAS_COLLAPSED] << "," << host_events[PDAC::EVT_DEATH_VAS_HEV] << ","
                 << host_events[PDAC::EVT_DEATH_BCELL_NAIVE] << "," << host_events[PDAC::EVT_DEATH_BCELL_ACT] << "," << host_events[PDAC::EVT_DEATH_BCELL_PLASMA] << ","
                 << host_events[PDAC::EVT_DEATH_DC_CDC1_IMMATURE] << "," << host_events[PDAC::EVT_DEATH_DC_CDC1_MATURE] << "," << host_events[PDAC::EVT_DEATH_DC_CDC2_IMMATURE] << "," << host_events[PDAC::EVT_DEATH_DC_CDC2_MATURE] << ","

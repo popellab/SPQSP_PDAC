@@ -308,6 +308,26 @@
     env.newProperty<float>("PARAM_FIB_CAF_EC50", 
                     QP(CancerVCT::P_TGFb_50_CAF_act) * 1e6);
 
+    // qPSC→apCAF activation rate per timestep (ODE Flux307)
+    env.newProperty<float>("PARAM_FIB_APCAF_ACTIVATION", 
+                    QP(CancerVCT::P_k_PSC_to_apCAF) * t_step_sec);
+
+    // apCAF antigen (P1) uptake rate per timestep (ODE Flux331)
+    env.newProperty<float>("PARAM_APCAF_P1_UPTAKE", 
+                    QP(CancerVCT::P_k_P1_up_apCAF) * t_step_sec);
+
+    // antigen EC50 for apCAF presentation [molecules/voxel]; shares PARAM_DC_ANTIGEN_50
+    env.newProperty<float>("PARAM_APCAF_P1_50", 
+                    1e8);
+
+    // apCAF-driven Th→Treg conversion rate per timestep (ODE Flux332 k_apCAF_Treg)
+    env.newProperty<float>("PARAM_APCAF_TREG_RATE", 
+                    QP(CancerVCT::P_k_apCAF_Treg) * t_step_sec);
+
+    // half-saturation apCAF count, whole tumour [cells] (ODE Flux332 K_apCAF_Treg)
+    env.newProperty<float>("PARAM_APCAF_TREG_K_CELLS", 
+                    QP(CancerVCT::P_K_apCAF_Treg) * AVOGADROS);
+
     // iCAF→myCAF rate per timestep (H_TGFb gated)
     env.newProperty<float>("PARAM_FIB_ICAF_TO_MYCAF", 
                     QP(CancerVCT::P_k_iCAF_to_myCAF) * t_step_sec);

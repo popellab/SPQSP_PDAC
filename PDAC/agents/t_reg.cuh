@@ -62,6 +62,7 @@ FLAMEGPU_AGENT_FUNCTION(treg_scan_neighbors, flamegpu::MessageSpatial3D, flamegp
     int found_progenitor = 0;
     int dc_mature_count = 0;
     int bcell_count = 0;
+    int apcaf_count = 0;
 
     // Adhesion: count all type+state neighbors
     int adh_counts[ABM_STATE_COUNTER_SIZE] = {0};
@@ -101,6 +102,9 @@ FLAMEGPU_AGENT_FUNCTION(treg_scan_neighbors, flamegpu::MessageSpatial3D, flamegp
                 }
             } else if (agent_type == CELL_TYPE_BCELL) {
                 bcell_count++;
+            } else if (agent_type == CELL_TYPE_FIB) {
+                // apCAF contact sensing for the Th→Treg conversion (ODE Flux332)
+                if (agent_state == FIB_APCAF) apcaf_count++;
             }
         }
     }
@@ -116,6 +120,7 @@ FLAMEGPU_AGENT_FUNCTION(treg_scan_neighbors, flamegpu::MessageSpatial3D, flamegp
     FLAMEGPU->setVariable<int>("found_progenitor", found_progenitor);
     FLAMEGPU->setVariable<int>("neighbor_dc_mature_count", dc_mature_count);
     FLAMEGPU->setVariable<int>("neighbor_bcell_count", bcell_count);
+    FLAMEGPU->setVariable<int>("neighbor_apcaf_count", apcaf_count);
     FLAMEGPU->setVariable<float>("adh_p_move", adh_pmove);
 
     return flamegpu::ALIVE;
@@ -266,11 +271,40 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
     float sec_per_slice = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
     int divide_flag = 0;  // initialize to prevent UB for TH cells that don't convert
     if (cell_state == TCD4_TH) {
-        // ODE RF182: k_Th_Treg * Th * H_TGFb * H_ArgI_Treg
-        float H_TGFb = TGFB / (TGFB + MAC_TGFB_EC50);
-        float ArgI = PDE_READ(FLAMEGPU, PDE_CONC_ARGI, voxel_ts);
-        float H_ArgI_Treg = ArgI / (ArgI + FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_EC50_ArgI_Treg"));
-        float alpha = K_TH_TREG * H_TGFb * H_ArgI_Treg;
+        // Th → Treg conversion, ODE ReactionFlux332 (ODE_system.cpp:3551):
+        //     k_apCAF_Treg * Th * apCAF/(apCAF + K_apCAF_Treg) * H_P1_apCAF
+        // apCAF is CONTACT-sensed (Moore neighbourhood) and H_P1_apCAF is a Hill on the
+        // ambient antigen field, matching AUX_VAR_H_P1_apCAF = (P1/V_T)/((P1/V_T)+P1_50_apCAF).
+        //
+        // 2026-08-05: this REPLACES the previous soluble route (k_Th_Treg * H_TGFb * H_ArgI_Treg,
+        // commented "ODE RF182"). That route had no QSP counterpart — current ReactionFlux182 is
+        // lymph-node CD4 proliferation, and no P_k_Th_Treg exists in the ODE. Keeping both would
+        // have double-counted Th→Treg conversion. See docs/audit_2026-08/coupling_inventory.md §12.
+        const int   n_apcaf   = FLAMEGPU->getVariable<int>("neighbor_apcaf_count");
+        const float k_ap_treg = FLAMEGPU->environment.getProperty<float>("PARAM_APCAF_TREG_RATE");
+
+        // UNITS: the ODE's K_apCAF_Treg is a WHOLE-TUMOUR cell count (1e8), while n_apcaf is a
+        // Moore-neighbourhood count. Comparing them directly is a category error. Convert K to the
+        // neighbourhood-equivalent by the volume ratio, the same geometric idiom the recruitment
+        // controller uses for f (pde_integration.cu:2061-2063):
+        //     K_local = K_tumour * V_neighbourhood / V_T
+        // With K=1e8, 20 um voxels and a ~3 cm tumour this lands near ~1.5 cells, i.e. a genuinely
+        // saturating local term rather than one that is always 0 or always 1.
+        const float K_cells  = FLAMEGPU->environment.getProperty<float>("PARAM_APCAF_TREG_K_CELLS");
+        const float voxel_m  = FLAMEGPU->environment.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6f;
+        const float V_nbhd   = 27.0f * voxel_m * voxel_m * voxel_m;   // 3x3x3 Moore incl. self
+        const float V_T_m3   = FLAMEGPU->environment.getProperty<float>("qsp_tum_vol");
+        const float K_local  = (V_T_m3 > 0.0f) ? (K_cells * V_nbhd / V_T_m3) : K_cells;
+        const float H_apCAF  = static_cast<float>(n_apcaf)
+                             / (static_cast<float>(n_apcaf) + K_local + 1e-30f);
+
+        const float* antigen_grid_ts = reinterpret_cast<const float*>(
+            FLAMEGPU->environment.getProperty<uint64_t>("antigen_grid_ptr"));
+        const float local_p1 = antigen_grid_ts[voxel_ts];
+        const float p1_50    = FLAMEGPU->environment.getProperty<float>("PARAM_APCAF_P1_50");
+        const float H_P1_apCAF = local_p1 / (local_p1 + p1_50 + 1e-30f);
+
+        float alpha = k_ap_treg * H_apCAF * H_P1_apCAF;
         float p_th_treg = 1.0f - std::exp(-alpha);
         //convert TH to TREG
         unsigned int rs_t2r = det_rng_seed(static_cast<int>(det_tag), ds_step, 0x77004u, sim_seed);

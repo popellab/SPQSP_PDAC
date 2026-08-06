@@ -57,7 +57,8 @@ enum FibroblastState : int {
     FIB_QUIESCENT = 0,  // Quiescent fibroblast (tissue maintenance)
     FIB_MYCAF = 1,      // Myofibroblastic CAF (ECM deposition, contractile)
     FIB_ICAF = 2,       // Inflammatory CAF (IL-6, CXCL13 secretion)
-    FIB_FRC = 3         // Fibroblastic reticular cell (TLS T-zone stromal, CCL21 source)
+    FIB_FRC = 3,        // Fibroblastic reticular cell (TLS T-zone stromal, CCL21 source)
+    FIB_APCAF = 4       // Antigen-presenting CAF (MHC-II+; takes up antigen, converts Th→Treg)
 };
 
 // Vascular cell cell_states
@@ -130,6 +131,7 @@ enum EventCounterIdx : int {
     EVT_PROLIF_FIB_MYCAF,
     EVT_PROLIF_FIB_ICAF,
     EVT_PROLIF_FIB_FRC,
+    EVT_PROLIF_FIB_APCAF,
     EVT_PROLIF_VAS_TIP,
     EVT_PROLIF_VAS_PHALANX,   // 0
     EVT_PROLIF_BCELL_NAIVE,
@@ -152,6 +154,7 @@ enum EventCounterIdx : int {
     EVT_DEATH_FIB_MYCAF,
     EVT_DEATH_FIB_ICAF,
     EVT_DEATH_FIB_FRC,
+    EVT_DEATH_FIB_APCAF,
     EVT_DEATH_VAS_TIP,
     EVT_DEATH_VAS_PHALANX,
     EVT_DEATH_VAS_COLLAPSED,
@@ -195,6 +198,7 @@ enum StateCounterIdx : int {
     SC_FIB_MYCAF,
     SC_FIB_ICAF,
     SC_FIB_FRC,
+    SC_FIB_APCAF,
     SC_VAS_TIP,
     SC_VAS_PHALANX,
     SC_VAS_COLLAPSED,
@@ -591,6 +595,7 @@ __device__ __forceinline__ int msg_to_sc_idx(int agent_type, int cell_state, flo
                 case FIB_QUIESCENT: return SC_FIB_QUIESCENT;
                 case FIB_MYCAF:     return SC_FIB_MYCAF;
                 case FIB_ICAF:      return SC_FIB_ICAF;
+                case FIB_APCAF:     return SC_FIB_APCAF;
                 default:            return SC_FIB_FRC;
             }
         case CELL_TYPE_VASCULAR:

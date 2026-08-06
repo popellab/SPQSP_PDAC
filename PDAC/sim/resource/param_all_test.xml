@@ -1433,6 +1433,25 @@
     <D name="PARAM_FIB_MYCAF_ACTIVATION" type="float" comment="qPSC→myCAF activation rate per timestep"><![CDATA[QP(CancerVCT::P_k_PSC_to_myCAF) * t_step_sec]]></D>
     <D name="PARAM_FIB_ICAF_ACTIVATION" type="float" comment="qPSC→iCAF activation rate per timestep"><![CDATA[QP(CancerVCT::P_k_PSC_to_iCAF) * t_step_sec]]></D>
     <D name="PARAM_FIB_CAF_EC50" type="float" comment="TGFb EC50 for CAF activation + interconversion [nM] (TGFb_50_CAF_act)"><![CDATA[QP(CancerVCT::P_TGFb_50_CAF_act) * 1e6]]></D>
+    <!-- apCAF (antigen-presenting CAF), added 2026-08-05 to match the QSP apCAF module
+         (ODE Flux307 qPSC→apCAF, 312 prolif, 316/320 clearance+death, 331 antigen uptake,
+         332 Th→Treg). ALL DERIVED FROM QSP PARAMETERS — apCAF adds zero new sampled params. -->
+    <D name="PARAM_FIB_APCAF_ACTIVATION" type="float" comment="qPSC→apCAF activation rate per timestep (ODE Flux307)"><![CDATA[QP(CancerVCT::P_k_PSC_to_apCAF) * t_step_sec]]></D>
+    <D name="PARAM_APCAF_P1_UPTAKE" type="float" comment="apCAF antigen (P1) uptake rate per timestep (ODE Flux331)"><![CDATA[QP(CancerVCT::P_k_P1_up_apCAF) * t_step_sec]]></D>
+    <!-- antigen EC50 for apCAF presentation [molecules/voxel].
+         NOT QP(P_P1_50_apCAF): that is a CONCENTRATION (scaled x1000 at ODE_system.cpp:941, used as
+         P1/V_T in AUX_VAR_H_P1_apCAF), whereas the ABM antigen grid holds a per-voxel AMOUNT in
+         molecules. Follows the PARAM_DC_ANTIGEN_50 precedent, which decoupled from the QSP value for
+         exactly this reason, and shares its value so there is one number to tune for both APCs.
+         Pinned (P-tier), not sampled. Inherits PARAM_DC_ANTIGEN_50's tuning TODO. -->
+    <D name="PARAM_APCAF_P1_50" type="float" comment="antigen EC50 for apCAF presentation [molecules/voxel]; shares PARAM_DC_ANTIGEN_50"><![CDATA[1e8]]></D>
+    <D name="PARAM_APCAF_TREG_RATE" type="float" comment="apCAF-driven Th→Treg conversion rate per timestep (ODE Flux332 k_apCAF_Treg)"><![CDATA[QP(CancerVCT::P_k_apCAF_Treg) * t_step_sec]]></D>
+    <!-- K_apCAF_Treg is stored in MOLES internally (ODE_system.cpp:939 scales the XML cell count by
+         1/Avogadro). Multiply back to CELLS here: the ABM compares a local apCAF neighbour count,
+         so the agent code converts this whole-tumour cell count to a neighbourhood-equivalent via
+         (V_neighbourhood / V_T). Passing the mol value straight through made H_apCAF saturate at
+         any single neighbour. -->
+    <D name="PARAM_APCAF_TREG_K_CELLS" type="float" comment="half-saturation apCAF count, whole tumour [cells] (ODE Flux332 K_apCAF_Treg)"><![CDATA[QP(CancerVCT::P_K_apCAF_Treg) * AVOGADROS]]></D>
     <!-- iCAF ↔ myCAF interconversion rates from ODE (RF245, RF246) -->
     <D name="PARAM_FIB_ICAF_TO_MYCAF" type="float" comment="iCAF→myCAF rate per timestep (H_TGFb gated)"><![CDATA[QP(CancerVCT::P_k_iCAF_to_myCAF) * t_step_sec]]></D>
     <D name="PARAM_FIB_MYCAF_TO_ICAF" type="float" comment="myCAF→iCAF rate per timestep (H_IL1 gated)"><![CDATA[QP(CancerVCT::P_k_myCAF_to_iCAF) * t_step_sec]]></D>
