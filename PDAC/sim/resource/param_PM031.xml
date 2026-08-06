@@ -6,7 +6,7 @@
   WHAT IS PATIENT-SPECIFIC HERE (everything else is the shared default):
 
   1. The 12 burden parameters below are the POSTERIOR MEDIANS for PM-031 from the
-     amortized burden NPE (results/burden_sbi_7-15-26/imc49_pfs_posteriors.csv),
+     amortized burden NPE (results/2026-07-15_burden_sbi/imc49_pfs_posteriors.csv),
      fit to this patient's 1st-line GnP window: W=526d, 11 SLD + 15 CA19-9
      timepoints, PFS-clamped, coverage 1.0/1.0, not misspecified.
          k_C1_growth    0.012809      k_ca199_shed    0.00168318
@@ -206,7 +206,7 @@
       <frc_dwell_steps name="PARAM_FIB_FRC_DWELL_STEPS" type="float" val="pr">4</frc_dwell_steps>
     </Fib>
     <Occupancy>
-      <voxelCapacity name="PARAM_VOXEL_CAPACITY" type="float" val="pr" units="um3">8000.0</voxelCapacity>             
+      <voxelCapacity name="PARAM_VOXEL_CAPACITY" type="float" val="pr" units="um3">5920.0</voxelCapacity>             
       <veT name="PARAM_VE_T" type="float" val="pr">0.37</veT>                                                       
       <CancerCell>
         <stemVolume name="PARAM_VOLUME_CANCER_STEM" type="float" val="pr" units="um3">3053.0</stemVolume>                  

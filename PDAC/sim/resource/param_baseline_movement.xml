@@ -194,7 +194,7 @@
       <frc_dwell_steps name="PARAM_FIB_FRC_DWELL_STEPS" type="float" val="pr">4</frc_dwell_steps>
     </Fib>
     <Occupancy>
-      <voxelCapacity name="PARAM_VOXEL_CAPACITY" type="float" val="pr" units="um3">8000.0</voxelCapacity>             <!-- um3, = voxel_size^3 (20^3) -->
+      <voxelCapacity name="PARAM_VOXEL_CAPACITY" type="float" val="pr" units="um3">5920.0</voxelCapacity>             <!-- um3 = 0.74 * voxel_size^3 (FCC packing pi/(3*sqrt2)). FIXED structural constant: never sampled, never calibrated. -->
       <CancerCell>
         <stemVolume name="PARAM_VOLUME_CANCER_STEM" type="float" val="pr" units="um3">3053.0</stemVolume>                  <!-- MAPLE. Mendelaar2020 PANC-1 18-22 um -->
         <progenitorVolume name="PARAM_VOLUME_CANCER_PROG" type="float" val="pr" units="um3">3018.0</progenitorVolume> <!-- MAPLE. Mendelaar2020 -->

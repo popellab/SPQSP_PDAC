@@ -161,7 +161,7 @@
       <frc_dwell_steps name="PARAM_FIB_FRC_DWELL_STEPS" type="float" val="pr">4</frc_dwell_steps>
     </Fib>
     <Occupancy>
-      <voxelCapacity name="PARAM_VOXEL_CAPACITY" type="float" val="pr" units="um3">8000.0</voxelCapacity>             
+      <voxelCapacity name="PARAM_VOXEL_CAPACITY" type="float" val="pr" units="um3">5920.0</voxelCapacity>             
       <CancerCell>
         <stemVolume name="PARAM_VOLUME_CANCER_STEM" type="float" val="pr" units="um3">3053.0</stemVolume>                  
         <progenitorVolume name="PARAM_VOLUME_CANCER_PROG" type="float" val="pr" units="um3">3018.0</progenitorVolume> 
