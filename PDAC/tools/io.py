@@ -50,7 +50,7 @@ _STATE_NAMES = {
     TYPE_TREG:   {0: "th",   1: "treg", 2: "tfh", 3: "tcd4_naive"},
     TYPE_MDSC:   {0: ""},  # single state
     TYPE_MAC:    {0: "M1",  1: "M2"},
-    TYPE_FIB:    {0: "quiescent", 1: "myCAF", 2: "iCAF", 3: "FRC"},
+    TYPE_FIB:    {0: "quiescent", 1: "myCAF", 2: "iCAF", 3: "FRC", 4: "apCAF"},
     TYPE_VAS:    {0: "tip", 2: "phalanx", 3: "collapsed", 4: "hev"},
     TYPE_BCELL:  {0: "naive", 1: "act", 2: "plasma"},
     TYPE_DC:     {0: "immature", 1: "mature"},
