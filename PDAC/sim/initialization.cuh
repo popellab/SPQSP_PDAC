@@ -43,6 +43,11 @@ struct SimulationConfig {
     std::string vascular_mode;  // "random", "xml", "test"
     std::string vascular_xml_file;
 
+    // §C6 initialization by placement. When non-empty, this OVERRIDES init_method and the
+    // scenario: agents and V_vas(t=0) come from the .plc file instead of being grown or
+    // seeded procedurally. Produced by abm-inference/analysis/make_placement.py.
+    std::string placement_file;
+
     // Movement iterations per timestep
     int cancer_move_steps;
     int tcell_move_steps;
@@ -194,6 +199,28 @@ void seedSingleStemAtCenter(
 // setPopulationData on every agent type so empty populations are submitted.
 // Designed to be run with --presim-mode abm_only --main-mode abm_only.
 void initializeSingleStemEdge(
+    flamegpu::CUDASimulation& simulation,
+    flamegpu::ModelDescription& model,
+    const SimulationConfig& config,
+    const LymphCentralWrapper& lymph);
+
+// ============================================================================
+// Initialization by data-driven PLACEMENT (workplan §C6) — `--placement <file.plc>`
+// ============================================================================
+// Reads a .plc written by abm-inference `placement_io.write_placement`: an agent table
+// (type_id, x, y, z, cell_state, subtype) plus an optional V_vas(t=0) field. Replaces the
+// presim entirely — the QSP owns population totals, the IMC data owns their arrangement.
+//
+// Two things this does NOT take from the file, on purpose:
+//   * Per-agent internal state (lifespans, division counters, persistence, exhaustion) is
+//     drawn here from the SAME distributions the recruitment path uses, so a placed cell and
+//     a recruited cell differ only in how their position was chosen (workplan D-11).
+//   * `vas_phalanx` places NO agent (D-4 dropped vascular agents); it arrives already
+//     rasterized and smoothed into the V_vas field, which is uploaded via set_vvas_from_host.
+//
+// Returns false if the file is missing/malformed/grid-mismatched, so main can fail loudly
+// rather than silently running an unseeded domain.
+bool initializeFromPlacement(
     flamegpu::CUDASimulation& simulation,
     flamegpu::ModelDescription& model,
     const SimulationConfig& config,

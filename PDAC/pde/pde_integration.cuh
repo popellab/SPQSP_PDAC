@@ -60,6 +60,14 @@ void set_ecm_orient_from_host(const float* ox, const float* oy, const float* oz,
 
 // Return device pointers for ECM arrays (for output)
 float* get_ecm_density_device_ptr();
+// Perfusion field V_vas. It is a STATE (contract §6.3), so it must be observable —
+// tuning KvLv_base / the compression law without seeing the field is guesswork.
+float* get_vvas_device_ptr();
+// Seed V_vas(t=0) from a placement (§C6.5). Suppresses the uniform PARAM_VAS_INIT fallback in
+// compute_vvas_and_o2. MUST be called after initialize_pde_solver (which allocates the field)
+// and before the first step; returns false if the field is not allocated yet rather than
+// no-op'ing silently — the ECM init bug that made both preseeds dead code was exactly that.
+bool set_vvas_from_host(const float* host_data, int total_voxels);
 float* get_ecm_crosslink_device_ptr();
 unsigned long long* get_fib_density_field_device_ptr();  // fixed-point ECM density buffer
 

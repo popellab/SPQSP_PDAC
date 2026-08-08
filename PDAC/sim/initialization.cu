@@ -3,6 +3,7 @@
 #include "../abm/gpu_param.h"
 #include "../pde/pde_integration.cuh"
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include <cstdlib>
 #include <string>
@@ -25,6 +26,7 @@ SimulationConfig::SimulationConfig()
     , seed_position("x_low")
     , vascular_mode("none")  // ABM rebuild Step 3b: vascular agents removed; O2+entry via Vvas field
     , vascular_xml_file("")
+    , placement_file("")     // §C6: empty = procedural init; set by --placement
     , grid_out(0)
     , interval_out(1)
     , presim_qsp_enabled(true)
@@ -84,6 +86,9 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             vascular_mode = argv[++i];
         } else if ((arg == "--vascular-xml" || arg == "-vx") && i + 1 < argc) {
             vascular_xml_file = argv[++i];
+        } else if (arg == "--placement" && i + 1 < argc) {
+            // §C6: initialize by data-driven placement. Overrides -i / --scenario.
+            placement_file = argv[++i];
         } else if (arg == "--presim-mode" && i + 1 < argc) {
             std::string m = argv[++i];
             if (m == "qsp_abm")        presim_qsp_enabled = true;
@@ -1748,6 +1753,436 @@ void initializeSingleStemEdge(
     { flamegpu::AgentVector pop(model.Agent(AGENT_DC));         simulation.setPopulationData(pop); }
 
     std::cout << "Single-stem-edge initialization complete\n" << std::endl;
+}
+
+// ============================================================================
+// Initialization by data-driven PLACEMENT (workplan §C6)
+// ============================================================================
+// Reader for the .plc format written by abm-inference `placement_io.write_placement`.
+// Keep this in sync with that module's docstring — PLC_VERSION is the contract.
+
+namespace {
+
+constexpr int PLC_VERSION_EXPECTED = 2;
+constexpr int PLC_N_COLS = 6;
+
+// Column order of the agent table: (type_id, x, y, z, cell_state, subtype).
+enum PlcCol : int { PLC_TYPE = 0, PLC_X, PLC_Y, PLC_Z, PLC_STATE, PLC_SUBTYPE };
+
+// Agent type ids — MUST match core/common.cuh CellType and outputs/abm_lz4_def.txt.
+enum PlcType : int {
+    PLC_CANCER = 0, PLC_TCELL, PLC_TREG, PLC_MDSC, PLC_MAC,
+    PLC_FIB, PLC_VAS, PLC_BCELL, PLC_DC
+};
+
+inline float urand() { return static_cast<float>(rand()) / (RAND_MAX + 1.0f); }
+
+// Lifespan draws. The recruitment path does NOT use one distribution for everything, so
+// neither does this: MDSC/MAC/FIB/senescent-cancer are exponential, while T/TCD4/B/DC are
+// normal(mean, sd) — see sample_exp_life_gpu / sample_normal_life_gpu in pde_integration.cu.
+// Using the wrong one here would make placed cells differ from recruited ones in exactly the
+// way this loader is supposed to avoid.
+inline int draw_life_exp(float mean) {
+    const float u = static_cast<float>(rand()) / RAND_MAX;
+    const int life = static_cast<int>(mean * std::log(1.0f / (u + 1e-4f)) + 0.5f);
+    return life > 0 ? life : 1;
+}
+
+inline int draw_life_normal(float mean, float sd) {
+    const float u1 = urand() + 1e-10f;
+    const float u2 = urand();
+    const float z = std::sqrt(-2.0f * std::log(u1)) * std::cos(2.0f * 3.14159265f * u2);
+    const int life = static_cast<int>(std::lround(mean + z * sd));
+    return life > 0 ? life : 1;
+}
+
+}  // namespace
+
+bool initializeFromPlacement(
+    flamegpu::CUDASimulation& simulation,
+    flamegpu::ModelDescription& model,
+    const SimulationConfig& config,
+    const LymphCentralWrapper& lymph)
+{
+    (void)lymph;  // Placement supplies arrangement; the QSP owns totals via the run-time
+                  // gap-closing controller, so nothing is read from the QSP at init here.
+
+    std::cout << "\n=== Init by PLACEMENT (§C6): " << config.placement_file
+              << " ===" << std::endl;
+
+    std::ifstream f(config.placement_file, std::ios::binary);
+    if (!f) {
+        std::cerr << "ERROR: cannot open placement file '" << config.placement_file << "'"
+                  << std::endl;
+        return false;
+    }
+
+    char magic[4] = {0};
+    f.read(magic, 4);
+    if (std::string(magic, 4) != "PLC1") {
+        std::cerr << "ERROR: '" << config.placement_file << "' is not a PLC file" << std::endl;
+        return false;
+    }
+    int header[8] = {0};
+    f.read(reinterpret_cast<char*>(header), sizeof(header));
+    const int version  = header[0];
+    const int gx       = header[1];
+    const int gy       = header[2];
+    const int gz       = header[3];
+    const int n_agents = header[4];
+    const int n_cols   = header[5];
+    const int has_vvas = header[6];
+    const int has_ecm  = header[7];
+
+    if (version != PLC_VERSION_EXPECTED) {
+        std::cerr << "ERROR: placement version " << version << ", expected "
+                  << PLC_VERSION_EXPECTED << " — regenerate with make_placement.py" << std::endl;
+        return false;
+    }
+    if (n_cols != PLC_N_COLS) {
+        std::cerr << "ERROR: placement has " << n_cols << " columns, expected "
+                  << PLC_N_COLS << std::endl;
+        return false;
+    }
+    // A grid mismatch would place every agent at the wrong voxel and silently produce a
+    // plausible-looking but meaningless run, so it is fatal rather than a warning.
+    if (gx != config.grid_x || gy != config.grid_y || gz != config.grid_z) {
+        std::cerr << "ERROR: placement grid " << gx << "x" << gy << "x" << gz
+                  << " does not match simulation grid " << config.grid_x << "x"
+                  << config.grid_y << "x" << config.grid_z
+                  << " — regenerate the placement with --shape, or run with -g " << gx
+                  << std::endl;
+        return false;
+    }
+
+    std::vector<int> table(static_cast<size_t>(n_agents) * PLC_N_COLS);
+    f.read(reinterpret_cast<char*>(table.data()),
+           static_cast<std::streamsize>(table.size() * sizeof(int)));
+    if (!f) {
+        std::cerr << "ERROR: placement truncated while reading " << n_agents << " agents"
+                  << std::endl;
+        return false;
+    }
+
+    // ── V_vas(t=0) ─────────────────────────────────────────────────────────────────────────
+    // Uploaded BEFORE agents so that a failure here is reported before the (much noisier)
+    // agent placement output. d_vvas_field is allocated by initialize_pde_solver, which main
+    // runs well before agent init — but set_vvas_from_host checks rather than assuming.
+    const int total_voxels = gx * gy * gz;
+    if (has_vvas) {
+        std::vector<float> vvas(static_cast<size_t>(total_voxels));
+        f.read(reinterpret_cast<char*>(vvas.data()),
+               static_cast<std::streamsize>(vvas.size() * sizeof(float)));
+        if (!f) {
+            std::cerr << "ERROR: placement truncated while reading the V_vas field" << std::endl;
+            return false;
+        }
+        double sum = 0.0, vmax = 0.0;
+        int n_zero = 0;
+        for (float v : vvas) {
+            sum += v;
+            vmax = std::max(vmax, static_cast<double>(v));
+            if (v <= 0.0f) ++n_zero;
+        }
+        if (!set_vvas_from_host(vvas.data(), total_voxels)) return false;
+        std::cout << "  V_vas seeded: mean " << (sum / total_voxels)
+                  << ", max " << vmax
+                  << ", avascular " << (100.0 * n_zero / total_voxels) << "%" << std::endl;
+        // The avascular fraction is the load-bearing number: the growth law is logistic in V,
+        // so these voxels stay at zero and are what make tumour nests unperfused.
+        if (n_zero == 0) {
+            std::cout << "  NOTE: no voxel is exactly zero — the seed was written without a"
+                         " floor, so the placed perfusion geometry will decay toward a uniform"
+                         " field. Regenerate with --floor-frac > 0." << std::endl;
+        }
+    } else {
+        std::cout << "  no V_vas in placement — falling back to uniform PARAM_VAS_INIT"
+                  << std::endl;
+    }
+
+    // ── ECM(t=0) ───────────────────────────────────────────────────────────────────────────
+    // Placement supersedes the presim, and the presim was the ONLY thing that ever built the
+    // ECM field (both procedural ECM initializers are dead code — called from
+    // set_internal_params before initialize_pde_solver allocates the arrays, so both
+    // early-return). Without this seed a placement run has no desmoplastic compression at all:
+    // measured at 21^3, ECM reached only 136 nmol/mL in 8 steps against a 700 collapse
+    // threshold, V_vas grew unopposed 0.0074 -> 0.0213 and the O2 cv collapsed 0.28 -> 0.057.
+    if (has_ecm) {
+        std::vector<float> ecm(static_cast<size_t>(total_voxels));
+        f.read(reinterpret_cast<char*>(ecm.data()),
+               static_cast<std::streamsize>(ecm.size() * sizeof(float)));
+        if (!f) {
+            std::cerr << "ERROR: placement truncated while reading the ECM field" << std::endl;
+            return false;
+        }
+        const float collapse_th = model.Environment().getProperty<float>("PARAM_VAS_COLLAPSE_THRESHOLD");
+        const float recovery_th = model.Environment().getProperty<float>("PARAM_VAS_RECOVERY_THRESHOLD");
+        double sum = 0.0;
+        int n_above = 0, n_below = 0;
+        for (float e : ecm) {
+            sum += e;
+            if (e > collapse_th) ++n_above;
+            if (e < recovery_th) ++n_below;
+        }
+        set_ecm_density_from_host(ecm.data(), total_voxels);
+        std::cout << "  ECM seeded: mean " << (sum / total_voxels)
+                  << ", " << (100.0 * n_above / total_voxels) << "% above the collapse threshold ("
+                  << collapse_th << "), "
+                  << (100.0 * n_below / total_voxels) << "% below recovery (" << recovery_th << ")"
+                  << std::endl;
+        if (n_above == 0) {
+            std::cout << "  NOTE: no voxel exceeds the collapse threshold — the ECM branch of"
+                         " the occlusion term will be inert. Raise --ecm-p90." << std::endl;
+        }
+    } else {
+        std::cout << "  no ECM in placement — compression will be inert until ECM accumulates;"
+                     " with the presim skipped it never will." << std::endl;
+    }
+
+    // ── lifecycle parameters, read exactly as initializeSingleStem reads them ───────────────
+    const float stem_div        = model.Environment().getProperty<float>("PARAM_FLOAT_CANCER_CELL_STEM_DIV_INTERVAL_SLICE");
+    const float prog_div        = model.Environment().getProperty<float>("PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE");
+    const int   prog_max        = model.Environment().getProperty<int>("PARAM_PROG_DIV_MAX");
+    const float cancer_sen_life = model.Environment().getProperty<float>("PARAM_CANCER_SENESCENT_MEAN_LIFE");
+    const float tcell_life      = model.Environment().getProperty<float>("PARAM_T_CELL_LIFE_MEAN_SLICE");
+    const float tcell_life_sd   = model.Environment().getProperty<float>("PARAM_TCELL_LIFESPAN_SD");
+    const int   tcell_div_limit = model.Environment().getProperty<int>("PARAM_TCELL_DIV_LIMIT");
+    const float IL2_release_time = model.Environment().getProperty<float>("PARAM_TCELL_IL2_RELEASE_TIME");
+    const int   tcell_div_interval = model.Environment().getProperty<int>("PARAM_TCELL_DIV_INTERNAL");
+    const float treg_life       = model.Environment().getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
+    const float treg_life_sd    = model.Environment().getProperty<float>("PARAM_TCD4_LIFESPAN_SD");
+    const int   treg_div_limit  = model.Environment().getProperty<int>("PARAM_TCD4_DIV_LIMIT");
+    const int   treg_div_interval = model.Environment().getProperty<int>("PARAM_TREG_DIV_INTERVAL");
+    const float treg_tgfb_release = model.Environment().getProperty<float>("PARAM_TCD4_TGFB_RELEASE_TIME");
+    const float ctla4_treg      = model.Environment().getProperty<float>("PARAM_CTLA4_TREG");
+    const float mdsc_life       = model.Environment().getProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE");
+    const float mac_life        = model.Environment().getProperty<float>("PARAM_MAC_LIFE_MEAN");
+    const float fib_life        = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
+    const float bcell_life      = model.Environment().getProperty<float>("PARAM_BCELL_LIFE_MEAN");
+    const float bcell_life_sd   = model.Environment().getProperty<float>("PARAM_BCELL_LIFE_SD");
+    const float dc_imm_life     = model.Environment().getProperty<float>("PARAM_DC_LIFE_IMMATURE_MEAN");
+    const float dc_imm_life_sd  = model.Environment().getProperty<float>("PARAM_DC_LIFE_IMMATURE_SD");
+    const float dc_mat_life     = model.Environment().getProperty<float>("PARAM_DC_LIFE_MATURE_MEAN");
+    const float dc_mat_life_sd  = model.Environment().getProperty<float>("PARAM_DC_LIFE_MATURE_SD");
+
+    flamegpu::AgentVector cancer_pop(model.Agent(AGENT_CANCER_CELL));
+    flamegpu::AgentVector tcell_pop(model.Agent(AGENT_TCELL));
+    flamegpu::AgentVector treg_pop(model.Agent(AGENT_TREG));
+    flamegpu::AgentVector mdsc_pop(model.Agent(AGENT_MDSC));
+    flamegpu::AgentVector mac_pop(model.Agent(AGENT_MACROPHAGE));
+    flamegpu::AgentVector fib_pop(model.Agent(AGENT_FIBROBLAST));
+    flamegpu::AgentVector vas_pop(model.Agent(AGENT_VASCULAR));
+    flamegpu::AgentVector bcell_pop(model.Agent(AGENT_BCELL));
+    flamegpu::AgentVector dc_pop(model.Agent(AGENT_DC));
+
+    std::array<int, 9> placed{};
+    int n_skipped_vas = 0, n_unknown = 0;
+
+    for (int i = 0; i < n_agents; ++i) {
+        const int* row = &table[static_cast<size_t>(i) * PLC_N_COLS];
+        const int type  = row[PLC_TYPE];
+        const int x     = row[PLC_X];
+        const int y     = row[PLC_Y];
+        const int z     = row[PLC_Z];
+        const int state = row[PLC_STATE];
+        const int sub   = row[PLC_SUBTYPE];
+        if (x < 0 || x >= gx || y < 0 || y >= gy || z < 0 || z >= gz) continue;
+
+        // det_tag: a unique non-zero lineage tag per placed cell. The high nibble carries the
+        // type (as the recruitment path does) so tags are unique ACROSS types, which the
+        // deterministic movement waves require; the low bits are the row index, which is
+        // deterministic because the file order is fixed.
+        const unsigned int det_tag =
+            (static_cast<unsigned int>(type + 1) << 28) |
+            ((static_cast<unsigned int>(i) + 1u) & 0x0FFFFFFFu);
+
+        switch (type) {
+        case PLC_CANCER: {
+            cancer_pop.push_back();
+            flamegpu::AgentVector::Agent a = cancer_pop.back();
+            a.setVariable<int>("x", x); a.setVariable<int>("y", y); a.setVariable<int>("z", z);
+            a.setVariable<int>("cell_state", state);
+            a.setVariable<unsigned int>("det_tag", det_tag);
+            if (state == CANCER_SENESCENT) {
+                a.setVariable<int>("divideFlag", 0);
+                a.setVariable<int>("divideCD", 0);
+                a.setVariable<int>("divideCountRemaining", 0);
+                a.setVariable<unsigned int>("stemID", 0);
+                a.setVariable<int>("life", draw_life_exp(cancer_sen_life));
+            } else if (state == CANCER_STEM) {
+                a.setVariable<int>("divideCD", static_cast<int>(stem_div * urand()) + 1);
+                a.setVariable<int>("divideFlag", 1);
+                a.setVariable<int>("divideCountRemaining", 0);
+                a.setVariable<unsigned int>("stemID", static_cast<unsigned int>(a.getID()));
+            } else {  // CANCER_PROGENITOR
+                a.setVariable<int>("divideCD", static_cast<int>(prog_div * urand()) + 1);
+                a.setVariable<int>("divideFlag", 1);
+                a.setVariable<int>("divideCountRemaining",
+                                   1 + (rand() % (prog_max > 0 ? prog_max : 1)));
+                a.setVariable<unsigned int>("stemID", 0);
+            }
+            ++placed[PLC_CANCER];
+            break;
+        }
+        case PLC_TCELL: {
+            tcell_pop.push_back();
+            flamegpu::AgentVector::Agent a = tcell_pop.back();
+            a.setVariable<int>("x", x); a.setVariable<int>("y", y); a.setVariable<int>("z", z);
+            a.setVariable<int>("cell_state", state);
+            a.setVariable<int>("life", draw_life_normal(tcell_life, tcell_life_sd));
+            a.setVariable<int>("divide_cd", tcell_div_interval);
+            a.setVariable<int>("divide_limit", tcell_div_limit);
+            a.setVariable<float>("IL2_release_remain", IL2_release_time);
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<int>("hypoxia_exposure", 0);
+            a.setVariable<float>("hypoxia_kill_factor", 1.0f);
+            a.setVariable<unsigned int>("det_tag", det_tag);
+            ++placed[PLC_TCELL];
+            break;
+        }
+        case PLC_TREG: {
+            treg_pop.push_back();
+            flamegpu::AgentVector::Agent a = treg_pop.back();
+            a.setVariable<int>("x", x); a.setVariable<int>("y", y); a.setVariable<int>("z", z);
+            a.setVariable<int>("cell_state", state);
+            a.setVariable<int>("life", draw_life_normal(treg_life, treg_life_sd));
+            a.setVariable<int>("divide_cd", treg_div_interval);
+            a.setVariable<int>("divide_limit", treg_div_limit);
+            a.setVariable<float>("TGFB_release_remain", treg_tgfb_release);
+            a.setVariable<float>("CTLA4", state == TCD4_TREG ? ctla4_treg : 0.0f);
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<unsigned int>("det_tag", det_tag);
+            ++placed[PLC_TREG];
+            break;
+        }
+        case PLC_MDSC: {
+            mdsc_pop.push_back();
+            flamegpu::AgentVector::Agent a = mdsc_pop.back();
+            a.setVariable<int>("x", x); a.setVariable<int>("y", y); a.setVariable<int>("z", z);
+            a.setVariable<int>("life", draw_life_exp(mdsc_life));
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<unsigned int>("det_tag", det_tag);
+            ++placed[PLC_MDSC];
+            break;
+        }
+        case PLC_MAC: {
+            mac_pop.push_back();
+            flamegpu::AgentVector::Agent a = mac_pop.back();
+            a.setVariable<int>("x", x); a.setVariable<int>("y", y); a.setVariable<int>("z", z);
+            a.setVariable<int>("cell_state", state);
+            a.setVariable<int>("life", draw_life_exp(mac_life));
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<unsigned int>("det_tag", det_tag);
+            ++placed[PLC_MAC];
+            break;
+        }
+        case PLC_FIB: {
+            fib_pop.push_back();
+            flamegpu::AgentVector::Agent a = fib_pop.back();
+            a.setVariable<int>("x", x); a.setVariable<int>("y", y); a.setVariable<int>("z", z);
+            a.setVariable<int>("cell_state", state);
+            a.setVariable<int>("life", draw_life_exp(fib_life));
+            a.setVariable<int>("divide_cooldown", 0);
+            a.setVariable<int>("divide_count", 0);
+            a.setVariable<unsigned int>("det_tag", det_tag);
+            ++placed[PLC_FIB];
+            break;
+        }
+        case PLC_VAS:
+            // D-4: vasculature is a FIELD, not agents. The writer already excludes
+            // vas_phalanx, so reaching here means the file disagrees with that decision.
+            ++n_skipped_vas;
+            break;
+        case PLC_BCELL: {
+            bcell_pop.push_back();
+            flamegpu::AgentVector::Agent a = bcell_pop.back();
+            a.setVariable<int>("x", x); a.setVariable<int>("y", y); a.setVariable<int>("z", z);
+            a.setVariable<int>("cell_state", state);
+            a.setVariable<int>("life", draw_life_normal(bcell_life, bcell_life_sd));
+            a.setVariable<int>("dead", 0);
+            // An activated B cell by definition already met antigen; a naive one has not.
+            a.setVariable<int>("has_antigen", state == BCELL_NAIVE ? 0 : 1);
+            a.setVariable<int>("is_breg", 0);
+            a.setVariable<int>("activation_timer", 0);
+            a.setVariable<int>("divide_flag", 0);
+            a.setVariable<int>("divide_cd", 0);
+            a.setVariable<int>("divide_limit", 0);
+            a.setVariable<int>("divide_wave", 0);
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<int>("neighbor_cancer_count", 0);
+            a.setVariable<int>("neighbor_th_count", 0);
+            a.setVariable<int>("neighbor_bcell_count", 0);
+            a.setVariable<int>("neighbor_fib_count", 0);
+            a.setVariable<unsigned int>("det_tag", det_tag);
+            ++placed[PLC_BCELL];
+            break;
+        }
+        case PLC_DC: {
+            dc_pop.push_back();
+            flamegpu::AgentVector::Agent a = dc_pop.back();
+            a.setVariable<int>("x", x); a.setVariable<int>("y", y); a.setVariable<int>("z", z);
+            a.setVariable<int>("cell_state", state);
+            a.setVariable<int>("dc_subtype", sub);
+            a.setVariable<int>("life", state == DC_MATURE ? draw_life_normal(dc_mat_life, dc_mat_life_sd)
+                                                          : draw_life_normal(dc_imm_life, dc_imm_life_sd));
+            a.setVariable<int>("dead", 0);
+            // A mature DC is one that has already taken up and is presenting antigen.
+            a.setVariable<int>("presentation_capacity", state == DC_MATURE ? 1 : 0);
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<int>("neighbor_tcell_count", 0);
+            a.setVariable<int>("neighbor_bcell_count", 0);
+            a.setVariable<unsigned int>("det_tag", det_tag);
+            ++placed[PLC_DC];
+            break;
+        }
+        default:
+            ++n_unknown;
+            break;
+        }
+    }
+
+    // Every agent type must be submitted, including empty ones — FLAMEGPU requires it.
+    simulation.setPopulationData(cancer_pop);
+    simulation.setPopulationData(tcell_pop);
+    simulation.setPopulationData(treg_pop);
+    simulation.setPopulationData(mdsc_pop);
+    simulation.setPopulationData(mac_pop);
+    simulation.setPopulationData(fib_pop);
+    simulation.setPopulationData(vas_pop);
+    simulation.setPopulationData(bcell_pop);
+    simulation.setPopulationData(dc_pop);
+
+    std::cout << "  Placed " << n_agents << " agents:"
+              << "  cancer " << placed[PLC_CANCER]
+              << ", T " << placed[PLC_TCELL]
+              << ", TReg/Th " << placed[PLC_TREG]
+              << ", MDSC " << placed[PLC_MDSC]
+              << ", MAC " << placed[PLC_MAC]
+              << ", FIB " << placed[PLC_FIB]
+              << ", BCELL " << placed[PLC_BCELL]
+              << ", DC " << placed[PLC_DC] << std::endl;
+    if (n_skipped_vas > 0) {
+        std::cout << "  NOTE: skipped " << n_skipped_vas << " vascular agent rows — vasculature"
+                     " is a field (D-4), so these should not have been written." << std::endl;
+    }
+    if (n_unknown > 0) {
+        std::cerr << "  WARNING: " << n_unknown << " rows had an unrecognised type_id and were"
+                     " dropped — the writer and this reader disagree." << std::endl;
+    }
+    std::cout << "Placement initialization complete\n" << std::endl;
+    return true;
 }
 
 } // namespace PDAC

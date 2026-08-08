@@ -510,6 +510,10 @@
     env.newProperty<float>("PARAM_VAS_REGRESS_RATE", 
                     QP(CancerVCT::P_k_vas_decay) * t_step_sec);
 
+    // vessel growth base rate [prob/step] from k_vas_growth, x PARAM_VAS_GROWTH_SCALE (unit correction, see the XML note)
+    env.newProperty<float>("PARAM_VAS_GROWTH_RATE", 
+                    QP(CancerVCT::P_k_vas_growth) * t_step_sec * env.getProperty<float>("PARAM_VAS_GROWTH_SCALE"));
+
     // VEGF EC50 for vessel survival [nM] from VEGF_50
     env.newProperty<float>("PARAM_VAS_VEGFA_SURVIVAL_EC50", 
                     QP(CancerVCT::P_VEGF_50) * 1e6);

@@ -756,6 +756,25 @@ void set_ecm_orient_from_host(const float* ox, const float* oy, const float* oz,
 }
 
 float* get_ecm_density_device_ptr() { return d_ecm_density; }
+float* get_vvas_device_ptr() { return d_vvas_field; }
+
+// Set true by set_vvas_from_host so compute_vvas_and_o2 does not overwrite a placement seed
+// with the uniform PARAM_VAS_INIT fallback. File-scope rather than a static local because the
+// seeding call and the consuming call are in different translation-unit positions.
+static bool g_vvas_seeded = false;
+
+bool set_vvas_from_host(const float* host_data, int total_voxels) {
+    if (!d_vvas_field) {
+        std::cerr << "ERROR: set_vvas_from_host called before initialize_pde_solver — "
+                     "V_vas seed DROPPED. Placement V_vas will fall back to PARAM_VAS_INIT."
+                  << std::endl;
+        return false;
+    }
+    CUDA_CHECK(cudaMemcpy(d_vvas_field, host_data, total_voxels * sizeof(float),
+                          cudaMemcpyHostToDevice));
+    g_vvas_seeded = true;
+    return true;
+}
 float* get_ecm_crosslink_device_ptr() { return d_ecm_crosslink; }
 unsigned long long* get_fib_density_field_device_ptr() { return d_fib_density_field; }
 unsigned int* get_vas_tip_id_grid_device_ptr() { return d_vas_tip_id_grid; }
@@ -2231,23 +2250,66 @@ FLAMEGPU_HOST_FUNCTION(zero_fib_density_field) {
 }
 
 // ============================================================================
-// Vvas field + Krogh O2 (media-2 Eq.1-3). Replaces vascular-agent O2 sourcing.
-//   Vvas = Hill(VEGF) * (1 - f_cancer_moore_n2) * cabo_term   (per voxel)
-//   O2 sourced from Vvas via Krogh implicit-split (drives O2 -> C_blood where Vvas high).
-// f_cancer_moore_n2 = fraction of cancer-occupied voxels in the 5x5x5 (n=2) neighborhood.
+// Vvas as a STATE WITH MEMORY (coupling contract §6.3), + Krogh O2 (media-2 Eq.1-3).
+//
+//   ∂V_vas/∂t = k_growth·Hill(VEGFA)·V_vas·(1 − V_vas/V_max) [angiogenesis]
+//             − k_decay·V_vas                                [regression]
+//             − occlusion(ECM, cancer)·V_vas                 [desmoplastic compression]
+//             + recovery·V_vas·(1 − V_vas/V_max)             [ECM relief, e.g. losartan]
+//
+// REPLACES the previous `V_vas = Hill(VEGFA)·(1 − f_cancer)·cabo`, which was a category
+// error rather than a calibration one: VEGFA is a *demand* signal and was being read as a
+// *supply* state. Hypoxic cells secrete VEGFA precisely because they are under-perfused, so
+// the old form inverted the perfusion↔oxygenation correlation, built an unintended
+// homeostatic controller (VEGFA↑→V_vas↑→O2↑→HIF↓→VEGFA↓) that flattens the O2 field, and
+// would have delivered drug preferentially to avascular hypoxic regions — inverting the
+// headline chemo result. Under placement it would also have set the INITIAL CONDITION, so
+// the inversion would be baked into the seed rather than merely accumulated over a run.
+//
+// All rate parameters are ALREADY per-step (PARAM_VAS_REGRESS_RATE is
+// `QP(P_k_vas_decay) * t_step_sec`), so nothing here is multiplied by dt again.
+//
+// GROWTH IS LOGISTIC IN V_vas (2026-08-08). The first version of this law had growth
+// independent of V — `k_growth·Hill(VEGFA)·(1 − V/Vmax)` — i.e. a constant source wherever
+// VEGFA was present, so a voxel at V_vas = 0 still grew at k_growth per step. Vessels
+// appeared from nothing in avascular tissue, which made the fixed point globally attracting:
+// measured (analysis/vvas_o2_check.py) the equilibrium field was identical to six digits
+// whether started from the placement seed or from the uniform fallback — 0.1877 either way,
+// with the seeded contrast of 4.65 collapsing to 1.31 in ~7 steps. Under §C6 placement that
+// is fatal: it erases V_vas(t=0) before treatment onset, so seeding could not matter.
+// Multiplying by V restores V=0 as a fixed point, so placed avascular tissue STAYS avascular
+// and occlusion can drive vessels to genuine extinction rather than to a lower uniform level.
+// The same argument applies to the recovery branch, which was also V-independent: a voxel
+// with no vessel left has nothing to decompress.
+//
+// Two departures from the old kernel worth noting:
+//   * `cabo_term` now multiplies GROWTH only. Anti-VEGFR2 blocks new vessel formation; it
+//     does not instantaneously delete existing vessels, which is what scaling the whole
+//     field implied.
+//   * `f_cancer` is no longer a multiplicative mask but a COMPRESSION DRIVER. Compression is
+//     otherwise ECM-driven, and dense cancer nests contain no fibroblasts depositing ECM —
+//     so an ECM-only law gives nests zero compression, which is backwards. Cancer occupancy
+//     and ECM are treated as independent occlusion pathways.
 // ============================================================================
-__global__ void compute_vvas_kernel(
-    float* vvas,
+__global__ void update_vvas_kernel(
+    float* vvas,                                        // in/out: the state
     const float* __restrict__ vegf,
     const unsigned int* __restrict__ cancer_occ,
+    const float* __restrict__ ecm_density,
     int nx, int ny, int nz,
-    float vegf_ec50, float cabo_term)
+    float vegf_ec50, float cabo_term,
+    float k_growth, float k_decay, float v_max,
+    float collapse_th, float collapse_ec50,
+    float recovery_th, float recovery_rate,
+    float maturity_factor, float cancer_w)
 {
     const int tx = blockIdx.x * blockDim.x + threadIdx.x;
     const int ty = blockIdx.y * blockDim.y + threadIdx.y;
     const int tz = blockIdx.z * blockDim.z + threadIdx.z;
     if (tx >= nx || ty >= ny || tz >= nz) return;
     const int idx = tz * (nx * ny) + ty * nx + tx;
+
+    float V = vvas[idx];
 
     // Hill(VEGF) — angiogenic drive (EC50 reuses PARAM_VAS_50, the sprouting VEGF EC50)
     const float v = vegf[idx];
@@ -2265,7 +2327,45 @@ __global__ void compute_vvas_kernel(
     }
     const float f_cancer = (box_total > 0) ? (float)box_cancer / (float)box_total : 0.0f;
 
-    vvas[idx] = hill * (1.0f - f_cancer) * cabo_term;
+    // --- growth: logistic IN V, VEGFA-gated, blocked by anti-angiogenic therapy ---
+    // The V factor is what keeps V=0 a fixed point; see the header note.
+    const float logistic = V * fmaxf(0.0f, 1.0f - V / (v_max + 1e-30f));
+    const float growth = k_growth * hill * cabo_term * logistic;
+
+    // --- regression ---
+    const float decay = k_decay * V;
+
+    // --- occlusion: ECM and cancer packing as INDEPENDENT pathways ---
+    // The ECM branch is the agent-era collapse law ported to a continuous rate
+    // (vascular_cell.cuh: p_collapse = Hill(ECM)/(1 + mat_resist·maturity), gated above
+    // PARAM_VAS_COLLAPSE_THRESHOLD). `maturity_factor` folds in that resistance at the
+    // pre-existing-vessel maturity, which is the right regime: PDAC vasculature is largely
+    // co-opted mature stromal vessels, not de novo sprouts.
+    const float ecm = ecm_density[idx];
+    const float c_ecm = (ecm > collapse_th)
+                      ? (ecm / (ecm + collapse_ec50 + 1e-30f)) * maturity_factor
+                      : 0.0f;
+    const float c_can = fminf(1.0f, cancer_w * f_cancer) * maturity_factor;
+    const float occl = 1.0f - (1.0f - c_ecm) * (1.0f - c_can);   // P(occluded by either)
+    const float compress = occl * V;
+
+    // --- recovery once ECM relaxes below the recovery threshold (losartan-anchored) ---
+    // Also logistic in V: decompression re-opens vessels that are still there, so a voxel
+    // scoured to V=0 does not spontaneously re-vascularize.
+    const float recover = (ecm < recovery_th) ? recovery_rate * logistic : 0.0f;
+
+    V += growth - decay - compress + recover;
+    vvas[idx] = fminf(fmaxf(V, 0.0f), v_max);
+}
+
+// Uniform initial perfusion, used when no placement seed has been supplied. Once
+// `seeding_vvas.seed_vvas` is wired into the handoff this is overwritten by the
+// rasterized-and-smoothed vessel field; until then it keeps O2 delivery sane, since a
+// field starting at exactly zero would starve the domain while growth ramps.
+__global__ void fill_vvas_kernel(float* vvas, int total, float value)
+{
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < total) vvas[i] = value;
 }
 
 __global__ void source_o2_from_vvas_kernel(
@@ -2315,6 +2415,33 @@ FLAMEGPU_HOST_FUNCTION(compute_vvas_and_o2) {
     // TODO Step 4 (therapy): wire PARAM_K_CABO + PARAM_IC50_VEGFR2 for the anti-angiogenic arm.
     const float cabo_term = 1.0f;
 
+    // --- V_vas state-law parameters (contract §6.3) ---
+    const float k_growth = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_GROWTH_RATE");
+    const float k_decay  = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_REGRESS_RATE");
+    const float v_max    = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_MAX");
+    const float collapse_th    = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_COLLAPSE_THRESHOLD");
+    const float collapse_ec50  = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_COLLAPSE_EC50");
+    const float recovery_th    = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_RECOVERY_THRESHOLD");
+    const float recovery_rate  = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_RECOVERY_RATE");
+    const float cancer_w       = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_COMPRESS_CANCER_W");
+    // Mature-vessel resistance from the agent law, evaluated at the pre-existing-vessel
+    // maturity: 1/(1 + 0.04*100) = 0.2, i.e. mature vessels collapse 5x slower. Dropping it
+    // would make compression 5x too fast for exactly the co-opted vessels PDAC runs on.
+    const float mat_resist = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_MATURITY_RESISTANCE");
+    const float init_mat   = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_INITIAL_MATURITY");
+    const float maturity_factor = 1.0f / (1.0f + mat_resist * init_mat);
+
+    // One-shot uniform seed — the FALLBACK only. When a placement supplied V_vas(t=0)
+    // (set_vvas_from_host), g_vvas_seeded is already true and this is skipped, which is what
+    // preserves the placed avascular zero set: the logistic growth law keeps V=0 fixed, but a
+    // uniform overwrite here would destroy the zero set before step 1.
+    if (!g_vvas_seeded) {
+        const float v0 = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_INIT");
+        const int total = nx * ny * nz;
+        fill_vvas_kernel<<<(total + 255) / 256, 256>>>(d_vvas_field, total, v0);
+        g_vvas_seeded = true;
+    }
+
     // Krogh transport coefficient — constants only; mirrors vascular_cell.cuh O2 block exactly.
     const float pi      = 3.1415926f;
     const float sigma   = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_SIGMA");
@@ -2338,7 +2465,12 @@ FLAMEGPU_HOST_FUNCTION(compute_vvas_and_o2) {
 
     dim3 block(8, 8, 8);
     dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
-    compute_vvas_kernel<<<grid, block>>>(d_vvas_field, vegf, d_cancer_occ, nx, ny, nz, vegf_ec50, cabo_term);
+    update_vvas_kernel<<<grid, block>>>(d_vvas_field, vegf, d_cancer_occ, d_ecm_density,
+                                        nx, ny, nz, vegf_ec50, cabo_term,
+                                        k_growth, k_decay, v_max,
+                                        collapse_th, collapse_ec50,
+                                        recovery_th, recovery_rate,
+                                        maturity_factor, cancer_w);
     source_o2_from_vvas_kernel<<<grid, block>>>(d_vvas_field, o2conc, o2_src, o2_upt, nx, ny, nz,
                                                 KvLv_base, C_blood, voxel_volume);
     cudaDeviceSynchronize();

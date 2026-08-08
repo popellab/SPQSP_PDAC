@@ -92,6 +92,10 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Vas.collapse_ec50", "nmol/mL", "pr"},  // PARAM_VAS_COLLAPSE_EC50
     {"Param.ABM.Vas.recovery_threshold", "nmol/mL", "pr"},  // PARAM_VAS_RECOVERY_THRESHOLD
     {"Param.ABM.Vas.recovery_rate", "", "pr"},  // PARAM_VAS_RECOVERY_RATE
+    {"Param.ABM.Vas.vasMax", "", "pr"},  // PARAM_VAS_MAX
+    {"Param.ABM.Vas.growthScale", "", "pr"},  // PARAM_VAS_GROWTH_SCALE
+    {"Param.ABM.Vas.compressCancerW", "", "pr"},  // PARAM_VAS_COMPRESS_CANCER_W
+    {"Param.ABM.Vas.initFraction", "", "pr"},  // PARAM_VAS_INIT
     {"Param.ABM.Vas.kvl_dysfunctional", "", "pr"},  // PARAM_VAS_KVL_DYSFUNCTIONAL
     {"Param.ABM.Vas.hypoxia_threshold", "", "pr"},  // PARAM_VAS_HYPOXIA_TH
     {"Param.ABM.Vas.hev_ccl21_threshold", "", "pr"},  // PARAM_VAS_HEV_CCL21_TH
@@ -429,6 +433,10 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_VAS_COLLAPSE_EC50", getFloat(PARAM_VAS_COLLAPSE_EC50));
     env.newProperty<float>("PARAM_VAS_RECOVERY_THRESHOLD", getFloat(PARAM_VAS_RECOVERY_THRESHOLD));
     env.newProperty<float>("PARAM_VAS_RECOVERY_RATE", getFloat(PARAM_VAS_RECOVERY_RATE));
+    env.newProperty<float>("PARAM_VAS_MAX", getFloat(PARAM_VAS_MAX));
+    env.newProperty<float>("PARAM_VAS_GROWTH_SCALE", getFloat(PARAM_VAS_GROWTH_SCALE));
+    env.newProperty<float>("PARAM_VAS_COMPRESS_CANCER_W", getFloat(PARAM_VAS_COMPRESS_CANCER_W));
+    env.newProperty<float>("PARAM_VAS_INIT", getFloat(PARAM_VAS_INIT));
     env.newProperty<float>("PARAM_VAS_KVL_DYSFUNCTIONAL", getFloat(PARAM_VAS_KVL_DYSFUNCTIONAL));
     env.newProperty<float>("PARAM_VAS_HYPOXIA_TH", getFloat(PARAM_VAS_HYPOXIA_TH));
     env.newProperty<float>("PARAM_VAS_HEV_CCL21_TH", getFloat(PARAM_VAS_HEV_CCL21_TH));

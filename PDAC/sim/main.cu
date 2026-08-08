@@ -283,19 +283,20 @@ FLAMEGPU_STEP_FUNCTION(exportPDEData) {
 // ============================================================================
 // LZ4-compressed binary writer for ECM (stroma) Output
 // Writes ECM density, fibroblast density, and fiber orientation as a single LZ4 file.
-// Shape: (5, grid_z, grid_y, grid_x), dtype float32, C-order.
+// Shape: (6, grid_z, grid_y, grid_x), dtype float32, C-order.
 //   channel 0: ECM_density  (d_ecm_density)
 //   channel 1: Fib_field    (d_fib_density_field)
-//   channel 2: orient_x     (d_ecm_orient_x)
-//   channel 3: orient_y     (d_ecm_orient_y)
-//   channel 4: orient_z     (d_ecm_orient_z)
+//   channel 2: orient_x     (d_ecm_orient_x)   [anisotropy disabled 2026-06-29 -> zeros]
+//   channel 3: orient_y     (d_ecm_orient_y)   [disabled -> zeros]
+//   channel 4: orient_z     (d_ecm_orient_z)   [disabled -> zeros]
+//   channel 5: V_vas        (d_vvas_field)     perfusion state, contract §6.3
 //
 // File format (.ecm.lz4):
 //   Bytes 0-3:   magic "ECM1"
 //   Bytes 4-7:   grid_x (int32)
 //   Bytes 8-11:  grid_y (int32)
 //   Bytes 12-15: grid_z (int32)
-//   Bytes 16-19: num_channels=5 (int32)
+//   Bytes 16-19: num_channels=6 (int32)
 //   Bytes 20-23: uncompressed_size (int32, bytes)
 //   Bytes 24-27: compressed_size (int32, bytes)
 //   Bytes 28+:   LZ4-compressed float32 data
@@ -310,7 +311,7 @@ FLAMEGPU_STEP_FUNCTION(exportPDEData) {
 // ============================================================================
 static void write_ecm_lz4_buf(const char* path, int grid_x, int grid_y, int grid_z,
                                const std::vector<float>& buf) {
-    const int n_channels = 5;
+    const int n_channels = 6;
     const int raw_bytes = static_cast<int>(buf.size() * sizeof(float));
     const int max_comp = LZ4_compressBound(raw_bytes);
 
@@ -341,10 +342,10 @@ static void write_ecm_lz4_buf(const char* path, int grid_x, int grid_y, int grid
 }
 
 // Collect ECM + fib density + fiber orientation from device into a host buffer.
-// buf layout: [ecm_density, fib_field, orient_x, orient_y, orient_z] (5 channels × total_voxels floats)
+// buf layout: [ecm_density, fib_field, orient_x, orient_y, orient_z, vvas] (6 channels × total_voxels floats)
 static void collect_ecm_to_buf(std::vector<float>& buf, int grid_x, int grid_y, int grid_z) {
     const int total_voxels = grid_x * grid_y * grid_z;
-    buf.resize(static_cast<size_t>(5) * total_voxels);
+    buf.resize(static_cast<size_t>(6) * total_voxels);
     float* d_ecm = PDAC::get_ecm_density_device_ptr();
     unsigned long long* d_fib = PDAC::get_fib_density_field_device_ptr();  // fixed-point buffer
     float* d_ox  = PDAC::get_ecm_orient_x_device_ptr();
@@ -362,6 +363,8 @@ static void collect_ecm_to_buf(std::vector<float>& buf, int grid_x, int grid_y, 
     if (d_ox)  cudaMemcpy(buf.data() + 2 * total_voxels,   d_ox, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
     if (d_oy)  cudaMemcpy(buf.data() + 3 * total_voxels,   d_oy, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
     if (d_oz)  cudaMemcpy(buf.data() + 4 * total_voxels,   d_oz, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
+    float* d_vv = PDAC::get_vvas_device_ptr();
+    if (d_vv) cudaMemcpy(buf.data() + 5 * total_voxels,    d_vv, total_voxels * sizeof(float), cudaMemcpyDeviceToHost);
 }
 
 void exportECMData_step0(int grid_x, int grid_y, int grid_z) {
@@ -1160,7 +1163,15 @@ int main(int argc, const char** argv) {
     }
 
     // ========== INITIALIZE AGENTS ==========
-    if (config.scenario == PDAC::SimulationConfig::Scenario::SingleStemEdge) {
+    if (!config.placement_file.empty()) {
+        // §C6: data-driven placement supersedes the presim and every procedural init. Fail
+        // hard rather than silently falling back — a run that quietly used single-stem init
+        // when placement was requested would be misread as a placement result.
+        if (!PDAC::initializeFromPlacement(simulation, *model, config, _lymph)) {
+            std::cerr << "FATAL: placement initialization failed — aborting." << std::endl;
+            return 1;
+        }
+    } else if (config.scenario == PDAC::SimulationConfig::Scenario::SingleStemEdge) {
         std::cout << "Initializing single-stem-edge scenario (resident vasc+PSC + 1 stem cell)..." << std::endl;
         PDAC::initializeSingleStemEdge(simulation, *model, config, _lymph);
     } else if (config.init_method == 2) {
@@ -1362,14 +1373,15 @@ int main(int argc, const char** argv) {
         {
             std::ofstream f(out_path("ecm_lz4_def.txt"));
             f << "ECM snapshot LZ4 definition (.ecm.lz4)\n"
-              << "Header (28 bytes): magic='ECM1', grid_x(i32), grid_y(i32), grid_z(i32), n_channels=2(i32), raw_bytes(i32), comp_bytes(i32)\n"
-              << "Data: LZ4-compressed float32 array, shape (2, grid_z, grid_y, grid_x)\n"
+              << "Header (28 bytes): magic='ECM1', grid_x(i32), grid_y(i32), grid_z(i32), n_channels=6(i32), raw_bytes(i32), comp_bytes(i32)\n"
+              << "Data: LZ4-compressed float32 array, shape (6, grid_z, grid_y, grid_x)\n"
               << "Channel index -> field:\n"
               << "  0: ECM_density   (d_ecm_density, smoothed ECM density [0..cap])\n"
-              << "  2: orient_x      (d_ecm_orient_x, fiber axis x-component)\n"
-              << "  3: orient_y      (d_ecm_orient_y, fiber axis y-component)\n"
-              << "  4: orient_z      (d_ecm_orient_z, fiber axis z-component)\n"
               << "  1: Fib_field     (d_fib_density_field, raw Gaussian fib density)\n"
+              << "  2: orient_x      (d_ecm_orient_x)  -- anisotropy DISABLED 2026-06-29, all zeros\n"
+              << "  3: orient_y      (d_ecm_orient_y)  -- DISABLED, all zeros\n"
+              << "  4: orient_z      (d_ecm_orient_z)  -- DISABLED, all zeros\n"
+              << "  5: V_vas         (d_vvas_field, perfusion state 0..PARAM_VAS_MAX)\n"
               << "Loading:\n"
               << "  import lz4.block, struct, numpy as np\n"
               << "  with open('ecm_step_000001.ecm.lz4', 'rb') as f:\n"
