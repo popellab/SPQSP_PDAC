@@ -6,6 +6,25 @@
 
 namespace PDAC {
 
+// ============================================================================
+// EFF/CYT → SUPP costs the cell its remaining lifetime advantage.
+// The ABM draws a CD8 lifespan once, at recruitment, from 1/k_CD8_death
+// (PARAM_T_CELL_LIFE_MEAN_SLICE). The QSP removes EXHAUSTED CD8 at the separate,
+// faster k_CD8_exh_death, so a cell that exhausts and keeps its original countdown
+// lives k_CD8_exh_death/k_CD8_death times too long. Scaling the REMAINING life by
+// the rate ratio gives the correct expected residual lifetime, which is what makes
+// the ABM's SUPP pool comparable to SP_V_T_CD8_exh in the class audit.
+// Applied at both exhaustion routes (hypoxic and PD-1/Treg); never reversed —
+// SUPP is terminal in this model.
+// ============================================================================
+template<typename API>
+__device__ __forceinline__ void scale_life_on_exhaustion(API FLAMEGPU) {
+    const float s = FLAMEGPU->environment.template getProperty<float>("PARAM_CD8_EXH_LIFE_SCALE");
+    const int life = FLAMEGPU->template getVariable<int>("life");
+    const int scaled = static_cast<int>(life * s + 0.5f);
+    FLAMEGPU->template setVariable<int>("life", scaled < 1 ? 1 : scaled);
+}
+
 // TCell agent function: Broadcast location
 FLAMEGPU_AGENT_FUNCTION(tcell_broadcast_location, flamegpu::MessageNone, flamegpu::MessageSpatial3D) {
     const int x = FLAMEGPU->getVariable<int>("x");
@@ -244,6 +263,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
         FLAMEGPU->setVariable<int>("cell_state", T_CELL_SUPP);
         FLAMEGPU->setVariable<int>("divide_flag", 0);
         FLAMEGPU->setVariable<int>("divide_limit", 0);
+        scale_life_on_exhaustion(FLAMEGPU);
     }
 
     float IL2 = PDE_READ(FLAMEGPU, PDE_CONC_IL2, voxel_t);
@@ -339,6 +359,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
             FLAMEGPU->setVariable<int>("cell_state", T_CELL_SUPP);
             FLAMEGPU->setVariable<int>("divide_flag", 0);
             FLAMEGPU->setVariable<int>("divide_limit", 0);
+            scale_life_on_exhaustion(FLAMEGPU);
         }
     }
 
@@ -748,6 +769,16 @@ FLAMEGPU_AGENT_FUNCTION(tcell_move_commit, flamegpu::MessageNone, flamegpu::Mess
     FLAMEGPU->setVariable<int>("persist_dir_x", (tx > sx) - (tx < sx));
     FLAMEGPU->setVariable<int>("persist_dir_y", (ty > sy) - (ty < sy));
     FLAMEGPU->setVariable<int>("persist_dir_z", (tz > sz) - (tz < sz));
+    return flamegpu::ALIVE;
+}
+
+
+// ── phi: CD8 is the KDE SOURCE for phi_1 (CD8xC1) and phi_3 (CD8xTreg). ──
+// Uses is_qsp_CD8 so the population phi is measured on is byte-identical to the one the
+// gap-closing audit compares against SP_V_T_CD8 — exhausted and naive CD8 are NOT CD8 here.
+FLAMEGPU_AGENT_FUNCTION(tcell_phi_deposit, flamegpu::MessageNone, flamegpu::MessageNone) {
+    if (is_qsp_CD8(FLAMEGPU->getVariable<int>("cell_state")))
+        phi_deposit(FLAMEGPU, PHI_KDE_CD8);
     return flamegpu::ALIVE;
 }
 

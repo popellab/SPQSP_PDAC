@@ -1,5 +1,7 @@
 #include "LymphCentral_wrapper.h"
 #include <iostream>
+#include <fstream>
+#include <iomanip>
 #include <cmath>
 #include <stdexcept>
 #include <boost/property_tree/ptree.hpp>
@@ -322,6 +324,57 @@ void LymphCentralWrapper::set_species_value(int species_idx, double value) {
 double LymphCentralWrapper::get_tumor_volume() const {
     if (!_is_initialized || !_qsp_model) return 0.0;
     return _compute_tumor_volume(_qsp_model->getSystem());
+}
+
+bool LymphCentralWrapper::dump_onset_state(const std::string& path, double t_warmup_s) const {
+    if (!_is_initialized || !_qsp_model) {
+        std::cerr << "ERROR: dump_onset_state called before QSP initialization" << std::endl;
+        return false;
+    }
+    auto* ode_sys = _qsp_model->getSystem();
+    if (!ode_sys) return false;
+
+    // Species are held in mol; ×N_A gives discrete cells. Same conversion the
+    // recruitment gap-closing applies (pde_integration.cu: qsp_*_tumor × AVOGADROS),
+    // done once here so the generator never has to know the internal unit.
+    constexpr double NA = 6.022140857e23;
+    struct Row { const char* name; int idx; };
+    const Row rows[] = {
+        {"C1", CancerVCT::SP_V_T_C1}, {"C2", CancerVCT::SP_V_T_C2},
+        {"C_x", CancerVCT::SP_V_T_C_x},
+        {"qPSC", CancerVCT::SP_V_T_qPSC}, {"iCAF", CancerVCT::SP_V_T_iCAF},
+        {"myCAF", CancerVCT::SP_V_T_myCAF}, {"apCAF", CancerVCT::SP_V_T_apCAF},
+        {"CD8", CancerVCT::SP_V_T_CD8}, {"CD8_exh", CancerVCT::SP_V_T_CD8_exh},
+        {"Th", CancerVCT::SP_V_T_Th}, {"Th_exh", CancerVCT::SP_V_T_Th_exh},
+        {"Treg", CancerVCT::SP_V_T_Treg}, {"Tfh", CancerVCT::SP_V_T_Tfh},
+        {"B", CancerVCT::SP_V_T_B}, {"Plasma", CancerVCT::SP_V_T_Plasma},
+        {"Mac_M1", CancerVCT::SP_V_T_Mac_M1}, {"Mac_M2", CancerVCT::SP_V_T_Mac_M2},
+        {"MDSC", CancerVCT::SP_V_T_MDSC},
+        {"cDC1", CancerVCT::SP_V_T_cDC1}, {"cDC2", CancerVCT::SP_V_T_cDC2},
+        {"mcDC1", CancerVCT::SP_V_T_mcDC1}, {"mcDC2", CancerVCT::SP_V_T_mcDC2},
+    };
+
+    std::ofstream f(path);
+    if (!f.is_open()) {
+        std::cerr << "ERROR: cannot write QSP onset file '" << path << "'" << std::endl;
+        return false;
+    }
+    f << std::setprecision(17);
+    f << "{\n  \"schema\": \"qsp_onset/1\",\n";
+    f << "  \"t_warmup_s\": " << t_warmup_s << ",\n";
+    f << "  \"V_T_m3\": " << _compute_tumor_volume(ode_sys) << ",\n";
+    f << "  \"avogadro\": " << NA << ",\n";
+    f << "  \"cells\": {\n";
+    const int n = static_cast<int>(sizeof(rows) / sizeof(rows[0]));
+    for (int i = 0; i < n; ++i) {
+        f << "    \"" << rows[i].name << "\": " << (getVAR(rows[i].idx) * NA)
+          << (i + 1 < n ? ",\n" : "\n");
+    }
+    f << "  }\n}\n";
+    f.close();
+    std::cout << "  QSP onset state written: " << path
+              << " (V_T=" << _compute_tumor_volume(ode_sys) << " m^3)" << std::endl;
+    return true;
 }
 
 double LymphCentralWrapper::get_tumor_cancer_cells() const {

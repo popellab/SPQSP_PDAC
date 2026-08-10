@@ -2,12 +2,23 @@
 #include "../core/common.cuh"
 #include "../core/layer_timing.h"
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <nvtx3/nvToolsExt.h>
 #include <cmath>
+
+// ── Class-mapping audit (contract §4.4 / gates G3-G4) ───────────────────────────
+// Per-step record of the ABM population in each class against its QSP target f·X_QSP.
+// Written from recruit_systematic, where f and the qsp_* env properties are already in
+// hand. Separate from stats_*.csv on purpose: that file is pure ABM state, this one is
+// the ABM↔QSP comparison, and the two have different consumers.
+static std::ofstream g_class_audit_csv;
+static std::string   g_class_audit_path = "outputs/class_audit.csv";
+static std::ofstream g_phi_csv;
+static std::string   g_phi_csv_path = "outputs/phi.csv";
 
 // ============================================================================
 // Layer Timing Globals (defined once here, declared extern in layer_timing.h)
@@ -39,6 +50,15 @@ static RecruitStats g_recruit_stats;
 
 RecruitStats get_last_recruit_stats() { return g_recruit_stats; }
 
+// Redirect the class-mapping audit CSV (mirrors set_qsp_output_path; called from main
+// once the output root is known). Must be called before the first step.
+void set_class_audit_path(const std::string& path) { g_class_audit_path = path; }
+void set_phi_csv_path(const std::string& path) { g_phi_csv_path = path; }
+
+// Defined in qsp_integration.cu — the audit tags presim rows so the two phases, whose
+// step counters both start at 0, stay separable in one file.
+extern bool is_presim_mode_active();
+
 // Flat device array: cancer occupancy per voxel (0 = empty, >0 = cancer present).
 // Populated by cancer_write_to_occ_grid, zeroed by zero_occupancy_grid.
 // Used by recruitment source-marking kernels to skip tumor-dense voxels.
@@ -62,6 +82,51 @@ static float* d_ecm_density = nullptr;
 static float* d_ecm_crosslink = nullptr;   // Per-voxel crosslink accumulator (LOX-driven)
 static float* d_ecm_floor = nullptr;       // Per-voxel density floor (passive decay clamped here; MMP bypasses)
 static unsigned long long* d_fib_density_field = nullptr;  // fixed-point ECM density (ecm_fp_encode/decode)
+
+// ── phi estimator state (contract D-1/D-2). See common.cuh for the statistic. ──
+static unsigned long long* d_phi_kde   = nullptr;  // [N_PHI_KDE][nvox] fixed-point KDE fields
+static unsigned long long* d_phi_accum = nullptr;  // [N_PHI_PAIR] fixed-point SUM of edge-corrected ratios
+static unsigned int*       d_phi_count = nullptr;  // [N_PHI_PAIR targets | N_PHI_KDE sources]
+static float*              d_phi_sumk  = nullptr;  // [nvox] SumK_local — geometry only, computed once
+static double              g_phi[N_PHI_PAIR] = {1.0, 1.0, 1.0};   // last computed phi (1 = mean-field)
+static bool                g_phi_valid[N_PHI_PAIR] = {false, false, false};
+
+// SumK_local(v) = SUM over in-domain offsets of K(v-u). Pure geometry (see common.cuh edge note),
+// so this runs once at init rather than per step.
+__global__ void phi_sumk_kernel(float* sumk, int gx, int gy, int gz, float sigma, int radius) {
+    const int v = blockIdx.x * blockDim.x + threadIdx.x;
+    const int nvox = gx * gy * gz;
+    if (v >= nvox) return;
+    const int x = v % gx;
+    const int y = (v / gx) % gy;
+    const int z = v / (gx * gy);
+    const float two_s2 = 2.0f * sigma * sigma;
+    float s = 0.0f;
+    for (int dz = -radius; dz <= radius; ++dz) {
+        if (z + dz < 0 || z + dz >= gz) continue;
+        for (int dy = -radius; dy <= radius; ++dy) {
+            if (y + dy < 0 || y + dy >= gy) continue;
+            for (int dx = -radius; dx <= radius; ++dx) {
+                if (x + dx < 0 || x + dx >= gx) continue;
+                s += phi_kernel(dx, dy, dz, two_s2);
+            }
+        }
+    }
+    sumk[v] = s;
+}
+
+void init_phi_sumk(int gx, int gy, int gz, float sigma, int radius) {
+    const int nvox = gx * gy * gz;
+    const int threads = 256;
+    phi_sumk_kernel<<<(nvox + threads - 1) / threads, threads>>>(
+        d_phi_sumk, gx, gy, gz, sigma, radius);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    std::cout << "  phi estimator: sigma=" << sigma << " vox, radius=" << radius
+              << " vox, SumK_local precomputed over " << nvox << " voxels" << std::endl;
+}
+
+double get_phi(int pair) { return (pair >= 0 && pair < N_PHI_PAIR) ? g_phi[pair] : 1.0; }
+bool   phi_is_valid(int pair) { return (pair >= 0 && pair < N_PHI_PAIR) && g_phi_valid[pair]; }
 
 // Volume-based occupancy: single float per voxel tracking total cell volume (µm³).
 // Replaces the old per-type occ_grid MacroProperty + flat arrays (d_t_occ, d_mac_occ, d_mdsc_occ).
@@ -519,6 +584,21 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     CUDA_CHECK(cudaMalloc(&d_fib_density_field, total_voxels * sizeof(unsigned long long)));
     CUDA_CHECK(cudaMemset(d_fib_density_field, 0, total_voxels * sizeof(unsigned long long)));
 
+    // ── phi estimator buffers (contract D-1/D-2) ─────────────────────────────────────
+    CUDA_CHECK(cudaMalloc(&d_phi_kde, static_cast<size_t>(N_PHI_KDE) * total_voxels
+                                      * sizeof(unsigned long long)));
+    CUDA_CHECK(cudaMemset(d_phi_kde, 0, static_cast<size_t>(N_PHI_KDE) * total_voxels
+                                        * sizeof(unsigned long long)));
+    CUDA_CHECK(cudaMalloc(&d_phi_accum, N_PHI_PAIR * sizeof(unsigned long long)));
+    CUDA_CHECK(cudaMemset(d_phi_accum, 0, N_PHI_PAIR * sizeof(unsigned long long)));
+    CUDA_CHECK(cudaMalloc(&d_phi_count, (N_PHI_PAIR + N_PHI_KDE) * sizeof(unsigned int)));
+    CUDA_CHECK(cudaMemset(d_phi_count, 0, (N_PHI_PAIR + N_PHI_KDE) * sizeof(unsigned int)));
+    // SumK_local is pure geometry — computed ONCE here, never per step.
+    CUDA_CHECK(cudaMalloc(&d_phi_sumk, total_voxels * sizeof(float)));
+    init_phi_sumk(grid_x, grid_y, grid_z,
+                  gpu_params.getFloat(PARAM_PHI_SIGMA_VOX),
+                  gpu_params.getInt(PARAM_PHI_RADIUS_VOX));
+
     // Allocate volume-based occupancy grid
     CUDA_CHECK(cudaMalloc(&d_volume_used, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_volume_used, 0, total_voxels * sizeof(float)));
@@ -626,6 +706,16 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
     model.Environment().newProperty<unsigned long long>("fib_density_field_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_fib_density_field)));
 
+    // phi estimator buffers
+    model.Environment().newProperty<unsigned long long>("phi_kde_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_phi_kde)));
+    model.Environment().newProperty<unsigned long long>("phi_accum_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_phi_accum)));
+    model.Environment().newProperty<unsigned long long>("phi_count_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_phi_count)));
+    model.Environment().newProperty<unsigned long long>("phi_sumk_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_phi_sumk)));
+
     // Volume-based occupancy grid pointer
     model.Environment().newProperty<unsigned long long>("volume_used_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_volume_used)));
@@ -702,6 +792,10 @@ void cleanup_pde_solver() {
         cudaFree(d_fib_density_field);
         d_fib_density_field = nullptr;
     }
+    if (d_phi_kde)   { cudaFree(d_phi_kde);   d_phi_kde = nullptr; }
+    if (d_phi_accum) { cudaFree(d_phi_accum); d_phi_accum = nullptr; }
+    if (d_phi_count) { cudaFree(d_phi_count); d_phi_count = nullptr; }
+    if (d_phi_sumk)  { cudaFree(d_phi_sumk);  d_phi_sumk = nullptr; }
     if (d_vas_tip_id_grid) {
         cudaFree(d_vas_tip_id_grid);
         d_vas_tip_id_grid = nullptr;
@@ -2094,12 +2188,31 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             const double tcd4_target = f * (th_q + treg_q) * NA;
             const double dc_target   = f * dc_q * NA;
 
-            // Current ABM counts (host-side; fresh — update_agent_counts ran earlier this step).
-            const double n_teff  = FLAMEGPU->agent(AGENT_TCELL).count();
-            const double n_tcd4  = FLAMEGPU->agent(AGENT_TREG).count();   // Th + Treg combined
+            // ── Current ABM counts, COUNTED BY STATE so each count means the same class as its
+            //    QSP target (contract §4.4 leaky class mapping).
+            //    RULE: an ABM state is counted into a stream's gap iff it has NO QSP species of
+            //    its own. States the QSP tracks separately are excluded from BOTH sides and
+            //    monitored instead — otherwise the deficit is closed against a pool the target
+            //    never described, and the controller under-recruits by that pool's size.
+            //      CD8:  EFF+CYT ↔ SP_V_T_CD8. SUPP ↔ SP_V_T_CD8_exh (own species, excluded).
+            //            NAIVE is a side-channel recruit (naive_cd8_frac bonus, never counted
+            //            against target[QS_TEFF]) and the QSP holds naive CD8 in the LN, not
+            //            in V_T_CD8 — excluded.
+            //      TCD4: TH+TREG ↔ SP_V_T_Th + SP_V_T_Treg. TFH ↔ SP_V_T_Tfh (own species,
+            //            arises by TH→TFH transition, t_reg.cuh:328) and NAIVE is likewise a
+            //            bonus recruit — both excluded.
+            //      B:    NAIVE+ACT ↔ SP_V_T_B. PLASMA ↔ SP_V_T_Plasma (own species, arises by
+            //            ACT→PLASMA transition, b_cell.cuh:225) — excluded.
+            //      MAC (M1+M2 ↔ Mac_M1+Mac_M2), DC (immature+mature ↔ cDC+mcDC) and MDSC
+            //      (single state) are already class-consistent; counted whole, deliberately.
+            auto nstate = [&](const char* agent, int st) {
+                return static_cast<double>(FLAMEGPU->agent(agent).count<int>("cell_state", st));
+            };
+            const double n_teff  = nstate(AGENT_TCELL, T_CELL_EFF) + nstate(AGENT_TCELL, T_CELL_CYT);
+            const double n_tcd4  = nstate(AGENT_TREG, TCD4_TH) + nstate(AGENT_TREG, TCD4_TREG);
+            const double n_bcell = nstate(AGENT_BCELL, BCELL_NAIVE) + nstate(AGENT_BCELL, BCELL_ACTIVATED);
             const double n_mdsc  = FLAMEGPU->agent(AGENT_MDSC).count();
             const double n_mac   = FLAMEGPU->agent(AGENT_MACROPHAGE).count();
-            const double n_bcell = FLAMEGPU->agent(AGENT_BCELL).count();
             const double n_dc    = FLAMEGPU->agent(AGENT_DC).count();
 
             // Per-stream recruit count = α·max(0, target − current). Split the shared TCD4/DC gaps.
@@ -2113,6 +2226,43 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             target[QS_TH]   = tcd4_gap * (th_q   / tcd4_den);
             target[QS_TREG] = tcd4_gap * (treg_q / tcd4_den);
             const double dc_gap = alpha * std::max(0.0, dc_target - n_dc);
+
+            // ── CLASS AUDIT (G3/G4 monitor) ────────────────────────────────────────
+            // Report the residual per class; never act on it. The three classes the QSP
+            // tracks separately are reported against THEIR own species, so a discrepancy
+            // is attributable to a class rather than smeared across the CD8/TCD4/B pools.
+            // ⚠️ CD8_exh, Tfh and Plasma have no recruitment stream: the ABM reaches them
+            // only by transition, so their residual tests the TRANSITION rates, not entry.
+            {
+                if (!g_class_audit_csv.is_open()) {
+                    g_class_audit_csv.open(g_class_audit_path);
+                    g_class_audit_csv << "step,presim,f,V_T_m3,"
+                        << "tgt.CD8,abm.CD8,tgt.CD8_exh,abm.CD8_exh,abm.CD8_naive,"
+                        << "tgt.TCD4,abm.TCD4,tgt.Tfh,abm.Tfh,abm.TCD4_naive,"
+                        << "tgt.B,abm.B,tgt.Plasma,abm.Plasma,"
+                        << "tgt.MDSC,abm.MDSC,tgt.MAC,abm.MAC,tgt.DC,abm.DC\n";
+                }
+                if (g_class_audit_csv.is_open()) {
+                    g_class_audit_csv << FLAMEGPU->getStepCounter()
+                        << ',' << (is_presim_mode_active() ? 1 : 0)
+                        << ',' << f << ',' << V_T
+                        << ',' << Ntarget[QS_TEFF]              << ',' << n_teff
+                        << ',' << f * envf("qsp_t_exh_tumor") * NA
+                        << ',' << nstate(AGENT_TCELL, T_CELL_SUPP)
+                        << ',' << nstate(AGENT_TCELL, T_CELL_NAIVE)
+                        << ',' << tcd4_target                   << ',' << n_tcd4
+                        << ',' << f * envf("qsp_tfh_tumor") * NA
+                        << ',' << nstate(AGENT_TREG, TCD4_TFH)
+                        << ',' << nstate(AGENT_TREG, TCD4_NAIVE)
+                        << ',' << Ntarget[QS_BCELL]             << ',' << n_bcell
+                        << ',' << f * envf("qsp_plasma_tumor") * NA
+                        << ',' << nstate(AGENT_BCELL, BCELL_PLASMA)
+                        << ',' << Ntarget[QS_MDSC]              << ',' << n_mdsc
+                        << ',' << Ntarget[QS_MAC]               << ',' << n_mac
+                        << ',' << dc_target                     << ',' << n_dc << '\n';
+                    g_class_audit_csv.flush();
+                }
+            }
             target[QS_DC1] = 0.5 * dc_gap;   // cDC1/cDC2 split 50/50 (subtype-resolved QSP DC not exported)
             target[QS_DC2] = 0.5 * dc_gap;
 
@@ -2240,6 +2390,80 @@ FLAMEGPU_HOST_FUNCTION(reset_voxel_owner) {
 // Zero Fibroblast Density Field (reset before scatter)
 // Uses cudaMemset on flat device array — no D2H/H2D copy.
 // ============================================================================
+// ── phi: zero the per-step accumulators. The KDE fields are rebuilt from scratch each step
+//    (agents move), so nothing carries over — unlike V_vas/ECM which are state. ──
+FLAMEGPU_HOST_FUNCTION(zero_phi_buffers) {
+    if (!g_pde_solver) return;
+    const int nvox = g_pde_solver->get_total_voxels();
+    if (d_phi_kde)   cudaMemset(d_phi_kde, 0,
+                                static_cast<size_t>(N_PHI_KDE) * nvox * sizeof(unsigned long long));
+    if (d_phi_accum) cudaMemset(d_phi_accum, 0, N_PHI_PAIR * sizeof(unsigned long long));
+    if (d_phi_count) cudaMemset(d_phi_count, 0, (N_PHI_PAIR + N_PHI_KDE) * sizeof(unsigned int));
+}
+
+// ── phi: reduce the accumulators to the three multipliers and hand them to the QSP. ──
+//
+//   phi_p = mean_a[ S_B(v_a) / SumK_local(v_a) ]  /  ( N_B / N_vox )
+//
+// The numerator is the measured local B-density around A; the denominator is the well-mixed
+// density the ODE's rate law already assumes. Their ratio is the correction, and phi=1
+// reproduces the rate law exactly.
+//
+// ⚠️ A pair with NO cells on either side has no measurement — phi falls back to 1 (mean-field)
+// and is flagged invalid, rather than being computed as 0/0 or silently as 0. Seeding phi=0
+// into the ODE would switch the corresponding interaction OFF, which is a very different
+// statement from "the ABM could not measure this".
+FLAMEGPU_HOST_FUNCTION(finalize_phi) {
+    if (!g_pde_solver || !d_phi_accum) return;
+    const int nvox = g_pde_solver->get_total_voxels();
+
+    unsigned long long acc[N_PHI_PAIR];
+    unsigned int cnt[N_PHI_PAIR + N_PHI_KDE];
+    cudaMemcpy(acc, d_phi_accum, sizeof(acc), cudaMemcpyDeviceToHost);
+    cudaMemcpy(cnt, d_phi_count, sizeof(cnt), cudaMemcpyDeviceToHost);
+
+    for (int p = 0; p < N_PHI_PAIR; ++p) {
+        const unsigned int n_tgt = cnt[p];
+        const unsigned int n_src = cnt[N_PHI_PAIR + phi_pair_kde(p)];
+        if (n_tgt == 0 || n_src == 0) {
+            g_phi[p] = 1.0;
+            g_phi_valid[p] = false;
+            continue;
+        }
+        const double mean_local = static_cast<double>(acc[p])
+                                / static_cast<double>(ecm_fp_scale())
+                                / static_cast<double>(n_tgt);
+        const double rho_B = static_cast<double>(n_src) / static_cast<double>(nvox);
+        g_phi[p] = mean_local / rho_B;
+        g_phi_valid[p] = true;
+    }
+
+    FLAMEGPU->environment.setProperty<float>("phi_cd8_c1",   static_cast<float>(g_phi[PHI_CD8_C1]));
+    FLAMEGPU->environment.setProperty<float>("phi_m1_c1",    static_cast<float>(g_phi[PHI_M1_C1]));
+    FLAMEGPU->environment.setProperty<float>("phi_cd8_treg", static_cast<float>(g_phi[PHI_CD8_TREG]));
+
+    // Own file rather than a column in class_audit.csv: that one is written at Phase 0 from
+    // recruit_systematic, so it would carry the PREVIOUS step's phi and invite an off-by-one
+    // misreading. n_tgt/n_src are emitted alongside because a phi computed from a handful of
+    // cells is noise, and the counts are the only way to see that from the output.
+    if (!g_phi_csv.is_open()) {
+        g_phi_csv.open(g_phi_csv_path);
+        g_phi_csv << "step,phi_cd8_c1,valid_cd8_c1,n_c1,n_cd8,"
+                  << "phi_m1_c1,valid_m1_c1,n_m1,"
+                  << "phi_cd8_treg,valid_cd8_treg,n_treg\n";
+    }
+    if (g_phi_csv.is_open()) {
+        g_phi_csv << FLAMEGPU->getStepCounter()
+            << ',' << g_phi[PHI_CD8_C1]   << ',' << (g_phi_valid[PHI_CD8_C1] ? 1 : 0)
+            << ',' << cnt[PHI_CD8_C1]     << ',' << cnt[N_PHI_PAIR + PHI_KDE_CD8]
+            << ',' << g_phi[PHI_M1_C1]    << ',' << (g_phi_valid[PHI_M1_C1] ? 1 : 0)
+            << ',' << cnt[N_PHI_PAIR + PHI_KDE_MAC_M1]
+            << ',' << g_phi[PHI_CD8_TREG] << ',' << (g_phi_valid[PHI_CD8_TREG] ? 1 : 0)
+            << ',' << cnt[PHI_CD8_TREG] << '\n';
+        g_phi_csv.flush();
+    }
+}
+
 FLAMEGPU_HOST_FUNCTION(zero_fib_density_field) {
     nvtxRangePush("Zero Fib Density");
     if (d_fib_density_field && g_pde_solver) {

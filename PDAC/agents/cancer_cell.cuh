@@ -894,6 +894,19 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move_commit, flamegpu::MessageNone, flamegpu::Mes
     return flamegpu::ALIVE;
 }
 
+
+// ── phi: C1 is the sampling TARGET for phi_1 (CD8xC1) and phi_2 (Mac_M1xC1). ──
+// One pass samples both fields; the statistic is symmetric in target/source (see common.cuh),
+// so C1 sampling CD8 and CD8 sampling C1 give the same phi — C1 samples because it is the
+// larger population and sampling is the cheaper side.
+FLAMEGPU_AGENT_FUNCTION(cancer_phi_sample, flamegpu::MessageNone, flamegpu::MessageNone) {
+    if (is_qsp_C1(FLAMEGPU->getVariable<int>("cell_state"))) {
+        phi_sample(FLAMEGPU, PHI_CD8_C1);
+        phi_sample(FLAMEGPU, PHI_M1_C1);
+    }
+    return flamegpu::ALIVE;
+}
+
 } // namespace PDAC
 
 #endif // PDAC_CANCER_CELL_CUH

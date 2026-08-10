@@ -48,6 +48,19 @@ struct SimulationConfig {
     // seeded procedurally. Produced by abm-inference/analysis/make_placement.py.
     std::string placement_file;
 
+    // §C6.1 QSP warm-up to treatment onset, decoupled from the presim.
+    //
+    // Phase A (QSP-alone growth) is what defines "the tumour the ABM is placed into", so a
+    // placement run needs it even though it runs NO presim. These two flags let Phase A be
+    // requested on its own:
+    //   qsp_onset_volume (m^3) — warm the QSP alone until V_T reaches this, then continue.
+    //   qsp_onset_dump         — after warm-up, write the onset JSON and exit.
+    // Pass 1 dumps, the generator builds the .plc from f·X_QSP, pass 2 warms to the SAME
+    // volume and places. Phase A is deterministic given (params, target), so pass 2 lands on
+    // the identical QSP state — which is why no ODE state serialization is needed.
+    double qsp_onset_volume;
+    std::string qsp_onset_dump;
+
     // Movement iterations per timestep
     int cancer_move_steps;
     int tcell_move_steps;

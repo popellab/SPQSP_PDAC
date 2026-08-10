@@ -462,6 +462,10 @@
     env.newProperty<float>("PARAM_T_CELL_LIFE_MEAN_SLICE", 
                     1 / QP(CancerVCT::P_k_CD8_death) / t_step_sec);
 
+    // remaining-life scale applied on EFF/CYT->SUPP: exhausted CD8 die at k_CD8_exh_death, not k_CD8_death
+    env.newProperty<float>("PARAM_CD8_EXH_LIFE_SCALE", 
+                    QP(CancerVCT::P_k_CD8_death) / QP(CancerVCT::P_k_CD8_exh_death));
+
     // mean TCD4 lifespan in timesteps
     env.newProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE", 
                     1 / QP(CancerVCT::P_k_Treg_death) / t_step_sec);

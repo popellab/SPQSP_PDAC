@@ -756,6 +756,14 @@ FLAMEGPU_AGENT_FUNCTION(treg_move_commit, flamegpu::MessageNone, flamegpu::Messa
     return flamegpu::ALIVE;
 }
 
+
+// ── phi: Treg is the sampling target for phi_3 (CD8xTreg). ──
+FLAMEGPU_AGENT_FUNCTION(treg_phi_sample, flamegpu::MessageNone, flamegpu::MessageNone) {
+    if (is_qsp_Treg(FLAMEGPU->getVariable<int>("cell_state")))
+        phi_sample(FLAMEGPU, PHI_CD8_TREG);
+    return flamegpu::ALIVE;
+}
+
 } // namespace PDAC
 
 #endif // PDAC_T_REG_CUH

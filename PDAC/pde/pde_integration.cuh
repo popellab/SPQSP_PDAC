@@ -71,6 +71,18 @@ bool set_vvas_from_host(const float* host_data, int total_voxels);
 float* get_ecm_crosslink_device_ptr();
 unsigned long long* get_fib_density_field_device_ptr();  // fixed-point ECM density buffer
 
+// ── phi estimator (contract D-1/D-2) ─────────────────────────────────────────────────
+// Precompute SumK_local over the grid. Geometry only — called once from
+// initialize_pde_solver, never per step.
+void init_phi_sumk(int gx, int gy, int gz, float sigma, int radius);
+// Last computed multiplier for `pair` (a PhiPair). Returns 1.0 (mean-field, i.e. the
+// uncorrected rate law) for an out-of-range pair or one with no measurement this step.
+double get_phi(int pair);
+// False when the pair had no cells on one side, so phi is the 1.0 fallback rather than a
+// measurement. Callers that apply phi to the ODE must check this — silently applying a
+// fallback is indistinguishable from measuring phi = 1.
+bool phi_is_valid(int pair);
+
 // Return device pointer for vascular tip_id grid (for output/debug)
 unsigned int* get_vas_tip_id_grid_device_ptr();
 

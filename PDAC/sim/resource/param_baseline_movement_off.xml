@@ -151,6 +151,9 @@
       
       <ECM_radius name="PARAM_FIB_ECM_RADIUS" type="float" val="pr">3</ECM_radius>                            
       <ECM_variance name="PARAM_FIB_ECM_VARIANCE" type="float" val="pr">2.0</ECM_variance>                      
+      <phi_sigma_vox name="PARAM_PHI_SIGMA_VOX" type="float" val="pr">2.5</phi_sigma_vox>                      <!-- phi FunCN kernel sigma [voxels]; 2.5 vox = 50 um at 20 um/vox. D-12: this is the PHI-ESTIMATOR sigma and is DELIBERATELY not the placement sigma (80 um) - they are two different statistics -->
+      <phi_radius_vox name="PARAM_PHI_RADIUS_VOX" type="int">8</phi_radius_vox>                                  <!-- phi kernel truncation radius [voxels]; >=3*sigma or the tail loss shows up as a systematic phi bias -->
+      <coupling_mode name="PARAM_COUPLING_MODE" type="int">0</coupling_mode>                                    <!-- ABM->QSP spatial coupling BITFIELD: 0=off (control arm, exact), bit0(1)=contact corrections phi_1/phi_2/phi_3, bit1(2)=exposure corrections (NOT IMPLEMENTED). Default 0 so every existing run is unchanged -->
       
       <div_max name="PARAM_FIB_DIV_MAX" type="float" val="pr">10</div_max>                                 
       
@@ -1434,6 +1437,7 @@
 
     
     <D name="PARAM_T_CELL_LIFE_MEAN_SLICE" type="float" comment="mean T cell lifespan in timesteps">1 / QP(CancerVCT::P_k_CD8_death) / t_step_sec</D>
+    <D name="PARAM_CD8_EXH_LIFE_SCALE" type="float" comment="remaining-life scale applied on EFF/CYT->SUPP: exhausted CD8 die at k_CD8_exh_death, not k_CD8_death">QP(CancerVCT::P_k_CD8_death) / QP(CancerVCT::P_k_CD8_exh_death)</D>
     <D name="PARAM_TCD4_LIFE_MEAN_SLICE" type="float" comment="mean TCD4 lifespan in timesteps">1 / QP(CancerVCT::P_k_Treg_death) / t_step_sec</D>
     <D name="PARAM_MDSC_LIFE_MEAN_SLICE" type="float" comment="mean MDSC lifespan in timesteps">1 / QP(CancerVCT::P_k_MDSC_death) / t_step_sec</D>
     <D name="PARAM_MAC_LIFE_MEAN" type="float" comment="mean MAC lifespan in timesteps">1 / QP(CancerVCT::P_k_Mac_death) / t_step_sec</D>

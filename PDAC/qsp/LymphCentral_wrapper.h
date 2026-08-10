@@ -109,9 +109,28 @@ public:
     bool time_step(double t, double dt);
 
     /**
-     * Get tumor volume from current QSP state (cm^3)
+     * Get tumor volume from current QSP state.
+     * UNITS: m^3. (V_Tmin = 1e-6 in the XML arrives as 1e-12 internally, i.e. the
+     * loader converts mL → m^3.) The docstring previously said cm^3; the callers
+     * — the presim stopper and the recruitment box-share f = V_box/V_T, whose
+     * V_box is built from voxel_size/1e6 — have always been m^3.
      */
     double get_tumor_volume() const;
+
+    /**
+     * Write the tumour-compartment state to a JSON file for the offline placement
+     * generator (§C6.1: QSP owns totals, data owns arrangement).
+     *
+     * Emits RAW QSP species names in DISCRETE CELLS, not ABM categories: the
+     * species→category policy lives in abm_inference.imc_mapping.QSP_TO_COMMON and
+     * has already changed once (label set v1→v2). Encoding it here would fork it.
+     *
+     * @param path       destination JSON path
+     * @param t_warmup_s CVODE time consumed by the warmup, so a later run can
+     *                   reproduce the same state by warming for the same duration
+     * @return true on success
+     */
+    bool dump_onset_state(const std::string& path, double t_warmup_s) const;
 
     /**
      * Live tumor cancer-cell count (C1 + C2), in DISCRETE CELLS (unit-converted,

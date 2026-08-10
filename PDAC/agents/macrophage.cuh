@@ -436,6 +436,14 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
     return flamegpu::ALIVE;
 }
 
+
+// ── phi: Mac_M1 is the KDE source for phi_2 (Mac_M1xC1, Flux302). ──
+FLAMEGPU_AGENT_FUNCTION(mac_phi_deposit, flamegpu::MessageNone, flamegpu::MessageNone) {
+    if (is_qsp_Mac_M1(FLAMEGPU->getVariable<int>("cell_state")))
+        phi_deposit(FLAMEGPU, PHI_KDE_MAC_M1);
+    return flamegpu::ALIVE;
+}
+
 }  // namespace PDAC
 
 #endif

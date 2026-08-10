@@ -32,6 +32,8 @@ namespace PDAC {
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER solve_pde_step;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_agent_counts;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER solve_qsp_step;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_phi_buffers;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER finalize_phi;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_fib_density_field;
 // fib_execute_divide removed: activation is now device-side (fib_activate)
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER aggregate_abm_events;
@@ -513,6 +515,30 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     {
         flamegpu::LayerDescription layer = model.newLayer("timing_after_gradients");
         layer.addHostFunction(timing_after_gradients);
+    }
+
+    // ── phi estimator (contract D-1/D-2): the ABM's only export. Placed here, after all
+    //    movement and state transitions and immediately before the QSP step, so phi measured
+    //    from ABM step N is what QSP step N integrates with. Four layers, in order: the KDE
+    //    fields must be complete before anything samples them, so deposit and sample cannot
+    //    share a layer.
+    {
+        flamegpu::LayerDescription layer = model.newLayer("zero_phi_buffers");
+        layer.addHostFunction(zero_phi_buffers);
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("phi_deposit");
+        layer.addAgentFunction(AGENT_TCELL,      "phi_deposit");
+        layer.addAgentFunction(AGENT_MACROPHAGE, "phi_deposit");
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("phi_sample");
+        layer.addAgentFunction(AGENT_CANCER_CELL, "phi_sample");
+        layer.addAgentFunction(AGENT_TREG,        "phi_sample");
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("finalize_phi");
+        layer.addHostFunction(finalize_phi);
     }
 
     // 10. QSP coupling: aggregate ABM events, advance ODE, export state.

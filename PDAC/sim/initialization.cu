@@ -27,6 +27,8 @@ SimulationConfig::SimulationConfig()
     , vascular_mode("none")  // ABM rebuild Step 3b: vascular agents removed; O2+entry via Vvas field
     , vascular_xml_file("")
     , placement_file("")     // §C6: empty = procedural init; set by --placement
+    , qsp_onset_volume(-1.0) // §C6.1: <=0 = no standalone QSP warm-up
+    , qsp_onset_dump("")
     , grid_out(0)
     , interval_out(1)
     , presim_qsp_enabled(true)
@@ -89,6 +91,10 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
         } else if (arg == "--placement" && i + 1 < argc) {
             // §C6: initialize by data-driven placement. Overrides -i / --scenario.
             placement_file = argv[++i];
+        } else if (arg == "--qsp-onset-volume" && i + 1 < argc) {
+            qsp_onset_volume = std::atof(argv[++i]);
+        } else if (arg == "--dump-qsp-onset" && i + 1 < argc) {
+            qsp_onset_dump = argv[++i];
         } else if (arg == "--presim-mode" && i + 1 < argc) {
             std::string m = argv[++i];
             if (m == "qsp_abm")        presim_qsp_enabled = true;
@@ -151,11 +157,13 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  --seed N                 Random seed [default: 12345]\n"
                       << "  -vm, --vascular-mode STR Vasculature initialization: none, random, xml, test [default: none]\n"
                       << "  -vx, --vascular-xml FILE XML file for vasculature (when mode=xml)\n"
+                      << "  --qsp-onset-volume V     Warm the QSP alone to V (m^3) before init, independent of the presim\n"
+                      << "  --dump-qsp-onset PATH    After the warm-up, write the onset JSON and exit (placement pass 1)\n"
                       << "  --presim-mode MODE       Presim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
                       << "  --main-mode MODE         Main-sim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
                       << "  --presim-areal F         Presim stop at cancer areal fraction F=N_cancer/(gx*gy*gz). Top precedence (section/SBI stopper).\n"
                       << "  --presim-steps N         Presim step count override (>=0). Wins over --presim-volume and XML.\n"
-                      << "  --presim-volume V        Presim QSP tumor volume target (cm^3). Used if --presim-steps absent.\n"
+                      << "  --presim-volume V        Presim QSP tumor volume target (m^3). Used if --presim-steps absent.\n"
                       << "  --scenario NAME          Scenario bundle: default | single_stem_edge [default: default]\n"
                       << "                           single_stem_edge: resident vasc+PSC only, 1 stem cell at edge, ABM-only.\n"
                       << "  --seed-position FACE     For single_stem_edge: x_low|x_high|y_low|y_high|z_low|z_high [default: x_low]\n"
@@ -197,7 +205,7 @@ void SimulationConfig::print() const {
     std::cout << "  Presim: " << (presim_qsp_enabled ? "qsp_abm" : "abm_only");
     if (presim_areal_from_cli)          std::cout << "  (stopper: cancer areal frac=" << presim_areal_target << ")";
     else if (presim_steps >= 0)         std::cout << "  (stopper: steps=" << presim_steps << ")";
-    else if (presim_volume_target > 0)  std::cout << "  (stopper: tum_vol=" << presim_volume_target << " cm^3)";
+    else if (presim_volume_target > 0)  std::cout << "  (stopper: tum_vol=" << presim_volume_target << " m^3)";
     else                                std::cout << "  (stopper: QSP-derived volume, resolved at runtime)";
     std::cout << std::endl;
     std::cout << "  Main:   " << (main_qsp_enabled ? "qsp_abm" : "abm_only") << std::endl;

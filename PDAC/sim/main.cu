@@ -44,6 +44,9 @@ namespace PDAC {
     extern void seed_qsp_env_properties(flamegpu::CUDASimulation& simulation);
     extern void set_qsp_time_offset(double t_offset_s);
 }
+// Class-mapping audit CSV path (defined in pde_integration.cu)
+namespace PDAC { extern void set_class_audit_path(const std::string& path);
+                 extern void set_phi_csv_path(const std::string& path); }
 
 namespace PDAC {
     std::unique_ptr<flamegpu::ModelDescription> buildModel(
@@ -1130,15 +1133,26 @@ int main(int argc, const char** argv) {
     // ABM is then initialized (below) and couples in for the remaining growth (Phase C = the
     // existing coupled presim loop). CVODE reinits at t0 each step so the absolute t is only a
     // label — state carries forward; drugs are off in presim.
-    if (config.presim_qsp_enabled && config.presim_volume_target > 0.0) {
+    // §C6.1: --qsp-onset-volume requests Phase A on its own, for placement runs that run no
+    // presim at all. Without it, `--placement X --presim-steps 0` leaves the QSP at its naive
+    // initial condition (V_T ≈ 1e-12 m^3) while the ABM is placed at a realistic architecture —
+    // every f·X_QSP target is then ~0 and the two models describe different tumours.
+    const bool qsp_onset_requested = config.qsp_onset_volume > 0.0;
+    if (qsp_onset_requested || (config.presim_qsp_enabled && config.presim_volume_target > 0.0)) {
         const double start_frac =
             simulation.getEnvironmentProperty<float>("PARAM_PRESIM_ABM_START_FRACTION");
-        const double abm_start_vol = start_frac * config.presim_volume_target;
+        const double abm_start_vol = qsp_onset_requested
+            ? config.qsp_onset_volume                      // warm to the onset volume exactly
+            : start_frac * config.presim_volume_target;    // legacy: hand off early to Phase C
         const double dt = simulation.getEnvironmentProperty<float>("PARAM_SEC_PER_SLICE");
         _lymph.set_presimulation_mode(true);  // drugs off during warmup
         std::cout << "\n=== Decoupled presim Phase A: QSP-only warmup ===" << std::endl;
-        std::cout << "  ABM couples in at " << start_frac << " × target = "
-                  << abm_start_vol << " m^3 (target " << config.presim_volume_target << ")" << std::endl;
+        if (qsp_onset_requested) {
+            std::cout << "  QSP onset volume (--qsp-onset-volume): " << abm_start_vol << " m^3" << std::endl;
+        } else {
+            std::cout << "  ABM couples in at " << start_frac << " × target = "
+                      << abm_start_vol << " m^3 (target " << config.presim_volume_target << ")" << std::endl;
+        }
         double t = 0.0;
         unsigned int qsp_only_steps = 0;
         const unsigned int max_qsp_only = 200000;  // safety cap
@@ -1160,6 +1174,28 @@ int main(int argc, const char** argv) {
         // Re-seed qsp_* env from the warmed-up state so the ABM's first coupled step reads the
         // grown values (solve_qsp_step overwrites them every step thereafter).
         PDAC::seed_qsp_env_properties(simulation);
+
+        // Warn rather than fail on a truncated warm-up: the run is still valid, it just did not
+        // reach the requested onset, and a silent short warm-up would look like a placement bug.
+        if (qsp_only_steps >= max_qsp_only) {
+            std::cerr << "WARNING: QSP warm-up hit the " << max_qsp_only << "-step safety cap at vol="
+                      << _lymph.get_tumor_volume() << " m^3, short of the requested "
+                      << abm_start_vol << " m^3." << std::endl;
+        }
+
+        // Placement pass 1: hand the onset totals to the offline generator and stop. Pass 2 warms
+        // to the same volume and gets the same state, so no ODE state is serialized.
+        if (!config.qsp_onset_dump.empty()) {
+            const bool ok = _lymph.dump_onset_state(config.qsp_onset_dump,
+                                                    static_cast<double>(qsp_only_steps) * dt);
+            std::cout << "Onset dump complete; exiting before agent initialization." << std::endl;
+            return ok ? 0 : 1;
+        }
+    }
+    if (!config.qsp_onset_dump.empty()) {
+        std::cerr << "ERROR: --dump-qsp-onset requires a QSP warm-up. Pass --qsp-onset-volume V "
+                     "(m^3), or run with the presim enabled." << std::endl;
+        return 1;
     }
 
     // ========== INITIALIZE AGENTS ==========
@@ -1204,6 +1240,10 @@ int main(int argc, const char** argv) {
     std::string qsp_presim_path      = out_path(rel_buf);
     PDAC::set_qsp_output_path(qsp_seed_path);
     PDAC::set_qsp_presim_output_path(qsp_presim_path);
+    snprintf(rel_buf, sizeof(rel_buf), "class_audit_%u.csv", config.random_seed);
+    PDAC::set_class_audit_path(out_path(rel_buf));
+    snprintf(rel_buf, sizeof(rel_buf), "phi_%u.csv", config.random_seed);
+    PDAC::set_phi_csv_path(out_path(rel_buf));
 
     // ========== PRESIM — PHASE C: coupled ABM+QSP (drugs OFF) ==========
     // (Phase A above grew the QSP alone to PARAM_PRESIM_ABM_START_FRACTION of target when
@@ -1281,7 +1321,7 @@ int main(int argc, const char** argv) {
 
         if (presim_step_count % 50 == 0) {
             std::cout << "  Presim step " << presim_step_count
-                      << ": tum_vol=" << cur_vol << " cm^3" << std::endl;
+                      << ": tum_vol=" << cur_vol << " m^3" << std::endl;
         }
     }
 
@@ -1292,7 +1332,7 @@ int main(int argc, const char** argv) {
     simulation.setEnvironmentProperty<int>("recruitment_mode", config.main_qsp_enabled ? 0 : 1);
 
     std::cout << "  Presim complete: " << presim_step_count << " steps, "
-              << "tum_vol=" << cur_vol << " cm^3" << std::endl;
+              << "tum_vol=" << cur_vol << " m^3" << std::endl;
     std::cout << "  Main-sim mode: "
               << (config.main_qsp_enabled ? "qsp_abm (drugs ON)" : "abm_only (QSP frozen)")
               << std::endl;

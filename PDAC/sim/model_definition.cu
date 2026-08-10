@@ -129,6 +129,7 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
 
         cancer_cell.newFunction("state_step", cancer_cell_state_step)
             .setAllowAgentDeath(true);
+        cancer_cell.newFunction("phi_sample", cancer_phi_sample);
 
         {
             // Step-5 deterministic division: reserve (atomicMin owner) then confirm (birth).
@@ -236,6 +237,7 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
         tcell.newFunction("move_propose", tcell_move_propose);  // Step-5 deterministic wave movement
         tcell.newFunction("move_commit", tcell_move_commit);
 
+        tcell.newFunction("phi_deposit", tcell_phi_deposit);
         tcell.newFunction("state_step", tcell_state_step)
             .setAllowAgentDeath(true);
 
@@ -321,6 +323,7 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
     treg.newFunction("update_chemicals", treg_update_chemicals);
 
     treg.newFunction("compute_chemical_sources", treg_compute_chemical_sources);
+    treg.newFunction("phi_sample", treg_phi_sample);
     treg.newFunction("pack_for_export", pack_export_treg);
 
     // Movement, state, division, and occupancy grid functions only in main model
@@ -458,6 +461,7 @@ void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state
     mac.newFunction("update_chemicals", mac_update_chemicals);
 
     mac.newFunction("compute_chemical_sources", mac_compute_chemical_sources);
+    mac.newFunction("phi_deposit", mac_phi_deposit);
     mac.newFunction("pack_for_export", pack_export_mac);
 
     // Movement and state functions only in main model
@@ -875,7 +879,13 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<float>("qsp_cc_tumor", 0.0f); 
     env.newProperty<float>("qsp_cx_tumor", 0.0f);   
     env.newProperty<float>("qsp_t_exh_tumor", 0.0f);  
-    env.newProperty<float>("qsp_tum_vol", 0.0f);  
+    env.newProperty<float>("qsp_tum_vol", 0.0f);
+
+    // phi multipliers exported by the ABM each step (contract D-1). 1.0 = mean-field,
+    // which reproduces the QSP rate laws exactly — so this default IS the control arm.
+    env.newProperty<float>("phi_cd8_c1",   1.0f);
+    env.newProperty<float>("phi_m1_c1",    1.0f);
+    env.newProperty<float>("phi_cd8_treg", 1.0f);  
     env.newProperty<float>("qsp_tum_cmax", 0.0f);   
     env.newProperty<float>("qsp_f_tum_cap", 0.0f);
 

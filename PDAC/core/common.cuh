@@ -655,6 +655,158 @@ __device__ __forceinline__ float ecm_fp_decode(unsigned long long v) {
     return static_cast<float>(v) / ecm_fp_scale();
 }
 
+// ============================================================================
+// QSP CLASS MEMBERSHIP — ONE definition, shared by the recruitment gap-closing
+// audit (pde_integration.cu) and the phi estimator.
+//
+// The rule these encode: an ABM state belongs to QSP species X iff the QSP does
+// not track it as a species of its own. CD8_exh, Tfh and Plasma therefore have
+// their OWN predicates and are excluded from the active pools. If you change one
+// of these, the audit and phi change together — which is the point: they must
+// answer "what is a CD8?" identically or phi is computed on a different
+// population than the rate law it corrects.
+// ============================================================================
+__device__ __host__ __forceinline__ bool is_qsp_CD8(int cs) {
+    return cs == T_CELL_EFF || cs == T_CELL_CYT;          // ↔ SP_V_T_CD8
+}
+__device__ __host__ __forceinline__ bool is_qsp_CD8_exh(int cs) {
+    return cs == T_CELL_SUPP;                              // ↔ SP_V_T_CD8_exh
+}
+__device__ __host__ __forceinline__ bool is_qsp_C1(int cs) {
+    // ↔ SP_V_T_C1: live proliferative cancer. Senescent is SP_V_T_C_x, PDL1_POS/NEG
+    // are display states of the same live cells and never appear as `cell_state`
+    // in the division/death path — kept out deliberately, not by omission.
+    return cs == CANCER_STEM || cs == CANCER_PROGENITOR;
+}
+__device__ __host__ __forceinline__ bool is_qsp_Mac_M1(int cs) {
+    return cs == MAC_M1;                                   // ↔ SP_V_T_Mac_M1
+}
+__device__ __host__ __forceinline__ bool is_qsp_Treg(int cs) {
+    return cs == TCD4_TREG;                                // ↔ SP_V_T_Treg
+}
+
+// ============================================================================
+// PHI — the ABM's only export (contract D-1/D-2).
+//
+//   phi = FunCN(A,B) / (rho_B * SumK)
+//       = [ (1/N_A) * SUM_a SUM_b K(x_a - x_b) ] / [ (N_B / N_vox) * SumK ]
+//
+// i.e. the measured co-density of B around A, divided by what perfect mixing
+// would give. phi = 1 reproduces the mean-field rate law exactly, which is what
+// makes the control arm exact by construction.
+//
+// Two properties worth knowing before touching this:
+//  1. It is SYMMETRIC in A and B (the double sum is symmetric and the
+//     normalization is N_A*N_B), so the target/source assignment cannot be got
+//     backwards. This is D-2's "abundance cancels by construction".
+//  2. Any constant scaling of K cancels between the numerator and SumK, so the
+//     kernel is deliberately left UNNORMALIZED (peak 1.0) — better conditioned
+//     for fixed-point accumulation, and it removes the truncation-vs-normalizer
+//     inconsistency that a normalized-but-truncated Gaussian would introduce.
+// ============================================================================
+enum PhiPair : int {
+    PHI_CD8_C1    = 0,   // phi_1 → scales v_T_search_volume  (kill encounter rate)
+    PHI_M1_C1     = 1,   // phi_2 → scales K_M1_phago         (Flux302, saturating)
+    PHI_CD8_TREG  = 2,   // phi_3 → scales R50_Treg           (kill denominator)
+    N_PHI_PAIR    = 3
+};
+
+// KDE source fields. Only two are needed: CD8 serves phi_1 and phi_3, Mac_M1
+// serves phi_2, and C1/Treg are sampled rather than deposited (deposit cost
+// scales with the kernel volume, sampling does not — so the LARGE populations
+// sample and the small ones deposit).
+enum PhiKde : int {
+    PHI_KDE_CD8   = 0,
+    PHI_KDE_MAC_M1 = 1,
+    N_PHI_KDE     = 2
+};
+
+// Which KDE field each pair samples.
+__device__ __host__ __forceinline__ int phi_pair_kde(int pair) {
+    return (pair == PHI_M1_C1) ? PHI_KDE_MAC_M1 : PHI_KDE_CD8;
+}
+
+// Unnormalized isotropic Gaussian on the voxel lattice. Peak 1.0 at d=0 (see note 2 above
+// on why the normalizer is deliberately absent).
+__device__ __host__ __forceinline__ float phi_kernel(int dx, int dy, int dz, float two_sigma_sq) {
+    const float d2 = static_cast<float>(dx * dx + dy * dy + dz * dz);
+    return expf(-d2 / two_sigma_sq);
+}
+
+// EDGE HANDLING — read before changing.
+// A target near the domain wall sees a truncated neighbourhood, which biases FunCN DOWN.
+// Rather than assume periodicity (the ABM's z extent is only ~12 voxels in the production
+// box, so a wrap in z would be both physically wrong and a large effect), each target is
+// normalized by the kernel mass actually inside the domain at ITS position:
+//
+//     SumK_local(v) = SUM over in-domain offsets u of K(v - u)
+//
+// If B is uniform at density rho over the domain, E[S_B(v)] = rho * SumK_local(v) exactly,
+// so the per-target ratio S_B(v)/SumK_local(v) is an unbiased estimate of rho at any
+// position, wall or interior. SumK_local depends only on geometry, so it is precomputed
+// once per grid — not per step. This is what makes the estimator parameter-free and
+// domain-shape-agnostic, which the contract requires of anything phi is built from.
+#define PHI_KDE_PTR(fgpu) \
+    reinterpret_cast<unsigned long long*>((fgpu)->environment.template getProperty<uint64_t>("phi_kde_ptr"))
+#define PHI_SUMK_PTR(fgpu) \
+    reinterpret_cast<const float*>((fgpu)->environment.template getProperty<uint64_t>("phi_sumk_ptr"))
+#define PHI_ACC_PTR(fgpu) \
+    reinterpret_cast<unsigned long long*>((fgpu)->environment.template getProperty<uint64_t>("phi_accum_ptr"))
+#define PHI_N_PTR(fgpu) \
+    reinterpret_cast<unsigned int*>((fgpu)->environment.template getProperty<uint64_t>("phi_count_ptr"))
+
+// Deposit this agent's Gaussian bump into KDE field `kde` and count it as a source.
+// Fixed-point accumulation (as the ECM field does) so the atomicAdd sum is exact and
+// order-independent — phi feeds the ODE, so a nondeterministic phi makes the whole run
+// irreproducible, not merely noisy.
+template<typename API>
+__device__ __forceinline__ void phi_deposit(API FLAMEGPU, int kde) {
+    const int x = FLAMEGPU->template getVariable<int>("x");
+    const int y = FLAMEGPU->template getVariable<int>("y");
+    const int z = FLAMEGPU->template getVariable<int>("z");
+    const int gx = FLAMEGPU->environment.template getProperty<int>("grid_size_x");
+    const int gy = FLAMEGPU->environment.template getProperty<int>("grid_size_y");
+    const int gz = FLAMEGPU->environment.template getProperty<int>("grid_size_z");
+    const float sigma = FLAMEGPU->environment.template getProperty<float>("PARAM_PHI_SIGMA_VOX");
+    const int radius = FLAMEGPU->environment.template getProperty<int>("PARAM_PHI_RADIUS_VOX");
+    const float two_s2 = 2.0f * sigma * sigma;
+
+    unsigned long long* field = PHI_KDE_PTR(FLAMEGPU)
+                              + static_cast<size_t>(kde) * gx * gy * gz;
+    for (int dz = -radius; dz <= radius; ++dz) {
+        const int nz = z + dz; if (nz < 0 || nz >= gz) continue;
+        for (int dy = -radius; dy <= radius; ++dy) {
+            const int ny = y + dy; if (ny < 0 || ny >= gy) continue;
+            for (int dx = -radius; dx <= radius; ++dx) {
+                const int nx = x + dx; if (nx < 0 || nx >= gx) continue;
+                atomicAdd(&field[nz * (gx * gy) + ny * gx + nx],
+                          ecm_fp_encode(phi_kernel(dx, dy, dz, two_s2)));
+            }
+        }
+    }
+    atomicAdd(&PHI_N_PTR(FLAMEGPU)[N_PHI_PAIR + kde], 1u);
+}
+
+// Sample the KDE field for `pair` at this agent's voxel and accumulate the edge-corrected
+// ratio. Counts this agent as a target of that pair.
+template<typename API>
+__device__ __forceinline__ void phi_sample(API FLAMEGPU, int pair) {
+    const int x = FLAMEGPU->template getVariable<int>("x");
+    const int y = FLAMEGPU->template getVariable<int>("y");
+    const int z = FLAMEGPU->template getVariable<int>("z");
+    const int gx = FLAMEGPU->environment.template getProperty<int>("grid_size_x");
+    const int gy = FLAMEGPU->environment.template getProperty<int>("grid_size_y");
+    const int gz = FLAMEGPU->environment.template getProperty<int>("grid_size_z");
+    const int v = z * (gx * gy) + y * gx + x;
+
+    const unsigned long long* field = PHI_KDE_PTR(FLAMEGPU)
+                                    + static_cast<size_t>(phi_pair_kde(pair)) * gx * gy * gz;
+    const float sumk = PHI_SUMK_PTR(FLAMEGPU)[v];
+    const float ratio = (sumk > 0.0f) ? (ecm_fp_decode(field[v]) / sumk) : 0.0f;
+    atomicAdd(&PHI_ACC_PTR(FLAMEGPU)[pair], ecm_fp_encode(ratio));
+    atomicAdd(&PHI_N_PTR(FLAMEGPU)[pair], 1u);
+}
+
 // Attempt to claim volume in a target voxel via atomicAdd.
 // Returns true if the claim succeeded (total <= capacity), false otherwise (undo performed).
 __device__ __forceinline__ bool volume_try_claim(float* vol_used, int voxel_idx, float my_volume, float capacity) {

@@ -109,6 +109,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.Vas.hev_revert_ccl21_th", "", "pr"},  // PARAM_VAS_HEV_REVERT_CCL21_TH
     {"Param.ABM.Fib.ECM_radius", "", "pr"},  // PARAM_FIB_ECM_RADIUS
     {"Param.ABM.Fib.ECM_variance", "", "pr"},  // PARAM_FIB_ECM_VARIANCE
+    {"Param.ABM.Fib.phi_sigma_vox", "", "pr"},  // PARAM_PHI_SIGMA_VOX
     {"Param.ABM.Fib.div_max", "", "pr"},  // PARAM_FIB_DIV_MAX
     {"Param.ABM.Fib.hypoxia_th", "mM", "pr"},  // PARAM_FIB_HYPOXIA_TH
     {"Param.ABM.Fib.hif_tgfb_boost", "", "pr"},  // PARAM_FIB_HIF_TGFB_BOOST
@@ -307,6 +308,8 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.CancerCell.moveSteps", "", "pos"},  // PARAM_CANCER_MOVE_STEPS
     {"Param.ABM.CancerCell.moveSteps_csc", "", "pos"},  // PARAM_CANCER_MOVE_STEPS_STEM
     {"Param.ABM.Fib.moveSteps", "", "pos"},  // PARAM_FIB_MOVE_STEPS
+    {"Param.ABM.Fib.phi_radius_vox", "", ""},  // PARAM_PHI_RADIUS_VOX
+    {"Param.ABM.Fib.coupling_mode", "", ""},  // PARAM_COUPLING_MODE
     {"Param.ABM.DomainInit.pde_warmup_substeps", "", "pos"},  // PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS
     {"Param.ABM.Movement.move_batch", "", "pos"},  // PARAM_MOVE_BATCH
     {"Param.ABM.DCPriming.naive_lifespan_steps", "", ""},  // PARAM_NAIVE_LIFESPAN_STEPS
@@ -450,6 +453,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_VAS_HEV_REVERT_CCL21_TH", getFloat(PARAM_VAS_HEV_REVERT_CCL21_TH));
     env.newProperty<float>("PARAM_FIB_ECM_RADIUS", getFloat(PARAM_FIB_ECM_RADIUS));
     env.newProperty<float>("PARAM_FIB_ECM_VARIANCE", getFloat(PARAM_FIB_ECM_VARIANCE));
+    env.newProperty<float>("PARAM_PHI_SIGMA_VOX", getFloat(PARAM_PHI_SIGMA_VOX));
     env.newProperty<float>("PARAM_FIB_DIV_MAX", getFloat(PARAM_FIB_DIV_MAX));
     env.newProperty<float>("PARAM_FIB_HYPOXIA_TH", getFloat(PARAM_FIB_HYPOXIA_TH));
     env.newProperty<float>("PARAM_FIB_HIF_TGFB_BOOST", getFloat(PARAM_FIB_HIF_TGFB_BOOST));
@@ -648,6 +652,8 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<int>("PARAM_CANCER_MOVE_STEPS", getInt(PARAM_CANCER_MOVE_STEPS));
     env.newProperty<int>("PARAM_CANCER_MOVE_STEPS_STEM", getInt(PARAM_CANCER_MOVE_STEPS_STEM));
     env.newProperty<int>("PARAM_FIB_MOVE_STEPS", getInt(PARAM_FIB_MOVE_STEPS));
+    env.newProperty<int>("PARAM_PHI_RADIUS_VOX", getInt(PARAM_PHI_RADIUS_VOX));
+    env.newProperty<int>("PARAM_COUPLING_MODE", getInt(PARAM_COUPLING_MODE));
     env.newProperty<int>("PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS", getInt(PARAM_DOMAIN_PDE_WARMUP_SUBSTEPS));
     env.newProperty<int>("PARAM_MOVE_BATCH", getInt(PARAM_MOVE_BATCH));
     env.newProperty<int>("PARAM_NAIVE_LIFESPAN_STEPS", getInt(PARAM_NAIVE_LIFESPAN_STEPS));

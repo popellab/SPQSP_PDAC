@@ -1,6 +1,9 @@
 #include "flamegpu/flamegpu.h"
 #include "../qsp/LymphCentral_wrapper.h"
 #include "../qsp/ode/ODE_system.h"
+#include "../qsp/ode/QSP_enum.h"    // P_v_T_search_volume / P_K_M1_phago / P_R50_Treg
+#include "../core/common.cuh"        // PhiPair enum
+#include "../pde/pde_integration.cuh" // get_phi / phi_is_valid
 
 #include <fstream>
 #include <filesystem>
@@ -72,6 +75,15 @@ void seed_qsp_env_properties(flamegpu::CUDASimulation& simulation) {
     simulation.setEnvironmentProperty<float>("qsp_m2_tumor",     static_cast<float>(qsp_state.m2_tumor));
     simulation.setEnvironmentProperty<float>("qsp_caf_tumor",    static_cast<float>(qsp_state.caf_tumor));
     simulation.setEnvironmentProperty<float>("qsp_dc_tumor",     static_cast<float>(qsp_state.dc_tumor));
+    // These three drifted out of sync with solve_qsp_step's setter, which does write them.
+    // Consequence was silent and one-step: after a QSP warm-up the B, Plasma and Tfh targets
+    // read 0 on step 0 only, so anything gated on them (the gap-closing deficit, the class
+    // audit) saw an empty compartment for exactly one step and then healed. Keep the two
+    // setters in lockstep — a property in one and not the other is invisible in any run long
+    // enough to overwrite it.
+    simulation.setEnvironmentProperty<float>("qsp_bcell_tumor",  static_cast<float>(qsp_state.bcell_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_plasma_tumor", static_cast<float>(qsp_state.plasma_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_tfh_tumor",    static_cast<float>(qsp_state.tfh_tumor));
 
     simulation.setEnvironmentProperty<float>("qsp_nivo_tumor",   static_cast<float>(qsp_state.nivo_tumor));
     simulation.setEnvironmentProperty<float>("qsp_cabo_tumor",   static_cast<float>(qsp_state.cabo_tumor));
@@ -166,6 +178,62 @@ FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
     //               << " (T=" << cc_death_t_kill << ", MAC=" << cc_death_mac_kill << ", nat=" << cc_death_natural << ")"
     //               << ", Teff_rec=" << teff_recruited << ", TReg_rec=" << treg_recruited << std::endl;
     // }
+
+    // -----------------------------------------------------------------------
+    // ABM → QSP: SPATIAL COUPLING (contract D-1). Replace the ODE's mean-field
+    // encounter estimators with the ABM's measurements for this step.
+    //
+    // Each phi is a DENSITY SUBSTITUTION, applied by scaling an EXISTING parameter —
+    // no rate law is edited, so the codegen's analytic Jacobian (written in terms of
+    // PARAM(...)) stays consistent for free:
+    //
+    //   phi_1  [CD8] -> phi_1*[CD8] in the kill numerator
+    //          == v_T_search_volume *= phi_1     (the product v_search*[CD8]/V_T IS
+    //                                             the mean-field encounter estimator)
+    //   phi_2  [Mac_M1] -> phi_2*[Mac_M1] in Flux302's numerator AND denominator
+    //          == K_M1_phago /= phi_2            (algebraically equivalent up to the
+    //                                             P_cell epsilon, ~7 orders down)
+    //   phi_3  Tregs_ -> phi_3*Tregs_ in the kill denominator
+    //          == R50_Treg /= phi_3              (since K_T_Treg = 1/R50_Treg)
+    //
+    // Directions verified: phi<1 means the partner is DEPLETED around the target, and
+    // each substitution above then reduces killing / reduces phagocytosis / reduces
+    // suppression respectively — i.e. less co-localization does less of the thing.
+    //
+    // ⚠️ ALWAYS scale from the CACHED BASE, never from the current value: these
+    // parameters are overwritten in place every step, so scaling a scaled value would
+    // compound geometrically and diverge within a few steps.
+    //
+    // phi_is_valid gates each one independently — a pair with no cells on one side
+    // falls back to its base (mean-field), which is a different statement from phi=1
+    // measured, and must not be applied as if it were data.
+    {
+        using CancerVCT::ODE_system;
+        static bool  base_cached = false;
+        static double base_v_search = 0.0, base_K_M1 = 0.0, base_R50_Treg = 0.0;
+        if (!base_cached) {
+            base_v_search  = ODE_system::get_class_param(CancerVCT::P_v_T_search_volume);
+            base_K_M1      = ODE_system::get_class_param(CancerVCT::P_K_M1_phago);
+            base_R50_Treg  = ODE_system::get_class_param(CancerVCT::P_R50_Treg);
+            base_cached = true;
+        }
+        // Bit 0 = contact corrections. Mode 0 restores the base values every step, so the
+        // control arm is the unmodified model EXACTLY, not merely at initialization.
+        const int mode = FLAMEGPU->environment.getProperty<int>("PARAM_COUPLING_MODE");
+        const bool contact = (mode & 1) != 0;
+
+        const double p1 = (contact && PDAC::phi_is_valid(PHI_CD8_C1))   ? PDAC::get_phi(PHI_CD8_C1)   : 1.0;
+        const double p2 = (contact && PDAC::phi_is_valid(PHI_M1_C1))    ? PDAC::get_phi(PHI_M1_C1)    : 1.0;
+        const double p3 = (contact && PDAC::phi_is_valid(PHI_CD8_TREG)) ? PDAC::get_phi(PHI_CD8_TREG) : 1.0;
+
+        // A phi of 0 would divide by zero below and, for phi_1, would switch killing off
+        // entirely on a single empty-neighbourhood step. Floor it: the ABM cannot resolve
+        // co-density below one cell in the kernel anyway.
+        const double eps = 1e-6;
+        ODE_system::set_class_param(CancerVCT::P_v_T_search_volume, base_v_search * fmax(p1, eps));
+        ODE_system::set_class_param(CancerVCT::P_K_M1_phago,        base_K_M1     / fmax(p2, eps));
+        ODE_system::set_class_param(CancerVCT::P_R50_Treg,          base_R50_Treg / fmax(p3, eps));
+    }
 
     // Solve ODE for one ABM timestep (CPU-based). Add the QSP-only-warmup offset so CVODE's
     // integration time stays monotonic across the decoupled-presim handoff.
