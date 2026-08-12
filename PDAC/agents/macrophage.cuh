@@ -437,10 +437,13 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
 }
 
 
-// ── phi: Mac_M1 is the KDE source for phi_2 (Mac_M1xC1, Flux302). ──
+// ── phi: Mac_M1 is the KDE source for phi_2 (M1×C1), Mac_M2 for phi_4 (M2×C1). ──
 FLAMEGPU_AGENT_FUNCTION(mac_phi_deposit, flamegpu::MessageNone, flamegpu::MessageNone) {
-    if (is_qsp_Mac_M1(FLAMEGPU->getVariable<int>("cell_state")))
+    const int cs = FLAMEGPU->getVariable<int>("cell_state");
+    if (is_qsp_Mac_M1(cs))
         phi_deposit(FLAMEGPU, PHI_KDE_MAC_M1);
+    if (is_qsp_Mac_M2(cs))
+        phi_deposit(FLAMEGPU, PHI_KDE_MAC_M2);
     return flamegpu::ALIVE;
 }
 

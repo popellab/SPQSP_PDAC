@@ -216,6 +216,10 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         state.m1_tumor = 0.0;
         state.m2_tumor = 0.0;
         state.caf_tumor = 0.0;
+        state.qpsc_tumor = 0.0;
+        state.icaf_tumor = 0.0;
+        state.mycaf_tumor = 0.0;
+        state.apcaf_tumor = 0.0;
         state.bcell_tumor = 0.0;
         state.plasma_tumor = 0.0;
         state.tfh_tumor = 0.0;
@@ -261,10 +265,11 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         state.mdsc_tumor = getVAR(CancerVCT::SP_V_T_MDSC);
         state.m1_tumor = getVAR(CancerVCT::SP_V_T_Mac_M1);
         state.m2_tumor = getVAR(CancerVCT::SP_V_T_Mac_M2);
-        // CAF total = sum of all CAF subtypes
-        state.caf_tumor = getVAR(CancerVCT::SP_V_T_iCAF)
-                        + getVAR(CancerVCT::SP_V_T_myCAF)
-                        + getVAR(CancerVCT::SP_V_T_apCAF);
+        state.qpsc_tumor = getVAR(CancerVCT::SP_V_T_qPSC);
+        state.icaf_tumor = getVAR(CancerVCT::SP_V_T_iCAF);
+        state.mycaf_tumor = getVAR(CancerVCT::SP_V_T_myCAF);
+        state.apcaf_tumor = getVAR(CancerVCT::SP_V_T_apCAF);
+        state.caf_tumor = state.icaf_tumor + state.mycaf_tumor + state.apcaf_tumor;
         state.bcell_tumor = getVAR(CancerVCT::SP_V_T_B);
         state.plasma_tumor = getVAR(CancerVCT::SP_V_T_Plasma);
         state.tfh_tumor = getVAR(CancerVCT::SP_V_T_Tfh);

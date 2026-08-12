@@ -476,17 +476,12 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
         FLAMEGPU->setVariable<int>("divide_cooldown", cooldown - 1);
     }
 
-    // Low-rate CAF proliferation: k_*CAF_prolif in XML is dialed down to the death
-    // rate so births balance deaths (stable population with turnover). Kept the
-    // divide_count cap as a safeguard; remove or raise once the QSP stroma
-    // carrying-cap term (RF247/248) is mirrored on the ABM side.
-    if ((cs == FIB_MYCAF || cs == FIB_ICAF) && cooldown <= 0) {
-        const int div_count = FLAMEGPU->getVariable<int>("divide_count");
-        const int div_max = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_MAX"));
-        if (div_count < div_max) {
-            FLAMEGPU->setVariable<int>("divide_flag", 1);
-        }
-    }
+    // CAF proliferation DISABLED. In the QSP, CAF prolif compensates for V_T
+    // expansion (density dilution). The ABM domain is fixed → that term has no
+    // role and causes unbounded accumulation. Fibroblast headcount is maintained
+    // by host-side gap-closing recruitment (recruit_systematic in
+    // pde_integration.cu); sub-state composition is emergent from activation
+    // transitions (qPSC → myCAF/iCAF/apCAF) gated by local cytokines.
 
     return flamegpu::ALIVE;
 }
@@ -504,7 +499,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide_reserve, flamegpu::MessageNone, flamegpu::Mes
     FLAMEGPU->setVariable<int>("divide_flag", 0);  // consume intent (re-set next step if eligible)
 
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
-    if (cs == FIB_QUIESCENT || cs == FIB_FRC) return flamegpu::ALIVE;
+    if (cs == FIB_QUIESCENT || cs == FIB_FRC || cs == FIB_APCAF) return flamegpu::ALIVE;
 
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
@@ -683,6 +678,13 @@ FLAMEGPU_AGENT_FUNCTION(fib_build_density_field, flamegpu::MessageNone, flamegpu
         }
     }
 
+    return flamegpu::ALIVE;
+}
+
+// ── phi: iCAF is the KDE source for phi_5 (iCAF×C1). ──
+FLAMEGPU_AGENT_FUNCTION(fib_phi_deposit, flamegpu::MessageNone, flamegpu::MessageNone) {
+    if (is_qsp_Fib_iCAF(FLAMEGPU->getVariable<int>("cell_state")))
+        phi_deposit(FLAMEGPU, PHI_KDE_FIB_ICAF);
     return flamegpu::ALIVE;
 }
 

@@ -49,6 +49,10 @@ struct QSPState {
     double m1_tumor;
     double m2_tumor;
     double caf_tumor;
+    double qpsc_tumor;
+    double icaf_tumor;
+    double mycaf_tumor;
+    double apcaf_tumor;
     double bcell_tumor;         // B cells in tumor (SP_V_T_B)
     double plasma_tumor;        // Plasma cells in tumor (SP_V_T_Plasma)
     double tfh_tumor;           // Tfh cells in tumor (SP_V_T_Tfh)

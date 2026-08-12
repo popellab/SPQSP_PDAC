@@ -545,6 +545,13 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
     return flamegpu::ALIVE;
 }
 
+// ── phi: VAS_PHALANX is the KDE source for phi_8 (VAS×C1). ──
+FLAMEGPU_AGENT_FUNCTION(vas_phi_deposit, flamegpu::MessageNone, flamegpu::MessageNone) {
+    if (is_qsp_Vas_phalanx(FLAMEGPU->getVariable<int>("cell_state")))
+        phi_deposit(FLAMEGPU, PHI_KDE_VAS);
+    return flamegpu::ALIVE;
+}
+
 } // namespace PDAC
 
 #endif // FLAMEGPU_PDAC_VASCULAR_CELL_CUH

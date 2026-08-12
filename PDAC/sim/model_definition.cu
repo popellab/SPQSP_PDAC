@@ -238,6 +238,7 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
         tcell.newFunction("move_commit", tcell_move_commit);
 
         tcell.newFunction("phi_deposit", tcell_phi_deposit);
+        tcell.newFunction("phi_sample", tcell_phi_sample);
         tcell.newFunction("state_step", tcell_state_step)
             .setAllowAgentDeath(true);
 
@@ -398,6 +399,7 @@ void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state) {
     mdsc.newFunction("update_chemicals", mdsc_update_chemicals);
 
     mdsc.newFunction("compute_chemical_sources", mdsc_compute_chemical_sources);
+    mdsc.newFunction("phi_deposit", mdsc_phi_deposit);
     mdsc.newFunction("pack_for_export", pack_export_mdsc);
 
     // Movement and state functions only in main model (MDSCs don't divide)
@@ -522,6 +524,7 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
     fib.newFunction("scan_neighbors", fib_scan_neighbors)
         .setMessageInput(MSG_CELL_LOCATION);
     fib.newFunction("compute_chemical_sources", fib_compute_chemical_sources);
+    fib.newFunction("phi_deposit", fib_phi_deposit);
     fib.newFunction("pack_for_export", pack_export_fib);
 
     if (include_state) {
@@ -578,6 +581,7 @@ void defineVascularCellAgent(flamegpu::ModelDescription& model) {
     agent.newFunction("update_chemicals", vascular_update_chemicals);
 
     agent.newFunction("compute_chemical_sources", vascular_compute_chemical_sources);
+    agent.newFunction("phi_deposit", vas_phi_deposit);
     agent.newFunction("pack_for_export", pack_export_vas);
 
     // Occupancy grid write function
@@ -653,6 +657,7 @@ void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
         .setMessageInput(MSG_CELL_LOCATION);
 
     bcell.newFunction("compute_chemical_sources", bcell_compute_chemical_sources);
+    bcell.newFunction("phi_deposit", bcell_phi_deposit);
     bcell.newFunction("pack_for_export", pack_export_bcell);
 
     if (include_state_divide) {
@@ -867,6 +872,10 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<float>("qsp_m1_tumor", 0.0f);
     env.newProperty<float>("qsp_m2_tumor", 0.0f);
     env.newProperty<float>("qsp_caf_tumor", 0.0f);
+    env.newProperty<float>("qsp_qpsc_tumor", 0.0f);
+    env.newProperty<float>("qsp_icaf_tumor", 0.0f);
+    env.newProperty<float>("qsp_mycaf_tumor", 0.0f);
+    env.newProperty<float>("qsp_apcaf_tumor", 0.0f);
     env.newProperty<float>("qsp_bcell_tumor", 0.0f);
     env.newProperty<float>("qsp_plasma_tumor", 0.0f);
     env.newProperty<float>("qsp_tfh_tumor", 0.0f);
@@ -885,7 +894,12 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     // which reproduces the QSP rate laws exactly — so this default IS the control arm.
     env.newProperty<float>("phi_cd8_c1",   1.0f);
     env.newProperty<float>("phi_m1_c1",    1.0f);
-    env.newProperty<float>("phi_cd8_treg", 1.0f);  
+    env.newProperty<float>("phi_cd8_treg", 1.0f);
+    env.newProperty<float>("phi_m2_c1",    1.0f);
+    env.newProperty<float>("phi_icaf_c1",  1.0f);
+    env.newProperty<float>("phi_mdsc_cd8", 1.0f);
+    env.newProperty<float>("phi_bcell_cd8",1.0f);
+    env.newProperty<float>("phi_vas_c1",   1.0f);
     env.newProperty<float>("qsp_tum_cmax", 0.0f);   
     env.newProperty<float>("qsp_f_tum_cap", 0.0f);
 

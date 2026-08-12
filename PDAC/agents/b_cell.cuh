@@ -580,6 +580,12 @@ FLAMEGPU_AGENT_FUNCTION(bcell_divide_confirm, flamegpu::MessageNone, flamegpu::M
     return flamegpu::ALIVE;
 }
 
+// ── phi: B cells are the KDE source for phi_7 (Bcell×CD8). All B cells deposit. ──
+FLAMEGPU_AGENT_FUNCTION(bcell_phi_deposit, flamegpu::MessageNone, flamegpu::MessageNone) {
+    phi_deposit(FLAMEGPU, PHI_KDE_BCELL);
+    return flamegpu::ALIVE;
+}
+
 } // namespace PDAC
 
 #endif // PDAC_B_CELL_CUH

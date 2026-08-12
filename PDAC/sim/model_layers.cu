@@ -530,11 +530,16 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         flamegpu::LayerDescription layer = model.newLayer("phi_deposit");
         layer.addAgentFunction(AGENT_TCELL,      "phi_deposit");
         layer.addAgentFunction(AGENT_MACROPHAGE, "phi_deposit");
+        layer.addAgentFunction(AGENT_FIBROBLAST, "phi_deposit");
+        layer.addAgentFunction(AGENT_MDSC,       "phi_deposit");
+        layer.addAgentFunction(AGENT_BCELL,      "phi_deposit");
+        layer.addAgentFunction(AGENT_VASCULAR,   "phi_deposit");
     }
     {
         flamegpu::LayerDescription layer = model.newLayer("phi_sample");
         layer.addAgentFunction(AGENT_CANCER_CELL, "phi_sample");
         layer.addAgentFunction(AGENT_TREG,        "phi_sample");
+        layer.addAgentFunction(AGENT_TCELL,       "phi_sample");
     }
     {
         flamegpu::LayerDescription layer = model.newLayer("finalize_phi");

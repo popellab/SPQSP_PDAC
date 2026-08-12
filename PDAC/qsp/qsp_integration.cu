@@ -264,6 +264,10 @@ FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
     FLAMEGPU->environment.setProperty<float>("qsp_m1_tumor", static_cast<float>(qsp_state.m1_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_m2_tumor", static_cast<float>(qsp_state.m2_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_caf_tumor", static_cast<float>(qsp_state.caf_tumor));
+    FLAMEGPU->environment.setProperty<float>("qsp_qpsc_tumor", static_cast<float>(qsp_state.qpsc_tumor));
+    FLAMEGPU->environment.setProperty<float>("qsp_icaf_tumor", static_cast<float>(qsp_state.icaf_tumor));
+    FLAMEGPU->environment.setProperty<float>("qsp_mycaf_tumor", static_cast<float>(qsp_state.mycaf_tumor));
+    FLAMEGPU->environment.setProperty<float>("qsp_apcaf_tumor", static_cast<float>(qsp_state.apcaf_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_bcell_tumor", static_cast<float>(qsp_state.bcell_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_plasma_tumor", static_cast<float>(qsp_state.plasma_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_tfh_tumor", static_cast<float>(qsp_state.tfh_tumor));

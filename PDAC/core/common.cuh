@@ -684,6 +684,15 @@ __device__ __host__ __forceinline__ bool is_qsp_Mac_M1(int cs) {
 __device__ __host__ __forceinline__ bool is_qsp_Treg(int cs) {
     return cs == TCD4_TREG;                                // ↔ SP_V_T_Treg
 }
+__device__ __host__ __forceinline__ bool is_qsp_Mac_M2(int cs) {
+    return cs == MAC_M2;
+}
+__device__ __host__ __forceinline__ bool is_qsp_Fib_iCAF(int cs) {
+    return cs == FIB_ICAF;
+}
+__device__ __host__ __forceinline__ bool is_qsp_Vas_phalanx(int cs) {
+    return cs == VAS_PHALANX;
+}
 
 // ============================================================================
 // PHI — the ABM's only export (contract D-1/D-2).
@@ -708,22 +717,39 @@ enum PhiPair : int {
     PHI_CD8_C1    = 0,   // phi_1 → scales v_T_search_volume  (kill encounter rate)
     PHI_M1_C1     = 1,   // phi_2 → scales K_M1_phago         (Flux302, saturating)
     PHI_CD8_TREG  = 2,   // phi_3 → scales R50_Treg           (kill denominator)
-    N_PHI_PAIR    = 3
+    PHI_M2_C1     = 3,   // phi_4 → TAM infiltration of tumour
+    PHI_ICAF_C1   = 4,   // phi_5 → desmoplastic barrier
+    PHI_MDSC_CD8  = 5,   // phi_6 → immunosuppressive niche
+    PHI_BCELL_CD8 = 6,   // phi_7 → TLS-like structure
+    PHI_VAS_C1    = 7,   // phi_8 → vascular access
+    N_PHI_PAIR    = 8
 };
 
-// KDE source fields. Only two are needed: CD8 serves phi_1 and phi_3, Mac_M1
-// serves phi_2, and C1/Treg are sampled rather than deposited (deposit cost
-// scales with the kernel volume, sampling does not — so the LARGE populations
-// sample and the small ones deposit).
+// KDE source fields. The SMALL population deposits a Gaussian bump; the LARGE
+// population samples the field (deposit cost scales with kernel volume, sampling
+// does not). CD8 is shared by phi_1, phi_3; C1 is shared by phi_4, phi_5, phi_8.
 enum PhiKde : int {
-    PHI_KDE_CD8   = 0,
-    PHI_KDE_MAC_M1 = 1,
-    N_PHI_KDE     = 2
+    PHI_KDE_CD8      = 0,
+    PHI_KDE_MAC_M1   = 1,
+    PHI_KDE_MAC_M2   = 2,
+    PHI_KDE_FIB_ICAF = 3,
+    PHI_KDE_MDSC     = 4,
+    PHI_KDE_BCELL    = 5,
+    PHI_KDE_VAS      = 6,
+    N_PHI_KDE        = 7
 };
 
-// Which KDE field each pair samples.
+// Which KDE field each pair reads from (the depositor side).
 __device__ __host__ __forceinline__ int phi_pair_kde(int pair) {
-    return (pair == PHI_M1_C1) ? PHI_KDE_MAC_M1 : PHI_KDE_CD8;
+    switch (pair) {
+        case PHI_M1_C1:     return PHI_KDE_MAC_M1;
+        case PHI_M2_C1:     return PHI_KDE_MAC_M2;
+        case PHI_ICAF_C1:   return PHI_KDE_FIB_ICAF;
+        case PHI_MDSC_CD8:  return PHI_KDE_MDSC;
+        case PHI_BCELL_CD8: return PHI_KDE_BCELL;
+        case PHI_VAS_C1:    return PHI_KDE_VAS;
+        default:            return PHI_KDE_CD8;
+    }
 }
 
 // Unnormalized isotropic Gaussian on the voxel lattice. Peak 1.0 at d=0 (see note 2 above

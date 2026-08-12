@@ -331,6 +331,12 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move_commit, flamegpu::MessageNone, flamegpu::Messa
     return flamegpu::ALIVE;
 }
 
+// ── phi: MDSC is the KDE source for phi_6 (MDSC×CD8). All MDSCs deposit. ──
+FLAMEGPU_AGENT_FUNCTION(mdsc_phi_deposit, flamegpu::MessageNone, flamegpu::MessageNone) {
+    phi_deposit(FLAMEGPU, PHI_KDE_MDSC);
+    return flamegpu::ALIVE;
+}
+
 } // namespace PDAC
 
 #endif // PDAC_MDSC_CUH

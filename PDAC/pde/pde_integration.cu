@@ -88,8 +88,8 @@ static unsigned long long* d_phi_kde   = nullptr;  // [N_PHI_KDE][nvox] fixed-po
 static unsigned long long* d_phi_accum = nullptr;  // [N_PHI_PAIR] fixed-point SUM of edge-corrected ratios
 static unsigned int*       d_phi_count = nullptr;  // [N_PHI_PAIR targets | N_PHI_KDE sources]
 static float*              d_phi_sumk  = nullptr;  // [nvox] SumK_local — geometry only, computed once
-static double              g_phi[N_PHI_PAIR] = {1.0, 1.0, 1.0};   // last computed phi (1 = mean-field)
-static bool                g_phi_valid[N_PHI_PAIR] = {false, false, false};
+static double              g_phi[N_PHI_PAIR] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+static bool                g_phi_valid[N_PHI_PAIR] = {};
 
 // SumK_local(v) = SUM over in-domain offsets of K(v-u). Pure geometry (see common.cuh edge note),
 // so this runs once at init rather than per step.
@@ -1778,10 +1778,11 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
     auto mac_api   = FLAMEGPU->agent(AGENT_MACROPHAGE);
     auto bcell_api = FLAMEGPU->agent(AGENT_BCELL);
     auto dc_api    = FLAMEGPU->agent(AGENT_DC);
+    auto fib_api   = FLAMEGPU->agent(AGENT_FIBROBLAST);
 
     int teff_recruited = 0, treg_recruited = 0, th_recruited = 0;
     int mdsc_recruited = 0, mac_recruited = 0, mac_m1_recruited = 0, mac_m2_recruited = 0;
-    int bcell_recruited = 0, dc_recruited = 0;
+    int bcell_recruited = 0, dc_recruited = 0, qpsc_recruited = 0;
 
     // Step-5 determinism: mint each recruit's lineage tag from its IDENTITY (voxel, step, type),
     // NOT its buffer index i — the compact request buffer order is nondeterministic (atomic
@@ -1804,6 +1805,7 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             case CELL_TYPE_DC:    type_nibble = 4u; break;
             case CELL_TYPE_BCELL: type_nibble = 5u; break;
             case CELL_TYPE_MDSC:  type_nibble = 6u; break;
+            case CELL_TYPE_FIB:   type_nibble = 8u; break;
             default:              type_nibble = 7u; break;
         }
         // Seed from the globally-unique deterministic request index r.seq (set by
@@ -1918,6 +1920,23 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("neighbor_bcell_count", 0);
             a.setVariable<unsigned int>("det_tag", rec_dt);
             dc_recruited++;
+        }
+        else if (r.cell_type == CELL_TYPE_FIB) {
+            auto a = fib_api.newAgent();
+            a.setVariable<int>("x", r.x);
+            a.setVariable<int>("y", r.y);
+            a.setVariable<int>("z", r.z);
+            a.setVariable<int>("cell_state", r.cell_state);
+            a.setVariable<int>("life", r.life);
+            a.setVariable<int>("divide_cooldown", 0);
+            a.setVariable<int>("divide_count", 0);
+            a.setVariable<int>("divide_flag", 0);
+            a.setVariable<int>("frc_dwell_counter", 0);
+            a.setVariable<int>("persist_dir_x", 0);
+            a.setVariable<int>("persist_dir_y", 0);
+            a.setVariable<int>("persist_dir_z", 0);
+            a.setVariable<unsigned int>("det_tag", rec_dt);
+            qpsc_recruited++;
         }
     }
 
@@ -2240,7 +2259,9 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
                         << "tgt.CD8,abm.CD8,tgt.CD8_exh,abm.CD8_exh,abm.CD8_naive,"
                         << "tgt.TCD4,abm.TCD4,tgt.Tfh,abm.Tfh,abm.TCD4_naive,"
                         << "tgt.B,abm.B,tgt.Plasma,abm.Plasma,"
-                        << "tgt.MDSC,abm.MDSC,tgt.MAC,abm.MAC,tgt.DC,abm.DC\n";
+                        << "tgt.MDSC,abm.MDSC,tgt.MAC,abm.MAC,tgt.DC,abm.DC,"
+                        << "tgt.fib_total,abm.fib_total,tgt.qPSC,abm.qPSC,"
+                        << "tgt.iCAF,abm.iCAF,tgt.myCAF,abm.myCAF,tgt.apCAF,abm.apCAF\n";
                 }
                 if (g_class_audit_csv.is_open()) {
                     g_class_audit_csv << FLAMEGPU->getStepCounter()
@@ -2259,12 +2280,91 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
                         << ',' << nstate(AGENT_BCELL, BCELL_PLASMA)
                         << ',' << Ntarget[QS_MDSC]              << ',' << n_mdsc
                         << ',' << Ntarget[QS_MAC]               << ',' << n_mac
-                        << ',' << dc_target                     << ',' << n_dc << '\n';
+                        << ',' << dc_target                     << ',' << n_dc
+                        << ',' << f * (envf("qsp_qpsc_tumor") + envf("qsp_icaf_tumor") + envf("qsp_mycaf_tumor") + envf("qsp_apcaf_tumor")) * NA
+                        << ',' << (nstate(AGENT_FIBROBLAST, FIB_QUIESCENT) + nstate(AGENT_FIBROBLAST, FIB_ICAF) + nstate(AGENT_FIBROBLAST, FIB_MYCAF) + nstate(AGENT_FIBROBLAST, FIB_APCAF))
+                        << ',' << f * envf("qsp_qpsc_tumor") * NA
+                        << ',' << nstate(AGENT_FIBROBLAST, FIB_QUIESCENT)
+                        << ',' << f * envf("qsp_icaf_tumor") * NA
+                        << ',' << nstate(AGENT_FIBROBLAST, FIB_ICAF)
+                        << ',' << f * envf("qsp_mycaf_tumor") * NA
+                        << ',' << nstate(AGENT_FIBROBLAST, FIB_MYCAF)
+                        << ',' << f * envf("qsp_apcaf_tumor") * NA
+                        << ',' << nstate(AGENT_FIBROBLAST, FIB_APCAF) << '\n';
                     g_class_audit_csv.flush();
                 }
             }
             target[QS_DC1] = 0.5 * dc_gap;   // cDC1/cDC2 split 50/50 (subtype-resolved QSP DC not exported)
             target[QS_DC2] = 0.5 * dc_gap;
+
+            // ── Direct CAF gap-closing recruitment ─────────────────────────
+            // The ABM domain is fixed (no V_T expansion), so the QSP's CAF
+            // proliferation term (which compensates density dilution) has no
+            // analogue. Instead we directly recruit CAFs at sub-type-specific
+            // deficit rates, mirroring the immune gap-closing pattern.
+            // Placement: random voxel via place_one (linear scan for capacity).
+            // CAF proliferation is disabled in fibroblast.cuh; sub-state
+            // composition tracks the QSP composition ratios.
+            {
+                const double alpha_fib = static_cast<double>(envf("PARAM_FIB_GAP_ALPHA"));
+                const double tgt_icaf  = f * envf("qsp_icaf_tumor")  * NA;
+                const double tgt_mycaf = f * envf("qsp_mycaf_tumor") * NA;
+                const double tgt_apcaf = f * envf("qsp_apcaf_tumor") * NA;
+                const double n_icaf  = nstate(AGENT_FIBROBLAST, FIB_ICAF);
+                const double n_mycaf = nstate(AGENT_FIBROBLAST, FIB_MYCAF);
+                const double n_apcaf = nstate(AGENT_FIBROBLAST, FIB_APCAF);
+                const double def_icaf  = std::max(0.0, tgt_icaf  - n_icaf);
+                const double def_mycaf = std::max(0.0, tgt_mycaf - n_mycaf);
+                const double def_apcaf = std::max(0.0, tgt_apcaf - n_apcaf);
+                const double def_total = def_icaf + def_mycaf + def_apcaf;
+
+                if (def_total > 0.0) {
+                    double raw_N = alpha_fib * def_total;
+                    double Nfloor = std::floor(raw_N);
+                    unsigned int srng = det_rng_seed(0xBF1B, step, 0x9A5Cu, sim_seed);
+                    int N_recruit = static_cast<int>(Nfloor)
+                        + (det_rng_uniform(srng) < (raw_N - Nfloor) ? 1 : 0);
+
+                    const float fib_life_mean = envf("PARAM_FIB_LIFE_MEAN");
+                    const float vol_icaf  = envf("PARAM_VOLUME_FIB_ICAF");
+                    const float vol_mycaf = envf("PARAM_VOLUME_FIB_MYCAF");
+                    const float frac_icaf  = def_icaf  / def_total;
+                    const float frac_mycaf = def_mycaf / def_total;
+
+                    for (int k = 0; k < N_recruit; ++k) {
+                        float r = det_rng_uniform(srng);
+                        int cstate;
+                        float cvol;
+                        if (r < frac_icaf) {
+                            cstate = FIB_ICAF;  cvol = vol_icaf;
+                        } else if (r < frac_icaf + frac_mycaf) {
+                            cstate = FIB_MYCAF; cvol = vol_mycaf;
+                        } else {
+                            cstate = FIB_APCAF; cvol = vol_icaf;
+                        }
+
+                        int vx = static_cast<int>(det_rng_uniform(srng) * nx);
+                        int vy = static_cast<int>(det_rng_uniform(srng) * ny);
+                        int vz = static_cast<int>(det_rng_uniform(srng) * nz);
+                        if (vx >= nx) vx = nx - 1;
+                        if (vy >= ny) vy = ny - 1;
+                        if (vz >= nz) vz = nz - 1;
+                        int vox = vz * nxy + vy * nx + vx;
+                        int pv = place_one(vox, cvol);
+                        if (pv < 0) continue;
+
+                        RecruitRequest req{};
+                        decode(pv, req.x, req.y, req.z);
+                        req.cell_type = CELL_TYPE_FIB;
+                        req.cell_state = cstate;
+                        req.life = static_cast<int>(fib_life_mean
+                            * logf(1.0f / (det_rng_uniform(srng) + 1e-4f)) + 0.5f);
+                        if (req.life <= 0) req.life = 1;
+                        req.seq = req_seq++;
+                        requests.push_back(req);
+                    }
+                }
+            }
 
             for (int s = 0; s < N_QSTREAM; ++s) {
                 const float* q = &qf[static_cast<size_t>(s) * nvox];
@@ -2441,16 +2541,23 @@ FLAMEGPU_HOST_FUNCTION(finalize_phi) {
     FLAMEGPU->environment.setProperty<float>("phi_cd8_c1",   static_cast<float>(g_phi[PHI_CD8_C1]));
     FLAMEGPU->environment.setProperty<float>("phi_m1_c1",    static_cast<float>(g_phi[PHI_M1_C1]));
     FLAMEGPU->environment.setProperty<float>("phi_cd8_treg", static_cast<float>(g_phi[PHI_CD8_TREG]));
+    FLAMEGPU->environment.setProperty<float>("phi_m2_c1",    static_cast<float>(g_phi[PHI_M2_C1]));
+    FLAMEGPU->environment.setProperty<float>("phi_icaf_c1",  static_cast<float>(g_phi[PHI_ICAF_C1]));
+    FLAMEGPU->environment.setProperty<float>("phi_mdsc_cd8", static_cast<float>(g_phi[PHI_MDSC_CD8]));
+    FLAMEGPU->environment.setProperty<float>("phi_bcell_cd8",static_cast<float>(g_phi[PHI_BCELL_CD8]));
+    FLAMEGPU->environment.setProperty<float>("phi_vas_c1",   static_cast<float>(g_phi[PHI_VAS_C1]));
 
-    // Own file rather than a column in class_audit.csv: that one is written at Phase 0 from
-    // recruit_systematic, so it would carry the PREVIOUS step's phi and invite an off-by-one
-    // misreading. n_tgt/n_src are emitted alongside because a phi computed from a handful of
-    // cells is noise, and the counts are the only way to see that from the output.
     if (!g_phi_csv.is_open()) {
         g_phi_csv.open(g_phi_csv_path);
-        g_phi_csv << "step,phi_cd8_c1,valid_cd8_c1,n_c1,n_cd8,"
-                  << "phi_m1_c1,valid_m1_c1,n_m1,"
-                  << "phi_cd8_treg,valid_cd8_treg,n_treg\n";
+        g_phi_csv << "step"
+                  << ",phi_cd8_c1,valid_cd8_c1,n_c1,n_cd8"
+                  << ",phi_m1_c1,valid_m1_c1,n_m1"
+                  << ",phi_cd8_treg,valid_cd8_treg,n_treg"
+                  << ",phi_m2_c1,valid_m2_c1,n_m2"
+                  << ",phi_icaf_c1,valid_icaf_c1,n_icaf"
+                  << ",phi_mdsc_cd8,valid_mdsc_cd8,n_mdsc"
+                  << ",phi_bcell_cd8,valid_bcell_cd8,n_bcell"
+                  << ",phi_vas_c1,valid_vas_c1,n_vas\n";
     }
     if (g_phi_csv.is_open()) {
         g_phi_csv << FLAMEGPU->getStepCounter()
@@ -2459,7 +2566,17 @@ FLAMEGPU_HOST_FUNCTION(finalize_phi) {
             << ',' << g_phi[PHI_M1_C1]    << ',' << (g_phi_valid[PHI_M1_C1] ? 1 : 0)
             << ',' << cnt[N_PHI_PAIR + PHI_KDE_MAC_M1]
             << ',' << g_phi[PHI_CD8_TREG] << ',' << (g_phi_valid[PHI_CD8_TREG] ? 1 : 0)
-            << ',' << cnt[PHI_CD8_TREG] << '\n';
+            << ',' << cnt[PHI_CD8_TREG]
+            << ',' << g_phi[PHI_M2_C1]    << ',' << (g_phi_valid[PHI_M2_C1] ? 1 : 0)
+            << ',' << cnt[N_PHI_PAIR + PHI_KDE_MAC_M2]
+            << ',' << g_phi[PHI_ICAF_C1]  << ',' << (g_phi_valid[PHI_ICAF_C1] ? 1 : 0)
+            << ',' << cnt[N_PHI_PAIR + PHI_KDE_FIB_ICAF]
+            << ',' << g_phi[PHI_MDSC_CD8] << ',' << (g_phi_valid[PHI_MDSC_CD8] ? 1 : 0)
+            << ',' << cnt[N_PHI_PAIR + PHI_KDE_MDSC]
+            << ',' << g_phi[PHI_BCELL_CD8]<< ',' << (g_phi_valid[PHI_BCELL_CD8] ? 1 : 0)
+            << ',' << cnt[N_PHI_PAIR + PHI_KDE_BCELL]
+            << ',' << g_phi[PHI_VAS_C1]   << ',' << (g_phi_valid[PHI_VAS_C1] ? 1 : 0)
+            << ',' << cnt[N_PHI_PAIR + PHI_KDE_VAS] << '\n';
         g_phi_csv.flush();
     }
 }

@@ -782,6 +782,15 @@ FLAMEGPU_AGENT_FUNCTION(tcell_phi_deposit, flamegpu::MessageNone, flamegpu::Mess
     return flamegpu::ALIVE;
 }
 
+// ── phi: CD8 SAMPLES phi_6 (MDSC×CD8) and phi_7 (Bcell×CD8). ──
+FLAMEGPU_AGENT_FUNCTION(tcell_phi_sample, flamegpu::MessageNone, flamegpu::MessageNone) {
+    if (is_qsp_CD8(FLAMEGPU->getVariable<int>("cell_state"))) {
+        phi_sample(FLAMEGPU, PHI_MDSC_CD8);
+        phi_sample(FLAMEGPU, PHI_BCELL_CD8);
+    }
+    return flamegpu::ALIVE;
+}
+
 } // namespace PDAC
 
 #endif // PDAC_T_CELL_CUH
