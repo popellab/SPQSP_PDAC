@@ -74,13 +74,14 @@
       <recruit_p name="PARAM_MDSC_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- PARAMETRIC recruitment_mode ONLY: per-entry per-step MDSC recruitment probability (no QSP). Needed because PARAM_MDSC_RECRUIT_K became a QSP flux-rate const (single-ledger, Jul 2026). Unused in QSP mode (Φ_mdsc = PARAM_MDSC_RECRUIT_K·V_T). SBI free param; 0.03 default, recalibrate. -->
     </MDSC>
     <BCell>
-      <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           <!-- 60 steps x6h = 15d, mixed-pool mean (R8 2026-06-16): plasmablast 3-5d (Tellier2019) to naive ~42d (Fulcher1997). Manz2002 "3-8d" DROPPED (misattributed; Manz argues plasma long-lived). -->
-      <lifespanSD name="PARAM_BCELL_LIFE_SD" type="float" val="pos">10</lifespanSD>
+      <!-- lifespanMean/SD REMOVED (Aug 2026): replaced by QSP-derived per-step death
+           probability in DerivedParams (PARAM_BCELL_SURV_STEP, PARAM_BCELL_SURV_STEP_PLASMA).
+           QSP k_B_death=0.1/day → p_death≈0.025/step; k_plasma_death=0.1/day → same. -->
       <moveSteps name="PARAM_BCELL_MOVE_STEPS" type="int" val="pos">30</moveSteps>
       <recruit_p name="PARAM_BCELL_RECRUIT_P" type="float" val="pr">1e-3</recruit_p>               <!-- PARAMETRIC recruitment_mode ONLY: per-entry per-step B-cell recruitment probability (no QSP coupling), mirroring PARAM_*_RECRUIT_P for the T streams. Unused in QSP mode, where p_bcell = qsp_bcell_central * PARAM_BCELL_RECRUIT_K (K now QSP-derived from q_Treg_T_in; see DerivedParams). 1e-3 preserves the prior abm_only B minority (~1e3 vs T~1.6e4 on 50³). -->
       <ec50_cxcl13_rec name="PARAM_BCELL_EC50_CXCL13_REC" type="float" val="pr">10.0</ec50_cxcl13_rec> <!-- UNUSED (single-ledger, Jul 2026): B recruitment no longer carries a CXCL13/CXCR5 soft gate — QSP RF237 has none. Retained (harmless) to avoid enum churn; safe to remove in a later cleanup. -->
       <div_interval name="PARAM_BCELL_DIV_CD" type="int" val="pos">2</div_interval>                <!-- 2 steps x 6h = 12h, within 6-12h centroblast cycle (tight measured 6-7h=1 step). Zhang1988 Immunol Lett "6 to 7 hours" + Liu1991 EJI BrdU. Victora2010/Gitlin2014 DROPPED (their "6hr" = imaging window, not cycle). -->
-      <div_limit name="PARAM_BCELL_DIV_LIMIT" type="int" val="pos">6</div_limit>                   <!-- Max clonal expansion rounds -->
+      <div_limit name="PARAM_BCELL_DIV_LIMIT" type="int" val="pos">3</div_limit>                   <!-- Max TLS clonal expansion rounds (was 6; reduced Aug 2026 — TLS-gated so 2^3=8x is sufficient local GC representation) -->
       <activation_timer_base name="PARAM_BCELL_ACTIVATION_TIMER" type="int" val="pos">40</activation_timer_base>  <!-- Steps before plasma differentiation (~10 days GC transit; TFH speedup halves to 5 days) -->
       <tls_speedup name="PARAM_BCELL_TLS_SPEEDUP" type="float" val="pr">1.0</tls_speedup>           <!-- Neutral: GC pathway slower than EF, not faster (Elsner2020). Tfh handles acceleration. -->
       <tls_threshold name="PARAM_BCELL_TLS_THRESHOLD" type="int" val="pos">3</tls_threshold>         <!-- Neighbor B cell count for TLS effect -->
@@ -1064,7 +1065,7 @@
       <N_IL2_CD8>11.0</N_IL2_CD8>
       <N_IL2_CD4>8.5</N_IL2_CD4>
       <k_IFNg_Tsec>2e-13</k_IFNg_Tsec>
-      <k_IFNg_Thsec>40.1476057133333</k_IFNg_Thsec>
+      <k_IFNg_Thsec>0</k_IFNg_Thsec>
       <k_IFNg_deg>7.68</k_IFNg_deg>
       <IFNg_50_ind>2.96</IFNg_50_ind>
       <k_TGFb_Tsec>1.2e-10</k_TGFb_Tsec>
@@ -1416,7 +1417,7 @@
     <D name="PARAM_TEFF_TGFB_EC50" type="float" comment="TGFb EC50 for Teff suppression [nM]"><![CDATA[QP(CancerVCT::P_TGFb_50_Teff) * 1e6]]></D>
     <D name="PARAM_MAC_IL_10_EC50" type="float" comment="IL-10 EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_IL10_50) * 1e6]]></D>
     <D name="PARAM_MAC_IL_10_HALF_PHAGO" type="float" comment="IL-10 half-max for phagocytosis [nM]"><![CDATA[QP(CancerVCT::P_IL10_50_phago) * 1e6]]></D>
-    <D name="PARAM_MAC_IFN_G_EC50" type="float" comment="IFNg EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_k_IFNg_response) * 1e6]]></D>
+    <D name="PARAM_MAC_IFNG_RESPONSE" type="float" comment="IFNg linear gain for M2→M1 polarization [1/nM]; QSP uses max(0,1-k*C) not Hill"><![CDATA[QP(CancerVCT::P_k_IFNg_response) / 1e6]]></D>
     <D name="PARAM_MAC_IL_12_EC50" type="float" comment="IL-12 EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_IL12_50) * 1e6]]></D>
     <D name="PARAM_MAC_IL6_M2_EC50" type="float" comment="IL-6 EC50 for M1→M2 polarization [nM]"><![CDATA[QP(CancerVCT::P_IL6_50_M2) * 1e6]]></D>
 
@@ -1600,7 +1601,8 @@
     <D name="PARAM_CANCER_IL1_RELEASE_SEN" type="float" comment="IL-1 senescent secretion [pmol/(cell*s)] — 0.2x stem (SASP)"><![CDATA[QP(CancerVCT::P_k_IL1_sec) * qp_sec_to_abm * 0.2]]></D>
 
     <!-- CD8/Th IFN-γ and IL-2 secretion from QSP ODE -->
-    <D name="PARAM_IFNG_RELEASE" type="float" comment="IFN-γ per-cell secretion [pmol/(cell*s)] from QSP k_IFNg_Tsec"><![CDATA[QP(CancerVCT::P_k_IFNg_Tsec) * qp_sec_to_abm]]></D>
+    <D name="PARAM_IFNG_RELEASE" type="float" comment="IFN-γ per-CD8-cell secretion [pmol/(cell*s)] from QSP k_IFNg_Tsec"><![CDATA[QP(CancerVCT::P_k_IFNg_Tsec) * qp_sec_to_abm]]></D>
+    <!-- PARAM_IFNG_RELEASE_TH REMOVED — undifferentiated Th do not secrete IFN-γ -->
     <D name="PARAM_IL2_RELEASE" type="float" comment="IL-2 per-cell secretion [pmol/(cell*s)] from QSP k_IL2_sec"><![CDATA[QP(CancerVCT::P_k_IL2_sec) * qp_sec_to_abm]]></D>
 
     <!-- CXCL12 (SDF-1): secretion + EC50 from QSP ODE -->
@@ -1631,6 +1633,11 @@
 
     <!-- MDSC IL-6 recruitment boost EC50 — QSP-derived -->
     <D name="PARAM_MDSC_EC50_IL6_REC" type="float" comment="IL-6 EC50 for MDSC recruitment boost [nM]"><![CDATA[QP(CancerVCT::P_IL6_50_MDSC) * 1e6]]></D>
+
+    <!-- B cell / plasma cell mean lifespan [steps] — QSP-derived from death rate constants -->
+    <!-- QP() returns 1/s; mean_life = 1/(k*dt_step) steps. Drawn as Exp(mean) at creation. -->
+    <D name="PARAM_BCELL_LIFE_MEAN" type="float" comment="B cell mean life [steps] from QSP k_B_death (naive+activated)"><![CDATA[static_cast<float>(1.0 / (QP(CancerVCT::P_k_B_death) * t_step_sec))]]></D>
+    <D name="PARAM_BCELL_LIFE_MEAN_PLASMA" type="float" comment="Plasma cell mean life [steps] from QSP k_plasma_death"><![CDATA[static_cast<float>(1.0 / (QP(CancerVCT::P_k_plasma_death) * t_step_sec))]]></D>
 
     <!-- Division intervals — QSP-derived from tumor proliferation rates -->
     <D name="PARAM_TREG_DIV_INTERVAL" type="int" comment="Treg division cooldown [steps] from k_Treg_pro_tumor"><![CDATA[static_cast<int>(std::round(1.0 / (QP(CancerVCT::P_k_Treg_pro_tumor) * t_step_sec)))]]></D>

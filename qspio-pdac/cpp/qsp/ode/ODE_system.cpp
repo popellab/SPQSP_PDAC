@@ -529,8 +529,8 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_N_IL2_CD4] = PFILE(QSP_N_IL2_CD4) * 1;
     //k_IFNg_Tsec, index: 248, units: MWDERIVEDUNIT_nanomole__cell__day
     _class_parameter[P_k_IFNg_Tsec] = PFILE(QSP_k_IFNg_Tsec) * 6970071747.68519;
-    //k_IFNg_Thsec, index: 249, units: MWDERIVEDUNIT_1__day
-    _class_parameter[P_k_IFNg_Thsec] = PFILE(QSP_k_IFNg_Thsec) * 1.15740740740741e-05;
+    //k_IFNg_Thsec: REMOVED — undifferentiated Th cells do not secrete IFN-γ
+    _class_parameter[P_k_IFNg_Thsec] = 0;
     //k_IFNg_deg, index: 250, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_IFNg_deg] = PFILE(QSP_k_IFNg_deg) * 1.15740740740741e-05;
     //IFNg_50_ind, index: 251, units: MWBUILTINPREFIX_pico_MWBUILTINUNIT_molarity
@@ -3282,7 +3282,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux198 = PARAM(P_k_IFNg_Tsec) * SPVAR(SP_V_T_CD8);
 
-    realtype ReactionFlux199 = PARAM(P_k_IFNg_Thsec) * SPVAR(SP_V_T_Th);
+    // ReactionFlux199 REMOVED — undifferentiated Th do not secrete IFN-γ
 
     realtype ReactionFlux200 = PARAM(P_k_IL2_deg) * (SPVAR(SP_V_LN_IL2) / PARAM(P_V_LN)) * PARAM(P_V_LN);
 
@@ -3638,7 +3638,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
     NV_DATA_S(ydot)[SP_V_T_aPDL1] = ReactionFlux111 - ReactionFlux113;
     NV_DATA_S(ydot)[SP_V_T_aCTLA4] = ReactionFlux118 - ReactionFlux120;
     NV_DATA_S(ydot)[SP_V_T_Th] = - ReactionFlux183 - ReactionFlux187 - ReactionFlux188 - ReactionFlux189 - ReactionFlux190 + ReactionFlux193 + ReactionFlux195 - ReactionFlux332;
-    NV_DATA_S(ydot)[SP_V_T_IFNg] = ReactionFlux198 + ReactionFlux199 - ReactionFlux203;
+    NV_DATA_S(ydot)[SP_V_T_IFNg] = ReactionFlux198 - ReactionFlux203;
     NV_DATA_S(ydot)[SP_V_T_TGFb] = ReactionFlux204 + ReactionFlux205 + ReactionFlux284 + ReactionFlux303;
     NV_DATA_S(ydot)[SP_V_T_Tfh] = - ReactionFlux213 - ReactionFlux214 + ReactionFlux217;
     NV_DATA_S(ydot)[SP_V_T_B] = - ReactionFlux231 - ReactionFlux232 + ReactionFlux237;
@@ -6733,7 +6733,7 @@ int ODE_system::jac(realtype t, N_Vector y, N_Vector fy,
     data[567] = x640;
     data[568] = x643;
     data[569] = SPVAR(SP_V_T_Th)*PARAM(P_k_Th_pro_tumor)*(SPVAR(SP_V_T_Th)*x391*x723 - x1020) + PARAM(P_k_Th_pro_tumor)*(-SPVAR(SP_V_T_Th)*x1020 + 1.0) - x1018 - x1019 - x1021 + x646 + x648 - x693;
-    data[570] = PARAM(P_k_IFNg_Thsec);
+    data[570] = 0;
     data[571] = x727;
     data[572] = x653;
     data[573] = x655;

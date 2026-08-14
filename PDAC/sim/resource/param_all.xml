@@ -482,7 +482,7 @@
       <N_IL2_CD8>11.0</N_IL2_CD8>
       <N_IL2_CD4>8.5</N_IL2_CD4>
       <k_IFNg_Tsec>2e-13</k_IFNg_Tsec>
-      <k_IFNg_Thsec>40.1476057133333</k_IFNg_Thsec>
+      <k_IFNg_Thsec>0</k_IFNg_Thsec>
       <k_IFNg_deg>7.68</k_IFNg_deg>
       <IFNg_50_ind>2.96</IFNg_50_ind>
       <k_TGFb_Tsec>1.2e-10</k_TGFb_Tsec>

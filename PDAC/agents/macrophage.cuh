@@ -372,18 +372,18 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
     }
 
     if (cell_state == MAC_M1) {
+        // QSP RF287: k_M2_pol * M1 * (H_TGFb + H_IL10 + H_IL6) / 3
         float TGFB = PDE_READ(FLAMEGPU, PDE_CONC_TGFB, voxel_ss);
         float IL10 = PDE_READ(FLAMEGPU, PDE_CONC_IL10, voxel_ss);
         float IL6  = PDE_READ(FLAMEGPU, PDE_CONC_IL6, voxel_ss);
 
-        float H_TGFb = TGFB / (TGFB + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_EC50"));
-        float H_IL10 = IL10 / (IL10 + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_10_EC50"));
-        float H_IL6  = IL6  / (IL6  + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL6_M2_EC50"));
+        float H_TGFb = TGFB / (TGFB + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_EC50") + 1e-30f);
+        float H_IL10 = IL10 / (IL10 + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_10_EC50") + 1e-30f);
+        float H_IL6  = IL6  / (IL6  + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL6_M2_EC50") + 1e-30f);
 
         double alpha = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M2_POL") *
-                            (H_TGFb + H_IL10 + H_IL6);
+                            (H_TGFb + H_IL10 + H_IL6) / 3.0;
 
-        // Hypoxia increases M1→M2 transition probability
         alpha /= static_cast<double>(bias_factor);
 
         double p_M2_polar = 1 - std::exp(-alpha);
@@ -395,14 +395,17 @@ FLAMEGPU_AGENT_FUNCTION(mac_state_step, flamegpu::MessageNone, flamegpu::Message
     }
 
     if (cell_state == MAC_M2){
+        // QSP RF288: k_M1_pol * M2 * (1 - (1-H_IL12) * max(0, 1-k_IFNg*C_IFNg))
         float IL12 = PDE_READ(FLAMEGPU, PDE_CONC_IL12, voxel_ss);
         float IFNg = PDE_READ(FLAMEGPU, PDE_CONC_IFN, voxel_ss);
 
-        double alpha = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M1_POL") *
-                            ((IFNg / (IFNg + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IFN_G_EC50"))) +
-                            (IL12 / (IL12 + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_12_EC50"))));
+        float H_IL12 = IL12 / (IL12 + FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_12_EC50") + 1e-30f);
+        float k_ifng = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IFNG_RESPONSE");
+        float ifng_suppression = fmaxf(0.0f, 1.0f - k_ifng * IFNg);
 
-        // Hypoxia decreases M2→M1 reversion probability
+        double alpha = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M1_POL") *
+                            (1.0 - (1.0 - static_cast<double>(H_IL12)) * static_cast<double>(ifng_suppression));
+
         alpha *= static_cast<double>(bias_factor);
 
         double p_M1_polar = 1 - std::exp(-alpha);

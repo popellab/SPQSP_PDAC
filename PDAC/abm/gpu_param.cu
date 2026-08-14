@@ -42,8 +42,6 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.TCD4.th_recruit_p", "", "pr"},  // PARAM_TH_RECRUIT_P
     {"Param.ABM.MDSC.lifespanSD", "", "pos"},  // PARAM_MDSC_LIFESPAN_SD
     {"Param.ABM.MDSC.recruit_p", "", "pr"},  // PARAM_MDSC_RECRUIT_P
-    {"Param.ABM.BCell.lifespanMean", "", "pos"},  // PARAM_BCELL_LIFE_MEAN
-    {"Param.ABM.BCell.lifespanSD", "", "pos"},  // PARAM_BCELL_LIFE_SD
     {"Param.ABM.BCell.recruit_p", "", "pr"},  // PARAM_BCELL_RECRUIT_P
     {"Param.ABM.BCell.ec50_cxcl13_rec", "", "pr"},  // PARAM_BCELL_EC50_CXCL13_REC
     {"Param.ABM.BCell.tls_speedup", "", "pr"},  // PARAM_BCELL_TLS_SPEEDUP
@@ -387,8 +385,6 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_TH_RECRUIT_P", getFloat(PARAM_TH_RECRUIT_P));
     env.newProperty<float>("PARAM_MDSC_LIFESPAN_SD", getFloat(PARAM_MDSC_LIFESPAN_SD));
     env.newProperty<float>("PARAM_MDSC_RECRUIT_P", getFloat(PARAM_MDSC_RECRUIT_P));
-    env.newProperty<float>("PARAM_BCELL_LIFE_MEAN", getFloat(PARAM_BCELL_LIFE_MEAN));
-    env.newProperty<float>("PARAM_BCELL_LIFE_SD", getFloat(PARAM_BCELL_LIFE_SD));
     env.newProperty<float>("PARAM_BCELL_RECRUIT_P", getFloat(PARAM_BCELL_RECRUIT_P));
     env.newProperty<float>("PARAM_BCELL_EC50_CXCL13_REC", getFloat(PARAM_BCELL_EC50_CXCL13_REC));
     env.newProperty<float>("PARAM_BCELL_TLS_SPEEDUP", getFloat(PARAM_BCELL_TLS_SPEEDUP));

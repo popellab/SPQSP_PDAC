@@ -951,11 +951,13 @@ struct RecruitKernelParams {
     const float* mac_il10_conc;   // IL-10 PDE concentration (M2 driver)
     const float* mac_tgfb_conc;   // TGF-β PDE concentration (M2 driver)
     // mac_il6_conc reuses il6_conc pointer above (same PDE field)
-    float mac_ifng_ec50, mac_il12_ec50;
+    float mac_ifng_response;  // linear gain [1/nM] for IFN-γ M1 drive (NOT an EC50)
+    float mac_il12_ec50;
     float mac_il10_ec50, mac_tgfb_ec50, mac_il6_ec50;
+    float mac_m1_pol, mac_m2_pol;  // polarization rate constants (per step)
     // B cell recruitment
     float p_bcell;
-    float bcell_life_mean, bcell_life_sd;
+    float bcell_life_mean;  // QSP-derived, exponential draw at creation
     const float* cxcl13_conc;  // CXCL13 PDE concentration (B cell recruitment boost)
     float cxcl13_ec50_bcell;   // CXCL13 EC50 for B cell recruitment boost
     // DC recruitment (per-subtype, homeostatic)
@@ -1136,15 +1138,24 @@ __global__ void compute_qfields_kernel(
     }
     qf[QS_MAC * nvox + idx] = p_entry * mac_gate;
 
-    // ── MAC spawn polarization P(M2) — mirrors recruit_all_kernel / state-step formula ──
-    //   H_M1 = H(IFN-γ)+H(IL-12);  H_M2 = H(TGF-β)+H(IL-10)+H(IL-6);  default M2 if no signal.
-    float h_m1 = 0.0f, h_m2 = 0.0f;
-    if (p.mac_ifng_conc) { float c = p.mac_ifng_conc[idx]; h_m1 += c / (c + p.mac_ifng_ec50 + 1e-30f); }
-    if (p.mac_il12_conc) { float c = p.mac_il12_conc[idx]; h_m1 += c / (c + p.mac_il12_ec50 + 1e-30f); }
-    if (p.mac_tgfb_conc) { float c = p.mac_tgfb_conc[idx]; h_m2 += c / (c + p.mac_tgfb_ec50 + 1e-30f); }
-    if (p.mac_il10_conc) { float c = p.mac_il10_conc[idx]; h_m2 += c / (c + p.mac_il10_ec50 + 1e-30f); }
-    if (p.il6_conc)      { float c = p.il6_conc[idx];      h_m2 += c / (c + p.mac_il6_ec50  + 1e-30f); }
-    qf[QPLANE_PM2 * nvox + idx] = (h_m1 + h_m2 < 1e-9f) ? 1.0f : h_m2 / (h_m1 + h_m2);
+    // ── MAC spawn polarization P(M2) — QSP RF287/RF288 rate structure ──
+    float qf_r_m2 = 0.0f;
+    {
+        float h_tgfb = 0.0f, h_il10 = 0.0f, h_il6 = 0.0f;
+        if (p.mac_tgfb_conc) { float c = p.mac_tgfb_conc[idx]; h_tgfb = c / (c + p.mac_tgfb_ec50 + 1e-30f); }
+        if (p.mac_il10_conc) { float c = p.mac_il10_conc[idx]; h_il10 = c / (c + p.mac_il10_ec50 + 1e-30f); }
+        if (p.il6_conc)      { float c = p.il6_conc[idx];      h_il6  = c / (c + p.mac_il6_ec50 + 1e-30f); }
+        qf_r_m2 = p.mac_m2_pol * (h_tgfb + h_il10 + h_il6) / 3.0f;
+    }
+    float qf_r_m1 = 0.0f;
+    {
+        float h_il12 = 0.0f;
+        if (p.mac_il12_conc) { float c = p.mac_il12_conc[idx]; h_il12 = c / (c + p.mac_il12_ec50 + 1e-30f); }
+        float ifng_supp = 1.0f;
+        if (p.mac_ifng_conc) { ifng_supp = fmaxf(0.0f, 1.0f - p.mac_ifng_response * p.mac_ifng_conc[idx]); }
+        qf_r_m1 = p.mac_m1_pol * (1.0f - (1.0f - h_il12) * ifng_supp);
+    }
+    qf[QPLANE_PM2 * nvox + idx] = (qf_r_m1 + qf_r_m2 < 1e-30f) ? 1.0f : qf_r_m2 / (qf_r_m1 + qf_r_m2);
 
     // ── B cell: no cytokine gate — matches QSP RF237 (q_Treg_T_in · H_C2, carried by Vvas).
     //    The former CXCL13/CXCR5 soft gate (ABM-only TLS heuristic) is removed. ──
@@ -1391,37 +1402,30 @@ __global__ void recruit_all_kernel(
                     req.x = px; req.y = py; req.z = pz;
                     req.cell_type = CELL_TYPE_MAC;
 
-                    // Probabilistic M1/M2 polarization at spawn — mirrors the
-                    // state-step polarization formula so a freshly-recruited
-                    // macrophage's initial phenotype tracks the local cytokine
-                    // milieu rather than always defaulting to M1.
-                    //   H_M1 = H(IFN-γ) + H(IL-12)              [M1 drivers]
-                    //   H_M2 = H(TGF-β) + H(IL-10) + H(IL-6)    [M2 drivers]
-                    //   P(M2) = H_M2 / (H_M1 + H_M2); default M2 if no signal
-                    float h_m1 = 0.0f, h_m2 = 0.0f;
-                    if (p.mac_ifng_conc) {
-                        float c = p.mac_ifng_conc[idx];
-                        h_m1 += c / (c + p.mac_ifng_ec50 + 1e-30f);
+                    // Probabilistic M1/M2 polarization at spawn — matches
+                    // QSP RF287/RF288 rate structure. Compute instantaneous
+                    // M1→M2 and M2→M1 rates; P(M2) = r_m2/(r_m1+r_m2).
+                    // M1→M2: k_M2 * (H_TGFb+H_IL10+H_IL6)/3
+                    // M2→M1: k_M1 * (1-(1-H_IL12)*max(0,1-k_IFNg*C))
+                    float r_m2 = 0.0f;  // M1→M2 rate (unnormalized)
+                    {
+                        float h_tgfb = 0.0f, h_il10 = 0.0f, h_il6 = 0.0f;
+                        if (p.mac_tgfb_conc) { float c = p.mac_tgfb_conc[idx]; h_tgfb = c / (c + p.mac_tgfb_ec50 + 1e-30f); }
+                        if (p.mac_il10_conc) { float c = p.mac_il10_conc[idx]; h_il10 = c / (c + p.mac_il10_ec50 + 1e-30f); }
+                        if (p.il6_conc)      { float c = p.il6_conc[idx];      h_il6  = c / (c + p.mac_il6_ec50 + 1e-30f); }
+                        r_m2 = p.mac_m2_pol * (h_tgfb + h_il10 + h_il6) / 3.0f;
                     }
-                    if (p.mac_il12_conc) {
-                        float c = p.mac_il12_conc[idx];
-                        h_m1 += c / (c + p.mac_il12_ec50 + 1e-30f);
+                    float r_m1 = 0.0f;  // M2→M1 rate (unnormalized)
+                    {
+                        float h_il12 = 0.0f;
+                        if (p.mac_il12_conc) { float c = p.mac_il12_conc[idx]; h_il12 = c / (c + p.mac_il12_ec50 + 1e-30f); }
+                        float ifng_supp = 1.0f;
+                        if (p.mac_ifng_conc) { ifng_supp = fmaxf(0.0f, 1.0f - p.mac_ifng_response * p.mac_ifng_conc[idx]); }
+                        r_m1 = p.mac_m1_pol * (1.0f - (1.0f - h_il12) * ifng_supp);
                     }
-                    if (p.mac_tgfb_conc) {
-                        float c = p.mac_tgfb_conc[idx];
-                        h_m2 += c / (c + p.mac_tgfb_ec50 + 1e-30f);
-                    }
-                    if (p.mac_il10_conc) {
-                        float c = p.mac_il10_conc[idx];
-                        h_m2 += c / (c + p.mac_il10_ec50 + 1e-30f);
-                    }
-                    if (p.il6_conc) {  // shared PDE field with MDSC
-                        float c = p.il6_conc[idx];
-                        h_m2 += c / (c + p.mac_il6_ec50 + 1e-30f);
-                    }
-                    float p_m2 = (h_m1 + h_m2 < 1e-9f)
-                        ? 1.0f                          // no cytokine signal → PDAC TAM bias (M2)
-                        : h_m2 / (h_m1 + h_m2);
+                    float p_m2 = (r_m1 + r_m2 < 1e-30f)
+                        ? 1.0f  // no cytokine signal → PDAC TAM bias (M2)
+                        : r_m2 / (r_m1 + r_m2);
                     req.cell_state = (rng_uniform(rng) < p_m2) ? MAC_M2 : MAC_M1;
 
                     req.life = sample_exp_life_gpu(p.mac_life_mean, rng);
@@ -1468,7 +1472,7 @@ __global__ void recruit_all_kernel(
                     req.x = px; req.y = py; req.z = pz;
                     req.cell_type = CELL_TYPE_BCELL;
                     req.cell_state = BCELL_NAIVE;
-                    req.life = sample_normal_life_gpu(p.bcell_life_mean, p.bcell_life_sd, rng);
+                    req.life = sample_exp_life_gpu(p.bcell_life_mean, rng);
                     req.divide_cd = 0;
                     req.divide_limit = 0;
                     req.IL2_release_remain = 0.0f;
@@ -1607,11 +1611,13 @@ static RecruitKernelParams build_recruit_kernel_params(
         g_pde_solver->get_device_concentration_ptr(CHEM_IL10)) : nullptr;
     p.mac_tgfb_conc = g_pde_solver ? reinterpret_cast<const float*>(
         g_pde_solver->get_device_concentration_ptr(CHEM_TGFB)) : nullptr;
-    p.mac_ifng_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IFN_G_EC50");
+    p.mac_ifng_response = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IFNG_RESPONSE");
     p.mac_il12_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_12_EC50");
     p.mac_il10_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL_10_EC50");
     p.mac_tgfb_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_TGFB_EC50");
     p.mac_il6_ec50  = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_IL6_M2_EC50");
+    p.mac_m1_pol = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M1_POL");
+    p.mac_m2_pol = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_M2_POL");
 
     // B cell params. QSP couples B trafficking through the same functional form as the
     // T cells (RF237 = q_Treg_T_in · V_T · [V_C_B] · H_C2), so B is central-pool-driven in
@@ -1624,7 +1630,6 @@ static RecruitKernelParams build_recruit_kernel_params(
         p.p_bcell = std::min(FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_RECRUIT_P"), 1.0f);
     }
     p.bcell_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_LIFE_MEAN");
-    p.bcell_life_sd   = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_LIFE_SD");
     p.cxcl13_conc = g_pde_solver ? reinterpret_cast<const float*>(
         g_pde_solver->get_device_concentration_ptr(CHEM_CXCL13)) : nullptr;
     p.cxcl13_ec50_bcell = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_EC50_CXCL13_REC");
@@ -2146,7 +2151,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             if (pv < 0) return;
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_BCELL; req.cell_state = BCELL_NAIVE;
-            req.life = det_normal_life(crng, p.bcell_life_mean, p.bcell_life_sd);
+            req.life = det_exp_life(crng, p.bcell_life_mean);
             req.seq = req_seq++;
             requests.push_back(req);
             break;

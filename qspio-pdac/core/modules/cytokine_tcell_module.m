@@ -72,9 +72,7 @@ p.UserData.Source = params.N_IL2_CD4.Notes;
 p = addparameter(model, 'k_IFNg_Tsec', params.k_IFNg_Tsec.Value, 'ValueUnits', params.k_IFNg_Tsec.Units, 'Notes', 'rate of IFNg secretion per CD8 T cell in tumor ');
 p.UserData.Source = params.k_IFNg_Tsec.Notes;
     p.UserData.derivedFrom = params.k_IFNg_Tsec.derivedFrom;
-p = addparameter(model, 'k_IFNg_Thsec', params.k_IFNg_Thsec.Value, 'ValueUnits', params.k_IFNg_Thsec.Units, 'Notes', 'rate of IFNg secretion per Th cell in tumor ');
-p.UserData.Source = params.k_IFNg_Thsec.Notes;
-    p.UserData.derivedFrom = params.k_IFNg_Thsec.derivedFrom;
+% k_IFNg_Thsec REMOVED — undifferentiated Th do not secrete IFN-γ
 p = addparameter(model, 'k_IFNg_deg', params.k_IFNg_deg.Value, 'ValueUnits', params.k_IFNg_deg.Units, 'Notes', 'IFNg degradation rate ');
 p.UserData.Source = params.k_IFNg_deg.Notes;
     p.UserData.derivedFrom = params.k_IFNg_deg.derivedFrom;
@@ -149,10 +147,7 @@ reaction = addreaction(model, 'null -> V_LN.IL2');
 reaction = addreaction(model, 'null -> V_T.IFNg');
     set(reaction, 'ReactionRate', 'k_IFNg_Tsec*V_T.CD8');
     set(reaction, 'Notes', 'IFNg secretion from CD8 T cells in tumor (clone-specific effectors)');
-% IFNg secretion by Th cells in tumor (tumor-reactive Th1 cells)
-reaction = addreaction(model, 'null -> V_T.IFNg');
-    set(reaction, 'ReactionRate', 'k_IFNg_Thsec*V_T.Th');
-    set(reaction, 'Notes', 'IFNg secretion from Th cells in tumor (clone-specific effectors)');
+% Th IFNg secretion REMOVED — undifferentiated Th do not produce IFN-γ
 
 %% ========================================================================
 %  SHARED REACTIONS

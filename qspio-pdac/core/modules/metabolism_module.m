@@ -153,8 +153,6 @@ for i = 1:length(model.reaction)
         rate = model.reaction(i).ReactionRate;
         if ~isempty(strfind(rate, 'k_IFNg_Tsec'))
             model.reaction(i).ReactionRate = [rate, '*H_glc_Teff'];
-        elseif ~isempty(strfind(rate, 'k_IFNg_Thsec'))
-            model.reaction(i).ReactionRate = [rate, '*H_glc_Teff'];
         end
     end
 end
@@ -185,8 +183,6 @@ for i = 1:length(model.reaction)
     if strcmp(model.reaction(i).reaction, 'null -> V_T.IFNg')
         rate = model.reaction(i).ReactionRate;
         if ~isempty(strfind(rate, 'k_IFNg_Tsec'))
-            model.reaction(i).ReactionRate = [rate, '*(1-H_lac_Teff)'];
-        elseif ~isempty(strfind(rate, 'k_IFNg_Thsec'))
             model.reaction(i).ReactionRate = [rate, '*(1-H_lac_Teff)'];
         end
     end

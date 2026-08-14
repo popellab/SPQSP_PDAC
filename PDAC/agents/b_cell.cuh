@@ -129,7 +129,7 @@ FLAMEGPU_AGENT_FUNCTION(bcell_state_step, flamegpu::MessageNone, flamegpu::Messa
 
     auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
 
-    // Life countdown
+    // Life countdown (exponential draw at creation, QSP-derived mean)
     int life = FLAMEGPU->getVariable<int>("life");
     life--;
     if (life <= 0) {
@@ -142,9 +142,6 @@ FLAMEGPU_AGENT_FUNCTION(bcell_state_step, flamegpu::MessageNone, flamegpu::Messa
     }
     FLAMEGPU->setVariable<int>("life", life);
 
-    // Deterministic RNG for the state draws below (Breg fate, division-wave). FLAMEGPU->random is
-    // nondeterministic for recruited/born cells (slot-seeded in thread-schedule order); det_tag-
-    // seeded streams (distinct salt per decision) are stable. Mirrors fib/cancer state_step.
     const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
     const unsigned int det_tag  = FLAMEGPU->getVariable<unsigned int>("det_tag");
 
@@ -227,14 +224,15 @@ FLAMEGPU_AGENT_FUNCTION(bcell_state_step, flamegpu::MessageNone, flamegpu::Messa
             FLAMEGPU->setVariable<int>("divide_cd", 0);
             FLAMEGPU->setVariable<int>("divide_limit", 0);
         } else {
-            // Division logic for activated B cells
+            // Division: TLS-gated — only in a GC-like microenvironment (B cluster + T help)
             int divide_cd = FLAMEGPU->getVariable<int>("divide_cd");
             int divide_limit = FLAMEGPU->getVariable<int>("divide_limit");
             if (divide_cd > 0) {
                 divide_cd--;
                 FLAMEGPU->setVariable<int>("divide_cd", divide_cd);
             }
-            if (divide_cd <= 0 && divide_limit > 0 && FLAMEGPU->getVariable<int>("divide_flag") == 0) {
+            bool in_tls = (bcell_count >= tls_th) && (tfh_count > 0 || th_count > 0);
+            if (in_tls && divide_cd <= 0 && divide_limit > 0 && FLAMEGPU->getVariable<int>("divide_flag") == 0) {
                 FLAMEGPU->setVariable<int>("divide_flag", 1);
                 unsigned int rw = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0xB02u, sim_seed);
                 const int w = static_cast<int>(det_rng_uniform(rw) * N_DIVIDE_WAVES);
@@ -242,7 +240,7 @@ FLAMEGPU_AGENT_FUNCTION(bcell_state_step, flamegpu::MessageNone, flamegpu::Messa
             }
         }
     }
-    // BCELL_PLASMA: no state transitions, just lifespan countdown (handled above)
+    // BCELL_PLASMA: no state transitions, just life countdown (handled above)
 
     return flamegpu::ALIVE;
 }
@@ -524,6 +522,7 @@ FLAMEGPU_AGENT_FUNCTION(bcell_divide_confirm, flamegpu::MessageNone, flamegpu::M
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
 
     const unsigned int det_tag = FLAMEGPU->getVariable<unsigned int>("det_tag");
+    const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
     const int my_vidx = z * (grid_x * grid_y) + y * grid_x + x;
     unsigned long long* owner = reinterpret_cast<unsigned long long*>(
         FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
@@ -544,12 +543,19 @@ FLAMEGPU_AGENT_FUNCTION(bcell_divide_confirm, flamegpu::MessageNone, flamegpu::M
     int new_limit = FLAMEGPU->getVariable<int>("divide_limit") - 1;
     int div_cd = FLAMEGPU->environment.getProperty<int>("PARAM_BCELL_DIV_CD");
 
+    // Daughter gets a fresh exponential lifespan (QSP-derived mean)
+    const float life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_LIFE_MEAN");
+    unsigned int rlife = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0xB03u, sim_seed);
+    float u_life = det_rng_uniform(rlife) + 1e-4f;
+    int daughter_life = __float2int_rn(life_mean * logf(1.0f / u_life));
+    if (daughter_life < 1) daughter_life = 1;
+
     // Create daughter cell
     FLAMEGPU->agent_out.setVariable<int>("x", cx);
     FLAMEGPU->agent_out.setVariable<int>("y", cy);
     FLAMEGPU->agent_out.setVariable<int>("z", cz);
     FLAMEGPU->agent_out.setVariable<int>("cell_state", BCELL_ACTIVATED);
-    FLAMEGPU->agent_out.setVariable<int>("life", FLAMEGPU->getVariable<int>("life"));
+    FLAMEGPU->agent_out.setVariable<int>("life", daughter_life);
     FLAMEGPU->agent_out.setVariable<int>("dead", 0);
     FLAMEGPU->agent_out.setVariable<int>("has_antigen", 1);  // Inherited from parent
     FLAMEGPU->agent_out.setVariable<int>("is_breg", FLAMEGPU->getVariable<int>("is_breg"));

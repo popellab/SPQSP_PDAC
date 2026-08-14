@@ -89,8 +89,7 @@
       <recruit_p name="PARAM_MDSC_RECRUIT_P" type="float" val="pr">0.03</recruit_p>  <!-- parametric-mode only -->
     </MDSC>
     <BCell>
-      <lifespanMean name="PARAM_BCELL_LIFE_MEAN" type="float" val="pos">60</lifespanMean>           <!-- ABM steps (~15 days) -->
-      <lifespanSD name="PARAM_BCELL_LIFE_SD" type="float" val="pos">10</lifespanSD>
+      <!-- lifespanMean/SD REMOVED: now QSP-derived (DerivedParams PARAM_BCELL_LIFE_MEAN) -->
       <moveSteps name="PARAM_BCELL_MOVE_STEPS" type="int" val="pos">30</moveSteps>
       <recruit_p name="PARAM_BCELL_RECRUIT_P" type="float" val="pr">3.4e-6</recruit_p>             <!-- Recruitment probability scalar (calibrated 2026-05-06: ÷14500 from 0.05 to land near patient B cell density) -->
       <ec50_cxcl13_rec name="PARAM_BCELL_EC50_CXCL13_REC" type="float" val="pr">10.0</ec50_cxcl13_rec> <!-- CXCL13 EC50 for source marking [nM] -->
@@ -1052,7 +1051,7 @@
       <N_IL2_CD8>11.0</N_IL2_CD8>
       <N_IL2_CD4>8.5</N_IL2_CD4>
       <k_IFNg_Tsec>2e-13</k_IFNg_Tsec>
-      <k_IFNg_Thsec>40.1476057133333</k_IFNg_Thsec>
+      <k_IFNg_Thsec>0</k_IFNg_Thsec>
       <k_IFNg_deg>7.68</k_IFNg_deg>
       <IFNg_50_ind>2.96</IFNg_50_ind>
       <k_TGFb_Tsec>1.2e-10</k_TGFb_Tsec>
@@ -1404,7 +1403,7 @@
     <D name="PARAM_TEFF_TGFB_EC50" type="float" comment="TGFb EC50 for Teff suppression [nM]"><![CDATA[QP(CancerVCT::P_TGFb_50_Teff) * 1e6]]></D>
     <D name="PARAM_MAC_IL_10_EC50" type="float" comment="IL-10 EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_IL10_50) * 1e6]]></D>
     <D name="PARAM_MAC_IL_10_HALF_PHAGO" type="float" comment="IL-10 half-max for phagocytosis [nM]"><![CDATA[QP(CancerVCT::P_IL10_50_phago) * 1e6]]></D>
-    <D name="PARAM_MAC_IFN_G_EC50" type="float" comment="IFNg EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_k_IFNg_response) * 1e6]]></D>
+    <D name="PARAM_MAC_IFNG_RESPONSE" type="float" comment="IFNg linear gain for M2→M1 polarization [1/nM]; QSP uses max(0,1-k*C) not Hill"><![CDATA[QP(CancerVCT::P_k_IFNg_response) / 1e6]]></D>
     <D name="PARAM_MAC_IL_12_EC50" type="float" comment="IL-12 EC50 for macrophage [nM]"><![CDATA[QP(CancerVCT::P_IL12_50) * 1e6]]></D>
     <D name="PARAM_MAC_IL6_M2_EC50" type="float" comment="IL-6 EC50 for M1→M2 polarization [nM]"><![CDATA[QP(CancerVCT::P_IL6_50_M2) * 1e6]]></D>
 

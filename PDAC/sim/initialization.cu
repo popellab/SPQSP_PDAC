@@ -1364,7 +1364,6 @@ void initializeStructuredDomain(
     const int   treg_div_limit   = model.Environment().getProperty<int>("PARAM_TCD4_DIV_LIMIT");
     const int   treg_div_interval = model.Environment().getProperty<int>("PARAM_TREG_DIV_INTERVAL");
     const float bcell_life       = model.Environment().getProperty<float>("PARAM_BCELL_LIFE_MEAN");
-    const float bcell_life_sd    = model.Environment().getProperty<float>("PARAM_BCELL_LIFE_SD");
     const float dc_life_imm      = model.Environment().getProperty<float>("PARAM_DC_LIFE_IMMATURE_MEAN");
     const float dc_life_imm_sd   = model.Environment().getProperty<float>("PARAM_DC_LIFE_IMMATURE_SD");
 
@@ -1613,7 +1612,7 @@ void initializeStructuredDomain(
             agent.setVariable<int>("y", pos[1]);
             agent.setVariable<int>("z", pos[2]);
             agent.setVariable<int>("cell_state", BCELL_NAIVE);
-            agent.setVariable<int>("life", random_normal_life(bcell_life, bcell_life_sd, rng));
+            agent.setVariable<int>("life", random_exp_life(bcell_life, rng));
             agent.setVariable<unsigned int>("det_tag", ++bcell_dt);
         }
         simulation.setPopulationData(bcell_pop);
@@ -1967,7 +1966,7 @@ bool initializeFromPlacement(
     const float mac_life        = model.Environment().getProperty<float>("PARAM_MAC_LIFE_MEAN");
     const float fib_life        = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
     const float bcell_life      = model.Environment().getProperty<float>("PARAM_BCELL_LIFE_MEAN");
-    const float bcell_life_sd   = model.Environment().getProperty<float>("PARAM_BCELL_LIFE_SD");
+    const float bcell_life_plasma = model.Environment().getProperty<float>("PARAM_BCELL_LIFE_MEAN_PLASMA");
     const float dc_imm_life     = model.Environment().getProperty<float>("PARAM_DC_LIFE_IMMATURE_MEAN");
     const float dc_imm_life_sd  = model.Environment().getProperty<float>("PARAM_DC_LIFE_IMMATURE_SD");
     const float dc_mat_life     = model.Environment().getProperty<float>("PARAM_DC_LIFE_MATURE_MEAN");
@@ -2114,7 +2113,8 @@ bool initializeFromPlacement(
             flamegpu::AgentVector::Agent a = bcell_pop.back();
             a.setVariable<int>("x", x); a.setVariable<int>("y", y); a.setVariable<int>("z", z);
             a.setVariable<int>("cell_state", state);
-            a.setVariable<int>("life", draw_life_normal(bcell_life, bcell_life_sd));
+            a.setVariable<int>("life", draw_life_exp(
+                state == BCELL_PLASMA ? bcell_life_plasma : bcell_life));
             a.setVariable<int>("dead", 0);
             // An activated B cell by definition already met antigen; a naive one has not.
             a.setVariable<int>("has_antigen", state == BCELL_NAIVE ? 0 : 1);

@@ -203,7 +203,7 @@ try
     % 4e: IFNg blockade — zero all IFNg secretion sources
     fprintf('  Perturbation: IFNg blockade\n');
     run_perturbation(model, 'pert_ifng', ...
-        {'k_IFNg_Tsec', 0; 'k_IFNg_Thsec', 0}, {});
+        {'k_IFNg_Tsec', 0}, {});
 
 catch ME
     fprintf('ERROR (Tier 4): %s\n', ME.message);

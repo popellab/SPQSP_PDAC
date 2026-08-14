@@ -569,25 +569,12 @@ FLAMEGPU_AGENT_FUNCTION(treg_compute_chemical_sources, flamegpu::MessageNone, fl
     float IL10_release = 0.0f;
     float TGFB_release = 0.0f;
     float IL2_release = 0.0f;
+    float IFNg_release = 0.0f;
 
     int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-    // Naive CD4 cells don't secrete any chemicals
     if (cell_state == TCD4_NAIVE) return flamegpu::ALIVE;
-    if (dead == 0){
-        if (cell_state == TCD4_TH){
-            if (FLAMEGPU->getVariable<int>("found_progenitor") == 1){
-                IL2_release = FLAMEGPU->environment.getProperty<float>("PARAM_IL2_RELEASE");
-            }
-        } else if (cell_state == TCD4_TREG){
-            IL10_release = FLAMEGPU->environment.getProperty<float>("PARAM_TREG_IL10_RELEASE");
-            if (FLAMEGPU->getVariable<int>("found_progenitor") == 1 &&
-                    FLAMEGPU->getVariable<float>("TGFB_release_remain") > 0.0){
-                TGFB_release = FLAMEGPU->environment.getProperty<float>("PARAM_TREG_TGFB_RELEASE");
-            }
-        }
-    }
 
-    // Compute voxel index and volume
+    // Compute voxel index (needed for PDE reads below)
     const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int ax = FLAMEGPU->getVariable<int>("x");
@@ -598,13 +585,32 @@ FLAMEGPU_AGENT_FUNCTION(treg_compute_chemical_sources, flamegpu::MessageNone, fl
     const float vs_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
     const float voxel_volume = vs_cm * vs_cm * vs_cm;
 
+    if (dead == 0){
+        if (cell_state == TCD4_TH){
+            if (FLAMEGPU->getVariable<int>("found_progenitor") == 1){
+                IL2_release = FLAMEGPU->environment.getProperty<float>("PARAM_IL2_RELEASE");
+            }
+            // Th IFN-γ secretion REMOVED — undifferentiated Th do not produce IFN-γ
+            // (would require Th1 cell state to be biologically correct)
+        } else if (cell_state == TCD4_TREG){
+            IL10_release = FLAMEGPU->environment.getProperty<float>("PARAM_TREG_IL10_RELEASE");
+            if (FLAMEGPU->getVariable<int>("found_progenitor") == 1 &&
+                    FLAMEGPU->getVariable<float>("TGFB_release_remain") > 0.0){
+                TGFB_release = FLAMEGPU->environment.getProperty<float>("PARAM_TREG_TGFB_RELEASE");
+            }
+        }
+    }
+
+    // IFN-γ secretion → src ptr 1 (IFN)
+    PDE_SECRETE(FLAMEGPU, PDE_SRC_IFN, voxel, IFNg_release / voxel_volume);
+
     // IL-10 secretion → src ptr 3 (IL10)
     PDE_SECRETE(FLAMEGPU, PDE_SRC_IL10, voxel, IL10_release / voxel_volume);
 
     // TGF-β secretion → src ptr 4 (TGFB)
     PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB, voxel, TGFB_release / voxel_volume);
 
-    // IL-2 secrete → src ptr 2 (IL2), positive [1/s], no volume scaling
+    // IL-2 secrete → src ptr 2 (IL2)
     PDE_SECRETE(FLAMEGPU, PDE_SRC_IL2, voxel, IL2_release / voxel_volume);
 
     // Tfh cells secrete CXCL13 (TLS co-organizing with B cells)

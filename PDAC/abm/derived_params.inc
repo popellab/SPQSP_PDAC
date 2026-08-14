@@ -256,9 +256,9 @@
     env.newProperty<float>("PARAM_MAC_IL_10_HALF_PHAGO", 
                     QP(CancerVCT::P_IL10_50_phago) * 1e6);
 
-    // IFNg EC50 for macrophage [nM]
-    env.newProperty<float>("PARAM_MAC_IFN_G_EC50", 
-                    QP(CancerVCT::P_k_IFNg_response) * 1e6);
+    // IFNg linear gain for M2→M1 polarization [1/nM]; QSP uses max(0,1-k*C) not Hill
+    env.newProperty<float>("PARAM_MAC_IFNG_RESPONSE", 
+                    QP(CancerVCT::P_k_IFNg_response) / 1e6);
 
     // IL-12 EC50 for macrophage [nM]
     env.newProperty<float>("PARAM_MAC_IL_12_EC50", 
@@ -616,9 +616,13 @@
     env.newProperty<float>("PARAM_CANCER_IL1_RELEASE_SEN", 
                     QP(CancerVCT::P_k_IL1_sec) * qp_sec_to_abm * 0.2);
 
-    // IFN-γ per-cell secretion [pmol/(cell*s)] from QSP k_IFNg_Tsec
+    // IFN-γ per-CD8-cell secretion [pmol/(cell*s)] from QSP k_IFNg_Tsec
     env.newProperty<float>("PARAM_IFNG_RELEASE", 
                     QP(CancerVCT::P_k_IFNg_Tsec) * qp_sec_to_abm);
+
+    // IFN-γ per-Th-cell secretion [pmol/(cell*s)] from QSP k_IFNg_Thsec; scaled by H_IL12 in ABM
+    env.newProperty<float>("PARAM_IFNG_RELEASE_TH", 
+                    QP(CancerVCT::P_k_IFNg_Thsec) * qp_sec_to_abm);
 
     // IL-2 per-cell secretion [pmol/(cell*s)] from QSP k_IL2_sec
     env.newProperty<float>("PARAM_IL2_RELEASE", 
@@ -699,6 +703,14 @@
     // IL-6 EC50 for MDSC recruitment boost [nM]
     env.newProperty<float>("PARAM_MDSC_EC50_IL6_REC", 
                     QP(CancerVCT::P_IL6_50_MDSC) * 1e6);
+
+    // B cell mean life [steps] from QSP k_B_death (naive+activated)
+    env.newProperty<float>("PARAM_BCELL_LIFE_MEAN", 
+                    static_cast<float>(1.0 / (QP(CancerVCT::P_k_B_death) * t_step_sec)));
+
+    // Plasma cell mean life [steps] from QSP k_plasma_death
+    env.newProperty<float>("PARAM_BCELL_LIFE_MEAN_PLASMA", 
+                    static_cast<float>(1.0 / (QP(CancerVCT::P_k_plasma_death) * t_step_sec)));
 
     // Treg division cooldown [steps] from k_Treg_pro_tumor
     env.newProperty<int>("PARAM_TREG_DIV_INTERVAL", 

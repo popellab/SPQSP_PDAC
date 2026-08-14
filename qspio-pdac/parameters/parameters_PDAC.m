@@ -1351,16 +1351,9 @@ params.f_active_TGFb.derivedFrom = {'Annes 2004 PMID: 15286164', 'Wipff 2007 PMI
 params.k_IFNg_Tsec.Value = 2e-13;
 params.k_IFNg_Tsec.Units = 'nanomole/cell/day';
 params.k_IFNg_Tsec.Notes = '(Autenshlyus 2021, PMID: 34059727; Borj 2017, doi:10.15171/ijbms.2017.05)';
-% Ratio of IFNg secretin rate b/t CD8 and CD4 T cells
-params.r_IFNg.Value = 3;
-params.r_IFNg.Units = 'dimensionless';
-params.r_IFNg.Notes = '(Kasahara 1983, PMID: 6403613)';
-% IFNg secretion rate by T helper cell
-params.k_IFNg_Thsec.Value = [];
-params.k_IFNg_Thsec.Units = 'nanomole/cell/day';
-params.k_IFNg_Thsec.Notes = ['estimated assuming IFNg secretion is 3 times lower in CD4 than CD8 T cells ' params.r_IFNg.Notes];
-params.k_IFNg_Thsec.Factors = ["k_IFNg_Tsec", "r_IFNg"];
-params.k_IFNg_Thsec.Equation = 'p(1)/p(2)';
+% k_IFNg_Thsec REMOVED — undifferentiated Th cells do not secrete IFN-γ.
+% Th1 differentiation (IFN-γ producing) would require a new cell state.
+% r_IFNg (CD8:CD4 secretion ratio) also removed as it only served k_IFNg_Thsec.
 % IFNg degradation rate
 params.k_IFNg_deg.Value = 7.68;
 params.k_IFNg_deg.Units = '1/day';
