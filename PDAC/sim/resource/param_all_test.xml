@@ -125,6 +125,7 @@
       <asymmetricDivProb name="PARAM_ASYM_DIV_PROB" type="float" val="pr">.95</asymmetricDivProb>
       <progenitorDivMax name="PARAM_PROG_DIV_MAX" type="int" val="pos">10</progenitorDivMax>
       <stuckSenescenceSteps name="PARAM_CANCER_STUCK_SENESCENCE_STEPS" type="int" val="pos">20</stuckSenescenceSteps>  <!-- Contact-inhibited senescence: proliferative cells (STEM + PROGENITOR) whose cancer_divide finds n_cands==0 for N consecutive steps (in their wave) are forced to senesce. Prevents interior trapped-progenitor deadlock (proliferating edge ends up senescent, interior progenitors stay locked). Default 20 slices ≈ 5 days at SEC_PER_SLICE=21600, ~2.2× PROG div interval at PROG_GROWTH_RATE=0.3. Lower → more aggressive turnover, higher → longer dormancy tolerance. -->
+      <localCarryingCapacity name="PARAM_CANCER_LOCAL_CC" type="float" val="pr">30</localCarryingCapacity> <!-- Local Gompertz carrying capacity: max cancer neighbors (Moore 26-nbhd) before division probability → 0. Matches QSP Gompertz growth = k_C1_growth * C1 * log(C_max/C_total). Division gated by p = log(max(K/(n+1),1)) / log(K). Default 20: division stops at ~77% local saturation. -->
       <telomeraseReactivationProb name="PARAM_TELOMERASE_REACTIVATION_PROB" type="float" val="pr">0.005</telomeraseReactivationProb>  <!-- Per-progenitor-division probability that hTERT reactivates and restores divideCountRemaining = PARAM_PROG_DIV_MAX in BOTH parent and daughter (heritable state — models clonal emergence of telomerase-positive subclones during PanIN→PDAC progression, Matsuda2019, Hashimoto2008). Default 0.005: per-lineage prob over ~divMax divisions = 1-(1-p)^divMax ≈ 5% at divMax=10, preventing the hard Hayflick cap on tumor size while keeping subpop hierarchy mostly intact. Bump up if tumor still caps; 0 disables (pure Hayflick). -->
       <moveSteps name="PARAM_CANCER_MOVE_STEPS" type="int" val="pos">2</moveSteps> <!-- MAPLE posterior 2. Non-CSC ~30 um/h (Park2020) -->
       <moveSteps_csc name="PARAM_CANCER_MOVE_STEPS_STEM" type="int" val="pos">1</moveSteps_csc> <!-- MAPLE posterior 1 (5x down). CSCs slower 6 um/h (Park2020) -->
@@ -866,7 +867,7 @@
       <q_Treg_T_in>5.8e-05</q_Treg_T_in>
       <q_nCD4_P_in>0.1764</q_nCD4_P_in>
       <q_nCD4_P_out>5.1</q_nCD4_P_out>
-      <Q_nCD4_thym>1000000.0</Q_nCD4_thym>
+      <Q_nCD4_thym>35000000.0</Q_nCD4_thym>
       <k_nCD4_pro>320000000.0</k_nCD4_pro>
       <K_nTreg_pro>1000000000.0</K_nTreg_pro>
       <k_nTreg_death>0.002</k_nTreg_death>
@@ -895,7 +896,7 @@
       <q_CD8_T_in>5.8e-05</q_CD8_T_in>
       <q_nCD8_P_in>0.1764</q_nCD8_P_in>
       <q_nCD8_P_out>5.1</q_nCD8_P_out>
-      <Q_nCD8_thym>3000000.0</Q_nCD8_thym>
+      <Q_nCD8_thym>70000000.0</Q_nCD8_thym>
       <k_nCD8_pro>320000000.0</k_nCD8_pro>
       <K_nCD8_pro>1000000000.0</K_nCD8_pro>
       <k_nCD8_death>0.002</k_nCD8_death>
@@ -1031,7 +1032,7 @@
       <CD8_CD28_total>184000.0</CD8_CD28_total>
       <CD8_CTLA4_syn>8000.0</CD8_CTLA4_syn>
       <CD8_PDL1_total>83700.0</CD8_PDL1_total>
-      <C1_PDL1_base>4800.0</C1_PDL1_base>
+      <C1_PDL1_base>120000.0</C1_PDL1_base>
       <r_PDL2C1>0.07</r_PDL2C1>
       <C1_CD80_total>80000.0</C1_CD80_total>
       <C1_CD86_total>860000.0</C1_CD86_total>
@@ -1046,7 +1047,7 @@
       <k_Th_act>10.0</k_Th_act>
       <k_Th_to_Treg>0.022</k_Th_to_Treg>
       <k_CD4_pro>1.0</k_CD4_pro>
-      <k_CD4_death>0.1</k_CD4_death>
+      <k_CD4_death>0.01</k_CD4_death>
       <K_C2_recruit>20200000.0</K_C2_recruit>
       <k_Th_basal_exh>0.05</k_Th_basal_exh>
       <k_TGFb_Th_exh>0.3</k_TGFb_Th_exh>
@@ -1094,7 +1095,7 @@
       <k_CCL2_deg>0.06</k_CCL2_deg>
       <CCL2_50>0.23</CCL2_50>
       <k_MDSC_rec>35000.0</k_MDSC_rec>
-      <k_MDSC_death>0.07</k_MDSC_death>
+      <k_MDSC_death>0.015</k_MDSC_death>
       <k_NO_deg>135.0</k_NO_deg>
       <k_ArgI_deg>0.173</k_ArgI_deg>
       <k_NO_sec>4.8e-07</k_NO_sec>

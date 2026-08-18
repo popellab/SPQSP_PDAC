@@ -176,6 +176,19 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_reserve, flamegpu::MessageNone, flamegpu::
         return flamegpu::ALIVE;
     }
 
+    // Local Gompertz carrying capacity gate (matches QSP k_C1_growth * log(C_max/C_total))
+    {
+        const int n_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
+        const float K_local = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_LOCAL_CC");
+        float gompertz_prob = logf(fmaxf(K_local / (float(n_cancer) + 1.0f), 1.0f)) / logf(K_local);
+        const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+        const unsigned int det_tag  = FLAMEGPU->getVariable<unsigned int>("det_tag");
+        unsigned int rg = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0x7C7u, sim_seed);
+        if (det_rng_uniform(rg) > gompertz_prob) {
+            return flamegpu::ALIVE;
+        }
+    }
+
     const int my_x  = FLAMEGPU->getVariable<int>("x");
     const int my_y  = FLAMEGPU->getVariable<int>("y");
     const int my_z  = FLAMEGPU->getVariable<int>("z");
@@ -383,6 +396,26 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
     // + non-diffusing grid left DCs antigen-starved). Rate = PARAM_ANTIGEN_SHED_FRAC × deposit.
     const float antigen_shed_frac = FLAMEGPU->environment.getProperty<float>("PARAM_ANTIGEN_SHED_FRAC");
     atomicAdd(&antigen_grid[voxel], antigen_deposit * antigen_shed_frac);
+
+    // Natural death for proliferative cells (matches QSP k_C1_death applied to all C1)
+    if (cell_state == CANCER_STEM || cell_state == CANCER_PROGENITOR) {
+        const float p_nat_death = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_NATURAL_DEATH_PROB");
+        if (p_nat_death > 0.0f) {
+            const unsigned int nd_sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
+            const unsigned int nd_det_tag  = FLAMEGPU->getVariable<unsigned int>("det_tag");
+            const unsigned int nd_step     = FLAMEGPU->getStepCounter();
+            unsigned int rnd = det_rng_seed(static_cast<int>(nd_det_tag), nd_step, 0x7C6u, nd_sim_seed);
+            if (det_rng_uniform(rnd) < p_nat_death) {
+                FLAMEGPU->setVariable<int>("dead", 1);
+                FLAMEGPU->setVariable<int>("death_reason", 3);  // 3 = natural death (non-senescent)
+                auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+                const int death_slot = (cell_state == CANCER_STEM) ? EVT_DEATH_CANCER_STEM : EVT_DEATH_CANCER_PROG;
+                atomicAdd(&evts[death_slot], 1u);
+                atomicAdd(&antigen_grid[voxel], antigen_deposit);
+                return flamegpu::DEAD;
+            }
+        }
+    }
 
     // Senescent cells: countdown to death
     if (cell_state == CANCER_SENESCENT) {

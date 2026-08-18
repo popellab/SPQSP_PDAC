@@ -284,6 +284,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.CCL5.diffusivity", "", "pr"},  // PARAM_CCL5_DIFFUSIVITY
     {"Param.Molecular.biofvm.CCL5.molecularWeight", "", "pr"},  // PARAM_CCL5_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.CXCL9.fibRelease", "", "pr"},  // PARAM_FIB_CXCL9_RELEASE
+    {"Param.ABM.CancerCell.localCarryingCapacity", "", "pr"},  // PARAM_CANCER_LOCAL_CC
     // Int parameters
     {"Param.ABM.Environment.Tumor.XSize", "microns", "pos"},  // PARAM_X_SIZE
     {"Param.ABM.Environment.Tumor.YSize", "microns", "pos"},  // PARAM_Y_SIZE
@@ -627,6 +628,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_CCL5_DIFFUSIVITY", getFloat(PARAM_CCL5_DIFFUSIVITY));
     env.newProperty<float>("PARAM_CCL5_MOLECULAR_WEIGHT", getFloat(PARAM_CCL5_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_FIB_CXCL9_RELEASE", getFloat(PARAM_FIB_CXCL9_RELEASE));
+    env.newProperty<float>("PARAM_CANCER_LOCAL_CC", getFloat(PARAM_CANCER_LOCAL_CC));
 
     env.newProperty<int>("PARAM_X_SIZE", getInt(PARAM_X_SIZE));
     env.newProperty<int>("PARAM_Y_SIZE", getInt(PARAM_Y_SIZE));

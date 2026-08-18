@@ -534,12 +534,23 @@
                     std::log(2)/rs / env.getProperty<float>("PARAM_SEC_PER_SLICE"));
 
     // senescent cancer mean life in slices
-    env.newProperty<float>("PARAM_CANCER_SENESCENT_MEAN_LIFE", 
+    env.newProperty<float>("PARAM_CANCER_SENESCENT_MEAN_LIFE",
                     1 / env.getProperty<float>("PARAM_SEN_DEATH_RATE") / env.getProperty<float>("PARAM_SEC_PER_SLICE") * SEC_PER_DAY);
 
+    // Step 1: Override PROG_GROWTH_RATE with QSP k_C1_growth [1/day].
+    // XML value (0.3/day, in vitro PANC-1) is replaced by QSP's in vivo rate (0.010/day).
+    // Stem rate stays higher: rs = k_C1_growth / (1-ASYM_DIV_PROB) = 0.2/day.
+    env.setProperty<float>("PARAM_PROG_GROWTH_RATE",
+                    static_cast<float>(QP(CancerVCT::P_k_C1_growth) * SEC_PER_DAY));
+
     // progenitor division interval in slices
-    env.newProperty<float>("PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE", 
+    env.newProperty<float>("PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE",
                     std::log(2)/ env.getProperty<float>("PARAM_PROG_GROWTH_RATE") * SEC_PER_DAY / env.getProperty<float>("PARAM_SEC_PER_SLICE") + .5);
+
+    // Step 3: Natural death for proliferative cancer DISABLED.
+    // Senescence pathway + immune killing already cover turnover; adding k_C1_death
+    // on top double-counts and causes net decline at carrying capacity.
+    env.newProperty<float>("PARAM_CANCER_NATURAL_DEATH_PROB", 0.0f);
 
     // IFNg decay [1/s]
     env.newProperty<float>("PARAM_IFNG_DECAY_RATE", 
@@ -665,7 +676,11 @@
                     QP(CancerVCT::P_k_TGFb_Msec) * qp_sec_to_abm);
 
     // M2 MAC IL-10 secretion [pmol/(cell*s)] from QSP k_IL10_sec
-    env.newProperty<float>("PARAM_MAC_IL10_RELEASE", 
+    env.newProperty<float>("PARAM_MAC_IL10_RELEASE",
+                    QP(CancerVCT::P_k_IL10_sec) * qp_sec_to_abm);
+
+    // Breg IL-10 secretion — same QSP-derived rate as M2 MAC (overrides XML placeholder)
+    env.setProperty<float>("PARAM_BCELL_IL10_RELEASE",
                     QP(CancerVCT::P_k_IL10_sec) * qp_sec_to_abm);
 
     // M1 MAC IL-12 secretion [pmol/(cell*s)] from QSP k_IL12_Msec
