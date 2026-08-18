@@ -1956,10 +1956,12 @@ bool initializeFromPlacement(
     const int   tcell_div_limit = model.Environment().getProperty<int>("PARAM_TCELL_DIV_LIMIT");
     const float IL2_release_time = model.Environment().getProperty<float>("PARAM_TCELL_IL2_RELEASE_TIME");
     const int   tcell_div_interval = model.Environment().getProperty<int>("PARAM_TCELL_DIV_INTERNAL");
-    const float treg_life       = model.Environment().getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
+    const float th_life         = model.Environment().getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
+    const float treg_life       = model.Environment().getProperty<float>("PARAM_TREG_LIFE_MEAN_SLICE");
     const float treg_life_sd    = model.Environment().getProperty<float>("PARAM_TCD4_LIFESPAN_SD");
     const int   treg_div_limit  = model.Environment().getProperty<int>("PARAM_TCD4_DIV_LIMIT");
     const int   treg_div_interval = model.Environment().getProperty<int>("PARAM_TREG_DIV_INTERVAL");
+    const int   th_div_interval   = model.Environment().getProperty<int>("PARAM_TH_DIV_INTERVAL");
     const float treg_tgfb_release = model.Environment().getProperty<float>("PARAM_TCD4_TGFB_RELEASE_TIME");
     const float ctla4_treg      = model.Environment().getProperty<float>("PARAM_CTLA4_TREG");
     const float mdsc_life       = model.Environment().getProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE");
@@ -2037,7 +2039,7 @@ bool initializeFromPlacement(
             a.setVariable<int>("x", x); a.setVariable<int>("y", y); a.setVariable<int>("z", z);
             a.setVariable<int>("cell_state", state);
             a.setVariable<int>("life", draw_life_normal(tcell_life, tcell_life_sd));
-            a.setVariable<int>("divide_cd", tcell_div_interval);
+            a.setVariable<int>("divide_cd", static_cast<int>(tcell_div_interval * urand()) + 1);
             a.setVariable<int>("divide_limit", tcell_div_limit);
             a.setVariable<float>("IL2_release_remain", IL2_release_time);
             a.setVariable<int>("persist_dir_x", 0);
@@ -2054,8 +2056,14 @@ bool initializeFromPlacement(
             flamegpu::AgentVector::Agent a = treg_pop.back();
             a.setVariable<int>("x", x); a.setVariable<int>("y", y); a.setVariable<int>("z", z);
             a.setVariable<int>("cell_state", state);
-            a.setVariable<int>("life", draw_life_normal(treg_life, treg_life_sd));
-            a.setVariable<int>("divide_cd", treg_div_interval);
+            {
+                const float life_m = (state == TCD4_TH || state == TCD4_TFH)
+                                     ? th_life : treg_life;
+                a.setVariable<int>("life", draw_life_normal(life_m, treg_life_sd));
+                const int div_int = (state == TCD4_TH || state == TCD4_TFH)
+                                    ? th_div_interval : treg_div_interval;
+                a.setVariable<int>("divide_cd", static_cast<int>(div_int * urand()) + 1);
+            }
             a.setVariable<int>("divide_limit", treg_div_limit);
             a.setVariable<float>("TGFB_release_remain", treg_tgfb_release);
             a.setVariable<float>("CTLA4", state == TCD4_TREG ? ctla4_treg : 0.0f);

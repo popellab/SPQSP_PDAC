@@ -667,7 +667,7 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
 
     // Store gradient pointers for chemotaxis substrates
     // Naming: pde_grad_IFN_x, pde_grad_IFN_y, pde_grad_IFN_z, pde_grad_TGFB_x, ...
-    static const char* grad_names[NUM_GRAD_SUBSTRATES] = {"IFN", "TGFB", "CCL2", "VEGFA", "CXCL13", "CCL21", "CXCL12", "CCL5"};
+    static const char* grad_names[NUM_GRAD_SUBSTRATES] = {"IFN", "TGFB", "CCL2", "VEGFA", "CXCL13", "CCL21", "CXCL12", "CCL5", "IL12"};
     for (int g = 0; g < NUM_GRAD_SUBSTRATES; g++) {
         model.Environment().newProperty<unsigned long long>(
             std::string("pde_grad_") + grad_names[g] + "_x",
@@ -934,8 +934,8 @@ struct RecruitKernelParams {
     int t_divide_cd, t_divide_limit;
     float t_IL2_release;
     // TCD4 (TReg/TH) recruitment
-    float tcd4_life_mean, tcd4_life_sd;
-    int tcd4_divide_cd, tcd4_divide_limit;
+    float tcd4_life_mean, tcd4_treg_life_mean, tcd4_life_sd;
+    int tcd4_divide_cd, tcd4_th_divide_cd, tcd4_divide_limit;
     float tcd4_TGFB_release;
     float ctla4_treg;
     // MDSC recruitment
@@ -1138,24 +1138,9 @@ __global__ void compute_qfields_kernel(
     }
     qf[QS_MAC * nvox + idx] = p_entry * mac_gate;
 
-    // ── MAC spawn polarization P(M2) — QSP RF287/RF288 rate structure ──
-    float qf_r_m2 = 0.0f;
-    {
-        float h_tgfb = 0.0f, h_il10 = 0.0f, h_il6 = 0.0f;
-        if (p.mac_tgfb_conc) { float c = p.mac_tgfb_conc[idx]; h_tgfb = c / (c + p.mac_tgfb_ec50 + 1e-30f); }
-        if (p.mac_il10_conc) { float c = p.mac_il10_conc[idx]; h_il10 = c / (c + p.mac_il10_ec50 + 1e-30f); }
-        if (p.il6_conc)      { float c = p.il6_conc[idx];      h_il6  = c / (c + p.mac_il6_ec50 + 1e-30f); }
-        qf_r_m2 = p.mac_m2_pol * (h_tgfb + h_il10 + h_il6) / 3.0f;
-    }
-    float qf_r_m1 = 0.0f;
-    {
-        float h_il12 = 0.0f;
-        if (p.mac_il12_conc) { float c = p.mac_il12_conc[idx]; h_il12 = c / (c + p.mac_il12_ec50 + 1e-30f); }
-        float ifng_supp = 1.0f;
-        if (p.mac_ifng_conc) { ifng_supp = fmaxf(0.0f, 1.0f - p.mac_ifng_response * p.mac_ifng_conc[idx]); }
-        qf_r_m1 = p.mac_m1_pol * (1.0f - (1.0f - h_il12) * ifng_supp);
-    }
-    qf[QPLANE_PM2 * nvox + idx] = (qf_r_m1 + qf_r_m2 < 1e-30f) ? 1.0f : qf_r_m2 / (qf_r_m1 + qf_r_m2);
+    // QSP RF276: all recruits enter as M1; polarization happens post-recruitment.
+    // QPLANE_PM2 = 0 → all spawns are M1 (P(M2) = 0).
+    qf[QPLANE_PM2 * nvox + idx] = 0.0f;
 
     // ── B cell: no cytokine gate — matches QSP RF237 (q_Treg_T_in · H_C2, carried by Vvas).
     //    The former CXCL13/CXCR5 soft gate (ABM-only TLS heuristic) is removed. ──
@@ -1226,7 +1211,7 @@ __global__ void recruit_all_kernel(
                     req.cell_type = CELL_TYPE_T;
                     req.cell_state = T_CELL_EFF;
                     req.life = sample_normal_life_gpu(p.t_life_mean, p.t_life_sd, rng);
-                    req.divide_cd = p.t_divide_cd;
+                    req.divide_cd = 1 + static_cast<int>(rng_uniform(rng) * (p.t_divide_cd - 1));
                     req.divide_limit = p.t_divide_limit;
                     req.IL2_release_remain = p.t_IL2_release;
                     req.TGFB_release_remain = 0.0f;
@@ -1274,8 +1259,8 @@ __global__ void recruit_all_kernel(
                     req.x = px; req.y = py; req.z = pz;
                     req.cell_type = CELL_TYPE_TREG;
                     req.cell_state = TCD4_TREG;
-                    req.life = sample_normal_life_gpu(p.tcd4_life_mean, p.tcd4_life_sd, rng);
-                    req.divide_cd = p.tcd4_divide_cd;
+                    req.life = sample_normal_life_gpu(p.tcd4_treg_life_mean, p.tcd4_life_sd, rng);
+                    req.divide_cd = 1 + static_cast<int>(rng_uniform(rng) * (p.tcd4_divide_cd - 1));
                     req.divide_limit = p.tcd4_divide_limit;
                     req.IL2_release_remain = 0.0f;
                     req.TGFB_release_remain = p.tcd4_TGFB_release;
@@ -1301,7 +1286,7 @@ __global__ void recruit_all_kernel(
                     req.cell_type = CELL_TYPE_TREG;  // TH uses TReg agent type
                     req.cell_state = TCD4_TH;
                     req.life = sample_normal_life_gpu(p.tcd4_life_mean, p.tcd4_life_sd, rng);
-                    req.divide_cd = p.tcd4_divide_cd;
+                    req.divide_cd = 1 + static_cast<int>(rng_uniform(rng) * (p.tcd4_th_divide_cd - 1));
                     req.divide_limit = p.tcd4_divide_limit;
                     req.IL2_release_remain = 0.0f;
                     req.TGFB_release_remain = p.tcd4_TGFB_release;
@@ -1402,31 +1387,11 @@ __global__ void recruit_all_kernel(
                     req.x = px; req.y = py; req.z = pz;
                     req.cell_type = CELL_TYPE_MAC;
 
-                    // Probabilistic M1/M2 polarization at spawn — matches
-                    // QSP RF287/RF288 rate structure. Compute instantaneous
-                    // M1→M2 and M2→M1 rates; P(M2) = r_m2/(r_m1+r_m2).
-                    // M1→M2: k_M2 * (H_TGFb+H_IL10+H_IL6)/3
-                    // M2→M1: k_M1 * (1-(1-H_IL12)*max(0,1-k_IFNg*C))
-                    float r_m2 = 0.0f;  // M1→M2 rate (unnormalized)
-                    {
-                        float h_tgfb = 0.0f, h_il10 = 0.0f, h_il6 = 0.0f;
-                        if (p.mac_tgfb_conc) { float c = p.mac_tgfb_conc[idx]; h_tgfb = c / (c + p.mac_tgfb_ec50 + 1e-30f); }
-                        if (p.mac_il10_conc) { float c = p.mac_il10_conc[idx]; h_il10 = c / (c + p.mac_il10_ec50 + 1e-30f); }
-                        if (p.il6_conc)      { float c = p.il6_conc[idx];      h_il6  = c / (c + p.mac_il6_ec50 + 1e-30f); }
-                        r_m2 = p.mac_m2_pol * (h_tgfb + h_il10 + h_il6) / 3.0f;
-                    }
-                    float r_m1 = 0.0f;  // M2→M1 rate (unnormalized)
-                    {
-                        float h_il12 = 0.0f;
-                        if (p.mac_il12_conc) { float c = p.mac_il12_conc[idx]; h_il12 = c / (c + p.mac_il12_ec50 + 1e-30f); }
-                        float ifng_supp = 1.0f;
-                        if (p.mac_ifng_conc) { ifng_supp = fmaxf(0.0f, 1.0f - p.mac_ifng_response * p.mac_ifng_conc[idx]); }
-                        r_m1 = p.mac_m1_pol * (1.0f - (1.0f - h_il12) * ifng_supp);
-                    }
-                    float p_m2 = (r_m1 + r_m2 < 1e-30f)
-                        ? 1.0f  // no cytokine signal → PDAC TAM bias (M2)
-                        : r_m2 / (r_m1 + r_m2);
-                    req.cell_state = (rng_uniform(rng) < p_m2) ? MAC_M2 : MAC_M1;
+                    // QSP RF276: all monocyte recruits enter as M1.
+                    // Polarization to M2 happens post-recruitment via mac_state_step
+                    // (RF287/RF288). The old probabilistic split produced ~97% M2
+                    // recruits with high k_M2_pol, collapsing M1 to <2%.
+                    req.cell_state = MAC_M1;
 
                     req.life = sample_exp_life_gpu(p.mac_life_mean, rng);
                     req.divide_cd = 0;
@@ -1585,9 +1550,11 @@ static RecruitKernelParams build_recruit_kernel_params(
     p.t_IL2_release = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_IL2_RELEASE_TIME");
 
     // TCD4 life/division params
-    p.tcd4_life_mean   = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
-    p.tcd4_life_sd     = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFESPAN_SD");
-    p.tcd4_divide_cd   = FLAMEGPU->environment.getProperty<int>("PARAM_TREG_DIV_INTERVAL");
+    p.tcd4_life_mean      = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
+    p.tcd4_treg_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_TREG_LIFE_MEAN_SLICE");
+    p.tcd4_life_sd        = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFESPAN_SD");
+    p.tcd4_divide_cd    = FLAMEGPU->environment.getProperty<int>("PARAM_TREG_DIV_INTERVAL");
+    p.tcd4_th_divide_cd = FLAMEGPU->environment.getProperty<int>("PARAM_TH_DIV_INTERVAL");
     p.tcd4_divide_limit = FLAMEGPU->environment.getProperty<int>("PARAM_TCD4_DIV_LIMIT");
     p.tcd4_TGFB_release = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_TGFB_RELEASE_TIME");
     p.ctla4_treg = FLAMEGPU->environment.getProperty<float>("PARAM_CTLA4_TREG");
@@ -2067,7 +2034,8 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_T; req.cell_state = T_CELL_EFF;
             req.life = det_normal_life(crng, p.t_life_mean, p.t_life_sd);
-            req.divide_cd = p.t_divide_cd; req.divide_limit = p.t_divide_limit;
+            req.divide_cd = 1 + static_cast<int>(det_rng_uniform(crng) * (p.t_divide_cd - 1));
+            req.divide_limit = p.t_divide_limit;
             req.IL2_release_remain = p.t_IL2_release;
             req.seq = req_seq++;
             requests.push_back(req);
@@ -2089,8 +2057,9 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             if (pv < 0) return;
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_TREG; req.cell_state = TCD4_TREG;
-            req.life = det_normal_life(crng, p.tcd4_life_mean, p.tcd4_life_sd);
-            req.divide_cd = p.tcd4_divide_cd; req.divide_limit = p.tcd4_divide_limit;
+            req.life = det_normal_life(crng, p.tcd4_treg_life_mean, p.tcd4_life_sd);
+            req.divide_cd = 1 + static_cast<int>(det_rng_uniform(crng) * (p.tcd4_divide_cd - 1));
+            req.divide_limit = p.tcd4_divide_limit;
             req.TGFB_release_remain = p.tcd4_TGFB_release;
             req.CTLA4 = p.ctla4_treg;
             req.seq = req_seq++;
@@ -2103,7 +2072,8 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_TREG; req.cell_state = TCD4_TH;
             req.life = det_normal_life(crng, p.tcd4_life_mean, p.tcd4_life_sd);
-            req.divide_cd = p.tcd4_divide_cd; req.divide_limit = p.tcd4_divide_limit;
+            req.divide_cd = 1 + static_cast<int>(det_rng_uniform(crng) * (p.tcd4_th_divide_cd - 1));
+            req.divide_limit = p.tcd4_divide_limit;
             req.TGFB_release_remain = p.tcd4_TGFB_release;
             req.CTLA4 = 0.0f;
             req.seq = req_seq++;
@@ -2132,15 +2102,12 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             break;
         }
         case QS_MAC: {
-            // M1/M2 polarization from the precomputed P(M2) plane at the TARGET voxel
-            // (matches the local-cytokine spawn polarization of the old kernel).
-            float p_m2 = qf[static_cast<size_t>(QPLANE_PM2) * nvox + tvox];
-            bool is_m2 = det_rng_uniform(crng) < p_m2;
-            int pv = place_one(tvox, is_m2 ? p.vol_mac_m2 : p.vol_mac_m1);
+            // QSP RF276: all recruits enter as M1; polarization post-recruitment.
+            int pv = place_one(tvox, p.vol_mac_m1);
             if (pv < 0) return;
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_MAC;
-            req.cell_state = is_m2 ? MAC_M2 : MAC_M1;
+            req.cell_state = MAC_M1;
             req.life = det_exp_life(crng, p.mac_life_mean);
             req.seq = req_seq++;
             requests.push_back(req);

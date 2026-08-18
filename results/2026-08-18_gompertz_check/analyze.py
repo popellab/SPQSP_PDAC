@@ -143,7 +143,7 @@ def qsp_composition(qsp_row):
         "fib_apCAF": qsp_row.get("V_T.apCAF", 0),
         "fib_quiescent": qsp_row.get("V_T.qPSC", 0),
         "CD8_active": qsp_row.get("V_T.CD8", 0) + qsp_row.get("V_T.CD8_exh", 0),
-        "treg_th": qsp_row.get("V_T.Th", 0) + qsp_row.get("V_T.Th_exh", 0),
+        "treg_th": qsp_row.get("V_T.Th", 0) + qsp_row.get("V_T.Th_exh", 0) + qsp_row.get("V_T.Tfh", 0),
         "treg_treg": qsp_row.get("V_T.Treg", 0),
         "B_lineage": (qsp_row.get("V_T.B", 0) + qsp_row.get("V_T.Plasma", 0)),
         "mac_M1": qsp_row.get("V_T.Mac_M1", 0),
@@ -209,19 +209,24 @@ def main():
     print(f"\n  Total cells: {total_init} -> {total_final} "
           f"({100*(total_final - total_init)/total_init:+.1f}%)")
 
-    # ── QSP scaled counts (volume ratio) ──
-    VOXEL_CM = 20e-4  # 20 µm in cm
+    # ── QSP scaled counts (dynamic f = V_box / V_T(t), same as gap-closing) ──
+    VOXEL_M = 20e-6
     gx, gy, gz = 100, 100, 12
-    V_abm_cm3 = gx * gy * gz * VOXEL_CM**3
-    V_qsp_cm3 = 17.2  # mL (onset V_T ≈ 17.2 mL)
-    vol_ratio = V_abm_cm3 / V_qsp_cm3
+    V_box_m3 = gx * gy * gz * VOXEL_M**3
+    class_audit = pd.read_csv(OUT / f"class_audit_{SEED}.csv")
+    f_raw = (V_box_m3 / class_audit["V_T_m3"].to_numpy(dtype=float)).clip(max=1.0)
+    n_qsp = len(qsp)
+    if len(f_raw) < n_qsp:
+        f_dynamic = np.concatenate([f_raw, np.full(n_qsp - len(f_raw), f_raw[-1])])
+    else:
+        f_dynamic = f_raw[:n_qsp]
 
     qsp_days = qsp["step"] * DT_H / 24.0
 
     QSP_MAP = {
         "cancer_total": ["V_T.C1", "V_T.C2", "V_T.C_x"],
         "CD8_active":   ["V_T.CD8", "V_T.CD8_exh"],
-        "treg_th":      ["V_T.Th", "V_T.Th_exh"],
+        "treg_th":      ["V_T.Th", "V_T.Th_exh", "V_T.Tfh"],
         "treg_treg":    ["V_T.Treg"],
         "B_lineage":    ["V_T.B", "V_T.Plasma"],
         "mac_M1":       ["V_T.Mac_M1"],
@@ -237,13 +242,13 @@ def main():
     qsp_counts = {}
     for cat, cols in QSP_MAP.items():
         present = [c for c in cols if c in qsp.columns]
-        qsp_counts[cat] = qsp[present].sum(axis=1).to_numpy(dtype=float) * vol_ratio
+        qsp_counts[cat] = qsp[present].sum(axis=1).to_numpy(dtype=float) * f_dynamic
 
     # ── FIGURE 1: Cell counts (ABM solid, QSP dashed) — 3×3 grid ──
     fig, axes = plt.subplots(3, 3, figsize=(16, 13))
     fig.suptitle("Gompertz check: cancer growth caps (v6 median, 50 days)\n"
                  "PROG_RATE=QSP 0.010/day, local CC K=30, no natural death\n"
-                 f"QSP scaled by V_ABM/V_QSP = {vol_ratio:.2e}",
+                 f"QSP scaled by dynamic f = V_box/V_T(t), f(0)={f_dynamic[0]:.2e}",
                  fontsize=11, y=1.01)
 
     def _plot_pair(ax, cat, title=None, logy=False, sub_cols=None):

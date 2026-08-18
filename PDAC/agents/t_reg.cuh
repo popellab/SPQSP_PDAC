@@ -512,7 +512,9 @@ FLAMEGPU_AGENT_FUNCTION(treg_divide_confirm, flamegpu::MessageNone, flamegpu::Me
     const int div_interval = (cell_state == TCD4_TREG)
         ? FLAMEGPU->environment.getProperty<int>("PARAM_TREG_DIV_INTERVAL")
         : FLAMEGPU->environment.getProperty<int>("PARAM_TH_DIV_INTERVAL");
-    const float treg_life_mean = FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
+    const float treg_life_mean = (cell_state == TCD4_TREG)
+        ? FLAMEGPU->environment.getProperty<float>("PARAM_TREG_LIFE_MEAN_SLICE")
+        : FLAMEGPU->environment.getProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE");
     const float treg_life_sd   = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_LIFESPAN_SD_SLICE");
     const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
     unsigned int rs_dl = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0x7701Eu, sim_seed);

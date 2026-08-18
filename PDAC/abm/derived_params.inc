@@ -466,8 +466,12 @@
     env.newProperty<float>("PARAM_CD8_EXH_LIFE_SCALE", 
                     QP(CancerVCT::P_k_CD8_death) / QP(CancerVCT::P_k_CD8_exh_death));
 
-    // mean TCD4 lifespan in timesteps
-    env.newProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE", 
+    // mean Th/Tfh lifespan in timesteps (from k_CD4_death)
+    env.newProperty<float>("PARAM_TCD4_LIFE_MEAN_SLICE",
+                    1 / QP(CancerVCT::P_k_CD4_death) / t_step_sec);
+
+    // mean Treg lifespan in timesteps (from k_Treg_death — faster turnover)
+    env.newProperty<float>("PARAM_TREG_LIFE_MEAN_SLICE",
                     1 / QP(CancerVCT::P_k_Treg_death) / t_step_sec);
 
     // mean MDSC lifespan in timesteps
