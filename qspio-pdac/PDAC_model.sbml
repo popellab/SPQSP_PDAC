@@ -2437,7 +2437,7 @@
           <body xmlns="http://www.w3.org/1999/xhtml">rate of naive Treg transport out of the peripheral compartment</body>
         </notes>
       </parameter>
-      <parameter id="mwe690f032_e66a_40c4_a60c_70ca1f9e8e16" name="Q_nCD4_thym" value="1000000" units="MWDERIVEDUNIT_cell__day" constant="true">
+      <parameter id="mwe690f032_e66a_40c4_a60c_70ca1f9e8e16" name="Q_nCD4_thym" value="35000000" units="MWDERIVEDUNIT_cell__day" constant="true">
         <notes>
           <body xmlns="http://www.w3.org/1999/xhtml">Thymic output of naive Treg cells</body>
         </notes>
@@ -2582,7 +2582,7 @@
           <body xmlns="http://www.w3.org/1999/xhtml">rate of naive CD8+ T cell transport out of the peripheral compartment </body>
         </notes>
       </parameter>
-      <parameter id="mw43a6827d_6899_41d8_8462_5e2aa72f7d60" name="Q_nCD8_thym" value="3000000" units="MWDERIVEDUNIT_cell__day" constant="true">
+      <parameter id="mw43a6827d_6899_41d8_8462_5e2aa72f7d60" name="Q_nCD8_thym" value="70000000" units="MWDERIVEDUNIT_cell__day" constant="true">
         <notes>
           <body xmlns="http://www.w3.org/1999/xhtml">Thymic output of naive CD8+ T cells</body>
         </notes>
@@ -3262,7 +3262,7 @@
           <body xmlns="http://www.w3.org/1999/xhtml">concentration of PDL1 on CD8 cells </body>
         </notes>
       </parameter>
-      <parameter id="mw9f1b3e13_4d41_48e7_ac0d_73179ab9c4c7" name="C1_PDL1_base" value="4800" units="MWBUILTINUNIT_molecule" constant="false">
+      <parameter id="mw9f1b3e13_4d41_48e7_ac0d_73179ab9c4c7" name="C1_PDL1_base" value="120000" units="MWBUILTINUNIT_molecule" constant="false">
         <notes>
           <body xmlns="http://www.w3.org/1999/xhtml">baseline number of PDL1 molecules per C1 cell (Zhang 2022, PMID: 35037417; Yu 2017, PMID: 29378617) — PDAC cohort-averaged baseline; per-PDL1+-cell density estimated</body>
         </notes>
@@ -3337,7 +3337,7 @@
           <body xmlns="http://www.w3.org/1999/xhtml">CD4 proliferation rate</body>
         </notes>
       </parameter>
-      <parameter id="mw682af6b9_cc89_4873_9573_dac39e8d97c9" name="k_CD4_death" value="0.1" units="MWDERIVEDUNIT_1__day" constant="true">
+      <parameter id="mw682af6b9_cc89_4873_9573_dac39e8d97c9" name="k_CD4_death" value="0.01" units="MWDERIVEDUNIT_1__day" constant="true">
         <notes>
           <body xmlns="http://www.w3.org/1999/xhtml">CD4 death rate</body>
         </notes>
@@ -3577,7 +3577,7 @@
           <body xmlns="http://www.w3.org/1999/xhtml">Rate of MDSC recruitment into the tumor </body>
         </notes>
       </parameter>
-      <parameter id="mw2868e788_42a9_4e0c_a5c0_1cf2d12e3bc4" name="k_MDSC_death" value="0.07" units="MWDERIVEDUNIT_1__day" constant="true">
+      <parameter id="mw2868e788_42a9_4e0c_a5c0_1cf2d12e3bc4" name="k_MDSC_death" value="0.015" units="MWDERIVEDUNIT_1__day" constant="true">
         <notes>
           <body xmlns="http://www.w3.org/1999/xhtml">Rate of MDSC death </body>
         </notes>

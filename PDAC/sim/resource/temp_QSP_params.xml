@@ -237,7 +237,7 @@
       <q_Treg_T_in>5.8e-05</q_Treg_T_in>
       <q_nCD4_P_in>0.1764</q_nCD4_P_in>
       <q_nCD4_P_out>5.1</q_nCD4_P_out>
-      <Q_nCD4_thym>1000000.0</Q_nCD4_thym>
+      <Q_nCD4_thym>35000000.0</Q_nCD4_thym>
       <k_nCD4_pro>320000000.0</k_nCD4_pro>
       <K_nTreg_pro>1000000000.0</K_nTreg_pro>
       <k_nTreg_death>0.002</k_nTreg_death>
@@ -264,7 +264,7 @@
       <q_CD8_T_in>5.8e-05</q_CD8_T_in>
       <q_nCD8_P_in>0.1764</q_nCD8_P_in>
       <q_nCD8_P_out>5.1</q_nCD8_P_out>
-      <Q_nCD8_thym>3000000.0</Q_nCD8_thym>
+      <Q_nCD8_thym>70000000.0</Q_nCD8_thym>
       <k_nCD8_pro>320000000.0</k_nCD8_pro>
       <K_nCD8_pro>1000000000.0</K_nCD8_pro>
       <k_nCD8_death>0.002</k_nCD8_death>
@@ -415,7 +415,7 @@
       <k_Th_act>10.0</k_Th_act>
       <k_Th_Treg>0.022</k_Th_Treg>
       <k_CD4_pro>1.0</k_CD4_pro>
-      <k_CD4_death>0.1</k_CD4_death>
+      <k_CD4_death>0.01</k_CD4_death>
       <Kc_rec>20200000.0</Kc_rec>
       <k_Th_pro_tumor>0.15</k_Th_pro_tumor>
       <rho_Th_max>5000000.0</rho_Th_max>
@@ -448,7 +448,7 @@
       <k_CCL2_deg>0.06</k_CCL2_deg>
       <CCL2_50>0.23</CCL2_50>
       <k_MDSC_rec>35000.0</k_MDSC_rec>
-      <k_MDSC_death>0.07</k_MDSC_death>
+      <k_MDSC_death>0.015</k_MDSC_death>
       <k_NO_deg>135.0</k_NO_deg>
       <k_ArgI_deg>0.173</k_ArgI_deg>
       <k_NO_sec>4.8e-07</k_NO_sec>

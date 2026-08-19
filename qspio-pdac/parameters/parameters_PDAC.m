@@ -281,7 +281,7 @@ params.p_T_kill_per_contact.Notes = 'Probability of tumor cell death when contac
 params.p_T_kill_per_contact.derivedFrom = 'Ritter et al. 2015 (PMID: 26567510) - range 0.1-0.5';
 
 % Rate of CD4 T Cell Decay
-params.k_CD4_death.Value = 0.1;
+params.k_CD4_death.Value = 0.01;
 params.k_CD4_death.Units = '1/day';
 params.k_CD4_death.Notes = '(De Boer and Perelson 1995, PMID: 7475092)';
 % Activated CD8 Rate of Transmigration
@@ -490,13 +490,13 @@ params.k_nT_death.Value = 0.002;
 params.k_nT_death.Units = '1/day';
 params.k_nT_death.Notes = '(Braber 2012, PMID: 22365666)';
 % Thymic output of naive CD4+ T Cells into the blood
-params.Q_nCD4_thym.Value = 1e6; % adjusted for PDAC demographic (age 60+, thymic involution)
+params.Q_nCD4_thym.Value = 3.5e7;
 params.Q_nCD4_thym.Units = 'cell/day';
-params.Q_nCD4_thym.Notes = '(Bains 2009, PMID: 19179300; Yeh 2017, PMID: 28912973)';
+params.Q_nCD4_thym.Notes = '(Wang 2021/2022, Zhang 2026 — published QSP-IO value)';
 % Thymic output of naive CD8+ T Cells into the blood
-params.Q_nCD8_thym.Value = 3e6;
+params.Q_nCD8_thym.Value = 7e7;
 params.Q_nCD8_thym.Units = 'cell/day';
-params.Q_nCD8_thym.Notes = '(Bains 2009, PMID: 19179300; Ye 2002, PMID: 11994448)';
+params.Q_nCD8_thym.Notes = '(Wang 2021/2022, Zhang 2026 — published QSP-IO value)';
 % Rate of naive CD4+ T Cell proliferation
 params.k_nCD4_pro.Value = 3.2e8;
 params.k_nCD4_pro.Units = 'cell/day';
@@ -916,9 +916,9 @@ params.T8_PDL1.Notes = '(Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 2283
 %   becomes a meaningful dynamic lever instead of a saturated constant.
 %
 % No direct PDAC ABC measurement exists; SBI prior σ should be wide.
-params.C_PDL1.Value = 8e4*0.06;
+params.C_PDL1.Value = 120000;
 params.C_PDL1.Units = 'molecule';
-params.C_PDL1.Notes = '(Zhang 2022, PMID: 35037417; Yu 2017, PMID: 29378617) — PDAC cohort-averaged baseline; per-PDL1+-cell density estimated';
+params.C_PDL1.Notes = '(Wang 2022, Zhang 2026 — published QSP-IO value; Cheng 2014, PMID: 23417675)';
 % Average Baseline PDL1 Expression on mAPCs in TDLN.
 % Decoupled from C_PDL1 because mature DCs upregulate PD-L1 uniformly (every
 % mDC is positive — no cohort-mean discount applies). No PDAC-TDLN-specific
@@ -1177,7 +1177,7 @@ params.k_MDSC_rec.Value = 3.5e4;
 params.k_MDSC_rec.Units = 'cell/(milliliter*day)';
 params.k_MDSC_rec.Notes = '(Tomiyama, T.2022; https://doi.org/10.3892/ol.2022.13213) - Increased for PDAC high myeloid infiltration phenotype';
 % rate of MDSC death
-params.k_MDSC_death.Value = 0.07;
+params.k_MDSC_death.Value = 0.015;
 params.k_MDSC_death.Units = '1/day';
 params.k_MDSC_death.Notes = '(Lai 2018, PMID: 29735668)';
 % half-maximal entinostat concentration for anti-proliferative effect on tumor cells
