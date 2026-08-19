@@ -17,7 +17,7 @@ import numpy as np, pandas as pd
 from multiprocessing import Pool
 
 Q    = Path("/home/chase/SPQSP/SPQSP_PDAC-main/qspio-pdac")
-OUT  = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/burden_sbi_7-15-26")
+OUT  = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/2026-07-15_burden_sbi")
 SIM  = Q/"cpp/sim/build/qsp_sim"
 BASE = (Q/"resources/cpp/param_all.xml").read_text()
 DRUG = Q/"resources/cpp/drug_metadata.yaml"

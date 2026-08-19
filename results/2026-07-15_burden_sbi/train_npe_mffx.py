@@ -8,7 +8,7 @@ import numpy as np, torch
 from sbi.inference import SNPE
 import features as F
 
-OUT = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/burden_sbi_7-15-26")
+OUT = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/2026-07-15_burden_sbi")
 NAMES = ["k_C1_growth","k_kill_fu5","IC50_fu5","k_kill_oxa","IC50_oxa","k_kill_iri","IC50_iri",
          "k_cell_clear","k_ca199_shed","k_ca199_clear","k_sec_suppress","k_resist","r_resist","f_ca199_C2"]
 MU  = np.array([np.log(x) for x in [0.02,1.0,2.0,1.0,1.0,1.0,0.02,0.1,1e-3,0.5,20.0,1e-4,100.0,10.0]])

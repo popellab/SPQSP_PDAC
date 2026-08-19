@@ -13,7 +13,7 @@ import features as F
 import gen_bank as GG          # GnP simulate
 import gen_bank_mffx as GM     # mFFX simulate
 
-OUT=Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/burden_sbi_7-15-26"); SUF="_7-15-26"
+OUT=Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/2026-07-15_burden_sbi"); SUF="_7-15-26"
 g=pd.read_csv(OUT/"cohort_posteriors.csv"); m=pd.read_csv(OUT/"cohort_mFFX_posteriors.csv")
 with open(OUT/"npe_posterior_v2.pkl","rb") as f: PG=pickle.load(f)
 with open(OUT/"npe_posterior_mffx.pkl","rb") as f: PM=pickle.load(f)

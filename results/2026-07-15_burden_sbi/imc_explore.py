@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from imc_features import cells_files, nbhd_cols, subject_of  # noqa: E402
 from imc_join import bh_fdr, load  # noqa: E402
 
-RES = "results/burden_sbi_7-15-26"
+RES = "results/2026-07-15_burden_sbi"
 SHARED = ["k_C1_growth_med", "k_cell_clear_med", "k_ca199_shed_med",
           "k_ca199_clear_med", "k_sec_suppress_med", "k_resist_med",
           "r_resist_med", "f_ca199_C2_med"]

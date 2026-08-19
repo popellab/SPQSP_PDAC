@@ -15,7 +15,7 @@ from multiprocessing import Pool
 import features as F
 import gen_bank as GG, gen_bank_mffx as GM
 
-OUT=Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/burden_sbi_7-15-26"); PDIR=OUT/"cohort_imc49"; PDIR.mkdir(exist_ok=True)
+OUT=Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/2026-07-15_burden_sbi"); PDIR=OUT/"cohort_imc49"; PDIR.mkdir(exist_ok=True)
 XL=Path("/home/chase/SPQSP/SPQSP_PDAC-main/data/PASS01/metadata/ClinicalTable_filtered_DeID.xlsx")
 xl=pd.ExcelFile(XL); tl=xl.parse('Target Lesions'); ca=xl.parse('All CA 19.9')
 ev=xl.parse('135 events').rename(columns={'PFS Eligible':'Subject','1st Line Treatment':'arm','Date to be used in PFS Calc':'pfs'})

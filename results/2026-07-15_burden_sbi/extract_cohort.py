@@ -16,7 +16,7 @@ from pathlib import Path
 ARM  = os.environ.get("ARM","GnP")          # 'GnP' or 'mFFX'
 SUF  = "" if ARM=="GnP" else f"_{ARM}"
 XL   = Path("/home/chase/SPQSP/SPQSP_PDAC-main/data/PASS01/metadata/ClinicalTable_filtered_DeID.xlsx")
-OUT  = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/burden_sbi_7-15-26")
+OUT  = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/2026-07-15_burden_sbi")
 PDIR = OUT/f"cohort{SUF}"; PDIR.mkdir(exist_ok=True)
 MIN_SLD, MIN_CA, MIN_W = 3, 3, 100.0
 

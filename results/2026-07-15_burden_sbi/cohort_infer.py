@@ -21,7 +21,7 @@ if ARM=="GnP":  import gen_bank as G          # simulate(theta_log)->(sld_rel76,
 else:           import gen_bank_mffx as G
 PKL  = "npe_posterior_v2.pkl" if ARM=="GnP" else "npe_posterior_mffx.pkl"
 
-OUT  = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/burden_sbi_7-15-26")
+OUT  = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/2026-07-15_burden_sbi")
 PDIR = OUT/f"cohort{SUF}"
 NPOST = int(os.environ.get("NPOST","40"))    # postpred draws per patient
 

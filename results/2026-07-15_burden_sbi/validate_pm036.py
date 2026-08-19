@@ -11,8 +11,8 @@ from pathlib import Path
 import numpy as np, pandas as pd
 import features as F
 
-OUT = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/burden_sbi_7-15-26")
-V4  = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/emcee_singlepatient_v4_7-14-26")
+OUT = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/2026-07-15_burden_sbi")
+V4  = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/2026-07-14_emcee_singlepatient_v4")
 
 # PM-036 observed trajectory (same source as the emcee fits)
 sld = pd.read_csv(V4/"PM036_SLD.csv");   sld = sld[sld.day<=1050]

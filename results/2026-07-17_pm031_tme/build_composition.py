@@ -21,7 +21,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import io as _io
 import tarfile
 import tempfile
@@ -30,22 +29,12 @@ from pathlib import Path
 import numpy as np
 
 _REPO = Path(__file__).resolve().parents[2]
-_ABM_SRC = _REPO / "abm-inference" / "src"
 
-
-def _load(mod_name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(mod_name, path)
-    m = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(m)
-    return m
-
-
-# import the canonical mapping + io so the composition is identical to the SBI observable
 import sys
-sys.path.insert(0, str(_ABM_SRC))
-from abm_inference.imc_mapping import ABM_TO_MATCHED, MATCHED_CATEGORIES  # noqa: E402
+sys.path.insert(0, str(_REPO / "PDAC"))
 
-_IO = _load("pdac_tools_io", _REPO / "PDAC" / "tools" / "io.py")
+from tools.imc_mapping import ABM_TO_MATCHED, MATCHED_CATEGORIES  # noqa: E402
+from tools import io as _IO  # noqa: E402
 _NCAT = len(MATCHED_CATEGORIES)
 _CAT_IX = {c: i for i, c in enumerate(MATCHED_CATEGORIES)}
 

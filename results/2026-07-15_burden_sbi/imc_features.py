@@ -92,7 +92,7 @@ def patient_features(df):
     return f
 
 
-def build(out_csv="results/burden_sbi_7-15-26/imc_patient_features.csv"):
+def build(out_csv="results/2026-07-15_burden_sbi/imc_patient_features.csv"):
     rows = []
     files = cells_files()
     for i, path in enumerate(files, 1):

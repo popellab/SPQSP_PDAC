@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np, pandas as pd, torch
 import features as F
 
-OUT = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/burden_sbi_7-15-26")
+OUT = Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/2026-07-15_burden_sbi")
 PDIR= OUT/"patients"
 meta= json.load(open(PDIR/"meta.json"))
 with open(OUT/"npe_posterior_v2.pkl","rb") as f: P = pickle.load(f)
@@ -35,7 +35,7 @@ for tag in ["PM036","PM031","PM001"]:
     np.save(OUT/f"{tag}_npe_v2_samples.npy", phys)
 
 # PM-036 gold-standard check
-V4=Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/emcee_singlepatient_v4_7-14-26")
+V4=Path("/home/chase/SPQSP/SPQSP_PDAC-main/results/2026-07-14_emcee_singlepatient_v4")
 em=pd.read_csv(V4/"posterior.csv"); phys=np.load(OUT/"PM036_npe_v2_samples.npy")
 agree=0;tot=0
 print("\n=== PM-036 v2 NPE vs emcee gold-standard ===")

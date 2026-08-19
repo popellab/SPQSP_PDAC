@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr, kruskal
 
-RES = "results/burden_sbi_7-15-26"
+RES = "results/2026-07-15_burden_sbi"
 RHO_MIN = 0.3  # prereg: no claim below this regardless of p
 
 
