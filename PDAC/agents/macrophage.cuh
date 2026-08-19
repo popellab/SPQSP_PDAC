@@ -264,9 +264,16 @@ FLAMEGPU_AGENT_FUNCTION(mac_move_propose, flamegpu::MessageNone, flamegpu::Messa
     mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_MAC");
     const float w_cg = FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_MAC");
 
-    const float* gax = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_X));
-    const float* gay = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Y));
-    const float* gaz = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Z));
+    // M1: IL-12 chemotaxis (toward DC/immune niche). M2: CCL2 (toward cancer).
+    const float* gax = (cell_state == MAC_M1)
+        ? reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IL12_X))
+        : reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_X));
+    const float* gay = (cell_state == MAC_M1)
+        ? reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IL12_Y))
+        : reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Y));
+    const float* gaz = (cell_state == MAC_M1)
+        ? reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_IL12_Z))
+        : reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_CCL2_Z));
 
     int pdx = FLAMEGPU->getVariable<int>("persist_dir_x");
     int pdy = FLAMEGPU->getVariable<int>("persist_dir_y");

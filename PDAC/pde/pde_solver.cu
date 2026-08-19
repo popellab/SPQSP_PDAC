@@ -215,8 +215,8 @@ __global__ void compute_gradients_kernel(
 
     int voxel = iz * ny*nx + iy * nx + ix;
 
-    // Gradient substrates: {IFN=1, TGFB=4, CCL2=5, VEGFA=9, CXCL13=12, CCL21=15, CXCL12=16, CCL5=17}
-    const int grad_chems[NUM_GRAD_SUBSTRATES] = {1, 4, 5, 9, 12, 15, 16, 17};
+    // Gradient substrates: {IFN=1, TGFB=4, CCL2=5, VEGFA=9, CXCL13=12, CCL21=15, CXCL12=16, CCL5=17, IL12=8}
+    const int grad_chems[NUM_GRAD_SUBSTRATES] = {1, 4, 5, 9, 12, 15, 16, 17, 8};
 
     for (int g = 0; g < NUM_GRAD_SUBSTRATES; g++) {
         const float* C = d_conc + grad_chems[g] * V;

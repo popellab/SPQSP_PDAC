@@ -48,6 +48,7 @@ enum GradientSubstrate {
     GRAD_CCL21,
     GRAD_CXCL12,
     GRAD_CCL5,
+    GRAD_IL12,
     NUM_GRAD_SUBSTRATES
 };
 

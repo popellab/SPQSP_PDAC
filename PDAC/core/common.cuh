@@ -361,6 +361,9 @@ enum ABMEventCounterIndex : int {
 #define PDE_GRAD_CCL5_X  "pde_grad_CCL5_x"
 #define PDE_GRAD_CCL5_Y  "pde_grad_CCL5_y"
 #define PDE_GRAD_CCL5_Z  "pde_grad_CCL5_z"
+#define PDE_GRAD_IL12_X  "pde_grad_IL12_x"
+#define PDE_GRAD_IL12_Y  "pde_grad_IL12_y"
+#define PDE_GRAD_IL12_Z  "pde_grad_IL12_z"
 
 // ============================================================
 // PDE Access Helper Macros
@@ -833,7 +836,7 @@ __device__ __forceinline__ void phi_sample(API FLAMEGPU, int pair) {
     atomicAdd(&PHI_N_PTR(FLAMEGPU)[pair], 1u);
 }
 
-// Attempt to claim volume in a target voxel via atomicAdd.
+// Attempt to claim volume in a target voxel via atomicAdd (hard capacity, used for division).
 // Returns true if the claim succeeded (total <= capacity), false otherwise (undo performed).
 __device__ __forceinline__ bool volume_try_claim(float* vol_used, int voxel_idx, float my_volume, float capacity) {
     float old = atomicAdd(&vol_used[voxel_idx], my_volume);
@@ -841,6 +844,17 @@ __device__ __forceinline__ bool volume_try_claim(float* vol_used, int voxel_idx,
         return true;  // Claim succeeded
     }
     // Over capacity — undo the claim
+    atomicAdd(&vol_used[voxel_idx], -my_volume);
+    return false;
+}
+
+// Soft-capacity claim for movement: allows up to capacity + 2*my_volume (matching
+// the linear ramp in move_cell_pick). Used by the racy move_cell path.
+__device__ __forceinline__ bool volume_try_claim_soft(float* vol_used, int voxel_idx, float my_volume, float capacity) {
+    float old = atomicAdd(&vol_used[voxel_idx], my_volume);
+    if (old + my_volume <= capacity + 2.0f * my_volume) {
+        return true;
+    }
     atomicAdd(&vol_used[voxel_idx], -my_volume);
     return false;
 }
@@ -1068,8 +1082,11 @@ __device__ __forceinline__ MoveResult move_cell_pick(
     // --- Step 1: Adhesion check ---
     if (r_move >= p.p_move) return result;
 
-    // --- Step 2: Build candidate list (26 Moore neighbors, volume + porosity filter) ---
+    // --- Step 2: Build candidate list (26 Moore neighbors, soft volume + porosity filter) ---
+    // Soft capacity: instead of hard reject at capacity, linearly ramp weight to 0
+    // at 2× cell volume over capacity. Below capacity → w_crowd=1; at capacity + 2*my_vol → 0.
     int cand_dx[26], cand_dy[26], cand_dz[26];
+    float cand_crowd[26];
     int n_cands = 0;
 
     for (int i = 0; i < 26; i++) {
@@ -1079,12 +1096,15 @@ __device__ __forceinline__ MoveResult move_cell_pick(
         if (nx < 0 || nx >= p.grid_x || ny < 0 || ny >= p.grid_y || nz < 0 || nz >= p.grid_z)
             continue;
         int vidx = nz * (p.grid_x * p.grid_y) + ny * p.grid_x + nx;
-        if (p.vol_used[vidx] + p.my_vol > p.capacity) continue;
+        float overfill = fmaxf(0.0f, p.vol_used[vidx] + p.my_vol - p.capacity);
+        float w_crowd = fmaxf(0.0f, 1.0f - overfill / (2.0f * p.my_vol));
+        if (w_crowd <= 0.0f) continue;
         if (ecm_porosity(p.ecm_density, p.ecm_crosslink, vidx, p.density_cap) < p.min_porosity)
             continue;
         cand_dx[n_cands] = ddx;
         cand_dy[n_cands] = ddy;
         cand_dz[n_cands] = ddz;
+        cand_crowd[n_cands] = w_crowd;
         n_cands++;
     }
     if (n_cands == 0) return result;
@@ -1094,11 +1114,13 @@ __device__ __forceinline__ MoveResult move_cell_pick(
     bool selected = false;
 
     if (r_persist < p.p_persist && (persist_dx != 0 || persist_dy != 0 || persist_dz != 0)) {
-        // Check if previous direction is in candidate list
+        // Check if previous direction is in candidate list and passes crowding gate
         for (int i = 0; i < n_cands; i++) {
             if (cand_dx[i] == persist_dx && cand_dy[i] == persist_dy && cand_dz[i] == persist_dz) {
-                sel_dx = persist_dx; sel_dy = persist_dy; sel_dz = persist_dz;
-                selected = true;
+                if (r_persist < p.p_persist * cand_crowd[i]) {
+                    sel_dx = persist_dx; sel_dy = persist_dy; sel_dz = persist_dz;
+                    selected = true;
+                }
                 break;
             }
         }
@@ -1147,6 +1169,7 @@ __device__ __forceinline__ MoveResult move_cell_pick(
                 }
             }
 
+            w *= cand_crowd[i];
             weights[i] = w;
             total_w += w;
         }
@@ -1176,8 +1199,8 @@ __device__ __forceinline__ MoveResult move_cell_pick(
     return result;
 }
 
-// Unified movement (racy path, unchanged behavior): pick a target then claim it via
-// volume_try_claim. Used by the immune/fib/vas move functions (deterministic split is
+// Unified movement (racy path): pick a target then claim via soft-capacity check.
+// Used by the immune/fib/vas move functions (deterministic split is
 // applied per-type as needed — cancer uses move_cell_pick + reserve/commit instead).
 __device__ __forceinline__ MoveResult move_cell(
     const MoveParams& p,
@@ -1191,11 +1214,9 @@ __device__ __forceinline__ MoveResult move_cell(
 
     int target_vidx = r.new_z * (p.grid_x * p.grid_y) + r.new_y * p.grid_x + r.new_x;
     int old_vidx    = z       * (p.grid_x * p.grid_y) + y       * p.grid_x + x;
-    if (volume_try_claim(p.vol_used, target_vidx, p.my_vol, p.capacity)) {
+    if (volume_try_claim_soft(p.vol_used, target_vidx, p.my_vol, p.capacity)) {
         volume_release(p.vol_used, old_vidx, p.my_vol);
-        // r already carries target + selected persist + moved=true
     } else {
-        // Claim lost → stay put, restore persistence to the incoming direction.
         r.new_x = x; r.new_y = y; r.new_z = z; r.moved = false;
         r.persist_dx = persist_dx; r.persist_dy = persist_dy; r.persist_dz = persist_dz;
     }

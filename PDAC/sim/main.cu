@@ -1285,6 +1285,16 @@ int main(int argc, const char** argv) {
         std::cout << "  Current volume        : " << cur_vol                     << " cm^3" << std::endl;
     }
 
+    // Placement files supply a fully-formed initial state — skip the ABM presim (Phase C)
+    // unless the user explicitly requested presim steps. Phase A (QSP warmup) already ran.
+    if (!config.placement_file.empty() &&
+        !config.presim_steps_from_cli &&
+        !config.presim_volume_from_cli &&
+        !config.presim_areal_from_cli) {
+        config.presim_steps = 0;
+        std::cout << "  Placement file provided — ABM presim (Phase C) skipped." << std::endl;
+    }
+
     // Drug dosing gated off for the presim phase.
     _lymph.set_presimulation_mode(true);
 
