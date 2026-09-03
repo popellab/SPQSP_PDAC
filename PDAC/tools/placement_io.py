@@ -77,6 +77,7 @@ T_CANCER, T_TCELL, T_TREG, T_MDSC, T_MAC, T_FIB, T_VAS, T_BCELL, T_DC = range(9)
 # States are the enums in core/common.cuh. Note FIB_APCAF = 4, not 3 — 3 is FIB_FRC, which the
 # IMC panel cannot identify and which SEED_DROP therefore forbids inventing.
 CATEGORY_TO_AGENT: dict[str, tuple[int, int, int]] = {
+    "cancer_stem":     (T_CANCER, 0, 0),   # CANCER_STEM
     "cancer_prog":     (T_CANCER, 1, 0),   # CANCER_PROGENITOR
     "cancer_sen":      (T_CANCER, 2, 0),   # CANCER_SENESCENT
     "tcell_eff":       (T_TCELL,  0, 0),   # T_CELL_EFF

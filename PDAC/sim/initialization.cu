@@ -41,6 +41,7 @@ SimulationConfig::SimulationConfig()
     , presim_volume_from_cli(false)
     , presim_areal_from_cli(false)
     , main_steps_from_cli(false)
+    , ripley_enabled(false)
 {
 }
 
@@ -91,6 +92,9 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
         } else if (arg == "--placement" && i + 1 < argc) {
             // §C6: initialize by data-driven placement. Overrides -i / --scenario.
             placement_file = argv[++i];
+        } else if (arg == "--healthy-2d" && i + 1 < argc) {
+            placement_file = argv[++i];
+            grid_z = 1;
         } else if (arg == "--qsp-onset-volume" && i + 1 < argc) {
             qsp_onset_volume = std::atof(argv[++i]);
         } else if (arg == "--dump-qsp-onset" && i + 1 < argc) {
@@ -139,6 +143,8 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                 exit(1);
             }
             seed_position = s;
+        } else if (arg == "--ripley") {
+            ripley_enabled = true;
         } else if (arg == "--output-root" && i + 1 < argc) {
             // Consumed by main.cu pre-pass; skip the value so we don't error.
             ++i;
@@ -169,6 +175,8 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  --seed-position FACE     For single_stem_edge: x_low|x_high|y_low|y_high|z_low|z_high [default: x_low]\n"
                       << "  --output-root PATH       Root directory for all output files [default: outputs]\n"
                       << "                           Auto-named under results/ when --scenario single_stem_edge is set.\n"
+                      << "  --healthy-2d FILE        2D healthy-tissue .plc placement (forces grid_z=1)\n"
+                      << "  --ripley                 Enable Ripley's L(r) diagnostic (all subtype pairs, multiple r)\n"
                       << "  -h, --help               Show this help\n";
             exit(0);
         }
