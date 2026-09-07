@@ -34,6 +34,7 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_agent_counts;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER solve_qsp_step;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_phi_buffers;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER finalize_phi;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER compute_ripley;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_fib_density_field;
 // fib_execute_divide removed: activation is now device-side (fib_activate)
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER aggregate_abm_events;
@@ -533,7 +534,6 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_FIBROBLAST, "phi_deposit");
         layer.addAgentFunction(AGENT_MDSC,       "phi_deposit");
         layer.addAgentFunction(AGENT_BCELL,      "phi_deposit");
-        layer.addAgentFunction(AGENT_VASCULAR,   "phi_deposit");
     }
     {
         flamegpu::LayerDescription layer = model.newLayer("phi_sample");
@@ -544,6 +544,10 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     {
         flamegpu::LayerDescription layer = model.newLayer("finalize_phi");
         layer.addHostFunction(finalize_phi);
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("compute_ripley");
+        layer.addHostFunction(compute_ripley);
     }
 
     // 10. QSP coupling: aggregate ABM events, advance ODE, export state.

@@ -19,6 +19,7 @@
 #include "../core/common.cuh"
 #include "../core/layer_timing.h"
 #include "../pde/pde_integration.cuh"
+#include "../diagnostics/ripley.cuh"
 #include "initialization.cuh"
 #include "gpu_param.h"
 #include "../qsp/LymphCentral_wrapper.h"
@@ -1244,6 +1245,10 @@ int main(int argc, const char** argv) {
     PDAC::set_class_audit_path(out_path(rel_buf));
     snprintf(rel_buf, sizeof(rel_buf), "phi_%u.csv", config.random_seed);
     PDAC::set_phi_csv_path(out_path(rel_buf));
+    if (config.ripley_enabled) {
+        PDAC::ripley_init(config.grid_x, config.grid_y, config.grid_z,
+                          g_output_root, config.random_seed);
+    }
 
     // ========== PRESIM — PHASE C: coupled ABM+QSP (drugs OFF) ==========
     // (Phase A above grew the QSP alone to PARAM_PRESIM_ABM_START_FRACTION of target when
@@ -1766,6 +1771,7 @@ int main(int argc, const char** argv) {
     cleanup_pde_io();
     cleanup_abm_io();
     PDAC::cleanup_pde_solver();
+    PDAC::ripley_cleanup();
 
     // Free GPU event counter memory
     if (device_event_counters != nullptr) {

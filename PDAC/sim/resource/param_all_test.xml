@@ -233,6 +233,103 @@
         <phalanxVolume name="PARAM_VOLUME_VAS_PHALANX" type="float" val="pr" units="um3">1742.0</phalanxVolume> <!-- MAPLE. BioNumbers HUVEC -->
         <tipVolume name="PARAM_VOLUME_VAS_TIP" type="float" val="pr" units="um3">1701.0</tipVolume> <!-- MAPLE. BioNumbers HUVEC -->
       </Vas>
+      <!-- Epsilon interaction matrix: p_accept = exp(-Σ ε_ij · n_j).
+           Row = moving/dividing cell class i, Col = occupant class j.
+           Classes: CANCER(0) TCELL(1) TREG(2) MAC(3) FIB(4) VAS(5) MDSC(6) BCELL(7) DC(8).
+           ε>0 = repulsion, ε<0 = attraction, ε=0 = invisible.
+           Large ε (≥5) ≈ hard exclusion (exp(-5)≈0.007). -->
+      <Epsilon>
+        <!-- CANCER row: strong self-exclusion (one cancer per voxel ≈ old CAS), moderate steric from large cells -->
+        <cancer_cancer name="PARAM_EPS_CANCER_CANCER" type="float" val="">5.0</cancer_cancer>
+        <cancer_tcell  name="PARAM_EPS_CANCER_TCELL"  type="float" val="">0.1</cancer_tcell>
+        <cancer_treg   name="PARAM_EPS_CANCER_TREG"   type="float" val="">0.1</cancer_treg>
+        <cancer_mac    name="PARAM_EPS_CANCER_MAC"     type="float" val="">0.3</cancer_mac>
+        <cancer_fib    name="PARAM_EPS_CANCER_FIB"     type="float" val="">0.5</cancer_fib>
+        <cancer_vas    name="PARAM_EPS_CANCER_VAS"     type="float" val="">5.0</cancer_vas>
+        <cancer_mdsc   name="PARAM_EPS_CANCER_MDSC"    type="float" val="">0.1</cancer_mdsc>
+        <cancer_bcell  name="PARAM_EPS_CANCER_BCELL"   type="float" val="">0.1</cancer_bcell>
+        <cancer_dc     name="PARAM_EPS_CANCER_DC"      type="float" val="">0.1</cancer_dc>
+        <!-- TCELL row: immune cells pack more freely, moderate cancer exclusion -->
+        <tcell_cancer  name="PARAM_EPS_TCELL_CANCER"   type="float" val="">0.3</tcell_cancer>
+        <tcell_tcell   name="PARAM_EPS_TCELL_TCELL"    type="float" val="">0.2</tcell_tcell>
+        <tcell_treg    name="PARAM_EPS_TCELL_TREG"     type="float" val="">0.1</tcell_treg>
+        <tcell_mac     name="PARAM_EPS_TCELL_MAC"      type="float" val="">0.1</tcell_mac>
+        <tcell_fib     name="PARAM_EPS_TCELL_FIB"      type="float" val="">0.3</tcell_fib>
+        <tcell_vas     name="PARAM_EPS_TCELL_VAS"      type="float" val="">0.5</tcell_vas>
+        <tcell_mdsc    name="PARAM_EPS_TCELL_MDSC"     type="float" val="">0.1</tcell_mdsc>
+        <tcell_bcell   name="PARAM_EPS_TCELL_BCELL"    type="float" val="">0.1</tcell_bcell>
+        <tcell_dc      name="PARAM_EPS_TCELL_DC"       type="float" val="">0.1</tcell_dc>
+        <!-- TREG row -->
+        <treg_cancer   name="PARAM_EPS_TREG_CANCER"    type="float" val="">0.3</treg_cancer>
+        <treg_tcell    name="PARAM_EPS_TREG_TCELL"     type="float" val="">0.1</treg_tcell>
+        <treg_treg     name="PARAM_EPS_TREG_TREG"      type="float" val="">0.2</treg_treg>
+        <treg_mac      name="PARAM_EPS_TREG_MAC"       type="float" val="">0.1</treg_mac>
+        <treg_fib      name="PARAM_EPS_TREG_FIB"       type="float" val="">0.3</treg_fib>
+        <treg_vas      name="PARAM_EPS_TREG_VAS"       type="float" val="">0.5</treg_vas>
+        <treg_mdsc     name="PARAM_EPS_TREG_MDSC"      type="float" val="">0.1</treg_mdsc>
+        <treg_bcell    name="PARAM_EPS_TREG_BCELL"     type="float" val="">0.1</treg_bcell>
+        <treg_dc       name="PARAM_EPS_TREG_DC"        type="float" val="">0.1</treg_dc>
+        <!-- MAC row: macrophages are large, moderate self-exclusion -->
+        <mac_cancer    name="PARAM_EPS_MAC_CANCER"     type="float" val="">0.3</mac_cancer>
+        <mac_tcell     name="PARAM_EPS_MAC_TCELL"      type="float" val="">0.1</mac_tcell>
+        <mac_treg      name="PARAM_EPS_MAC_TREG"       type="float" val="">0.1</mac_treg>
+        <mac_mac       name="PARAM_EPS_MAC_MAC"        type="float" val="">0.5</mac_mac>
+        <mac_fib       name="PARAM_EPS_MAC_FIB"        type="float" val="">0.3</mac_fib>
+        <mac_vas       name="PARAM_EPS_MAC_VAS"        type="float" val="">0.5</mac_vas>
+        <mac_mdsc      name="PARAM_EPS_MAC_MDSC"       type="float" val="">0.1</mac_mdsc>
+        <mac_bcell     name="PARAM_EPS_MAC_BCELL"      type="float" val="">0.1</mac_bcell>
+        <mac_dc        name="PARAM_EPS_MAC_DC"         type="float" val="">0.1</mac_dc>
+        <!-- FIB row: fibroblasts are large, moderate steric -->
+        <fib_cancer    name="PARAM_EPS_FIB_CANCER"     type="float" val="">0.5</fib_cancer>
+        <fib_tcell     name="PARAM_EPS_FIB_TCELL"      type="float" val="">0.1</fib_tcell>
+        <fib_treg      name="PARAM_EPS_FIB_TREG"       type="float" val="">0.1</fib_treg>
+        <fib_mac       name="PARAM_EPS_FIB_MAC"        type="float" val="">0.3</fib_mac>
+        <fib_fib       name="PARAM_EPS_FIB_FIB"        type="float" val="">0.5</fib_fib>
+        <fib_vas       name="PARAM_EPS_FIB_VAS"        type="float" val="">5.0</fib_vas>
+        <fib_mdsc      name="PARAM_EPS_FIB_MDSC"       type="float" val="">0.1</fib_mdsc>
+        <fib_bcell     name="PARAM_EPS_FIB_BCELL"      type="float" val="">0.1</fib_bcell>
+        <fib_dc        name="PARAM_EPS_FIB_DC"         type="float" val="">0.1</fib_dc>
+        <!-- VAS row: vasculature is immobile (PHALANX), but TIP cells need this for sprouting -->
+        <vas_cancer    name="PARAM_EPS_VAS_CANCER"     type="float" val="">5.0</vas_cancer>
+        <vas_tcell     name="PARAM_EPS_VAS_TCELL"      type="float" val="">0.1</vas_tcell>
+        <vas_treg      name="PARAM_EPS_VAS_TREG"       type="float" val="">0.1</vas_treg>
+        <vas_mac       name="PARAM_EPS_VAS_MAC"        type="float" val="">0.3</vas_mac>
+        <vas_fib       name="PARAM_EPS_VAS_FIB"        type="float" val="">0.5</vas_fib>
+        <vas_vas       name="PARAM_EPS_VAS_VAS"        type="float" val="">5.0</vas_vas>
+        <vas_mdsc      name="PARAM_EPS_VAS_MDSC"       type="float" val="">0.1</vas_mdsc>
+        <vas_bcell     name="PARAM_EPS_VAS_BCELL"      type="float" val="">0.1</vas_bcell>
+        <vas_dc        name="PARAM_EPS_VAS_DC"         type="float" val="">0.1</vas_dc>
+        <!-- MDSC row -->
+        <mdsc_cancer   name="PARAM_EPS_MDSC_CANCER"    type="float" val="">0.3</mdsc_cancer>
+        <mdsc_tcell    name="PARAM_EPS_MDSC_TCELL"     type="float" val="">0.1</mdsc_tcell>
+        <mdsc_treg     name="PARAM_EPS_MDSC_TREG"      type="float" val="">0.1</mdsc_treg>
+        <mdsc_mac      name="PARAM_EPS_MDSC_MAC"       type="float" val="">0.1</mdsc_mac>
+        <mdsc_fib      name="PARAM_EPS_MDSC_FIB"       type="float" val="">0.3</mdsc_fib>
+        <mdsc_vas      name="PARAM_EPS_MDSC_VAS"       type="float" val="">0.5</mdsc_vas>
+        <mdsc_mdsc     name="PARAM_EPS_MDSC_MDSC"      type="float" val="">0.2</mdsc_mdsc>
+        <mdsc_bcell    name="PARAM_EPS_MDSC_BCELL"     type="float" val="">0.1</mdsc_bcell>
+        <mdsc_dc       name="PARAM_EPS_MDSC_DC"        type="float" val="">0.1</mdsc_dc>
+        <!-- BCELL row -->
+        <bcell_cancer  name="PARAM_EPS_BCELL_CANCER"   type="float" val="">0.3</bcell_cancer>
+        <bcell_tcell   name="PARAM_EPS_BCELL_TCELL"    type="float" val="">0.1</bcell_tcell>
+        <bcell_treg    name="PARAM_EPS_BCELL_TREG"     type="float" val="">0.1</bcell_treg>
+        <bcell_mac     name="PARAM_EPS_BCELL_MAC"      type="float" val="">0.1</bcell_mac>
+        <bcell_fib     name="PARAM_EPS_BCELL_FIB"      type="float" val="">0.3</bcell_fib>
+        <bcell_vas     name="PARAM_EPS_BCELL_VAS"      type="float" val="">0.5</bcell_vas>
+        <bcell_mdsc    name="PARAM_EPS_BCELL_MDSC"     type="float" val="">0.1</bcell_mdsc>
+        <bcell_bcell   name="PARAM_EPS_BCELL_BCELL"    type="float" val="">0.2</bcell_bcell>
+        <bcell_dc      name="PARAM_EPS_BCELL_DC"       type="float" val="">0.1</bcell_dc>
+        <!-- DC row -->
+        <dc_cancer     name="PARAM_EPS_DC_CANCER"      type="float" val="">0.3</dc_cancer>
+        <dc_tcell      name="PARAM_EPS_DC_TCELL"       type="float" val="">0.1</dc_tcell>
+        <dc_treg       name="PARAM_EPS_DC_TREG"        type="float" val="">0.1</dc_treg>
+        <dc_mac        name="PARAM_EPS_DC_MAC"         type="float" val="">0.1</dc_mac>
+        <dc_fib        name="PARAM_EPS_DC_FIB"         type="float" val="">0.3</dc_fib>
+        <dc_vas        name="PARAM_EPS_DC_VAS"         type="float" val="">0.5</dc_vas>
+        <dc_mdsc       name="PARAM_EPS_DC_MDSC"        type="float" val="">0.1</dc_mdsc>
+        <dc_bcell      name="PARAM_EPS_DC_BCELL"       type="float" val="">0.1</dc_bcell>
+        <dc_dc         name="PARAM_EPS_DC_DC"          type="float" val="">0.2</dc_dc>
+      </Epsilon>
     </Occupancy>
     <ECM>
       <!-- ECM density is in nmol/mL (= µM). QSP saturation = 1000 nmol/mL. -->

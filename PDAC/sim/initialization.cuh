@@ -96,6 +96,9 @@ struct SimulationConfig {
     bool   presim_areal_from_cli;
     bool   main_steps_from_cli;
 
+    // Ripley's L(r) diagnostic (--ripley)
+    bool ripley_enabled;
+
     // Constructor with defaults
     SimulationConfig();
 

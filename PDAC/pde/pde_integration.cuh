@@ -166,6 +166,12 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER timing_after_division;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER reset_divide_wave;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER increment_divide_wave;
 
+// ── Ripley diagnostic: fill per-subtype voxel count grids ────────────────────
+// Populates PDAC::g_ripley_counts[] from live agent data. Called by the Ripley
+// host function (diagnostics/ripley.cu). Lives here because DeviceAgentVector
+// triggers an nvcc 12.6 + C++20 template issue in other TUs.
+void ripley_fill_counts(flamegpu::HostAPI* api, int gx, int gy, int gz);
+
 } // namespace PDAC
 
 #endif // PDE_INTEGRATION_CUH

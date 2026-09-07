@@ -235,6 +235,7 @@ add_executable(pdac
     ../core/model_functions.cu
     ../abm/gpu_param.cu
     ../abm/adhesion_matrix_loader.cpp
+    ../diagnostics/ripley.cu
     set_healthy_populations.cpp
     evolve_to_diagnosis.cpp
 )
@@ -286,6 +287,7 @@ target_include_directories(pdac PRIVATE
     ${MY_PARENT_DIR}/agents
     ${MY_PARENT_DIR}/qsp
     ${MY_PARENT_DIR}/abm
+    ${MY_PARENT_DIR}/diagnostics
 )
 
 # Enable separable compilation for CUDA (required by FLAMEGPU2)
@@ -386,6 +388,7 @@ add_executable(pdac_test
     ../core/model_functions.cu
     ../abm/gpu_param.cu
     ../abm/adhesion_matrix_loader.cpp
+    ../diagnostics/ripley.cu
 )
 
 target_link_libraries(pdac_test PRIVATE flamegpu)
@@ -418,6 +421,7 @@ target_include_directories(pdac_test PRIVATE
     ${MY_PARENT_DIR}/agents
     ${MY_PARENT_DIR}/qsp
     ${MY_PARENT_DIR}/abm
+    ${MY_PARENT_DIR}/diagnostics
     ${MY_PARENT_DIR}/test
     ${CMAKE_CURRENT_SOURCE_DIR}
 )

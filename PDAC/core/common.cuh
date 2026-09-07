@@ -88,6 +88,70 @@ enum DCSubtype : int {
     DC_CDC2 = 1    // cDC2: MHC-II presents to CD4/Th/Treg
 };
 
+// ============================================================
+// Occupancy Class System (epsilon kernel)
+// ============================================================
+// Occupancy classes group agent states for the composition-aware
+// packing kernel p = exp(-sum_j epsilon_ij * n_j).
+constexpr int N_OCC_CLASSES = 9;
+
+enum OccClass : int {
+    OCC_CANCER  = 0,
+    OCC_TCELL   = 1,
+    OCC_TREG    = 2,
+    OCC_MAC     = 3,
+    OCC_FIB     = 4,
+    OCC_VAS     = 5,
+    OCC_MDSC    = 6,
+    OCC_BCELL   = 7,
+    OCC_DC      = 8
+};
+
+__host__ __device__ __forceinline__ int occ_class_of(int agent_type, int cell_state) {
+    (void)cell_state;
+    switch (agent_type) {
+        case CELL_TYPE_CANCER:   return OCC_CANCER;
+        case CELL_TYPE_T:        return OCC_TCELL;
+        case CELL_TYPE_TREG:     return OCC_TREG;
+        case CELL_TYPE_MAC:      return OCC_MAC;
+        case CELL_TYPE_FIB:      return OCC_FIB;
+        case CELL_TYPE_VASCULAR: return OCC_VAS;
+        case CELL_TYPE_MDSC:     return OCC_MDSC;
+        case CELL_TYPE_BCELL:    return OCC_BCELL;
+        case CELL_TYPE_DC:       return OCC_DC;
+        default:                 return OCC_CANCER;
+    }
+}
+
+// Environment property names for epsilon occupancy system
+#define TYPE_COUNTS_PTR "type_counts_ptr"
+#define EPSILON_PTR     "epsilon_ptr"
+
+#define TC_PTR(fgpu) \
+    reinterpret_cast<unsigned int*>((fgpu)->environment.getProperty<uint64_t>(TYPE_COUNTS_PTR))
+#define EPS_PTR(fgpu) \
+    reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>(EPSILON_PTR))
+
+// Compute epsilon kernel acceptance weight for a cell of class occ_class at voxel vidx.
+// type_counts layout: type_counts[class * n_voxels + voxel_idx]
+// epsilon layout: epsilon[my_class * N_OCC_CLASSES + j]
+__device__ __forceinline__ float epsilon_weight(
+    const unsigned int* type_counts, const float* epsilon,
+    int occ_class, int vidx, int n_voxels)
+{
+    float energy = 0.0f;
+    for (int j = 0; j < N_OCC_CLASSES; j++) {
+        energy += epsilon[occ_class * N_OCC_CLASSES + j]
+                * static_cast<float>(type_counts[j * n_voxels + vidx]);
+    }
+    return expf(-energy);
+}
+
+// Threshold below which epsilon weight is treated as hard rejection (performance cutoff)
+constexpr float EPS_WEIGHT_FLOOR = 1e-4f;
+// Threshold for division/recruitment acceptance
+constexpr float EPS_DIVIDE_THRESHOLD = 0.05f;
+
 // Message names
 constexpr const char* MSG_CELL_LOCATION = "cell_location";
 constexpr const char* MSG_INTENT = "intent_message";
@@ -501,14 +565,18 @@ __device__ __forceinline__ void get_moore_direction(int idx, int& dx, int& dy, i
 constexpr unsigned int VON_NEUMANN_MASK = 0x3Fu;  // binary: 00111111
 
 // ============================================================
-// Volume-Based Occupancy Helpers
+// Type-Count Occupancy Helpers (epsilon kernel)
 // ============================================================
-// Environment property name for the volume_used device array pointer
-#define VOL_USED_PTR "volume_used_ptr"
-
-// Read volume_used pointer from FLAMEGPU environment
-#define VOL_PTR(fgpu) \
-    reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>(VOL_USED_PTR))
+// Increment type count at target voxel (used by move_commit, divide_confirm, recruitment)
+__device__ __forceinline__ void type_count_claim(unsigned int* type_counts, int occ_class,
+                                                  int voxel_idx, int n_voxels) {
+    atomicAdd(&type_counts[occ_class * n_voxels + voxel_idx], 1u);
+}
+// Decrement type count at source voxel (used by move_commit)
+__device__ __forceinline__ void type_count_release(unsigned int* type_counts, int occ_class,
+                                                    int voxel_idx, int n_voxels) {
+    atomicSub(&type_counts[occ_class * n_voxels + voxel_idx], 1u);
+}
 
 // Read ECM density and crosslink pointers from FLAMEGPU environment
 #define ECM_DENSITY_PTR(fgpu) \
@@ -724,7 +792,7 @@ enum PhiPair : int {
     PHI_ICAF_C1   = 4,   // phi_5 → desmoplastic barrier
     PHI_MDSC_CD8  = 5,   // phi_6 → immunosuppressive niche
     PHI_BCELL_CD8 = 6,   // phi_7 → TLS-like structure
-    PHI_VAS_C1    = 7,   // phi_8 → vascular access
+    PHI_MYCAF_C1  = 7,   // phi_8 → myofibroblast barrier
     N_PHI_PAIR    = 8
 };
 
@@ -738,7 +806,7 @@ enum PhiKde : int {
     PHI_KDE_FIB_ICAF = 3,
     PHI_KDE_MDSC     = 4,
     PHI_KDE_BCELL    = 5,
-    PHI_KDE_VAS      = 6,
+    PHI_KDE_FIB_MYCAF = 6,
     N_PHI_KDE        = 7
 };
 
@@ -750,7 +818,7 @@ __device__ __host__ __forceinline__ int phi_pair_kde(int pair) {
         case PHI_ICAF_C1:   return PHI_KDE_FIB_ICAF;
         case PHI_MDSC_CD8:  return PHI_KDE_MDSC;
         case PHI_BCELL_CD8: return PHI_KDE_BCELL;
-        case PHI_VAS_C1:    return PHI_KDE_VAS;
+        case PHI_MYCAF_C1:  return PHI_KDE_FIB_MYCAF;
         default:            return PHI_KDE_CD8;
     }
 }
@@ -834,34 +902,6 @@ __device__ __forceinline__ void phi_sample(API FLAMEGPU, int pair) {
     const float ratio = (sumk > 0.0f) ? (ecm_fp_decode(field[v]) / sumk) : 0.0f;
     atomicAdd(&PHI_ACC_PTR(FLAMEGPU)[pair], ecm_fp_encode(ratio));
     atomicAdd(&PHI_N_PTR(FLAMEGPU)[pair], 1u);
-}
-
-// Attempt to claim volume in a target voxel via atomicAdd (hard capacity, used for division).
-// Returns true if the claim succeeded (total <= capacity), false otherwise (undo performed).
-__device__ __forceinline__ bool volume_try_claim(float* vol_used, int voxel_idx, float my_volume, float capacity) {
-    float old = atomicAdd(&vol_used[voxel_idx], my_volume);
-    if (old + my_volume <= capacity) {
-        return true;  // Claim succeeded
-    }
-    // Over capacity — undo the claim
-    atomicAdd(&vol_used[voxel_idx], -my_volume);
-    return false;
-}
-
-// Soft-capacity claim for movement: allows up to capacity + 2*my_volume (matching
-// the linear ramp in move_cell_pick). Used by the racy move_cell path.
-__device__ __forceinline__ bool volume_try_claim_soft(float* vol_used, int voxel_idx, float my_volume, float capacity) {
-    float old = atomicAdd(&vol_used[voxel_idx], my_volume);
-    if (old + my_volume <= capacity + 2.0f * my_volume) {
-        return true;
-    }
-    atomicAdd(&vol_used[voxel_idx], -my_volume);
-    return false;
-}
-
-// Release volume from a voxel (e.g., after movement or death).
-__device__ __forceinline__ void volume_release(float* vol_used, int voxel_idx, float my_volume) {
-    atomicAdd(&vol_used[voxel_idx], -my_volume);
 }
 
 // ============================================================
@@ -1029,10 +1069,11 @@ __device__ __forceinline__ float compute_adhesion_pmove(
 struct MoveParams {
     // Grid dimensions
     int grid_x, grid_y, grid_z;
-    // Volume occupancy
-    float* vol_used;
-    float my_vol;
-    float capacity;
+    // Epsilon-kernel occupancy
+    unsigned int* type_counts;  // [N_OCC_CLASSES * n_voxels], row-major by class
+    const float* epsilon;       // [N_OCC_CLASSES * N_OCC_CLASSES], row-major by my_class
+    int n_voxels;               // grid_x * grid_y * grid_z
+    int occ_class;              // OccClass of the moving cell
     // ECM filtering
     const float* ecm_density;
     const float* ecm_crosslink;
@@ -1082,9 +1123,7 @@ __device__ __forceinline__ MoveResult move_cell_pick(
     // --- Step 1: Adhesion check ---
     if (r_move >= p.p_move) return result;
 
-    // --- Step 2: Build candidate list (26 Moore neighbors, soft volume + porosity filter) ---
-    // Soft capacity: instead of hard reject at capacity, linearly ramp weight to 0
-    // at 2× cell volume over capacity. Below capacity → w_crowd=1; at capacity + 2*my_vol → 0.
+    // --- Step 2: Build candidate list (26 Moore neighbors, epsilon kernel + porosity filter) ---
     int cand_dx[26], cand_dy[26], cand_dz[26];
     float cand_crowd[26];
     int n_cands = 0;
@@ -1096,9 +1135,8 @@ __device__ __forceinline__ MoveResult move_cell_pick(
         if (nx < 0 || nx >= p.grid_x || ny < 0 || ny >= p.grid_y || nz < 0 || nz >= p.grid_z)
             continue;
         int vidx = nz * (p.grid_x * p.grid_y) + ny * p.grid_x + nx;
-        float overfill = fmaxf(0.0f, p.vol_used[vidx] + p.my_vol - p.capacity);
-        float w_crowd = fmaxf(0.0f, 1.0f - overfill / (2.0f * p.my_vol));
-        if (w_crowd <= 0.0f) continue;
+        float w_crowd = epsilon_weight(p.type_counts, p.epsilon, p.occ_class, vidx, p.n_voxels);
+        if (w_crowd < EPS_WEIGHT_FLOOR) continue;
         if (ecm_porosity(p.ecm_density, p.ecm_crosslink, vidx, p.density_cap) < p.min_porosity)
             continue;
         cand_dx[n_cands] = ddx;
@@ -1214,12 +1252,9 @@ __device__ __forceinline__ MoveResult move_cell(
 
     int target_vidx = r.new_z * (p.grid_x * p.grid_y) + r.new_y * p.grid_x + r.new_x;
     int old_vidx    = z       * (p.grid_x * p.grid_y) + y       * p.grid_x + x;
-    if (volume_try_claim_soft(p.vol_used, target_vidx, p.my_vol, p.capacity)) {
-        volume_release(p.vol_used, old_vidx, p.my_vol);
-    } else {
-        r.new_x = x; r.new_y = y; r.new_z = z; r.moved = false;
-        r.persist_dx = persist_dx; r.persist_dy = persist_dy; r.persist_dz = persist_dz;
-    }
+    // Epsilon kernel already filtered in move_cell_pick; claim is unconditional for the racy path.
+    type_count_claim(p.type_counts, p.occ_class, target_vidx, p.n_voxels);
+    type_count_release(p.type_counts, p.occ_class, old_vidx, p.n_voxels);
     return r;
 }
 
