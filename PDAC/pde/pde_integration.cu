@@ -1,6 +1,7 @@
 #include "pde_integration.cuh"
 #include "../core/common.cuh"
 #include "../core/layer_timing.h"
+#include "../diagnostics/ripley.cuh"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -69,6 +70,11 @@ static unsigned int* d_cancer_occ = nullptr;
 // replacing explicit vascular agents. Computed each step by compute_vvas_and_o2.
 static float* d_vvas_field = nullptr;
 
+// Snapshot of the SA-placed Vvas at t=0. Serves as the recovery target: compression
+// can push Vvas below this, but recovery drives it back toward the initial value
+// rather than toward zero. Healthy tissue vasculature is permanent infrastructure.
+static float* d_vvas_initial = nullptr;
+
 // Per-voxel vascular tip_id map.
 // Written by vascular_write_to_occ_grid (PHALANX/STALK cells write their tip_id).
 // Zeroed by zero_occupancy_grid. Read by vascular_state_step for neighbor check.
@@ -128,9 +134,11 @@ void init_phi_sumk(int gx, int gy, int gz, float sigma, int radius) {
 double get_phi(int pair) { return (pair >= 0 && pair < N_PHI_PAIR) ? g_phi[pair] : 1.0; }
 bool   phi_is_valid(int pair) { return (pair >= 0 && pair < N_PHI_PAIR) && g_phi_valid[pair]; }
 
-// Volume-based occupancy: single float per voxel tracking total cell volume (µm³).
-// Replaces the old per-type occ_grid MacroProperty + flat arrays (d_t_occ, d_mac_occ, d_mdsc_occ).
-static float* d_volume_used = nullptr;
+// Epsilon-kernel occupancy: per-class cell counts and interaction matrix.
+// d_type_counts: [N_OCC_CLASSES * total_voxels] unsigned int, row-major by class.
+// d_epsilon: [N_OCC_CLASSES * N_OCC_CLASSES] float, the interaction matrix.
+static unsigned int* d_type_counts = nullptr;
+static float* d_epsilon = nullptr;
 
 // Systematic-resampling recruitment: per-voxel expected-recruitment field, N_QPLANE planes
 // (8 stream q-fields + 1 mac M1/M2 polarization plane), plane-major. Filled each step by
@@ -563,6 +571,9 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     // Vvas field (vascular volume fraction; media-2). Persists across steps; recomputed each step.
     CUDA_CHECK(cudaMalloc(&d_vvas_field, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_vvas_field, 0, total_voxels * sizeof(float)));
+    // Initial Vvas snapshot — recovery target for compression rebound.
+    CUDA_CHECK(cudaMalloc(&d_vvas_initial, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_vvas_initial, 0, total_voxels * sizeof(float)));
 
     // Systematic-resampling q-fields: N_QPLANE planes (8 stream expected-recruitment fields +
     // 1 mac M1/M2 polarization plane), plane-major. Recomputed each step by compute_qfields_kernel.
@@ -599,10 +610,26 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
                   gpu_params.getFloat(PARAM_PHI_SIGMA_VOX),
                   gpu_params.getInt(PARAM_PHI_RADIUS_VOX));
 
-    // Allocate volume-based occupancy grid
-    CUDA_CHECK(cudaMalloc(&d_volume_used, total_voxels * sizeof(float)));
-    CUDA_CHECK(cudaMemset(d_volume_used, 0, total_voxels * sizeof(float)));
-
+    // Allocate epsilon-kernel type count grid: N_OCC_CLASSES planes of total_voxels each
+    {
+        size_t tc_bytes = static_cast<size_t>(N_OCC_CLASSES) * total_voxels * sizeof(unsigned int);
+        CUDA_CHECK(cudaMalloc(&d_type_counts, tc_bytes));
+        CUDA_CHECK(cudaMemset(d_type_counts, 0, tc_bytes));
+        std::cout << "  Epsilon type_counts: " << N_OCC_CLASSES << " classes × "
+                  << total_voxels << " voxels = " << (tc_bytes / (1024*1024)) << " MB" << std::endl;
+    }
+    // Allocate epsilon interaction matrix on device
+    {
+        size_t eps_bytes = N_OCC_CLASSES * N_OCC_CLASSES * sizeof(float);
+        CUDA_CHECK(cudaMalloc(&d_epsilon, eps_bytes));
+        float h_epsilon[N_OCC_CLASSES * N_OCC_CLASSES];
+        for (int i = 0; i < N_OCC_CLASSES; i++)
+            for (int j = 0; j < N_OCC_CLASSES; j++)
+                h_epsilon[i * N_OCC_CLASSES + j] = gpu_params.getFloat(
+                    static_cast<GPUParamFloat>(PARAM_EPS_CANCER_CANCER + i * N_OCC_CLASSES + j));
+        CUDA_CHECK(cudaMemcpy(d_epsilon, h_epsilon, eps_bytes, cudaMemcpyHostToDevice));
+        std::cout << "  Epsilon matrix loaded (" << N_OCC_CLASSES << "×" << N_OCC_CLASSES << ")" << std::endl;
+    }
     // Allocate deterministic voxel-claim ownership buffer (init to ULLONG_MAX = 0xFF bytes)
     CUDA_CHECK(cudaMalloc(&d_voxel_owner, total_voxels * sizeof(unsigned long long)));
     CUDA_CHECK(cudaMemset(d_voxel_owner, 0xFF, total_voxels * sizeof(unsigned long long)));
@@ -716,10 +743,12 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
     model.Environment().newProperty<unsigned long long>("phi_sumk_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_phi_sumk)));
 
-    // Volume-based occupancy grid pointer
-    model.Environment().newProperty<unsigned long long>("volume_used_ptr",
-        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_volume_used)));
-
+    // Epsilon-kernel occupancy pointers
+    model.Environment().newProperty<unsigned long long>("type_counts_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_type_counts)));
+    model.Environment().newProperty<unsigned long long>("epsilon_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_epsilon)));
+    // Legacy volume grid pointer
     // Deterministic voxel-claim ownership buffer pointer
     model.Environment().newProperty<unsigned long long>("voxel_owner_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_voxel_owner)));
@@ -772,6 +801,10 @@ void cleanup_pde_solver() {
         cudaFree(d_vvas_field);
         d_vvas_field = nullptr;
     }
+    if (d_vvas_initial) {
+        cudaFree(d_vvas_initial);
+        d_vvas_initial = nullptr;
+    }
     if (d_qfields) {
         cudaFree(d_qfields);
         d_qfields = nullptr;
@@ -800,7 +833,8 @@ void cleanup_pde_solver() {
         cudaFree(d_vas_tip_id_grid);
         d_vas_tip_id_grid = nullptr;
     }
-    if (d_volume_used) { cudaFree(d_volume_used); d_volume_used = nullptr; }
+    if (d_type_counts) { cudaFree(d_type_counts); d_type_counts = nullptr; }
+    if (d_epsilon)     { cudaFree(d_epsilon);     d_epsilon = nullptr; }
     if (d_antigen_grid) { cudaFree(d_antigen_grid); d_antigen_grid = nullptr; }
     if (d_ecm_orient_x) { cudaFree(d_ecm_orient_x); d_ecm_orient_x = nullptr; }
     if (d_ecm_orient_y) { cudaFree(d_ecm_orient_y); d_ecm_orient_y = nullptr; }
@@ -866,6 +900,11 @@ bool set_vvas_from_host(const float* host_data, int total_voxels) {
     }
     CUDA_CHECK(cudaMemcpy(d_vvas_field, host_data, total_voxels * sizeof(float),
                           cudaMemcpyHostToDevice));
+    // Snapshot the placement seed as the recovery floor.
+    if (d_vvas_initial) {
+        CUDA_CHECK(cudaMemcpy(d_vvas_initial, host_data, total_voxels * sizeof(float),
+                              cudaMemcpyHostToDevice));
+    }
     g_vvas_seeded = true;
     return true;
 }
@@ -965,7 +1004,6 @@ struct RecruitKernelParams {
     float p_dc_cdc2;
     float dc_life_immature_mean, dc_life_immature_sd;
     float dc_life_mature_mean, dc_life_mature_sd;
-    float vol_dc;
     // RNG seed
     unsigned int seed;
     // CXCL12 T cell exclusion + CCL5 Treg recruitment
@@ -981,11 +1019,10 @@ struct RecruitKernelParams {
     const float* ccl2_conc;
     float ccl2_ec50_mdsc;
     float ccl2_ec50_mac;
-    // Volume-based occupancy
-    float voxel_capacity;
-    float vol_teff, vol_treg, vol_th;
-    float vol_mdsc, vol_mac_m1, vol_mac_m2;
-    float vol_bcell;
+    // Epsilon-kernel occupancy (passed through to try_claim_voxel)
+    unsigned int* d_tc;   // type_counts device pointer
+    const float* d_eps;   // epsilon matrix device pointer
+    int n_voxels;         // nx * ny * nz
     // Naive T cell recruitment (DC priming pathway)
     float naive_cd8_frac;     // Fraction of Teff events that also spawn a naive CD8
     float naive_cd4_frac;     // Fraction of TH events that also spawn a naive CD4
@@ -1029,13 +1066,14 @@ __device__ __forceinline__ int sample_exp_life_gpu(float mean, unsigned int& rng
 // the entry voxel where they extravasate; movement spreads them afterward.
 // rng is retained for call-site signature compatibility but no longer consumed (placement
 // is deterministic), so the RNG stream is unchanged by placement.
-// Returns true + sets (out_x, out_y, out_z) on success; false if the voxel is full.
+// Returns true + sets (out_x, out_y, out_z) on success; false if the voxel is too crowded.
 __device__ bool try_claim_voxel(
     int sx, int sy, int sz,
     int nx, int ny, int nz,
-    float* d_vol_used,
-    float cell_volume,
-    float voxel_capacity,
+    unsigned int* d_tc,
+    int occ_class,
+    int n_voxels,
+    const float* d_eps,
     unsigned int& rng,
     int& out_x, int& out_y, int& out_z)
 {
@@ -1044,16 +1082,12 @@ __device__ bool try_claim_voxel(
 
     int vidx = sz * (nx * ny) + sy * nx + sx;
 
-    // Volume-based occupancy check (primary gate)
-    if (d_vol_used[vidx] + cell_volume > voxel_capacity) return false;
+    // Epsilon kernel occupancy check
+    float w = epsilon_weight(d_tc, d_eps, occ_class, vidx, n_voxels);
+    if (w < EPS_DIVIDE_THRESHOLD) return false;
 
-    // Volume claim (single writer per voxel in this kernel → deterministic; atomicAdd
-    // kept for safety/consistency with the multi-cell-type sequential claims in one thread).
-    float old_vol = atomicAdd(&d_vol_used[vidx], cell_volume);
-    if (old_vol + cell_volume > voxel_capacity) {
-        atomicAdd(&d_vol_used[vidx], -cell_volume);  // undo overcommit
-        return false;
-    }
+    // Claim: increment type count
+    type_count_claim(d_tc, occ_class, vidx, n_voxels);
 
     out_x = sx; out_y = sy; out_z = sz;
     return true;
@@ -1158,7 +1192,6 @@ __global__ void compute_qfields_kernel(
 __global__ void recruit_all_kernel(
     const int* __restrict__ d_recruitment_sources,
     const unsigned int* __restrict__ d_cancer_occ,
-    float* d_vol_used,
     RecruitRequest* d_requests,
     int* d_request_count,
     RecruitDiag* diag,
@@ -1201,7 +1234,7 @@ __global__ void recruit_all_kernel(
         if (rng_uniform(rng) < p.p_teff * cxcl9_gate * (1.0f - cxcl12_inhib)) {
             atomicAdd(&diag->teff_roll_pass, 1);
             if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
-                    d_vol_used, p.vol_teff, p.voxel_capacity,
+                    p.d_tc, OCC_TCELL, p.n_voxels, p.d_eps,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->teff_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
@@ -1223,7 +1256,7 @@ __global__ void recruit_all_kernel(
                 if (p.naive_cd8_frac > 0.0f && rng_uniform(rng) < p.naive_cd8_frac) {
                     int npx, npy, npz;
                     if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
-                            d_vol_used, p.vol_teff, p.voxel_capacity,
+                            p.d_tc, OCC_TCELL, p.n_voxels, p.d_eps,
                             rng, npx, npy, npz)) {
                         int nslot = atomicAdd(d_request_count, 1);
                         if (nslot < MAX_RECRUITS_PER_STEP) {
@@ -1250,7 +1283,7 @@ __global__ void recruit_all_kernel(
         if (rng_uniform(rng) < fminf(p.p_treg * (1.0f + p.ccl5_ratio * ccl5_boost), 1.0f)) {
             atomicAdd(&diag->treg_roll_pass, 1);
             if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
-                    d_vol_used, p.vol_treg, p.voxel_capacity,
+                    p.d_tc, OCC_TREG, p.n_voxels, p.d_eps,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->treg_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
@@ -1276,7 +1309,7 @@ __global__ void recruit_all_kernel(
         if (rng_uniform(rng) < p.p_th * cxcl9_gate * (1.0f - cxcl12_inhib)) {
             atomicAdd(&diag->th_roll_pass, 1);
             if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
-                    d_vol_used, p.vol_th, p.voxel_capacity,
+                    p.d_tc, OCC_TREG, p.n_voxels, p.d_eps,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->th_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
@@ -1298,7 +1331,7 @@ __global__ void recruit_all_kernel(
                 if (p.naive_cd4_frac > 0.0f && rng_uniform(rng) < p.naive_cd4_frac) {
                     int npx, npy, npz;
                     if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
-                            d_vol_used, p.vol_th, p.voxel_capacity,
+                            p.d_tc, OCC_TREG, p.n_voxels, p.d_eps,
                             rng, npx, npy, npz)) {
                         int nslot = atomicAdd(d_request_count, 1);
                         if (nslot < MAX_RECRUITS_PER_STEP) {
@@ -1342,7 +1375,7 @@ __global__ void recruit_all_kernel(
         if (rng_uniform(rng) < p_mdsc_eff) {
             atomicAdd(&diag->mdsc_roll_pass, 1);
             if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
-                    d_vol_used, p.vol_mdsc, p.voxel_capacity,
+                    p.d_tc, OCC_MDSC, p.n_voxels, p.d_eps,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->mdsc_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
@@ -1378,7 +1411,7 @@ __global__ void recruit_all_kernel(
         if (rng_uniform(rng) < p_mac_eff) {
             atomicAdd(&diag->mac_roll_pass, 1);
             if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
-                    d_vol_used, p.vol_mac_m1, p.voxel_capacity,
+                    p.d_tc, OCC_MAC, p.n_voxels, p.d_eps,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->mac_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
@@ -1428,7 +1461,7 @@ __global__ void recruit_all_kernel(
         if (rng_uniform(rng) < p_bcell_eff) {
             atomicAdd(&diag->bcell_roll_pass, 1);
             if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
-                    d_vol_used, p.vol_bcell, p.voxel_capacity,
+                    p.d_tc, OCC_BCELL, p.n_voxels, p.d_eps,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->bcell_place_ok, 1);
                 int slot = atomicAdd(d_request_count, 1);
@@ -1457,7 +1490,7 @@ __global__ void recruit_all_kernel(
         // Try cDC1 recruitment
         if (rng_uniform(rng) < p.p_dc_cdc1) {
             if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
-                    d_vol_used, p.vol_dc, p.voxel_capacity,
+                    p.d_tc, OCC_DC, p.n_voxels, p.d_eps,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->dc_roll_pass, 1);
                 atomicAdd(&diag->dc_place_ok, 1);
@@ -1481,7 +1514,7 @@ __global__ void recruit_all_kernel(
         // Try cDC2 recruitment
         if (rng_uniform(rng) < p.p_dc_cdc2) {
             if (try_claim_voxel(x, y, z, p.nx, p.ny, p.nz,
-                    d_vol_used, p.vol_dc, p.voxel_capacity,
+                    p.d_tc, OCC_DC, p.n_voxels, p.d_eps,
                     rng, px, py, pz)) {
                 atomicAdd(&diag->dc_roll_pass, 1);
                 atomicAdd(&diag->dc_place_ok, 1);
@@ -1608,8 +1641,6 @@ static RecruitKernelParams build_recruit_kernel_params(
     p.dc_life_immature_sd   = FLAMEGPU->environment.getProperty<float>("PARAM_DC_LIFE_IMMATURE_SD");
     p.dc_life_mature_mean   = FLAMEGPU->environment.getProperty<float>("PARAM_DC_LIFE_MATURE_MEAN");
     p.dc_life_mature_sd     = FLAMEGPU->environment.getProperty<float>("PARAM_DC_LIFE_MATURE_SD");
-    p.vol_dc = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_DC_IMMATURE");
-
     // RNG seed: combine environment seed with step counter (salt=0x1 for recruitment)
     unsigned int base_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
     p.seed = base_seed ^ (static_cast<unsigned int>(FLAMEGPU->getStepCounter()) * 2654435761u + 1u);
@@ -1632,15 +1663,10 @@ static RecruitKernelParams build_recruit_kernel_params(
     p.ccl2_ec50_mdsc = FLAMEGPU->environment.getProperty<float>("PARAM_MDSC_EC50_CCL2_REC");
     p.ccl2_ec50_mac  = FLAMEGPU->environment.getProperty<float>("PARAM_MAC_EC50_CCL2_REC");
 
-    // Volume-based occupancy params
-    p.voxel_capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    p.vol_teff   = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TCELL_EFF");
-    p.vol_treg   = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_REG");
-    p.vol_th     = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_TREG_TH");
-    p.vol_mdsc   = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MDSC");
-    p.vol_mac_m1 = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M1");
-    p.vol_mac_m2 = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M2");
-    p.vol_bcell  = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_NAIVE");
+    // Epsilon-kernel occupancy pointers
+    p.d_tc = d_type_counts;
+    p.d_eps = d_epsilon;
+    p.n_voxels = p.nx * p.ny * p.nz;
 
     // Naive T cell recruitment params
     p.naive_cd8_frac = FLAMEGPU->environment.getProperty<float>("PARAM_NAIVE_CD8_RECRUIT_FRAC");
@@ -1677,7 +1703,6 @@ FLAMEGPU_HOST_FUNCTION(recruit_gpu) {
     recruit_all_kernel<<<grid, block>>>(
         g_pde_solver->get_device_recruitment_sources_ptr(),
         d_cancer_occ,
-        d_volume_used,
         d_recruit_requests, d_recruit_count, d_recruit_diag, p);
 
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -1902,6 +1927,7 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("life", r.life);
             a.setVariable<int>("divide_cooldown", 0);
             a.setVariable<int>("divide_count", 0);
+            a.setVariable<int>("divide_limit", static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_MAX")));
             a.setVariable<int>("divide_flag", 0);
             a.setVariable<int>("frc_dwell_counter", 0);
             a.setVariable<int>("persist_dir_x", 0);
@@ -1953,10 +1979,9 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
 // → bit-reproducible at fixed seed, decorrelated across seeds. Emits RecruitRequests consumed
 // unchanged by place_recruited_agents.
 //
-// d_volume_used is read (stale post-movement occupancy) only to gate intra-recruitment packing;
+// d_type_counts is read (stale post-movement occupancy) only to gate intra-recruitment packing;
 // it is NOT written back — the later zero_occ_grid layer wipes it and write_to_occ_grid rebuilds
-// it from the actual agent population (including these recruits). Mirrors the old kernel's
-// transient try_claim_voxel writes.
+// it from the actual agent population (including these recruits).
 // ============================================================================
 FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
     nvtxRangePush("Recruit Systematic");
@@ -1983,16 +2008,30 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
     compute_qfields_kernel<<<grid, block>>>(d_qfields, d_vvas_field, entry_scale, p);
     CUDA_CHECK(cudaDeviceSynchronize());
 
-    // 2) D2H the q-fields + current occupancy (for capacity gating; not written back).
+    // 2) D2H the q-fields + current type counts (for epsilon-kernel gating; not written back).
     std::vector<float> qf(static_cast<size_t>(N_QPLANE) * nvox);
     CUDA_CHECK(cudaMemcpy(qf.data(), d_qfields, qf.size() * sizeof(float), cudaMemcpyDeviceToHost));
-    std::vector<float> vol_used(nvox);
-    CUDA_CHECK(cudaMemcpy(vol_used.data(), d_volume_used, nvox * sizeof(float), cudaMemcpyDeviceToHost));
+    std::vector<unsigned int> h_tc(static_cast<size_t>(N_OCC_CLASSES) * nvox);
+    CUDA_CHECK(cudaMemcpy(h_tc.data(), d_type_counts,
+        h_tc.size() * sizeof(unsigned int), cudaMemcpyDeviceToHost));
 
-    const float cap = p.voxel_capacity;
+    // Host-side epsilon matrix (small — 81 floats)
+    std::vector<float> h_eps(N_OCC_CLASSES * N_OCC_CLASSES);
+    CUDA_CHECK(cudaMemcpy(h_eps.data(), d_epsilon,
+        h_eps.size() * sizeof(float), cudaMemcpyDeviceToHost));
+
     const unsigned int sim_seed = FLAMEGPU->environment.getProperty<unsigned int>("sim_seed");
     const unsigned int step = static_cast<unsigned int>(FLAMEGPU->getStepCounter());
-    const float count_cv = FLAMEGPU->environment.getProperty<float>("PARAM_RECRUIT_COUNT_CV");  // per-stream demographic count CV (SBI-tunable)
+    const float count_cv = FLAMEGPU->environment.getProperty<float>("PARAM_RECRUIT_COUNT_CV");
+
+    // ── Host-side epsilon weight (mirrors device epsilon_weight in common.cuh) ──
+    auto host_eps_weight = [&](int occ_class, int vidx) -> float {
+        float energy = 0.0f;
+        for (int j = 0; j < N_OCC_CLASSES; j++)
+            energy += h_eps[occ_class * N_OCC_CLASSES + j]
+                    * static_cast<float>(h_tc[j * nvox + vidx]);
+        return expf(-energy);
+    };
 
     // ── Deterministic host RNG helpers (det_rng is __host__ __device__) ──
     auto det_normal = [](unsigned int& s) -> float {
@@ -2016,12 +2055,15 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
     std::vector<RecruitRequest> requests;
     int req_seq = 0;
 
-    // Capacity-skip placement: target voxel, else advance forward to the next voxel with room.
-    auto place_one = [&](int target_vox, float cell_vol) -> int {
+    // Epsilon-kernel placement: target voxel, else scan forward for an acceptable voxel.
+    auto place_one = [&](int target_vox, int occ_class) -> int {
         for (int v = target_vox; v < nvox; ++v) {
-            if (vol_used[v] + cell_vol <= cap) { vol_used[v] += cell_vol; return v; }
+            if (host_eps_weight(occ_class, v) > EPS_DIVIDE_THRESHOLD) {
+                h_tc[occ_class * nvox + v] += 1u;
+                return v;
+            }
         }
-        return -1;  // no capacity downstream → skip
+        return -1;
     };
 
     // Emit one cell of stream `s` targeting voxel `tvox` (+ any coupled naive cell).
@@ -2029,7 +2071,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
         RecruitRequest req{};
         switch (s) {
         case QS_TEFF: {
-            int pv = place_one(tvox, p.vol_teff);
+            int pv = place_one(tvox, OCC_TCELL);
             if (pv < 0) return;
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_T; req.cell_state = T_CELL_EFF;
@@ -2040,7 +2082,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             req.seq = req_seq++;
             requests.push_back(req);
             if (p.naive_cd8_frac > 0.0f && det_rng_uniform(crng) < p.naive_cd8_frac) {
-                int npv = place_one(tvox, p.vol_teff);
+                int npv = place_one(tvox, OCC_TCELL);
                 if (npv >= 0) {
                     RecruitRequest nr{};
                     decode(npv, nr.x, nr.y, nr.z);
@@ -2053,7 +2095,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             break;
         }
         case QS_TREG: {
-            int pv = place_one(tvox, p.vol_treg);
+            int pv = place_one(tvox, OCC_TREG);
             if (pv < 0) return;
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_TREG; req.cell_state = TCD4_TREG;
@@ -2067,7 +2109,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             break;
         }
         case QS_TH: {
-            int pv = place_one(tvox, p.vol_th);
+            int pv = place_one(tvox, OCC_TREG);
             if (pv < 0) return;
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_TREG; req.cell_state = TCD4_TH;
@@ -2079,7 +2121,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             req.seq = req_seq++;
             requests.push_back(req);
             if (p.naive_cd4_frac > 0.0f && det_rng_uniform(crng) < p.naive_cd4_frac) {
-                int npv = place_one(tvox, p.vol_th);
+                int npv = place_one(tvox, OCC_TREG);
                 if (npv >= 0) {
                     RecruitRequest nr{};
                     decode(npv, nr.x, nr.y, nr.z);
@@ -2092,7 +2134,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             break;
         }
         case QS_MDSC: {
-            int pv = place_one(tvox, p.vol_mdsc);
+            int pv = place_one(tvox, OCC_MDSC);
             if (pv < 0) return;
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_MDSC; req.cell_state = 0;
@@ -2102,8 +2144,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             break;
         }
         case QS_MAC: {
-            // QSP RF276: all recruits enter as M1; polarization post-recruitment.
-            int pv = place_one(tvox, p.vol_mac_m1);
+            int pv = place_one(tvox, OCC_MAC);
             if (pv < 0) return;
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_MAC;
@@ -2114,7 +2155,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             break;
         }
         case QS_BCELL: {
-            int pv = place_one(tvox, p.vol_bcell);
+            int pv = place_one(tvox, OCC_BCELL);
             if (pv < 0) return;
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_BCELL; req.cell_state = BCELL_NAIVE;
@@ -2125,7 +2166,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
         }
         case QS_DC1:
         case QS_DC2: {
-            int pv = place_one(tvox, p.vol_dc);
+            int pv = place_one(tvox, OCC_DC);
             if (pv < 0) return;
             decode(pv, req.x, req.y, req.z);
             req.cell_type = CELL_TYPE_DC; req.cell_state = DC_IMMATURE;
@@ -2139,209 +2180,159 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
         }
     };
 
-    // ── Single-ledger per-stream magnitude. The kernel wrote pure spatial shape weights
-    //    w_type(v) = Vvas·gate; here we rescale each plane so its TOTAL is the number of type-Z
-    //    cells to recruit this step, then the sampler distributes that count by w:
-    //      QSP mode (0): SOFT GAP-CLOSING to the QSP tumor composition. The ABM window should
-    //        hold N_target,Z = f · X_QSP_tumor,Z cells (geometric f = min(1, V_box/V_T); the
-    //        window's volume-share of the whole tumor). Per step we recruit only the deficit,
-    //        relaxed by α:  recruit_Z = α · max(0, N_target,Z − N_abm,Z). ABM death/division run
-    //        free underneath — the controller pins the trajectory to f·X_QSP_tumor, it does not
-    //        force ABM removal to match the QSP. This self-caps abundant streams (e.g. B) and
-    //        replaces the old gross-influx flux (which over-populated efflux-limited types).
-    //      Parametric (1): Σ_v q = P_type·Σw  (per-voxel probability; no QSP, no normalization).
-    //    Only the N_QSTREAM recruitment planes are rescaled; the PM2 polarization plane is left. ──
+    // ── QSP-flux magnitude + per-voxel probability roll ──
+    // The kernel wrote spatial shape weights w_type(v) = Vvas·gate. Here we:
+    //   1. Compute V_T_ABM (binary voxel occupancy), H_C2_ABM (cancer Hill), mean cytokine Hills
+    //   2. Apply cancer proximity gate to q-field (restrict placement near tumor)
+    //   3. Compute per-stream QSP flux Φ [cells/step]
+    //   4. Rescale q(v) = w(v) · Φ / Σw (expected cells at each voxel)
+    //   5. Per-voxel Bernoulli roll: recruit cell with prob q(v)
     {
         auto envf = [&](const char* k){ return static_cast<double>(FLAMEGPU->environment.getProperty<float>(k)); };
         const int rec_mode = FLAMEGPU->environment.getProperty<int>("recruitment_mode");
         double scale[N_QSTREAM];
         if (rec_mode == 0) {
-            const double NA    = envf("AVOGADROS");
-            const double alpha = envf("PARAM_RECRUIT_ALPHA");
-            // Geometric sampling fraction: fraction of the whole tumor VOLUME this window resolves.
-            // Uses total tumor content (V_T, all cell types + stroma), not cancer count — robust to
-            // intratumoral heterogeneity (a stroma-rich, cancer-poor window still gets its share).
+            const double NA = envf("AVOGADROS");
             const double voxel_m = FLAMEGPU->environment.getProperty<int>("PARAM_VOXEL_SIZE") / 1e6;
-            const double V_box = static_cast<double>(nx) * ny * nz * voxel_m * voxel_m * voxel_m;
-            const double V_T   = envf("qsp_tum_vol");
-            const double f     = (V_T > 0.0) ? std::min(1.0, V_box / V_T) : 1.0;
+            const double voxel_vol = voxel_m * voxel_m * voxel_m;
 
-            // Target ABM population per stream = f · X_QSP_tumor,Z (cells). qsp_*_tumor are in mol → ×NA.
-            double Ntarget[N_QSTREAM];
-            Ntarget[QS_TEFF]  = f * envf("qsp_teff_tumor")  * NA;
-            Ntarget[QS_MDSC]  = f * envf("qsp_mdsc_tumor")  * NA;
-            Ntarget[QS_MAC]   = f * (envf("qsp_m1_tumor") + envf("qsp_m2_tumor")) * NA;
-            Ntarget[QS_BCELL] = f * envf("qsp_bcell_tumor") * NA;
-            // Th + Treg share one ABM agent (AGENT_TREG); DC1 + DC2 share AGENT_DC. Compute the
-            // combined deficit against the combined ABM count, then split by the QSP subtype ratio.
-            const double th_q = envf("qsp_th_tumor"), treg_q = envf("qsp_treg_tumor");
-            const double dc_q = envf("qsp_dc_tumor");
-            const double tcd4_target = f * (th_q + treg_q) * NA;
-            const double dc_target   = f * dc_q * NA;
+            // ── V_T_ABM: binary voxel occupancy ──
+            // A voxel is "tumor" if it contains cancer or any immune cell.
+            // Quiescent fibroblasts and vasculature are resident tissue, excluded.
+            int n_tumor_voxels = 0;
+            double N_cancer = 0.0;
+            for (int v = 0; v < nvox; ++v) {
+                bool has_tumor = h_tc[OCC_CANCER * nvox + v] > 0
+                    || h_tc[OCC_TCELL * nvox + v] > 0
+                    || h_tc[OCC_TREG  * nvox + v] > 0
+                    || h_tc[OCC_MAC   * nvox + v] > 0
+                    || h_tc[OCC_MDSC  * nvox + v] > 0
+                    || h_tc[OCC_BCELL * nvox + v] > 0
+                    || h_tc[OCC_DC    * nvox + v] > 0;
+                if (has_tumor) ++n_tumor_voxels;
+                N_cancer += h_tc[OCC_CANCER * nvox + v];
+            }
+            const double V_T_ABM = n_tumor_voxels * voxel_vol;  // [m³]
 
-            // ── Current ABM counts, COUNTED BY STATE so each count means the same class as its
-            //    QSP target (contract §4.4 leaky class mapping).
-            //    RULE: an ABM state is counted into a stream's gap iff it has NO QSP species of
-            //    its own. States the QSP tracks separately are excluded from BOTH sides and
-            //    monitored instead — otherwise the deficit is closed against a pool the target
-            //    never described, and the controller under-recruits by that pool's size.
-            //      CD8:  EFF+CYT ↔ SP_V_T_CD8. SUPP ↔ SP_V_T_CD8_exh (own species, excluded).
-            //            NAIVE is a side-channel recruit (naive_cd8_frac bonus, never counted
-            //            against target[QS_TEFF]) and the QSP holds naive CD8 in the LN, not
-            //            in V_T_CD8 — excluded.
-            //      TCD4: TH+TREG ↔ SP_V_T_Th + SP_V_T_Treg. TFH ↔ SP_V_T_Tfh (own species,
-            //            arises by TH→TFH transition, t_reg.cuh:328) and NAIVE is likewise a
-            //            bonus recruit — both excluded.
-            //      B:    NAIVE+ACT ↔ SP_V_T_B. PLASMA ↔ SP_V_T_Plasma (own species, arises by
-            //            ACT→PLASMA transition, b_cell.cuh:225) — excluded.
-            //      MAC (M1+M2 ↔ Mac_M1+Mac_M2), DC (immature+mature ↔ cDC+mcDC) and MDSC
-            //      (single state) are already class-consistent; counted whole, deliberately.
-            auto nstate = [&](const char* agent, int st) {
-                return static_cast<double>(FLAMEGPU->agent(agent).count<int>("cell_state", st));
-            };
-            const double n_teff  = nstate(AGENT_TCELL, T_CELL_EFF) + nstate(AGENT_TCELL, T_CELL_CYT);
-            const double n_tcd4  = nstate(AGENT_TREG, TCD4_TH) + nstate(AGENT_TREG, TCD4_TREG);
-            const double n_bcell = nstate(AGENT_BCELL, BCELL_NAIVE) + nstate(AGENT_BCELL, BCELL_ACTIVATED);
-            const double n_mdsc  = FLAMEGPU->agent(AGENT_MDSC).count();
-            const double n_mac   = FLAMEGPU->agent(AGENT_MACROPHAGE).count();
-            const double n_dc    = FLAMEGPU->agent(AGENT_DC).count();
+            // ── H_C2_ABM: cancer concentration Hill (QSP RF68) ──
+            const double K_C2 = envf("PARAM_K_C2_RECRUIT");  // [mol/m³]
+            const double C_total = (V_T_ABM > 0.0) ? N_cancer / (V_T_ABM * NA) : 0.0;
+            const double H_C2_ABM = (C_total > 0.0)
+                ? (C_total * C_total) / (C_total * C_total + K_C2 * K_C2)
+                : 0.0;
 
-            // Per-stream recruit count = α·max(0, target − current). Split the shared TCD4/DC gaps.
-            double target[N_QSTREAM];
-            target[QS_TEFF]  = alpha * std::max(0.0, Ntarget[QS_TEFF]  - n_teff);
-            target[QS_MDSC]  = alpha * std::max(0.0, Ntarget[QS_MDSC]  - n_mdsc);
-            target[QS_MAC]   = alpha * std::max(0.0, Ntarget[QS_MAC]   - n_mac);
-            target[QS_BCELL] = alpha * std::max(0.0, Ntarget[QS_BCELL] - n_bcell);
-            const double tcd4_gap = alpha * std::max(0.0, tcd4_target - n_tcd4);
-            const double tcd4_den = th_q + treg_q + 1e-300;
-            target[QS_TH]   = tcd4_gap * (th_q   / tcd4_den);
-            target[QS_TREG] = tcd4_gap * (treg_q / tcd4_den);
-            const double dc_gap = alpha * std::max(0.0, dc_target - n_dc);
+            // ── Cancer proximity gate ──
+            // Mark all voxels within CANCER_PROX_RADIUS of any cancer cell.
+            // Restricts immune recruitment to the tumor margin + periphery.
+            constexpr int CANCER_PROX_RADIUS = 5;  // 5 voxels = 100µm at 20µm/vox
+            std::vector<float> cancer_prox(nvox, 0.0f);
+            for (int v = 0; v < nvox; ++v) {
+                if (h_tc[OCC_CANCER * nvox + v] == 0) continue;
+                int vx = v % nx, vy = (v / nx) % ny, vz = v / nxy;
+                int x0 = std::max(0, vx - CANCER_PROX_RADIUS);
+                int x1 = std::min(nx - 1, vx + CANCER_PROX_RADIUS);
+                int y0 = std::max(0, vy - CANCER_PROX_RADIUS);
+                int y1 = std::min(ny - 1, vy + CANCER_PROX_RADIUS);
+                int z0 = std::max(0, vz - CANCER_PROX_RADIUS);
+                int z1 = std::min(nz - 1, vz + CANCER_PROX_RADIUS);
+                for (int zz = z0; zz <= z1; zz++)
+                for (int yy = y0; yy <= y1; yy++)
+                for (int xx = x0; xx <= x1; xx++)
+                    cancer_prox[zz * nxy + yy * nx + xx] = 1.0f;
+            }
+            for (int s = 0; s < N_QSTREAM; ++s) {
+                float* q = &qf[static_cast<size_t>(s) * nvox];
+                for (int v = 0; v < nvox; ++v) q[v] *= cancer_prox[v];
+            }
 
-            // ── CLASS AUDIT (G3/G4 monitor) ────────────────────────────────────────
-            // Report the residual per class; never act on it. The three classes the QSP
-            // tracks separately are reported against THEIR own species, so a discrepancy
-            // is attributable to a class rather than smeared across the CD8/TCD4/B pools.
-            // ⚠️ CD8_exh, Tfh and Plasma have no recruitment stream: the ABM reaches them
-            // only by transition, so their residual tests the TRANSITION rates, not entry.
+            // ── Mean cytokine Hills over tumor voxels (myeloid magnitude) ──
+            double sum_H_CCL2 = 0.0, sum_H_IL6 = 0.0;
+            int n_gate_voxels = 0;
+            if (n_tumor_voxels > 0) {
+                std::vector<float> h_ccl2(nvox), h_il6(nvox);
+                g_pde_solver->get_concentrations(h_ccl2.data(), CHEM_CCL2);
+                g_pde_solver->get_concentrations(h_il6.data(), CHEM_IL6);
+                const double ccl2_ec50 = static_cast<double>(p.ccl2_ec50_mdsc);
+                const double il6_ec50  = static_cast<double>(p.il6_ec50_mdsc);
+                for (int v = 0; v < nvox; ++v) {
+                    if (cancer_prox[v] <= 0.0f) continue;
+                    ++n_gate_voxels;
+                    double c = h_ccl2[v];
+                    sum_H_CCL2 += c / (c + ccl2_ec50 + 1e-30);
+                    double il6 = h_il6[v];
+                    sum_H_IL6  += il6 / (il6 + il6_ec50 + 1e-30);
+                }
+            }
+            const double H_CCL2_mean = (n_gate_voxels > 0) ? sum_H_CCL2 / n_gate_voxels : 0.0;
+            const double H_IL6_mean  = (n_gate_voxels > 0) ? sum_H_IL6  / n_gate_voxels : 0.0;
+
+            // ── Per-stream QSP flux Φ [cells/step] ──
+            // Lymphocytes: Φ = RECRUIT_K · V_T_ABM · C_central · H_C2_ABM
+            // Myeloid:     Φ = RECRUIT_K · V_T_ABM · H_CCL2_mean (× IL-6 for MDSC)
+            // DC:          Φ = RECRUIT_K · V_T_ABM (homeostatic)
+            double flux[N_QSTREAM];
+            flux[QS_TEFF]  = envf("PARAM_TEFF_RECRUIT_K")  * V_T_ABM * envf("qsp_teff_central") * H_C2_ABM;
+            flux[QS_TREG]  = envf("PARAM_TREG_RECRUIT_K")  * V_T_ABM * envf("qsp_treg_central") * H_C2_ABM;
+            flux[QS_TH]    = envf("PARAM_TH_RECRUIT_K")    * V_T_ABM * envf("qsp_th_central")   * H_C2_ABM;
+            flux[QS_BCELL] = envf("PARAM_BCELL_RECRUIT_K") * V_T_ABM * envf("qsp_bcell_central") * H_C2_ABM;
+            flux[QS_MDSC]  = envf("PARAM_MDSC_RECRUIT_K")  * V_T_ABM * H_CCL2_mean * (1.0 + H_IL6_mean);
+            flux[QS_MAC]   = envf("PARAM_MAC_RECRUIT_K")   * V_T_ABM * H_CCL2_mean;
+            flux[QS_DC1]   = envf("PARAM_DC_RECRUIT_K_CDC1") * V_T_ABM;
+            flux[QS_DC2]   = envf("PARAM_DC_RECRUIT_K_CDC2") * V_T_ABM;
+
+            // ── CLASS AUDIT — report flux-based recruitment vs ABM populations ──
             {
+                auto nstate = [&](const char* agent, int st) {
+                    return static_cast<double>(FLAMEGPU->agent(agent).count<int>("cell_state", st));
+                };
+                const double n_teff  = nstate(AGENT_TCELL, T_CELL_EFF) + nstate(AGENT_TCELL, T_CELL_CYT);
+                const double n_tcd4  = nstate(AGENT_TREG, TCD4_TH) + nstate(AGENT_TREG, TCD4_TREG);
+                const double n_bcell = nstate(AGENT_BCELL, BCELL_NAIVE) + nstate(AGENT_BCELL, BCELL_ACTIVATED);
+                const double n_mdsc  = FLAMEGPU->agent(AGENT_MDSC).count();
+                const double n_mac   = FLAMEGPU->agent(AGENT_MACROPHAGE).count();
+                const double n_dc    = FLAMEGPU->agent(AGENT_DC).count();
                 if (!g_class_audit_csv.is_open()) {
                     g_class_audit_csv.open(g_class_audit_path);
-                    g_class_audit_csv << "step,presim,f,V_T_m3,"
-                        << "tgt.CD8,abm.CD8,tgt.CD8_exh,abm.CD8_exh,abm.CD8_naive,"
-                        << "tgt.TCD4,abm.TCD4,tgt.Tfh,abm.Tfh,abm.TCD4_naive,"
-                        << "tgt.B,abm.B,tgt.Plasma,abm.Plasma,"
-                        << "tgt.MDSC,abm.MDSC,tgt.MAC,abm.MAC,tgt.DC,abm.DC,"
-                        << "tgt.fib_total,abm.fib_total,tgt.qPSC,abm.qPSC,"
-                        << "tgt.iCAF,abm.iCAF,tgt.myCAF,abm.myCAF,tgt.apCAF,abm.apCAF\n";
+                    g_class_audit_csv << "step,presim,V_T_ABM,H_C2_ABM,H_CCL2_mean,H_IL6_mean,"
+                        << "flux.CD8,flux.Treg,flux.Th,flux.B,flux.MDSC,flux.MAC,flux.DC,"
+                        << "abm.CD8,abm.CD8_exh,abm.CD8_naive,"
+                        << "abm.TCD4,abm.Tfh,abm.TCD4_naive,"
+                        << "abm.B,abm.Plasma,"
+                        << "abm.MDSC,abm.MAC,abm.DC,"
+                        << "abm.fib_total,abm.qPSC,abm.iCAF,abm.myCAF,abm.apCAF\n";
                 }
                 if (g_class_audit_csv.is_open()) {
                     g_class_audit_csv << FLAMEGPU->getStepCounter()
                         << ',' << (is_presim_mode_active() ? 1 : 0)
-                        << ',' << f << ',' << V_T
-                        << ',' << Ntarget[QS_TEFF]              << ',' << n_teff
-                        << ',' << f * envf("qsp_t_exh_tumor") * NA
+                        << ',' << V_T_ABM << ',' << H_C2_ABM
+                        << ',' << H_CCL2_mean << ',' << H_IL6_mean
+                        << ',' << flux[QS_TEFF] << ',' << flux[QS_TREG]
+                        << ',' << flux[QS_TH] << ',' << flux[QS_BCELL]
+                        << ',' << flux[QS_MDSC] << ',' << flux[QS_MAC]
+                        << ',' << (flux[QS_DC1] + flux[QS_DC2])
+                        << ',' << n_teff
                         << ',' << nstate(AGENT_TCELL, T_CELL_SUPP)
                         << ',' << nstate(AGENT_TCELL, T_CELL_NAIVE)
-                        << ',' << tcd4_target                   << ',' << n_tcd4
-                        << ',' << f * envf("qsp_tfh_tumor") * NA
+                        << ',' << n_tcd4
                         << ',' << nstate(AGENT_TREG, TCD4_TFH)
                         << ',' << nstate(AGENT_TREG, TCD4_NAIVE)
-                        << ',' << Ntarget[QS_BCELL]             << ',' << n_bcell
-                        << ',' << f * envf("qsp_plasma_tumor") * NA
+                        << ',' << n_bcell
                         << ',' << nstate(AGENT_BCELL, BCELL_PLASMA)
-                        << ',' << Ntarget[QS_MDSC]              << ',' << n_mdsc
-                        << ',' << Ntarget[QS_MAC]               << ',' << n_mac
-                        << ',' << dc_target                     << ',' << n_dc
-                        << ',' << f * (envf("qsp_qpsc_tumor") + envf("qsp_icaf_tumor") + envf("qsp_mycaf_tumor") + envf("qsp_apcaf_tumor")) * NA
+                        << ',' << n_mdsc << ',' << n_mac << ',' << n_dc
                         << ',' << (nstate(AGENT_FIBROBLAST, FIB_QUIESCENT) + nstate(AGENT_FIBROBLAST, FIB_ICAF) + nstate(AGENT_FIBROBLAST, FIB_MYCAF) + nstate(AGENT_FIBROBLAST, FIB_APCAF))
-                        << ',' << f * envf("qsp_qpsc_tumor") * NA
                         << ',' << nstate(AGENT_FIBROBLAST, FIB_QUIESCENT)
-                        << ',' << f * envf("qsp_icaf_tumor") * NA
                         << ',' << nstate(AGENT_FIBROBLAST, FIB_ICAF)
-                        << ',' << f * envf("qsp_mycaf_tumor") * NA
                         << ',' << nstate(AGENT_FIBROBLAST, FIB_MYCAF)
-                        << ',' << f * envf("qsp_apcaf_tumor") * NA
                         << ',' << nstate(AGENT_FIBROBLAST, FIB_APCAF) << '\n';
                     g_class_audit_csv.flush();
                 }
             }
-            target[QS_DC1] = 0.5 * dc_gap;   // cDC1/cDC2 split 50/50 (subtype-resolved QSP DC not exported)
-            target[QS_DC2] = 0.5 * dc_gap;
 
-            // ── Direct CAF gap-closing recruitment ─────────────────────────
-            // The ABM domain is fixed (no V_T expansion), so the QSP's CAF
-            // proliferation term (which compensates density dilution) has no
-            // analogue. Instead we directly recruit CAFs at sub-type-specific
-            // deficit rates, mirroring the immune gap-closing pattern.
-            // Placement: random voxel via place_one (linear scan for capacity).
-            // CAF proliferation is disabled in fibroblast.cuh; sub-state
-            // composition tracks the QSP composition ratios.
-            {
-                const double alpha_fib = static_cast<double>(envf("PARAM_FIB_GAP_ALPHA"));
-                const double tgt_icaf  = f * envf("qsp_icaf_tumor")  * NA;
-                const double tgt_mycaf = f * envf("qsp_mycaf_tumor") * NA;
-                const double tgt_apcaf = f * envf("qsp_apcaf_tumor") * NA;
-                const double n_icaf  = nstate(AGENT_FIBROBLAST, FIB_ICAF);
-                const double n_mycaf = nstate(AGENT_FIBROBLAST, FIB_MYCAF);
-                const double n_apcaf = nstate(AGENT_FIBROBLAST, FIB_APCAF);
-                const double def_icaf  = std::max(0.0, tgt_icaf  - n_icaf);
-                const double def_mycaf = std::max(0.0, tgt_mycaf - n_mycaf);
-                const double def_apcaf = std::max(0.0, tgt_apcaf - n_apcaf);
-                const double def_total = def_icaf + def_mycaf + def_apcaf;
-
-                if (def_total > 0.0) {
-                    double raw_N = alpha_fib * def_total;
-                    double Nfloor = std::floor(raw_N);
-                    unsigned int srng = det_rng_seed(0xBF1B, step, 0x9A5Cu, sim_seed);
-                    int N_recruit = static_cast<int>(Nfloor)
-                        + (det_rng_uniform(srng) < (raw_N - Nfloor) ? 1 : 0);
-
-                    const float fib_life_mean = envf("PARAM_FIB_LIFE_MEAN");
-                    const float vol_icaf  = envf("PARAM_VOLUME_FIB_ICAF");
-                    const float vol_mycaf = envf("PARAM_VOLUME_FIB_MYCAF");
-                    const float frac_icaf  = def_icaf  / def_total;
-                    const float frac_mycaf = def_mycaf / def_total;
-
-                    for (int k = 0; k < N_recruit; ++k) {
-                        float r = det_rng_uniform(srng);
-                        int cstate;
-                        float cvol;
-                        if (r < frac_icaf) {
-                            cstate = FIB_ICAF;  cvol = vol_icaf;
-                        } else if (r < frac_icaf + frac_mycaf) {
-                            cstate = FIB_MYCAF; cvol = vol_mycaf;
-                        } else {
-                            cstate = FIB_APCAF; cvol = vol_icaf;
-                        }
-
-                        int vx = static_cast<int>(det_rng_uniform(srng) * nx);
-                        int vy = static_cast<int>(det_rng_uniform(srng) * ny);
-                        int vz = static_cast<int>(det_rng_uniform(srng) * nz);
-                        if (vx >= nx) vx = nx - 1;
-                        if (vy >= ny) vy = ny - 1;
-                        if (vz >= nz) vz = nz - 1;
-                        int vox = vz * nxy + vy * nx + vx;
-                        int pv = place_one(vox, cvol);
-                        if (pv < 0) continue;
-
-                        RecruitRequest req{};
-                        decode(pv, req.x, req.y, req.z);
-                        req.cell_type = CELL_TYPE_FIB;
-                        req.cell_state = cstate;
-                        req.life = static_cast<int>(fib_life_mean
-                            * logf(1.0f / (det_rng_uniform(srng) + 1e-4f)) + 0.5f);
-                        if (req.life <= 0) req.life = 1;
-                        req.seq = req_seq++;
-                        requests.push_back(req);
-                    }
-                }
-            }
-
+            // Rescale q-fields: q(v) = w(v) · Φ / Σw
             for (int s = 0; s < N_QSTREAM; ++s) {
                 const float* q = &qf[static_cast<size_t>(s) * nvox];
                 double W = 0.0; for (int v = 0; v < nvox; ++v) W += q[v];
-                scale[s] = (W > 0.0) ? (target[s] / W) : 0.0;
+                scale[s] = (W > 0.0) ? (flux[s] / W) : 0.0;
             }
         } else {
             scale[QS_TEFF]  = envf("PARAM_TEFF_RECRUIT_P");
@@ -2362,43 +2353,21 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
 
     int drawnN[N_QSTREAM] = {0};
 
-    // ── Per-stream systematic (stratified) resampling ──
+    // ── Per-voxel probability roll (Bernoulli) ──
+    // q(v) = expected cells at voxel v. If q(v) < 1: recruit one cell with prob q(v).
+    // If q(v) >= 1: recruit floor(q(v)) guaranteed + one more with prob of fractional part.
     for (int s = 0; s < N_QSTREAM; ++s) {
         const float* q = &qf[static_cast<size_t>(s) * nvox];
-        double Sigma = 0.0;
-        for (int v = 0; v < nvox; ++v) Sigma += q[v];
-        if (Sigma <= 0.0) continue;
-
-        // N ~ Σq·(1 + CV·𝒩), deterministic per (stream, step, seed).
-        // STOCHASTIC rounding of the fractional part (NOT round-to-nearest): a sparse stream with
-        // per-step Σq < 0.5 would otherwise round to 0 EVERY step and never recruit — that zeroed
-        // MDSC and B cells (per-step expectation <1) in validation. Stochastic rounding preserves
-        // E[N] = Σq for sparse streams. It's a single per-STREAM coin on the fraction, NOT the
-        // per-voxel Bernoulli that caused the spatial ICC noise → spatial reproducibility intact.
-        unsigned int nrng = det_rng_seed(s, step, 0x7100u, sim_seed);
-        double x = Sigma * (1.0 + count_cv * det_normal(nrng));
-        if (x <= 0.0) continue;
-        double xfloor = std::floor(x);
-        int N = static_cast<int>(xfloor) + (det_rng_uniform(nrng) < (x - xfloor) ? 1 : 0);
-        if (N <= 0) continue;
-        drawnN[s] = N;
-        const float u = det_rng_uniform(nrng);           // single systematic offset in [0,1)
-
-        // Distinct per-cell RNG stream for life/state/naive rolls.
         unsigned int crng = det_rng_seed(s, step, 0x7200u, sim_seed);
-
-        const double step_size = Sigma / static_cast<double>(N);
-        double thr = u * step_size;                       // first stratum crossing
-        double cum = 0.0;
-        int k = 0;
-        // Σ accumulated in the SAME order as above → cum ends bit-identical to Sigma, and
-        // thr_max = (N-1+u)/N·Σ < Σ, so all N strata fire.
-        for (int v = 0; v < nvox && k < N; ++v) {
-            cum += q[v];
-            while (k < N && thr < cum) {
+        for (int v = 0; v < nvox; ++v) {
+            float qv = q[v];
+            if (qv <= 0.0f) continue;
+            int n_cells = static_cast<int>(qv);
+            float frac = qv - static_cast<float>(n_cells);
+            if (frac > 0.0f && det_rng_uniform(crng) < frac) ++n_cells;
+            for (int k = 0; k < n_cells; ++k) {
                 emit_cell(s, v, crng);
-                ++k;
-                thr += step_size;
+                ++drawnN[s];
             }
         }
     }
@@ -2442,7 +2411,8 @@ FLAMEGPU_HOST_FUNCTION(zero_occupancy_grid) {
         int total_voxels = g_pde_solver->get_total_voxels();
         if (d_cancer_occ)      cudaMemset(d_cancer_occ,      0, total_voxels * sizeof(unsigned int));
         if (d_vas_tip_id_grid) cudaMemset(d_vas_tip_id_grid, 0, total_voxels * sizeof(unsigned int));
-        if (d_volume_used)     cudaMemset(d_volume_used,     0, total_voxels * sizeof(float));
+        if (d_type_counts)     cudaMemset(d_type_counts,     0,
+                                   static_cast<size_t>(N_OCC_CLASSES) * total_voxels * sizeof(unsigned int));
     }
     nvtxRangePop();
 }
@@ -2517,7 +2487,7 @@ FLAMEGPU_HOST_FUNCTION(finalize_phi) {
     FLAMEGPU->environment.setProperty<float>("phi_icaf_c1",  static_cast<float>(g_phi[PHI_ICAF_C1]));
     FLAMEGPU->environment.setProperty<float>("phi_mdsc_cd8", static_cast<float>(g_phi[PHI_MDSC_CD8]));
     FLAMEGPU->environment.setProperty<float>("phi_bcell_cd8",static_cast<float>(g_phi[PHI_BCELL_CD8]));
-    FLAMEGPU->environment.setProperty<float>("phi_vas_c1",   static_cast<float>(g_phi[PHI_VAS_C1]));
+    FLAMEGPU->environment.setProperty<float>("phi_mycaf_c1", static_cast<float>(g_phi[PHI_MYCAF_C1]));
 
     if (!g_phi_csv.is_open()) {
         g_phi_csv.open(g_phi_csv_path);
@@ -2529,7 +2499,7 @@ FLAMEGPU_HOST_FUNCTION(finalize_phi) {
                   << ",phi_icaf_c1,valid_icaf_c1,n_icaf"
                   << ",phi_mdsc_cd8,valid_mdsc_cd8,n_mdsc"
                   << ",phi_bcell_cd8,valid_bcell_cd8,n_bcell"
-                  << ",phi_vas_c1,valid_vas_c1,n_vas\n";
+                  << ",phi_mycaf_c1,valid_mycaf_c1,n_mycaf\n";
     }
     if (g_phi_csv.is_open()) {
         g_phi_csv << FLAMEGPU->getStepCounter()
@@ -2547,8 +2517,8 @@ FLAMEGPU_HOST_FUNCTION(finalize_phi) {
             << ',' << cnt[N_PHI_PAIR + PHI_KDE_MDSC]
             << ',' << g_phi[PHI_BCELL_CD8]<< ',' << (g_phi_valid[PHI_BCELL_CD8] ? 1 : 0)
             << ',' << cnt[N_PHI_PAIR + PHI_KDE_BCELL]
-            << ',' << g_phi[PHI_VAS_C1]   << ',' << (g_phi_valid[PHI_VAS_C1] ? 1 : 0)
-            << ',' << cnt[N_PHI_PAIR + PHI_KDE_VAS] << '\n';
+            << ',' << g_phi[PHI_MYCAF_C1] << ',' << (g_phi_valid[PHI_MYCAF_C1] ? 1 : 0)
+            << ',' << cnt[N_PHI_PAIR + PHI_KDE_FIB_MYCAF] << '\n';
         g_phi_csv.flush();
     }
 }
@@ -2566,9 +2536,13 @@ FLAMEGPU_HOST_FUNCTION(zero_fib_density_field) {
 // Vvas as a STATE WITH MEMORY (coupling contract §6.3), + Krogh O2 (media-2 Eq.1-3).
 //
 //   ∂V_vas/∂t = k_growth·Hill(VEGFA)·V_vas·(1 − V_vas/V_max) [angiogenesis]
-//             − k_decay·V_vas                                [regression]
+//             − k_decay·max(0, V_vas − V0)                   [immature neovessel regression]
 //             − occlusion(ECM, cancer)·V_vas                 [desmoplastic compression]
-//             + recovery·V_vas·(1 − V_vas/V_max)             [ECM relief, e.g. losartan]
+//             + recovery_rate·max(0, V0 − V_vas)             [rebound toward SA floor]
+//
+//   V0 = SA-placed initial field (d_vvas_initial). The initial floor is the stable
+//   equilibrium: decay only acts on VEGF-driven excess above V0 (immature neovessels),
+//   recovery drives compressed voxels back toward V0. Remove all signals → V → V0.
 //
 // REPLACES the previous `V_vas = Hill(VEGFA)·(1 − f_cancer)·cabo`, which was a category
 // error rather than a calibration one: VEGFA is a *demand* signal and was being read as a
@@ -2579,8 +2553,7 @@ FLAMEGPU_HOST_FUNCTION(zero_fib_density_field) {
 // headline chemo result. Under placement it would also have set the INITIAL CONDITION, so
 // the inversion would be baked into the seed rather than merely accumulated over a run.
 //
-// All rate parameters are ALREADY per-step (PARAM_VAS_REGRESS_RATE is
-// `QP(P_k_vas_decay) * t_step_sec`), so nothing here is multiplied by dt again.
+// All rate parameters are ALREADY per-step, so nothing here is multiplied by dt again.
 //
 // GROWTH IS LOGISTIC IN V_vas (2026-08-08). The first version of this law had growth
 // independent of V — `k_growth·Hill(VEGFA)·(1 − V/Vmax)` — i.e. a constant source wherever
@@ -2606,6 +2579,7 @@ FLAMEGPU_HOST_FUNCTION(zero_fib_density_field) {
 // ============================================================================
 __global__ void update_vvas_kernel(
     float* vvas,                                        // in/out: the state
+    const float* __restrict__ vvas_init,                // SA-placed floor / recovery target
     const float* __restrict__ vegf,
     const unsigned int* __restrict__ cancer_occ,
     const float* __restrict__ ecm_density,
@@ -2623,6 +2597,7 @@ __global__ void update_vvas_kernel(
     const int idx = tz * (nx * ny) + ty * nx + tx;
 
     float V = vvas[idx];
+    const float V0 = vvas_init[idx];  // placement floor for this voxel
 
     // Hill(VEGF) — angiogenic drive (EC50 reuses PARAM_VAS_50, the sprouting VEGF EC50)
     const float v = vegf[idx];
@@ -2641,31 +2616,25 @@ __global__ void update_vvas_kernel(
     const float f_cancer = (box_total > 0) ? (float)box_cancer / (float)box_total : 0.0f;
 
     // --- growth: logistic IN V, VEGFA-gated, blocked by anti-angiogenic therapy ---
-    // The V factor is what keeps V=0 a fixed point; see the header note.
     const float logistic = V * fmaxf(0.0f, 1.0f - V / (v_max + 1e-30f));
     const float growth = k_growth * hill * cabo_term * logistic;
 
-    // --- regression ---
-    const float decay = k_decay * V;
+    // --- regression of immature neovessels above the initial floor ---
+    // Only VEGF-driven excess regresses; the pre-existing mature floor is stable.
+    const float decay = k_decay * fmaxf(0.0f, V - V0);
 
     // --- occlusion: ECM and cancer packing as INDEPENDENT pathways ---
-    // The ECM branch is the agent-era collapse law ported to a continuous rate
-    // (vascular_cell.cuh: p_collapse = Hill(ECM)/(1 + mat_resist·maturity), gated above
-    // PARAM_VAS_COLLAPSE_THRESHOLD). `maturity_factor` folds in that resistance at the
-    // pre-existing-vessel maturity, which is the right regime: PDAC vasculature is largely
-    // co-opted mature stromal vessels, not de novo sprouts.
     const float ecm = ecm_density[idx];
     const float c_ecm = (ecm > collapse_th)
                       ? (ecm / (ecm + collapse_ec50 + 1e-30f)) * maturity_factor
                       : 0.0f;
     const float c_can = fminf(1.0f, cancer_w * f_cancer) * maturity_factor;
-    const float occl = 1.0f - (1.0f - c_ecm) * (1.0f - c_can);   // P(occluded by either)
+    const float occl = 1.0f - (1.0f - c_ecm) * (1.0f - c_can);
     const float compress = occl * V;
 
-    // --- recovery once ECM relaxes below the recovery threshold (losartan-anchored) ---
-    // Also logistic in V: decompression re-opens vessels that are still there, so a voxel
-    // scoured to V=0 does not spontaneously re-vascularize.
-    const float recover = (ecm < recovery_th) ? recovery_rate * logistic : 0.0f;
+    // --- recovery toward initial floor once compression source relaxes ---
+    const float deficit = fmaxf(0.0f, V0 - V);
+    const float recover = (ecm < recovery_th) ? recovery_rate * deficit : 0.0f;
 
     V += growth - decay - compress + recover;
     vvas[idx] = fminf(fmaxf(V, 0.0f), v_max);
@@ -2752,6 +2721,7 @@ FLAMEGPU_HOST_FUNCTION(compute_vvas_and_o2) {
         const float v0 = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_INIT");
         const int total = nx * ny * nz;
         fill_vvas_kernel<<<(total + 255) / 256, 256>>>(d_vvas_field, total, v0);
+        fill_vvas_kernel<<<(total + 255) / 256, 256>>>(d_vvas_initial, total, v0);
         g_vvas_seeded = true;
     }
 
@@ -2778,7 +2748,7 @@ FLAMEGPU_HOST_FUNCTION(compute_vvas_and_o2) {
 
     dim3 block(8, 8, 8);
     dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
-    update_vvas_kernel<<<grid, block>>>(d_vvas_field, vegf, d_cancer_occ, d_ecm_density,
+    update_vvas_kernel<<<grid, block>>>(d_vvas_field, d_vvas_initial, vegf, d_cancer_occ, d_ecm_density,
                                         nx, ny, nz, vegf_ec50, cabo_term,
                                         k_growth, k_decay, v_max,
                                         collapse_th, collapse_ec50,
@@ -3197,6 +3167,65 @@ FLAMEGPU_HOST_FUNCTION(reset_divide_wave) {
 FLAMEGPU_HOST_FUNCTION(increment_divide_wave) {
     int w = FLAMEGPU->environment.getProperty<int>("divide_current_wave");
     FLAMEGPU->environment.setProperty<int>("divide_current_wave", w + 1);
+}
+
+// ── Ripley diagnostic: fill per-subtype voxel count grids ────────────────────
+void ripley_fill_counts(flamegpu::HostAPI* api, int gx, int gy, int gz) {
+    const int nvox = gx * gy * gz;
+    const int nxy  = gx * gy;
+    for (int t = 0; t < N_RIPLEY_TYPE; ++t)
+        g_ripley_counts[t].assign(nvox, 0);
+
+    auto scan = [&](const char* agent_name, auto&& classify) {
+        auto a = api->agent(agent_name);
+        flamegpu::DeviceAgentVector pop = a.getPopulationData();
+        for (unsigned int i = 0; i < pop.size(); ++i) {
+            int cs = pop[i].getVariable<int>("cell_state");
+            int rip = classify(cs);
+            if (rip < 0) continue;
+            int x = pop[i].getVariable<int>("x");
+            int y = pop[i].getVariable<int>("y");
+            int z = pop[i].getVariable<int>("z");
+            int v = z * nxy + y * gx + x;
+            if (v >= 0 && v < nvox)
+                g_ripley_counts[rip][v]++;
+        }
+    };
+
+    auto scan_flat = [&](const char* agent_name, int rip) {
+        auto a = api->agent(agent_name);
+        flamegpu::DeviceAgentVector pop = a.getPopulationData();
+        for (unsigned int i = 0; i < pop.size(); ++i) {
+            int x = pop[i].getVariable<int>("x");
+            int y = pop[i].getVariable<int>("y");
+            int z = pop[i].getVariable<int>("z");
+            int v = z * nxy + y * gx + x;
+            if (v >= 0 && v < nvox)
+                g_ripley_counts[rip][v]++;
+        }
+    };
+
+    scan_flat(AGENT_CANCER_CELL, (int)RIP_CANCER);
+    scan_flat(AGENT_TCELL,       (int)RIP_CD8);
+    scan(AGENT_TREG, [](int cs) -> int {
+        if (cs == TCD4_TREG) return (int)RIP_TREG;
+        if (cs == TCD4_TH)   return (int)RIP_TH;
+        return -1;
+    });
+    scan(AGENT_MACROPHAGE, [](int cs) -> int {
+        if (cs == MAC_M1) return (int)RIP_M1;
+        if (cs == MAC_M2) return (int)RIP_M2;
+        return -1;
+    });
+    scan(AGENT_FIBROBLAST, [](int cs) -> int {
+        if (cs == FIB_ICAF)  return (int)RIP_ICAF;
+        if (cs == FIB_MYCAF) return (int)RIP_MYCAF;
+        if (cs == FIB_APCAF) return (int)RIP_APCAF;
+        return -1;
+    });
+    scan_flat(AGENT_MDSC,  (int)RIP_MDSC);
+    scan_flat(AGENT_BCELL, (int)RIP_BCELL);
+    scan_flat(AGENT_DC,    (int)RIP_DC);
 }
 
 } // namespace PDAC

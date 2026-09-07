@@ -305,7 +305,7 @@
                     QP(CancerVCT::P_k_PSC_to_iCAF) * t_step_sec);
 
     // TGFb EC50 for CAF activation + interconversion [nM] (TGFb_50_CAF_act)
-    env.newProperty<float>("PARAM_FIB_CAF_EC50", 
+    env.newProperty<float>("PARAM_FIB_CAF_EC50",
                     QP(CancerVCT::P_TGFb_50_CAF_act) * 1e6);
 
     // qPSC→apCAF activation rate per timestep (ODE Flux307)
@@ -410,8 +410,12 @@
     env.newProperty<float>("PARAM_DC_RECRUIT_K_CDC2", 
                     QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC2_recruit_target_T) * t_step_sec * AVOGADROS);
 
+    // K_C2 half-max cancer concentration for H_C2 recruitment Hill [mol/m³]
+    env.newProperty<float>("PARAM_K_C2_RECRUIT",
+                    static_cast<float>(QP(CancerVCT::P_K_C2_recruit)));
+
     // APC transmigration rate
-    env.newProperty<float>("PARAM_APC_TRANSMIG", 
+    env.newProperty<float>("PARAM_APC_TRANSMIG",
                     QP(CancerVCT::P_k_APC_mig));
 
     // T0 clonality
@@ -541,11 +545,10 @@
     env.newProperty<float>("PARAM_CANCER_SENESCENT_MEAN_LIFE",
                     1 / env.getProperty<float>("PARAM_SEN_DEATH_RATE") / env.getProperty<float>("PARAM_SEC_PER_SLICE") * SEC_PER_DAY);
 
-    // Step 1: Override PROG_GROWTH_RATE with QSP k_C1_growth [1/day].
-    // XML value (0.3/day, in vitro PANC-1) is replaced by QSP's in vivo rate (0.010/day).
-    // Stem rate stays higher: rs = k_C1_growth / (1-ASYM_DIV_PROB) = 0.2/day.
-    env.setProperty<float>("PARAM_PROG_GROWTH_RATE",
-                    static_cast<float>(QP(CancerVCT::P_k_C1_growth) * SEC_PER_DAY));
+    // PROG_GROWTH_RATE: keep XML value (0.3/day → ~9 steps at 6h/slice).
+    // QSP override removed: k_C1_growth=0.002/day gave 1376-step interval
+    // (344 days), preventing any progenitor division during normal runs.
+    // QSP Gompertz gate (k_C1_growth * log(K/N)) already limits effective growth rate.
 
     // progenitor division interval in slices
     env.newProperty<float>("PARAM_FLOAT_CANCER_CELL_PROGENITOR_DIV_INTERVAL_SLICE",
@@ -686,6 +689,10 @@
     // Breg IL-10 secretion — same QSP-derived rate as M2 MAC (overrides XML placeholder)
     env.setProperty<float>("PARAM_BCELL_IL10_RELEASE",
                     QP(CancerVCT::P_k_IL10_sec) * qp_sec_to_abm);
+
+    // B cell IL-6 secretion — match iCAF rate (overrides XML 2e-7 which is 864000x too high)
+    env.setProperty<float>("PARAM_BCELL_IL6_RELEASE",
+                    QP(CancerVCT::P_k_IL6_sec_iCAF) * qp_sec_to_abm);
 
     // M1 MAC IL-12 secretion [pmol/(cell*s)] from QSP k_IL12_Msec
     env.newProperty<float>("PARAM_IL12_RELEASE", 
