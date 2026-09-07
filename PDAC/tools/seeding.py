@@ -34,7 +34,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .funcn_core import build_kde_field, k0_for
+from .funcn_core import build_kde_field, funcn_phi, k0_for
 
 # Locked geometry (§C6.7). Voxel size is permanent; σ_vox 1.5 clears the §4.4
 # artifact regime at σ_vox 0.5 where FunCN measures same-voxel co-occupancy.
@@ -271,6 +271,24 @@ def section_funcn(pos2d: np.ndarray, cat: np.ndarray, categories: list[str],
     out = np.zeros_like(num)
     out[ok] = np.clip(num[ok] / denom[ok, None], 0.0, 1.0)
     return out[ok], ok
+
+
+def section_phi(pos2d: np.ndarray, cat: np.ndarray, categories: list[str],
+                shape: tuple[int, int]) -> np.ndarray:
+    """Permutation-based phi for a 2D virtual section.
+
+    Calls ``funcn_phi`` with the placement σ. phi = T_obs / E_perm[T] where
+    E_perm is the closed-form label-permutation expectation (see funcn_core.py).
+    """
+    gx, gy = shape
+    if len(pos2d) == 0:
+        return np.full((len(categories), len(categories)), np.nan)
+    pos_by_cat = {}
+    for c in categories:
+        m = cat == c
+        if m.any():
+            pos_by_cat[c] = pos2d[m]
+    return funcn_phi(pos_by_cat, categories, (gx, gy, 1), SIGMA_VOX)
 
 
 def funcn_histograms(frac: np.ndarray, cat_of_cell: np.ndarray,

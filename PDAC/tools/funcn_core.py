@@ -151,6 +151,123 @@ def funcn_quantiles(target_pos: np.ndarray, source_kde: np.ndarray,
     return np.quantile(dist.astype(np.float64), qs)
 
 
+# ── Permutation-based phi (the co-location metric) ───────────────────────────
+#
+# phi(A, B) = T_obs / E_perm[T]
+#
+# where T = mean_{a in A} KDE_B(a) is the average kernel density of source
+# cells B evaluated at target cells A, and E_perm is the expectation under
+# random label permutation (positions fixed, type labels shuffled without
+# replacement, group sizes preserved).
+#
+# CLOSED-FORM DERIVATION:
+#
+# Under permutation, any cell i gets label A with probability n_A/N, and for
+# i != j, the joint probability P(i in A, j in B) = n_A * n_B / (N * (N-1))
+# (sampling without replacement from N labels of which n_A are "A" and n_B
+# are "B").
+#
+# The observed statistic (for A != B, so i in A and j in B implies i != j):
+#
+#   T_obs = (1/n_A) * sum_{i in A} sum_{j in B} K(x_i - x_j)
+#         = (1/n_A) * sum_{i in A} KDE_B(x_i)
+#
+# Its expectation under label permutation:
+#
+#   E_perm[T] = (1/n_A) * sum_{i != j} K(x_i - x_j) * P(i in A, j in B)
+#             = (1/n_A) * sum_{i != j} K(x_i - x_j) * n_A * n_B / (N*(N-1))
+#             = n_B / (N*(N-1)) * sum_{i != j} K(x_i - x_j)
+#
+# Now sum_{i != j} K(x_i - x_j) = sum_i KDE_ALL(x_i) - N * K(0) = S - N*k0,
+# where S = sum_i KDE_ALL(x_i) and k0 = K(0) = 1/(2*pi*sigma^2).
+#
+# Define W = S/N - k0 (the mean self-excluded total density). Then:
+#
+#   E_perm[T] = n_B * W / (N - 1)                                 [A != B]
+#
+# For the SELF-PAIR (A = B), the observed T self-excludes (j != i):
+#
+#   T_obs = (1/n_A) * sum_{i in A} (KDE_A(x_i) - k0)
+#
+# and P(i in A, j in A | i != j) = n_A*(n_A-1) / (N*(N-1)), so:
+#
+#   E_perm[T] = (n_A - 1) * W / (N - 1)                           [A = B]
+#
+# phi = T_obs / E_perm[T], with phi = 1 for random labeling, > 1 for
+# co-location, < 1 for dispersal.
+#
+# KEY PROPERTIES:
+# - Controls for non-uniform spatial density (positions fixed under permutation)
+# - Kernel normalization cancels (any constant factor in K divides out)
+# - No edge correction needed (permutation null inherits the same boundary)
+# - W is a single scalar computed once, making this O(N + n_cat^2 * max_n_A)
+
+
+def funcn_phi(pos_by_cat: dict[str, np.ndarray], categories: list[str],
+              shape: int | tuple[int, int, int],
+              sigma_vox: float = SIGMA_VOX,
+              min_targets: int = FUNCN_MIN_TARGETS) -> np.ndarray:
+    """(n_cat, n_cat) permutation-based phi matrix.
+
+    phi(target, source) = T_obs / E_perm[T], where E_perm is the closed-form
+    expectation under label permutation without replacement (see derivation above).
+    phi = 1 for random labeling, > 1 co-located, < 1 dispersed.
+    """
+    gx, gy, gz = _as_shape(shape)
+    n = len(categories)
+    k0 = k0_for(sigma_vox)
+
+    fields = {}
+    all_positions = []
+    counts = {}
+    for c in categories:
+        p = pos_by_cat.get(c, np.empty((0, 3), np.int64))
+        fields[c] = build_kde_field(p, shape, sigma_vox)
+        if len(p) > 0:
+            all_positions.append(p)
+        counts[c] = len(p)
+
+    kde_all = sum(fields.values())
+    N = sum(counts.values())
+    if N < 2:
+        return np.full((n, n), np.nan, dtype=np.float64)
+
+    all_pos = np.concatenate(all_positions, axis=0).astype(np.int64)
+    apx = np.clip(all_pos[:, 0], 0, gx - 1)
+    apy = np.clip(all_pos[:, 1], 0, gy - 1)
+    apz = np.clip(all_pos[:, 2], 0, gz - 1)
+    S = float(np.sum(kde_all[apx, apy, apz].astype(np.float64)))
+    W = S / N - k0
+    if W < 1e-12:
+        return np.full((n, n), np.nan, dtype=np.float64)
+
+    phi = np.full((n, n), np.nan, dtype=np.float64)
+    for ti, t in enumerate(categories):
+        tp = pos_by_cat.get(t, np.empty((0, 3), np.int64))
+        n_A = counts[t]
+        if n_A < min_targets:
+            continue
+        p = tp.astype(np.int64)
+        px = np.clip(p[:, 0], 0, gx - 1)
+        py = np.clip(p[:, 1], 0, gy - 1)
+        pz = np.clip(p[:, 2], 0, gz - 1)
+        for si, s in enumerate(categories):
+            n_B = counts[s]
+            if n_B < 1:
+                continue
+            kde_at_targets = fields[s][px, py, pz].astype(np.float64)
+            if t == s:
+                numerator = float(np.mean(kde_at_targets - k0))
+                denominator = (n_A - 1) * W / (N - 1)
+            else:
+                numerator = float(np.mean(kde_at_targets))
+                denominator = n_B * W / (N - 1)
+            if denominator < 1e-12:
+                continue
+            phi[ti, si] = numerator / denominator
+    return phi
+
+
 # ── Normalized neighbourhood-FRACTION FunCN (the 0-1, scale-free metric) ─────
 # The raw density above is a fixed-amplitude weighted COUNT that over-packs (a
 # dense/multi-per-voxel neighbourhood can exceed 1). The normalized metric asks,
