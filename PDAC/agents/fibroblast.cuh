@@ -126,14 +126,9 @@ FLAMEGPU_AGENT_FUNCTION(fib_write_to_occ_grid, flamegpu::MessageNone, flamegpu::
         return flamegpu::ALIVE;
     }
     const int vidx = z * (gx * gy) + y * gx + x;
-    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-    float my_vol;
-    if (cell_state == FIB_QUIESCENT) my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_QUIESCENT");
-    else if (cell_state == FIB_MYCAF) my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF");
-    else if (cell_state == FIB_ICAF)  my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
-    else                               my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_FRC");
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    atomicAdd(&vol_used[vidx], my_vol);
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const int n_voxels = gx * gy * gz;
+    atomicAdd(&tc[OCC_FIB * n_voxels + vidx], 1u);
 
     return flamegpu::ALIVE;
 }
@@ -231,9 +226,6 @@ FLAMEGPU_AGENT_FUNCTION(fib_move_propose, flamegpu::MessageNone, flamegpu::Messa
     int y = FLAMEGPU->getVariable<int>("y");
     int z = FLAMEGPU->getVariable<int>("z");
 
-    float my_vol = (cs == FIB_MYCAF) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
     float p_persist = (cs == FIB_MYCAF) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_FIB_MYCAF") :
         FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_FIB_ICAF");
@@ -244,9 +236,10 @@ FLAMEGPU_AGENT_FUNCTION(fib_move_propose, flamegpu::MessageNone, flamegpu::Messa
     mp.grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     mp.grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     mp.grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-    mp.vol_used = VOL_PTR(FLAMEGPU);
-    mp.my_vol = my_vol;
-    mp.capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    mp.type_counts = TC_PTR(FLAMEGPU);
+    mp.epsilon = EPS_PTR(FLAMEGPU);
+    mp.n_voxels = mp.grid_x * mp.grid_y * mp.grid_z;
+    mp.occ_class = OCC_FIB;
     mp.ecm_density = ECM_DENSITY_PTR(FLAMEGPU);
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
@@ -324,16 +317,10 @@ FLAMEGPU_AGENT_FUNCTION(fib_move_commit, flamegpu::MessageNone, flamegpu::Messag
         return flamegpu::ALIVE;  // lost the deterministic contention → stay
     }
 
-    float my_vol = (cs == FIB_MYCAF) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
-    float* vol_used = VOL_PTR(FLAMEGPU);
-
-    // Unconditional claim: move_cell_pick verified snapshot capacity in propose + reserve gives a
-    // unique winner per target → integer atomicAdd sums are order-independent, no capacity CHECK to
-    // flip on a concurrent claim/release (target == another cell's source) → deterministic commit.
-    atomicAdd(&vol_used[tvidx], my_vol);
-    volume_release(vol_used, my_vidx, my_vol);
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const int n_voxels = grid_x * grid_y * FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    type_count_claim(tc, OCC_FIB, tvidx, n_voxels);
+    type_count_release(tc, OCC_FIB, my_vidx, n_voxels);
 
     const int target_x = tvidx % grid_x;
     const int target_y = (tvidx / grid_x) % grid_y;
@@ -354,20 +341,23 @@ FLAMEGPU_AGENT_FUNCTION(fib_move_commit, flamegpu::MessageNone, flamegpu::Messag
 FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
 
-    // Lifespan check
-    int life = FLAMEGPU->getVariable<int>("life");
-    life--;
-    FLAMEGPU->setVariable<int>("life", life);
-    if (life <= 0) {
-        auto* ec = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
-        int death_idx;
-        if (cs == FIB_QUIESCENT)  death_idx = EVT_DEATH_FIB_QUIESCENT;
-        else if (cs == FIB_MYCAF) death_idx = EVT_DEATH_FIB_MYCAF;
-        else if (cs == FIB_ICAF)  death_idx = EVT_DEATH_FIB_ICAF;
-        else if (cs == FIB_APCAF) death_idx = EVT_DEATH_FIB_APCAF;
-        else                       death_idx = EVT_DEATH_FIB_FRC;
-        atomicAdd(&ec[death_idx], 1u);
-        return flamegpu::DEAD;
+    // Quiescent fibroblasts are immortal — they are the resident tissue floor
+    // placed by SA and persist indefinitely providing baseline ECM. Only
+    // activated CAFs (myCAF, iCAF, apCAF, FRC) have finite lifespans.
+    if (cs != FIB_QUIESCENT) {
+        int life = FLAMEGPU->getVariable<int>("life");
+        life--;
+        FLAMEGPU->setVariable<int>("life", life);
+        if (life <= 0) {
+            auto* ec = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+            int death_idx;
+            if (cs == FIB_MYCAF)      death_idx = EVT_DEATH_FIB_MYCAF;
+            else if (cs == FIB_ICAF)  death_idx = EVT_DEATH_FIB_ICAF;
+            else if (cs == FIB_APCAF) death_idx = EVT_DEATH_FIB_APCAF;
+            else                       death_idx = EVT_DEATH_FIB_FRC;
+            atomicAdd(&ec[death_idx], 1u);
+            return flamegpu::DEAD;
+        }
     }
 
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
@@ -405,6 +395,11 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
 
         if (det_rng_uniform(srs) < p_mycaf) {
             FLAMEGPU->setVariable<int>("cell_state", FIB_MYCAF);
+            FLAMEGPU->setVariable<int>("divide_limit", static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_MAX")));
+            FLAMEGPU->setVariable<int>("divide_cooldown", static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN_MYCAF")));
+            FLAMEGPU->setVariable<int>("life", static_cast<int>(
+                FLAMEGPU->environment.getProperty<float>("PARAM_FIB_LIFE_MEAN")
+                * logf(1.0f / (det_rng_uniform(srs) + 1e-4f)) + 0.5f));
             return flamegpu::ALIVE;
         }
 
@@ -421,6 +416,11 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
 
         if (det_rng_uniform(srs) < p_icaf) {
             FLAMEGPU->setVariable<int>("cell_state", FIB_ICAF);
+            FLAMEGPU->setVariable<int>("divide_limit", static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_MAX")));
+            FLAMEGPU->setVariable<int>("divide_cooldown", static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN_ICAF")));
+            FLAMEGPU->setVariable<int>("life", static_cast<int>(
+                FLAMEGPU->environment.getProperty<float>("PARAM_FIB_LIFE_MEAN")
+                * logf(1.0f / (det_rng_uniform(srs) + 1e-4f)) + 0.5f));
             return flamegpu::ALIVE;
         }
 
@@ -429,6 +429,9 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
         const float k_apcaf = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_APCAF_ACTIVATION");
         if (det_rng_uniform(srs) < k_apcaf) {
             FLAMEGPU->setVariable<int>("cell_state", FIB_APCAF);
+            FLAMEGPU->setVariable<int>("life", static_cast<int>(
+                FLAMEGPU->environment.getProperty<float>("PARAM_FIB_LIFE_MEAN")
+                * logf(1.0f / (det_rng_uniform(srs) + 1e-4f)) + 0.5f));
             return flamegpu::ALIVE;
         }
     }
@@ -470,18 +473,18 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
         }
     }
 
-    // Division cooldown decrement
+    // Division cooldown decrement + CAF proliferation
     int cooldown = FLAMEGPU->getVariable<int>("divide_cooldown");
     if (cooldown > 0) {
-        FLAMEGPU->setVariable<int>("divide_cooldown", cooldown - 1);
+        cooldown--;
+        FLAMEGPU->setVariable<int>("divide_cooldown", cooldown);
     }
-
-    // CAF proliferation DISABLED. In the QSP, CAF prolif compensates for V_T
-    // expansion (density dilution). The ABM domain is fixed → that term has no
-    // role and causes unbounded accumulation. Fibroblast headcount is maintained
-    // by host-side gap-closing recruitment (recruit_systematic in
-    // pde_integration.cu); sub-state composition is emergent from activation
-    // transitions (qPSC → myCAF/iCAF/apCAF) gated by local cytokines.
+    if (cooldown <= 0 && (cs == FIB_MYCAF || cs == FIB_ICAF)) {
+        int div_limit = FLAMEGPU->getVariable<int>("divide_limit");
+        if (div_limit > 0) {
+            FLAMEGPU->setVariable<int>("divide_flag", 1);
+        }
+    }
 
     return flamegpu::ALIVE;
 }
@@ -508,13 +511,10 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide_reserve, flamegpu::MessageNone, flamegpu::Mes
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    float daughter_vol = (cs == FIB_MYCAF) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const float* eps = EPS_PTR(FLAMEGPU);
+    const int n_voxels = grid_x * grid_y * grid_z;
 
-    // Collect Von Neumann (6 face-adjacent) neighbors with enough volume capacity.
     const int dx6[6] = {1, -1, 0, 0, 0, 0};
     const int dy6[6] = {0, 0, 1, -1, 0, 0};
     const int dz6[6] = {0, 0, 0, 0, 1, -1};
@@ -524,7 +524,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide_reserve, flamegpu::MessageNone, flamegpu::Mes
         const int nx = x + dx6[d], ny = y + dy6[d], nz = z + dz6[d];
         if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z) continue;
         const int nvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
-        if (vol_used[nvidx] + daughter_vol <= capacity) cand_vidx[n_cands++] = nvidx;
+        if (epsilon_weight(tc, eps, OCC_FIB, nvidx, n_voxels) > EPS_DIVIDE_THRESHOLD) cand_vidx[n_cands++] = nvidx;
     }
     if (n_cands == 0) return flamegpu::ALIVE;
 
@@ -564,13 +564,11 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide_confirm, flamegpu::MessageNone, flamegpu::Mes
         return flamegpu::ALIVE;  // lost the deterministic contention → don't divide this step
     }
 
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    float daughter_vol = (cs == FIB_MYCAF) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_MYCAF") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_FIB_ICAF");
-    // Sole winner of this voxel → claim is race-free; guard against a pre-existing fill.
-    if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) return flamegpu::ALIVE;
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const float* eps = EPS_PTR(FLAMEGPU);
+    const int n_voxels = grid_x * grid_y * FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    if (epsilon_weight(tc, eps, OCC_FIB, tvidx, n_voxels) <= EPS_DIVIDE_THRESHOLD) return flamegpu::ALIVE;
+    type_count_claim(tc, OCC_FIB, tvidx, n_voxels);
 
     const int nx = tvidx % grid_x;
     const int ny = (tvidx / grid_x) % grid_y;
@@ -581,9 +579,15 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide_confirm, flamegpu::MessageNone, flamegpu::Mes
         FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN_MYCAF") :
         FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_COOLDOWN_ICAF"));
 
-    // Update parent
+    // Update parent — decrement remaining divisions
+    const int divide_limit = FLAMEGPU->getVariable<int>("divide_limit");
     FLAMEGPU->setVariable<int>("divide_cooldown", cd);
     FLAMEGPU->setVariable<int>("divide_count", FLAMEGPU->getVariable<int>("divide_count") + 1);
+    FLAMEGPU->setVariable<int>("divide_limit", divide_limit - 1);
+
+    // Daughter gets a fresh divide_limit (no recruitment to replenish
+    // the pool, so daughters must self-renew indefinitely).
+    const int fresh_limit = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_FIB_DIV_MAX"));
 
     // Create daughter agent
     auto daughter = FLAMEGPU->agent_out;
@@ -594,6 +598,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_divide_confirm, flamegpu::MessageNone, flamegpu::Mes
     daughter.setVariable<int>("divide_flag", 0);
     daughter.setVariable<int>("divide_cooldown", cd);
     daughter.setVariable<int>("divide_count", 0);
+    daughter.setVariable<int>("divide_limit", fresh_limit);
     daughter.setVariable<int>("persist_dir_x", 0);
     daughter.setVariable<int>("persist_dir_y", 0);
     daughter.setVariable<int>("persist_dir_z", 0);
@@ -681,10 +686,13 @@ FLAMEGPU_AGENT_FUNCTION(fib_build_density_field, flamegpu::MessageNone, flamegpu
     return flamegpu::ALIVE;
 }
 
-// ── phi: iCAF is the KDE source for phi_5 (iCAF×C1). ──
+// ── phi: iCAF deposits for phi_5 (iCAF×C1), myCAF for phi_8 (myCAF×C1). ──
 FLAMEGPU_AGENT_FUNCTION(fib_phi_deposit, flamegpu::MessageNone, flamegpu::MessageNone) {
-    if (is_qsp_Fib_iCAF(FLAMEGPU->getVariable<int>("cell_state")))
+    const int cs = FLAMEGPU->getVariable<int>("cell_state");
+    if (is_qsp_Fib_iCAF(cs))
         phi_deposit(FLAMEGPU, PHI_KDE_FIB_ICAF);
+    else if (cs == FIB_MYCAF)
+        phi_deposit(FLAMEGPU, PHI_KDE_FIB_MYCAF);
     return flamegpu::ALIVE;
 }
 

@@ -145,14 +145,10 @@ FLAMEGPU_AGENT_FUNCTION(cancer_write_to_occ_grid, flamegpu::MessageNone, flamegp
         FLAMEGPU->environment.getProperty<uint64_t>("cancer_occ_ptr"));
     atomicOr(&cancer_occ[vidx], 1u);
 
-    // Volume-based occupancy
-    float my_vol = (cell_state == CANCER_STEM) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_STEM") :
-        (cell_state == CANCER_PROGENITOR) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_SEN");
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    atomicAdd(&vol_used[vidx], my_vol);
+    // Epsilon-kernel type count
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const int n_voxels = gx * gy * gz;
+    atomicAdd(&tc[OCC_CANCER * n_voxels + vidx], 1u);
 
     return flamegpu::ALIVE;
 }
@@ -196,11 +192,11 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_reserve, flamegpu::MessageNone, flamegpu::
     const int size_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int size_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    float daughter_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG");
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const float* eps = EPS_PTR(FLAMEGPU);
+    const int n_voxels = size_x * size_y * size_z;
 
-    // Collect Moore (26-direction) neighbors with enough volume capacity
+    // Collect Moore (26-direction) neighbors with epsilon acceptance
     int cand_x[26], cand_y[26], cand_z[26];
     int n_cands = 0;
     for (int i = 0; i < 26; i++) {
@@ -209,7 +205,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_reserve, flamegpu::MessageNone, flamegpu::
         const int nx = my_x + dx, ny = my_y + dy, nz = my_z + dz;
         if (!is_in_bounds(nx, ny, nz, size_x, size_y, size_z)) continue;
         int nvidx = nz * (size_x * size_y) + ny * size_x + nx;
-        if (vol_used[nvidx] + daughter_vol <= capacity) {
+        if (epsilon_weight(tc, eps, OCC_CANCER, nvidx, n_voxels) > EPS_DIVIDE_THRESHOLD) {
             cand_x[n_cands] = nx;
             cand_y[n_cands] = ny;
             cand_z[n_cands] = nz;
@@ -223,7 +219,6 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_reserve, flamegpu::MessageNone, flamegpu::
         FLAMEGPU->setVariable<int>("stuck_steps", stuck + 1);
         return flamegpu::ALIVE;
     }
-
     // Single-candidate: pick one deterministically (lineage-tag-seeded RNG, not FLAMEGPU->random
     // which is nondeterministic for born cells) and reserve it by priority.
     const int my_vidx = my_z * (size_x * size_y) + my_y * size_x + my_x;
@@ -264,15 +259,17 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_confirm, flamegpu::MessageNone, flamegpu::
         return flamegpu::ALIVE;
     }
 
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    float daughter_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG");
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const float* eps = EPS_PTR(FLAMEGPU);
+    const int n_voxels = size_x * size_y * FLAMEGPU->environment.getProperty<int>("grid_size_z");
     // Sole winner of this voxel → claim is race-free; guard against pre-existing fill.
-    if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) {
+    float eps_w = epsilon_weight(tc, eps, OCC_CANCER, tvidx, n_voxels);
+    if (eps_w <= EPS_DIVIDE_THRESHOLD) {
         const int stuck = FLAMEGPU->getVariable<int>("stuck_steps");
         FLAMEGPU->setVariable<int>("stuck_steps", stuck + 1);
         return flamegpu::ALIVE;
     }
+    type_count_claim(tc, OCC_CANCER, tvidx, n_voxels);
 
     const float asymmetric_div_prob = FLAMEGPU->environment.getProperty<float>("PARAM_ASYM_DIV_PROB");
     const int divMax = FLAMEGPU->environment.getProperty<int>("PARAM_PROG_DIV_MAX");
@@ -287,8 +284,11 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_confirm, flamegpu::MessageNone, flamegpu::
         if (cell_state == CANCER_STEM) {
             float cabo = FLAMEGPU->environment.getProperty<float>("qsp_cabo_tumor");
             float R_cabo = FLAMEGPU->environment.getProperty<float>("R_cabo");
-            float cabo_prolif_factor = 1 - (FLAMEGPU->environment.getProperty<float>("PARAM_LAMBDA_C_CABO") * 
-                                            cabo / (cabo + FLAMEGPU->environment.getProperty<float>("PARAM_IC50_MET"))) * R_cabo;
+            float ic50_met = FLAMEGPU->environment.getProperty<float>("PARAM_IC50_MET");
+            float cabo_denom = cabo + ic50_met;
+            float cabo_prolif_factor = (cabo_denom > 0.0f)
+                ? 1.0f - (FLAMEGPU->environment.getProperty<float>("PARAM_LAMBDA_C_CABO") * cabo / cabo_denom) * R_cabo
+                : 1.0f;
 
             if (det_rng_uniform(crs) < asymmetric_div_prob) {
                 // Asymmetric: daughter is progenitor
@@ -318,8 +318,9 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_confirm, flamegpu::MessageNone, flamegpu::
                 FLAMEGPU->agent_out.setVariable<int>("newborn", 1);
             }
             // Reset parent divideCD — matches HCC deterministic reset
+            float safe_cabo_factor = fmaxf(cabo_prolif_factor, 0.01f);
             FLAMEGPU->setVariable<int>("divideCD", static_cast<int>(
-                (FLAMEGPU->environment.getProperty<float>("PARAM_FLOAT_CANCER_CELL_STEM_DIV_INTERVAL_SLICE")/cabo_prolif_factor) + 0.5f));
+                (FLAMEGPU->environment.getProperty<float>("PARAM_FLOAT_CANCER_CELL_STEM_DIV_INTERVAL_SLICE")/safe_cabo_factor) + 0.5f));
 
         } else if (cell_state == CANCER_PROGENITOR) {
             int divideCountRemaining = FLAMEGPU->getVariable<int>("divideCountRemaining");
@@ -777,12 +778,6 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move_propose, flamegpu::MessageNone, flamegpu::Me
     const int z = FLAMEGPU->getVariable<int>("z");
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
 
-    float my_vol = (cell_state == CANCER_STEM) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_STEM") :
-        (cell_state == CANCER_PROGENITOR) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_SEN");
-
     // Cancer stem gets weak O2 chemotaxis (deferred — CI=0 until O2 gradient computed)
     float bias = (cell_state == CANCER_STEM) ?
         ci_to_bias(FLAMEGPU->environment.getProperty<float>("PARAM_CHEMO_CI_CANCER_STEM")) : 0.0f;
@@ -791,9 +786,10 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move_propose, flamegpu::MessageNone, flamegpu::Me
     mp.grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     mp.grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     mp.grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-    mp.vol_used = VOL_PTR(FLAMEGPU);
-    mp.my_vol = my_vol;
-    mp.capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    mp.type_counts = TC_PTR(FLAMEGPU);
+    mp.epsilon = EPS_PTR(FLAMEGPU);
+    mp.n_voxels = mp.grid_x * mp.grid_y * mp.grid_z;
+    mp.occ_class = OCC_CANCER;
     mp.ecm_density = ECM_DENSITY_PTR(FLAMEGPU);
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
@@ -878,19 +874,10 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move_commit, flamegpu::MessageNone, flamegpu::Mes
         return flamegpu::ALIVE;  // lost the deterministic contention → stay
     }
 
-    float my_vol = (cell_state == CANCER_STEM) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_STEM") :
-        (cell_state == CANCER_PROGENITOR) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_PROG") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_CANCER_SEN");
-    float* vol_used = VOL_PTR(FLAMEGPU);
-
-    // Unconditional claim: move_cell_pick verified snapshot capacity in propose + reserve gives a
-    // unique winner per target voxel → integer atomicAdd sums are order-independent and there is no
-    // capacity CHECK to flip on a concurrent claim/release (target == another cell's source). The
-    // old checked volume_try_claim raced exactly there, diverging at scale (deterministic now).
-    atomicAdd(&vol_used[tvidx], my_vol);
-    volume_release(vol_used, my_vidx, my_vol);
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const int n_voxels = grid_x * grid_y * FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    type_count_claim(tc, OCC_CANCER, tvidx, n_voxels);
+    type_count_release(tc, OCC_CANCER, my_vidx, n_voxels);
 
     const int target_x = tvidx % grid_x;
     const int target_y = (tvidx / grid_x) % grid_y;
@@ -936,7 +923,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_phi_sample, flamegpu::MessageNone, flamegpu::Mess
         phi_sample(FLAMEGPU, PHI_M1_C1);
         phi_sample(FLAMEGPU, PHI_M2_C1);
         phi_sample(FLAMEGPU, PHI_ICAF_C1);
-        phi_sample(FLAMEGPU, PHI_VAS_C1);
+        phi_sample(FLAMEGPU, PHI_MYCAF_C1);
     }
     return flamegpu::ALIVE;
 }

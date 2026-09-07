@@ -264,14 +264,9 @@ FLAMEGPU_AGENT_FUNCTION(bcell_write_to_occ_grid, flamegpu::MessageNone, flamegpu
     }
     const int vidx = z * (gx * gy) + y * gx + x;
 
-    const int cs = FLAMEGPU->getVariable<int>("cell_state");
-    float my_vol;
-    if (cs == BCELL_NAIVE) my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_NAIVE");
-    else if (cs == BCELL_ACTIVATED) my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_ACT");
-    else my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_PLASMA");
-
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    atomicAdd(&vol_used[vidx], my_vol);
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const int n_voxels = gx * gy * gz;
+    atomicAdd(&tc[OCC_BCELL * n_voxels + vidx], 1u);
 
     return flamegpu::ALIVE;
 }
@@ -352,19 +347,14 @@ FLAMEGPU_AGENT_FUNCTION(bcell_move_propose, flamegpu::MessageNone, flamegpu::Mes
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
 
-    // State-dependent volume
-    float my_vol;
-    if (cs == BCELL_NAIVE) my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_NAIVE");
-    else if (cs == BCELL_ACTIVATED) my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_ACT");
-    else my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_PLASMA");
-
     MoveParams mp;
     mp.grid_x = grid_x;
     mp.grid_y = grid_y;
     mp.grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-    mp.vol_used = VOL_PTR(FLAMEGPU);
-    mp.my_vol = my_vol;
-    mp.capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    mp.type_counts = TC_PTR(FLAMEGPU);
+    mp.epsilon = EPS_PTR(FLAMEGPU);
+    mp.n_voxels = mp.grid_x * mp.grid_y * mp.grid_z;
+    mp.occ_class = OCC_BCELL;
     mp.ecm_density = ECM_DENSITY_PTR(FLAMEGPU);
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
@@ -434,18 +424,10 @@ FLAMEGPU_AGENT_FUNCTION(bcell_move_commit, flamegpu::MessageNone, flamegpu::Mess
         FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
     if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag))) return flamegpu::ALIVE;
 
-    const int cs = FLAMEGPU->getVariable<int>("cell_state");
-    float my_vol;
-    if (cs == BCELL_NAIVE) my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_NAIVE");
-    else if (cs == BCELL_ACTIVATED) my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_ACT");
-    else my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_PLASMA");
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    // Unconditional claim: snapshot capacity verified in propose + reserve gives a unique winner
-    // per target → integer atomicAdd sums are order-independent, no check to flip → deterministic.
-    (void)capacity;
-    atomicAdd(&vol_used[tvidx], my_vol);
-    volume_release(vol_used, my_vidx, my_vol);
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const int n_voxels = grid_x * grid_y * FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    type_count_claim(tc, OCC_BCELL, tvidx, n_voxels);
+    type_count_release(tc, OCC_BCELL, my_vidx, n_voxels);
 
     const int tx = tvidx % grid_x;
     const int ty = (tvidx / grid_x) % grid_y;
@@ -477,11 +459,10 @@ FLAMEGPU_AGENT_FUNCTION(bcell_divide_reserve, flamegpu::MessageNone, flamegpu::M
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    const float daughter_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_ACT");
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const float* eps = EPS_PTR(FLAMEGPU);
+    const int n_voxels = grid_x * grid_y * grid_z;
 
-    // Collect Moore-26 neighbors with enough volume capacity (deterministic order).
     int cand_vidx[26];
     int n_cands = 0;
     for (int dz = -1; dz <= 1; dz++) {
@@ -491,7 +472,7 @@ FLAMEGPU_AGENT_FUNCTION(bcell_divide_reserve, flamegpu::MessageNone, flamegpu::M
                 const int nx = x + dx, ny = y + dy, nz = z + dz;
                 if (nx < 0 || nx >= grid_x || ny < 0 || ny >= grid_y || nz < 0 || nz >= grid_z) continue;
                 const int nvidx = nz * (grid_x * grid_y) + ny * grid_x + nx;
-                if (vol_used[nvidx] + daughter_vol <= capacity) cand_vidx[n_cands++] = nvidx;
+                if (epsilon_weight(tc, eps, OCC_BCELL, nvidx, n_voxels) > EPS_DIVIDE_THRESHOLD) cand_vidx[n_cands++] = nvidx;
             }
         }
     }
@@ -530,11 +511,11 @@ FLAMEGPU_AGENT_FUNCTION(bcell_divide_confirm, flamegpu::MessageNone, flamegpu::M
         return flamegpu::ALIVE;  // lost the deterministic contention → don't divide this step
     }
 
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    const float daughter_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_BCELL_ACT");
-    // Sole winner of this voxel → claim is race-free; guard against a pre-existing fill.
-    if (!volume_try_claim(vol_used, tvidx, daughter_vol, capacity)) return flamegpu::ALIVE;
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const float* eps = EPS_PTR(FLAMEGPU);
+    const int n_voxels = grid_x * grid_y * FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    if (epsilon_weight(tc, eps, OCC_BCELL, tvidx, n_voxels) <= EPS_DIVIDE_THRESHOLD) return flamegpu::ALIVE;
+    type_count_claim(tc, OCC_BCELL, tvidx, n_voxels);
 
     const int cx = tvidx % grid_x;
     const int cy = (tvidx / grid_x) % grid_y;

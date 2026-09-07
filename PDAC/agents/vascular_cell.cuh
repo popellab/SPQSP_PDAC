@@ -63,12 +63,9 @@ FLAMEGPU_AGENT_FUNCTION(vascular_write_to_occ_grid, flamegpu::MessageNone, flame
     const unsigned int my_tip_id = FLAMEGPU->getVariable<unsigned int>("tip_id");
     atomicMax(&vas_tip_id[vidx], my_tip_id);
 
-    // Volume-based occupancy
-    float my_vol = (cell_state == VAS_TIP) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_TIP") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_PHALANX");
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    atomicAdd(&vol_used[vidx], my_vol);
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const int n_voxels = nx * ny * nz;
+    atomicAdd(&tc[OCC_VAS * n_voxels + vidx], 1u);
 
     return flamegpu::ALIVE;
 }
@@ -250,12 +247,15 @@ FLAMEGPU_AGENT_FUNCTION(vascular_state_step, flamegpu::MessageNone, flamegpu::Me
         const float local_CCL21 = PDE_READ(FLAMEGPU, PDE_CONC_CCL21, vidx_v2);
         const float hev_ccl21_th = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_HEV_CCL21_TH");
         if (local_CCL21 > hev_ccl21_th) {
-            // Check local immune cell volume as proxy for lymphocyte density
-            const float* vol_used = reinterpret_cast<const float*>(
-                FLAMEGPU->environment.getProperty<uint64_t>(VOL_USED_PTR));
-            const float local_vol = vol_used[vidx_v2];
+            const unsigned int* tc_hev = TC_PTR(FLAMEGPU);
+            const int n_vox_hev = FLAMEGPU->environment.getProperty<int>("grid_size_x")
+                                * FLAMEGPU->environment.getProperty<int>("grid_size_y")
+                                * FLAMEGPU->environment.getProperty<int>("grid_size_z");
+            const unsigned int lymph_count = tc_hev[OCC_TCELL * n_vox_hev + vidx_v2]
+                                           + tc_hev[OCC_TREG  * n_vox_hev + vidx_v2]
+                                           + tc_hev[OCC_BCELL * n_vox_hev + vidx_v2];
             const float lymph_th = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_HEV_LYMPH_DENSITY_TH");
-            if (local_vol > lymph_th) {
+            if (static_cast<float>(lymph_count) > lymph_th) {
                 cell_state = VAS_HEV;
                 FLAMEGPU->setVariable<int>("cell_state", VAS_HEV);
             }
@@ -301,11 +301,12 @@ FLAMEGPU_AGENT_FUNCTION(vascular_state_step, flamegpu::MessageNone, flamegpu::Me
         const int nx_v = FLAMEGPU->environment.getProperty<int>("grid_size_x");
         const int ny_v = FLAMEGPU->environment.getProperty<int>("grid_size_y");
         const int vidx_v = z * ny_v * nx_v + y * nx_v + x;
-        // Check volume capacity instead — if there's room, allow division
-        float* vol_used = VOL_PTR(FLAMEGPU);
-        float phalanx_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_PHALANX");
-        float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-        if (vol_used[vidx_v] + phalanx_vol <= capacity) {
+        unsigned int* tc_tip = TC_PTR(FLAMEGPU);
+        const float* eps_tip = EPS_PTR(FLAMEGPU);
+        const int n_vox_tip = FLAMEGPU->environment.getProperty<int>("grid_size_x")
+                            * FLAMEGPU->environment.getProperty<int>("grid_size_y")
+                            * FLAMEGPU->environment.getProperty<int>("grid_size_z");
+        if (epsilon_weight(tc_tip, eps_tip, OCC_VAS, vidx_v, n_vox_tip) > EPS_DIVIDE_THRESHOLD) {
             divide_action = 1;  // INTENT_DIVIDE_TIP
         }
     }
@@ -386,14 +387,15 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
         const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
         const int vidx = z * (grid_x * grid_y) + y * grid_x + x;
 
-        float* vol_used = VOL_PTR(FLAMEGPU);
-        const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-        float phalanx_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_PHALANX");
+        unsigned int* tc_div = TC_PTR(FLAMEGPU);
+        const float* eps_div = EPS_PTR(FLAMEGPU);
+        const int n_vox_div = grid_x * grid_y * FLAMEGPU->environment.getProperty<int>("grid_size_z");
 
-        if (!volume_try_claim(vol_used, vidx, phalanx_vol, capacity)) {
+        if (epsilon_weight(tc_div, eps_div, OCC_VAS, vidx, n_vox_div) <= EPS_DIVIDE_THRESHOLD) {
             FLAMEGPU->setVariable<int>("intent_action", INTENT_NONE);
             return flamegpu::ALIVE;
         }
+        type_count_claim(tc_div, OCC_VAS, vidx, n_vox_div);
 
         // Parent TIP stays TIP (moves away next step, leaving phalanx behind).
         const unsigned int tip_id = FLAMEGPU->getVariable<unsigned int>("tip_id");
@@ -439,13 +441,14 @@ FLAMEGPU_AGENT_FUNCTION(vascular_divide, flamegpu::MessageNone, flamegpu::Messag
         const int grid_x_s = FLAMEGPU->environment.getProperty<int>("grid_size_x");
         const int grid_y_s = FLAMEGPU->environment.getProperty<int>("grid_size_y");
         const int vidx_s = z * (grid_x_s * grid_y_s) + y * grid_x_s + x;
-        float* vol_used_s = VOL_PTR(FLAMEGPU);
-        const float capacity_s = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-        float tip_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_TIP");
-        if (!volume_try_claim(vol_used_s, vidx_s, tip_vol, capacity_s)) {
+        unsigned int* tc_s = TC_PTR(FLAMEGPU);
+        const float* eps_s = EPS_PTR(FLAMEGPU);
+        const int n_vox_s = grid_x_s * grid_y_s * FLAMEGPU->environment.getProperty<int>("grid_size_z");
+        if (epsilon_weight(tc_s, eps_s, OCC_VAS, vidx_s, n_vox_s) <= EPS_DIVIDE_THRESHOLD) {
             FLAMEGPU->setVariable<int>("intent_action", INTENT_NONE);
             return flamegpu::ALIVE;
         }
+        type_count_claim(tc_s, OCC_VAS, vidx_s, n_vox_s);
 
         // New tip gets a unique tip_id so nearby-vessel check works correctly.
         const unsigned int new_tip_id =
@@ -509,9 +512,10 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
     mp.grid_x = grid_x;
     mp.grid_y = grid_y;
     mp.grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-    mp.vol_used = VOL_PTR(FLAMEGPU);
-    mp.my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_VAS_TIP");
-    mp.capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    mp.type_counts = TC_PTR(FLAMEGPU);
+    mp.epsilon = EPS_PTR(FLAMEGPU);
+    mp.n_voxels = grid_x * grid_y * mp.grid_z;
+    mp.occ_class = OCC_VAS;
     mp.ecm_density = ECM_DENSITY_PTR(FLAMEGPU);
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
@@ -545,10 +549,7 @@ FLAMEGPU_AGENT_FUNCTION(vascular_move, flamegpu::MessageNone, flamegpu::MessageN
     return flamegpu::ALIVE;
 }
 
-// ── phi: VAS_PHALANX is the KDE source for phi_8 (VAS×C1). ──
 FLAMEGPU_AGENT_FUNCTION(vas_phi_deposit, flamegpu::MessageNone, flamegpu::MessageNone) {
-    if (is_qsp_Vas_phalanx(FLAMEGPU->getVariable<int>("cell_state")))
-        phi_deposit(FLAMEGPU, PHI_KDE_VAS);
     return flamegpu::ALIVE;
 }
 

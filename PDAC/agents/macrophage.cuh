@@ -57,12 +57,10 @@ FLAMEGPU_AGENT_FUNCTION(mac_write_to_occ_grid, flamegpu::MessageNone, flamegpu::
     }
     const int vidx = z * (gx * gy) + y * gx + x;
 
-    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-    float my_vol = (cell_state == MAC_M1) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M1") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M2");
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    atomicAdd(&vol_used[vidx], my_vol);
+    // Epsilon-kernel type count
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const int n_voxels = gx * gy * gz;
+    atomicAdd(&tc[OCC_MAC * n_voxels + vidx], 1u);
 
     return flamegpu::ALIVE;
 }
@@ -228,10 +226,6 @@ FLAMEGPU_AGENT_FUNCTION(mac_move_propose, flamegpu::MessageNone, flamegpu::Messa
     int x = sx, y = sy, z = sz;
     const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
 
-    float my_vol = (cell_state == MAC_M1) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M1") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M2");
-
     float p_persist = (cell_state == MAC_M1) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_MAC_M1") :
         FLAMEGPU->environment.getProperty<float>("PARAM_PERSIST_MAC_M2");
@@ -247,9 +241,10 @@ FLAMEGPU_AGENT_FUNCTION(mac_move_propose, flamegpu::MessageNone, flamegpu::Messa
     mp.grid_x = grid_x;
     mp.grid_y = grid_y;
     mp.grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-    mp.vol_used = VOL_PTR(FLAMEGPU);
-    mp.my_vol = my_vol;
-    mp.capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    mp.type_counts = TC_PTR(FLAMEGPU);
+    mp.epsilon = EPS_PTR(FLAMEGPU);
+    mp.n_voxels = mp.grid_x * mp.grid_y * mp.grid_z;
+    mp.occ_class = OCC_MAC;
     mp.ecm_density = ECM_DENSITY_PTR(FLAMEGPU);
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
@@ -294,8 +289,8 @@ FLAMEGPU_AGENT_FUNCTION(mac_move_propose, flamegpu::MessageNone, flamegpu::Messa
     return flamegpu::ALIVE;
 }
 
-// Macrophage movement — COMMIT pass. Unique winner of each reserved landing voxel moves (claim
-// final, release source); losers stay (retry next wave). my_vol matches the propose expression.
+// Macrophage movement — COMMIT pass. Unique winner of each reserved landing voxel moves (epsilon
+// claim + release source); losers stay (retry next wave).
 FLAMEGPU_AGENT_FUNCTION(mac_move_commit, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int tvidx = FLAMEGPU->getVariable<int>("move_target_vidx");
     if (tvidx < 0) return flamegpu::ALIVE;
@@ -311,17 +306,12 @@ FLAMEGPU_AGENT_FUNCTION(mac_move_commit, flamegpu::MessageNone, flamegpu::Messag
         FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
     if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag))) return flamegpu::ALIVE;
 
-    const int cell_state = FLAMEGPU->getVariable<int>("cell_state");
-    const float my_vol = (cell_state == MAC_M1) ?
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M1") :
-        FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MAC_M2");
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    // Unconditional claim: snapshot capacity verified in propose + reserve gives a unique winner
-    // per target → integer atomicAdd sums are order-independent, no check to flip → deterministic.
-    (void)capacity;
-    atomicAdd(&vol_used[tvidx], my_vol);
-    volume_release(vol_used, my_vidx, my_vol);
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const float* eps = EPS_PTR(FLAMEGPU);
+    const int n_voxels = grid_x * grid_y * FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    if (epsilon_weight(tc, eps, OCC_MAC, tvidx, n_voxels) <= EPS_WEIGHT_FLOOR) return flamegpu::ALIVE;
+    type_count_claim(tc, OCC_MAC, tvidx, n_voxels);
+    type_count_release(tc, OCC_MAC, my_vidx, n_voxels);
 
     const int tx = tvidx % grid_x;
     const int ty = (tvidx / grid_x) % grid_y;

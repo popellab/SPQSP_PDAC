@@ -169,9 +169,9 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_write_to_occ_grid, flamegpu::MessageNone, flamegpu:
     }
     const int vidx = z * (gx * gy) + y * gx + x;
 
-    float my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MDSC");
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    atomicAdd(&vol_used[vidx], my_vol);
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const int n_voxels = gx * gy * gz;
+    atomicAdd(&tc[OCC_MDSC * n_voxels + vidx], 1u);
 
     return flamegpu::ALIVE;
 }
@@ -250,9 +250,10 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move_propose, flamegpu::MessageNone, flamegpu::Mess
     mp.grid_x = grid_x;
     mp.grid_y = grid_y;
     mp.grid_z = FLAMEGPU->environment.getProperty<int>("grid_size_z");
-    mp.vol_used = VOL_PTR(FLAMEGPU);
-    mp.my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MDSC");
-    mp.capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
+    mp.type_counts = TC_PTR(FLAMEGPU);
+    mp.epsilon = EPS_PTR(FLAMEGPU);
+    mp.n_voxels = mp.grid_x * mp.grid_y * mp.grid_z;
+    mp.occ_class = OCC_MDSC;
     mp.ecm_density = ECM_DENSITY_PTR(FLAMEGPU);
     mp.ecm_crosslink = ECM_CROSSLINK_PTR(FLAMEGPU);
     mp.density_cap = FLAMEGPU->environment.getProperty<float>("PARAM_ECM_DENSITY_CAP");
@@ -307,16 +308,10 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_move_commit, flamegpu::MessageNone, flamegpu::Messa
         FLAMEGPU->environment.getProperty<unsigned long long>("voxel_owner_ptr"));
     if (!won_voxel(owner, tvidx, make_claim_priority(my_vidx, det_tag))) return flamegpu::ALIVE;
 
-    const float my_vol = FLAMEGPU->environment.getProperty<float>("PARAM_VOLUME_MDSC");
-    const float capacity = FLAMEGPU->environment.getProperty<float>("PARAM_VOXEL_CAPACITY");
-    float* vol_used = VOL_PTR(FLAMEGPU);
-    // Snapshot capacity was verified in the propose walk + reserve gives a UNIQUE winner per
-    // target voxel, so claim unconditionally. Integer atomicAdd sums are order-independent and
-    // there is no capacity CHECK to flip on a concurrent claim/release (when target == another
-    // cell's source) → the commit is fully deterministic. (void)capacity keeps it referenced.
-    (void)capacity;
-    atomicAdd(&vol_used[tvidx], my_vol);
-    volume_release(vol_used, my_vidx, my_vol);
+    unsigned int* tc = TC_PTR(FLAMEGPU);
+    const int n_voxels = grid_x * grid_y * FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    type_count_claim(tc, OCC_MDSC, tvidx, n_voxels);
+    type_count_release(tc, OCC_MDSC, my_vidx, n_voxels);
 
     const int tx = tvidx % grid_x;
     const int ty = (tvidx / grid_x) % grid_y;

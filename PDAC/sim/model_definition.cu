@@ -509,6 +509,7 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
     fib.newVariable<int>("divide_flag", 0);
     fib.newVariable<int>("divide_cooldown", 0);
     fib.newVariable<int>("divide_count", 0);
+    fib.newVariable<int>("divide_limit", 0);
 
     // Step-5 determinism: reserved-target voxels (reserve→confirm) + lineage tag (seeds det_rng
     // + breaks co-located ties). det_tag is overwritten with a unique value per founder at init
@@ -802,6 +803,7 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<int>(ENV_GRID_SIZE_X, grid_x);
     env.newProperty<int>(ENV_GRID_SIZE_Y, grid_y);
     env.newProperty<int>(ENV_GRID_SIZE_Z, grid_z);
+    env.newProperty<int>("n_voxels", grid_x * grid_y * grid_z);
     env.newProperty<float>(ENV_VOXEL_SIZE, voxel_size);
 
     // Simulation tracking
@@ -899,7 +901,7 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     env.newProperty<float>("phi_icaf_c1",  1.0f);
     env.newProperty<float>("phi_mdsc_cd8", 1.0f);
     env.newProperty<float>("phi_bcell_cd8",1.0f);
-    env.newProperty<float>("phi_vas_c1",   1.0f);
+    env.newProperty<float>("phi_mycaf_c1", 1.0f);
     env.newProperty<float>("qsp_tum_cmax", 0.0f);   
     env.newProperty<float>("qsp_f_tum_cap", 0.0f);
 
