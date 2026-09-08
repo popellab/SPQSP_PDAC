@@ -1899,6 +1899,16 @@ bool initializeFromPlacement(
             vmax = std::max(vmax, static_cast<double>(v));
             if (v <= 0.0f) ++n_zero;
         }
+        // Rescale placement [0,1] → [0, PARAM_VAS_MAX] so V0 matches the kernel range.
+        const float v_max = model.Environment().getProperty<float>("PARAM_VAS_MAX");
+        if (vmax > v_max * 1.01) {
+            const float scale = static_cast<float>(v_max / vmax);
+            for (float& v : vvas) v *= scale;
+            std::cout << "  V_vas rescaled: placement max " << vmax
+                      << " → " << v_max << " (PARAM_VAS_MAX)" << std::endl;
+            sum *= scale;
+            vmax = v_max;
+        }
         if (!set_vvas_from_host(vvas.data(), total_voxels)) return false;
         std::cout << "  V_vas seeded: mean " << (sum / total_voxels)
                   << ", max " << vmax

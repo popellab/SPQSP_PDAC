@@ -216,6 +216,13 @@ FLAMEGPU_AGENT_FUNCTION(mdsc_compute_chemical_sources, flamegpu::MessageNone, fl
     // CCL2 uptake → upt ptr 5 (CCL2), positive [1/s], no volume scaling
     PDE_UPTAKE(FLAMEGPU, PDE_UPT_CCL2, voxel, CCL2_uptake_rate);
 
+    // O2 consumption (basal metabolism)
+    if (dead == 0) {
+        const float O2_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_O2_UPTAKE")
+                              * FLAMEGPU->environment.getProperty<float>("PARAM_O2_NONTUMOR_UPTAKE_SCALAR");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_O2, voxel, O2_uptake);
+    }
+
     return flamegpu::ALIVE;
 }
 

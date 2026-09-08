@@ -276,15 +276,24 @@ FLAMEGPU_AGENT_FUNCTION(dc_write_to_occ_grid, flamegpu::MessageNone, flamegpu::M
 FLAMEGPU_AGENT_FUNCTION(dc_compute_chemical_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
     if (FLAMEGPU->getVariable<int>("dead") == 1) return flamegpu::ALIVE;
 
-    const int cs = FLAMEGPU->getVariable<int>("cell_state");
-    if (cs != DC_MATURE) return flamegpu::ALIVE;
-
     const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int ax = FLAMEGPU->getVariable<int>("x");
     const int ay = FLAMEGPU->getVariable<int>("y");
     const int az = FLAMEGPU->getVariable<int>("z");
     const int voxel = az * ny * nx + ay * nx + ax;
+
+    // O2 + TGF-β consumption (basal metabolism — all living DCs, not just mature)
+    {
+        const float O2_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_O2_UPTAKE")
+                              * FLAMEGPU->environment.getProperty<float>("PARAM_O2_NONTUMOR_UPTAKE_SCALAR");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_O2, voxel, O2_uptake);
+        const float TGFB_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_TGFB_UPTAKE");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_TGFB, voxel, TGFB_uptake);
+    }
+
+    const int cs = FLAMEGPU->getVariable<int>("cell_state");
+    if (cs != DC_MATURE) return flamegpu::ALIVE;
 
     const float vs_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1.0e-4f;
     const float voxel_volume = vs_cm * vs_cm * vs_cm;

@@ -320,6 +320,13 @@ FLAMEGPU_AGENT_FUNCTION(bcell_compute_chemical_sources, flamegpu::MessageNone, f
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL13, voxel, cxcl13_rate / voxel_volume);
     }
 
+    // O2 consumption (basal metabolism)
+    {
+        const float O2_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_O2_UPTAKE")
+                              * FLAMEGPU->environment.getProperty<float>("PARAM_O2_NONTUMOR_UPTAKE_SCALAR");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_O2, voxel, O2_uptake);
+    }
+
     return flamegpu::ALIVE;
 }
 

@@ -410,7 +410,7 @@
     env.newProperty<float>("PARAM_DC_RECRUIT_K_CDC2", 
                     QP(CancerVCT::P_k_APC_death) * QP(CancerVCT::P_cDC2_recruit_target_T) * t_step_sec * AVOGADROS);
 
-    // K_C2 half-max cancer concentration for H_C2 recruitment Hill [mol/m³]
+    // K_C2² for H_C2 recruitment Hill [mol²] — already squared from QSP unit conversion
     env.newProperty<float>("PARAM_K_C2_RECRUIT",
                     static_cast<float>(QP(CancerVCT::P_K_C2_recruit)));
 
@@ -579,13 +579,9 @@
     env.newProperty<float>("PARAM_CCL2_DECAY_RATE", 
                     QP(CancerVCT::P_k_CCL2_deg));
 
-    // ArgI decay [1/s]
-    env.newProperty<float>("PARAM_ARGI_DECAY_RATE", 
-                    QP(CancerVCT::P_k_ArgI_deg));
+    // ArgI decay [1/s] — now ABM-only (gpu_param.cu), QSP value too slow for spatial
 
-    // NO decay [1/s]
-    env.newProperty<float>("PARAM_NO_DECAY_RATE", 
-                    QP(CancerVCT::P_k_NO_deg));
+    // NO decay [1/s] — now ABM-only (gpu_param.cu), QSP value too slow for spatial
 
     // IL-12 decay [1/s]
     env.newProperty<float>("PARAM_IL12_DECAY_RATE", 

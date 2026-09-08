@@ -486,6 +486,13 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addHostFunction(timing_after_division);
     }
 
+    // 8b-pre. ECM sequestration: add ECM-density-proportional uptake to TGF-β.
+    //         Runs after decode_pde_sources (FP→float), before solve_pde.
+    {
+        flamegpu::LayerDescription layer = model.newLayer("apply_ecm_sequestration");
+        layer.addHostFunction(apply_ecm_sequestration);
+    }
+
     // 8b. Vvas field + Krogh O2 sourcing (media-2). Computes vascular volume fraction
     //     Vvas = Hill(VEGF)*(1-f_cancer_moore)*cabo, then adds O2 source/uptake from it.
     //     Runs after cancer O2-uptake (compute_chemical_sources) + after division, before solve.

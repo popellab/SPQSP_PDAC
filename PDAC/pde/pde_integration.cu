@@ -541,8 +541,8 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     config.decay_rates[CHEM_IL10]     = env.getProperty<float>("PARAM_IL10_DECAY_RATE");
     config.decay_rates[CHEM_TGFB]     = env.getProperty<float>("PARAM_TGFB_DECAY_RATE");
     config.decay_rates[CHEM_CCL2]     = env.getProperty<float>("PARAM_CCL2_DECAY_RATE");
-    config.decay_rates[CHEM_ARGI]     = env.getProperty<float>("PARAM_ARGI_DECAY_RATE");
-    config.decay_rates[CHEM_NO]       = env.getProperty<float>("PARAM_NO_DECAY_RATE");
+    config.decay_rates[CHEM_ARGI]     = gpu_params.getFloat(PARAM_ARGI_DECAY_RATE);  // ABM override (QSP value too slow for spatial)
+    config.decay_rates[CHEM_NO]       = gpu_params.getFloat(PARAM_NO_DECAY_RATE);    // ABM override (QSP value too slow for spatial)
     config.decay_rates[CHEM_IL12]     = env.getProperty<float>("PARAM_IL12_DECAY_RATE");
     config.decay_rates[CHEM_VEGFA]    = gpu_params.getFloat(PARAM_VEGFA_DECAY_RATE);  // ABM-only
     config.decay_rates[CHEM_IL1]      = env.getProperty<float>("PARAM_IL1_DECAY_RATE");
@@ -2215,10 +2215,13 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
             const double V_T_ABM = n_tumor_voxels * voxel_vol;  // [m³]
 
             // ── H_C2_ABM: cancer concentration Hill (QSP RF68) ──
-            const double K_C2 = envf("PARAM_K_C2_RECRUIT");  // [mol/m³]
-            const double C_total = (V_T_ABM > 0.0) ? N_cancer / (V_T_ABM * NA) : 0.0;
-            const double H_C2_ABM = (C_total > 0.0)
-                ? (C_total * C_total) / (C_total * C_total + K_C2 * K_C2)
+            // QSP C_total = V_T_C1 + V_T_C2 [mol] (total cancer, NOT per volume).
+            // PARAM_K_C2_RECRUIT = K² [mol²] (already squared from QSP unit conversion).
+            // Hill: C_total² / (C_total² + K²).  Half-max at sqrt(K²) ≈ 4494 cells.
+            const double K_C2_sq = envf("PARAM_K_C2_RECRUIT");  // [mol²] — already K²
+            const double C_total_mol = N_cancer / NA;            // [mol]
+            const double H_C2_ABM = (C_total_mol > 0.0)
+                ? (C_total_mol * C_total_mol) / (C_total_mol * C_total_mol + K_C2_sq)
                 : 0.0;
 
             // ── Cancer proximity gate ──
@@ -2680,6 +2683,37 @@ __global__ void source_o2_from_vvas_kernel(
 // accumulation deterministic (exact integer sum) — see PDE_SECRETE in common.cuh.
 FLAMEGPU_HOST_FUNCTION(decode_pde_sources) {
     if (g_pde_solver) g_pde_solver->decode_sources_from_fp();
+}
+
+// Kernel: add ECM-density-proportional uptake to TGF-β (and VEGF-A) float uptake buffers.
+// ECM sequesters TGF-β via LAP/LTBP binding and VEGF-A via HSPG binding. The effective
+// additional uptake rate at each voxel is ecm_density[v] * sequester_rate [1/s].
+// Runs AFTER decode_pde_sources (FP→float), BEFORE solve_pde.
+__global__ void ecm_sequester_kernel(
+    const float* __restrict__ ecm_density,
+    float* __restrict__ tgfb_upt,
+    float tgfb_ecm_rate,
+    int total_voxels)
+{
+    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= total_voxels) return;
+    const float rho = ecm_density[idx];
+    if (rho <= 0.0f) return;
+    atomicAdd(&tgfb_upt[idx], rho * tgfb_ecm_rate);
+}
+
+FLAMEGPU_HOST_FUNCTION(apply_ecm_sequestration) {
+    if (!g_pde_solver || !d_ecm_density) return;
+    const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    const int V = nx * ny * nz;
+    const float tgfb_ecm_rate = FLAMEGPU->environment.getProperty<float>("PARAM_TGFB_ECM_SEQUESTER_RATE");
+    if (tgfb_ecm_rate <= 0.0f) return;
+    float* tgfb_upt = g_pde_solver->get_device_uptake_ptr(CHEM_TGFB);
+    const int threads = 256;
+    const int blocks = (V + threads - 1) / threads;
+    ecm_sequester_kernel<<<blocks, threads>>>(d_ecm_density, tgfb_upt, tgfb_ecm_rate, V);
 }
 
 // Host layer: compute Vvas, then source O2 from it. Runs after compute_chemical_sources,

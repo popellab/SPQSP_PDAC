@@ -140,7 +140,6 @@ FLAMEGPU_AGENT_FUNCTION(fib_write_to_occ_grid, flamegpu::MessageNone, flamegpu::
 // ============================================================================
 FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
-    if (cs == FIB_QUIESCENT) return flamegpu::ALIVE;
 
     const int x = FLAMEGPU->getVariable<int>("x");
     const int y = FLAMEGPU->getVariable<int>("y");
@@ -148,6 +147,17 @@ FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, fla
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
     const int voxel = z * (grid_x * grid_y) + y * grid_x + x;
+
+    // O2 + TGF-β consumption: ALL fibroblasts (including quiescent) consume both
+    {
+        const float O2_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_O2_UPTAKE")
+                              * FLAMEGPU->environment.getProperty<float>("PARAM_O2_NONTUMOR_UPTAKE_SCALAR");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_O2, voxel, O2_uptake);
+        const float TGFB_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_TGFB_UPTAKE");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_TGFB, voxel, TGFB_uptake);
+    }
+
+    if (cs == FIB_QUIESCENT) return flamegpu::ALIVE;
 
     const float voxel_size_cm = FLAMEGPU->environment.getProperty<float>("voxel_size") * 1e-4f;
     const float voxel_volume = voxel_size_cm * voxel_size_cm * voxel_size_cm;
@@ -169,15 +179,20 @@ FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, fla
     }
 
     if (cs == FIB_MYCAF) {
-        const float tgfb_rate  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_TGFB_RELEASE");
         const float ccl2_rate  = FLAMEGPU->environment.getProperty<float>("PARAM_CCL2_RELEASE");
         const float vegfa_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_VEGFA_RELEASE");
         float eff_boost = hif_boost * metabolic_factor;
         const float cxcl9_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_CXCL9_RELEASE");
-        PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB,  voxel, tgfb_rate  * eff_boost / voxel_volume);
+        // TGF-β release requires cancer contact: latent TGF-β needs cancer
+        // membrane integrins (αvβ6/αvβ8) or cancer-derived MMPs to activate.
+        // Without this gate, myCAF→TGFβ→myCAF relay floods the domain.
+        const int n_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
+        if (n_cancer > 0) {
+            const float tgfb_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_MYCAF_TGFB_RELEASE");
+            PDE_SECRETE(FLAMEGPU, PDE_SRC_TGFB, voxel, tgfb_rate * eff_boost / voxel_volume);
+        }
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL2,  voxel, ccl2_rate  * eff_boost / voxel_volume);
         PDE_SECRETE(FLAMEGPU, PDE_SRC_VEGFA, voxel, vegfa_rate * eff_boost / voxel_volume);
-        // CXCL9/10 (CXCR3 ligand) — CAF-density-sourced effector recruitment cue (Step 4b)
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL9_10, voxel, cxcl9_rate * eff_boost / voxel_volume);
     } else if (cs == FIB_ICAF) {
         const float il6_rate    = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_ICAF_IL6_RELEASE");
@@ -191,6 +206,8 @@ FLAMEGPU_AGENT_FUNCTION(fib_compute_chemical_sources, flamegpu::MessageNone, fla
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CCL5,   voxel, ccl5_rate / voxel_volume);
         // CXCL9/10 (CXCR3 ligand) — CAF-density-sourced effector recruitment cue (Step 4b)
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL9_10, voxel, cxcl9_rate / voxel_volume);
+    } else if (cs == FIB_APCAF) {
+        // apCAF: antigen-presenting, no cytokine secretion for now
     } else {  // FIB_FRC — TLS T-zone scaffold, CCL21 source (Luther2000, Link2007)
         const float ccl21_rate  = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_FRC_CCL21_RELEASE");
         const float cxcl12_rate = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_FRC_CXCL12_RELEASE");
@@ -341,24 +358,10 @@ FLAMEGPU_AGENT_FUNCTION(fib_move_commit, flamegpu::MessageNone, flamegpu::Messag
 FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int cs = FLAMEGPU->getVariable<int>("cell_state");
 
-    // Quiescent fibroblasts are immortal — they are the resident tissue floor
-    // placed by SA and persist indefinitely providing baseline ECM. Only
-    // activated CAFs (myCAF, iCAF, apCAF, FRC) have finite lifespans.
-    if (cs != FIB_QUIESCENT) {
-        int life = FLAMEGPU->getVariable<int>("life");
-        life--;
-        FLAMEGPU->setVariable<int>("life", life);
-        if (life <= 0) {
-            auto* ec = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
-            int death_idx;
-            if (cs == FIB_MYCAF)      death_idx = EVT_DEATH_FIB_MYCAF;
-            else if (cs == FIB_ICAF)  death_idx = EVT_DEATH_FIB_ICAF;
-            else if (cs == FIB_APCAF) death_idx = EVT_DEATH_FIB_APCAF;
-            else                       death_idx = EVT_DEATH_FIB_FRC;
-            atomicAdd(&ec[death_idx], 1u);
-            return flamegpu::DEAD;
-        }
-    }
+    // Death + division DISABLED: fibroblasts are sessile, permanent, and
+    // non-proliferative. They activate (qPSC → CAF subtypes) and interconvert
+    // but neither die nor divide, keeping the SA-placed tissue floor intact
+    // while ECM deposition tracks activation state.
 
     const int grid_x = FLAMEGPU->environment.getProperty<int>("grid_size_x");
     const int grid_y = FLAMEGPU->environment.getProperty<int>("grid_size_y");
@@ -424,16 +427,11 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
             return flamegpu::ALIVE;
         }
 
-        // apCAF activation (ODE Flux307): k_PSC_to_apCAF * qPSC — first-order, ungated.
-        // The QSP has no cytokine gate on this transition, so the ABM does not add one.
-        const float k_apcaf = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_APCAF_ACTIVATION");
-        if (det_rng_uniform(srs) < k_apcaf) {
-            FLAMEGPU->setVariable<int>("cell_state", FIB_APCAF);
-            FLAMEGPU->setVariable<int>("life", static_cast<int>(
-                FLAMEGPU->environment.getProperty<float>("PARAM_FIB_LIFE_MEAN")
-                * logf(1.0f / (det_rng_uniform(srs) + 1e-4f)) + 0.5f));
-            return flamegpu::ALIVE;
-        }
+        // apCAF activation DISABLED — apCAFs are rare in PDAC and the ungated
+        // first-order rate instantly converts most qPSC.  Re-enable when a proper
+        // cytokine gate (e.g. antigen load) is implemented.
+        // const float k_apcaf = FLAMEGPU->environment.getProperty<float>("PARAM_FIB_APCAF_ACTIVATION");
+        // if (det_rng_uniform(srs) < k_apcaf) { ... }
     }
 
     // iCAF ↔ myCAF interconversion (ODE RF245, RF246)
@@ -473,18 +471,7 @@ FLAMEGPU_AGENT_FUNCTION(fib_state_step, flamegpu::MessageNone, flamegpu::Message
         }
     }
 
-    // Division cooldown decrement + CAF proliferation
-    int cooldown = FLAMEGPU->getVariable<int>("divide_cooldown");
-    if (cooldown > 0) {
-        cooldown--;
-        FLAMEGPU->setVariable<int>("divide_cooldown", cooldown);
-    }
-    if (cooldown <= 0 && (cs == FIB_MYCAF || cs == FIB_ICAF)) {
-        int div_limit = FLAMEGPU->getVariable<int>("divide_limit");
-        if (div_limit > 0) {
-            FLAMEGPU->setVariable<int>("divide_flag", 1);
-        }
-    }
+    // Division cooldown/flag skip (division disabled above with death).
 
     return flamegpu::ALIVE;
 }

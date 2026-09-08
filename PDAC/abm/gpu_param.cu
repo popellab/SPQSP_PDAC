@@ -237,13 +237,17 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.CCL2.uptake", "", "pr"},  // PARAM_CCL2_UPTAKE
     {"Param.Molecular.biofvm.CCL2.molecularWeight", "", "pr"},  // PARAM_CCL2_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.ArgI.diffusivity", "", "pr"},  // PARAM_ARGI_DIFFUSIVITY
+    {"Param.Molecular.biofvm.ArgI.decayRate", "", "pr"},  // PARAM_ARGI_DECAY_RATE (ABM override)
     {"Param.Molecular.biofvm.ArgI.molecularWeight", "", "pr"},  // PARAM_ARGI_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.NO.diffusivity", "", "pr"},  // PARAM_NO_DIFFUSIVITY
+    {"Param.Molecular.biofvm.NO.decayRate", "", "pr"},  // PARAM_NO_DECAY_RATE (ABM override)
     {"Param.Molecular.biofvm.NO.molecularWeight", "", "pr"},  // PARAM_NO_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.TGFB.diffusivity", "", "pr"},  // PARAM_TGFB_DIFFUSIVITY
     {"Param.Molecular.biofvm.TGFB.release.CancerStem", "", "pr"},  // PARAM_STEM_TGFB_RELEASE
     {"Param.Molecular.biofvm.TGFB.release.CancerProgenitor", "", "pr"},  // PARAM_PROG_TGFB_RELEASE
     {"Param.Molecular.biofvm.TGFB.molecularWeight", "", "pr"},  // PARAM_TGFB_MOLECULAR_WEIGHT
+    {"Param.Molecular.biofvm.TGFB.uptake", "", "pr"},  // PARAM_TGFB_UPTAKE
+    {"Param.Molecular.biofvm.TGFB.ecmSequesterRate", "", "pr"},  // PARAM_TGFB_ECM_SEQUESTER_RATE
     {"Param.Molecular.biofvm.IL10.diffusivity", "", "pr"},  // PARAM_IL10_DIFFUSIVITY
     {"Param.Molecular.biofvm.IL10.release.Treg", "", "pr"},  // PARAM_TREG_IL10_RELEASE
     {"Param.Molecular.biofvm.IL10.molecularWeight", "", "pr"},  // PARAM_IL10_MOLECULAR_WEIGHT
@@ -258,6 +262,7 @@ const char* _gpu_param_description[][3] = {
     {"Param.Molecular.biofvm.O2.decayRate", "", "pr"},  // PARAM_O2_DECAY_RATE
     {"Param.Molecular.biofvm.O2.molecularWeight", "", "pr"},  // PARAM_O2_MOLECULAR_WEIGHT
     {"Param.Molecular.biofvm.O2.background", "", "pr"},  // PARAM_O2_BACKGROUND
+    {"Param.Molecular.biofvm.O2.nontumorUptakeScalar", "", "pr"},  // PARAM_O2_NONTUMOR_UPTAKE_SCALAR
     {"Param.Molecular.biofvm.IL1.diffusivity", "", "pr"},  // PARAM_IL1_DIFFUSIVITY
     {"Param.Molecular.biofvm.IL1.release.MacM1", "", "pr"},  // PARAM_MAC_M1_IL1_RELEASE
     {"Param.Molecular.biofvm.IL1.molecularWeight", "", "pr"},  // PARAM_IL1_MOLECULAR_WEIGHT
@@ -663,13 +668,17 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_CCL2_UPTAKE", getFloat(PARAM_CCL2_UPTAKE));
     env.newProperty<float>("PARAM_CCL2_MOLECULAR_WEIGHT", getFloat(PARAM_CCL2_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_ARGI_DIFFUSIVITY", getFloat(PARAM_ARGI_DIFFUSIVITY));
+    env.newProperty<float>("PARAM_ARGI_DECAY_RATE", getFloat(PARAM_ARGI_DECAY_RATE));
     env.newProperty<float>("PARAM_ARGI_MOLECULAR_WEIGHT", getFloat(PARAM_ARGI_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_NO_DIFFUSIVITY", getFloat(PARAM_NO_DIFFUSIVITY));
+    env.newProperty<float>("PARAM_NO_DECAY_RATE", getFloat(PARAM_NO_DECAY_RATE));
     env.newProperty<float>("PARAM_NO_MOLECULAR_WEIGHT", getFloat(PARAM_NO_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_TGFB_DIFFUSIVITY", getFloat(PARAM_TGFB_DIFFUSIVITY));
     env.newProperty<float>("PARAM_STEM_TGFB_RELEASE", getFloat(PARAM_STEM_TGFB_RELEASE));
     env.newProperty<float>("PARAM_PROG_TGFB_RELEASE", getFloat(PARAM_PROG_TGFB_RELEASE));
     env.newProperty<float>("PARAM_TGFB_MOLECULAR_WEIGHT", getFloat(PARAM_TGFB_MOLECULAR_WEIGHT));
+    env.newProperty<float>("PARAM_TGFB_UPTAKE", getFloat(PARAM_TGFB_UPTAKE));
+    env.newProperty<float>("PARAM_TGFB_ECM_SEQUESTER_RATE", getFloat(PARAM_TGFB_ECM_SEQUESTER_RATE));
     env.newProperty<float>("PARAM_IL10_DIFFUSIVITY", getFloat(PARAM_IL10_DIFFUSIVITY));
     env.newProperty<float>("PARAM_TREG_IL10_RELEASE", getFloat(PARAM_TREG_IL10_RELEASE));
     env.newProperty<float>("PARAM_IL10_MOLECULAR_WEIGHT", getFloat(PARAM_IL10_MOLECULAR_WEIGHT));
@@ -684,6 +693,7 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_O2_DECAY_RATE", getFloat(PARAM_O2_DECAY_RATE));
     env.newProperty<float>("PARAM_O2_MOLECULAR_WEIGHT", getFloat(PARAM_O2_MOLECULAR_WEIGHT));
     env.newProperty<float>("PARAM_O2_BACKGROUND", getFloat(PARAM_O2_BACKGROUND));
+    env.newProperty<float>("PARAM_O2_NONTUMOR_UPTAKE_SCALAR", getFloat(PARAM_O2_NONTUMOR_UPTAKE_SCALAR));
     env.newProperty<float>("PARAM_IL1_DIFFUSIVITY", getFloat(PARAM_IL1_DIFFUSIVITY));
     env.newProperty<float>("PARAM_MAC_M1_IL1_RELEASE", getFloat(PARAM_MAC_M1_IL1_RELEASE));
     env.newProperty<float>("PARAM_IL1_MOLECULAR_WEIGHT", getFloat(PARAM_IL1_MOLECULAR_WEIGHT));

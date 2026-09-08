@@ -638,7 +638,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
     // PARAM_CANCER_STUCK_SENESCENCE_STEPS. Prevents trapped-progenitor interior deadlock.
     // Re-read cell_state: the exhaustion block above may have just flipped us to SENESCENT.
     const int post_state = FLAMEGPU->getVariable<int>("cell_state");
-    if (post_state != CANCER_SENESCENT) {
+    if (post_state != CANCER_SENESCENT && post_state != CANCER_STEM) {
         const int stuck = FLAMEGPU->getVariable<int>("stuck_steps");
         const int stuck_th = FLAMEGPU->environment.getProperty<int>("PARAM_CANCER_STUCK_SENESCENCE_STEPS");
         if (stuck >= stuck_th) {
@@ -740,6 +740,10 @@ FLAMEGPU_AGENT_FUNCTION(cancer_compute_chemical_sources, flamegpu::MessageNone, 
 
     // Uptakes (consumption): atomicAdd to pde_uptake with positive magnitude [1/s]
     PDE_UPTAKE(FLAMEGPU, PDE_UPT_O2, voxel, O2_uptake);
+    if (dead == 0) {
+        const float TGFB_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_TGFB_UPTAKE");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_TGFB, voxel, TGFB_uptake);
+    }
 
     return flamegpu::ALIVE;
 }

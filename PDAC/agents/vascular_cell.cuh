@@ -95,6 +95,13 @@ FLAMEGPU_AGENT_FUNCTION(vascular_compute_chemical_sources, flamegpu::MessageNone
     const float VEGFA_uptake_rate = FLAMEGPU->environment.getProperty<float>("PARAM_VEGFA_UPTAKE");
     PDE_UPTAKE(FLAMEGPU, PDE_UPT_VEGFA, voxel, VEGFA_uptake_rate);
 
+    // O2 consumption (basal metabolism — endothelial cells are metabolically active)
+    {
+        const float O2_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_O2_UPTAKE")
+                              * FLAMEGPU->environment.getProperty<float>("PARAM_O2_NONTUMOR_UPTAKE_SCALAR");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_O2, voxel, O2_uptake);
+    }
+
     return flamegpu::ALIVE;
 }
 

@@ -566,10 +566,12 @@
       </CCL2>
       <ArgI>
         <diffusivity name="PARAM_ARGI_DIFFUSIVITY" type="float" val="pr">6.35e-7</diffusivity> <!-- MAPLE (1.6x down). Ramanujan2002 -->
+        <decayRate name="PARAM_ARGI_DECAY_RATE" type="float" val="pr">1e-3</decayRate> <!-- [1/s] ABM override (QSP k_ArgI_deg=0.173/day=2e-6 too slow for spatial). t½~12min, λ≈252µm. ArgI is an enzyme; interstitial clearance dominates in tissue. -->
         <molecularWeight name="PARAM_ARGI_MOLECULAR_WEIGHT" type="float" val="pr">41</molecularWeight>
       </ArgI>
       <NO>
         <diffusivity name="PARAM_NO_DIFFUSIVITY" type="float" val="pr">3.09e-5</diffusivity> <!-- MAPLE. Liu2008 -->
+        <decayRate name="PARAM_NO_DECAY_RATE" type="float" val="pr">0.08</decayRate> <!-- [1/s] ABM override (QSP k_NO_deg=135/day=1.56e-3 too slow for spatial). t½~8.7s, λ≈197µm. NO scavenged by O2/hemoglobin in seconds (Lancaster1997). -->
         <molecularWeight name="PARAM_NO_MOLECULAR_WEIGHT" type="float" val="pr">0.03</molecularWeight>
       </NO>
       <TGFB>
@@ -580,6 +582,8 @@
 
         </release>
         <molecularWeight name="PARAM_TGFB_MOLECULAR_WEIGHT" type="float" val="pr">44</molecularWeight>
+        <uptake name="PARAM_TGFB_UPTAKE" type="float" val="pr">0.005</uptake> <!-- [1/s] receptor-mediated internalization (Zi & Klipp 2007, ki~0.005/s, t½~3min active TGF-β) -->
+        <ecmSequesterRate name="PARAM_TGFB_ECM_SEQUESTER_RATE" type="float" val="pr">0.01</ecmSequesterRate> <!-- [1/s] ECM-proportional sequestration; effective rate = this * local_ecm_density -->
       </TGFB>
       <IL10>
         <diffusivity name="PARAM_IL10_DIFFUSIVITY" type="float" val="pr">2.70e-8</diffusivity> <!-- MAPLE (1.9x up). Ramanujan2002 -->
@@ -595,13 +599,14 @@
       <VEGFA>
         <diffusivity name="PARAM_VEGFA_DIFFUSIVITY" type="float" val="pr">2.71e-7</diffusivity> <!-- MAPLE. Ramanujan2002 -->
         <uptake name="PARAM_VEGFA_UPTAKE" type="float" val="pr">5e-5</uptake>
-        <decayRate name="PARAM_VEGFA_DECAY_RATE" type="float" val="pr">0.0001921</decayRate>
+        <decayRate name="PARAM_VEGFA_DECAY_RATE" type="float" val="pr">0.0003842</decayRate>  <!-- 2× increase: vascular VEGFR2-mediated internalization + HSPG sequestration. λ=√(D/k)=√(2.71e-7/3.84e-4)=266µm (was 376µm). -->
         <molecularWeight name="PARAM_VEGFA_MOLECULAR_WEIGHT" type="float" val="pr">45</molecularWeight>
       </VEGFA>
       <O2>
         <diffusivity name="PARAM_O2_DIFFUSIVITY" type="float" val="pr">1.75e-5</diffusivity>  <!-- Tumor tissue: Grote1977, DS-carcinosarcoma 37°C -->
         <uptake name="PARAM_O2_UPTAKE" type="float" val="pr">0.10</uptake>  <!-- MIA PaCa-2: 57 amol/cell/s → k=0.11/s; PhysiCell default 0.167/s -->
-        <decayRate name="PARAM_O2_DECAY_RATE" type="float" val="pr">1e-5</decayRate>
+        <decayRate name="PARAM_O2_DECAY_RATE" type="float" val="pr">0.01</decayRate>  <!-- Background tissue O2 consumption by non-modeled stromal cells. λ=√(D/k)=418µm baseline; agent uptake shortens toward Krogh ~150µm. Was 1e-5 (autooxidation only, λ=13mm). -->
+        <nontumorUptakeScalar name="PARAM_O2_NONTUMOR_UPTAKE_SCALAR" type="float" val="pr">0.75</nontumorUptakeScalar>  <!-- Scalar on PARAM_O2_UPTAKE for non-cancer cells (fibroblasts, immune, vascular). 0.75 = 75% of cancer metabolic rate. -->
         <molecularWeight name="PARAM_O2_MOLECULAR_WEIGHT" type="float" val="pr">16</molecularWeight>
         <background name="PARAM_O2_BACKGROUND" type="float" val="pr">0.02</background>  <!-- Baseline dissolved O2 [mM] held at every voxel post-solve (diffuse background perfusion; vasculature not modeled as agents). Above the ~0.01 mM hypoxia thresholds, below C_blood 0.065 (PARAM_VAS_O2_CONC) so Krogh Vvas still adds O2 on top. Prevents a global HIF cascade in the avascular presim tumour. 0 disables. -->
       </O2>

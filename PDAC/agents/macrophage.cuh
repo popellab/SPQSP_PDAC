@@ -197,6 +197,15 @@ FLAMEGPU_AGENT_FUNCTION(mac_compute_chemical_sources, flamegpu::MessageNone, fla
         PDE_SECRETE(FLAMEGPU, PDE_SRC_MMP, voxel, MMP_release_rate / voxel_volume);
     }
 
+    // O2 + TGF-β consumption (basal metabolism)
+    if (dead == 0) {
+        const float O2_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_O2_UPTAKE")
+                              * FLAMEGPU->environment.getProperty<float>("PARAM_O2_NONTUMOR_UPTAKE_SCALAR");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_O2, voxel, O2_uptake);
+        const float TGFB_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_TGFB_UPTAKE");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_TGFB, voxel, TGFB_uptake);
+    }
+
     return flamegpu::ALIVE;
 }
 

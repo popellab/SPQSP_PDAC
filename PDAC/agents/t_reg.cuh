@@ -560,6 +560,20 @@ FLAMEGPU_AGENT_FUNCTION(treg_update_chemicals, flamegpu::MessageNone, flamegpu::
 FLAMEGPU_AGENT_FUNCTION(treg_compute_chemical_sources, flamegpu::MessageNone, flamegpu::MessageNone) {
     const int dead = FLAMEGPU->getVariable<int>("dead");
 
+    // O2 + TGF-β consumption (basal metabolism — all living CD4 cells including naive)
+    if (dead == 0) {
+        const int nx0 = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+        const int ny0 = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int voxel0 = FLAMEGPU->getVariable<int>("z") * ny0 * nx0
+                         + FLAMEGPU->getVariable<int>("y") * nx0
+                         + FLAMEGPU->getVariable<int>("x");
+        const float O2_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_O2_UPTAKE")
+                              * FLAMEGPU->environment.getProperty<float>("PARAM_O2_NONTUMOR_UPTAKE_SCALAR");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_O2, voxel0, O2_uptake);
+        const float TGFB_uptake = FLAMEGPU->environment.getProperty<float>("PARAM_TGFB_UPTAKE");
+        PDE_UPTAKE(FLAMEGPU, PDE_UPT_TGFB, voxel0, TGFB_uptake);
+    }
+
     float IL10_release = 0.0f;
     float TGFB_release = 0.0f;
     float IL2_release = 0.0f;
