@@ -39,12 +39,12 @@ __device__ __forceinline__ void pack_row(
     buf[off + 7] = extra;
 }
 
-// type_id=0: has cell_state, divideCD, life (but export uses life=0)
+// type_id=0: cell_state, life=hypoxia_exposure, extra=divideCD
 FLAMEGPU_AGENT_FUNCTION(pack_export_cancer, flamegpu::MessageNone, flamegpu::MessageNone) {
     if (!FLAMEGPU->environment.getProperty<int>("do_abm_export")) return flamegpu::ALIVE;
     pack_row(FLAMEGPU, 0,
         FLAMEGPU->getVariable<int>("cell_state"),
-        0,
+        FLAMEGPU->getVariable<int>("hypoxia_exposure"),
         FLAMEGPU->getVariable<int>("divideCD"));
     return flamegpu::ALIVE;
 }

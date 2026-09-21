@@ -72,6 +72,8 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.CancerCell.Tkill_scaler", "", "pos"},  // PARAM_TKILL_SCALAR
     {"Param.ABM.CancerCell.mincc", "", "pos"},  // PARAM_MIN_CC
     {"Param.ABM.CancerCell.hypoxia_th", "", "pr"},  // PARAM_CANCER_HYPOXIA_TH
+    {"Param.ABM.CancerCell.necrosis_th", "", "pr"},  // PARAM_CANCER_NECROSIS_TH
+    {"Param.ABM.CancerCell.necrosis_countdown", "", "pr"},  // PARAM_CANCER_NECROSIS_COUNTDOWN
     {"Param.ABM.CancerCell.hif_vegf_boost", "", "pr"},  // PARAM_HIF_VEGF_BOOST
     {"Param.ABM.CancerCell.hif_ccl2_boost", "", "pr"},  // PARAM_HIF_CCL2_BOOST
     {"Param.ABM.CancerCell.hif_pdl1_boost", "", "pr"},  // PARAM_HIF_PDL1_BOOST
@@ -156,6 +158,10 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.ECM.porosityDC", "", "pr"},  // PARAM_ECM_POROSITY_DC
     {"Param.ABM.ECM.porosityVasTip", "", "pr"},  // PARAM_ECM_POROSITY_VAS_TIP
     {"Param.ABM.ECM.vasCompressK", "nmol/mL", "pr"},  // PARAM_VAS_ECM_COMPRESS_K
+    {"Param.ABM.Vas.decayUnsupported", "", "pr"},  // PARAM_VAS_DECAY_UNSUPPORTED
+    {"Param.ABM.Debris.deposit", "", "pr"},           // PARAM_DEBRIS_DEPOSIT
+    {"Param.ABM.Debris.clearanceRate", "1/s", "pr"},  // PARAM_DEBRIS_CLEARANCE_RATE
+    {"Param.ABM.Debris.blockThreshold", "", "pr"},    // PARAM_DEBRIS_BLOCK_THRESHOLD
     {"Param.ABM.ECM.yapEC50", "nmol/mL", "pr"},  // PARAM_ECM_YAP_EC50
     {"Param.ABM.ECM.stressDeposit", "", "pr"},  // PARAM_ECM_STRESS_DEPOSIT
     {"Param.ABM.ECM.stressDecayRate", "1/s", "pr"},  // PARAM_ECM_STRESS_DECAY
@@ -163,6 +169,19 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.ECM.orientTractionWeight", "", "pr"},  // PARAM_ECM_ORIENT_TRACTION_W
     {"Param.ABM.ECM.orientStressWeight", "", "pr"},  // PARAM_ECM_ORIENT_STRESS_W
     {"Param.ABM.ECM.orientCrosslinkResist", "", "pr"},  // PARAM_ECM_ORIENT_CROSSLINK_RESIST
+    {"Param.ABM.Pressure.deposit", "", "pr"},  // PARAM_PRESSURE_DEPOSIT
+    {"Param.ABM.Pressure.radius", "voxels", "pr"},  // PARAM_PRESSURE_RADIUS
+    {"Param.ABM.Pressure.variance", "voxels^2", "pr"},  // PARAM_PRESSURE_VARIANCE
+    {"Param.ABM.Pressure.decayRate", "1/s", "pr"},  // PARAM_PRESSURE_DECAY
+    {"Param.ABM.Pressure.mechanoCancer", "", "pr"},  // PARAM_MECHANO_CANCER
+    {"Param.ABM.Pressure.mechanoTcell", "", "pr"},  // PARAM_MECHANO_TCELL
+    {"Param.ABM.Pressure.mechanoTreg", "", "pr"},  // PARAM_MECHANO_TREG
+    {"Param.ABM.Pressure.mechanoMac", "", "pr"},  // PARAM_MECHANO_MAC
+    {"Param.ABM.Pressure.mechanoFib", "", "pr"},  // PARAM_MECHANO_FIB
+    {"Param.ABM.Pressure.mechanoMdsc", "", "pr"},  // PARAM_MECHANO_MDSC
+    {"Param.ABM.Pressure.mechanoBcell", "", "pr"},  // PARAM_MECHANO_BCELL
+    {"Param.ABM.Pressure.mechanoDC", "", "pr"},  // PARAM_MECHANO_DC
+    {"Param.ABM.Pressure.mechanoVas", "", "pr"},  // PARAM_MECHANO_VAS
     {"Param.ABM.DomainInit.lobule_spacing", "voxels", "pr"},  // PARAM_DOMAIN_LOBULE_SPACING
     {"Param.ABM.DomainInit.septum_thickness", "voxels", "pr"},  // PARAM_DOMAIN_SEPTUM_THICKNESS
     {"Param.ABM.DomainInit.tumor_radius_fraction", "", "pr"},  // PARAM_DOMAIN_TUMOR_RADIUS_FRAC
@@ -503,6 +522,8 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_TKILL_SCALAR", getFloat(PARAM_TKILL_SCALAR));
     env.newProperty<float>("PARAM_MIN_CC", getFloat(PARAM_MIN_CC));
     env.newProperty<float>("PARAM_CANCER_HYPOXIA_TH", getFloat(PARAM_CANCER_HYPOXIA_TH));
+    env.newProperty<float>("PARAM_CANCER_NECROSIS_TH", getFloat(PARAM_CANCER_NECROSIS_TH));
+    env.newProperty<float>("PARAM_CANCER_NECROSIS_COUNTDOWN", getFloat(PARAM_CANCER_NECROSIS_COUNTDOWN));
     env.newProperty<float>("PARAM_HIF_VEGF_BOOST", getFloat(PARAM_HIF_VEGF_BOOST));
     env.newProperty<float>("PARAM_HIF_CCL2_BOOST", getFloat(PARAM_HIF_CCL2_BOOST));
     env.newProperty<float>("PARAM_HIF_PDL1_BOOST", getFloat(PARAM_HIF_PDL1_BOOST));
@@ -587,6 +608,10 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_ECM_POROSITY_DC", getFloat(PARAM_ECM_POROSITY_DC));
     env.newProperty<float>("PARAM_ECM_POROSITY_VAS_TIP", getFloat(PARAM_ECM_POROSITY_VAS_TIP));
     env.newProperty<float>("PARAM_VAS_ECM_COMPRESS_K", getFloat(PARAM_VAS_ECM_COMPRESS_K));
+    env.newProperty<float>("PARAM_VAS_DECAY_UNSUPPORTED", getFloat(PARAM_VAS_DECAY_UNSUPPORTED));
+    env.newProperty<float>("PARAM_DEBRIS_DEPOSIT", getFloat(PARAM_DEBRIS_DEPOSIT));
+    env.newProperty<float>("PARAM_DEBRIS_CLEARANCE_RATE", getFloat(PARAM_DEBRIS_CLEARANCE_RATE));
+    env.newProperty<float>("PARAM_DEBRIS_BLOCK_THRESHOLD", getFloat(PARAM_DEBRIS_BLOCK_THRESHOLD));
     env.newProperty<float>("PARAM_ECM_YAP_EC50", getFloat(PARAM_ECM_YAP_EC50));
     env.newProperty<float>("PARAM_ECM_STRESS_DEPOSIT", getFloat(PARAM_ECM_STRESS_DEPOSIT));
     env.newProperty<float>("PARAM_ECM_STRESS_DECAY", getFloat(PARAM_ECM_STRESS_DECAY));
@@ -594,6 +619,19 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_ECM_ORIENT_TRACTION_W", getFloat(PARAM_ECM_ORIENT_TRACTION_W));
     env.newProperty<float>("PARAM_ECM_ORIENT_STRESS_W", getFloat(PARAM_ECM_ORIENT_STRESS_W));
     env.newProperty<float>("PARAM_ECM_ORIENT_CROSSLINK_RESIST", getFloat(PARAM_ECM_ORIENT_CROSSLINK_RESIST));
+    env.newProperty<float>("PARAM_PRESSURE_DEPOSIT", getFloat(PARAM_PRESSURE_DEPOSIT));
+    env.newProperty<float>("PARAM_PRESSURE_RADIUS", getFloat(PARAM_PRESSURE_RADIUS));
+    env.newProperty<float>("PARAM_PRESSURE_VARIANCE", getFloat(PARAM_PRESSURE_VARIANCE));
+    env.newProperty<float>("PARAM_PRESSURE_DECAY", getFloat(PARAM_PRESSURE_DECAY));
+    env.newProperty<float>("PARAM_MECHANO_CANCER", getFloat(PARAM_MECHANO_CANCER));
+    env.newProperty<float>("PARAM_MECHANO_TCELL", getFloat(PARAM_MECHANO_TCELL));
+    env.newProperty<float>("PARAM_MECHANO_TREG", getFloat(PARAM_MECHANO_TREG));
+    env.newProperty<float>("PARAM_MECHANO_MAC", getFloat(PARAM_MECHANO_MAC));
+    env.newProperty<float>("PARAM_MECHANO_FIB", getFloat(PARAM_MECHANO_FIB));
+    env.newProperty<float>("PARAM_MECHANO_MDSC", getFloat(PARAM_MECHANO_MDSC));
+    env.newProperty<float>("PARAM_MECHANO_BCELL", getFloat(PARAM_MECHANO_BCELL));
+    env.newProperty<float>("PARAM_MECHANO_DC", getFloat(PARAM_MECHANO_DC));
+    env.newProperty<float>("PARAM_MECHANO_VAS", getFloat(PARAM_MECHANO_VAS));
     env.newProperty<float>("PARAM_DOMAIN_LOBULE_SPACING", getFloat(PARAM_DOMAIN_LOBULE_SPACING));
     env.newProperty<float>("PARAM_DOMAIN_SEPTUM_THICKNESS", getFloat(PARAM_DOMAIN_SEPTUM_THICKNESS));
     env.newProperty<float>("PARAM_DOMAIN_TUMOR_RADIUS_FRAC", getFloat(PARAM_DOMAIN_TUMOR_RADIUS_FRAC));

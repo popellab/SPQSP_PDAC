@@ -79,6 +79,7 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     // Molecular state (affects behavior)
     cancer_cell.newVariable<float>("PDL1_syn", 0.0f);
     cancer_cell.newVariable<int>("hypoxic", 0);                // Boolean: O2 below threshold
+    cancer_cell.newVariable<int>("hypoxia_exposure", 0);       // Cumulative steps below hypoxia threshold (for necrosis countdown)
 
     // Drug effects (computed from local concentrations)
     cancer_cell.newVariable<float>("cabo_effect", 0.0f);       // VEGF inhibition level [0-1]

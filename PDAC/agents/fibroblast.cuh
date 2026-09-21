@@ -270,6 +270,12 @@ FLAMEGPU_AGENT_FUNCTION(fib_move_propose, flamegpu::MessageNone, flamegpu::Messa
     mp.barrier_strength = (cs == FIB_MYCAF) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_FIB_MYCAF") :
         FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_FIB_ICAF");
+    mp.pressure_grad_x = PRESSURE_GRAD_X_PTR(FLAMEGPU);
+    mp.pressure_grad_y = PRESSURE_GRAD_Y_PTR(FLAMEGPU);
+    mp.pressure_grad_z = PRESSURE_GRAD_Z_PTR(FLAMEGPU);
+    mp.mechano_sensitivity = FLAMEGPU->environment.getProperty<float>("PARAM_MECHANO_FIB");
+    mp.debris = DEBRIS_PTR(FLAMEGPU);
+    mp.debris_threshold = FLAMEGPU->environment.getProperty<float>("PARAM_DEBRIS_BLOCK_THRESHOLD");
     const float w_cg = (cs == FIB_MYCAF) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_FIB_MYCAF") :
         FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_FIB_ICAF");
@@ -287,6 +293,10 @@ FLAMEGPU_AGENT_FUNCTION(fib_move_propose, flamegpu::MessageNone, flamegpu::Messa
         g0 = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_X))[vidx];
         g1 = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Y))[vidx];
         g2 = reinterpret_cast<const float*>(FLAMEGPU->environment.getProperty<uint64_t>(PDE_GRAD_TGFB_Z))[vidx];
+        // Flip gradient near cancer: myCAFs move AWAY from TGF-β source (outward)
+        // when surrounded by cancer — models mechanical displacement by proliferative pressure.
+        const int n_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
+        if (n_cancer > 0) { g0 = -g0; g1 = -g1; g2 = -g2; }
     }
     const float ox = mp.orient_x[vidx], oy = mp.orient_y[vidx], oz = mp.orient_z[vidx];
     if (bias > 0.0f) apply_contact_guidance(g0, g1, g2, ox, oy, oz, w_cg);

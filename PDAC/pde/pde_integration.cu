@@ -183,6 +183,18 @@ static float* d_mech_stress_x = nullptr;
 static float* d_mech_stress_y = nullptr;
 static float* d_mech_stress_z = nullptr;
 
+// Proliferative pressure field: scalar per-voxel pressure from cancer division events.
+// Cancer division deposits a Gaussian kernel centered at the daughter voxel; field decays
+// each step. Gradient biases movement of mechanosensitive cell types away from high pressure.
+static float* d_pressure_field = nullptr;
+static float* d_pressure_grad_x = nullptr;
+static float* d_pressure_grad_y = nullptr;
+static float* d_pressure_grad_z = nullptr;
+
+// Necrotic debris field: dead cancer cell remnants. Blocks movement, suppresses
+// Vvas recovery. Deposited by cancer death (atomicAdd), decayed each step.
+static float* d_debris_field = nullptr;
+
 static RecruitRequest* d_recruit_requests = nullptr;
 static int* d_recruit_count = nullptr;
 
@@ -410,6 +422,55 @@ __global__ void update_ecm_orient_kernel(
 }
 
 // ============================================================================
+// CUDA Kernel: Decay proliferative pressure field (exponential decay each step)
+// ============================================================================
+__global__ void decay_pressure_kernel(float* pressure, int total_voxels, float decay_factor)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < total_voxels) {
+        pressure[idx] *= decay_factor;
+    }
+}
+
+__global__ void decay_debris_kernel(float* debris, int total_voxels, float decay_factor)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < total_voxels) {
+        debris[idx] *= decay_factor;
+    }
+}
+
+// ============================================================================
+// CUDA Kernel: Compute pressure field gradient (central differences)
+// ============================================================================
+__global__ void compute_pressure_gradient_kernel(
+    const float* pressure, float* grad_x, float* grad_y, float* grad_z,
+    int nx, int ny, int nz, float inv_2dx)
+{
+    const int tx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int ty = blockIdx.y * blockDim.y + threadIdx.y;
+    const int tz = blockIdx.z * blockDim.z + threadIdx.z;
+    if (tx >= nx || ty >= ny || tz >= nz) return;
+
+    const int idx = tz * (nx * ny) + ty * nx + tx;
+
+    // Central differences with Neumann (no-flux) boundary: reflect at edges
+    int xm = (tx > 0)      ? idx - 1         : idx + 1;
+    int xp = (tx < nx - 1) ? idx + 1         : idx - 1;
+    int ym = (ty > 0)      ? idx - nx        : idx + nx;
+    int yp = (ty < ny - 1) ? idx + nx        : idx - nx;
+    int zm = (tz > 0)      ? idx - nx * ny   : idx + nx * ny;
+    int zp = (tz < nz - 1) ? idx + nx * ny   : idx - nx * ny;
+
+    // Edge voxels: one-sided gradient (xp - idx or idx - xm) → factor = 1/dx not 1/(2dx).
+    // But reflection already handles this symmetrically: (P[idx+1] - P[idx-1])/(2dx) with
+    // reflected index gives the same forward/backward difference, so inv_2dx is correct.
+    grad_x[idx] = (pressure[xp] - pressure[xm]) * inv_2dx;
+    grad_y[idx] = (pressure[yp] - pressure[ym]) * inv_2dx;
+    grad_z[idx] = (pressure[zp] - pressure[zm]) * inv_2dx;
+}
+
+// ============================================================================
 // Host Function: Reset PDE Buffers (call before compute_chemical_sources)
 // ============================================================================
 
@@ -468,6 +529,7 @@ FLAMEGPU_HOST_FUNCTION(solve_pde_step) {
     g_last_pde_ms = std::chrono::duration<double, std::milli>(pde_t1 - pde_t0).count();
 
     unsigned int step = FLAMEGPU->environment.getProperty<unsigned int>("current_step");
+
     if (step % 50 == 0) {
         std::cout << "PDE solved for step " << step
                   << " (mode=" << g_pde_solver->get_solve_mode() << ")" << std::endl;
@@ -654,6 +716,20 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
     CUDA_CHECK(cudaMalloc(&d_mech_stress_z, total_voxels * sizeof(float)));
     CUDA_CHECK(cudaMemset(d_mech_stress_z, 0, total_voxels * sizeof(float)));
 
+    // Allocate proliferative pressure field + gradient arrays (init = 0)
+    CUDA_CHECK(cudaMalloc(&d_pressure_field, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_pressure_field, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_pressure_grad_x, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_pressure_grad_x, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_pressure_grad_y, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_pressure_grad_y, 0, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_pressure_grad_z, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_pressure_grad_z, 0, total_voxels * sizeof(float)));
+
+    // Allocate necrotic debris field (init = 0)
+    CUDA_CHECK(cudaMalloc(&d_debris_field, total_voxels * sizeof(float)));
+    CUDA_CHECK(cudaMemset(d_debris_field, 0, total_voxels * sizeof(float)));
+
     // Allocate GPU recruitment output buffer + atomic counter
     CUDA_CHECK(cudaMalloc(&d_recruit_requests, MAX_RECRUITS_PER_STEP * sizeof(RecruitRequest)));
     CUDA_CHECK(cudaMalloc(&d_recruit_count, sizeof(int)));
@@ -773,6 +849,20 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
     model.Environment().newProperty<unsigned long long>("stress_z_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_mech_stress_z)));
 
+    // Proliferative pressure field + gradient pointers
+    model.Environment().newProperty<unsigned long long>("pressure_field_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_pressure_field)));
+    model.Environment().newProperty<unsigned long long>("pressure_grad_x_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_pressure_grad_x)));
+    model.Environment().newProperty<unsigned long long>("pressure_grad_y_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_pressure_grad_y)));
+    model.Environment().newProperty<unsigned long long>("pressure_grad_z_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_pressure_grad_z)));
+
+    // Necrotic debris field pointer
+    model.Environment().newProperty<unsigned long long>("debris_field_ptr",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_debris_field)));
+
     std::cout << "PDE device pointers stored in FLAME GPU environment" << std::endl;
 }
 
@@ -842,6 +932,11 @@ void cleanup_pde_solver() {
     if (d_mech_stress_x) { cudaFree(d_mech_stress_x); d_mech_stress_x = nullptr; }
     if (d_mech_stress_y) { cudaFree(d_mech_stress_y); d_mech_stress_y = nullptr; }
     if (d_mech_stress_z) { cudaFree(d_mech_stress_z); d_mech_stress_z = nullptr; }
+    if (d_pressure_field)  { cudaFree(d_pressure_field);  d_pressure_field = nullptr; }
+    if (d_pressure_grad_x) { cudaFree(d_pressure_grad_x); d_pressure_grad_x = nullptr; }
+    if (d_pressure_grad_y) { cudaFree(d_pressure_grad_y); d_pressure_grad_y = nullptr; }
+    if (d_pressure_grad_z) { cudaFree(d_pressure_grad_z); d_pressure_grad_z = nullptr; }
+    if (d_debris_field) { cudaFree(d_debris_field); d_debris_field = nullptr; }
     if (d_recruit_requests) { cudaFree(d_recruit_requests); d_recruit_requests = nullptr; }
     if (d_recruit_count)    { cudaFree(d_recruit_count);    d_recruit_count = nullptr; }
     if (d_recruit_diag)     { cudaFree(d_recruit_diag);     d_recruit_diag = nullptr; }
@@ -2224,29 +2319,10 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
                 ? (C_total_mol * C_total_mol) / (C_total_mol * C_total_mol + K_C2_sq)
                 : 0.0;
 
-            // ── Cancer proximity gate ──
-            // Mark all voxels within CANCER_PROX_RADIUS of any cancer cell.
-            // Restricts immune recruitment to the tumor margin + periphery.
-            constexpr int CANCER_PROX_RADIUS = 5;  // 5 voxels = 100µm at 20µm/vox
-            std::vector<float> cancer_prox(nvox, 0.0f);
-            for (int v = 0; v < nvox; ++v) {
-                if (h_tc[OCC_CANCER * nvox + v] == 0) continue;
-                int vx = v % nx, vy = (v / nx) % ny, vz = v / nxy;
-                int x0 = std::max(0, vx - CANCER_PROX_RADIUS);
-                int x1 = std::min(nx - 1, vx + CANCER_PROX_RADIUS);
-                int y0 = std::max(0, vy - CANCER_PROX_RADIUS);
-                int y1 = std::min(ny - 1, vy + CANCER_PROX_RADIUS);
-                int z0 = std::max(0, vz - CANCER_PROX_RADIUS);
-                int z1 = std::min(nz - 1, vz + CANCER_PROX_RADIUS);
-                for (int zz = z0; zz <= z1; zz++)
-                for (int yy = y0; yy <= y1; yy++)
-                for (int xx = x0; xx <= x1; xx++)
-                    cancer_prox[zz * nxy + yy * nx + xx] = 1.0f;
-            }
-            for (int s = 0; s < N_QSTREAM; ++s) {
-                float* q = &qf[static_cast<size_t>(s) * nvox];
-                for (int v = 0; v < nvox; ++v) q[v] *= cancer_prox[v];
-            }
+            // ── Cancer proximity gate: DISABLED ──
+            // Vvas spatial shape now drives recruitment location directly.
+            // Cancer compression collapses intratumoral Vvas → near-zero q-field
+            // inside tumor, so the gate is redundant. Kept as comment for reference.
 
             // ── Mean cytokine Hills over tumor voxels (myeloid magnitude) ──
             double sum_H_CCL2 = 0.0, sum_H_IL6 = 0.0;
@@ -2258,7 +2334,7 @@ FLAMEGPU_HOST_FUNCTION(recruit_systematic) {
                 const double ccl2_ec50 = static_cast<double>(p.ccl2_ec50_mdsc);
                 const double il6_ec50  = static_cast<double>(p.il6_ec50_mdsc);
                 for (int v = 0; v < nvox; ++v) {
-                    if (cancer_prox[v] <= 0.0f) continue;
+                    if (h_tc[OCC_CANCER * nvox + v] == 0) continue;
                     ++n_gate_voxels;
                     double c = h_ccl2[v];
                     sum_H_CCL2 += c / (c + ccl2_ec50 + 1e-30);
@@ -2586,12 +2662,15 @@ __global__ void update_vvas_kernel(
     const float* __restrict__ vegf,
     const unsigned int* __restrict__ cancer_occ,
     const float* __restrict__ ecm_density,
+    const float* __restrict__ debris_field,
     int nx, int ny, int nz,
     float vegf_ec50, float cabo_term,
     float k_growth, float k_decay, float v_max,
     float collapse_th, float collapse_ec50,
     float recovery_th, float recovery_rate,
-    float maturity_factor, float cancer_w)
+    float maturity_factor, float cancer_w,
+    float vegf_survival_ec50, float decay_unsupported,
+    float debris_block_th)
 {
     const int tx = blockIdx.x * blockDim.x + threadIdx.x;
     const int ty = blockIdx.y * blockDim.y + threadIdx.y;
@@ -2624,20 +2703,31 @@ __global__ void update_vvas_kernel(
 
     // --- regression of immature neovessels above the initial floor ---
     // Only VEGF-driven excess regresses; the pre-existing mature floor is stable.
-    const float decay = k_decay * fmaxf(0.0f, V - V0);
+    // VEGF-A trophic support: immature neovessels require ongoing VEGF signaling.
+    // When VEGF-A drops below survival EC50, regression accelerates — vessels that
+    // grew due to VEGF-A stimulation regress when the stimulus is removed.
+    const float vegf_survival = v / (v + vegf_survival_ec50 + 1e-30f);
+    const float effective_decay = k_decay * (1.0f + decay_unsupported * (1.0f - vegf_survival));
+    const float decay = effective_decay * fmaxf(0.0f, V - V0);
 
     // --- occlusion: ECM and cancer packing as INDEPENDENT pathways ---
+    // ECM compression: slow remodeling resisted by mature pericyte coverage.
     const float ecm = ecm_density[idx];
     const float c_ecm = (ecm > collapse_th)
                       ? (ecm / (ecm + collapse_ec50 + 1e-30f)) * maturity_factor
                       : 0.0f;
-    const float c_can = fminf(1.0f, cancer_w * f_cancer) * maturity_factor;
+    // Cancer compression: mechanical stress — no maturity resistance.
+    // Dense tumor mass physically crushes vessels regardless of pericyte coverage.
+    const float c_can = fminf(1.0f, cancer_w * f_cancer);
     const float occl = 1.0f - (1.0f - c_ecm) * (1.0f - c_can);
     const float compress = occl * V;
 
     // --- recovery toward initial floor once compression source relaxes ---
+    // Debris blocks recovery: dead cell remnants prevent vessel regrowth
+    const float debris_val = debris_field ? debris_field[idx] : 0.0f;
     const float deficit = fmaxf(0.0f, V0 - V);
-    const float recover = (ecm < recovery_th) ? recovery_rate * deficit : 0.0f;
+    const float recover = (ecm < recovery_th && debris_val < debris_block_th)
+                        ? recovery_rate * deficit : 0.0f;
 
     V += growth - decay - compress + recover;
     vvas[idx] = fminf(fmaxf(V, 0.0f), v_max);
@@ -2740,12 +2830,14 @@ FLAMEGPU_HOST_FUNCTION(compute_vvas_and_o2) {
     const float recovery_th    = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_RECOVERY_THRESHOLD");
     const float recovery_rate  = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_RECOVERY_RATE");
     const float cancer_w       = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_COMPRESS_CANCER_W");
-    // Mature-vessel resistance from the agent law, evaluated at the pre-existing-vessel
-    // maturity: 1/(1 + 0.04*100) = 0.2, i.e. mature vessels collapse 5x slower. Dropping it
-    // would make compression 5x too fast for exactly the co-opted vessels PDAC runs on.
+    // Mature-vessel resistance: applies to ECM-driven compression only.
+    // Cancer mechanical compression bypasses this (no pericyte resistance to
+    // solid stress from tumor mass).
     const float mat_resist = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_MATURITY_RESISTANCE");
     const float init_mat   = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_INITIAL_MATURITY");
     const float maturity_factor = 1.0f / (1.0f + mat_resist * init_mat);
+    const float vegf_survival_ec50 = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_VEGFA_SURVIVAL_EC50");
+    const float decay_unsupported  = FLAMEGPU->environment.getProperty<float>("PARAM_VAS_DECAY_UNSUPPORTED");
 
     // One-shot uniform seed — the FALLBACK only. When a placement supplied V_vas(t=0)
     // (set_vvas_from_host), g_vvas_seeded is already true and this is skipped, which is what
@@ -2782,12 +2874,16 @@ FLAMEGPU_HOST_FUNCTION(compute_vvas_and_o2) {
 
     dim3 block(8, 8, 8);
     dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
+    const float debris_block_th = FLAMEGPU->environment.getProperty<float>("PARAM_DEBRIS_BLOCK_THRESHOLD");
     update_vvas_kernel<<<grid, block>>>(d_vvas_field, d_vvas_initial, vegf, d_cancer_occ, d_ecm_density,
+                                        d_debris_field,
                                         nx, ny, nz, vegf_ec50, cabo_term,
                                         k_growth, k_decay, v_max,
                                         collapse_th, collapse_ec50,
                                         recovery_th, recovery_rate,
-                                        maturity_factor, cancer_w);
+                                        maturity_factor, cancer_w,
+                                        vegf_survival_ec50, decay_unsupported,
+                                        debris_block_th);
     source_o2_from_vvas_kernel<<<grid, block>>>(d_vvas_field, o2conc, o2_src, o2_upt, nx, ny, nz,
                                                 KvLv_base, C_blood, voxel_volume);
     cudaDeviceSynchronize();
@@ -2956,6 +3052,67 @@ FLAMEGPU_HOST_FUNCTION(decay_stress_field) {
         decay_stress_kernel<<<grid_size, block_size>>>(
             d_mech_stress_x, d_mech_stress_y, d_mech_stress_z,
             total_voxels, decay_factor);
+        cudaDeviceSynchronize();
+    }
+    nvtxRangePop();
+}
+
+// ============================================================================
+// Proliferative Pressure: decay + gradient computation.
+// Pressure deposited by cancer_divide_confirm (Gaussian kernel at daughter voxel).
+// Decay runs at top of step (with other field decays); gradient computed after division
+// so this step's divisions are included for next step's movement.
+// ============================================================================
+FLAMEGPU_HOST_FUNCTION(decay_pressure_field) {
+    nvtxRangePush("Decay Pressure Field");
+    if (d_pressure_field && g_pde_solver) {
+        int total_voxels = g_pde_solver->get_total_voxels();
+        float decay_rate = FLAMEGPU->environment.getProperty<float>("PARAM_PRESSURE_DECAY");
+        float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
+        float decay_factor = expf(-decay_rate * dt);
+
+        int block_size = 256;
+        int grid_size = (total_voxels + block_size - 1) / block_size;
+        decay_pressure_kernel<<<grid_size, block_size>>>(
+            d_pressure_field, total_voxels, decay_factor);
+        cudaDeviceSynchronize();
+    }
+    nvtxRangePop();
+}
+
+FLAMEGPU_HOST_FUNCTION(decay_debris_field) {
+    nvtxRangePush("Decay Debris Field");
+    if (d_debris_field && g_pde_solver) {
+        int total_voxels = g_pde_solver->get_total_voxels();
+        float decay_rate = FLAMEGPU->environment.getProperty<float>("PARAM_DEBRIS_CLEARANCE_RATE");
+        float dt = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE");
+        float decay_factor = expf(-decay_rate * dt);
+
+        int block_size = 256;
+        int grid_size = (total_voxels + block_size - 1) / block_size;
+        decay_debris_kernel<<<grid_size, block_size>>>(
+            d_debris_field, total_voxels, decay_factor);
+        cudaDeviceSynchronize();
+    }
+    nvtxRangePop();
+}
+
+float* get_debris_device_ptr() { return d_debris_field; }
+
+FLAMEGPU_HOST_FUNCTION(compute_pressure_gradients) {
+    nvtxRangePush("Compute Pressure Gradients");
+    if (d_pressure_field && d_pressure_grad_x && g_pde_solver) {
+        const int nx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+        const int ny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+        const int nz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+        float voxel_size_cm = FLAMEGPU->environment.getProperty<int>("PARAM_VOXEL_SIZE") * 1e-4f;
+        float inv_2dx = 0.5f / voxel_size_cm;
+
+        dim3 block(8, 8, 8);
+        dim3 grid((nx + 7) / 8, (ny + 7) / 8, (nz + 7) / 8);
+        compute_pressure_gradient_kernel<<<grid, block>>>(
+            d_pressure_field, d_pressure_grad_x, d_pressure_grad_y, d_pressure_grad_z,
+            nx, ny, nz, inv_2dx);
         cudaDeviceSynchronize();
     }
     nvtxRangePop();

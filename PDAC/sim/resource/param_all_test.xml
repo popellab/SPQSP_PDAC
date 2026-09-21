@@ -120,7 +120,7 @@
       <m2_bias_strength name="PARAM_MAC_M2_BIAS_STRENGTH" type="float" val="pr">0.75</m2_bias_strength>     <!-- MAPLE posterior 0.75. Raggi2017, Leblond2016 -->
     </Mac>
     <CancerCell>
-      <progGrowthRate name="PARAM_PROG_GROWTH_RATE" type="float" val="pr">0.3</progGrowthRate> <!-- 0.3/day: DT=ln2/0.3=2.31d=55h ~ Lieber1975 PANC-1 52h doubling (value-audit 2026-06-16, Furukawa2001 159d DOI DROPPED = wrong paper). Model-design: 0.3 restores PROG>STEM hierarchy (stem k_C1_growth/(1-asym_div_prob)=0.2/day). Full fix needs joint MAPLE on PROG_GROWTH_RATE+ASYM_DIV_PROB+k_C1_growth. -->
+      <progGrowthRate name="PARAM_PROG_GROWTH_RATE" type="float" val="pr">0.15</progGrowthRate> <!-- 0.15/day: DT=ln2/0.15=4.6d. Halved from 0.3 (in vitro PANC-1) to slow frontier expansion — ABM was 2.5x above f*QSP cancer at day 750. In vivo PDAC doubling ~weeks-months. Joint MAPLE on PROG_GROWTH_RATE+ASYM_DIV_PROB+k_C1_growth still needed. -->
       <senescentDeathRate name="PARAM_SEN_DEATH_RATE" type="float" val="pr">0.1</senescentDeathRate> <!-- MANUAL model-design (value-audit 2026-06-16): 0.1/day (~10d mean life) TEMP bump from legacy 0.026. Campisi2007 quantitative-rate anchor DROPPED (review = qualitative "viable many weeks"); BCL-2 apoptosis-resistance is directional only. -->
       <asymmetricDivProb name="PARAM_ASYM_DIV_PROB" type="float" val="pr">.95</asymmetricDivProb>
       <progenitorDivMax name="PARAM_PROG_DIV_MAX" type="int" val="pos">10</progenitorDivMax>
@@ -132,6 +132,8 @@
       <Tkill_scaler name="PARAM_TKILL_SCALAR" type="float" val="pos">3</Tkill_scaler>
       <mincc name="PARAM_MIN_CC" type="float" val="pos">1000</mincc>
       <hypoxia_th name="PARAM_CANCER_HYPOXIA_TH" type="float" val="pr">0.01</hypoxia_th>            <!-- ~1% O2 for HIF-1α activation [mM] -->
+      <necrosis_th name="PARAM_CANCER_NECROSIS_TH" type="float" val="pr">0.002</necrosis_th>       <!-- O2 [mM] below which instant necrotic death (severe anoxia) -->
+      <necrosis_countdown name="PARAM_CANCER_NECROSIS_COUNTDOWN" type="float" val="pr">8</necrosis_countdown>  <!-- Steps of sustained hypoxia (O2 < hypoxia_th) before necrotic death. 8 steps × 6h = 2 days. Normoxia decrements by 1/step. -->
       <hif_vegf_boost name="PARAM_HIF_VEGF_BOOST" type="float" val="pr">7.15</hif_vegf_boost>      <!-- MAPLE posterior 7.15. Buchler2003 -->
       <hif_ccl2_boost name="PARAM_HIF_CCL2_BOOST" type="float" val="pr">3.20</hif_ccl2_boost>      <!-- MAPLE posterior 3.20 -->
       <hif_pdl1_boost name="PARAM_HIF_PDL1_BOOST" type="float" val="pr">0.41</hif_pdl1_boost>      <!-- MAPLE posterior 0.41. Barsoum2014, Noman2014 -->
@@ -169,7 +171,13 @@
       <seed_cancer_sen_frac name="PARAM_SEED_CANCER_SEN_FRAC" type="float" val="pr">0.5</seed_cancer_sen_frac>       <!-- Single-ledger cancer seeding (Jul 2026): at the Phase-C handoff the ABM cancer is seeded to its geometric box-share N_seed=min(f*C1_QSP, box_capacity) so the window is physical (else it grows from 1 stem in the too-short coupled presim and ends cancer-depleted). The observable lumps stem+prog as cancer_prog vs cancer_sen, so the ONLY split that matters is this senescent fraction = the Ki67- (non-proliferating) tumor fraction. At a capacity-filled box division is occupancy-suppressed so this ~= the presim-stop observable (won't self-relax). uniform[0,0.9]; SBI-tunable (the proliferation index). Stem fraction of the proliferating remainder is a fixed constant (initialization.cu). -->
       <teff_ec50_cxcl9 name="PARAM_TEFF_EC50_CXCL9_REC" type="float" val="pr">10.0</teff_ec50_cxcl9>             <!-- rebuild Step 4b: CXCL9/10 (CXCR3-ligand) EC50 [nM] for the effector (CD8/Th) recruitment gate at Vvas entry points. CAF-density-sourced positive term (D1: avoids IFN-γ bistability). Soft-gate floor is hardcoded (TEFF_CXCL9_GATE_FLOOR constexpr). SBI free param; EC50-vs-field to be calibrated. gate-vs-roll semantics under review. -->
       <hev_revert_ccl21_th name="PARAM_VAS_HEV_REVERT_CCL21_TH" type="float" val="pr">0.5</hev_revert_ccl21_th> <!-- CCL21 nM below this → HEV reverts to PHALANX -->
+      <decayUnsupported name="PARAM_VAS_DECAY_UNSUPPORTED" type="float" val="pr">20.0</decayUnsupported>  <!-- Boost on neovessel regression when VEGF-A is below survival EC50. Immature vessels require ongoing VEGF-A trophic support; without it decay scales by (1 + this * (1-hill_survival)). 20 = 21x faster regression at zero VEGF-A; keeps Vvas near V0 outside the VEGF-A diffusion length. -->
     </Vas>
+    <Debris>
+      <deposit name="PARAM_DEBRIS_DEPOSIT" type="float" val="pr">0.3</deposit>                          <!-- Per-death debris deposition [AU]. Necrotic debris left by dead cancer cells: ~3 deaths saturate a voxel to 0.9. Blocks cell movement + suppresses Vvas recovery. -->
+      <clearanceRate name="PARAM_DEBRIS_CLEARANCE_RATE" type="float" val="pr">1.15e-6</clearanceRate>    <!-- Debris clearance rate [1/s]. Half-life ~7 days (macrophage phagocytosis). exp(-k*dt) per step. -->
+      <blockThreshold name="PARAM_DEBRIS_BLOCK_THRESHOLD" type="float" val="pr">0.5</blockThreshold>    <!-- Debris level above which cell movement into the voxel is blocked, and Vvas recovery is suppressed. -->
+    </Debris>
     <Fib>
       <moveSteps name="PARAM_FIB_MOVE_STEPS" type="int" val="pos">8</moveSteps> <!-- MAPLE re-derive 2026-06-16: Storck2016 RLT-PSC 0.45 um/min x18 = 8 steps. Was 9 (fabricated "Liu2015 0.48um/min" = Liu2008 NO-diffusion ratio, not a speed). -->
       <!-- ECM deposition (myCAF only) -->
@@ -361,6 +369,26 @@
       <orientStressWeight name="PARAM_ECM_ORIENT_STRESS_W" type="float" val="pr">0</orientStressWeight>    <!-- Mechanical stress force weight (TACS-3 driver). Zeroed §6-E. -->
       <orientCrosslinkResist name="PARAM_ECM_ORIENT_CROSSLINK_RESIST" type="float" val="pr">0</orientCrosslinkResist>  <!-- Crosslinked ECM resists reorientation. Zeroed §6-E. -->
     </ECM>
+    <Pressure>
+      <!-- Proliferative pressure: Gaussian field deposited at daughter voxel on cancer division.
+           Biases mechanosensitive cells to move away from high-pressure (growing) regions. -->
+      <deposit name="PARAM_PRESSURE_DEPOSIT" type="float" val="pr">1.0</deposit>                <!-- Gaussian peak magnitude at daughter voxel (dimensionless, 0-1 range) -->
+      <radius name="PARAM_PRESSURE_RADIUS" type="float" val="pr" units="voxels">3</radius>      <!-- Gaussian kernel radius (voxels) -->
+      <variance name="PARAM_PRESSURE_VARIANCE" type="float" val="pr" units="voxels^2">2.0</variance>  <!-- Gaussian variance σ² (voxels²) -->
+      <decayRate name="PARAM_PRESSURE_DECAY" type="float" val="pr" units="1/s">1e-4</decayRate>  <!-- Exponential decay rate per second -->
+      <!-- Mechanosensitivity: how strongly each cell type is biased by pressure gradient.
+           0 = ignores pressure (cancer cells generate it, don't respond).
+           Typical values: 0.5-2.0 for pushed cells. -->
+      <mechanoCancer name="PARAM_MECHANO_CANCER" type="float" val="pr">0</mechanoCancer>
+      <mechanoTcell name="PARAM_MECHANO_TCELL" type="float" val="pr">1.0</mechanoTcell>
+      <mechanoTreg name="PARAM_MECHANO_TREG" type="float" val="pr">1.0</mechanoTreg>
+      <mechanoMac name="PARAM_MECHANO_MAC" type="float" val="pr">1.0</mechanoMac>
+      <mechanoFib name="PARAM_MECHANO_FIB" type="float" val="pr">1.0</mechanoFib>
+      <mechanoMdsc name="PARAM_MECHANO_MDSC" type="float" val="pr">1.0</mechanoMdsc>
+      <mechanoBcell name="PARAM_MECHANO_BCELL" type="float" val="pr">1.0</mechanoBcell>
+      <mechanoDC name="PARAM_MECHANO_DC" type="float" val="pr">1.0</mechanoDC>
+      <mechanoVas name="PARAM_MECHANO_VAS" type="float" val="pr">0</mechanoVas>           <!-- Vascular cells are structurally anchored, don't respond to pressure -->
+    </Pressure>
     <DomainInit>
       <!-- Lobular structure -->
       <lobule_spacing name="PARAM_DOMAIN_LOBULE_SPACING" type="float" val="pr" units="voxels">70</lobule_spacing>                     <!-- voxels between lobule centers -->
@@ -474,13 +502,15 @@
           <fib_icaf>0.1</fib_icaf>
         </mac_m2>
         <!-- Fibroblast myCAF (strong ECM anchorage, N-cadherin)
-             2026-05-07: bumped self-adhesion 0.1 → 0.3 to drive desmoplastic clustering
-             (patient fib_myCAF×fib_myCAF=0.46, sim was 0.05). Lowered cancer adhesion
-             0.1 → 0.03 so myCAFs don't get spread across cancer-rich voxels — they
-             cluster with each other instead. -->
+             2026-05-07: bumped self-adhesion 0.1 → 0.3 for desmoplastic clustering.
+             2026-09-08: gradient flip near cancer replaces adhesion-based ring strategy —
+             myCAFs reverse TGF-β chemotaxis when neighbor_cancer_count > 0, modeling
+             mechanical displacement by proliferative pressure. Low cancer adhesion so
+             they can actually move outward. -->
         <fib_mycaf>
           <cancer_stem>0.03</cancer_stem>
           <cancer_prog>0.03</cancer_prog>
+          <cancer_sen>0.03</cancer_sen>
           <fib_quiescent>0.1</fib_quiescent>
           <fib_mycaf>0.3</fib_mycaf>
           <fib_icaf>0.1</fib_icaf>
@@ -608,7 +638,7 @@
         <decayRate name="PARAM_O2_DECAY_RATE" type="float" val="pr">0.01</decayRate>  <!-- Background tissue O2 consumption by non-modeled stromal cells. λ=√(D/k)=418µm baseline; agent uptake shortens toward Krogh ~150µm. Was 1e-5 (autooxidation only, λ=13mm). -->
         <nontumorUptakeScalar name="PARAM_O2_NONTUMOR_UPTAKE_SCALAR" type="float" val="pr">0.75</nontumorUptakeScalar>  <!-- Scalar on PARAM_O2_UPTAKE for non-cancer cells (fibroblasts, immune, vascular). 0.75 = 75% of cancer metabolic rate. -->
         <molecularWeight name="PARAM_O2_MOLECULAR_WEIGHT" type="float" val="pr">16</molecularWeight>
-        <background name="PARAM_O2_BACKGROUND" type="float" val="pr">0.02</background>  <!-- Baseline dissolved O2 [mM] held at every voxel post-solve (diffuse background perfusion; vasculature not modeled as agents). Above the ~0.01 mM hypoxia thresholds, below C_blood 0.065 (PARAM_VAS_O2_CONC) so Krogh Vvas still adds O2 on top. Prevents a global HIF cascade in the avascular presim tumour. 0 disables. -->
+        <background name="PARAM_O2_BACKGROUND" type="float" val="pr">0.005</background>  <!-- Baseline dissolved O2 [mM] held at every voxel post-solve. Was 0.02 (above hypoxia_th 0.01, preventing all hypoxia). Now 0.005: below hypoxia_th (0.01) so HIF activates in avascular regions, above necrosis_th (0.002) so floor alone doesn't trigger instant death. Vasculature provides O2 above 0.01 via Krogh sourcing. -->
       </O2>
       <IL1>
         <diffusivity name="PARAM_IL1_DIFFUSIVITY" type="float" val="pr">1.31e-7</diffusivity>            <!-- MAPLE. Ramanujan2002 -->

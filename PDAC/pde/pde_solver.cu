@@ -1120,8 +1120,23 @@ void PDESolver::solve_spectral() {
     //     D=0 substrates fall out correctly (denom=λ ⇒ c=S/λ).
     solve_spectral_decay_batched();
 
-    // (2) Per-voxel-uptake substrates (O2/CCL2/VEGFA): mean-shifted batched defect-correction.
-    solve_spectral_uptake_split();
+    // (2) Per-voxel-uptake substrates (O2/CCL2/VEGFA): FFT-preconditioned CG.
+    //     The batched defect-correction (solve_spectral_uptake_split) diverges when
+    //     ρ = max|U-Ū|/(λ+Ū) > 1, which happens with spatially concentrated uptake
+    //     (e.g. fibroblast clusters give ρ≈19). Preconditioned CG is guaranteed to
+    //     converge for the positive-definite elliptic operator.
+    const int upt_subs[3] = {CHEM_O2, CHEM_CCL2, CHEM_VEGFA};
+    int V = get_total_voxels();
+    for (int i = 0; i < 3; i++) {
+        int s = upt_subs[i];
+        float* d_C = d_conc_ + (size_t)s * V;
+        const float* d_S = d_src_ + (size_t)s * V;
+        const float* d_U = d_upt_ + (size_t)s * V;
+        int iters = solve_spectral_uptake(d_C, d_S, d_U,
+            config_.diffusion_coeffs[s], config_.decay_rates[s]);
+        last_cg_iters_[s] = iters;
+        last_cg_residual_[s] = cg_scratch_residual_;
+    }
 
     CUDA_CHECK(cudaDeviceSynchronize());  // single barrier before downstream (gradients) read d_conc_
 }

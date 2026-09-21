@@ -266,6 +266,12 @@ FLAMEGPU_AGENT_FUNCTION(mac_move_propose, flamegpu::MessageNone, flamegpu::Messa
     mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
     mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
     mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_MAC");
+    mp.pressure_grad_x = PRESSURE_GRAD_X_PTR(FLAMEGPU);
+    mp.pressure_grad_y = PRESSURE_GRAD_Y_PTR(FLAMEGPU);
+    mp.pressure_grad_z = PRESSURE_GRAD_Z_PTR(FLAMEGPU);
+    mp.mechano_sensitivity = FLAMEGPU->environment.getProperty<float>("PARAM_MECHANO_MAC");
+    mp.debris = DEBRIS_PTR(FLAMEGPU);
+    mp.debris_threshold = FLAMEGPU->environment.getProperty<float>("PARAM_DEBRIS_BLOCK_THRESHOLD");
     const float w_cg = FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_MAC");
 
     // M1: IL-12 chemotaxis (toward DC/immune niche). M2: CCL2 (toward cancer).

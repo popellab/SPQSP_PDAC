@@ -238,7 +238,9 @@ enum EventCounterIdx : int {
     EVT_PRIME_TREG,
     // PDL1 expression numerator (divide by total cancer for PDL1_frac)
     EVT_PDL1_COUNT,
-    ABM_EVENT_COUNTER_SIZE    // = 31
+    // Hypoxic cancer cell count (O2 < hypoxia_th)
+    EVT_HYPOXIC_CANCER_COUNT,
+    ABM_EVENT_COUNTER_SIZE
 };
 
 // ── Per-step population counts by state (device_state_counters[], env prop "state_counters_ptr") ─
@@ -588,6 +590,10 @@ __device__ __forceinline__ void type_count_release(unsigned int* type_counts, in
 #define ANTIGEN_GRID_PTR(fgpu) \
     reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>("antigen_grid_ptr"))
 
+// Necrotic debris field pointer (dead cancer cell remnants blocking repopulation)
+#define DEBRIS_PTR(fgpu) \
+    reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>("debris_field_ptr"))
+
 // Sample a per-voxel scalar grid as the mean over the 27-cell Moore neighborhood
 // (self + 26 neighbors), with edge-aware divisor (bounds-clipped neighbors are
 // skipped, divisor is the count of valid samples). Used by APCs (DCs, B cells)
@@ -629,6 +635,14 @@ __device__ __forceinline__ float read_grid_moore_avg(
     reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>("stress_y_ptr"))
 #define STRESS_Z_PTR(fgpu) \
     reinterpret_cast<float*>((fgpu)->environment.getProperty<uint64_t>("stress_z_ptr"))
+
+// Proliferative pressure gradient pointers (per-voxel, computed after division)
+#define PRESSURE_GRAD_X_PTR(fgpu) \
+    reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>("pressure_grad_x_ptr"))
+#define PRESSURE_GRAD_Y_PTR(fgpu) \
+    reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>("pressure_grad_y_ptr"))
+#define PRESSURE_GRAD_Z_PTR(fgpu) \
+    reinterpret_cast<const float*>((fgpu)->environment.getProperty<uint64_t>("pressure_grad_z_ptr"))
 
 // Adhesion matrix pointer (flat float[ABM_STATE_COUNTER_SIZE * ABM_STATE_COUNTER_SIZE])
 #define ADH_MATRIX_PTR(fgpu) \
@@ -1092,6 +1106,15 @@ struct MoveParams {
     const float* orient_y;
     const float* orient_z;
     float barrier_strength;  // 0 = no barrier, 1 = full perpendicular block (scaled by fiber_mag)
+    // Proliferative pressure: Gaussian field from cancer division events.
+    // Cells are biased to move away from high pressure (in direction of -∇P).
+    const float* pressure_grad_x;
+    const float* pressure_grad_y;
+    const float* pressure_grad_z;
+    float mechano_sensitivity;  // 0 = ignores pressure, >0 = pushed by pressure gradient
+    // Necrotic debris: dead cancer cell remnants that block movement.
+    const float* debris;         // per-voxel debris field (nullptr = no check)
+    float debris_threshold;      // block movement into voxels with debris > this
 };
 
 struct MoveResult {
@@ -1139,6 +1162,8 @@ __device__ __forceinline__ MoveResult move_cell_pick(
         if (w_crowd < EPS_WEIGHT_FLOOR) continue;
         if (ecm_porosity(p.ecm_density, p.ecm_crosslink, vidx, p.density_cap) < p.min_porosity)
             continue;
+        if (p.debris && p.debris[vidx] > p.debris_threshold)
+            continue;
         cand_dx[n_cands] = ddx;
         cand_dy[n_cands] = ddy;
         cand_dz[n_cands] = ddz;
@@ -1176,10 +1201,31 @@ __device__ __forceinline__ MoveResult move_cell_pick(
             ghat_z = p.grad_z * inv_gmag;
         }
 
-        // Compute weights: w_i = max(0, 1 + bias * cos_angle) * w_barrier
+        // Compute weights: w_i = max(0, 1 + bias * cos_angle) * w_barrier * w_pressure
         // Fiber barrier: penalize perpendicular movement at destination voxel.
         // w_barrier = 1 - barrier_strength * fiber_mag * sin²(angle_to_fiber)
         // Parallel to fiber: w_barrier = 1.0 (no effect). Perpendicular: reduced.
+        // Pressure: bias movement away from high pressure (direction of -∇P).
+        // w_pressure = max(0, 1 + mechano * cos(angle to -∇P))
+
+        // Pre-compute pressure avoidance direction (source voxel, same for all candidates)
+        float phat_x = 0.0f, phat_y = 0.0f, phat_z = 0.0f;
+        bool has_pressure = false;
+        if (p.mechano_sensitivity > 1e-6f && p.pressure_grad_x) {
+            int src_vidx = z * (p.grid_x * p.grid_y) + y * p.grid_x + x;
+            float pgx = p.pressure_grad_x[src_vidx];
+            float pgy = p.pressure_grad_y[src_vidx];
+            float pgz = p.pressure_grad_z[src_vidx];
+            float pmag = sqrtf(pgx * pgx + pgy * pgy + pgz * pgz);
+            if (pmag > 1e-12f) {
+                float inv_pmag = 1.0f / pmag;
+                phat_x = -pgx * inv_pmag;
+                phat_y = -pgy * inv_pmag;
+                phat_z = -pgz * inv_pmag;
+                has_pressure = true;
+            }
+        }
+
         float weights[26];
         float total_w = 0.0f;
         for (int i = 0; i < n_cands; i++) {
@@ -1205,6 +1251,12 @@ __device__ __forceinline__ MoveResult move_cell_pick(
                     float sin2 = 1.0f - cos_fiber * cos_fiber;
                     w *= fmaxf(0.0f, 1.0f - p.barrier_strength * fmag * sin2);
                 }
+            }
+
+            // Proliferative pressure avoidance
+            if (has_pressure) {
+                float cos_pressure = (dx_f * phat_x + dy_f * phat_y + dz_f * phat_z) / dir_mag;
+                w *= fmaxf(0.0f, 1.0f + p.mechano_sensitivity * cos_pressure);
             }
 
             w *= cand_crowd[i];

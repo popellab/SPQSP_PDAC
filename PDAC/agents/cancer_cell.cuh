@@ -361,6 +361,34 @@ FLAMEGPU_AGENT_FUNCTION(cancer_divide_confirm, flamegpu::MessageNone, flamegpu::
         auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
         atomicAdd(&evts[cell_state == CANCER_STEM ? EVT_PROLIF_CANCER_STEM : EVT_PROLIF_CANCER_PROG], 1u);
 
+        // Deposit proliferative pressure Gaussian kernel centered at daughter voxel
+        {
+            const float p_strength = FLAMEGPU->environment.getProperty<float>("PARAM_PRESSURE_DEPOSIT");
+            if (p_strength > 0.0f) {
+                float* pressure = reinterpret_cast<float*>(
+                    FLAMEGPU->environment.getProperty<uint64_t>("pressure_field_ptr"));
+                const int p_radius = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_PRESSURE_RADIUS"));
+                const float p_variance = FLAMEGPU->environment.getProperty<float>("PARAM_PRESSURE_VARIANCE");
+                const int size_z_local = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+                const float normalizer = p_strength / powf(2.0f * 3.14159265f * p_variance, 1.5f);
+                for (int dz = -p_radius; dz <= p_radius; dz++) {
+                    const int tz = target_z + dz;
+                    if (tz < 0 || tz >= size_z_local) continue;
+                    for (int dy = -p_radius; dy <= p_radius; dy++) {
+                        const int ty = target_y + dy;
+                        if (ty < 0 || ty >= size_y) continue;
+                        for (int dx = -p_radius; dx <= p_radius; dx++) {
+                            const int tx_d = target_x + dx;
+                            if (tx_d < 0 || tx_d >= size_x) continue;
+                            float dist_sq = static_cast<float>(dx * dx + dy * dy + dz * dz);
+                            float kernel_val = normalizer * expf(-dist_sq / (2.0f * p_variance));
+                            atomicAdd(&pressure[tz * (size_x * size_y) + ty * size_x + tx_d], kernel_val);
+                        }
+                    }
+                }
+            }
+        }
+
         FLAMEGPU->setVariable<int>("stuck_steps", 0);  // Divided successfully → not stuck
 
         // Child lineage tag: deterministic + distinct per birth, independent of FLAMEGPU birth
@@ -392,6 +420,10 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
     float* antigen_grid = ANTIGEN_GRID_PTR(FLAMEGPU);
     const float antigen_deposit = FLAMEGPU->environment.getProperty<float>("PARAM_ANTIGEN_DEPOSIT");
 
+    // Necrotic debris field (deposited on death, blocks repopulation)
+    float* debris_field = DEBRIS_PTR(FLAMEGPU);
+    const float debris_deposit = FLAMEGPU->environment.getProperty<float>("PARAM_DEBRIS_DEPOSIT");
+
     // [TLS] Live tumor cells continuously SHED antigen (not only on death), so antigen
     // fills the tumor mass and infiltrating/marginal DCs encounter it (death-only deposition
     // + non-diffusing grid left DCs antigen-starved). Rate = PARAM_ANTIGEN_SHED_FRAC × deposit.
@@ -413,6 +445,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
                 const int death_slot = (cell_state == CANCER_STEM) ? EVT_DEATH_CANCER_STEM : EVT_DEATH_CANCER_PROG;
                 atomicAdd(&evts[death_slot], 1u);
                 atomicAdd(&antigen_grid[voxel], antigen_deposit);
+                atomicAdd(&debris_field[voxel], debris_deposit);
                 return flamegpu::DEAD;
             }
         }
@@ -428,6 +461,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
             auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
             atomicAdd(&evts[EVT_DEATH_CANCER_SEN], 1u);
             atomicAdd(&antigen_grid[voxel], antigen_deposit);
+            atomicAdd(&debris_field[voxel], debris_deposit);
             return flamegpu::DEAD;
         }
         FLAMEGPU->setVariable<int>("life", life);
@@ -435,8 +469,51 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
 
     // HIF-1α activation: binary switch at O2 threshold (all states)
     float local_O2 = PDE_READ(FLAMEGPU, PDE_CONC_O2, voxel);
-    int hypoxic = (local_O2 < FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_HYPOXIA_TH")) ? 1 : 0;
+    const unsigned int pde_step = FLAMEGPU->getStepCounter();
+    int hypoxic = (pde_step > 0 && local_O2 < FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_HYPOXIA_TH")) ? 1 : 0;
     FLAMEGPU->setVariable<int>("hypoxic", hypoxic);
+    if (hypoxic) {
+        auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+        atomicAdd(&evts[EVT_HYPOXIC_CANCER_COUNT], 1u);
+    }
+
+    // Necrosis — instant death at severe anoxia (skip step 0: PDE field not yet established)
+    const float necrosis_th = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_NECROSIS_TH");
+    if (pde_step > 0 && local_O2 < necrosis_th) {
+        FLAMEGPU->setVariable<int>("dead", 1);
+        FLAMEGPU->setVariable<int>("death_reason", 4);  // 4 = necrosis (anoxia)
+        auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+        const int death_slot = (cell_state == CANCER_STEM) ? EVT_DEATH_CANCER_STEM :
+                               (cell_state == CANCER_PROGENITOR) ? EVT_DEATH_CANCER_PROG : EVT_DEATH_CANCER_SEN;
+        atomicAdd(&evts[death_slot], 1u);
+        atomicAdd(&antigen_grid[voxel], antigen_deposit);
+        atomicAdd(&debris_field[voxel], debris_deposit);
+        return flamegpu::DEAD;
+    }
+
+    // Necrosis — cumulative hypoxia exposure countdown (skip step 0)
+    int hypoxia_exposure = FLAMEGPU->getVariable<int>("hypoxia_exposure");
+    if (pde_step > 0) {
+        if (hypoxic) {
+            hypoxia_exposure++;
+        } else {
+            hypoxia_exposure = (hypoxia_exposure > 0) ? hypoxia_exposure - 1 : 0;
+        }
+        FLAMEGPU->setVariable<int>("hypoxia_exposure", hypoxia_exposure);
+    }
+
+    const int necrosis_countdown = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_NECROSIS_COUNTDOWN"));
+    if (pde_step > 0 && necrosis_countdown > 0 && hypoxia_exposure >= necrosis_countdown) {
+        FLAMEGPU->setVariable<int>("dead", 1);
+        FLAMEGPU->setVariable<int>("death_reason", 4);  // 4 = necrosis (sustained hypoxia)
+        auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+        const int death_slot = (cell_state == CANCER_STEM) ? EVT_DEATH_CANCER_STEM :
+                               (cell_state == CANCER_PROGENITOR) ? EVT_DEATH_CANCER_PROG : EVT_DEATH_CANCER_SEN;
+        atomicAdd(&evts[death_slot], 1u);
+        atomicAdd(&antigen_grid[voxel], antigen_deposit);
+        atomicAdd(&debris_field[voxel], debris_deposit);
+        return flamegpu::DEAD;
+    }
 
     // Update PDL1: IFN-γ driven with exponential relaxation (both up and down)
     float local_IFNg = PDE_READ(FLAMEGPU, PDE_CONC_IFN, voxel);
@@ -529,6 +606,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
                                    (cell_state == CANCER_PROGENITOR) ? EVT_DEATH_CANCER_PROG : EVT_DEATH_CANCER_SEN;
             atomicAdd(&evts[death_slot], 1u);
             atomicAdd(&antigen_grid[voxel], antigen_deposit);
+            atomicAdd(&debris_field[voxel], debris_deposit);
             return flamegpu::DEAD;
         }
     }
@@ -593,13 +671,14 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
                                    (cell_state == CANCER_PROGENITOR) ? EVT_DEATH_CANCER_PROG : EVT_DEATH_CANCER_SEN;
             atomicAdd(&evts[death_slot], 1u);
             atomicAdd(&antigen_grid[voxel], antigen_deposit);
+            atomicAdd(&debris_field[voxel], debris_deposit);
             return flamegpu::DEAD;
         }
     }
 
-    // === DIVISION COOLDOWN ===
+    // === DIVISION COOLDOWN (frozen under hypoxia) ===
     int divideCD = FLAMEGPU->getVariable<int>("divideCD");
-    if (divideCD > 0) {
+    if (divideCD > 0 && !hypoxic) {
         divideCD--;
         FLAMEGPU->setVariable<int>("divideCD", divideCD);
     }
@@ -809,6 +888,12 @@ FLAMEGPU_AGENT_FUNCTION(cancer_move_propose, flamegpu::MessageNone, flamegpu::Me
     mp.barrier_strength = (cell_state == CANCER_STEM) ?
         FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_CANCER_STEM") :
         FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_CANCER_PROG");
+    mp.pressure_grad_x = PRESSURE_GRAD_X_PTR(FLAMEGPU);
+    mp.pressure_grad_y = PRESSURE_GRAD_Y_PTR(FLAMEGPU);
+    mp.pressure_grad_z = PRESSURE_GRAD_Z_PTR(FLAMEGPU);
+    mp.mechano_sensitivity = FLAMEGPU->environment.getProperty<float>("PARAM_MECHANO_CANCER");
+    mp.debris = DEBRIS_PTR(FLAMEGPU);
+    mp.debris_threshold = FLAMEGPU->environment.getProperty<float>("PARAM_DEBRIS_BLOCK_THRESHOLD");
 
     // Contact guidance: fiber orientation modifies effective gradient
     {

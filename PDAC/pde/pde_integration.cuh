@@ -148,6 +148,15 @@ void seed_antigen_grid_voxels(const int* voxel_indices, int n, float value);
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER decay_stress_field;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_ecm_orientation;
 
+// Proliferative pressure: Gaussian field from cancer division, decayed each step.
+// Gradient biases movement of mechanosensitive cell types away from high pressure.
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER decay_pressure_field;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER compute_pressure_gradients;
+
+// Necrotic debris: dead cancer cell remnants blocking repopulation + Vvas recovery.
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER decay_debris_field;
+float* get_debris_device_ptr();
+
 // Return device pointers for ECM fiber orientation arrays (for output)
 float* get_ecm_orient_x_device_ptr();
 float* get_ecm_orient_y_device_ptr();

@@ -76,6 +76,14 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         flamegpu::LayerDescription layer = model.newLayer("decay_stress_field");
         layer.addHostFunction(decay_stress_field);
     }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("decay_pressure_field");
+        layer.addHostFunction(decay_pressure_field);
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("decay_debris_field");
+        layer.addHostFunction(decay_debris_field);
+    }
 
     // ── Timing checkpoint: after ECM ──
     {
@@ -478,6 +486,13 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     {
         flamegpu::LayerDescription layer = model.newLayer("fib_divide_confirm");
         layer.addAgentFunction(AGENT_FIBROBLAST, "divide_confirm");
+    }
+
+    // Compute pressure field gradient (for next step's movement to read).
+    // Must run after division deposits (cancer_divide_confirm writes Gaussian kernels).
+    {
+        flamegpu::LayerDescription layer = model.newLayer("compute_pressure_gradients");
+        layer.addHostFunction(compute_pressure_gradients);
     }
 
     // ── Timing checkpoint: after division ──

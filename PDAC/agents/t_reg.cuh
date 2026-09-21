@@ -304,7 +304,7 @@ FLAMEGPU_AGENT_FUNCTION(treg_state_step, flamegpu::MessageNone, flamegpu::Messag
         const float p1_50    = FLAMEGPU->environment.getProperty<float>("PARAM_APCAF_P1_50");
         const float H_P1_apCAF = local_p1 / (local_p1 + p1_50 + 1e-30f);
 
-        float alpha = k_ap_treg * H_apCAF * H_P1_apCAF;
+        float alpha = k_ap_treg * (1.0f + H_apCAF) * H_P1_apCAF;
         float p_th_treg = 1.0f - std::exp(-alpha);
         //convert TH to TREG
         unsigned int rs_t2r = det_rng_seed(static_cast<int>(det_tag), ds_step, 0x77004u, sim_seed);
@@ -693,6 +693,12 @@ FLAMEGPU_AGENT_FUNCTION(treg_move_propose, flamegpu::MessageNone, flamegpu::Mess
     mp.orient_y = ECM_ORIENT_Y_PTR(FLAMEGPU);
     mp.orient_z = ECM_ORIENT_Z_PTR(FLAMEGPU);
     mp.barrier_strength = FLAMEGPU->environment.getProperty<float>("PARAM_FIBER_BARRIER_TREG");
+    mp.pressure_grad_x = PRESSURE_GRAD_X_PTR(FLAMEGPU);
+    mp.pressure_grad_y = PRESSURE_GRAD_Y_PTR(FLAMEGPU);
+    mp.pressure_grad_z = PRESSURE_GRAD_Z_PTR(FLAMEGPU);
+    mp.mechano_sensitivity = FLAMEGPU->environment.getProperty<float>("PARAM_MECHANO_TREG");
+    mp.debris = DEBRIS_PTR(FLAMEGPU);
+    mp.debris_threshold = FLAMEGPU->environment.getProperty<float>("PARAM_DEBRIS_BLOCK_THRESHOLD");
     const float w_cg = FLAMEGPU->environment.getProperty<float>("PARAM_CONTACT_GUIDANCE_TREG");
 
     const float* gax;

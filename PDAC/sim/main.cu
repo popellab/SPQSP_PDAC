@@ -668,8 +668,10 @@ FLAMEGPU_HOST_FUNCTION(prepare_abm_export) {
         FLAMEGPU->environment.setProperty<int>("do_abm_export", 0);
         return;
     }
-    // Reset counter and enable export for this step
+    // cudaMemset runs on the legacy default stream; synchronize so the counter
+    // is zeroed before FLAMEGPU's compute stream launches pack_for_export kernels.
     cudaMemset(g_abm_device_counter, 0, sizeof(unsigned int));
+    cudaDeviceSynchronize();
     FLAMEGPU->environment.setProperty<int>("do_abm_export", 1);
 }
 
@@ -702,7 +704,6 @@ FLAMEGPU_STEP_FUNCTION(exportABMData) {
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
-    // Read agent count from GPU counter
     unsigned int n_agents = 0;
     cudaMemcpy(&n_agents, g_abm_device_counter, sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
@@ -1563,8 +1564,8 @@ int main(int argc, const char** argv) {
             << "death.CD8.naive,death.TCD4.naive,"
             // DC priming events
             << "prime.CD8,prime.Th,prime.Treg,"
-            // PDL1 fraction
-            << "PDL1_frac\n";
+            // PDL1 fraction + hypoxia
+            << "PDL1_frac,hypoxic_cancer\n";
         // Step 0: real initial state counts, all event columns zero
         stats_file << "0,"
             << init_states[PDAC::SC_CANCER_STEM] << "," << init_states[PDAC::SC_CANCER_PROG] << "," << init_states[PDAC::SC_CANCER_SEN] << ","
@@ -1582,7 +1583,7 @@ int main(int argc, const char** argv) {
             << "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0," // death (26: DC split cDC1/cDC2)
             << "0,0," // death.CD8.naive, death.TCD4.naive
             << "0,0,0," // prime.CD8, prime.Th, prime.Treg
-            << "0.0000\n";    // PDL1_frac
+            << "0.0000,0\n";  // PDL1_frac, hypoxic_cancer
         stats_file.flush();
     }
 
@@ -1689,8 +1690,9 @@ int main(int argc, const char** argv) {
                 << host_events[PDAC::EVT_DEATH_CD8_NAIVE] << "," << host_events[PDAC::EVT_DEATH_TCD4_NAIVE] << ","
                 // DC priming events
                 << host_events[PDAC::EVT_PRIME_CD8] << "," << host_events[PDAC::EVT_PRIME_TH] << "," << host_events[PDAC::EVT_PRIME_TREG] << ","
-                // PDL1 fraction
-                << std::fixed << std::setprecision(4) << pdl1_frac << "\n";
+                // PDL1 fraction + hypoxic cancer count
+                << std::fixed << std::setprecision(4) << pdl1_frac << ","
+                << host_events[PDAC::EVT_HYPOXIC_CANCER_COUNT] << "\n";
             stats_file.flush();
 
             // Reset event counters for next step (state counters reset before next step)
