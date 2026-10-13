@@ -81,7 +81,7 @@ void seed_qsp_env_properties(flamegpu::CUDASimulation& simulation) {
     // audit) saw an empty compartment for exactly one step and then healed. Keep the two
     // setters in lockstep — a property in one and not the other is invisible in any run long
     // enough to overwrite it.
-    simulation.setEnvironmentProperty<float>("qsp_bcell_tumor",  static_cast<float>(qsp_state.bcell_tumor));
+    simulation.setEnvironmentProperty<float>("qsp_bcell_tumor",  static_cast<float>(qsp_state.bcell_naive_tumor + qsp_state.bcell_act_tumor));
     simulation.setEnvironmentProperty<float>("qsp_plasma_tumor", static_cast<float>(qsp_state.plasma_tumor));
     simulation.setEnvironmentProperty<float>("qsp_tfh_tumor",    static_cast<float>(qsp_state.tfh_tumor));
 
@@ -268,7 +268,7 @@ FLAMEGPU_HOST_FUNCTION(solve_qsp_step) {
     FLAMEGPU->environment.setProperty<float>("qsp_icaf_tumor", static_cast<float>(qsp_state.icaf_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_mycaf_tumor", static_cast<float>(qsp_state.mycaf_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_apcaf_tumor", static_cast<float>(qsp_state.apcaf_tumor));
-    FLAMEGPU->environment.setProperty<float>("qsp_bcell_tumor", static_cast<float>(qsp_state.bcell_tumor));
+    FLAMEGPU->environment.setProperty<float>("qsp_bcell_tumor", static_cast<float>(qsp_state.bcell_naive_tumor + qsp_state.bcell_act_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_plasma_tumor", static_cast<float>(qsp_state.plasma_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_tfh_tumor", static_cast<float>(qsp_state.tfh_tumor));
     FLAMEGPU->environment.setProperty<float>("qsp_dc_tumor", static_cast<float>(qsp_state.dc_tumor));

@@ -220,7 +220,8 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         state.icaf_tumor = 0.0;
         state.mycaf_tumor = 0.0;
         state.apcaf_tumor = 0.0;
-        state.bcell_tumor = 0.0;
+        state.bcell_naive_tumor = 0.0;
+        state.bcell_act_tumor = 0.0;
         state.plasma_tumor = 0.0;
         state.tfh_tumor = 0.0;
         state.dc_tumor = 0.0;
@@ -250,7 +251,7 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         // Drug concentrations (tumor compartment)
         state.nivo_tumor = getVAR(CancerVCT::SP_V_T_aPD1);
         state.cabo_tumor = 0.0;  // Cabozantinib not in current SBML model
-        state.ipi_tumor = getVAR(CancerVCT::SP_V_T_aCTLA4);
+        state.ipi_tumor = 0.0;  // aCTLA4 not in upstream QSP model
 
         // Central compartment - for recruitment
         state.teff_central = getVAR(CancerVCT::SP_V_C_CD8);
@@ -270,7 +271,8 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         state.mycaf_tumor = getVAR(CancerVCT::SP_V_T_myCAF);
         state.apcaf_tumor = getVAR(CancerVCT::SP_V_T_apCAF);
         state.caf_tumor = state.icaf_tumor + state.mycaf_tumor + state.apcaf_tumor;
-        state.bcell_tumor = getVAR(CancerVCT::SP_V_T_B);
+        state.bcell_naive_tumor = getVAR(CancerVCT::SP_V_T_nB);
+        state.bcell_act_tumor = getVAR(CancerVCT::SP_V_T_aB);
         state.plasma_tumor = getVAR(CancerVCT::SP_V_T_Plasma);
         state.tfh_tumor = getVAR(CancerVCT::SP_V_T_Tfh);
         state.dc_tumor = getVAR(CancerVCT::SP_V_T_cDC1) + getVAR(CancerVCT::SP_V_T_cDC2)
@@ -279,7 +281,7 @@ QSPState LymphCentralWrapper::get_state_for_abm() const {
         state.cc_tumor = getVAR_RAW(CancerVCT::SP_V_T_C1);
         state.cx_tumor = getVAR(CancerVCT::SP_V_T_C_x);
         state.t_exh_tumor = getVAR(CancerVCT::SP_V_T_CD8_exh);
-        state.tum_cmax = getVAR(CancerVCT::SP_V_T_K);
+        state.tum_cmax = getVAR(CancerVCT::SP_V_T_K_vasc);
 
         state.tum_vol = _compute_tumor_volume(ode_sys);
 
@@ -345,14 +347,14 @@ bool LymphCentralWrapper::dump_onset_state(const std::string& path, double t_war
     constexpr double NA = 6.022140857e23;
     struct Row { const char* name; int idx; };
     const Row rows[] = {
-        {"C1", CancerVCT::SP_V_T_C1}, {"C2", CancerVCT::SP_V_T_C2},
+        {"C1", CancerVCT::SP_V_T_C1},
         {"C_x", CancerVCT::SP_V_T_C_x},
         {"qPSC", CancerVCT::SP_V_T_qPSC}, {"iCAF", CancerVCT::SP_V_T_iCAF},
         {"myCAF", CancerVCT::SP_V_T_myCAF}, {"apCAF", CancerVCT::SP_V_T_apCAF},
         {"CD8", CancerVCT::SP_V_T_CD8}, {"CD8_exh", CancerVCT::SP_V_T_CD8_exh},
         {"Th", CancerVCT::SP_V_T_Th}, {"Th_exh", CancerVCT::SP_V_T_Th_exh},
         {"Treg", CancerVCT::SP_V_T_Treg}, {"Tfh", CancerVCT::SP_V_T_Tfh},
-        {"B", CancerVCT::SP_V_T_B}, {"Plasma", CancerVCT::SP_V_T_Plasma},
+        {"nB", CancerVCT::SP_V_T_nB}, {"aB", CancerVCT::SP_V_T_aB}, {"Plasma", CancerVCT::SP_V_T_Plasma},
         {"Mac_M1", CancerVCT::SP_V_T_Mac_M1}, {"Mac_M2", CancerVCT::SP_V_T_Mac_M2},
         {"MDSC", CancerVCT::SP_V_T_MDSC},
         {"cDC1", CancerVCT::SP_V_T_cDC1}, {"cDC2", CancerVCT::SP_V_T_cDC2},
@@ -386,7 +388,7 @@ double LymphCentralWrapper::get_tumor_cancer_cells() const {
     if (!_is_initialized || !_qsp_model) return 0.0;
     // get_species_value → getSpeciesVar(idx, raw=true) = _species_var / unit_conv; for C1/C2
     // unit_conv = 1/N_A, so this is the discrete cell count (matches the qsp_presim CSV + cc_tumor).
-    return get_species_value(CancerVCT::SP_V_T_C1) + get_species_value(CancerVCT::SP_V_T_C2);
+    return get_species_value(CancerVCT::SP_V_T_C1);
 }
 
 // Compute tumor volume — MUST mirror the ODE's AUX_VAR_V_T exactly (ODE_system.cpp:1320-1323),
@@ -394,7 +396,7 @@ double LymphCentralWrapper::get_tumor_cancer_cells() const {
 // The ODE is authoritative; this helper previously deviated on five terms and returned a volume
 // ~1e4× too large on collagen-rich tumors (silently inflating qsp_tum_vol → the presim volume
 // stopper and any V_T-based coupling). Corrected Jul 2026 to match the ODE term-for-term:
-//   C_total = C1 + C2;  T_total = Treg + CD8 + Th + Tfh;  M_total = Mac_M1 + Mac_M2 (NOT MDSC);
+//   C_total = C1;  T_total = Treg + CD8 + Th + Tfh;  M_total = Mac_M1 + Mac_M2 (NOT MDSC);
 //   + V_Tmin floor;  collagen contributes collagen / rho_collagen  (a volume = mass ÷ density,
 //   NOT the old collagen · rho / phi which is dimensionally mass²/vol).
 double LymphCentralWrapper::_compute_tumor_volume(CancerVCT::ODE_system* sys) const {
@@ -402,7 +404,7 @@ double LymphCentralWrapper::_compute_tumor_volume(CancerVCT::ODE_system* sys) co
 
     auto getS = [&](int idx) { return sys->getSpeciesVar(idx, false); };
 
-    const double C_total = getS(SP_V_T_C1) + getS(SP_V_T_C2);
+    const double C_total = getS(SP_V_T_C1);
     const double T_total = getS(SP_V_T_Treg) + getS(SP_V_T_CD8) + getS(SP_V_T_Th) + getS(SP_V_T_Tfh);
     const double M_total = getS(SP_V_T_Mac_M1) + getS(SP_V_T_Mac_M2);
 

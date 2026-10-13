@@ -53,7 +53,8 @@ struct QSPState {
     double icaf_tumor;
     double mycaf_tumor;
     double apcaf_tumor;
-    double bcell_tumor;         // B cells in tumor (SP_V_T_B)
+    double bcell_naive_tumor;    // Naive B cells in tumor (SP_V_T_nB)
+    double bcell_act_tumor;      // Activated B cells in tumor (SP_V_T_aB)
     double plasma_tumor;        // Plasma cells in tumor (SP_V_T_Plasma)
     double tfh_tumor;           // Tfh cells in tumor (SP_V_T_Tfh)
     double dc_tumor;            // DCs in tumor (cDC1+cDC2+mcDC1+mcDC2); gap-closing target
