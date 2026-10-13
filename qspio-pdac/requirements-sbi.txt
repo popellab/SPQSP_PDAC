@@ -1,7 +1,0 @@
-# Heavy ML stack for SBI training + diagnostics.
-# Split out of requirements.txt so the fast-tier CI job (Python-only
-# schema/sync tests) can skip the ~2 GB install. See feedback_lean_ci.md
-# in agent memory for the rationale.
-
-torch>=2.0.0
-sbi>=0.22.0
