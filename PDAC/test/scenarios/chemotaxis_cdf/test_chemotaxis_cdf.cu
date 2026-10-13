@@ -109,8 +109,6 @@ static TestConfig build_chemotaxis_cdf(const std::string& param_file) {
                 s.int_vars.push_back({"divide_limit", 0});
                 s.int_vars.push_back({"divide_flag", 0});
                 s.int_vars.push_back({"divide_cd", 0});
-                s.int_vars.push_back({"hypoxia_exposure", 0});
-                s.float_vars.push_back({"hypoxia_kill_factor", 1.0f});
                 s.float_vars.push_back({"adh_p_move", 1.0f});
                 cfg.agents.push_back(s);
             }

@@ -71,10 +71,7 @@ bool set_vvas_from_host(const float* host_data, int total_voxels);
 float* get_ecm_crosslink_device_ptr();
 unsigned long long* get_fib_density_field_device_ptr();  // fixed-point ECM density buffer
 
-// ── phi estimator (contract D-1/D-2) ─────────────────────────────────────────────────
-// Precompute SumK_local over the grid. Geometry only — called once from
-// initialize_pde_solver, never per step.
-void init_phi_sumk(int gx, int gy, int gz, float sigma, int radius);
+// ── phi estimator (permutation-null FunCN, contract D-1/D-2) ────────────────────────
 // Last computed multiplier for `pair` (a PhiPair). Returns 1.0 (mean-field, i.e. the
 // uncorrected rate law) for an out-of-range pair or one with no measurement this step.
 double get_phi(int pair);
@@ -94,8 +91,7 @@ void run_pde_warmup(int substeps);
 void cleanup_pde_solver();
 
 // Recruitment host functions (declared and implemented in pde_integration.cu)
-// NOTE: Source marking for all immune types now done by vascular_mark_sources
-// agent function (vascular_cell.cuh) — no separate host marking kernels needed.
+// VAS agents removed (Step 3b); O2 + entry via Vvas continuous field.
 
 // GPU recruitment: kernel decides placement, host fn creates agents
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER recruit_gpu;
@@ -108,8 +104,7 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER place_recruited_agents;
 // Reset recruitment sources (call at start of each step)
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER reset_recruitment_sources;
 
-// Update vasculature count env property (call before vascular source marking)
-extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_vasculature_count;
+// update_vasculature_count removed (Step 3b: VAS agents removed)
 
 // Occupancy grid: zero before agents write their positions each step
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_occupancy_grid;

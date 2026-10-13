@@ -37,8 +37,7 @@ FLAMEGPU_AGENT_FUNCTION(tcell_broadcast_location, flamegpu::MessageNone, flamegp
     const int tcell_cs = FLAMEGPU->getVariable<int>("cell_state");
     FLAMEGPU->message_out.setVariable<int>("cell_state", tcell_cs);
     FLAMEGPU->message_out.setVariable<float>("PDL1", 0.0f);  // T cells don't have PDL1
-    // Naive cells have no killing ability — broadcast kill_factor=0
-    const float kf = (tcell_cs == T_CELL_NAIVE) ? 0.0f : FLAMEGPU->getVariable<float>("hypoxia_kill_factor");
+    const float kf = (tcell_cs == T_CELL_NAIVE) ? 0.0f : 1.0f;
     FLAMEGPU->message_out.setVariable<float>("kill_factor", kf);
     FLAMEGPU->message_out.setVariable<int>("dead", 0);
     FLAMEGPU->message_out.setVariable<int>("voxel_x", x);
@@ -231,55 +230,15 @@ FLAMEGPU_AGENT_FUNCTION(tcell_state_step, flamegpu::MessageNone, flamegpu::Messa
     const int az_t = FLAMEGPU->getVariable<int>("z");
     const int voxel_t = az_t * ny_t*nx_t + ay_t * nx_t + ax_t;
 
-    // --- Hypoxia exposure counter (hysteresis: accrues fast, recovers slow) ---
-    float local_O2 = PDE_READ(FLAMEGPU, PDE_CONC_O2, voxel_t);
-    int hypoxia_exposure = FLAMEGPU->getVariable<int>("hypoxia_exposure");
-    const float hypoxia_th = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_TH");
-    if (local_O2 < hypoxia_th) {
-        hypoxia_exposure += 1;
-    } else {
-        const int recovery = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_RECOVERY"));
-        hypoxia_exposure = max(0, hypoxia_exposure - recovery);
-    }
-    FLAMEGPU->setVariable<int>("hypoxia_exposure", hypoxia_exposure);
-
-    // Compute hypoxia impairment factor (graded: 3 tiers)
-    const int tier1 = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_TIER1"));
-    const int tier2 = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_TIER2"));
-    float hypoxia_factor = 1.0f;
-    if (hypoxia_exposure >= tier2) {
-        hypoxia_factor = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR3");
-    } else if (hypoxia_exposure >= tier1) {
-        hypoxia_factor = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR2");
-    } else if (hypoxia_exposure > 0) {
-        hypoxia_factor = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR1");
-    }
-    // Store for broadcast — cancer cell reads this to weight effective Teff count
-    FLAMEGPU->setVariable<float>("hypoxia_kill_factor", hypoxia_factor);
-
-    // High chronic hypoxia → forced SUPPRESSED (terminal hypoxic exhaustion)
-    if (hypoxia_exposure >= tier2 * 2 && cell_state != T_CELL_SUPP) {
-        cell_state = T_CELL_SUPP;
-        FLAMEGPU->setVariable<int>("cell_state", T_CELL_SUPP);
-        FLAMEGPU->setVariable<int>("divide_flag", 0);
-        FLAMEGPU->setVariable<int>("divide_limit", 0);
-        scale_life_on_exhaustion(FLAMEGPU);
-    }
-
     float IL2 = PDE_READ(FLAMEGPU, PDE_CONC_IL2, voxel_t);
     float IL2_exposure = FLAMEGPU->getVariable<float>("IL2_exposure");
     IL2_exposure += IL2 * sec_per_slice;
 
-    // Effector cells proliferate on IL2 exposure (hypoxia impairs division)
     if (IL2_exposure > FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_IL2_PROLIF_TH")) {
-        // Hypoxia may block division: roll against impairment factor
-        unsigned int rs_hyp = det_rng_seed(static_cast<int>(det_tag), cs_step, 0x7D03u, sim_seed);
-        if (hypoxia_factor >= 1.0f || det_rng_uniform(rs_hyp) < hypoxia_factor) {
-            FLAMEGPU->setVariable<int>("divide_flag", 1);
-        }
+        FLAMEGPU->setVariable<int>("divide_flag", 1);
         FLAMEGPU->setVariable<float>("IL2_exposure", 0.0f);
     } else {
-        FLAMEGPU->setVariable<float>("IL2_exposure",IL2_exposure);
+        FLAMEGPU->setVariable<float>("IL2_exposure", IL2_exposure);
     }
 
     // EFF -> CYT: probabilistic conversion when cancer progenitor in neighborhood.
@@ -531,8 +490,6 @@ FLAMEGPU_AGENT_FUNCTION(tcell_divide_confirm, flamegpu::MessageNone, flamegpu::M
     FLAMEGPU->agent_out.setVariable<int>("persist_dir_x", 0);
     FLAMEGPU->agent_out.setVariable<int>("persist_dir_y", 0);
     FLAMEGPU->agent_out.setVariable<int>("persist_dir_z", 0);
-    FLAMEGPU->agent_out.setVariable<int>("hypoxia_exposure", 0);
-    FLAMEGPU->agent_out.setVariable<float>("hypoxia_kill_factor", 1.0f);
     // Child lineage tag: deterministic + distinct per birth, independent of FLAMEGPU birth order.
     FLAMEGPU->agent_out.setVariable<unsigned int>("det_tag",
         det_rng_hash(det_tag ^ (static_cast<unsigned int>(tvidx) * 0x9E3779B1U)
@@ -602,22 +559,6 @@ FLAMEGPU_AGENT_FUNCTION(tcell_compute_chemical_sources, flamegpu::MessageNone, f
             }
         }
 
-        // Hypoxia impairment on cytokine secretion
-        const int hypoxia_exposure = FLAMEGPU->getVariable<int>("hypoxia_exposure");
-        if (hypoxia_exposure > 0) {
-            const int t1 = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_TIER1"));
-            const int t2 = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_TIER2"));
-            float hf = 1.0f;
-            if (hypoxia_exposure >= t2) {
-                hf = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR3");
-            } else if (hypoxia_exposure >= t1) {
-                hf = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR2");
-            } else {
-                hf = FLAMEGPU->environment.getProperty<float>("PARAM_TCELL_HYPOXIA_FACTOR1");
-            }
-            IFNg_release_rate *= hf;
-            IL2_release_rate  *= hf;
-        }
     }
 
     // Compute voxel index

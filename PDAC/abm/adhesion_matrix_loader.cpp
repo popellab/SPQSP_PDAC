@@ -33,10 +33,10 @@ static const std::unordered_map<std::string, int>& sc_tag_map() {
         {"fib_mycaf",        15},
         {"fib_icaf",         16},
         {"fib_frc",          17},
-        {"vas_tip",          18},
-        {"vas_phalanx",      19},
-        {"vas_collapsed",    20},
-        {"vas_hev",          21},
+        {"vas_tip",          18},  // TOMBSTONE: VAS agents removed (Step 3b); positional
+        {"vas_phalanx",      19},  // TOMBSTONE
+        {"vas_collapsed",    20},  // TOMBSTONE
+        {"vas_hev",          21},  // TOMBSTONE
         {"bcell_naive",      22},
         {"bcell_act",        23},
         {"bcell_plasma",     24},

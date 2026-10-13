@@ -370,9 +370,10 @@ add_executable(pdac_test
     ../test/scenarios/dc_priming/test_dc_priming.cu
     ../test/scenarios/icaf_diff/test_icaf_diff.cu
     ../test/scenarios/frc_transition/test_frc_transition.cu
-    ../test/scenarios/vascular_o2_saturation/test_vascular_o2_saturation.cu
-    ../test/scenarios/vascular_o2_cancer_uptake/test_vascular_o2_cancer_uptake.cu
-    ../test/scenarios/vascular_sprout/test_vascular_sprout.cu
+    # VAS agent tests removed (Step 3b: VAS agents removed, O2 via Vvas continuous field)
+    # ../test/scenarios/vascular_o2_saturation/test_vascular_o2_saturation.cu
+    # ../test/scenarios/vascular_o2_cancer_uptake/test_vascular_o2_cancer_uptake.cu
+    # ../test/scenarios/vascular_sprout/test_vascular_sprout.cu
     ../test/scenarios/pde_substep_sweep/test_pde_substep_sweep.cu
     model_definition.cu
     model_layers.cu

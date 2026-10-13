@@ -56,7 +56,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_count_neighbors, flamegpu::MessageSpatial3D, flam
     const float my_pos_z = (my_z + 0.5f) * voxel_size;
     const unsigned int my_id = FLAMEGPU->getID();
 
-    float tcyt_effective = 0.0f;  // Cytotoxic T cells weighted by hypoxia_kill_factor
+    float tcyt_effective = 0.0f;
     int treg_count = 0;    // Regulatory T cells
     int cancer_count = 0;  // Other cancer cells in neighborhood
     int mdsc_count = 0;    // MDSCs (suppress T cell killing)
@@ -491,7 +491,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
         return flamegpu::DEAD;
     }
 
-    // Necrosis — cumulative hypoxia exposure countdown (skip step 0)
+    // Necrosis — cumulative hypoxia exposure with probabilistic death (skip step 0)
     int hypoxia_exposure = FLAMEGPU->getVariable<int>("hypoxia_exposure");
     if (pde_step > 0) {
         if (hypoxic) {
@@ -502,17 +502,36 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
         FLAMEGPU->setVariable<int>("hypoxia_exposure", hypoxia_exposure);
     }
 
-    const int necrosis_countdown = static_cast<int>(FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_NECROSIS_COUNTDOWN"));
-    if (pde_step > 0 && necrosis_countdown > 0 && hypoxia_exposure >= necrosis_countdown) {
-        FLAMEGPU->setVariable<int>("dead", 1);
-        FLAMEGPU->setVariable<int>("death_reason", 4);  // 4 = necrosis (sustained hypoxia)
-        auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
-        const int death_slot = (cell_state == CANCER_STEM) ? EVT_DEATH_CANCER_STEM :
-                               (cell_state == CANCER_PROGENITOR) ? EVT_DEATH_CANCER_PROG : EVT_DEATH_CANCER_SEN;
-        atomicAdd(&evts[death_slot], 1u);
-        atomicAdd(&antigen_grid[voxel], antigen_deposit);
-        atomicAdd(&debris_field[voxel], debris_deposit);
-        return flamegpu::DEAD;
+    if (pde_step > 0 && hypoxia_exposure > 0) {
+        const float necrosis_countdown = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_NECROSIS_COUNTDOWN");
+        const float necrosis_lambda = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_NECROSIS_LAMBDA");
+
+        bool necro_die = false;
+        if (necrosis_countdown > 0.0f && hypoxia_exposure >= static_cast<int>(necrosis_countdown)) {
+            necro_die = true;  // legacy fixed countdown (backward compat)
+        } else if (necrosis_lambda > 0.0f) {
+            // Weibull hazard: p = 1 - exp(S(k-1) - S(k)) where S(k) = (k/lambda)^beta
+            const float beta = FLAMEGPU->environment.getProperty<float>("PARAM_CANCER_NECROSIS_BETA");
+            const float k = static_cast<float>(hypoxia_exposure);
+            const float inv_lam = 1.0f / necrosis_lambda;
+            const float Sk  = powf(k * inv_lam, beta);
+            const float Sk1 = powf((k - 1.0f) * inv_lam, beta);
+            const float p_die = 1.0f - expf(Sk1 - Sk);
+            const float roll = FLAMEGPU->random.uniform<float>();
+            necro_die = (roll < p_die);
+        }
+
+        if (necro_die) {
+            FLAMEGPU->setVariable<int>("dead", 1);
+            FLAMEGPU->setVariable<int>("death_reason", 4);  // 4 = necrosis (sustained hypoxia)
+            auto* evts = reinterpret_cast<unsigned int*>(FLAMEGPU->environment.getProperty<uint64_t>("event_counters_ptr"));
+            const int death_slot = (cell_state == CANCER_STEM) ? EVT_DEATH_CANCER_STEM :
+                                   (cell_state == CANCER_PROGENITOR) ? EVT_DEATH_CANCER_PROG : EVT_DEATH_CANCER_SEN;
+            atomicAdd(&evts[death_slot], 1u);
+            atomicAdd(&antigen_grid[voxel], antigen_deposit);
+            atomicAdd(&debris_field[voxel], debris_deposit);
+            return flamegpu::DEAD;
+        }
     }
 
     // Update PDL1: IFN-γ driven with exponential relaxation (both up and down)
@@ -548,7 +567,7 @@ FLAMEGPU_AGENT_FUNCTION(cancer_cell_state_step, flamegpu::MessageNone, flamegpu:
     const unsigned int cs_step     = FLAMEGPU->getStepCounter();
 
     // === T CELL KILLING ===
-    float neighbor_Teff = FLAMEGPU->getVariable<float>("neighbor_Teff_count");  // Weighted by hypoxia_kill_factor
+    float neighbor_Teff = FLAMEGPU->getVariable<float>("neighbor_Teff_count");
     if (neighbor_Teff > 0) {
         const int neighbor_cancer = FLAMEGPU->getVariable<int>("neighbor_cancer_count");
         const float PDL1 = FLAMEGPU->getVariable<float>("PDL1_syn");

@@ -33,6 +33,7 @@ extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER solve_pde_step;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER update_agent_counts;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER solve_qsp_step;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_phi_buffers;
+extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER phi_compute_W;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER finalize_phi;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER compute_ripley;
 extern flamegpu::FLAMEGPU_HOST_FUNCTION_POINTER zero_fib_density_field;
@@ -104,10 +105,8 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         flamegpu::LayerDescription layer = model.newLayer("reset_recruitment_sources");
         layer.addHostFunction(reset_recruitment_sources);
     }
-    {
-        flamegpu::LayerDescription layer = model.newLayer("update_vasculature_count");
-        layer.addHostFunction(update_vasculature_count);
-    }
+    // update_vasculature_count removed (ABM rebuild Step 3b: VAS agents removed;
+    // n_vasculature_total stays at default=1)
 
     // 3+4. Recruitment via systematic (stratified) resampling of the expected-recruitment field.
     //    Replaces the two-stage per-voxel Bernoulli path (mark_entry_points ⊗ recruit_gpu): the
@@ -145,7 +144,6 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_MDSC,        "write_to_occ_grid");
         layer.addAgentFunction(AGENT_MACROPHAGE,  "write_to_occ_grid");
         layer.addAgentFunction(AGENT_FIBROBLAST,  "write_to_occ_grid");
-        layer.addAgentFunction(AGENT_VASCULAR,    "write_to_occ_grid");
         layer.addAgentFunction(AGENT_BCELL,       "write_to_occ_grid");
         layer.addAgentFunction(AGENT_DC,          "write_to_occ_grid");
     }
@@ -267,10 +265,6 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
                 layer.addAgentFunction(AGENT_DC,         "move_commit");
             }
         }
-        {
-            flamegpu::LayerDescription layer = model.newLayer("move_vascular");
-            layer.addAgentFunction(AGENT_VASCULAR, "move");
-        }
     }
 
     // ── Timing checkpoint: after movement ──
@@ -297,10 +291,6 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     {
         flamegpu::LayerDescription layer = model.newLayer("final_broadcast_mdsc");
         layer.addAgentFunction(AGENT_MDSC, "broadcast_location");
-    }
-    {
-        flamegpu::LayerDescription layer = model.newLayer("final_broadcast_vascular");
-        layer.addAgentFunction(AGENT_VASCULAR, "broadcast_location");
     }
     {
         flamegpu::LayerDescription layer = model.newLayer("final_broadcast_macrophage");
@@ -357,7 +347,6 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_MDSC,        "state_step");
         layer.addAgentFunction(AGENT_MACROPHAGE,  "state_step");
         layer.addAgentFunction(AGENT_FIBROBLAST,  "state_step");
-        layer.addAgentFunction(AGENT_VASCULAR,    "state_step");
         layer.addAgentFunction(AGENT_BCELL,       "state_step");
         layer.addAgentFunction(AGENT_DC,          "state_step");
     }
@@ -369,7 +358,6 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_MDSC,        "compute_chemical_sources");
         layer.addAgentFunction(AGENT_MACROPHAGE,  "compute_chemical_sources");
         layer.addAgentFunction(AGENT_FIBROBLAST,  "compute_chemical_sources");
-        layer.addAgentFunction(AGENT_VASCULAR,    "compute_chemical_sources");
         layer.addAgentFunction(AGENT_BCELL,       "compute_chemical_sources");
         layer.addAgentFunction(AGENT_DC,          "compute_chemical_sources");
     }
@@ -403,7 +391,6 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_MDSC, "pack_for_export");
         layer.addAgentFunction(AGENT_MACROPHAGE, "pack_for_export");
         layer.addAgentFunction(AGENT_FIBROBLAST, "pack_for_export");
-        layer.addAgentFunction(AGENT_VASCULAR, "pack_for_export");
         layer.addAgentFunction(AGENT_BCELL, "pack_for_export");
         layer.addAgentFunction(AGENT_DC, "pack_for_export");
     }
@@ -468,10 +455,6 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
     {
         flamegpu::LayerDescription layer = model.newLayer("divide_bcell_confirm");
         layer.addAgentFunction(AGENT_BCELL, "divide_confirm");
-    }
-    {
-        flamegpu::LayerDescription layer = model.newLayer("divide_vascular");
-        layer.addAgentFunction(AGENT_VASCULAR, "vascular_divide");
     }
     // Fibroblast division — Step-5 deterministic reserve/confirm (priority claim into
     // d_voxel_owner), mirroring cancer. reset → reserve → confirm.
@@ -556,6 +539,10 @@ void defineMainModelLayers(flamegpu::ModelDescription& model) {
         layer.addAgentFunction(AGENT_FIBROBLAST, "phi_deposit");
         layer.addAgentFunction(AGENT_MDSC,       "phi_deposit");
         layer.addAgentFunction(AGENT_BCELL,      "phi_deposit");
+    }
+    {
+        flamegpu::LayerDescription layer = model.newLayer("phi_compute_W");
+        layer.addHostFunction(phi_compute_W);
     }
     {
         flamegpu::LayerDescription layer = model.newLayer("phi_sample");

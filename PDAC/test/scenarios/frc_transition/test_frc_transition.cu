@@ -77,7 +77,6 @@ static void seed_tcell_eff(TestConfig& cfg, int x, int y, int z) {
     s.int_vars.push_back({"divide_flag", 0});
     s.int_vars.push_back({"divide_cd", 9999});
     s.float_vars.push_back({"adh_p_move", 1.0f});
-    s.float_vars.push_back({"hypoxia_kill_factor", 1.0f});
     cfg.agents.push_back(s);
 }
 

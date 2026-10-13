@@ -99,14 +99,7 @@ FLAMEGPU_AGENT_FUNCTION(pack_export_fib, flamegpu::MessageNone, flamegpu::Messag
     return flamegpu::ALIVE;
 }
 
-// type_id=6: has cell_state, no life. Skip regressed vessels (cell_state==1)
-FLAMEGPU_AGENT_FUNCTION(pack_export_vas, flamegpu::MessageNone, flamegpu::MessageNone) {
-    if (!FLAMEGPU->environment.getProperty<int>("do_abm_export")) return flamegpu::ALIVE;
-    int st = FLAMEGPU->getVariable<int>("cell_state");
-    if (st == 1) return flamegpu::ALIVE;  // skip regressed
-    pack_row(FLAMEGPU, 6, st, 0, 0);
-    return flamegpu::ALIVE;
-}
+// type_id=6: VAS agents removed (ABM rebuild Step 3b). O2+entry via Vvas field.
 
 // type_id=7: has cell_state, life, extra=is_breg
 FLAMEGPU_AGENT_FUNCTION(pack_export_bcell, flamegpu::MessageNone, flamegpu::MessageNone) {

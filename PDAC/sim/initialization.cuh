@@ -39,9 +39,7 @@ struct SimulationConfig {
     // Accepts: x_low | x_high | y_low | y_high | z_low | z_high
     std::string seed_position;
 
-    // Vasculature initialization mode
-    std::string vascular_mode;  // "random", "xml", "test"
-    std::string vascular_xml_file;
+    // Vascular agents removed (ABM rebuild Step 3b). O2+entry via Vvas field.
 
     // §C6 initialization by placement. When non-empty, this OVERRIDES init_method and the
     // scenario: agents and V_vas(t=0) come from the .plc file instead of being grown or
@@ -123,28 +121,8 @@ void seedQuiescentPSCs(
     double p_fib, std::vector<std::vector<int>>& occupied,
     float life_mean);
 
-// Initialize Vascular Cells with random walk (HCC-style)
-void initializeVascularCellsRandom(
-    flamegpu::AgentVector& vascular_agents,
-    int grid_x, int grid_y, int grid_z,
-    int tumor_radius,
-    int num_segments,
-    float branch_prob,
-    unsigned int seed);
-
-// Sequentially assign INTENT_DIVIDE to spatially distributed PHALANX cells pre-simulation.
-// Must be called after initializeVascularCellsRandom; step 0 of vascular_state_step is skipped
-// so these intents are preserved until vascular_divide executes.
-void assignInitialVascularTips(
-    flamegpu::AgentVector& vascular_agents,
-    int grid_x, int grid_y, int grid_z,
-    int min_neighbor_range,
-    unsigned int seed);
-
-// Initialize Vascular Cells with manual test pattern
-void initializeVascularCellsTest(
-    flamegpu::AgentVector& vascular_agents,
-    int grid_x, int grid_y, int grid_z);
+// Vascular agent init functions removed (ABM rebuild Step 3b).
+// O2 delivery + immune entry via Vvas continuous field.
 
 // ============================================================================
 // Domain Structure Generation (Structured Init, -i 1)

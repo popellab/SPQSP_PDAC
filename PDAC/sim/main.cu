@@ -553,15 +553,6 @@ static void collect_abm_step0(flamegpu::CUDASimulation& sim,
                 p[i].getVariable<int>("cell_state"), p[i].getVariable<int>("life"), 0);
     }
     {
-        flamegpu::AgentVector p(model.Agent(PDAC::AGENT_VASCULAR));
-        sim.getPopulationData(p);
-        for (unsigned i = 0; i < p.size(); ++i) {
-            int st = p[i].getVariable<int>("cell_state");
-            if (st == 1) continue;
-            abm_push(buf, ABM_TYPE_VAS, (int32_t)p[i].getID(),
-                p[i].getVariable<int>("x"), p[i].getVariable<int>("y"), p[i].getVariable<int>("z"),
-                st, 0, 0);
-        }
     }
     {
         flamegpu::AgentVector p(model.Agent(PDAC::AGENT_BCELL));
@@ -628,16 +619,6 @@ static void collect_abm_step(flamegpu::HostAPI* FLAMEGPU, std::vector<int32_t>& 
             abm_push(buf, ABM_TYPE_FIB, (int32_t)p[i].getID(),
                 p[i].getVariable<int>("x"), p[i].getVariable<int>("y"), p[i].getVariable<int>("z"),
                 p[i].getVariable<int>("cell_state"), p[i].getVariable<int>("life"), 0);
-    }
-    {
-        flamegpu::DeviceAgentVector p = FLAMEGPU->agent(PDAC::AGENT_VASCULAR).getPopulationData();
-        for (unsigned i = 0; i < p.size(); ++i) {
-            int st = p[i].getVariable<int>("cell_state");
-            if (st == 1) continue;
-            abm_push(buf, ABM_TYPE_VAS, (int32_t)p[i].getID(),
-                p[i].getVariable<int>("x"), p[i].getVariable<int>("y"), p[i].getVariable<int>("z"),
-                st, 0, 0);
-        }
     }
     {
         flamegpu::DeviceAgentVector p = FLAMEGPU->agent(PDAC::AGENT_BCELL).getPopulationData();
@@ -755,8 +736,6 @@ FLAMEGPU_STEP_FUNCTION(stepCounter) {
     const unsigned int mdsc_count   = FLAMEGPU->agent(PDAC::AGENT_MDSC).count();
     const unsigned int mac_count   = FLAMEGPU->agent(PDAC::AGENT_MACROPHAGE).count();
     const unsigned int fib_count   = FLAMEGPU->agent(PDAC::AGENT_FIBROBLAST).count();
-    const unsigned int vas_count   = FLAMEGPU->agent(PDAC::AGENT_VASCULAR).count();
-
     // QSP state (set by solve_qsp_step each step)
     const float tum_vol  = FLAMEGPU->environment.getProperty<float>("qsp_tum_vol");
     const float cc_tumor = FLAMEGPU->environment.getProperty<float>("qsp_cc_tumor");
@@ -775,7 +754,6 @@ FLAMEGPU_STEP_FUNCTION(stepCounter) {
               << "  MD=" << mdsc_count
               << "  MAC=" << mac_count
               << "  FIB=" << fib_count
-              << "  VAS=" << vas_count
               << std::endl;
 
     std::cout << std::scientific << std::setprecision(2) << "[QSP] vol=" << tum_vol
@@ -1291,15 +1269,9 @@ int main(int argc, const char** argv) {
         std::cout << "  Current volume        : " << cur_vol                     << " cm^3" << std::endl;
     }
 
-    // Placement files supply a fully-formed initial state — skip the ABM presim (Phase C)
-    // unless the user explicitly requested presim steps. Phase A (QSP warmup) already ran.
-    if (!config.placement_file.empty() &&
-        !config.presim_steps_from_cli &&
-        !config.presim_volume_from_cli &&
-        !config.presim_areal_from_cli) {
-        config.presim_steps = 0;
-        std::cout << "  Placement file provided — ABM presim (Phase C) skipped." << std::endl;
-    }
+    // Placement files supply healthy tissue — but cancer still needs to grow to the
+    // target volume.  Skip Phase C only when the user gave an explicit --presim-steps 0.
+    // The default volume stopper (from initial_tumour_diameter) always runs.
 
     // Drug dosing gated off for the presim phase.
     _lymph.set_presimulation_mode(true);
@@ -1508,17 +1480,6 @@ int main(int argc, const char** argv) {
                 else if (s == PDAC::FIB_ICAF)    init_states[PDAC::SC_FIB_ICAF]++;
                 else if (s == PDAC::FIB_APCAF)   init_states[PDAC::SC_FIB_APCAF]++;
                 else                              init_states[PDAC::SC_FIB_FRC]++;
-            }
-        }
-        {
-            flamegpu::AgentVector p(model->Agent(PDAC::AGENT_VASCULAR));
-            simulation.getPopulationData(p);
-            for (unsigned i = 0; i < p.size(); ++i) {
-                int s = p[i].getVariable<int>("cell_state");
-                if (s == PDAC::VAS_TIP) init_states[PDAC::SC_VAS_TIP]++;
-                else if (s == PDAC::VAS_PHALANX_COLLAPSED) init_states[PDAC::SC_VAS_COLLAPSED]++;
-                else if (s == PDAC::VAS_HEV) init_states[PDAC::SC_VAS_HEV]++;
-                else                    init_states[PDAC::SC_VAS_PHALANX]++;
             }
         }
     }

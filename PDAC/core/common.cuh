@@ -15,7 +15,7 @@ enum AgentType : int {
     CELL_TYPE_MDSC = 4,
     CELL_TYPE_MAC = 5,
     CELL_TYPE_FIB = 6,
-    CELL_TYPE_VASCULAR = 7,
+    CELL_TYPE_VASCULAR = 7,  // TOMBSTONE: VAS agents removed (Step 3b); positional, keep for enum stability
     CELL_TYPE_BCELL = 8,
     CELL_TYPE_DC = 9
 };
@@ -61,7 +61,7 @@ enum FibroblastState : int {
     FIB_APCAF = 4       // Antigen-presenting CAF (MHC-II+; takes up antigen, converts Th→Treg)
 };
 
-// Vascular cell cell_states
+// TOMBSTONE: VAS agents removed (Step 3b). Enum kept for positional stability (SC_VAS_*, EVT_*).
 enum VascularCellState : int {
     VAS_TIP = 0,      // Actively sprouting tip cell
     VAS_STALK = 1,    // Connecting stalk cell
@@ -163,7 +163,7 @@ constexpr const char* AGENT_TREG = "TReg";
 constexpr const char* AGENT_MDSC = "MDSC";
 constexpr const char* AGENT_MACROPHAGE = "Macrophage";
 constexpr const char* AGENT_FIBROBLAST = "Fibroblast";
-constexpr const char* AGENT_VASCULAR = "VascularCell";
+constexpr const char* AGENT_VASCULAR = "VascularCell";  // TOMBSTONE: no model agent, kept for test compat
 constexpr const char* AGENT_BCELL = "BCell";
 constexpr const char* AGENT_DC = "DC";
 
@@ -775,28 +775,29 @@ __device__ __host__ __forceinline__ bool is_qsp_Mac_M2(int cs) {
 __device__ __host__ __forceinline__ bool is_qsp_Fib_iCAF(int cs) {
     return cs == FIB_ICAF;
 }
-__device__ __host__ __forceinline__ bool is_qsp_Vas_phalanx(int cs) {
-    return cs == VAS_PHALANX;
-}
+// is_qsp_Vas_phalanx removed — VAS agents no longer exist (Step 3b)
 
 // ============================================================================
-// PHI — the ABM's only export (contract D-1/D-2).
+// PHI — permutation-null FunCN (contract D-1/D-2).
 //
-//   phi = FunCN(A,B) / (rho_B * SumK)
-//       = [ (1/N_A) * SUM_a SUM_b K(x_a - x_b) ] / [ (N_B / N_vox) * SumK ]
+//   phi(A,B) = T_obs / E_perm[T]
 //
-// i.e. the measured co-density of B around A, divided by what perfect mixing
-// would give. phi = 1 reproduces the mean-field rate law exactly, which is what
-// makes the control arm exact by construction.
+//   T_obs    = (1/n_A) * SUM_a KDE_B(x_a)          (cross-type, A≠B)
+//   E_perm   = n_B * W / (N - 1)
+//   W        = S/N - k0
+//   S        = SUM_i KDE_all(x_i)   over all N cells in window
+//   k0       = K(0) = 1.0           (unnormalized kernel peak)
 //
-// Two properties worth knowing before touching this:
-//  1. It is SYMMETRIC in A and B (the double sum is symmetric and the
-//     normalization is N_A*N_B), so the target/source assignment cannot be got
-//     backwards. This is D-2's "abundance cancels by construction".
-//  2. Any constant scaling of K cancels between the numerator and SumK, so the
-//     kernel is deliberately left UNNORMALIZED (peak 1.0) — better conditioned
-//     for fixed-point accumulation, and it removes the truncation-vs-normalizer
-//     inconsistency that a normalized-but-truncated Gaussian would introduce.
+// phi = 1 for random labeling, > 1 co-located, < 1 dispersed.
+//
+// The kernel is deliberately left UNNORMALIZED (peak 1.0): the normalization
+// constant cancels between T_obs and W (both scale linearly with it), so the
+// phi value is independent of whether K is normalized. Unnormalized is better
+// conditioned for fixed-point accumulation.
+//
+// W is computed from d_type_counts (the epsilon occupancy grid) via a Gaussian
+// stencil over all cell types, so it includes cancer, TReg, DC, etc. — not
+// just the 7 deposited source types.
 // ============================================================================
 enum PhiPair : int {
     PHI_CD8_C1    = 0,   // phi_1 → scales v_T_search_volume  (kill encounter rate)
@@ -837,30 +838,18 @@ __device__ __host__ __forceinline__ int phi_pair_kde(int pair) {
     }
 }
 
-// Unnormalized isotropic Gaussian on the voxel lattice. Peak 1.0 at d=0 (see note 2 above
-// on why the normalizer is deliberately absent).
+// Unnormalized isotropic Gaussian on the voxel lattice. Peak 1.0 at d=0.
+// The normalizer cancels in the permutation-null phi ratio (see block above).
 __device__ __host__ __forceinline__ float phi_kernel(int dx, int dy, int dz, float two_sigma_sq) {
     const float d2 = static_cast<float>(dx * dx + dy * dy + dz * dz);
     return expf(-d2 / two_sigma_sq);
 }
 
-// EDGE HANDLING — read before changing.
-// A target near the domain wall sees a truncated neighbourhood, which biases FunCN DOWN.
-// Rather than assume periodicity (the ABM's z extent is only ~12 voxels in the production
-// box, so a wrap in z would be both physically wrong and a large effect), each target is
-// normalized by the kernel mass actually inside the domain at ITS position:
-//
-//     SumK_local(v) = SUM over in-domain offsets u of K(v - u)
-//
-// If B is uniform at density rho over the domain, E[S_B(v)] = rho * SumK_local(v) exactly,
-// so the per-target ratio S_B(v)/SumK_local(v) is an unbiased estimate of rho at any
-// position, wall or interior. SumK_local depends only on geometry, so it is precomputed
-// once per grid — not per step. This is what makes the estimator parameter-free and
-// domain-shape-agnostic, which the contract requires of anything phi is built from.
+// EDGE HANDLING: The permutation-null formula inherits the same boundary
+// truncation in both T_obs and W, so no per-target SumK edge correction is
+// needed (unlike the density-ratio formula it replaced).
 #define PHI_KDE_PTR(fgpu) \
     reinterpret_cast<unsigned long long*>((fgpu)->environment.template getProperty<uint64_t>("phi_kde_ptr"))
-#define PHI_SUMK_PTR(fgpu) \
-    reinterpret_cast<const float*>((fgpu)->environment.template getProperty<uint64_t>("phi_sumk_ptr"))
 #define PHI_ACC_PTR(fgpu) \
     reinterpret_cast<unsigned long long*>((fgpu)->environment.template getProperty<uint64_t>("phi_accum_ptr"))
 #define PHI_N_PTR(fgpu) \
@@ -870,6 +859,7 @@ __device__ __host__ __forceinline__ float phi_kernel(int dx, int dy, int dz, flo
 // Fixed-point accumulation (as the ECM field does) so the atomicAdd sum is exact and
 // order-independent — phi feeds the ODE, so a nondeterministic phi makes the whole run
 // irreproducible, not merely noisy.
+// Also increments the in-window source counter if this agent is within the cancer window.
 template<typename API>
 __device__ __forceinline__ void phi_deposit(API FLAMEGPU, int kde) {
     const int x = FLAMEGPU->template getVariable<int>("x");
@@ -896,15 +886,35 @@ __device__ __forceinline__ void phi_deposit(API FLAMEGPU, int kde) {
         }
     }
     atomicAdd(&PHI_N_PTR(FLAMEGPU)[N_PHI_PAIR + kde], 1u);
+
+    // In-window source counter (slots at N_PHI_PAIR + N_PHI_KDE + kde)
+    if (x >= FLAMEGPU->environment.template getProperty<int>("phi_win_x0") &&
+        x <= FLAMEGPU->environment.template getProperty<int>("phi_win_x1") &&
+        y >= FLAMEGPU->environment.template getProperty<int>("phi_win_y0") &&
+        y <= FLAMEGPU->environment.template getProperty<int>("phi_win_y1") &&
+        z >= FLAMEGPU->environment.template getProperty<int>("phi_win_z0") &&
+        z <= FLAMEGPU->environment.template getProperty<int>("phi_win_z1"))
+        atomicAdd(&PHI_N_PTR(FLAMEGPU)[N_PHI_PAIR + N_PHI_KDE + kde], 1u);
 }
 
-// Sample the KDE field for `pair` at this agent's voxel and accumulate the edge-corrected
-// ratio. Counts this agent as a target of that pair.
+// Sample the raw KDE field for `pair` at this agent's voxel and accumulate.
+// Only counts targets INSIDE the cancer window (bbox + margin).
+// Permutation-null normalization (W, N) is applied host-side in finalize_phi.
 template<typename API>
 __device__ __forceinline__ void phi_sample(API FLAMEGPU, int pair) {
     const int x = FLAMEGPU->template getVariable<int>("x");
     const int y = FLAMEGPU->template getVariable<int>("y");
     const int z = FLAMEGPU->template getVariable<int>("z");
+
+    // Gate: skip targets outside the cancer window
+    if (x < FLAMEGPU->environment.template getProperty<int>("phi_win_x0") ||
+        x > FLAMEGPU->environment.template getProperty<int>("phi_win_x1") ||
+        y < FLAMEGPU->environment.template getProperty<int>("phi_win_y0") ||
+        y > FLAMEGPU->environment.template getProperty<int>("phi_win_y1") ||
+        z < FLAMEGPU->environment.template getProperty<int>("phi_win_z0") ||
+        z > FLAMEGPU->environment.template getProperty<int>("phi_win_z1"))
+        return;
+
     const int gx = FLAMEGPU->environment.template getProperty<int>("grid_size_x");
     const int gy = FLAMEGPU->environment.template getProperty<int>("grid_size_y");
     const int gz = FLAMEGPU->environment.template getProperty<int>("grid_size_z");
@@ -912,9 +922,8 @@ __device__ __forceinline__ void phi_sample(API FLAMEGPU, int pair) {
 
     const unsigned long long* field = PHI_KDE_PTR(FLAMEGPU)
                                     + static_cast<size_t>(phi_pair_kde(pair)) * gx * gy * gz;
-    const float sumk = PHI_SUMK_PTR(FLAMEGPU)[v];
-    const float ratio = (sumk > 0.0f) ? (ecm_fp_decode(field[v]) / sumk) : 0.0f;
-    atomicAdd(&PHI_ACC_PTR(FLAMEGPU)[pair], ecm_fp_encode(ratio));
+    const float raw_kde = ecm_fp_decode(field[v]);
+    atomicAdd(&PHI_ACC_PTR(FLAMEGPU)[pair], ecm_fp_encode(raw_kde));
     atomicAdd(&PHI_N_PTR(FLAMEGPU)[pair], 1u);
 }
 

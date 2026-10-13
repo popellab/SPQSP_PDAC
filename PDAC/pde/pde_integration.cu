@@ -89,46 +89,70 @@ static float* d_ecm_crosslink = nullptr;   // Per-voxel crosslink accumulator (L
 static float* d_ecm_floor = nullptr;       // Per-voxel density floor (passive decay clamped here; MMP bypasses)
 static unsigned long long* d_fib_density_field = nullptr;  // fixed-point ECM density (ecm_fp_encode/decode)
 
-// ── phi estimator state (contract D-1/D-2). See common.cuh for the statistic. ──
+// ── phi estimator state (permutation-null FunCN, contract D-1/D-2). ──
 static unsigned long long* d_phi_kde   = nullptr;  // [N_PHI_KDE][nvox] fixed-point KDE fields
-static unsigned long long* d_phi_accum = nullptr;  // [N_PHI_PAIR] fixed-point SUM of edge-corrected ratios
-static unsigned int*       d_phi_count = nullptr;  // [N_PHI_PAIR targets | N_PHI_KDE sources]
-static float*              d_phi_sumk  = nullptr;  // [nvox] SumK_local — geometry only, computed once
+static unsigned long long* d_phi_accum = nullptr;  // [N_PHI_PAIR] fixed-point SUM of raw KDE at targets
+static unsigned int*       d_phi_count = nullptr;  // [N_PHI_PAIR targets | N_PHI_KDE sources | N_PHI_KDE in-window sources]
 static double              g_phi[N_PHI_PAIR] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
 static bool                g_phi_valid[N_PHI_PAIR] = {};
 
-// SumK_local(v) = SUM over in-domain offsets of K(v-u). Pure geometry (see common.cuh edge note),
-// so this runs once at init rather than per step.
-__global__ void phi_sumk_kernel(float* sumk, int gx, int gy, int gz, float sigma, int radius) {
-    const int v = blockIdx.x * blockDim.x + threadIdx.x;
-    const int nvox = gx * gy * gz;
-    if (v >= nvox) return;
-    const int x = v % gx;
-    const int y = (v / gx) % gy;
-    const int z = v / (gx * gy);
-    const float two_s2 = 2.0f * sigma * sigma;
-    float s = 0.0f;
+// Cancer window for phi: bounding box of cancer cells + margin, updated per step.
+static int g_phi_win[6] = {};  // {x0, x1, y0, y1, z0, z1} inclusive
+static int g_phi_win_nvox = 0;
+
+// Permutation-null W = S/N - k0, computed per step by phi_compute_W.
+static double g_phi_W = 0.0;
+static unsigned int g_phi_N_total = 0;
+// Persistent device accumulators for W computation (allocated once).
+static double*       d_phi_S = nullptr;
+static unsigned int* d_phi_N = nullptr;
+
+// Compute W from type_counts: for each window voxel, convolve total cell counts
+// with the Gaussian stencil to get kde_all, then accumulate S = Σ n_cells · kde_all
+// and N = Σ n_cells. W = S/N - 1.0 (k0=1 for unnormalized kernel).
+__global__ void phi_W_kernel(
+    const unsigned int* type_counts, int n_classes, int nvox,
+    int gx, int gy, int gz,
+    float two_sigma_sq, int radius,
+    int x0, int x1, int y0, int y1, int z0, int z1,
+    double* out_S, unsigned int* out_N)
+{
+    const int win_x = x1 - x0 + 1;
+    const int win_y = y1 - y0 + 1;
+    const int total_win = win_x * win_y * (z1 - z0 + 1);
+    const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid >= total_win) return;
+
+    const int lz = tid / (win_x * win_y);
+    const int ly = (tid / win_x) % win_y;
+    const int lx = tid % win_x;
+    const int x = x0 + lx, y = y0 + ly, z = z0 + lz;
+
+    const int vidx = z * (gx * gy) + y * gx + x;
+    unsigned int nc = 0;
+    for (int c = 0; c < n_classes; ++c)
+        nc += type_counts[c * nvox + vidx];
+    if (nc == 0) return;
+
+    // Gaussian stencil: kde_all at (x,y,z) = Σ_neighbors total_cells(nbr) · K(d)
+    float kde = 0.0f;
     for (int dz = -radius; dz <= radius; ++dz) {
-        if (z + dz < 0 || z + dz >= gz) continue;
+        const int nz = z + dz; if (nz < 0 || nz >= gz) continue;
         for (int dy = -radius; dy <= radius; ++dy) {
-            if (y + dy < 0 || y + dy >= gy) continue;
+            const int ny = y + dy; if (ny < 0 || ny >= gy) continue;
             for (int dx = -radius; dx <= radius; ++dx) {
-                if (x + dx < 0 || x + dx >= gx) continue;
-                s += phi_kernel(dx, dy, dz, two_s2);
+                const int nx = x + dx; if (nx < 0 || nx >= gx) continue;
+                const int nidx = nz * (gx * gy) + ny * gx + nx;
+                unsigned int nc_nbr = 0;
+                for (int c = 0; c < n_classes; ++c)
+                    nc_nbr += type_counts[c * nvox + nidx];
+                kde += static_cast<float>(nc_nbr) * phi_kernel(dx, dy, dz, two_sigma_sq);
             }
         }
     }
-    sumk[v] = s;
-}
 
-void init_phi_sumk(int gx, int gy, int gz, float sigma, int radius) {
-    const int nvox = gx * gy * gz;
-    const int threads = 256;
-    phi_sumk_kernel<<<(nvox + threads - 1) / threads, threads>>>(
-        d_phi_sumk, gx, gy, gz, sigma, radius);
-    CUDA_CHECK(cudaDeviceSynchronize());
-    std::cout << "  phi estimator: sigma=" << sigma << " vox, radius=" << radius
-              << " vox, SumK_local precomputed over " << nvox << " voxels" << std::endl;
+    atomicAdd(out_S, static_cast<double>(nc) * static_cast<double>(kde));
+    atomicAdd(out_N, nc);
 }
 
 double get_phi(int pair) { return (pair >= 0 && pair < N_PHI_PAIR) ? g_phi[pair] : 1.0; }
@@ -274,9 +298,9 @@ __global__ void update_ecm_grid_kernel(
     float deposition = fib * (1.0f + H_TGFB) * k_depo / 3.0f * (1.0f - sat_frac) * yap_factor * dt;
     density += deposition / voxel_vol_cm3;
 
-    // 4. MMP degradation (crosslink-resistant, can push below per-voxel floor)
-    float mmp_degrade = k_mmp * mmp * density / (1.0f + alpha_crosslink * crosslink) * dt;
-    density -= mmp_degrade;
+    // 4. MMP degradation (crosslink-resistant, can push below per-voxel floor) - turned off for now, 10-13-26
+    // float mmp_degrade = k_mmp * mmp * density / (1.0f + alpha_crosslink * crosslink) * dt;
+    // density -= mmp_degrade;
 
     // 5. Hard non-negative floor + density cap
     density = fmaxf(density, 0.0f);
@@ -664,13 +688,14 @@ void initialize_pde_solver(int grid_x, int grid_y, int grid_z,
                                         * sizeof(unsigned long long)));
     CUDA_CHECK(cudaMalloc(&d_phi_accum, N_PHI_PAIR * sizeof(unsigned long long)));
     CUDA_CHECK(cudaMemset(d_phi_accum, 0, N_PHI_PAIR * sizeof(unsigned long long)));
-    CUDA_CHECK(cudaMalloc(&d_phi_count, (N_PHI_PAIR + N_PHI_KDE) * sizeof(unsigned int)));
-    CUDA_CHECK(cudaMemset(d_phi_count, 0, (N_PHI_PAIR + N_PHI_KDE) * sizeof(unsigned int)));
-    // SumK_local is pure geometry — computed ONCE here, never per step.
-    CUDA_CHECK(cudaMalloc(&d_phi_sumk, total_voxels * sizeof(float)));
-    init_phi_sumk(grid_x, grid_y, grid_z,
-                  gpu_params.getFloat(PARAM_PHI_SIGMA_VOX),
-                  gpu_params.getInt(PARAM_PHI_RADIUS_VOX));
+    CUDA_CHECK(cudaMalloc(&d_phi_count, (N_PHI_PAIR + 2 * N_PHI_KDE) * sizeof(unsigned int)));
+    CUDA_CHECK(cudaMemset(d_phi_count, 0, (N_PHI_PAIR + 2 * N_PHI_KDE) * sizeof(unsigned int)));
+    // Persistent device accumulators for permutation-null W computation.
+    CUDA_CHECK(cudaMalloc(&d_phi_S, sizeof(double)));
+    CUDA_CHECK(cudaMalloc(&d_phi_N, sizeof(unsigned int)));
+    std::cout << "  phi estimator: permutation-null, sigma="
+              << gpu_params.getFloat(PARAM_PHI_SIGMA_VOX)
+              << " vox, radius=" << gpu_params.getInt(PARAM_PHI_RADIUS_VOX) << " vox" << std::endl;
 
     // Allocate epsilon-kernel type count grid: N_OCC_CLASSES planes of total_voxels each
     {
@@ -816,8 +841,13 @@ void set_pde_pointers_in_environment(flamegpu::ModelDescription& model) {
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_phi_accum)));
     model.Environment().newProperty<unsigned long long>("phi_count_ptr",
         static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_phi_count)));
-    model.Environment().newProperty<unsigned long long>("phi_sumk_ptr",
-        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(d_phi_sumk)));
+    // Cancer window bounds for phi (updated per step by zero_phi_buffers)
+    model.Environment().newProperty<int>("phi_win_x0", 0);
+    model.Environment().newProperty<int>("phi_win_x1", g_pde_solver->get_nx() - 1);
+    model.Environment().newProperty<int>("phi_win_y0", 0);
+    model.Environment().newProperty<int>("phi_win_y1", g_pde_solver->get_ny() - 1);
+    model.Environment().newProperty<int>("phi_win_z0", 0);
+    model.Environment().newProperty<int>("phi_win_z1", g_pde_solver->get_nz() - 1);
 
     // Epsilon-kernel occupancy pointers
     model.Environment().newProperty<unsigned long long>("type_counts_ptr",
@@ -918,7 +948,8 @@ void cleanup_pde_solver() {
     if (d_phi_kde)   { cudaFree(d_phi_kde);   d_phi_kde = nullptr; }
     if (d_phi_accum) { cudaFree(d_phi_accum); d_phi_accum = nullptr; }
     if (d_phi_count) { cudaFree(d_phi_count); d_phi_count = nullptr; }
-    if (d_phi_sumk)  { cudaFree(d_phi_sumk);  d_phi_sumk = nullptr; }
+    if (d_phi_S)     { cudaFree(d_phi_S);     d_phi_S = nullptr; }
+    if (d_phi_N)     { cudaFree(d_phi_N);     d_phi_N = nullptr; }
     if (d_vas_tip_id_grid) {
         cudaFree(d_vas_tip_id_grid);
         d_vas_tip_id_grid = nullptr;
@@ -1036,16 +1067,8 @@ __device__ bool is_tumor_dense_r3(
     return (box_total > 0 && box_cancer >= box_total);
 }
 
-// Source marking for MDSC, MAC, B cell, DC now handled by vascular_mark_sources
-// agent function (vascular_cell.cuh) — all immune cells extravasate from vasculature.
-
-// Update vasculature count env property (used by vascular_mark_sources device function)
-FLAMEGPU_HOST_FUNCTION(update_vasculature_count) {
-    nvtxRangePush("Update Vas Count");
-    int n_vas = static_cast<int>(FLAMEGPU->agent(AGENT_VASCULAR).count());
-    FLAMEGPU->environment.setProperty<int>("n_vasculature_total", std::max(1, n_vas));
-    nvtxRangePop();
-}
+// Vascular agents removed (ABM rebuild Step 3b). O2 + entry via Vvas continuous field.
+// n_vasculature_total stays at its default value (1) since there are no discrete VAS agents.
 
 // Reset recruitment sources at start of each step
 FLAMEGPU_HOST_FUNCTION(reset_recruitment_sources) {
@@ -1920,8 +1943,6 @@ FLAMEGPU_HOST_FUNCTION(place_recruited_agents) {
             a.setVariable<int>("persist_dir_x", 0);
             a.setVariable<int>("persist_dir_y", 0);
             a.setVariable<int>("persist_dir_z", 0);
-            a.setVariable<int>("hypoxia_exposure", 0);
-            a.setVariable<float>("hypoxia_kill_factor", 1.0f);
             a.setVariable<unsigned int>("det_tag", rec_dt);
             teff_recruited++;
         }
@@ -2511,51 +2532,126 @@ FLAMEGPU_HOST_FUNCTION(reset_voxel_owner) {
 // Zero Fibroblast Density Field (reset before scatter)
 // Uses cudaMemset on flat device array — no D2H/H2D copy.
 // ============================================================================
-// ── phi: zero the per-step accumulators. The KDE fields are rebuilt from scratch each step
-//    (agents move), so nothing carries over — unlike V_vas/ECM which are state. ──
+// ── phi: zero the per-step accumulators and compute the cancer window. ──
 FLAMEGPU_HOST_FUNCTION(zero_phi_buffers) {
     if (!g_pde_solver) return;
     const int nvox = g_pde_solver->get_total_voxels();
     if (d_phi_kde)   cudaMemset(d_phi_kde, 0,
                                 static_cast<size_t>(N_PHI_KDE) * nvox * sizeof(unsigned long long));
     if (d_phi_accum) cudaMemset(d_phi_accum, 0, N_PHI_PAIR * sizeof(unsigned long long));
-    if (d_phi_count) cudaMemset(d_phi_count, 0, (N_PHI_PAIR + N_PHI_KDE) * sizeof(unsigned int));
+    if (d_phi_count) cudaMemset(d_phi_count, 0, (N_PHI_PAIR + 2 * N_PHI_KDE) * sizeof(unsigned int));
+
+    // Compute cancer bounding box + margin for windowed phi
+    const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int gz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    const int margin = FLAMEGPU->environment.getProperty<int>("PARAM_PHI_WIN_MARGIN");
+
+    int xmin = gx, xmax = -1, ymin = gy, ymax = -1, zmin = gz, zmax = -1;
+    auto cc_api = FLAMEGPU->agent("CancerCell");
+    if (cc_api.count() > 0) {
+        flamegpu::DeviceAgentVector cc = cc_api.getPopulationData();
+        for (unsigned i = 0; i < cc.size(); ++i) {
+            if (cc[i].getVariable<int>("dead") != 0) continue;
+            const int x = cc[i].getVariable<int>("x");
+            const int y = cc[i].getVariable<int>("y");
+            const int z = cc[i].getVariable<int>("z");
+            if (x < xmin) xmin = x; if (x > xmax) xmax = x;
+            if (y < ymin) ymin = y; if (y > ymax) ymax = y;
+            if (z < zmin) zmin = z; if (z > zmax) zmax = z;
+        }
+    }
+    if (xmax < 0) {
+        // No live cancer cells — fall back to full domain
+        xmin = 0; xmax = gx - 1;
+        ymin = 0; ymax = gy - 1;
+        zmin = 0; zmax = gz - 1;
+    } else {
+        xmin = std::max(0, xmin - margin); xmax = std::min(gx - 1, xmax + margin);
+        ymin = std::max(0, ymin - margin); ymax = std::min(gy - 1, ymax + margin);
+        zmin = std::max(0, zmin - margin); zmax = std::min(gz - 1, zmax + margin);
+    }
+    g_phi_win[0] = xmin; g_phi_win[1] = xmax;
+    g_phi_win[2] = ymin; g_phi_win[3] = ymax;
+    g_phi_win[4] = zmin; g_phi_win[5] = zmax;
+    g_phi_win_nvox = (xmax - xmin + 1) * (ymax - ymin + 1) * (zmax - zmin + 1);
+
+    FLAMEGPU->environment.setProperty<int>("phi_win_x0", xmin);
+    FLAMEGPU->environment.setProperty<int>("phi_win_x1", xmax);
+    FLAMEGPU->environment.setProperty<int>("phi_win_y0", ymin);
+    FLAMEGPU->environment.setProperty<int>("phi_win_y1", ymax);
+    FLAMEGPU->environment.setProperty<int>("phi_win_z0", zmin);
+    FLAMEGPU->environment.setProperty<int>("phi_win_z1", zmax);
 }
 
-// ── phi: reduce the accumulators to the three multipliers and hand them to the QSP. ──
+// ── phi: compute permutation-null W from type_counts (between deposit and sample). ──
+FLAMEGPU_HOST_FUNCTION(phi_compute_W) {
+    if (!g_pde_solver || !d_type_counts || !d_phi_S) return;
+
+    const int gx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+    const int gy = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+    const int gz = FLAMEGPU->environment.getProperty<int>("grid_size_z");
+    const int nvox = gx * gy * gz;
+    const float sigma = FLAMEGPU->environment.getProperty<float>("PARAM_PHI_SIGMA_VOX");
+    const int radius = FLAMEGPU->environment.getProperty<int>("PARAM_PHI_RADIUS_VOX");
+    const float two_s2 = 2.0f * sigma * sigma;
+
+    CUDA_CHECK(cudaMemset(d_phi_S, 0, sizeof(double)));
+    CUDA_CHECK(cudaMemset(d_phi_N, 0, sizeof(unsigned int)));
+
+    const int win_total = g_phi_win_nvox;
+    if (win_total > 0) {
+        const int threads = 256;
+        phi_W_kernel<<<(win_total + threads - 1) / threads, threads>>>(
+            d_type_counts, N_OCC_CLASSES, nvox, gx, gy, gz,
+            two_s2, radius,
+            g_phi_win[0], g_phi_win[1], g_phi_win[2], g_phi_win[3],
+            g_phi_win[4], g_phi_win[5],
+            d_phi_S, d_phi_N);
+        CUDA_CHECK(cudaDeviceSynchronize());
+    }
+
+    double h_S;
+    unsigned int h_N;
+    CUDA_CHECK(cudaMemcpy(&h_S, d_phi_S, sizeof(double), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(&h_N, d_phi_N, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+
+    g_phi_N_total = h_N;
+    g_phi_W = (h_N >= 2) ? (h_S / static_cast<double>(h_N) - 1.0) : 0.0;
+}
+
+// ── phi: reduce accumulators to permutation-null phi and hand to QSP. ──
 //
-//   phi_p = mean_a[ S_B(v_a) / SumK_local(v_a) ]  /  ( N_B / N_vox )
-//
-// The numerator is the measured local B-density around A; the denominator is the well-mixed
-// density the ODE's rate law already assumes. Their ratio is the correction, and phi=1
-// reproduces the rate law exactly.
+//   phi(A,B) = T_obs / E_perm
+//   T_obs    = (1/n_A) · Σ_a KDE_B(x_a)
+//   E_perm   = n_B · W / (N - 1)
+//   W        = S/N - 1.0          (k0 = 1 for unnormalized kernel)
 //
 // ⚠️ A pair with NO cells on either side has no measurement — phi falls back to 1 (mean-field)
-// and is flagged invalid, rather than being computed as 0/0 or silently as 0. Seeding phi=0
-// into the ODE would switch the corresponding interaction OFF, which is a very different
-// statement from "the ABM could not measure this".
+// and is flagged invalid, rather than being computed as 0/0 or silently as 0.
 FLAMEGPU_HOST_FUNCTION(finalize_phi) {
     if (!g_pde_solver || !d_phi_accum) return;
-    const int nvox = g_pde_solver->get_total_voxels();
 
     unsigned long long acc[N_PHI_PAIR];
-    unsigned int cnt[N_PHI_PAIR + N_PHI_KDE];
+    unsigned int cnt[N_PHI_PAIR + 2 * N_PHI_KDE];
     cudaMemcpy(acc, d_phi_accum, sizeof(acc), cudaMemcpyDeviceToHost);
     cudaMemcpy(cnt, d_phi_count, sizeof(cnt), cudaMemcpyDeviceToHost);
 
     for (int p = 0; p < N_PHI_PAIR; ++p) {
         const unsigned int n_tgt = cnt[p];
-        const unsigned int n_src = cnt[N_PHI_PAIR + phi_pair_kde(p)];
-        if (n_tgt == 0 || n_src == 0) {
+        const int kde = phi_pair_kde(p);
+        const unsigned int n_src_win = cnt[N_PHI_PAIR + N_PHI_KDE + kde];
+        if (n_tgt == 0 || n_src_win == 0 || g_phi_W < 1e-12 || g_phi_N_total < 2) {
             g_phi[p] = 1.0;
             g_phi_valid[p] = false;
             continue;
         }
-        const double mean_local = static_cast<double>(acc[p])
-                                / static_cast<double>(ecm_fp_scale())
-                                / static_cast<double>(n_tgt);
-        const double rho_B = static_cast<double>(n_src) / static_cast<double>(nvox);
-        g_phi[p] = mean_local / rho_B;
+        const double T_obs = static_cast<double>(acc[p])
+                           / static_cast<double>(ecm_fp_scale())
+                           / static_cast<double>(n_tgt);
+        const double E_perm = static_cast<double>(n_src_win) * g_phi_W
+                            / static_cast<double>(g_phi_N_total - 1);
+        g_phi[p] = T_obs / E_perm;
         g_phi_valid[p] = true;
     }
 
@@ -2570,34 +2666,42 @@ FLAMEGPU_HOST_FUNCTION(finalize_phi) {
 
     if (!g_phi_csv.is_open()) {
         g_phi_csv.open(g_phi_csv_path);
-        g_phi_csv << "step"
-                  << ",phi_cd8_c1,valid_cd8_c1,n_c1,n_cd8"
-                  << ",phi_m1_c1,valid_m1_c1,n_m1"
+        g_phi_csv << "step,win_nvox,W,N_total"
+                  << ",phi_cd8_c1,valid_cd8_c1,n_c1,n_cd8,n_cd8_win"
+                  << ",phi_m1_c1,valid_m1_c1,n_m1,n_m1_win"
                   << ",phi_cd8_treg,valid_cd8_treg,n_treg"
-                  << ",phi_m2_c1,valid_m2_c1,n_m2"
-                  << ",phi_icaf_c1,valid_icaf_c1,n_icaf"
-                  << ",phi_mdsc_cd8,valid_mdsc_cd8,n_mdsc"
-                  << ",phi_bcell_cd8,valid_bcell_cd8,n_bcell"
-                  << ",phi_mycaf_c1,valid_mycaf_c1,n_mycaf\n";
+                  << ",phi_m2_c1,valid_m2_c1,n_m2,n_m2_win"
+                  << ",phi_icaf_c1,valid_icaf_c1,n_icaf,n_icaf_win"
+                  << ",phi_mdsc_cd8,valid_mdsc_cd8,n_mdsc,n_mdsc_win"
+                  << ",phi_bcell_cd8,valid_bcell_cd8,n_bcell,n_bcell_win"
+                  << ",phi_mycaf_c1,valid_mycaf_c1,n_mycaf,n_mycaf_win\n";
     }
     if (g_phi_csv.is_open()) {
-        g_phi_csv << FLAMEGPU->getStepCounter()
+        g_phi_csv << FLAMEGPU->getStepCounter() << ',' << g_phi_win_nvox
+            << ',' << g_phi_W << ',' << g_phi_N_total
             << ',' << g_phi[PHI_CD8_C1]   << ',' << (g_phi_valid[PHI_CD8_C1] ? 1 : 0)
             << ',' << cnt[PHI_CD8_C1]     << ',' << cnt[N_PHI_PAIR + PHI_KDE_CD8]
+            << ',' << cnt[N_PHI_PAIR + N_PHI_KDE + PHI_KDE_CD8]
             << ',' << g_phi[PHI_M1_C1]    << ',' << (g_phi_valid[PHI_M1_C1] ? 1 : 0)
             << ',' << cnt[N_PHI_PAIR + PHI_KDE_MAC_M1]
+            << ',' << cnt[N_PHI_PAIR + N_PHI_KDE + PHI_KDE_MAC_M1]
             << ',' << g_phi[PHI_CD8_TREG] << ',' << (g_phi_valid[PHI_CD8_TREG] ? 1 : 0)
             << ',' << cnt[PHI_CD8_TREG]
             << ',' << g_phi[PHI_M2_C1]    << ',' << (g_phi_valid[PHI_M2_C1] ? 1 : 0)
             << ',' << cnt[N_PHI_PAIR + PHI_KDE_MAC_M2]
+            << ',' << cnt[N_PHI_PAIR + N_PHI_KDE + PHI_KDE_MAC_M2]
             << ',' << g_phi[PHI_ICAF_C1]  << ',' << (g_phi_valid[PHI_ICAF_C1] ? 1 : 0)
             << ',' << cnt[N_PHI_PAIR + PHI_KDE_FIB_ICAF]
+            << ',' << cnt[N_PHI_PAIR + N_PHI_KDE + PHI_KDE_FIB_ICAF]
             << ',' << g_phi[PHI_MDSC_CD8] << ',' << (g_phi_valid[PHI_MDSC_CD8] ? 1 : 0)
             << ',' << cnt[N_PHI_PAIR + PHI_KDE_MDSC]
+            << ',' << cnt[N_PHI_PAIR + N_PHI_KDE + PHI_KDE_MDSC]
             << ',' << g_phi[PHI_BCELL_CD8]<< ',' << (g_phi_valid[PHI_BCELL_CD8] ? 1 : 0)
             << ',' << cnt[N_PHI_PAIR + PHI_KDE_BCELL]
+            << ',' << cnt[N_PHI_PAIR + N_PHI_KDE + PHI_KDE_BCELL]
             << ',' << g_phi[PHI_MYCAF_C1] << ',' << (g_phi_valid[PHI_MYCAF_C1] ? 1 : 0)
-            << ',' << cnt[N_PHI_PAIR + PHI_KDE_FIB_MYCAF] << '\n';
+            << ',' << cnt[N_PHI_PAIR + PHI_KDE_FIB_MYCAF]
+            << ',' << cnt[N_PHI_PAIR + N_PHI_KDE + PHI_KDE_FIB_MYCAF] << '\n';
         g_phi_csv.flush();
     }
 }

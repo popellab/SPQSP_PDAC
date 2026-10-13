@@ -24,8 +24,6 @@ SimulationConfig::SimulationConfig()
     , init_method(0)  // 0 = single stem at center (new default)
     , scenario(Scenario::Default)
     , seed_position("x_low")
-    , vascular_mode("none")  // ABM rebuild Step 3b: vascular agents removed; O2+entry via Vvas field
-    , vascular_xml_file("")
     , placement_file("")     // §C6: empty = procedural init; set by --placement
     , qsp_onset_volume(-1.0) // §C6.1: <=0 = no standalone QSP warm-up
     , qsp_onset_dump("")
@@ -85,10 +83,6 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
             interval_out =  std::atoi(argv[++i]);
         } else if (arg == "--seed" && i + 1 < argc) {
             random_seed = std::atoi(argv[++i]);
-        } else if ((arg == "--vascular-mode" || arg == "-vm") && i + 1 < argc) {
-            vascular_mode = argv[++i];
-        } else if ((arg == "--vascular-xml" || arg == "-vx") && i + 1 < argc) {
-            vascular_xml_file = argv[++i];
         } else if (arg == "--placement" && i + 1 < argc) {
             // §C6: initialize by data-driven placement. Overrides -i / --scenario.
             placement_file = argv[++i];
@@ -161,8 +155,6 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
                       << "  -G, --grid-output N      Grid output: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both [default: 0]\n"
                       << "  -oi, --out_int N         Output interval frequency [default: 1]\n"
                       << "  --seed N                 Random seed [default: 12345]\n"
-                      << "  -vm, --vascular-mode STR Vasculature initialization: none, random, xml, test [default: none]\n"
-                      << "  -vx, --vascular-xml FILE XML file for vasculature (when mode=xml)\n"
                       << "  --qsp-onset-volume V     Warm the QSP alone to V (m^3) before init, independent of the presim\n"
                       << "  --dump-qsp-onset PATH    After the warm-up, write the onset JSON and exit (placement pass 1)\n"
                       << "  --presim-mode MODE       Presim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
@@ -226,10 +218,11 @@ void SimulationConfig::print() const {
 }
 
 // ============================================================================
-// Vascular Cell Initialization
+// Vascular Cell Initialization — REMOVED (VAS agents are dead code; O2+entry via Vvas field)
 // ============================================================================
 
-// Helper to set all vascular cell variables
+// Helper to set all vascular cell variables (REMOVED — kept for reference)
+#if 0
 inline void setVascularCellVariables(
     flamegpu::AgentVector::Agent& agent,
     int x, int y, int z,
@@ -561,6 +554,7 @@ void initializeVascularCellsTest(
 
     std::cout << "Initialized 5 test vascular cells (2 phalanx, 3 tip)" << std::endl;
 }
+#endif  // VAS agent init removed
 
 // ============================================================================
 // QSP Probability-Based Immune Cell Initialization
@@ -1095,8 +1089,6 @@ void initializeSingleStem(
     const float mdsc_life        = model.Environment().getProperty<float>("PARAM_MDSC_LIFE_MEAN_SLICE");
     const float mac_life        = model.Environment().getProperty<float>("PARAM_MAC_LIFE_MEAN");
     const float fib_life        = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
-    const float vas_branch_prob = model.Environment().getProperty<float>("PARAM_VAS_BRANCH_PROB");
-    const int vas_min_neighbor = static_cast<int>(model.Environment().getProperty<float>("PARAM_VAS_MIN_NEIGHBOR"));
     // -----------------------------------------------------------------------
     // Get CDF for cancer cell population
     // -----------------------------------------------------------------------
@@ -1166,41 +1158,7 @@ void initializeSingleStem(
         simulation.setPopulationData(fib_pop);
     }
 
-    // Initialize vascular cells (same logic as initializeAllAgents)
-    {
-        flamegpu::AgentVector vascular_vec(model.Agent(AGENT_VASCULAR));
-        if (config.vascular_mode == "none") {
-            // ABM rebuild Step 3b: no vascular agents. O2 delivery + immune entry
-            // points are now the Vvas field (compute_vvas_and_o2 / mark_entry_points).
-            // All vascular agent layers no-op on the empty population.
-        } else if (config.vascular_mode == "random") {
-            // Scale segments with grid volume to maintain ~3% vessel density.
-            // Each segment places ~grid_size vessels along a line, so for a grid^3
-            // domain we need 0.03 * grid^2 segments. Clamp to [4, 1000].
-            int vas_radius = config.grid_x / 2;
-            int num_seg = std::max(4, std::min(1000,
-                static_cast<int>(0.03f * config.grid_x * config.grid_y)));
-            initializeVascularCellsRandom(
-                vascular_vec,
-                config.grid_x, config.grid_y, config.grid_z,
-                vas_radius, num_seg,
-                vas_branch_prob,
-                config.random_seed);
-            assignInitialVascularTips(
-                vascular_vec,
-                config.grid_x, config.grid_y, config.grid_z,
-                vas_min_neighbor,
-                config.random_seed);
-        } else if (config.vascular_mode == "test") {
-            initializeVascularCellsTest(vascular_vec, config.grid_x, config.grid_y, config.grid_z);
-        } else {
-            std::cerr << "WARNING: Unknown vascular mode '" << config.vascular_mode
-                      << "', falling back to test mode" << std::endl;
-            initializeVascularCellsTest(vascular_vec, config.grid_x, config.grid_y, config.grid_z);
-        }
-        std::cout << "  Placed " << vascular_vec.size() << " Vascular cells" << std::endl;
-        simulation.setPopulationData(vascular_vec);
-    }
+    // Vascular agents removed (ABM rebuild Step 3b): O2 + entry via Vvas continuous field.
 
     // B cells — none at init (recruited via CXCL13)
     {
@@ -1352,7 +1310,7 @@ void initializeStructuredDomain(
                   << " × PARAM_ANTIGEN_DEPOSIT)" << std::endl;
     }
 
-    // Occupancy grid for exclusive cells (cancer, fibroblast, vascular)
+    // Occupancy grid for exclusive cells (cancer, fibroblast)
     std::vector<bool> occupied(total_voxels, false);
 
     // -----------------------------------------------------------------------
@@ -1377,7 +1335,6 @@ void initializeStructuredDomain(
 
     // Cell densities (cells/mm³) from IMC data
     const float fib_density = model.Environment().getProperty<float>("PARAM_DOMAIN_FIB_DENSITY");
-    const float vas_density = model.Environment().getProperty<float>("PARAM_DOMAIN_VAS_DENSITY");
     const float mac_density = model.Environment().getProperty<float>("PARAM_DOMAIN_MAC_DENSITY");
     const float cd8_density = model.Environment().getProperty<float>("PARAM_DOMAIN_CD8_DENSITY");
     const float cd4_density = model.Environment().getProperty<float>("PARAM_DOMAIN_CD4_DENSITY");
@@ -1478,30 +1435,7 @@ void initializeStructuredDomain(
     }
 
     // -----------------------------------------------------------------------
-    // Step 7: Vascular cells — density-based in non-tumor, exclusive, VAS_PHALANX
-    // -----------------------------------------------------------------------
-    {
-        int N_vas = static_cast<int>(std::round(vas_density * nontumor_vol_mm3));
-        auto positions = sample_positions(nontumor_voxels, N_vas, gx, gy, rng, &occupied);
-
-        flamegpu::AgentVector vas_pop(model.Agent(AGENT_VASCULAR));
-        for (size_t i = 0; i < positions.size(); i++) {
-            vas_pop.push_back();
-            flamegpu::AgentVector::Agent agent = vas_pop.back();
-            setVascularCellVariables(agent, positions[i][0], positions[i][1], positions[i][2],
-                                    VAS_PHALANX, 1.0f, 0.0f, 0.0f, 0u, 0);
-        }
-
-        // Assign initial TIP sprouts via spatial spreading
-        const int vas_min_neighbor = static_cast<int>(model.Environment().getProperty<float>("PARAM_VAS_MIN_NEIGHBOR"));
-        assignInitialVascularTips(vas_pop, gx, gy, gz,
-            vas_min_neighbor,
-            config.random_seed + 7);
-
-        simulation.setPopulationData(vas_pop);
-        std::cout << "  Vascular cells: " << positions.size() << " (target " << N_vas
-                  << " @ " << vas_density << "/mm³)" << std::endl;
-    }
+    // Step 7: Vascular agents REMOVED — O2 delivery via Vvas field
 
     // -----------------------------------------------------------------------
     // Step 8: Macrophages — density-based, non-exclusive, MAC_M2
@@ -1674,30 +1608,6 @@ void initializeSingleStemEdge(
     // ---- Lifecycle params from model env ----
     const float stem_div        = model.Environment().getProperty<float>("PARAM_FLOAT_CANCER_CELL_STEM_DIV_INTERVAL_SLICE");
     const float fib_life        = model.Environment().getProperty<float>("PARAM_FIB_LIFE_MEAN");
-    const float vas_branch_prob = model.Environment().getProperty<float>("PARAM_VAS_BRANCH_PROB");
-    const int   vas_min_neighbor = static_cast<int>(model.Environment().getProperty<float>("PARAM_VAS_MIN_NEIGHBOR"));
-
-    // ---- Vasculature: resident network, no central tumor exclusion ----
-    // ABM rebuild Step 3b: skipped in "none" mode (default). O2 + immune entry
-    // points are now the Vvas field; vascular agent layers no-op on empty pop.
-    if (config.vascular_mode != "none") {
-        flamegpu::AgentVector vascular_vec(model.Agent(AGENT_VASCULAR));
-        int num_seg = std::max(4, std::min(1000,
-            static_cast<int>(0.03f * gx * gy)));
-        initializeVascularCellsRandom(
-            vascular_vec,
-            gx, gy, gz,
-            /*tumor_radius=*/0,  // no exclusion zone — entire domain is healthy
-            num_seg, vas_branch_prob,
-            config.random_seed);
-        assignInitialVascularTips(
-            vascular_vec,
-            gx, gy, gz,
-            vas_min_neighbor,
-            config.random_seed);
-        std::cout << "  Placed " << vascular_vec.size() << " vascular cells" << std::endl;
-        simulation.setPopulationData(vascular_vec);
-    }
 
     // ---- Occupancy grid (cancer cluster builder uses this; we won't have a
     //      cluster, but PSC placement should still avoid the seed voxel below) ----
@@ -1998,12 +1908,11 @@ bool initializeFromPlacement(
     flamegpu::AgentVector mdsc_pop(model.Agent(AGENT_MDSC));
     flamegpu::AgentVector mac_pop(model.Agent(AGENT_MACROPHAGE));
     flamegpu::AgentVector fib_pop(model.Agent(AGENT_FIBROBLAST));
-    flamegpu::AgentVector vas_pop(model.Agent(AGENT_VASCULAR));
     flamegpu::AgentVector bcell_pop(model.Agent(AGENT_BCELL));
     flamegpu::AgentVector dc_pop(model.Agent(AGENT_DC));
 
     std::array<int, 9> placed{};
-    int n_skipped_vas = 0, n_unknown = 0;
+    int n_unknown = 0;
 
     for (int i = 0; i < n_agents; ++i) {
         const int* row = &table[static_cast<size_t>(i) * PLC_N_COLS];
@@ -2063,8 +1972,6 @@ bool initializeFromPlacement(
             a.setVariable<int>("persist_dir_x", 0);
             a.setVariable<int>("persist_dir_y", 0);
             a.setVariable<int>("persist_dir_z", 0);
-            a.setVariable<int>("hypoxia_exposure", 0);
-            a.setVariable<float>("hypoxia_kill_factor", 1.0f);
             a.setVariable<unsigned int>("det_tag", det_tag);
             ++placed[PLC_TCELL];
             break;
@@ -2129,11 +2036,6 @@ bool initializeFromPlacement(
             ++placed[PLC_FIB];
             break;
         }
-        case PLC_VAS:
-            // D-4: vasculature is a FIELD, not agents. The writer already excludes
-            // vas_phalanx, so reaching here means the file disagrees with that decision.
-            ++n_skipped_vas;
-            break;
         case PLC_BCELL: {
             bcell_pop.push_back();
             flamegpu::AgentVector::Agent a = bcell_pop.back();
@@ -2194,7 +2096,6 @@ bool initializeFromPlacement(
     simulation.setPopulationData(mdsc_pop);
     simulation.setPopulationData(mac_pop);
     simulation.setPopulationData(fib_pop);
-    simulation.setPopulationData(vas_pop);
     simulation.setPopulationData(bcell_pop);
     simulation.setPopulationData(dc_pop);
 
@@ -2207,10 +2108,6 @@ bool initializeFromPlacement(
               << ", FIB " << placed[PLC_FIB]
               << ", BCELL " << placed[PLC_BCELL]
               << ", DC " << placed[PLC_DC] << std::endl;
-    if (n_skipped_vas > 0) {
-        std::cout << "  NOTE: skipped " << n_skipped_vas << " vascular agent rows — vasculature"
-                     " is a field (D-4), so these should not have been written." << std::endl;
-    }
     if (n_unknown > 0) {
         std::cerr << "  WARNING: " << n_unknown << " rows had an unrecognised type_id and were"
                      " dropped — the writer and this reader disagree." << std::endl;

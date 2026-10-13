@@ -88,8 +88,6 @@ void defineTestLayers(flamegpu::ModelDescription& model, const LayerConfig& laye
     // ---- Recruitment ----
     if (layers.recruitment) {
         model.newLayer("reset_recruitment_sources").addHostFunction(reset_recruitment_sources);
-        model.newLayer("update_vasculature_count").addHostFunction(update_vasculature_count);
-        model.newLayer("mark_vascular_sources").addAgentFunction(AGENT_VASCULAR, "mark_sources");
         model.newLayer("recruit_gpu").addHostFunction(recruit_gpu);
         model.newLayer("place_recruited_agents").addHostFunction(place_recruited_agents);
     }
@@ -105,7 +103,6 @@ void defineTestLayers(flamegpu::ModelDescription& model, const LayerConfig& laye
             layer.addAgentFunction(AGENT_MDSC,        "write_to_occ_grid");
             layer.addAgentFunction(AGENT_MACROPHAGE,  "write_to_occ_grid");
             layer.addAgentFunction(AGENT_FIBROBLAST,  "write_to_occ_grid");
-            layer.addAgentFunction(AGENT_VASCULAR,    "write_to_occ_grid");
             layer.addAgentFunction(AGENT_BCELL,       "write_to_occ_grid");
             layer.addAgentFunction(AGENT_DC,          "write_to_occ_grid");
         }
@@ -145,7 +142,6 @@ void defineTestLayers(flamegpu::ModelDescription& model, const LayerConfig& laye
             if (bcell_on.count(i))  layer.addAgentFunction(AGENT_BCELL, "move");
             if (dc_on.count(i))     layer.addAgentFunction(AGENT_DC, "move");
         }
-        model.newLayer("move_vascular").addAgentFunction(AGENT_VASCULAR, "move");
     }
 
     // ---- Neighbor scan ----
@@ -154,7 +150,6 @@ void defineTestLayers(flamegpu::ModelDescription& model, const LayerConfig& laye
         model.newLayer("broadcast_tcell").addAgentFunction(AGENT_TCELL, "broadcast_location");
         model.newLayer("broadcast_treg").addAgentFunction(AGENT_TREG, "broadcast_location");
         model.newLayer("broadcast_mdsc").addAgentFunction(AGENT_MDSC, "broadcast_location");
-        model.newLayer("broadcast_vascular").addAgentFunction(AGENT_VASCULAR, "broadcast_location");
         model.newLayer("broadcast_macrophage").addAgentFunction(AGENT_MACROPHAGE, "broadcast_location");
         model.newLayer("broadcast_fibroblast").addAgentFunction(AGENT_FIBROBLAST, "broadcast_location");
         model.newLayer("broadcast_bcell").addAgentFunction(AGENT_BCELL, "broadcast_location");
@@ -184,7 +179,6 @@ void defineTestLayers(flamegpu::ModelDescription& model, const LayerConfig& laye
         layer.addAgentFunction(AGENT_MDSC,        "state_step");
         layer.addAgentFunction(AGENT_MACROPHAGE,  "state_step");
         layer.addAgentFunction(AGENT_FIBROBLAST,  "state_step");
-        layer.addAgentFunction(AGENT_VASCULAR,    "state_step");
         layer.addAgentFunction(AGENT_BCELL,       "state_step");
         layer.addAgentFunction(AGENT_DC,          "state_step");
     }
@@ -196,7 +190,6 @@ void defineTestLayers(flamegpu::ModelDescription& model, const LayerConfig& laye
         layer.addAgentFunction(AGENT_MDSC,        "compute_chemical_sources");
         layer.addAgentFunction(AGENT_MACROPHAGE,  "compute_chemical_sources");
         layer.addAgentFunction(AGENT_FIBROBLAST,  "compute_chemical_sources");
-        layer.addAgentFunction(AGENT_VASCULAR,    "compute_chemical_sources");
         layer.addAgentFunction(AGENT_BCELL,       "compute_chemical_sources");
         layer.addAgentFunction(AGENT_DC,          "compute_chemical_sources");
     }
@@ -220,7 +213,6 @@ void defineTestLayers(flamegpu::ModelDescription& model, const LayerConfig& laye
             model.newLayer("divide_bcell_w" + ws).addAgentFunction(AGENT_BCELL, "divide");
             model.newLayer("increment_divide_wave_" + ws).addHostFunction(increment_divide_wave);
         }
-        model.newLayer("divide_vascular").addAgentFunction(AGENT_VASCULAR, "vascular_divide");
         model.newLayer("fib_divide").addAgentFunction(AGENT_FIBROBLAST, "divide");
     }
 
@@ -326,7 +318,7 @@ void seedAgents(
     // (FLAMEGPU requires all agent types to have population data set)
     const std::vector<std::string> all_types = {
         AGENT_CANCER_CELL, AGENT_TCELL, AGENT_TREG, AGENT_MDSC,
-        AGENT_MACROPHAGE, AGENT_FIBROBLAST, AGENT_VASCULAR,
+        AGENT_MACROPHAGE, AGENT_FIBROBLAST,
         AGENT_BCELL, AGENT_DC
     };
     for (const auto& type_name : all_types) {

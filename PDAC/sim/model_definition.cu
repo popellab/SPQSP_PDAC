@@ -10,7 +10,6 @@
 #include "../agents/mdsc.cuh"
 #include "../agents/macrophage.cuh"
 #include "../agents/fibroblast.cuh"
-#include "../agents/vascular_cell.cuh"
 #include "../agents/b_cell.cuh"
 #include "../agents/dendritic_cell.cuh"
 #include "../agents/pack_for_export.cuh"
@@ -37,7 +36,6 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
 void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state);
 void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state);
 void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state);
-void defineVascularCellAgent(flamegpu::ModelDescription& model);
 void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divide);
 void defineDCAgent(flamegpu::ModelDescription& model, bool include_state);
 
@@ -85,7 +83,7 @@ void defineCancerCellAgent(flamegpu::ModelDescription& model, bool include_state
     cancer_cell.newVariable<float>("cabo_effect", 0.0f);       // VEGF inhibition level [0-1]
 
     // Neighbor counts (computed each step)
-    cancer_cell.newVariable<float>("neighbor_Teff_count", 0.0f);  // Weighted by T cell hypoxia_kill_factor
+    cancer_cell.newVariable<float>("neighbor_Teff_count", 0.0f);
     cancer_cell.newVariable<int>("neighbor_Treg_count", 0);
     cancer_cell.newVariable<int>("neighbor_cancer_count", 0);
     cancer_cell.newVariable<int>("neighbor_MDSC_count", 0);
@@ -203,8 +201,6 @@ void defineTCellAgent(flamegpu::ModelDescription& model, bool include_state_divi
     tcell.newVariable<unsigned int>("available_neighbors", 0u);
 
     // Lifecycle
-    tcell.newVariable<int>("hypoxia_exposure", 0);        // Cumulative hypoxia counter (graded impairment)
-    tcell.newVariable<float>("hypoxia_kill_factor", 1.0f); // Current kill ability [0,1], broadcast to cancer
     tcell.newVariable<int>("life", 0);
     tcell.newVariable<int>("dead", 0);
 
@@ -544,67 +540,6 @@ void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state
     }
 }
 
-// Define the VascularCell agent (Phase 1: Basic O2 secretion and VEGF-A uptake)
-void defineVascularCellAgent(flamegpu::ModelDescription& model) {
-    flamegpu::AgentDescription agent = model.newAgent(AGENT_VASCULAR);
-
-    // Position (voxel coordinates)
-    agent.newVariable<int>("x");
-    agent.newVariable<int>("y");
-    agent.newVariable<int>("z");
-
-    // State (VAS_TIP, VAS_STALK, VAS_PHALANX)
-    agent.newVariable<int>("cell_state", VAS_PHALANX);  // Default: mature vessel
-
-    // Movement state (unified movement framework)
-    agent.newVariable<int>("persist_dir_x", 0);
-    agent.newVariable<int>("persist_dir_y", 0);
-    agent.newVariable<int>("persist_dir_z", 0);
-
-    // Tip ID (for tracking vessel lineages)
-    agent.newVariable<unsigned int>("tip_id", 0);
-
-    // Intent variables for two-phase conflict resolution
-    agent.newVariable<int>("intent_action", INTENT_NONE);
-    agent.newVariable<int>("target_x", -1);
-    agent.newVariable<int>("target_y", -1);
-    agent.newVariable<int>("target_z", -1);
-
-    // State transition variables
-    agent.newVariable<int>("mature_to_phalanx", 0);  // Anastomosis flag
-    agent.newVariable<int>("branch", 0);  // Branch flag for phalanx cells
-    agent.newVariable<int>("maturity", 0);            // Steps since creation (resists compression/regression)
-    agent.newVariable<int>("is_dysfunctional", 0);    // Sprouted into hypoxic tissue (permanent reduced O2)
-
-    // Register agent functions
-    agent.newFunction("broadcast_location", vascular_broadcast_location)
-        .setMessageOutput(MSG_CELL_LOCATION);
-
-    agent.newFunction("update_chemicals", vascular_update_chemicals);
-
-    agent.newFunction("compute_chemical_sources", vascular_compute_chemical_sources);
-    agent.newFunction("phi_deposit", vas_phi_deposit);
-    agent.newFunction("pack_for_export", pack_export_vas);
-
-    // Occupancy grid write function
-    agent.newFunction("write_to_occ_grid", vascular_write_to_occ_grid);
-
-    // Recruitment source marking
-    agent.newFunction("mark_sources", vascular_mark_sources);
-
-    // State transitions and division
-    agent.newFunction("state_step", vascular_state_step);
-
-    // Single-phase divide using occupancy grid
-    {
-        flamegpu::AgentFunctionDescription fn = agent.newFunction("vascular_divide", vascular_divide);
-        fn.setAgentOutput(agent);
-    }
-
-    // Single-phase movement (tip cells only, run-tumble, volume-based occupancy)
-    agent.newFunction("move", vascular_move);
-}
-
 // Define the BCell agent (Naive/Activated/Plasma states, CXCL13 chemotaxis, ADCC)
 void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divide) {
     flamegpu::AgentDescription bcell = model.newAgent(AGENT_BCELL);
@@ -909,7 +844,7 @@ void defineEnvironment(flamegpu::ModelDescription& model,
     // Drug properties
     env.newProperty<float>("R_cabo", 0.0f); // Resistance to Cabo
 
-    // Vasculature count (updated each step by update_vasculature_count host function)
+    // n_vasculature_total: kept at default=1 (VAS agents removed, Step 3b)
     env.newProperty<int>("n_vasculature_total", 1);
 
     // Wave-interleaved division: current wave index (0..N_DIVIDE_WAVES-1), managed by host fns
@@ -965,7 +900,6 @@ std::unique_ptr<flamegpu::ModelDescription> buildModel(
     defineMDSCAgent(*model, true);
     defineMacrophageAgent(*model, true);
     defineFibroblastAgent(*model, true);
-    defineVascularCellAgent(*model);
     defineBCellAgent(*model, true);
     defineDCAgent(*model, true);
 

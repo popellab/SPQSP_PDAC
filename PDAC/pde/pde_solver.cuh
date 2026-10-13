@@ -163,6 +163,9 @@ public:
     // Diagnostics
     float get_total_source(int substrate_idx);
     int   get_total_voxels() const { return config_.nx * config_.ny * config_.nz; }
+    int   get_nx() const { return config_.nx; }
+    int   get_ny() const { return config_.ny; }
+    int   get_nz() const { return config_.nz; }
     int   get_solve_mode()   const { return config_.solve_mode; }
 
     // Point query (D2H, for diagnostics only - slow)
