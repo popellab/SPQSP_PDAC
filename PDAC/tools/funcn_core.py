@@ -11,13 +11,8 @@ source cells b∈B evaluated at a:
     FunCN(A,B) = mean_{a∈A} Σ_{b∈B} K_σ(a-b)
 
 σ is a PARAMETER, not a constant. The module default is σ = 10 µm (σ_vox 0.5), which
-is what the existing ABM-side observable was built with — but note that σ_vox = 0.5 is
-the coupling-contract §4.4 artifact regime, where the kernel barely leaves the target's
-own voxel and the statistic measures same-voxel co-occupancy rather than a spatial
-average. The IMC neighbourhood pipeline (``imc_pipeline/stage4_neighborhoods.py``)
-therefore passes σ = 30 µm (σ_vox 1.5, per-voxel-offset weights
-1.00/0.80/0.41/0.135/0.03), the locked geometry constant. Callers should pass ``sigma_vox``
-explicitly rather than inherit the default.
+Unified σ = 50 µm (σ_vox = 2.5) across IMC targets, SA placement, and ABM runtime.
+The default SIGMA_VOX is 2.5 voxels at 20 µm/vox = 50 µm.
 """
 from __future__ import annotations
 
@@ -25,10 +20,13 @@ from functools import lru_cache
 
 import numpy as np
 
-SIGMA_UM = 10.0
+SIGMA_UM = 50.0
 VOXEL_UM = 20.0
-SIGMA_VOX = SIGMA_UM / VOXEL_UM                      # 0.5 voxels
-CUTOFF_VOX = max(2, int(np.ceil(3 * SIGMA_VOX)))     # 2 voxels
+SIGMA_VOX = SIGMA_UM / VOXEL_UM                      # 2.5 voxels
+CUTOFF_VOX = max(2, int(np.ceil(3 * SIGMA_VOX)))     # 8 voxels
+
+CANCER_CATS = frozenset({"cancer_sen", "cancer_prog", "cancer_stem"})
+CANCER_WINDOW_MARGIN = 10  # voxels of padding beyond cancer extent
 
 
 def cutoff_for(sigma_vox: float) -> int:
@@ -43,6 +41,49 @@ def k0_for(sigma_vox: float) -> float:
 
 def _as_shape(shape: int | tuple[int, int, int]) -> tuple[int, int, int]:
     return (shape, shape, shape) if isinstance(shape, int) else tuple(shape)  # type: ignore[return-value]
+
+
+def cancer_window(
+    pos_by_cat: dict[str, np.ndarray],
+    shape: int | tuple[int, int, int],
+    margin: int = CANCER_WINDOW_MARGIN,
+    cancer_cats: frozenset[str] = CANCER_CATS,
+) -> tuple[dict[str, np.ndarray], tuple[int, int, int]]:
+    """Crop all positions to a bounding box around cancer cells + margin.
+
+    Returns (cropped_pos_by_cat, window_shape) where positions are translated
+    to window-relative coordinates. Cells outside the window are dropped.
+    If no cancer cells exist, returns the original data unchanged.
+    """
+    gx, gy, gz = _as_shape(shape)
+    cancer_pos = [pos_by_cat[c] for c in cancer_cats
+                  if c in pos_by_cat and len(pos_by_cat[c]) > 0]
+    if not cancer_pos:
+        return pos_by_cat, (gx, gy, gz)
+    all_cancer = np.concatenate(cancer_pos, axis=0)
+
+    x0 = max(0, int(all_cancer[:, 0].min()) - margin)
+    x1 = min(gx - 1, int(all_cancer[:, 0].max()) + margin)
+    y0 = max(0, int(all_cancer[:, 1].min()) - margin)
+    y1 = min(gy - 1, int(all_cancer[:, 1].max()) + margin)
+    z0 = max(0, int(all_cancer[:, 2].min()) - margin)
+    z1 = min(gz - 1, int(all_cancer[:, 2].max()) + margin)
+
+    win_shape = (x1 - x0 + 1, y1 - y0 + 1, z1 - z0 + 1)
+    out: dict[str, np.ndarray] = {}
+    for cat, pos in pos_by_cat.items():
+        if len(pos) == 0:
+            out[cat] = pos
+            continue
+        mask = ((pos[:, 0] >= x0) & (pos[:, 0] <= x1) &
+                (pos[:, 1] >= y0) & (pos[:, 1] <= y1) &
+                (pos[:, 2] >= z0) & (pos[:, 2] <= z1))
+        cropped = pos[mask].copy()
+        cropped[:, 0] -= x0
+        cropped[:, 1] -= y0
+        cropped[:, 2] -= z0
+        out[cat] = cropped
+    return out, win_shape
 
 
 def build_gaussian_kernel(sigma_vox: float = SIGMA_VOX, cutoff_vox: int | None = None) -> np.ndarray:

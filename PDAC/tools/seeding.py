@@ -22,9 +22,7 @@ Three decisions from §C6 are baked in here and are not the sampler's to revisit
    field. The stage-5 targets are section statistics, so ``virtual_section`` reduces a
    3D configuration the same way before anything is compared.
 
-σ here is the PLACEMENT σ (30 µm, σ_vox 1.5) and is deliberately distinct from the
-coupling φ-estimator σ — contract §4.4 separates the two statistics and they must not
-collapse into one.
+σ = 50 µm (σ_vox 2.5), unified across IMC targets, SA placement, and ABM runtime.
 """
 from __future__ import annotations
 

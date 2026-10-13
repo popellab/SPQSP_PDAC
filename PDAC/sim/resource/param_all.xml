@@ -86,7 +86,8 @@
       <V_T_IFNg>0.0</V_T_IFNg>
       <V_T_TGFb>0.0</V_T_TGFb>
       <V_T_Tfh>0.0</V_T_Tfh>
-      <V_T_B>0.0</V_T_B>
+      <V_T_nB>0.0</V_T_nB>
+      <V_T_aB>0.0</V_T_aB>
       <V_T_Plasma>0.0</V_T_Plasma>
       <V_T_MDSC>0.0</V_T_MDSC>
       <V_T_NO>0.0</V_T_NO>
@@ -507,6 +508,11 @@
       <k_B_to_plasma>0.5</k_B_to_plasma>
       <k_plasma_death>0.1</k_plasma_death>
       <Tfh_50_B>100000.0</Tfh_50_B>
+      <k_Tfh_diff_tumor>1.0</k_Tfh_diff_tumor>
+      <IL6_50_Tfh>1.0</IL6_50_Tfh>
+      <k_B_act_tumor>1.0</k_B_act_tumor>
+      <k_B_pro_tumor>0.5</k_B_pro_tumor>
+      <Tfh_50_plasma>1000.0</Tfh_50_plasma>
       <k_CCL2_sec>2e-10</k_CCL2_sec>
       <k_CCL2_deg>0.06</k_CCL2_deg>
       <CCL2_50>0.23</CCL2_50>

@@ -125,7 +125,7 @@ def validate_placement(
     pos_fib: np.ndarray,
     pos_vas: np.ndarray,
     shape: tuple[int, int],
-    sigma_vox: float = 1.5,
+    sigma_vox: float = 2.5,
 ) -> np.ndarray:
     """Compute mean funcn_frac from scratch for placed positions.
 
@@ -159,7 +159,7 @@ def sa_place(
     n_vas: int,
     shape: tuple[int, int],
     target_frac: np.ndarray,
-    sigma_vox: float = 1.5,
+    sigma_vox: float = 2.5,
     n_steps: int = 5_000_000,
     seed: int = 0,
     log_interval: int = 100_000,
@@ -172,7 +172,7 @@ def sa_place(
     n_fib, n_vas : cell counts
     shape : (gx, gy) 2D grid dimensions
     target_frac : (2, 2) neighbourhood-fraction targets, indices 0=vas 1=fib
-    sigma_vox : FunCN kernel width in voxels (default 1.5 = 30 µm)
+    sigma_vox : FunCN kernel width in voxels (default 2.5 = 50 µm)
     n_steps : total SA steps (including calibration)
     seed : RNG seed
 

@@ -29,8 +29,8 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--n-steps", type=int, default=5_000_000)
     p.add_argument("--log-interval", type=int, default=100_000)
-    p.add_argument("--sigma-vox", type=float, default=1.5,
-                   help="FunCN kernel sigma in voxels (default 1.5 = 30 µm)")
+    p.add_argument("--sigma-vox", type=float, default=2.5,
+                   help="FunCN kernel sigma in voxels (default 2.5 = 50 µm)")
     p.add_argument("--voxel-um", type=float, default=20.0)
     p.add_argument("--output", type=str, required=True,
                    help="Output .plc file path")

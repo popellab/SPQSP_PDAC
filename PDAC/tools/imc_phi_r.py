@@ -1,6 +1,16 @@
-"""Compute FunCN phi at variable Gaussian radii for all IMC patient ROIs.
+"""DEPRECATED: density-ratio phi (replaced by permutation-null in funcn_core.py).
 
-Uses the SAME Gaussian-KDE formula as the ABM phi diagnostic:
+This module uses the old density-ratio formula:
+  phi = mean(KDE/SumK) / rho_B
+which has been replaced everywhere (ABM, SA, IMC targets) by the permutation-null:
+  phi = T_obs / E_perm  (see funcn_core.funcn_phi)
+
+Use funcn_core.funcn_phi instead. This file is kept only for historical reference.
+
+--- Original docstring ---
+Compute FunCN phi at variable Gaussian radii for all IMC patient ROIs.
+
+Uses the OLD density-ratio formula (NOT the permutation-null used by the ABM):
   - Each source of type B deposits an unnormalized Gaussian (peak 1.0) on a voxel grid
   - Each target of type A samples the KDE at its voxel, edge-corrected by sumK_local
   - phi(sigma) = mean(KDE_B(x_i) / sumK_local(x_i)) / rho_B
