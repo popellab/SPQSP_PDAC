@@ -1,0 +1,248 @@
+target_id: k_Treg_death
+inputs:
+- name: dstar_Treg_mean_pct_per_day
+  value: 6.58
+  units: '%/day'
+  input_type: direct_measurement
+  source_ref: VukmanovicStejic2006
+  source_location: Table 1, All subjects (n = 8) row, CD4+CD45RO+CD25hi column d* (%/day)
+  table_excerpt:
+    table_id: Table 1
+    column: d* (%/day)
+    row: All subjects (n = 8)
+    value: '6.58'
+    context: In vivo proliferative kinetics of CD4+ T cells defined according to levels of CD25 expression. Mean disappearance
+      rate constant d* for CD4+CD45RO+CD25hi (regulatory) T cells across all 8 subjects.
+- name: dstar_Treg_SD_pct_per_day
+  value: 3.83
+  units: '%/day'
+  input_type: direct_measurement
+  source_ref: VukmanovicStejic2006
+  source_location: Table 1, All subjects (n = 8) row, CD4+CD45RO+CD25hi column SD of d* (%/day)
+  table_excerpt:
+    table_id: Table 1
+    column: d* (%/day)
+    row: SD
+    value: '3.83'
+    context: Standard deviation of disappearance rate constant d* for CD4+CD45RO+CD25hi (regulatory) T cells across 8 subjects.
+- name: dstar_Treg_sample_size
+  value: 8.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: VukmanovicStejic2006
+  source_location: Table 1 caption and All subjects row (n = 8)
+  value_snippet: All subjects (n = 8)
+  table_excerpt:
+    table_id: Table 1
+    column: Subjects
+    row: All subjects
+    value: n = 8
+    context: Number of human volunteers included in pooled analysis of CD4+ T cell subsets.
+- name: pct_to_fraction
+  value: 100.0
+  units: dimensionless
+  input_type: unit_conversion
+  rationale: 'Conversion factor from percent to fractional units: 100 % = 1.0. Used to convert disappearance rates reported
+    in %/day into 1/day for QSP model parameters.'
+  source_ref: VukmanovicStejic2006
+  source_location: Applied to d* values reported in Table 1
+- name: dstar_Treg_mean_1_per_day
+  value: 0.0658
+  units: 1/day
+  input_type: derived_arithmetic
+  rationale: Derived by converting the reported mean disappearance rate for CD4+CD45RO+CD25hi Tregs from %/day to 1/day using
+    the factor 100 % = 1.
+  source_ref: VukmanovicStejic2006
+  source_location: Derived from Table 1, All subjects row, CD4+CD45RO+CD25hi d* (%/day)
+  source_inputs:
+  - dstar_Treg_mean_pct_per_day
+  - pct_to_fraction
+  formula: dstar_Treg_mean_pct_per_day / pct_to_fraction
+- name: dstar_Treg_SD_1_per_day
+  value: 0.0383
+  units: 1/day
+  input_type: derived_arithmetic
+  rationale: Derived by converting the reported standard deviation of the disappearance rate for CD4+CD45RO+CD25hi Tregs from
+    %/day to 1/day using the factor 100 % = 1.
+  source_ref: VukmanovicStejic2006
+  source_location: Derived from Table 1, All subjects row, CD4+CD45RO+CD25hi d* SD (%/day)
+  source_inputs:
+  - dstar_Treg_SD_pct_per_day
+  - pct_to_fraction
+  formula: dstar_Treg_SD_pct_per_day / pct_to_fraction
+calibration:
+  parameters:
+  - name: k_Treg_death
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: Vukmanovic-Stejic et al. (2006) quantified the disappearance rate constant d* for human circulating CD4+CD45RO+CD25hiFoxp3+
+      regulatory T cells using in vivo deuterium labeling and kinetic modeling. The reported d* is already a first-order loss
+      rate (per day), matching the QSP parameter k_Treg_death, so an algebraic relationship between the parameter and the
+      observable is appropriate.
+    submodel_rationale: In the full QSPIO-PDAC model, k_Treg_death governs first-order death of Tregs in blood, peripheral
+      tissues, lymph node, and tumor compartments. At homeostasis, the effective net loss rate of circulating memory-phenotype
+      Tregs should be comparable to the death rate used in the model. We therefore equate the QSP parameter k_Treg_death to
+      the experimentally inferred disappearance rate constant d* for human blood memory Tregs.
+    type: algebraic
+    formula: dstar = k_Treg_death
+    code: "import numpy as np\n\ndef compute(params, inputs):\n    return params['k_Treg_death']\n"
+  error_model:
+  - name: human_Treg_disappearance_rate
+    units: 1/day
+    uses_inputs:
+    - dstar_Treg_mean_1_per_day
+    - dstar_Treg_SD_1_per_day
+    sample_size_input: dstar_Treg_sample_size
+    observation_code: "import numpy as np\n\ndef derive_observation(inputs, sample_size, rng, n_bootstrap):\n    mean_val\
+      \ = inputs['dstar_Treg_mean_1_per_day']\n    sd_val = inputs['dstar_Treg_SD_1_per_day']\n    sem = sd_val / np.sqrt(sample_size)\n\
+      \    samples = rng.normal(mean_val, sem, size=n_bootstrap)\n    return samples\n"
+    n_bootstrap: 10000
+  identifiability_notes: This target constrains the baseline first-order death rate k_Treg_death for systemic memory-phenotype
+    Tregs to be near the experimentally inferred disappearance rate d* from human peripheral blood (~0.066 1/day, t1/2 ~11
+    days). Because the observable is directly equated to the parameter, the data provide a strong constraint on the marginal
+    distribution of k_Treg_death assuming the measurement error is correctly characterized. However, in the full PDAC QSP
+    model, the effective turnover of Tregs in each compartment also depends on trafficking and local proliferation parameters
+    (q_Treg_* and k_Treg_pro, k_Treg_pro_tumor). As a result, only the systemic component of Treg loss is directly informed
+    by this target. The experimental d* includes both true cell death and other loss processes such as migration out of blood
+    or phenotype changes, so k_Treg_death inferred here effectively represents an apparent first-order loss rate of circulating
+    memory Tregs rather than a pure apoptosis rate. Additional tissue- and tumor-specific data (e.g., Ki-67 or BrdU labeling
+    in tumor-infiltrating Tregs) would be needed to refine compartment-specific Treg death or turnover rates.
+experimental_context:
+  species: human
+  system: clinical_in_vivo_blood
+  cell_types:
+  - name: CD4+CD45RO+CD25hiFoxp3+ regulatory T cells
+    phenotype: Memory-phenotype regulatory T cells in peripheral blood
+    isolation_method: Negative selection for CD4+ T cells followed by flow cytometric sorting of CD4+CD45RO+CD25hi cells
+    source: Peripheral blood from healthy adult volunteers
+  - name: CD4+CD45RO+CD25- memory T cells
+    phenotype: Memory-phenotype conventional CD4+ T cells
+    isolation_method: Negative selection for CD4+ T cells followed by flow cytometric sorting of CD4+CD45RO+CD25- cells
+    source: Peripheral blood from healthy adult volunteers
+  indication: healthy_volunteers
+study_interpretation: Vukmanovic-Stejic et al. (2006) used in vivo deuterium-labeled glucose to quantify proliferation and
+  disappearance rates of different human CD4+ T cell subsets, including CD4+CD45RO+CD25hiFoxp3+ regulatory T cells, under
+  homeostatic conditions. By fitting a kinetic model to the time course of label incorporation and decay in sorted subsets,
+  they reported a disappearance rate constant d* of approximately 6.58% per day (SD 3.83%/day) for memory-phenotype Tregs
+  across eight adult donors, corresponding to a half-life of about 11 days. This d* is a first-order loss rate from the circulating
+  Treg pool, encompassing true cell death plus loss via migration and phenotype changes. For the QSPIO-PDAC model, we interpret
+  this as an apparent first-order death/turnover rate for systemic memory Tregs, and equate it to the model parameter k_Treg_death.
+  This provides a human in vivo anchor for Treg lifespan against which other processes (recruitment to tumor, local proliferation,
+  and depletion by therapies) operate.
+key_assumptions:
+- The disappearance rate constant d* for CD4+CD45RO+CD25hiFoxp3+ Tregs in peripheral blood is a suitable proxy for the intrinsic
+  first-order death rate k_Treg_death used for Tregs across compartments in the QSPIO-PDAC model.
+- Loss of labeled Tregs from the blood compartment in the deuterium study is dominated by true cell death rather than by long-term
+  sequestration in tissues or stable phenotype switches, so that d* approximates a death/turnover rate.
+- Homeostatic Treg turnover rates in healthy adults are representative of baseline Treg death rates in PDAC patients prior
+  to treatment, acknowledging that inflammation, therapy, and tumor burden may modulate survival somewhat.
+- The uncertainty in the pooled estimate of d* across eight subjects can be approximated by a normal distribution for the
+  mean, using the reported standard deviation and sample size.
+- Potential differences between circulating and tissue-resident or tumor-infiltrating Tregs (e.g., altered survival signals
+  in the PDAC microenvironment) are handled elsewhere in the model via compartment-specific proliferation and depletion terms
+  rather than by changing k_Treg_death.
+key_study_limitations:
+- The disappearance rate d* reflects net loss from the labeled blood Treg pool and conflates true apoptosis with migration
+  to tissues and possible phenotype conversion, so it may overestimate the pure death rate.
+- Measurements were made in healthy volunteers without cancer; systemic inflammation, chemotherapy, and PDAC-associated immunosuppression
+  could alter Treg survival in patients.
+- The study focused on circulating memory-phenotype CD4+CD45RO+CD25hi Tregs and did not characterize tissue-resident or tumor-infiltrating
+  Treg populations, which may have different lifespans.
+- Sample size was modest (n = 8), and inter-individual variability in d* was relatively large (SD ~60% of the mean), which
+  increases uncertainty in the true population-average death rate.
+- The kinetic model used to infer p and d* assumes homogeneous subpopulations and steady-state conditions, which may not hold
+  perfectly in vivo and could bias rate estimates.
+primary_data_source:
+  doi: 10.1172/JCI28941
+  title: Human CD4+CD25hiFoxp3+ regulatory T cells are derived by rapid turnover of memory populations in vivo
+  authors:
+  - Milica Vukmanovic-Stejic
+  - Yan Zhang
+  - Joanne E. Cook
+  - Jean M. Fletcher
+  - Arthur McQuaid
+  - Joanne E. Masters
+  - Malcolm H.A. Rustin
+  - Leonie S. Taams
+  - Peter C.L. Beverley
+  - Derek C. Macallan
+  - Arne N. Akbar
+  year: 2006
+  source_tag: VukmanovicStejic2006
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The source study measured turnover of circulating CD4+CD45RO+CD25hiFoxp3+ regulatory T
+      cells in healthy adult humans, whereas the QSPIO-PDAC model focuses on Treg dynamics in pancreatic ductal adenocarcinoma
+      patients. Although there is no tumor present in the study subjects, the basic homeostatic lifespan of human memory-phenotype
+      Tregs in blood is expected to be similar in cancer patients, so these data can serve as a mechanistic proxy for systemic
+      Treg death rates in PDAC.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Deuterium-labeled glucose administration is a minimally perturbative tracer technique used to
+      quantify cell turnover under near-steady-state physiological conditions. The inferred disappearance rate d* therefore
+      reflects baseline homeostatic loss of circulating memory Tregs rather than drug-induced killing, making it suitable
+      to inform an unperturbed k_Treg_death parameter.
+    tme_compatibility: moderate
+    tme_compatibility_notes: The measurements are from peripheral blood in healthy volunteers and do not directly probe the
+      pancreatic tumor microenvironment, which is highly immunosuppressive and stromalized in PDAC. However, the basic lifespan
+      of memory-phenotype Tregs is largely determined by intrinsic survival programs and systemic cytokine/IL-2 availability,
+      so the blood-based disappearance rate is a reasonable starting point for systemic Treg death, with the understanding
+      that local tumor Treg survival may differ.
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: clinical_in_vivo
+secondary_data_sources:
+- doi: 10.1016/j.cmet.2015.03.005
+  title: Antigen- and Cytokine-Driven Accumulation of Regulatory T Cells in Visceral Adipose Tissue of Lean Mice
+  authors:
+  - Dmitriy Kolodin
+  - Nicolas van Panhuys
+  - Chaoran Li
+  - Angela M. Magnuson
+  - Daniela Cipolletta
+  - Christine M. Miller
+  - Amy Wagers
+  - Ronald N. Germain
+  - Christophe Benoist
+  - Diane Mathis
+  year: 2015
+  source_tag: Kolodin2015
+  contribution: Provided complementary mouse BrdU pulse-chase data demonstrating tissue-specific Treg half-lives (e.g., VAT
+    versus spleen), supporting the plausibility of first-order Treg turnover with characteristic timescales of 10–25 days
+    and informing qualitative expectations for Treg survival in non-lymphoid tissues.
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The source study measured turnover of circulating CD4+CD45RO+CD25hiFoxp3+ regulatory T
+      cells in healthy adult humans, whereas the QSPIO-PDAC model focuses on Treg dynamics in pancreatic ductal adenocarcinoma
+      patients. Although there is no tumor present in the study subjects, the basic homeostatic lifespan of human memory-phenotype
+      Tregs in blood is expected to be similar in cancer patients, so these data can serve as a mechanistic proxy for systemic
+      Treg death rates in PDAC.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Deuterium-labeled glucose administration is a minimally perturbative tracer technique used to
+      quantify cell turnover under near-steady-state physiological conditions. The inferred disappearance rate d* therefore
+      reflects baseline homeostatic loss of circulating memory Tregs rather than drug-induced killing, making it suitable
+      to inform an unperturbed k_Treg_death parameter.
+    tme_compatibility: moderate
+    tme_compatibility_notes: The measurements are from peripheral blood in healthy volunteers and do not directly probe the
+      pancreatic tumor microenvironment, which is highly immunosuppressive and stromalized in PDAC. However, the basic lifespan
+      of memory-phenotype Tregs is largely determined by intrinsic survival programs and systemic cytokine/IL-2 availability,
+      so the blood-based disappearance rate is a reasonable starting point for systemic Treg death, with the understanding
+      that local tumor Treg survival may differ.
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: clinical_in_vivo
+tags:
+- Treg
+- turnover
+- death_rate
+- human_clinical
+- PDAC_proxy
+- k_Treg_death
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

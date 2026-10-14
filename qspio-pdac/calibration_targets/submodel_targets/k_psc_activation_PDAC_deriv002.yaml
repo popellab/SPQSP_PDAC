@@ -1,0 +1,633 @@
+target_id: k_psc_activation_myCAF_bachem1993
+tags:
+- ai-generated
+extraction_model: claude-opus-4-6
+extraction_reasoning_effort: high
+study_interpretation: 'Bachem et al. (1993) characterized the transdifferentiation of rat liver
+
+  perisinusoidal lipocytes (PL, equivalent to quiescent stellate cells) into
+
+  myofibroblast-like cells (MFBLC) during primary culture on uncoated plastic.
+
+  Figure 4a shows a dual-axis time course of cell count and alpha-SMA+ fraction
+
+  over 16 days of primary culture (mean +/- SD, n=3). PL were seeded at 0.15 x
+
+  10^5 cells/cm^2 (150 x 10^3 cells/well) on 6-well plates in DMEM with 10% FCS.
+
+
+  The alpha-SMA+ fraction rose from ~10% at day 2 to ~30% at day 10 and ~48%
+
+  by day 16. Cell counts were flat for the first 4 days (~120-150 x 10^3), then
+
+  doubled by day 6 (~285 x 10^3), plateauing at ~320-330 x 10^3 from day 10
+
+  onward at confluence.
+
+  '
+key_assumptions:
+- 'alpha-SMA+ fraction at each time point reflects the cumulative proportion
+
+  of cells that have transitioned from quiescent to activated state. The
+
+  forward model treats this as a first-order transition (qPSC -> myCAF) with
+
+  rate k_PSC_to_myCAF.
+
+  '
+- 'Cell number increase during days 4-7 is driven primarily by proliferation
+
+  of activating/activated cells. The forward model includes logistic growth
+
+  with rate k_myCAF_prolif, reaching carrying capacity at confluence.
+
+  '
+- 'Culture on rigid plastic with 10% FCS provides strong activation signals
+
+  (TGFbeta, PDGF, mechanical cues) such that the Hill-type signaling terms
+
+  in the full model are near-saturating. The observed rates approximate
+
+  k_PSC_to_myCAF and k_myCAF_prolif at maximal stimulation.
+
+  '
+- 'Rat hepatic stellate cell activation kinetics are representative of
+
+  pancreatic stellate cell activation in the PDAC tumor microenvironment.
+
+  '
+key_study_limitations:
+- 'Rat liver stellate cells on 2D plastic, not human PDAC CAFs in vivo.
+
+  Activation on rigid substrates with serum may be faster than in the
+
+  3D tumor microenvironment due to maximal mechanotransduction.
+
+  '
+- 'The high seeding density (150 x 10^3 cells/well) means confluence is
+
+  reached early (day 6-7), after which contact inhibition limits further
+
+  proliferation and may slow activation.
+
+  '
+- 'alpha-SMA staining is binary (positive/negative) and may not capture
+
+  intermediate activation states.
+
+  '
+- 'The confluence plateau (~330 x 10^3 cells/well) is a culture-specific
+
+  physical constraint, not the biological carrying capacity parameter
+
+  (f_stroma_max) used in the full model.
+
+  '
+experimental_context:
+  species: rat
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: perisinusoidal lipocyte / hepatic stellate cell
+    source: rat liver
+    isolation_method: 'Nycodenz density gradient from rat liver, seeded on 6-well plates
+
+      at 0.15 x 10^5 cells/cm^2 in DMEM with 10% FCS. Medium changed at
+
+      2-day intervals. Plating efficiency 80%.
+
+      '
+  culture_conditions:
+    medium: DMEM with 10% fetal calf serum
+    duration: 16 days primary culture
+  indication: liver_fibrosis
+primary_data_source:
+  doi: 10.1016/S0168-8278(05)80008-X
+  title: 'The response of rat liver perisinusoidal lipocytes to polypeptide growth
+
+    regulator changes with their transdifferentiation into myofibroblast-like
+
+    cells in culture
+
+    '
+  authors:
+  - Bachem
+  - Meyer
+  - Schafer
+  - Riess
+  - Melchior
+  - Sell
+  - Gressner
+  year: 1993
+  source_tag: Bachem1993
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'Rat hepatic stellate cell activation kinetics as proxy for PDAC pancreatic
+
+      stellate cell activation. HSCs and PSCs are functionally nearly identical
+
+      (vitamin A storage, alpha-SMA expression, TGFbeta-driven activation).
+
+      '
+    species_source: rat
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: pathological_state
+    perturbation_relevance: 'Culture on rigid plastic with 10% FCS provides maximal activation stimulus.
+
+      In vivo activation in PDAC may be slower due to 3D ECM constraints.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro 2D plastic culture provides strong uniform activation but lacks
+
+      the spatial heterogeneity, 3D ECM, and competing signals of PDAC stroma.
+
+      '
+    measurement_directness: direct
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_primary
+secondary_data_sources: []
+inputs:
+- name: cell_count_day2_mean
+  value: 120.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 2
+  value_snippet: 'cell number increased from 120 x 10^3 cells/well at day 1
+
+    '
+- name: cell_count_day2_sd
+  value: 10.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 2 error bar
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: Cell count error bar at day 2, squares left y-axis
+    value: '10'
+    context: Digitized SD from error bar extent (mean+SD=130, mean=120).
+- name: cell_count_day4_mean
+  value: 150.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a / Results text
+  value_snippet: '150 x 10^3 cells/well at day 4
+
+    '
+- name: cell_count_day4_sd
+  value: 10.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 4 error bar
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: Cell count error bar at day 4
+    value: '10'
+    context: Digitized SD from error bar (mean+SD=160, mean=150).
+- name: cell_count_day6_mean
+  value: 285.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 6
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: Cell count at day 6 during steep growth phase
+    value: '285'
+    context: Text confirms cell number doubled during days 4-7.
+- name: cell_count_day6_sd
+  value: 30.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 6 error bar
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: Cell count error bar at day 6
+    value: '30'
+    context: Digitized SD from error bar (mean+SD=315, mean=285).
+- name: cell_count_day10_mean
+  value: 320.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 10
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: Cell count at day 10, post-confluence plateau
+    value: '320'
+    context: 'Text: growth curve became flat after day 7.'
+- name: cell_count_day10_sd
+  value: 30.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 10 error bar
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: Cell count error bar at day 10
+    value: '30'
+    context: Digitized SD from error bar (mean+SD=350, mean=320).
+- name: cell_count_day16_mean
+  value: 330.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 16
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: Cell count at day 16, late plateau
+    value: '330'
+    context: Plateau maintained through day 16.
+- name: cell_count_day16_sd
+  value: 10.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 16 error bar
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: Cell count error bar at day 16
+    value: '10'
+    context: Digitized SD from error bar (mean+SD=340, mean=330).
+- name: asma_frac_day2_mean
+  value: 0.1
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 2
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: alpha-SMA+ fraction at day 2 (circles, right y-axis)
+    value: '10'
+    context: 10% alpha-SMA+ digitized from right y-axis. Stored as fraction 0.10.
+- name: asma_frac_day2_sd
+  value: 0.08
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 2 error bar
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: alpha-SMA+ error bar at day 2
+    value: '8'
+    context: SD=8% (mean-SD=2%). Stored as fraction 0.08.
+- name: asma_frac_day4_mean
+  value: 0.17
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 4
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: alpha-SMA+ fraction at day 4
+    value: '17'
+    context: 17% alpha-SMA+ digitized. Stored as fraction 0.17.
+- name: asma_frac_day4_sd
+  value: 0.08
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 4 error bar
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: alpha-SMA+ error bar at day 4
+    value: '8'
+    context: SD=8% (mean-SD=9%). Stored as fraction 0.08.
+- name: asma_frac_day6_mean
+  value: 0.2
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 6
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: alpha-SMA+ fraction at day 6, near confluence
+    value: '20'
+    context: 20% alpha-SMA+ digitized. Stored as fraction 0.20.
+- name: asma_frac_day6_sd
+  value: 0.02
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 6 error bar
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: alpha-SMA+ error bar at day 6
+    value: '2'
+    context: SD=2% (mean-SD=18%). Stored as fraction 0.02.
+- name: asma_frac_day10_mean
+  value: 0.3
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 10
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: alpha-SMA+ fraction at day 10
+    value: '30'
+    context: 30% alpha-SMA+. Text confirms 30% at confluency for high-density seeding.
+- name: asma_frac_day10_sd
+  value: 0.1
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 10 error bar
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: alpha-SMA+ error bar at day 10
+    value: '10'
+    context: SD=10% (mean-SD=20%). Stored as fraction 0.10.
+- name: asma_frac_day16_mean
+  value: 0.48
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 16
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: alpha-SMA+ fraction at day 16
+    value: '48'
+    context: 48% alpha-SMA+ at latest time point. Stored as fraction 0.48.
+- name: asma_frac_day16_sd
+  value: 0.06
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, day 16 error bar
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: alpha-SMA+ error bar at day 16
+    value: '6'
+    context: SD=6% (mean-SD=42%). Stored as fraction 0.06.
+- name: n_experiments
+  value: 3
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4 legend
+  value_snippet: 'The squares represent the mean (± S.D., n = 3) of cells/culture well
+
+    '
+- name: carrying_capacity
+  value: 330.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bachem1993
+  source_location: Figure 4a, plateau value
+  figure_excerpt:
+    figure_id: Figure 4a
+    description: Cell count plateau at confluence
+    value: '330'
+    context: 'Digitized plateau cell count from day 10-16. Text: growth curve
+
+      became flat after day 7. Units: x10^3 cells/well.
+
+      '
+calibration:
+  parameters:
+  - name: k_PSC_to_myCAF
+    units: 1/day
+  - name: k_myCAF_prolif
+    units: 1/day
+  - name: TGFb_50_CAF_act
+    units: nanomolarity
+  - name: tgfb_basal_culture
+    units: nanomolarity
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -6.9
+      sigma: 1.5
+  forward_model:
+    type: custom_ode
+    data_rationale: 'Figure 4a provides a time course of both cell number and alpha-SMA+
+
+      fraction during stellate cell activation in primary culture. The ODE
+
+      system tracks quiescent cells activating into myofibroblasts with
+
+      concurrent proliferation, matching both observables simultaneously.
+
+      '
+    submodel_rationale: 'Matches the full QSP model''s activation and proliferation reactions:
+
+      activation = k_act * TGFb/(TGFb_50_CAF_act + TGFb)
+
+      proliferation = k_pro * A * (1 - total/K)
+
+      PDGF was removed from the model (matrix-bound, not freely diffusing;
+
+      see DEVLOG 2026-03-20). Basal TGFb in 10% FCS culture is a nuisance parameter.
+
+      '
+    code: "def ode(t, y, params, inputs):\n    Q, A = y\n    k_act = params['k_PSC_to_myCAF']\n    k_pro = params['k_myCAF_prolif']\n\
+      \    ec50_tgfb = params['TGFb_50_CAF_act']\n    tgfb = params['tgfb_basal_culture']\n    K = inputs['carrying_capacity']\n\
+      \    h_tgfb = tgfb / (ec50_tgfb + tgfb)\n    total = Q + A\n    logistic = 1 - total / K\n    dQ = -k_act * h_tgfb *\
+      \ Q\n    dA = k_act * h_tgfb * Q + k_pro * A * logistic\n    return [dQ, dA]\n"
+    state_variables:
+    - name: Q
+      units: dimensionless
+      initial_condition:
+        input_ref: cell_count_day2_mean
+        rationale: 'Initial quiescent cell count at day 2 (x10^3). Most cells are
+
+          still quiescent at this early time point (~90% alpha-SMA negative).
+
+          '
+    - name: A
+      units: dimensionless
+      initial_condition:
+        value: 0.0
+        rationale: 'Activated cell count starts near 0. The small fraction already
+
+          alpha-SMA+ at day 2 (~10%) is neglected for initial conditions;
+
+          the ODE will produce activation from t=2 onward.
+
+          '
+    independent_variable:
+      name: time
+      units: day
+      span:
+      - 0
+      - 16
+  error_model:
+  - name: asma_frac_day2
+    units: dimensionless
+    uses_inputs:
+    - asma_frac_day2_mean
+    - asma_frac_day2_sd
+    - n_experiments
+    evaluation_points:
+    - 2
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['asma_frac_day2_mean']\n\
+      \    s = inputs['asma_frac_day2_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    Q, A = y\n    total = Q + A\n    return A / total\n"
+      state_variables:
+      - Q
+      - A
+  - name: asma_frac_day4
+    units: dimensionless
+    uses_inputs:
+    - asma_frac_day4_mean
+    - asma_frac_day4_sd
+    - n_experiments
+    evaluation_points:
+    - 4
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['asma_frac_day4_mean']\n\
+      \    s = inputs['asma_frac_day4_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    Q, A = y\n    total = Q + A\n    return A / total\n"
+      state_variables:
+      - Q
+      - A
+  - name: asma_frac_day6
+    units: dimensionless
+    uses_inputs:
+    - asma_frac_day6_mean
+    - asma_frac_day6_sd
+    - n_experiments
+    evaluation_points:
+    - 6
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['asma_frac_day6_mean']\n\
+      \    s = inputs['asma_frac_day6_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    Q, A = y\n    total = Q + A\n    return A / total\n"
+      state_variables:
+      - Q
+      - A
+  - name: asma_frac_day10
+    units: dimensionless
+    uses_inputs:
+    - asma_frac_day10_mean
+    - asma_frac_day10_sd
+    - n_experiments
+    evaluation_points:
+    - 10
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['asma_frac_day10_mean']\n\
+      \    s = inputs['asma_frac_day10_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    Q, A = y\n    total = Q + A\n    return A / total\n"
+      state_variables:
+      - Q
+      - A
+  - name: asma_frac_day16
+    units: dimensionless
+    uses_inputs:
+    - asma_frac_day16_mean
+    - asma_frac_day16_sd
+    - n_experiments
+    evaluation_points:
+    - 16
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['asma_frac_day16_mean']\n\
+      \    s = inputs['asma_frac_day16_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    Q, A = y\n    total = Q + A\n    return A / total\n"
+      state_variables:
+      - Q
+      - A
+  # cell_count_day2 removed: IC is day 2 (120k), so model output at t=2 has
+  # zero variance — PPC always fails for any noisy observation.
+  - name: cell_count_day4
+    units: dimensionless
+    uses_inputs:
+    - cell_count_day4_mean
+    - cell_count_day4_sd
+    - n_experiments
+    evaluation_points:
+    - 4
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['cell_count_day4_mean']\n\
+      \    s = inputs['cell_count_day4_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    Q, A = y\n    return Q + A\n"
+      state_variables:
+      - Q
+      - A
+  - name: cell_count_day6
+    units: dimensionless
+    uses_inputs:
+    - cell_count_day6_mean
+    - cell_count_day6_sd
+    - n_experiments
+    evaluation_points:
+    - 6
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['cell_count_day6_mean']\n\
+      \    s = inputs['cell_count_day6_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    Q, A = y\n    return Q + A\n"
+      state_variables:
+      - Q
+      - A
+  - name: cell_count_day10
+    units: dimensionless
+    uses_inputs:
+    - cell_count_day10_mean
+    - cell_count_day10_sd
+    - n_experiments
+    evaluation_points:
+    - 10
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['cell_count_day10_mean']\n\
+      \    s = inputs['cell_count_day10_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    Q, A = y\n    return Q + A\n"
+      state_variables:
+      - Q
+      - A
+  - name: cell_count_day16
+    units: dimensionless
+    uses_inputs:
+    - cell_count_day16_mean
+    - cell_count_day16_sd
+    - n_experiments
+    evaluation_points:
+    - 16
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    m = inputs['cell_count_day16_mean']\n\
+      \    s = inputs['cell_count_day16_sd']\n    return rng.normal(m, s, size=n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    Q, A = y\n    return Q + A\n"
+      state_variables:
+      - Q
+      - A
+  identifiability_notes: 'Four parameters (3 QSP + 1 nuisance) from 10 observations. The intrinsic
+
+    rates k_PSC_to_myCAF and k_myCAF_prolif are identified from the
+
+    time course shapes, while TGFb_50_CAF_act modulates the effective
+
+    activation rate via the nuisance basal TGFb concentration. TGFb_50_CAF_act
+
+    is weakly identified from this single-condition experiment but is strongly
+
+    constrained by its own dedicated target (Bachem 1992 Fig 7b). Joint
+
+    inference across all targets resolves the degeneracies. The nuisance
+
+    parameter tgfb_basal_culture is shared by name with the Bachem 1992
+
+    TGFb_50_CAF_act target (same 10% FCS culture system).
+
+    '

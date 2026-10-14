@@ -1,0 +1,348 @@
+target_id: k_MMP_M2
+inputs:
+- name: coll_conc_initial_mg_per_ml
+  value: 0.75
+  units: milligram/milliliter
+  input_type: direct_measurement
+  source_ref: Zhu2001
+  source_location: Supplementary methods, Preparation of collagen gels for 3D co-culture
+  value_snippet: the final mixture resulted in 0.75 mg/ml of collagen
+- name: fibroblast_density_factor_4x10e5_per_ml
+  value: 4.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zhu2001
+  source_location: Figure 1 legend
+  value_snippet: "Fibroblasts (4 \xD7 10^5/ml) ... were cast into type I collagen\
+    \ gels"
+- name: monocyte_density_factor_4x10e5_per_ml
+  value: 4.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zhu2001
+  source_location: Figure 1 legend
+  value_snippet: "blood monocytes (4 \xD7 10^5/ml) ... were cast into type I collagen\
+    \ gels"
+- name: t_day21
+  value: 21.0
+  units: day
+  input_type: direct_measurement
+  source_ref: Zhu2001
+  source_location: Figure 1 and Results text
+  value_snippet: By day 21, 30.9% of collagen in the gels was degraded in co-culture
+- name: coll_degraded_frac_fib_d21
+  value: 0.101
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zhu2001
+  source_location: Results, Effect of monocytes on fibroblast-mediated collagen gel
+    contraction and degradation
+  value_snippet: Fibroblasts alone resulted in significant collagen degradation only
+    at day 21 (10.1% of the initial collagen was degraded, P < 0.05).
+- name: coll_degraded_frac_coc_d21
+  value: 0.309
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zhu2001
+  source_location: Results, Effect of monocytes on fibroblast-mediated collagen gel
+    contraction and degradation
+  value_snippet: By day 21, 30.9% of collagen in the gels was degraded in co-culture
+    (P < 0.01).
+- name: frac_remain_fib_d21
+  value: 0.899
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Fraction of collagen remaining at day 21 in fibroblast-only gels, computed
+    as 1 - fraction degraded.
+  source_ref: Zhu2001
+  source_location: Results, collagen degradation at day 21
+  source_inputs:
+  - coll_degraded_frac_fib_d21
+  formula: 1 - coll_degraded_frac_fib_d21
+- name: frac_remain_coc_d21
+  value: 0.691
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Fraction of collagen remaining at day 21 in fibroblast + monocyte co-culture
+    gels, computed as 1 - fraction degraded.
+  source_ref: Zhu2001
+  source_location: Results, collagen degradation at day 21
+  source_inputs:
+  - coll_degraded_frac_coc_d21
+  formula: 1 - coll_degraded_frac_coc_d21
+- name: u_hydroxyproline_fraction
+  value: 0.1
+  units: dimensionless
+  input_type: reference_value
+  rationale: "Fixed fractional uncertainty (10%) used to model hydroxyproline-based\
+    \ collagen fraction measurements at day 21, chosen based on the small scatter\
+    \ across replicate gels at day 4 in Supplementary Figure 1C\u2013D and typical\
+    \ variability of collagen gel hydroxyproline assays."
+  source_ref: Zhu2001
+  source_location: "Supplementary Figure 1C\u2013D and Methods, Hydroxyproline assay"
+  value_snippet: "the data shown are means \xB1 SEM for triplicate determinations"
+- name: n_replicates_d21
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zhu2001
+  source_location: Statistical evaluation
+  value_snippet: "data shown in each figure were taken from single experiments and\
+    \ expressed as the means of three determinations \xB1 SEM."
+- name: hp_day4_noNE_bar0_mean_ug_per_gel
+  value: 42.2293
+  units: microgram
+  input_type: direct_measurement
+  source_ref: Zhu2001
+  source_location: Supplementary Figure 1C, bar 0
+  figure_excerpt:
+    figure_id: Supplementary Figure 1C
+    value: ~42.2
+    description: Hydroxyproline content per gel at day 4 for one fibroblast/monocyte
+      density combination in control (no elastase) condition, bar 0.
+    context: "Hydroxyproline content (\xB5g/gel) for co-cultured gels with varying\
+      \ fibroblast and monocyte densities without neutrophil elastase."
+- name: hp_day4_NE_bar3_mean_ug_per_gel
+  value: 0.4459
+  units: microgram
+  input_type: direct_measurement
+  source_ref: Zhu2001
+  source_location: Supplementary Figure 1D, bar 3
+  figure_excerpt:
+    figure_id: Supplementary Figure 1D
+    value: ~0.45
+    description: Hydroxyproline content per gel at day 4 for a high fibroblast/monocyte
+      density combination in the presence of neutrophil elastase, bar 3, showing near-complete
+      collagen degradation.
+    context: "Hydroxyproline content (\xB5g/gel) for co-cultured gels with varying\
+      \ fibroblast and monocyte densities in medium containing neutrophil elastase."
+calibration:
+  parameters:
+  - name: k_MMP_M2
+    units: milliliter/(cell*day)
+    nuisance: false
+  - name: k_col_deg
+    units: 1/day
+    nuisance: false
+  - name: f_M2_eff
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -1.2
+      sigma: 0.7
+  forward_model:
+    data_rationale: "Zhu2001 quantified collagen degradation over 21 days in 3D type\
+      \ I collagen gels (0.75 mg/ml) containing human fetal lung fibroblasts with\
+      \ or without added blood monocytes at fixed densities (4\xD710^5 cells/ml each).\
+      \ Hydroxyproline content was expressed as percent of initial collagen. By day\
+      \ 21 fibroblast-only gels had lost 10.1% of collagen, while fibroblast+monocyte\
+      \ co-cultures had lost 30.9%. Interpreting these as outcomes of first-order\
+      \ collagen degradation with and without a monocyte-dependent term allows direct\
+      \ inference of baseline and monocyte-driven degradation rates at known cell\
+      \ density."
+    submodel_rationale: In the full QSPIO-PDAC model, collagen degradation in the
+      tumor compartment follows first-order kinetics with a baseline rate k_col_deg
+      plus an additional term proportional to M2 macrophage density, k_MMP_M2 * (Mac_M2
+      / V_T). The Zhu2001 3D collagen gels approximate a local tumor ECM volume with
+      well-mixed collagen and a known monocyte/macrophage density. Modeling collagen
+      loss over 21 days as exp(-(k_col_deg + k_MMP_M2 * effective_M2_density)*t) preserves
+      the exact mechanistic structure of the QSP reaction while introducing a nuisance
+      parameter f_M2_eff to map total monocytes in culture onto effective M2-like
+      matrix-degrading macrophages.
+    type: algebraic
+    formula: Fractions of collagen remaining at day 21 in fibroblast-only vs fibroblast+monocyte
+      gels under first-order degradation with baseline rate k_col_deg plus an M2 macrophage-dependent
+      term k_MMP_M2 * (f_M2_eff * monocyte_density).
+    code: "def compute(params, inputs):\n    import numpy as np\n    k_base = params['k_col_deg']\n\
+      \    k_m2 = params['k_MMP_M2']\n    f_m2 = params['f_M2_eff']\n    t = inputs['t_day21']\n\
+      \    monocyte_density = inputs['monocyte_density_factor_4x10e5_per_ml']\
+      \ * 1e5\n    # Work in log-space to avoid exp underflow at large k*t\n\
+      \    log_frac_fib = -k_base * t\n    eff_m2_density = f_m2 * monocyte_density\n\
+      \    log_frac_coc = -(k_base + k_m2 * eff_m2_density) * t\n    return {\n\
+      \        'log_fib_frac_remain_d21': log_frac_fib,\n        'log_coculture_frac_remain_d21':\
+      \ log_frac_coc,\n    }\n"
+  error_model:
+  - name: fibroblast_only_d21
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['log_fib_frac_remain_d21']\n"
+    units: dimensionless
+    uses_inputs:
+    - frac_remain_fib_d21
+    - u_hydroxyproline_fraction
+    - n_replicates_d21
+    sample_size_input: n_replicates_d21
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['frac_remain_fib_d21']\n    cv =\
+      \ inputs['u_hydroxyproline_fraction']\n    # Forward model returns log(fraction),\
+      \ so observation is on log scale.\n    # n=3 are technical triplicates — do not\
+      \ divide by sqrt(n).\n    sigma_ln = np.sqrt(np.log(1.0 + cv * cv))\n\
+      \    mu = np.log(mean)\n    return rng.normal(mu, sigma_ln, n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: coculture_fib_monocyte_d21
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['log_coculture_frac_remain_d21']\n"
+    units: dimensionless
+    uses_inputs:
+    - frac_remain_coc_d21
+    - u_hydroxyproline_fraction
+    - n_replicates_d21
+    sample_size_input: n_replicates_d21
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['frac_remain_coc_d21']\n    cv =\
+      \ inputs['u_hydroxyproline_fraction']\n    sigma_ln = np.sqrt(np.log(1.0 + cv\
+      \ * cv))\n    mu = np.log(mean)\n    return rng.normal(mu, sigma_ln, n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: 'The fibroblast-only and fibroblast+monocyte endpoints at
+    21 days provide two independent constraints on the first-order collagen degradation
+    rate: one on the baseline rate k_col_deg and one on the sum k_col_deg + k_MMP_M2
+    * f_M2_eff * monocyte_density. The data thus identify k_col_deg reasonably well
+    and constrain only the product k_MMP_M2 * f_M2_eff (given the known monocyte density).
+    There is an inherent correlation between k_MMP_M2 and the nuisance parameter f_M2_eff
+    representing the fraction of culture monocytes that behave as effective M2-like
+    collagenolytic macrophages. Priors on f_M2_eff (centered below 1) are therefore
+    important to map the effective rate onto k_MMP_M2. Additional time points, direct
+    measurement of M2 polarization fraction, or conditions with different monocyte
+    densities would help break this degeneracy. The supplementary 4-day data with
+    and without neutrophil elastase support the first-order assumption and suggest
+    that higher protease activity can achieve near-complete degradation within 4 days,
+    but these data are not explicitly fit here and instead serve as a qualitative
+    cross-check on the inferred timescale of collagen loss.'
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_lines:
+  - name: HFL-1
+    species: human
+    tissue_origin: fetal lung
+    cell_type: fibroblast
+    source: American Type Culture Collection (ATCC)
+    passage_range: P14-P16
+  cell_types:
+  - name: blood monocyte
+    phenotype: circulating monocyte / monocyte-macrophage precursor
+    isolation_method: counter flow centrifugal elutriation from peripheral blood
+    source: peripheral blood from healthy donors
+  culture_conditions:
+    substrate: 3D type I collagen gel (rat tail tendon collagen)
+    serum_concentration: 0.0
+    serum_concentration_units: percent
+    oxygen_level: "normoxic (5% CO2, 37\xB0C incubator)"
+    culture_type: 3d_collagen_gel
+    medium: serum-free DMEM (after gel casting)
+    duration: up to 21 days of floating gel culture, medium changed every 5 days
+    notes: "Gels contained 0.75 mg/ml type I collagen, 0.5 ml per gel, and 4\xD710^5\
+      \ cells/ml of HFL-1 fibroblasts with or without 4\xD710^5 cells/ml blood monocytes."
+  indication: lung injury / generic wound repair (used as proxy for PDAC desmoplastic
+    matrix turnover)
+study_interpretation: "Zhu2001 demonstrates that co-culture of human fetal lung fibroblasts\
+  \ with blood monocytes in 3D type I collagen gels leads to substantially greater\
+  \ collagen degradation over 21 days than fibroblasts alone (30.9% vs 10.1% loss\
+  \ of initial collagen). Treating collagen loss as a first-order process driven by\
+  \ a baseline degradation rate plus an additional term proportional to effective\
+  \ M2-like macrophage density maps directly onto the QSPIO-PDAC collagen degradation\
+  \ reaction, where k_col_deg represents baseline turnover and k_MMP_M2 captures M2\
+  \ macrophage-mediated matrix remodeling. Using the known monocyte density (4\xD7\
+  10^5 cells/ml) encoded via the monocyte_density_factor_4x10e5_per_ml input and the\
+  \ differential degradation between fibroblast-only and co-culture conditions, this\
+  \ submodel constrains k_col_deg and the product k_MMP_M2 * f_M2_eff such that, at\
+  \ the culture cell density, the additional monocyte/M2-dependent term accounts for\
+  \ roughly a threefold increase in the apparent first-order collagen loss rate compared\
+  \ to fibroblasts alone. Supplementary 4-day data, particularly the near-complete\
+  \ degradation in the presence of neutrophil elastase at high cell densities, support\
+  \ the plausibility of a first-order description and indicate that under stronger\
+  \ protease activation the effective rate can be an order of magnitude faster than\
+  \ the baseline inferred from 21-day cultures."
+key_assumptions:
+- Collagen loss from the gels over 21 days can be approximated by first-order kinetics
+  with a constant effective rate over time.
+- All monocyte-derived cells contributing to collagen degradation in co-culture can
+  be represented as an effective M2-like macrophage population whose density is f_M2_eff
+  times the total monocyte density at seeding.
+- Fibroblast-driven collagen degradation in this system corresponds to the baseline
+  QSP parameter k_col_deg and is independent of monocyte/macrophage density.
+- "The 3D lung fibroblast\u2013monocyte gel system is a reasonable biophysical proxy\
+  \ for local collagen turnover in the PDAC desmoplastic stroma, after accounting\
+  \ for substantial translation uncertainty."
+- Using a fixed fractional uncertainty (10%) for collagen fraction measurements reasonably
+  reflects assay and biological variability in the absence of explicit SD/SEM at day
+  21.
+- Monocyte and fibroblast densities remain approximately constant over the 21-day
+  period with respect to their contribution to collagen degradation (net effects of
+  proliferation and death are not modeled explicitly).
+key_study_limitations:
+- System uses fetal lung fibroblasts and peripheral blood monocytes rather than pancreatic
+  stellate cells and intratumoral PDAC macrophages.
+- Monocytes likely differentiate toward macrophages over time, but the exact fraction
+  adopting an M2-like, collagenolytic phenotype is unknown and must be represented
+  by a nuisance parameter.
+- Collagen degradation reflects combined activity of fibroblast and myeloid proteases
+  and may also be influenced by neutrophil elastase activation of matrix metalloproteases;
+  specific MR/M2-dependent endocytic degradation cannot be separated experimentally
+  in this study.
+- "Only a single monocyte density (4\xD710^5 cells/ml) is used in the main 21-day\
+  \ time course, limiting the ability to independently identify the monocyte-dependent\
+  \ rate constant and effective M2 fraction."
+- Day-21 hydroxyproline data are reported without explicit SD or SEM values at that
+  time point, requiring an assumed coefficient of variation for uncertainty modeling.
+- 3D in vitro gels lack many features of the PDAC tumor microenvironment, including
+  cancer cells, heterogeneous CAF populations, vascular perfusion, and complex immune-stromal
+  feedbacks, so inferred rates may not directly reflect in vivo values.
+primary_data_source:
+  pmid: '11686840'
+  title: Fibroblasts and monocyte macrophages contract and degrade three-dimensional
+    collagen gels in extended co-culture
+  authors:
+  - Yunkui Zhu
+  - C Magnus Skold
+  - Xiangde Liu
+  - Hangjun Wang
+  - Tadashi Kohyama
+  - Fu-Qiang Wen
+  - Ronald F Ertl
+  - Stephen I Rennard
+  year: 2001
+  source_tag: Zhu2001
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study uses human fetal lung fibroblasts and
+      peripheral blood monocytes in 3D collagen gels to model generic tissue repair
+      and remodeling, whereas the QSPIO-PDAC model focuses on pancreatic ductal adenocarcinoma
+      stroma. Both contexts involve fibroblast/myofibroblast-driven collagen deposition
+      and myeloid cell-mediated matrix remodeling, but the tissue of origin, stromal
+      cell types, and inflammatory milieu differ substantially. The lung 3D gel system
+      is therefore treated as a mechanistic proxy for desmoplastic matrix turnover
+      in PDAC rather than a disease-matched system.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Cultures were maintained under serum-free conditions without
+      pharmacological inhibitors or genetic perturbations (aside from occasional neutrophil
+      elastase or cytokine additions in specific experiments), so the measured collagen
+      degradation primarily reflects endogenous fibroblast and monocyte/macrophage
+      protease activity. This is interpreted as an approximate physiological upper-bound
+      rate for matrix remodeling in a simplified inflammatory environment.
+    tme_compatibility: low
+    tme_compatibility_notes: The 3D collagen gel system lacks tumor cells, pancreatic
+      stellate cells, complex CAF subtypes, vasculature, and the highly fibrotic,
+      hypovascular microenvironment characteristic of PDAC. In vivo PDAC stroma is
+      more densely cross-linked and experiences different cytokine and mechanical
+      cues. As a result, monocyte/macrophage-driven collagen degradation rates in
+      these gels may overestimate effective rates in PDAC tumors by an order of magnitude
+      or more, and substantial translation uncertainty must be accounted for.
+    measurement_directness: single_inversion
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_primary
+tags:
+- ECM
+- collagen
+- M2_macrophage
+- matrix_remodeling
+- 3D_collagen_gel
+- hydroxyproline_assay
+- PDAC_proxy
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

@@ -1,0 +1,329 @@
+study_interpretation: |
+  Jansen et al. (2021, PeerJ) analyzed 599 pancreatic cancers (predominantly pancreatic ductal adenocarcinomas) on a tissue microarray to study DOG1 expression and its relationship to clinicopathologic parameters. CD8+ cytotoxic T-lymphocyte density (cells/mm^2) in the tumor area was quantified by immunohistochemistry and digital image analysis, and reported for ductal adenocarcinomas stratified by DOG1 expression in tumor cells and in stromal cells. Because DOG1 status did not significantly affect CD8 density, the group-wise means and dispersions for DOG1-negative and DOG1-positive stromal PDAC cases (n=368 and n=76, respectively) were combined via Monte Carlo sampling to obtain an overall patient-level distribution for intratumoral CD8+ T-cell surface density in resected human PDAC. This distribution is mapped to the QSP model by computing total CD8+ T cells (effector plus exhausted) per tumor cross-sectional area at the time of surgical resection.
+key_assumptions:
+- |
+  CD8 immunohistochemistry detects all CD8+ T cells (effector and exhausted) equivalently; in the QSP model this is represented by summing V_T.CD8 and V_T.CD8_exh to obtain total intratumoral CD8+ T-cell number before converting to a surface density.
+- |
+  The +/- values reported for CD8 density in Table 4 of Jansen et al. 2021 are standard errors of the mean (SEM), not standard deviations. Evidence: (1) the paper does not explicitly state SD vs SEM, but (2) the sqrt(n) test is definitive — SEM_neg=15.0 with n=368 gives SD=15.0*sqrt(368)=287.7, and SEM_pos=33.0 with n=76 gives SD=33.0*sqrt(76)=287.7; both subgroups yield identical SDs, as expected for the same measurement in similar tumors; (3) if treated as SD, implied CV would be 6.6% (implausibly low for immune cell density data; typical CV is 50-200%). The distribution_code converts SEM to SD before sampling.
+- |
+  DOG1 expression in stromal cells is not strongly associated with CD8+ T-cell density, as indicated by similar means and a non-significant p value (0.8326); therefore, combining DOG1-negative and DOG1-positive stromal PDAC cases into a single mixture distribution is an appropriate way to approximate the overall intratumoral CD8 density distribution in resected PDAC.
+- |
+  The reference values for PDAC cancer cell cross-sectional area and PDAC cellularity fraction from the curated database are applicable to the Jansen et al. cohort, allowing conversion from model cancer cell counts to tumor cross-sectional area that is comparable to the histologic sections used for CD8 density quantification.
+key_study_limitations:
+- |
+  The CD8+ T-cell densities are derived from 0.6-mm tissue microarray cores rather than whole-slide sections, so spatial heterogeneity of T-cell infiltration within individual tumors may not be fully captured.
+- |
+  The patient cohort consists of surgically resected PDACs with mixed pathologic stages (pT1 to pT4, pN0 and pN+), and the original paper does not explicitly report neoadjuvant therapy status; using this cohort as a proxy for treatment-naive, resectable PDAC introduces some uncertainty in matching the exact model context.
+- |
+  Only group-wise summary statistics (mean +/- SEM and sample size per DOG1 stromal category) are available; the overall PDAC CD8+ T-cell density distribution is therefore reconstructed via a mixture-of-lognormals Monte Carlo approach (with SEM→SD conversion) rather than from individual-patient raw data.
+- |
+  CD8+ T-cell density is measured in two-dimensional histologic sections (cells/mm^2), whereas the model represents a three-dimensional tumor compartment; conversion using cross-sectional area and cellularity assumes approximate spherical cells and homogeneous cellular packing, which may not hold in all regions of the desmoplastic PDAC microenvironment.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        """mIHC-equivalent CD8 density via V_T-based 3D->2D projection.
+
+        Sums effector (V_T.CD8) and exhausted (V_T.CD8_exh) CD8 T cells, divides
+        by V_T, and scales by section thickness to project the 3D volumetric
+        density into a 2D mIHC density (cells/mm^2 of section).
+        """
+        cd8_eff = species_dict['V_T.CD8']
+        cd8_exh = species_dict['V_T.CD8_exh']
+        V_T = species_dict['V_T']
+        thickness = constants['section_thickness_um']
+        cell_diameter = constants['cell_diameter_um']  # Abercrombie correction term
+        density = (cd8_eff + cd8_exh) / V_T * (thickness + cell_diameter)
+        return (density) * 1e-06
+
+  units: cell / millimeter**2
+  species:
+  - V_T.CD8
+  - V_T.CD8_exh
+  - V_T
+  constants:
+  - name: section_thickness_um
+    value: 4.0
+    units: micrometer
+    biological_basis: |
+      Standard FFPE tissue section thickness for mIHC quantification (typical 3-5 micrometer).
+      Set to 4 micrometer to match the Plesca2022 submodel target convention used for APC0 calibration.
+    source_type: reference_db
+    reference_db_name: ffpe_section_thickness
+    reference_db_names: null
+    source_tag: null
+  - name: cell_diameter_um
+    value: 7.0
+    units: micrometer
+    biological_basis: |
+      Resting T lymphocyte diameter ~7 micrometer (Bufi 2015). Used as Abercrombie overcounting term `d` in the 2D->3D projection: counted_cells/mm^2 = (cells/V_T) * (t + d).
+    source_type: reference_db
+    reference_db_name: t_cell_diameter
+    reference_db_names: null
+    source_tag: null
+  support: positive
+  mapping_rationale: |
+    CD8 IHC detects all CD8+ T cells regardless of functional or exhaustion state.
+    The observable sums (V_T.CD8 + V_T.CD8_exh) and uses V_T-based projection
+    (cells / V_T * thickness) to match the cells/mm^2 of section convention used
+    in Jansen 2021 and the submodel target forward models.
+  experimental_denominator: mm^2 of tumor tissue section (cancer cells + stroma, from 0.6-mm TMA cores)
+  model_denominator_species:
+  - V_T
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: |
+      Upfront surgical resection cohort; neoadjuvant therapy was not reported and is assumed uncommon in this historical series.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Primary pancreatic ductal adenocarcinoma resections (pancreatectomy specimens) processed into a large multi-patient tissue microarray.
+  assay_type: |
+    Immunohistochemistry with digital image analysis (CD8 density quantified as cells/mm^2).
+scenario:
+  description: |
+    Baseline primary PDAC tumors resected by pancreatectomy without modeled prior systemic or radiation therapy; tumor samples were fixed, embedded, and arrayed on a tissue microarray for DOG1 and CD8 immunohistochemistry.
+  interventions:
+  - intervention_description: |
+      No experimental therapeutic intervention is modeled prior to surgical resection; tumors progress under natural disease course until pancreatectomy (e.g., pancreaticoduodenectomy, distal pancreatectomy, or total pancreatectomy) performed for clinically indicated PDAC, after which resected tumor tissue is analyzed by immunohistochemistry.
+empirical_data:
+  median:
+  - 138.776814
+  ci95:
+  - - 20.312187
+    - 965.178398
+  units: cell / millimeter**2
+  sample_size: 444
+  sample_size_rationale: |
+    n=444 ductal adenocarcinomas with interpretable CD8+ T-cell density on the tissue microarray, corresponding to 368 DOG1-negative and 76 DOG1-positive stromal cases as reported in Table 4 of Jansen et al. 2021 (PeerJ).
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs:
+  - name: mean_cd8_stroma_neg
+    value: 227.7
+    units: cell / millimeter**2
+    description: |
+      Mean CD8+ cytotoxic T-lymphocyte density in pancreatic ductal adenocarcinomas with DOG1-negative stroma (ductal adenocarcinomas, DOG1 in stroma cells: negative).
+    source_ref: Jansen2021_DOG1_PDAC
+    value_location: |
+      Table 4 (DOG1 immunostaining and CD8 positivity), ductal adenocarcinomas, DOG1 in stroma cells: negative
+    value_snippet: |
+      Ductal adenocarcinomas | DOG1 in stroma cells | negative | n evaluable 368 | CD8 density (cells/mm^2) 227.7 +/- 15.0 | p value 0.8326
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+  - name: sem_cd8_stroma_neg
+    value: 15.0
+    units: cell / millimeter**2
+    description: |
+      Standard error of the mean for CD8+ T-cell density in DOG1-negative stromal PDAC cases, reported as 227.7 +/- 15.0 cells/mm^2. Identified as SEM (not SD) via the sqrt(n) test: SD = 15.0 * sqrt(368) = 287.7, which matches the SD derived from the DOG1-positive group (33.0 * sqrt(76) = 287.7), confirming both ± values are SEMs. The distribution_code converts to SD before sampling.
+    source_ref: Jansen2021_DOG1_PDAC
+    value_location: |
+      Table 4 (DOG1 immunostaining and CD8 positivity), ductal adenocarcinomas, DOG1 in stroma cells: negative
+    value_snippet: |
+      Ductal adenocarcinomas | DOG1 in stroma cells | negative | n evaluable 368 | CD8 density (cells/mm^2) 227.7 +/- 15.0 | p value 0.8326
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: se
+    dispersion_type_rationale: |
+      Paper does not explicitly state SD vs SEM. Determined via sqrt(n) test: SEM=15.0 with n=368 gives SD=287.7; SEM=33.0 with n=76 also gives SD=287.7. Identical SDs across subgroups is strong evidence for SEM. Also, if SD, implied CV=6.6% which is implausibly low for immune cell density data (typical CV 50-200%).
+  - name: n_stroma_neg
+    value: 368.0
+    units: dimensionless
+    description: |
+      Number of evaluable ductal adenocarcinoma cases with DOG1-negative stroma contributing to CD8 density estimate.
+    source_ref: Jansen2021_DOG1_PDAC
+    value_location: |
+      Table 4 (DOG1 immunostaining and CD8 positivity), ductal adenocarcinomas, DOG1 in stroma cells: negative
+    value_snippet: |
+      Ductal adenocarcinomas | DOG1 in stroma cells | negative | n evaluable 368 | CD8 density (cells/mm^2) 227.7 +/- 15.0 | p value 0.8326
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+  - name: mean_cd8_stroma_pos
+    value: 220.1
+    units: cell / millimeter**2
+    description: |
+      Mean CD8+ cytotoxic T-lymphocyte density in pancreatic ductal adenocarcinomas with DOG1-positive stroma (ductal adenocarcinomas, DOG1 in stroma cells: positive).
+    source_ref: Jansen2021_DOG1_PDAC
+    value_location: |
+      Table 4 (DOG1 immunostaining and CD8 positivity), ductal adenocarcinomas, DOG1 in stroma cells: positive
+    value_snippet: |
+      Ductal adenocarcinomas | DOG1 in stroma cells | positive | n evaluable 76 | CD8 density (cells/mm^2) 220.1 +/- 33.0 | p value 0.8326
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+  - name: sem_cd8_stroma_pos
+    value: 33.0
+    units: cell / millimeter**2
+    description: |
+      Standard error of the mean for CD8+ T-cell density in DOG1-positive stromal PDAC cases, reported as 220.1 +/- 33.0 cells/mm^2. Identified as SEM via the sqrt(n) test: SD = 33.0 * sqrt(76) = 287.7, matching the SD from the DOG1-negative group.
+    source_ref: Jansen2021_DOG1_PDAC
+    value_location: |
+      Table 4 (DOG1 immunostaining and CD8 positivity), ductal adenocarcinomas, DOG1 in stroma cells: positive
+    value_snippet: |
+      Ductal adenocarcinomas | DOG1 in stroma cells | positive | n evaluable 76 | CD8 density (cells/mm^2) 220.1 +/- 33.0 | p value 0.8326
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: se
+    dispersion_type_rationale: |
+      Same determination as sem_cd8_stroma_neg: sqrt(n) test gives SD=287.7 for both subgroups, confirming SEM. CV if SD would be 15% (implausibly low).
+  - name: n_stroma_pos
+    value: 76.0
+    units: dimensionless
+    description: |
+      Number of evaluable ductal adenocarcinoma cases with DOG1-positive stroma contributing to CD8 density estimate.
+    source_ref: Jansen2021_DOG1_PDAC
+    value_location: |
+      Table 4 (DOG1 immunostaining and CD8 positivity), ductal adenocarcinomas, DOG1 in stroma cells: positive
+    value_snippet: |
+      Ductal adenocarcinomas | DOG1 in stroma cells | positive | n evaluable 76 | CD8 density (cells/mm^2) 220.1 +/- 33.0 | p value 0.8326
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+  assumptions:
+  - name: n_mc_samples
+    value: 100000.0
+    units: dimensionless
+    description: |
+      Number of Monte Carlo samples used to approximate the distribution of intratumoral CD8+ T-cell density from groupwise mean and dispersion values in Table 4.
+    rationale: |
+      100,000 samples provide stable estimates of the median and 95% confidence interval while remaining computationally inexpensive.
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+
+        rng = np.random.default_rng(42)
+
+        # Means and SEMs for CD8+ T-cell density (cells/mm^2)
+        # in ductal adenocarcinomas, stratified by DOG1 expression in stromal cells.
+        mean_neg = inputs['mean_cd8_stroma_neg']      # Quantity
+        sem_neg = inputs['sem_cd8_stroma_neg']        # Quantity (SEM, not SD)
+        n_neg = int(inputs['n_stroma_neg'].magnitude)
+
+        mean_pos = inputs['mean_cd8_stroma_pos']      # Quantity
+        sem_pos = inputs['sem_cd8_stroma_pos']        # Quantity (SEM, not SD)
+        n_pos = int(inputs['n_stroma_pos'].magnitude)
+
+        # Convert SEM to SD: SD = SEM * sqrt(n)
+        sd_neg = sem_neg * np.sqrt(n_neg)
+        sd_pos = sem_pos * np.sqrt(n_pos)
+
+        total_n = n_neg + n_pos
+        units = mean_neg.units
+
+        # Monte Carlo sample size (dimensionless modeling choice)
+        n_mc = 100000
+
+        # Allocate samples across groups according to their sample size
+        n_mc_neg = int(round(n_mc * n_neg / total_n))
+        n_mc_pos = n_mc - n_mc_neg
+
+        # Use lognormal sampling (CD8 density is strictly positive and right-skewed).
+        # Convert normal(mean, sd) to lognormal parameters for each group.
+        def normal_to_lognormal_params(mean_val, sd_val):
+            mu2 = mean_val**2
+            s2 = sd_val**2
+            mu_log = np.log(mu2 / np.sqrt(mu2 + s2))
+            sigma_log = np.sqrt(np.log(1 + s2 / mu2))
+            return mu_log, sigma_log
+
+        mu_log_neg, sigma_log_neg = normal_to_lognormal_params(
+            mean_neg.magnitude, sd_neg.magnitude
+        )
+        mu_log_pos, sigma_log_pos = normal_to_lognormal_params(
+            mean_pos.magnitude, sd_pos.magnitude
+        )
+
+        # Sample from lognormal distributions, reattach units immediately.
+        samples_neg = rng.lognormal(mu_log_neg, sigma_log_neg, n_mc_neg) * units
+        samples_pos = rng.lognormal(mu_log_pos, sigma_log_pos, n_mc_pos) * units
+
+        # Combine groups into a single patient-level distribution
+        samples = np.concatenate([samples_neg.magnitude, samples_pos.magnitude]) * units
+
+        # np.median and np.percentile preserve Pint units
+        median_obs = np.median(samples)
+        ci95_lower = np.percentile(samples, 2.5)
+        ci95_upper = np.percentile(samples, 97.5)
+
+        return {
+            'median_obs': median_obs,
+            'ci95_lower': ci95_lower,
+            'ci95_upper': ci95_upper,
+        }
+primary_data_source:
+  source_tag: Jansen2021_DOG1_PDAC
+  title: |
+    DOG1 is commonly expressed in pancreatic adenocarcinoma but unrelated to cancer aggressiveness
+  first_author: Jansen
+  year: 2021
+  doi: 10.7717/peerj.11905
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: Human PDAC patient specimens, directly matching the model indication and disease context.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Observational measurement of treatment-naive PDAC specimens; no experimental perturbation applied.
+    tme_compatibility: high
+    tme_compatibility_notes: Resected PDAC specimens with characteristic desmoplastic, immune-excluded TME matching model
+      assumptions.
+    validation_warnings: []
+secondary_data_sources:
+- source_tag: RefDB_PDAC_Geometry
+  title: |
+    Curated reference values for PDAC tumor geometry and cellular composition (pdac_cancer_cell_cross_section, pdac_cellularity_fraction) used across the QSP model.
+  first_author: QSP Core Team
+  year: 2024
+  doi_or_url: null
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: Curated reference values specific to PDAC tumor geometry and cellular composition.
+    species_source: human
+    species_target: human
+    source_quality: review_article
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Reference constants for unit conversions and normalization; no perturbation context.
+    tme_compatibility: high
+    tme_compatibility_notes: PDAC-specific reference values curated from primary literature.
+    validation_warnings: []
+calibration_target_id: cd8_density_baseline
+cancer_type: PDAC
+tags:
+- ai-generated
+logfire_trace_id: 019c68166efa77ac865cfcfc93add3a2
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium

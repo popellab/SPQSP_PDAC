@@ -1,0 +1,228 @@
+study_interpretation: |
+  Battini et al. 2017 used 1H HRMAS NMR spectroscopy on intact tissue samples from patients undergoing surgical resection for pancreatic adenocarcinoma to quantify metabolite concentrations in pancreatic parenchyma (PP, healthy tissue) and pancreatic adenocarcinoma (PA). For the subset of samples without neoadjuvant chemotherapy (9 PP and 44 PA), Table 2 reports mean ± SD metabolite levels in nmol/mg, including lactate. Lactate is significantly higher in PA than in PP, reflecting elevated glycolysis in tumor tissue. For QSP calibration, we construct a dimensionless observable equal to the fold-change of tumor lactate relative to normal pancreas. The empirical distribution of this fold-change is derived from the ratio of lognormal distributions for PA and PP lactate (using their reported means and SDs), while the model observable computes V_T.lactate divided by a normal pancreas lactate reference converted to micromolarity from the same HRMAS PP data.
+key_assumptions:
+- |
+  HRMAS NMR measurements of lactate (nmol/mg) in 15-20 mg cores of pancreatic parenchyma and tumor are representative of average lactate concentrations in the respective whole tissues and can be mapped to the model tumor compartment lactate species (V_T.lactate).
+- |
+  Positive metabolite concentrations (lactate in nmol/mg) are better approximated by lognormal than normal distributions; therefore, uncertainty in PA and PP lactate levels is propagated using lognormal sampling derived from mean and SD.
+- |
+  Conversion of 11.0040 nmol/mg PP lactate to a concentration in micromolarity assumes pancreatic tissue density of approximately 1 g/mL (1 mg tissue ~ 1 uL), so that nmol per mg wet weight corresponds to umol per mL.
+- |
+  The fold-change calibration target uses the ratio of independent group-level distributions for PA and PP lactate (ratio of lognormal random variables) rather than paired within-patient tumor/normal ratios; potential within-patient correlations are ignored.
+- |
+  The subgroup without neoadjuvant chemotherapy (44 PA, 9 PP) is considered the best match to a treatment-naive, resectable PDAC population, even though all patients later receive adjuvant gemcitabine postoperatively.
+key_study_limitations:
+- |
+  Single-center retrospective cohort with a limited number of untreated PP samples (n=9) and PA samples (n=44) underlying the PP vs PA comparison; generalizability to broader PDAC populations may be limited.
+- |
+  Metabolite quantification by HRMAS NMR under the chosen acquisition conditions underestimates total metabolite content by approximately 20% compared with tissue extraction methods, as noted by the authors; this introduces a systematic scaling uncertainty that is not explicitly modeled.
+- |
+  Lactate levels are measured on small biopsy cores taken at resection and may not fully capture intratumoral spatial heterogeneity in metabolite distributions.
+- |
+  The PP and PA groups compared in Table 2 are not strictly patient-matched pairs (n=9 PP vs n=44 PA), so the fold-change derived here is a ratio of group means rather than a within-patient paired fold-change.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        """Compute fold-change of tumor lactate relative to normal pancreas reference.
+
+        Observable = V_T.lactate / lactate_normal_reference (dimensionless).
+        """
+        lactate_tumor = species_dict['V_T.lactate']  # micromolarity
+        lactate_normal = constants['lactate_normal_reference']  # micromolarity
+        ratio = lactate_tumor / lactate_normal
+        return ratio
+
+  units: dimensionless
+  species:
+  - V_T.lactate
+  constants:
+  - name: lactate_normal_reference
+    value: 11004.0
+    units: micromolarity
+    biological_basis: |
+      Derived from Battini et al. 2017 Table 2: lactate in pancreatic parenchyma (PP) without neoadjuvant chemotherapy is reported as 11.0040 nmol/mg. Assuming pancreatic tissue density approximately 1 g/mL (1 mg tissue ~ 1 uL), this corresponds to 11.0040 umol/mL = 11.004 mM = 1.1004e4 uM. This value is used as the normal pancreas lactate reference concentration for the fold-change observable.
+    source_type: literature
+    reference_db_name: null
+    reference_db_names: null
+    source_tag: Battini2017_HRMAS
+  support: positive_unbounded
+  mapping_rationale: |
+    HRMAS NMR quantifies total lactate content in small cores of pancreatic parenchyma (PP) and pancreatic adenocarcinoma (PA) as nmol per mg of wet tissue (Table 2). We interpret these values as proportional to average tissue lactate concentrations in the primary tumor and normal pancreas. The calibration target uses the dimensionless fold-change of tumor lactate relative to normal pancreas. The model observable computes V_T.lactate (tumor lactate concentration in micromolarity) divided by a literature-derived normal pancreas lactate reference (lactate_normal_reference), so that model output is directly comparable to the PA/PP fold-change estimated from HRMAS data.
+  experimental_denominator: null
+  model_denominator_species: null
+  unmodeled_denominator_components: null
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: |
+      No neoadjuvant chemotherapy for the subgroup used in Table 2 (9 PP and 44 PA samples). All patients received homogeneous adjuvant gemcitabine after resection, but adjuvant therapy occurs after tissue sampling and does not affect baseline HRMAS measurements.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Primary pancreatic adenocarcinoma and adjacent pancreatic parenchyma obtained at surgical resection.
+  assay_type: 1H HRMAS NMR spectroscopy of intact tissue
+scenario:
+  description: |
+    Baseline metabolite profiling of resectable pancreatic adenocarcinoma (PA) and matched pancreatic parenchyma (PP) at the time of surgical resection, without neoadjuvant chemotherapy. Tissue samples (15-20 mg) were collected intraoperatively immediately after tumor removal, snap-frozen in liquid nitrogen, stored at -80 C, and later analyzed by 1H HRMAS NMR.
+  interventions:
+  - intervention_description: |
+      Pancreatic adenocarcinoma resection surgery (pancreaticoduodenectomy or distal pancreatectomy as clinically indicated) performed after natural disease progression without neoadjuvant chemotherapy; tumor and adjacent pancreatic parenchyma tissue samples collected immediately after resection for HRMAS NMR analysis.
+  - intervention_description: |
+      No neoadjuvant chemotherapy for the subgroup used in this calibration target (44 PA and 9 PP samples). Homogeneous adjuvant gemcitabine chemotherapy was given postoperatively but only after tissue sampling and therefore does not influence intraoperative metabolite levels.
+empirical_data:
+  median:
+  - 1.4445
+  ci95:
+  - - 0.7069
+    - 2.9273
+  units: dimensionless
+  sample_size: 53
+  sample_size_rationale: |
+    Table 2 compares pancreatic parenchyma (PP) and pancreatic adenocarcinoma (PA) samples without neoadjuvant chemotherapy, using 9 PP samples and 44 PA samples (total n=53) as described in the patient population section and the Fig. 3 caption.
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs:
+  - name: lactate_pp_mean
+    value: 11.004
+    units: nanomole / milligram
+    description: |
+      Mean lactate concentration in pancreatic parenchyma (PP, healthy tissue) without neoadjuvant chemotherapy, quantified by HRMAS NMR and expressed as nmol/mg of tissue.
+    source_ref: Battini2017_HRMAS
+    value_location: Table 2
+    value_snippet: Lactate PP 11.0040 ± 2.4733 0.0006
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: lactate_pp_sd
+    value: 2.4733
+    units: nanomole / milligram
+    description: |
+      Standard deviation of lactate concentration in pancreatic parenchyma (PP, healthy tissue) without neoadjuvant chemotherapy, HRMAS NMR, nmol/mg.
+    source_ref: Battini2017_HRMAS
+    value_location: Table 2
+    value_snippet: Lactate PP 11.0040 ± 2.4733 0.0006
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: sd
+    dispersion_type_rationale: |
+      Methods, Statistical analysis: "Continuous variables are expressed as mean ± standard deviation (SD)."
+  - name: lactate_pa_mean
+    value: 16.137
+    units: nanomole / milligram
+    description: |
+      Mean lactate concentration in pancreatic adenocarcinoma (PA) tumor tissue without neoadjuvant chemotherapy, quantified by HRMAS NMR and expressed as nmol/mg of tissue.
+    source_ref: Battini2017_HRMAS
+    value_location: Table 2
+    value_snippet: PA 16.1370 ± 4.7272
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: lactate_pa_sd
+    value: 4.7272
+    units: nanomole / milligram
+    description: |
+      Standard deviation of lactate concentration in pancreatic adenocarcinoma (PA) tumor tissue without neoadjuvant chemotherapy, HRMAS NMR, nmol/mg.
+    source_ref: Battini2017_HRMAS
+    value_location: Table 2
+    value_snippet: PA 16.1370 ± 4.7272
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: table
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+    dispersion_type: sd
+    dispersion_type_rationale: |
+      Methods, Statistical analysis: "Continuous variables are expressed as mean ± standard deviation (SD)."
+  assumptions: []
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+
+        rng = np.random.default_rng(123)
+
+        lactate_pp_mean = inputs['lactate_pp_mean']
+        lactate_pp_sd = inputs['lactate_pp_sd']
+        lactate_pa_mean = inputs['lactate_pa_mean']
+        lactate_pa_sd = inputs['lactate_pa_sd']
+
+        def lognormal_params(mean_q, sd_q):
+            m = mean_q.magnitude
+            s = sd_q.magnitude
+            sigma2 = np.log(1.0 + (s**2) / (m**2))
+            sigma = np.sqrt(sigma2)
+            mu = np.log(m) - 0.5 * sigma2
+            return mu, sigma
+
+        mu_pp, sigma_pp = lognormal_params(lactate_pp_mean, lactate_pp_sd)
+        mu_pa, sigma_pa = lognormal_params(lactate_pa_mean, lactate_pa_sd)
+
+        n_samples = 100000
+        pp_samples = rng.lognormal(mu_pp, sigma_pp, n_samples) * lactate_pp_mean.units
+        pa_samples = rng.lognormal(mu_pa, sigma_pa, n_samples) * lactate_pa_mean.units
+
+        ratio_samples = (pa_samples / pp_samples).to('dimensionless')
+
+        median_obs = np.median(ratio_samples)
+        ci95_lower = np.percentile(ratio_samples, 2.5)
+        ci95_upper = np.percentile(ratio_samples, 97.5)
+
+        return {
+            'median_obs': median_obs,
+            'ci95_lower': ci95_lower,
+            'ci95_upper': ci95_upper,
+        }
+primary_data_source:
+  source_tag: Battini2017_HRMAS
+  title: |
+    Metabolomics approaches in pancreatic adenocarcinoma: tumor metabolism profiling predicts clinical outcome of patients
+  first_author: Battini
+  year: 2017
+  doi: 10.1186/s12916-017-0810-z
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: |
+      Study population consists of patients with histologically confirmed pancreatic adenocarcinoma undergoing surgical resection, directly matching the PDAC indication. Metabolite measurements from primary tumor and adjacent normal pancreas tissue.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: pathological_state
+    perturbation_relevance: |
+      Tissue lactate measured in chemo-naive resectable PDAC at surgical resection reflects baseline tumor Warburg metabolism without confounding by systemic therapy.
+    tme_compatibility: high
+    tme_compatibility_notes: |
+      HR-MAS NMR on intact tissue captures total lactate from tumor cells, stroma, and immune infiltrate, consistent with the well-mixed V_T compartment in the QSP model.
+    validation_warnings: null
+secondary_data_sources: []
+calibration_target_id: tumor_lactate_fold_change
+cancer_type: PDAC
+tags:
+- ai-generated
+logfire_trace_id: 019c6d749183841bd720088017458367
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium

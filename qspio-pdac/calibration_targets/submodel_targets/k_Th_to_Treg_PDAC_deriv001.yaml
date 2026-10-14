@@ -1,0 +1,293 @@
+target_id: k_Th_to_Treg
+inputs:
+- name: foxp3_frac_48h_tgfb_il2
+  value: 0.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Davidson2007
+  source_location: Results and Discussion, paragraph beginning 'The ability of TGF-beta
+    to induce Foxp3 expression...'; referring to Fig. 1A, 48 h timepoint
+  value_snippet: At 48 h after stimulation, nearly 50% of the TGF-beta-treated cells
+    were Foxp3+, whereas <1% of the cells stimulated in the absence of the cytokine
+    were Foxp3+ (Fig. 1A).
+- name: foxp3_frac_72h_tgfb_il2
+  value: 0.73
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Davidson2007
+  source_location: Results and Discussion, same paragraph; Fig. 1A, 72 h timepoint
+  value_snippet: The number of Foxp3-expressing cells continued to increase to 73%
+    by 72 h, and reached a maximum of 83% at 96 h.
+- name: foxp3_frac_96h_tgfb_il2
+  value: 0.83
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Davidson2007
+  source_location: Results and Discussion, same paragraph; Fig. 1A, 96 h timepoint
+  value_snippet: The number of Foxp3-expressing cells continued to increase to 73%
+    by 72 h, and reached a maximum of 83% at 96 h.
+- name: n_effective_reps_foxp3_timecourse
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Davidson2007 describes a representative timecourse of Foxp3 induction
+    without reporting replicate numbers or variability. For calibration we treat the
+    reported trajectory as a single composite observation (sample_size = 1) to avoid
+    shrinking uncertainty by sqrt(n) when bootstrapping the mean.
+  source_ref: Davidson2007
+  source_location: Results and Discussion, description of Fig. 1A; no mention of n
+    or error bars.
+- name: t_48h
+  value: 2.0
+  units: day
+  input_type: reference_value
+  rationale: Convert the 48 h timepoint reported in Davidson2007 Fig. 1A to days
+    for use as the independent variable in the algebraic forward model.
+  source_ref: Davidson2007
+  source_location: Fig. 1A, 48 h timepoint.
+- name: t_72h
+  value: 3.0
+  units: day
+  input_type: reference_value
+  rationale: Convert the 72 h timepoint reported in Davidson2007 Fig. 1A to days
+    for use as the independent variable in the algebraic forward model.
+  source_ref: Davidson2007
+  source_location: Fig. 1A, 72 h timepoint.
+- name: t_96h
+  value: 4.0
+  units: day
+  input_type: reference_value
+  rationale: Convert the 96 h timepoint reported in Davidson2007 Fig. 1A to days
+    for use as the independent variable in the algebraic forward model.
+  source_ref: Davidson2007
+  source_location: Fig. 1A, 96 h timepoint.
+- name: foxp3_reporting_precision_sd
+  value: 0.01
+  units: dimensionless
+  input_type: reference_value
+  rationale: "Davidson2007 reports the Foxp3+ fractions in prose as rounded integer
+    percentages (50%, 73%, 83%, with the 48 h value qualified as 'nearly 50%') and
+    does not provide replicate counts or error bars. The true underlying fractions
+    are therefore only resolved to the nearest 1 percentage point. Treating the
+    reporting precision as a uniform rounding interval of width 0.01 gives a
+    rounding-only SD of 0.01/sqrt(12) ~ 0.003; we conservatively inflate this to
+    0.01 (1 percentage point) to also absorb the 'nearly 50%' wording at 48 h,
+    figure-vs-text digitization noise, and to satisfy the maple schema requirement
+    that the parametric bootstrap produce nonzero spread. This spread reflects
+    source reporting precision only; cross-indication biological variability is
+    handled separately by translation_sigma during joint calibration."
+  source_ref: Davidson2007
+  source_location: Results and Discussion, Fig. 1A caption; values reported to
+    nearest 1 percent with '50%', '73%', '83%' (48 h qualified as 'nearly 50%').
+calibration:
+  parameters:
+  - name: k_Th_to_Treg
+    units: 1/day
+    nuisance: false
+  - name: F_inf
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: uniform
+      lower: 0.5
+      upper: 1.0
+  forward_model:
+    data_rationale: Davidson2007 reports the fraction of Foxp3+ cells among CD4+ T
+      cells at 48, 72, and 96 h after stimulation of naive CD4+Foxp3- T cells with
+      plate-bound anti-CD3 plus anti-CD28, IL-2, and 5 ng/ml TGF-beta. Under these
+      strongly activating, cytokine-saturated conditions the Foxp3+ fraction rises
+      monotonically toward an apparent plateau below 1 (~0.83 by 96 h), consistent
+      with a first-order approach to a convertible-subpopulation asymptote F_inf.
+    submodel_rationale: In the full QSPIO-PDAC model, tumor-local Th-to-Treg conversion
+      in the tumor compartment is represented by a first-order reaction V_T.Th ->
+      V_T.Treg with rate k_Th_to_Treg * H_TGFb * H_ArgI_Treg * V_T.Th. If a fraction
+      F_inf of the CD4 pool is convertible, total CD4 effector cells are approximately
+      conserved over the short in vitro experiment, and gating functions are constant
+      (H_TGFb ~ 1 under saturating TGF-beta; H_ArgI_Treg ~ 1 in the absence of ArgI),
+      the Foxp3+ fraction obeys dF_Treg/dt = k_Th_to_Treg * (F_inf - F_Treg), whose
+      analytic solution with F_Treg(0)=0 is F_Treg(t) = F_inf * (1 - exp(-k_Th_to_Treg
+      * t)). Fitting this closed form to the three Foxp3+ timepoints jointly infers
+      k_Th_to_Treg (QSP parameter) and F_inf (nuisance, bounded in [0.5, 1.0] based
+      on the physical requirement that the convertible fraction cannot exceed 1 and
+      the observed plateau near 0.83). Tumor-local conversion rates are later scaled
+      by the model's H_TGFb and H_ArgI_Treg gates.
+    type: algebraic
+    formula: F_Treg(t) = F_inf * (1 - exp(-k_Th_to_Treg * t))
+    code: |-
+      def compute(params, inputs):
+          import jax.numpy as np
+          t = inputs['_x']
+          return params['F_inf'] * (1.0 - np.exp(-params['k_Th_to_Treg'] * t))
+  error_model:
+  - name: foxp3_fraction_48h
+    units: dimensionless
+    uses_inputs:
+    - foxp3_frac_48h_tgfb_il2
+    - n_effective_reps_foxp3_timecourse
+    - t_48h
+    - foxp3_reporting_precision_sd
+    x_input: t_48h
+    sample_size_input: n_effective_reps_foxp3_timecourse
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    p = inputs['foxp3_frac_48h_tgfb_il2']\n    sd =\
+      \ inputs['foxp3_reporting_precision_sd']\n    return rng.normal(p, sd, n_bootstrap)"
+    n_bootstrap: 10000
+  - name: foxp3_fraction_72h
+    units: dimensionless
+    uses_inputs:
+    - foxp3_frac_72h_tgfb_il2
+    - n_effective_reps_foxp3_timecourse
+    - t_72h
+    - foxp3_reporting_precision_sd
+    x_input: t_72h
+    sample_size_input: n_effective_reps_foxp3_timecourse
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    p = inputs['foxp3_frac_72h_tgfb_il2']\n    sd =\
+      \ inputs['foxp3_reporting_precision_sd']\n    return rng.normal(p, sd, n_bootstrap)"
+    n_bootstrap: 10000
+  - name: foxp3_fraction_96h
+    units: dimensionless
+    uses_inputs:
+    - foxp3_frac_96h_tgfb_il2
+    - n_effective_reps_foxp3_timecourse
+    - t_96h
+    - foxp3_reporting_precision_sd
+    x_input: t_96h
+    sample_size_input: n_effective_reps_foxp3_timecourse
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    p = inputs['foxp3_frac_96h_tgfb_il2']\n    sd =\
+      \ inputs['foxp3_reporting_precision_sd']\n    return rng.normal(p, sd, n_bootstrap)"
+    n_bootstrap: 10000
+  identifiability_notes: "The closed-form solution F_Treg(t) = F_inf * (1 - exp(-k\
+    \ * t)) is fit to three Foxp3+ timepoints (48, 72, 96 h) with F_Treg(0)=0. Two\
+    \ parameters are jointly inferred - the QSP rate k_Th_to_Treg and the nuisance\
+    \ convertible-fraction asymptote F_inf (uniform prior on [0.5, 1.0]). With three\
+    \ observations and two parameters the joint identifiability is sufficient -\
+    \ the 48 h point anchors the early-time slope (k * F_inf), the 96 h point\
+    \ anchors the plateau (F_inf), and the 72 h point disambiguates the curvature.\
+    \ Allowing F_inf < 1 eliminates the downward bias on k that would arise from\
+    \ a fixed-at-1 asymptote under the saturation model, because the Davidson2007\
+    \ data plateau near 0.83. Davidson2007 reports a representative timecourse\
+    \ without replicate counts or error bars, so observational uncertainty is set\
+    \ solely by source reporting precision - values are quoted as rounded integer\
+    \ percentages (50%, 73%, 83%, with 'nearly 50%' at 48 h). A normal error model\
+    \ with SD = 0.01 (1 percentage point, traceable to the rounding interval plus\
+    \ a small allowance for the 'nearly' qualifier and digitization noise) is\
+    \ applied to each timepoint with sample_size = 1. No biological CV is imputed;\
+    \ cross-indication biological variability is carried by translation_sigma\
+    \ during joint calibration. The\
+    \ model does not constrain Treg death, reversion, or the detailed form of\
+    \ H_TGFb or H_ArgI_Treg; in the full QSPIO-PDAC model, tumor-local conversion\
+    \ rates will be reduced relative to this in vitro estimate by those gating\
+    \ functions and by competing processes such as death and egress."
+experimental_context:
+  species: mouse
+  system: in_vitro_primary_cells
+study_interpretation: "Davidson2007 demonstrates that naive murine CD4+Foxp3- T cells\
+  \ exposed to strong TCR/CD28 stimulation, exogenous IL-2, and 5 ng/ml TGF-beta acquire\
+  \ Foxp3 expression with a characteristic timescale of 2\u20134 days, reaching ~50%\
+  \ Foxp3+ by 48 h and ~80% by 96 h. Interpreted through the QSPIO-PDAC reaction V_T.Th\
+  \ -> V_T.Treg with rate k_Th_to_Treg * H_TGFb * H_ArgI_Treg * V_T.Th, and assuming\
+  \ constant total CD4 numbers and saturating TGF-beta and IL-2 (so H_TGFb \u2248\
+  \ H_ArgI_Treg \u2248 1), these kinetics correspond to a first-order approach of\
+  \ the Foxp3+ fraction toward saturation with an effective per-day conversion rate\
+  \ k_Th_to_Treg under idealized, cytokine-rich conditions. This provides an upper-bound\
+  \ estimate for Th-to-Treg transdifferentiation speed, which in the PDAC tumor microenvironment\
+  \ will be down-modulated by lower effective TGF-beta exposure, ArgI-mediated gating,\
+  \ and competing death/egress processes."
+key_assumptions:
+- Naive CD4+Foxp3- T cells in the Davidson2007 in vitro system have similar intrinsic
+  TGF-beta-driven conversion kinetics to tumor-infiltrating Th cells in PDAC once
+  strong TCR signaling is engaged.
+- "Total CD4 effector cell numbers (Th + Treg) are approximately conserved over the\
+  \ 0\u201396 h induction window, so changes in the Foxp3+ fraction primarily reflect\
+  \ conversion rather than differential proliferation or death between subsets."
+- "Recombinant TGF-beta at 5 ng/ml and IL-2 at 100 U/ml produce near-saturating values\
+  \ of the gating functions H_TGFb and H_ArgI_Treg in the QSPIO-PDAC model, allowing\
+  \ us to approximate H_TGFb \u2248 H_ArgI_Treg \u2248 1 for this submodel."
+- Arginase I-mediated effects on Th-to-Treg conversion (H_ArgI_Treg) are negligible
+  in the Davidson2007 culture system, which lacks myeloid-derived suppressor cells
+  and other ArgI sources.
+- Reported Foxp3+ fractions at 48, 72, and 96 h are quoted as rounded integer
+  percentages (with 'nearly 50%' at 48 h) and no replicates or error bars are
+  provided. Observational uncertainty is therefore set solely by source reporting
+  precision - a normal error model with SD = 0.01 (one percentage point,
+  covering the rounding interval plus a small allowance for 'nearly 50%' and
+  digitization noise) is applied with sample_size = 1. This spread is traceable
+  to how the paper reports its numbers rather than to an assumed biological CV;
+  cross-indication biological variability is supplied by translation_sigma
+  during joint calibration.
+- Differential proliferation and death between Foxp3+ and Foxp3- subsets over 2-4
+  days of strong TCR/CD28 + IL-2 + TGF-beta stimulation are neglected; changes in
+  the Foxp3+ fraction are interpreted solely as conversion. In reality modest
+  subset-specific proliferation/survival differences may distort the inferred
+  k_Th_to_Treg somewhat, and the plateau at ~0.83 (rather than 1.0) further biases
+  the estimate downward under the fixed-asymptote saturation model.
+key_study_limitations:
+- The experimental system uses naive murine CD4+Foxp3- T cells from TCR-transgenic
+  Rag2-/- mice under strong plate-bound anti-CD3/anti-CD28 stimulation, which may
+  convert more efficiently and rapidly than heterogeneous, potentially exhausted Th
+  cells in human PDAC tumors.
+- The culture is a simplified in vitro environment lacking the complex PDAC tumor
+  microenvironment, including CAFs, myeloid cells, hypoxia, and spatial constraints,
+  so the inferred k_Th_to_Treg represents an upper-bound rate under idealized conditions.
+- TGF-beta and IL-2 concentrations are high and constant in vitro; in PDAC tumors
+  TGF-beta and IL-2 are heterogeneous and dynamically regulated, so effective in vivo
+  conversion rates will be scaled down by the model's H_TGFb and H_ArgI_Treg gates.
+- The Foxp3+ fractions are reported only at three time points (48, 72, 96 h) with
+  qualitative wording ('nearly' 50%), and no replicate counts or error bars are provided,
+  limiting the precision of rate estimation and precluding direct quantification of
+  experimental variability.
+- The submodel explicitly allows a convertible-fraction asymptote F_inf < 1 via a
+  nuisance parameter with a uniform [0.5, 1.0] prior, rather than forcing F_inf = 1.
+  This removes the systematic downward bias on k_Th_to_Treg that a fixed-at-1
+  plateau would impose given the Davidson2007 data plateau near 0.83 at 96 h.
+primary_data_source:
+  doi: 10.4049/jimmunol.178.7.4022
+  title: 'Cutting Edge: IL-2 Is Essential for TGF-beta-Mediated Induction of Foxp3+
+    T Regulatory Cells'
+  authors:
+  - Davidson
+  - DiPaolo
+  - Andersson
+  - Shevach
+  year: 2007
+  source_tag: Davidson2007
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: Davidson2007 studies in vitro TGF-beta-driven
+      induction of Foxp3+ regulatory T cells from naive murine CD4+ T cells in a non-tumor
+      context, whereas the QSPIO-PDAC model describes Th-to-Treg conversion within
+      human pancreatic ductal adenocarcinoma tumors. The underlying TGF-beta/IL-2-dependent
+      transcriptional program for Foxp3 induction is expected to be conserved, but
+      the cellular activation state, antigen specificity, and surrounding microenvironment
+      differ substantially from PDAC, so the data are used as a mechanistic proxy
+      rather than a disease-matched measurement.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: T cells are stimulated with plate-bound anti-CD3 and anti-CD28
+      antibodies plus exogenous IL-2 and TGF-beta, providing strong TCR/CD28 and cytokine
+      signals that mimic an upper-bound activation context for TGF-beta-driven Foxp3
+      induction; no pharmacologic inhibitors or genetic perturbations altering the
+      Foxp3 pathway are applied.
+    tme_compatibility: low
+    tme_compatibility_notes: The experiment is performed in simple 2D culture of purified
+      T cells without stromal, myeloid, or tumor cells, and without the dense desmoplastic
+      matrix, hypoxia, and chronic inflammation that characterize the PDAC tumor microenvironment.
+      Consequently, the inferred Th-to-Treg conversion rate is expected to overestimate
+      effective in-tumor rates, which in the full model are reduced by H_TGFb and
+      H_ArgI_Treg gates and by additional suppressive processes.
+    measurement_directness: direct
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_primary
+tags:
+- Treg
+- TGFbeta
+- IL2
+- Th_to_Treg
+- mouse_in_vitro
+- Foxp3_induction
+extraction_model: gpt-4.1
+extraction_reasoning_effort: medium

@@ -1,0 +1,17 @@
+# SPQSP_PDAC Python dependencies
+# Install: python -m venv .venv && .venv/bin/pip install -r requirements.txt
+
+# vpop fitting framework (editable install from sibling directory)
+-e ./vpop
+
+# JAX + NumPyro for MCMC sampling
+jax>=0.4
+numpyro>=0.15
+
+# Data & analysis
+numpy
+pyyaml
+arviz>=1.0
+
+# QSP simulation pool (uses maple for batch runs)
+# -e ./maple   # uncomment if maple package is available locally

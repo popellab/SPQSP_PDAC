@@ -1,0 +1,262 @@
+target_id: k_vas_myCAF_sec_erkan2009
+tags:
+- ai-generated
+- fibroblast-module
+extraction_model: claude-opus-4-6
+study_interpretation: 'Erkan et al. (2009) measured VEGF secretion by primary human pancreatic stellate
+
+  cells (PSCs) under normoxic and hypoxic conditions using ELISA. PSCs were isolated
+
+  from fibrotic areas of resected PDAC tissues and cultured in six-well plates at
+
+  200,000 cells/well in serum-free stellate cell medium for 24h. VEGF concentrations
+
+  in supernatants were normalized to 100,000 cells.
+
+
+  Under normoxia, PSCs secreted 346.6 pg/mL per 100,000 cells. Under hypoxia,
+
+  secretion increased to 946.0 pg/mL per 100,000 cells (175 +/- 124% increase,
+
+  consistent with text-reported value). PSCs were identified as the most potent
+
+  VEGF producers, secreting more than double the amount of the most potent cancer
+
+  cell line tested.
+
+
+  The normoxic condition is relevant for constraining the model parameter
+
+  k_vas_myCAF_sec, as the QSP model does not include hypoxia-dependent VEGF
+
+  enhancement by CAFs. The culture-activated PSCs (alpha-SMA+) are the closest
+
+  in vitro proxy for myCAFs.
+
+  '
+key_assumptions:
+- 'Culture-activated PSCs (passage-activated, alpha-SMA+) are representative of
+
+  myCAFs in the PDAC tumor microenvironment. PSCs isolated by outgrowth method
+
+  spontaneously activate during culture, acquiring a myofibroblastic phenotype.
+
+  '
+- 'VEGF degradation in serum-free culture medium over 24h is negligible. VEGF-A165
+
+  is stable in conditioned medium at 37C for at least 24h. The measured
+
+  concentration directly reflects cumulative secretion.
+
+  '
+- 'Six-well plate volume is approximately 2 mL. Standard six-well plates use
+
+  1.5-3 mL; 2 mL is the most common volume for stellate cell culture. This is
+
+  treated as a nuisance parameter with an informative prior.
+
+  '
+- 'The "per 100,000 cells" normalization accounts for any proliferation or death
+
+  during the 24h collection. The effective cell count contributing to VEGF
+
+  secretion is 100,000 cells by construction of the normalization.
+
+  '
+key_study_limitations:
+- 'Culture-activated PSCs differ from in vivo myCAFs. In vitro activation lacks
+
+  the spatial gradients, immune interactions, and ECM stiffness cues of the TME.
+
+  However, alpha-SMA expression confirms myofibroblastic differentiation.
+
+  '
+- 'Serum-free conditions may alter VEGF secretion compared to physiological
+
+  conditions. Serum withdrawal is standard for secretome studies to avoid
+
+  background interference but may stress cells.
+
+  '
+- 'Only normoxic data is used. In vivo PDAC stroma is hypoxic, which would
+
+  increase VEGF secretion further (175% increase observed). The normoxic rate
+
+  represents a lower bound for in vivo myCAF VEGF production.
+
+  '
+- 'Data reported as mean +/- SEM with n >= 3 different PSC clones. Inter-patient
+
+  variability in PSC VEGF secretion may be substantial (SEM is ~42% of mean).
+
+  '
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: primary human pancreatic stellate cells
+    source: resected PDAC tissue (fibrotic areas)
+    isolation_method: 'Outgrowth method (Bachem et al. 1998). PSCs isolated from fibrotic areas
+
+      of resected PDAC tissues, culture-activated (alpha-SMA+). Multiple PSC
+
+      clones used across experiments.
+
+      '
+  culture_conditions:
+    medium: 1:1 DMEM/Ham's F12 with penicillin 1%, streptomycin 1%, 10% FCS for culture; serum-free for 24h ELISA collection
+    duration: 24 hours serum-free collection
+  indication: PDAC
+primary_data_source:
+  doi: 10.1593/neo.81618
+  title: 'Cancer-Stellate Cell Interactions Perpetuate the Hypoxia-Fibrosis Cycle
+
+    in Pancreatic Ductal Adenocarcinoma
+
+    '
+  authors:
+  - Erkan
+  - Reiser-Erkan
+  - Michalski
+  - Deucker
+  - Sauliunaite
+  - Streit
+  - Esposito
+  - Friess
+  - Kleeff
+  year: 2009
+  source_tag: Erkan2009
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: 'Primary human PSCs isolated from resected PDAC tissue. The cells are directly
+
+      from the tumor microenvironment of interest. Culture activation produces
+
+      alpha-SMA+ myofibroblasts matching the myCAF phenotype.
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: 'Normoxic baseline secretion. No exogenous stimulation — the PSCs are
+
+      constitutively activated from culture. This represents basal myCAF VEGF
+
+      secretion without hypoxic enhancement.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro monolayer culture lacks ECM stiffness, hypoxia, and paracrine
+
+      signaling from cancer cells and immune cells. In vivo PDAC stroma is hypoxic,
+
+      which increases VEGF secretion ~2.7x (175% increase observed in this study).
+
+      The normoxic rate likely underestimates in vivo myCAF VEGF production.
+
+      '
+    measurement_directness: direct
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_primary
+secondary_data_sources: []
+inputs:
+- name: PSC_normoxia_VEGF_mean
+  value: 346.6
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Erkan2009
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: ~347
+    description: PSC normoxia VEGF bar height (pg/mL per 100,000 cells)
+    context: VEGF ELISA, grey bar, normoxia condition. Values normalized to 100,000 cells.
+- name: PSC_normoxia_VEGF_SEM
+  value: 144.9
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Erkan2009
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: +/- ~145
+    description: PSC normoxia VEGF error bar (SEM, pg/mL per 100,000 cells)
+    context: Error bars represent SEM. Experiments repeated at least three times using different PSC clones.
+- name: n_experiments
+  value: 3
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Erkan2009
+  source_location: Figure 4 legend
+  value_snippet: experiments were performed at least three times using different PSC clones
+- name: cells_per_normalization
+  value: 100000
+  units: cell
+  input_type: direct_measurement
+  source_ref: Erkan2009
+  source_location: Figure 4 legend
+  value_snippet: values are expressed normalized to 100,000 cells
+- name: collection_time
+  value: 24
+  units: hour
+  input_type: direct_measurement
+  source_ref: Erkan2009
+  source_location: Figure 4 legend
+  value_snippet: kept under normoxic and hypoxic conditions for 24 hours in serum-free medium
+calibration:
+  parameters:
+  - name: k_vas_myCAF_sec
+    units: picogram / (cell * day)
+  - name: V_well_mL
+    units: milliliter
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.693
+      sigma: 0.2
+  forward_model:
+    type: algebraic
+    formula: VEGF_norm = k_sec * cells_norm * time_days / V_well
+    data_rationale: 'PSCs cultured for 24h in serum-free medium. VEGF accumulates in the
+
+      supernatant with negligible degradation (VEGF-A165 is stable in culture
+
+      medium at 37C). The measured concentration, normalized to 100,000 cells,
+
+      directly constrains the per-cell secretion rate.
+
+      '
+    submodel_rationale: 'The QSP model reaction is: null -> V_T.VEGF at rate k_vas_myCAF_sec * V_T.myCAF.
+
+      This is simple linear secretion with no Hill functions or gating terms.
+
+      The in vitro batch accumulation directly maps to this rate constant.
+
+      '
+    code: "def compute(params, inputs):\n    import numpy as np\n    k_sec = params['k_vas_myCAF_sec']\n    V_well = params['V_well_mL']\n\
+      \    cells_norm = inputs['cells_per_normalization']\n    time_days = inputs['collection_time'] / 24\n    # predicted\
+      \ VEGF concentration normalized to 100k cells\n    conc_norm = k_sec * cells_norm * time_days / V_well\n    return conc_norm\n"
+  error_model:
+  - name: PSC_normoxia_VEGF
+    units: picogram / milliliter
+    uses_inputs:
+    - PSC_normoxia_VEGF_mean
+    - PSC_normoxia_VEGF_SEM
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['PSC_normoxia_VEGF_mean']\n    sem = inputs['PSC_normoxia_VEGF_SEM']\n    n = int(inputs['n_experiments'])\n\
+      \    sd = sem * np.sqrt(n)\n    # Lognormal bootstrap: VEGF concentrations are positive\n    cv = sd / mean\n    return\
+      \ rng.lognormal(np.log(mean), cv / np.sqrt(sample_size), n_bootstrap)\n"
+  identifiability_notes: 'k_vas_myCAF_sec is the sole QSP parameter and is directly identifiable from
+
+    the VEGF concentration measurement. The only degeneracy is with V_well_mL
+
+    (nuisance): k_sec and V_well appear as k_sec/V_well, so an informative prior
+
+    on V_well (standard six-well plate) resolves this. The ratio k_sec/V_well is
+
+    tightly constrained regardless.
+
+    '

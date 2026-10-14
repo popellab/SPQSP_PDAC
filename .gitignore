@@ -23,8 +23,25 @@ CLAUDE.md
 /calibration/archive/
 /results/
 /tmp/
-# qspio-pdac is its own repo (popellab/qspio-pdac); not tracked here
-/qspio-pdac/
+# qspio-pdac: MATLAB QSP model (originally popellab/qspio-pdac, now maintained here)
+# Track selectively — heavy/generated content is excluded below
+/qspio-pdac/.venv/
+/qspio-pdac/__pycache__/
+/qspio-pdac/results/
+/qspio-pdac/workflows/
+/qspio-pdac/sweep_specs/
+/qspio-pdac/tests/__pycache__/
+/qspio-pdac/cpp/sim/build/
+/qspio-pdac/notes/
+/qspio-pdac/presentations/
+/qspio-pdac/*.bak
+/qspio-pdac/*.pre_*
+/qspio-pdac/PDAC_model_bcell.sbml
+/qspio-pdac/V_T
+/qspio-pdac/V_T,*
+/qspio-pdac/model_context.txt
+/qspio-pdac/CLAUDE.md
+/qspio-pdac/DEVLOG.md
 /qsp-inference/
 /qsp-codegen/
 __pycache__/
@@ -37,3 +54,4 @@ __pycache__/
 *.sif
 # vpop pipeline (cloned from popellab/vpop, not vendored)
 /vpop/
+/.venv

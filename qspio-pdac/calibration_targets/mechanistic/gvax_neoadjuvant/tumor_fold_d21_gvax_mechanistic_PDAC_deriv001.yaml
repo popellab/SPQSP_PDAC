@@ -1,0 +1,132 @@
+study_interpretation: |
+  Mechanistic-prior cal target on the continuous C1 fold-change C1(d21) / C1(0)
+  for the neoadjuvant GVAX-monotherapy scenario gvax_neoadjuvant_zheng2022.
+  Splits the magnitude claim ("the tumor should respond, at least mildly, to
+  GVAX over 21 days") off the timing-only target
+  tumor_min_follows_cd8_peak_gvax_mechanistic. Closest literature anchors
+  (Lutz 2011, Le 2015) report low or null ORR for single-agent GVAX in
+  PDAC, so the median sits closer to 1.0 (essentially unchanged) than the
+  gvax+nivo companion (0.85).
+
+  Note: as of the time this target was written, gvax_neoadjuvant_zheng2022
+  loads only literature cal targets (calibration_targets/gvax_neoadjuvant)
+  and does not pull in calibration_targets/mechanistic/gvax_neoadjuvant.
+  This YAML is in place for when that loader wiring is updated; see also
+  the companion mass-center timing targets in the same directory.
+key_assumptions:
+- |
+  Mechanistic prior: GVAX monotherapy applied in the 21-day neoadjuvant
+  window of NCT02451982 (Arm A) produces, on the cohort scale, essentially
+  unchanged tumor cellularity. Single-agent vaccine clinical signal in
+  PDAC is weak (Lutz 2011 unresectable GVAX, Le 2015 metastatic
+  GVAX/CRS-207 — both report ORR ~0%).
+- |
+  Median 0.95 chosen just below 1.0 to encode the weak directional claim
+  "vaccine alone should not strongly slow growth in 21 days", consistent
+  with the metastatic-trial baseline. CI95 [0.6, 1.4] admits both modest
+  response and the no-effect baseline.
+- |
+  Distribution width chosen so this target acts as a directional sanity
+  rail. The companion timing target (mass-center formulation) NaN-gates
+  when C1 does not fall below baseline, so this magnitude target is the
+  ONLY signal pushing the model toward any shrinkage in the gvax 21-day
+  window.
+key_study_limitations:
+- |
+  No primary literature source reports per-patient C1 fold-change at d21
+  in the resectable + neoadjuvant GVAX-monotherapy population. Available
+  trial data is from metastatic single-agent GVAX with reported ORR ~0%;
+  using it as a literature target would force a population mismatch.
+- |
+  CI95 width is deliberately wide so this target acts as a directional
+  sanity rail rather than a tight likelihood driver.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        import numpy as np
+        c1 = species_dict['V_T.C1']
+        if c1.size == 0 or c1[0] <= 0:
+            return np.full_like(c1, np.nan, dtype=float)
+        return c1 / c1[0]
+
+  units: dimensionless
+  species:
+  - V_T.C1
+  constants: []
+  support: positive_unbounded
+  mapping_rationale: |
+    End fold-change C1(d21) / C1(0). Mechanistic prior centers near 1.0
+    (no strong effect) with a wide CI admitting either modest response
+    or untreated-comparable growth.
+  experimental_denominator: null
+  model_denominator_species: null
+  unmodeled_denominator_components: null
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: on_treatment
+    specifier: |
+      Resectable PDAC receiving neoadjuvant GVAX monotherapy (Arm A of
+      NCT02451982), 21-day window from first vaccine dose to surgical
+      resection. Mechanistic prior; the published cohort does not report
+      per-patient C1 fold-change at d21.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: null
+  assay_type: null
+scenario:
+  description: |
+    21-day neoadjuvant GVAX-monotherapy scenario (gvax_neoadjuvant_zheng2022);
+    mechanistic-prior directional cal target on the continuous d21 C1
+    fold-change.
+  interventions:
+  - intervention_description: |
+      GVAX vaccine course per gvax_neoadjuvant_zheng2022 scenario YAML.
+empirical_data:
+  median:
+  - 0.9147
+  ci95:
+  - - 0.6
+    - 1.4
+  units: dimensionless
+  sample_size: 1
+  sample_size_rationale: |
+    Mechanistic prior; sample size 1 denotes a single soft-prior assertion.
+    CI95 [0.6, 1.4] carries directional uncertainty about per-patient d21
+    C1 fold-change under GVAX monotherapy.
+  index_values:
+  - 21.0
+  index_unit: day
+  index_type: time
+  inputs: []
+  assumptions: []
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        rng = np.random.default_rng(42)
+        lo, hi = 0.6, 1.4
+        mu = 0.5 * (np.log(lo) + np.log(hi))
+        sigma = (np.log(hi) - np.log(lo)) / (2.0 * 1.96)
+        samples = rng.lognormal(mu, sigma, 100000) * ureg.dimensionless
+        return {
+            'median_obs': np.median(samples),
+            'ci95_lower': np.percentile(samples, 2.5),
+            'ci95_upper': np.percentile(samples, 97.5),
+        }
+epistemic_basis: mechanistic
+primary_data_source: null
+secondary_data_sources: []
+calibration_target_id: tumor_fold_d21_gvax_mechanistic
+cancer_type: PDAC
+tags:
+- mechanistic_prior
+- treated_directional

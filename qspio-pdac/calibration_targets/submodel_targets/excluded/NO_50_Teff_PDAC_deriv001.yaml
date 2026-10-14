@@ -1,0 +1,231 @@
+target_id: NO_50_Teff_Bingisser1998_SNAP_Tcell_proliferation
+inputs:
+- name: snap_ic50_text
+  value: 300.0
+  units: micromolar
+  input_type: direct_measurement
+  source_ref: Bingisser1998
+  source_location: Results, p.5731, paragraph 'Suppression of T cell proliferation by macrophages'
+  value_snippet: "Dose-dependent suppression of T cell proliferation was also obtained using the NO-releasing compound SNAP (50\u20131000 mM), the 50% suppression being at 300 mM SNAP (Fig. 1C)."
+- name: snap_ic50_nM
+  value: 300000.0
+  units: nanomolar
+  input_type: derived_arithmetic
+  rationale: Convert the paper-reported 300 micromolar SNAP donor concentration to nanomolar units for comparison to the QSP parameter NO_50_Teff, which is stored in nanomolarity. The PDF text extraction
+    renders the micro symbol as m in the snippet; the figure axis and article context indicate micromolar SNAP.
+  source_ref: Bingisser1998
+  source_location: Figure 1C and Results text
+  source_inputs:
+  - snap_ic50_text
+  formula: 1000 * snap_ic50_text
+- name: relative_proliferation_at_ic50
+  value: 0.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bingisser1998
+  source_location: Results, p.5731, paragraph 'Suppression of T cell proliferation by macrophages'
+  value_snippet: "Dose-dependent suppression of T cell proliferation was also obtained using the NO-releasing compound SNAP (50\u20131000 mM), the 50% suppression being at 300 mM SNAP (Fig. 1C)."
+- name: relative_proliferation_sd_at_ic50
+  value: 0.1
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bingisser1998
+  source_location: Figure 1C
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~0.5 +/- ~0.1 relative proliferation at ~300 micromolar SNAP
+    description: Approximate vertical error bar around the 50% suppression point in the SNAP dose-response curve.
+    context: Dose-dependent inhibition of Con A-stimulated rat T cell proliferation by SNAP; data are means +/- SD of a series of three experiments, expressed as relative proliferation rate.
+- name: snap_saturating_dose
+  value: 1000.0
+  units: micromolar
+  input_type: direct_measurement
+  source_ref: Bingisser1998
+  source_location: Results, p.5731, paragraph 'Suppression of T cell proliferation by macrophages'
+  value_snippet: "Dose-dependent suppression of T cell proliferation was also obtained using the NO-releasing compound SNAP (50\u20131000 mM), the 50% suppression being at 300 mM SNAP (Fig. 1C)."
+- name: snap_saturating_dose_nM
+  value: 1000000.0
+  units: nanomolar
+  input_type: derived_arithmetic
+  rationale: Convert the upper SNAP dose shown in the dose-response experiment from micromolar to nanomolar for use as the x-value in the Hill model.
+  source_ref: Bingisser1998
+  source_location: Figure 1C and Results text
+  source_inputs:
+  - snap_saturating_dose
+  formula: 1000 * snap_saturating_dose
+- name: relative_proliferation_at_saturating_snap
+  value: 0.07
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bingisser1998
+  source_location: Figure 1C
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~0.05-0.1 relative proliferation at 1000 micromolar SNAP
+    description: Highest plotted SNAP dose is near-maximally suppressive, leaving only a small residual proliferation fraction.
+    context: 'Figure caption: Dose-dependent inhibition of T cell proliferation by SNAP. Data are means +/- SD of a series of three experiments and are expressed as relative proliferation rate.'
+- name: relative_proliferation_sd_at_saturating_snap
+  value: 0.04
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bingisser1998
+  source_location: Figure 1C
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~0.04 SD at 1000 micromolar SNAP
+    description: Approximate error bar height for the residual proliferation at the highest SNAP dose.
+    context: Figure caption states data are means +/- SD of a series of three experiments.
+- name: n_experiments
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bingisser1998
+  source_location: Figure 1 caption
+  value_snippet: Data are means 6 SD of a series of three experiments and are expressed as the relative proliferation rate as described in Figure 1A.
+calibration:
+  parameters:
+  - name: NO_50_Teff
+    units: nanomolarity
+    nuisance: false
+  - name: f_SNAP_to_NO
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -5.298317366548036
+      sigma: 1.3
+  - name: n_hill
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.5
+  forward_model:
+    type: algebraic
+    formula: free_NO_nM = snap_dose_nM * f_SNAP_to_NO; H_NO = (free_NO_nM / NO_50_Teff)^n_hill / (1 + (free_NO_nM / NO_50_Teff)^n_hill); predicted_relative_proliferation = 1 - H_NO
+    code: "def compute(params, inputs):\n    snap_dose_nM = inputs['_x']\n    f_conv = params['f_SNAP_to_NO']\n    ec50 = params['NO_50_Teff']\n    n = params['n_hill']\n    free_NO = snap_dose_nM * f_conv\n\
+      \    # Numerically stable sigmoid for H_NO = (free_NO/ec50)^n / (1 + (free_NO/ec50)^n)\n    log_ratio_n = n * np.log(free_NO / ec50)\n    H_NO = 1.0 / (1.0 + np.exp(-log_ratio_n))\n    return 1.0\
+      \ - H_NO\n"
+    data_rationale: "Bingisser1998 reports IC50 = 300 \xB5M SNAP and ~7% residual proliferation at 1000 \xB5M SNAP for ConA-stimulated rat T cells (Fig. 1C). **This experiment directly constrains only the\
+      \ SNAP-DONOR-EQUIVALENT EC50, not NO_50_Teff itself.** The forward model includes a nuisance SNAP\u2192free-NO conversion factor f_SNAP_to_NO so that NO_50_Teff carries the right units (free nM),\
+      \ but the Bingisser data alone cannot separate f_SNAP_to_NO from NO_50_Teff: both SNAP doses are multiplied by the same unknown conversion factor, so the identifiable quantity is (snap_dose \xD7 f_conv)\
+      \ / NO_50_Teff at the IC50 (= 1), and adding the high-dose point only constrains the Hill slope, not the conversion ratio. The posterior on NO_50_Teff is therefore dominated by the f_SNAP_to_NO prior,\
+      \ not by Bingisser likelihood. This target should be treated as a WEAK PRIOR CONSTRAINT pulling NO_50_Teff out of the unanchored 1.5 nM CSV-default region into the \xB5M range implied by SNAP-dose-equivalent\
+      \ suppression \u2014 not as a tight calibration."
+    submodel_rationale: "In the QSP PDAC model, NO_50_Teff is the half-maximal FREE NO concentration for NO-mediated suppression of effector T cell function. V_T.NO is the bioavailable free-NO pool driven\
+      \ by MDSC/Mac iNOS activity (k_NO_sec) less degradation. Bingisser1998 isolates the Teff-intrinsic NO inhibitory gate using ConA-activated rat T cells exposed to NO via SNAP donor. SNAP\u2192free-NO\
+      \ steady-state ratios in cell culture are reported across roughly 0.001\u20130.05 in the chemistry literature (donor kinetics, NO consumption, oxygen, thiols, cell density all matter \u2014 the SNAP\u2192\
+      NO mapping is heuristic, NOT a measured constant of the assay). f_SNAP_to_NO is given a broad lognormal prior (median 0.005, \u03C3=1.3 in log space \u2192 spans ~3e-4 to 0.06) to encode this order-of-magnitude\
+      \ uncertainty. Translation \u03C3 also accounts for rat \u2192 human and ConA-activated peripheral T cell vs PDAC-infiltrating CD8."
+  error_model:
+  - name: snap_ic50_relative_proliferation
+    units: dimensionless
+    uses_inputs:
+    - snap_ic50_nM
+    - relative_proliferation_at_ic50
+    - relative_proliferation_sd_at_ic50
+    - n_experiments
+    x_input: snap_ic50_nM
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean = inputs['relative_proliferation_at_ic50']\n    sd = inputs['relative_proliferation_sd_at_ic50']\n\
+      \    samples = rng.normal(mean, sd / np.sqrt(sample_size), n_bootstrap)\n    return np.clip(samples, 0, 1)\n"
+    n_bootstrap: 10000
+  - name: snap_high_dose_residual_proliferation
+    units: dimensionless
+    uses_inputs:
+    - snap_saturating_dose_nM
+    - relative_proliferation_at_saturating_snap
+    - relative_proliferation_sd_at_saturating_snap
+    - n_experiments
+    x_input: snap_saturating_dose_nM
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean = inputs['relative_proliferation_at_saturating_snap']\n    sd = inputs['relative_proliferation_sd_at_saturating_snap']\n\
+      \    samples = rng.normal(mean, sd / np.sqrt(sample_size), n_bootstrap)\n    return np.clip(samples, 0, 1)\n"
+    n_bootstrap: 10000
+  identifiability_notes: "**This target is a WEAK PRIOR CONSTRAINT, not a direct calibration of NO_50_Teff.** The Bingisser1998 data identify only the donor-equivalent EC50 (~300 \xB5M SNAP) and the Hill\
+    \ slope (~1.5\u20132 from the IC50 + saturating-dose pair). f_SNAP_to_NO and NO_50_Teff are perfectly anti-correlated under the data alone (both SNAP doses are scaled by the same unknown conversion).\
+    \ The high-dose point (1000 \xB5M SNAP, 7% residual) constrains n_hill but does NOT break the f_SNAP_to_NO \u2194 NO_50_Teff degeneracy \u2014 any (f_conv, NO_50_Teff) pair on the line f_conv \xD7 NO_50_Teff\
+    \ = 300 \xB5M \xD7 1 fits the data identically. The posterior on NO_50_Teff is therefore primarily a *transformed prior*: NO_50_Teff_post \u2248 snap_ic50 \xD7 f_SNAP_to_NO_prior. Implication: this\
+    \ target's contribution is to pull NO_50_Teff out of the implausibly low 1.5 nM CSV region into the \xB5M-range implied by SNAP-equivalent EC50 \u2014 useful for resolving the H_NO saturation flagged\
+    \ in notes/calibration/m2_m1_bottleneck_flux_analysis.md, but it does NOT replace the need for direct free-NO dose-response data on T cells if a tight EC50 is required. If a paper with measured free-NO\
+    \ concentrations (e.g., Griess assay or NO-sensitive electrode) and parallel T cell function data is found later, it should supersede this target as the primary anchor."
+experimental_context:
+  species: rat
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: T cells
+    phenotype: Con A-activated splenic or mesenteric lymph node T cells
+    isolation_method: single cell suspensions from spleens or mesenteric lymph nodes
+    source: inbred specific pathogen-free female PVG rats aged 8 to 12 weeks
+  culture_conditions:
+    substrate: Costar Transwell or direct culture wells
+    serum_concentration: 5.0
+    serum_concentration_units: percent FCS
+    oxygen_level: normoxic
+    culture_type: 2d_suspension_culture
+    medium: RPMI 1640 supplemented with L-glutamine and 5% FCS
+    supplements: Con A 5 microgram/mL; SNAP titrated 50-1000 micromolar
+    duration: 72 h culture with 12 h 3H-thymidine pulse-labeling unless otherwise indicated
+    notes: T cell proliferation measured by 3H-thymidine incorporation and normalized to Con A-only cultures.
+  indication: mechanistic immunology proxy for PDAC
+study_interpretation: The SNAP titration provides a direct in vitro estimate of the NO-donor concentration that halves activated T cell proliferation. Because the PDAC QSP parameter NO_50_Teff is an EC50
+  for NO-mediated Teff suppression, the 300 micromolar SNAP IC50 is used to re-center NO sensitivity on a tens-to-hundreds of micromolar donor scale rather than the current nanomolar prior. This is a mechanistic
+  proxy, not a PDAC-specific tumor measurement.
+key_assumptions:
+- SNAP concentration is used as a proxy for the effective NO exposure driving T cell suppression, even though free NO is lower and depends on donor decomposition kinetics and culture conditions.
+- Relative 3H-thymidine incorporation is a valid surrogate for the QSP model's NO-mediated Teff functional or proliferative suppression multiplier.
+- A standard decreasing Hill curve with Hill coefficient fixed to 1, maximum proliferation 1, and minimum proliferation 0 is adequate for this sparse calibration target.
+- Rat Con A-activated bulk T cells are sufficiently similar to human PDAC effector T cells for prior centering after applying translation uncertainty.
+- The PDF text extraction renders the micro symbol as m in several places; SNAP doses are interpreted as micromolar based on the figure axis and experimental context.
+- "SNAP\u2192free-NO conversion factor f_SNAP_to_NO is treated as a nuisance with a broad order-of-magnitude prior; the Bingisser experiment does not directly measure free NO concentration and provides\
+  \ no independent constraint on this factor."
+- "Bingisser data identify a SNAP-DONOR-equivalent EC50 (~300 \xB5M); mapping to V_T.NO (free NO, nM) is dominated by the f_SNAP_to_NO prior, not by the Bingisser likelihood."
+key_study_limitations:
+- The experiment uses rat T cells, not human cells and not PDAC tumor-infiltrating lymphocytes.
+- The readout is bulk T cell proliferation after mitogenic Con A activation, not antigen-specific CD8 Teff killing or cytokine production.
+- NO exposure is specified as SNAP donor concentration rather than measured steady-state free NO concentration.
+- Only an explicit IC50 and an approximate high-dose saturation point are used; the full curve was not digitized.
+- SNAP can have donor-specific chemistry unrelated to endogenous MDSC-derived NO in the PDAC tumor microenvironment.
+- "No measurement of free NO concentration in the assay \u2014 only SNAP donor concentration is reported. Steady-state free NO from SNAP varies by ~2 orders of magnitude depending on culture conditions\
+  \ (oxygen, thiols, cell density, NO consumption rate, donor decomposition kinetics)."
+- "IC50 reported as a round number (300 \xB5M) in text; the underlying x-axis precision is not stated. Hill-fit point estimate carries \u226520% uncertainty from text-rounding alone."
+- "Figure 1C estimates of relative proliferation at 1000 \xB5M SNAP (0.07 \xB1 0.04) were read from a printed bar chart \u2014 figure-derived numerical values are approximate."
+primary_data_source:
+  doi: 10.4049/jimmunol.160.12.5729
+  title: Macrophage-Derived Nitric Oxide Regulates T Cell Activation via Reversible Disruption of the Jak3/STAT5 Signaling Pathway
+  authors:
+  - Bingisser
+  - Tilbrook
+  - Holt
+  - Kees
+  year: 1998
+  source_tag: Bingisser1998
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study is a mechanistic rat T cell immunology experiment rather than PDAC, but it directly probes NO-mediated suppression of activated T cell proliferation, which
+      is the same biological effect represented by NO_50_Teff in the PDAC QSP model.
+    species_source: rat
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: SNAP is an exogenous NO donor used to mimic macrophage- or MDSC-derived NO. The inferred EC50 should be interpreted on an NO-donor exposure scale and may not equal steady-state
+      free NO concentration in tumors.
+    tme_compatibility: low
+    tme_compatibility_notes: The culture lacks PDAC desmoplasia, MDSCs, hypoxia, nutrient gradients, antigen specificity, and chronic exhaustion signals. It captures Teff-intrinsic NO sensitivity but not
+      tumor microenvironment modulation.
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_primary
+    validation_warnings:
+    - Cross-species rat-to-human translation and NO-donor-to-free-NO mapping are expected to dominate uncertainty.
+    - Figure-derived high-dose residual proliferation is approximate and should be manually reviewed.
+tags:
+- 'NO'
+- T_cell_suppression
+- SNAP
+- dose_response
+- Teff
+- PDAC_proxy
+extraction_model: gpt-5
+extraction_reasoning_effort: high

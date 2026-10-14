@@ -1,0 +1,197 @@
+calibration_target_id: PDAC_VT_IL6_tumor_tissue_diagnosis_GhassemZadeh2017
+cancer_type: PDAC
+tags:
+- PDAC
+- human
+- clinical.resection
+- tumor_tissue
+- IL6
+- cytokine
+- treatment_naive
+epistemic_basis: literature
+study_interpretation: Ghassem-Zadeh et al. measured inflammatory cytokines in homogenates of human pancreatic tissue, including pancreatic ductal adenocarcinoma resection specimens, using multiplex cytokine analysis normalized to total protein. The calibration target uses the reported PDAC tissue IL-6 concentration (Table 4, pancreatic tissue lysates) as a direct human PDAC tumor-tissue absolute IL-6 measurement, converted from pg/mg total protein to nM tumor concentration using an explicit soluble-protein-density assumption (U(50, 100) mg/mL). The same Table 4 cohort (n=12 treatment-naive PDAC patients) supplies the IL-1 and CCL2 calibration targets; the three observables are from the same patients and are not independent across patients, only across cytokines.
+key_assumptions:
+- IL-6 mature secreted form molecular weight is approximated as 26 kDa for mass-to-molar conversion.
+- Conversion from pg/mg total protein to pg/mL tumor assumes 75 mg soluble protein per mL wet tumor tissue, with uncertainty represented by sampling protein density uniformly from 50 to 100 mg/mL.
+- The reported IQR width is interpreted as Q3-Q1 of a lognormal distribution; sigma_log is recovered analytically via sigma = arcsinh(IQR/(2*median))/z (z=0.6745).
+- Cohort overlap with IL-1 and CCL2 targets (same n=12 PDAC patients in Ghassem-Zadeh 2017 Table 4); treat with a cohort-RE assumption when combined.
+key_study_limitations:
+- Cytokines are reported normalized to total protein rather than directly per tumor volume, requiring an assumed tissue protein density conversion.
+- Small PDAC cohort (n=12) limits population precision.
+- Homogenate measurement loses spatial information; pericellular gradients and intracellular pools are not separable from extracellular tumor IL-6.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        il6 = species_dict['V_T.IL6']
+        return il6
+
+  units: nanomolar
+  species:
+  - V_T.IL6
+  constants: []
+  support: positive
+  mapping_rationale: The QSP model species V_T.IL6 is a tumor-compartment molar concentration. The empirical datum is converted externally from tissue homogenate pg/mg protein to nM tumor concentration using protein density and IL-6 molecular weight. The observable simply returns V_T.IL6 in nanomolar.
+  experimental_denominator: null
+  model_denominator_species: null
+  unmodeled_denominator_components: null
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: null
+  stage:
+    extent: resectable
+    burden: moderate
+  mouse_subspecifier: null
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: frozen pancreatic tissue homogenate from surgical resection specimens
+  assay_type: multiplex cytokine assay
+scenario:
+  description: Baseline cytokine measurement in resected human PDAC tissue homogenate before any on-study intervention.
+  interventions:
+  - intervention_description: No intervention; cytokines were measured ex vivo from surgically resected pancreatic cancer tissue specimens.
+empirical_data:
+  median:
+  - 0.1139
+  ci95:
+  - - 0.01044
+    - 1.272
+  units: nanomolar
+  sample_size: 12
+  sample_size_rationale: PDAC group sample size n=12 is reported in Ghassem-Zadeh 2017 Table 4 for the pancreatic tissue lysate cytokine analysis (IL-6 row, AIP vs PDAC, last column; same cohort as IL-1 and CCL2).
+  inputs:
+  - name: il6_median_pg_per_mg_protein
+    value: 40.6
+    units: picogram / milligram
+    description: Median IL-6 concentration in PDAC pancreatic tissue homogenates normalized to total protein (Ghassem-Zadeh 2017 Table 4).
+    source_ref: GhassemZadeh2017
+    value_location: Table 4
+    value_snippet: IL-6 AIP vs CP AIP vs PDAC 12.82/40.48/11 12.82/40.48/11 12.62/28.80/12 40.6/73.42/12
+    table_excerpt:
+      table_id: Table 4
+      column: AIP vs PDAC
+      row: IL-6
+      value: '40.6'
+      context: Table 4 pancreatic tissue lysate cytokine medians; PDAC group n=12.
+    input_type: direct_parameter
+    source_type: table
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: il6_iqr_pg_per_mg_protein
+    value: 73.42
+    units: picogram / milligram
+    description: Interquartile range for IL-6 concentration in PDAC pancreatic tissue homogenates.
+    source_ref: GhassemZadeh2017
+    value_location: Table 4
+    value_snippet: IL-6 AIP vs CP AIP vs PDAC 12.82/40.48/11 12.82/40.48/11 12.62/28.80/12 40.6/73.42/12
+    table_excerpt:
+      table_id: Table 4
+      column: AIP vs PDAC
+      row: IL-6
+      value: '73.42'
+      context: Table 4 pancreatic tissue lysate cytokine IQR; PDAC group n=12.
+    input_type: direct_parameter
+    source_type: table
+    dispersion_type: iqr
+    dispersion_type_rationale: Table 4 reports median with IQR for tissue cytokine concentrations; the value 73.42 is explicitly described as the interquartile range, not SD or SEM.
+  - name: pdac_n
+    value: 12
+    units: dimensionless
+    description: Number of PDAC tissue samples included in the cytokine analysis.
+    source_ref: GhassemZadeh2017
+    value_location: Table 4
+    value_snippet: AIP vs PDAC 2.69/4.57/12 2.69/4.57/12 1.71/1.31/12 2.01/4.29/12 0.1332 0.3708
+    table_excerpt:
+      table_id: Table 4
+      column: AIP vs PDAC
+      row: IL-1β
+      value: '12'
+      context: PDAC tissue cytokine analysis group size.
+    input_type: direct_parameter
+    source_type: table
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: tissue_mass_low
+    value: 60
+    units: milligram
+    description: Lower end of frozen pancreatic tissue mass homogenized for cytokine analysis.
+    source_ref: GhassemZadeh2017
+    value_location: 'Methods: pancreatic tissue homogenate cytokine multiplexing'
+    value_snippet: For cytokine determination in pancreatic tissue, 60–80 mg of frozen tissue samples was cut with a cryomicrotome into 9 μm-thick slices
+    input_type: direct_parameter
+    source_type: text
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: tissue_mass_high
+    value: 80
+    units: milligram
+    description: Upper end of frozen pancreatic tissue mass homogenized for cytokine analysis.
+    source_ref: GhassemZadeh2017
+    value_location: 'Methods: pancreatic tissue homogenate cytokine multiplexing'
+    value_snippet: For cytokine determination in pancreatic tissue, 60–80 mg of frozen tissue samples was cut with a cryomicrotome into 9 μm-thick slices
+    input_type: direct_parameter
+    source_type: text
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: lysis_buffer_volume
+    value: 500
+    units: microliter
+    description: Lysis buffer volume used to homogenize pancreatic tissue.
+    source_ref: GhassemZadeh2017
+    value_location: 'Methods: pancreatic tissue homogenate cytokine multiplexing'
+    value_snippet: collected in 15 ml polypropylene tubes, and mixed with 500 µl of lysis buffer (Bio-Rad)
+    input_type: direct_parameter
+    source_type: text
+    dispersion_type: null
+    dispersion_type_rationale: null
+  assumptions:
+  - name: protein_density_low
+    value: 50
+    units: milligram / milliliter
+    description: Lower bound for soluble protein content per wet tumor volume used to convert pg/mg protein to pg/mL tissue.
+    rationale: Tissue cytokines are normalized to total protein; PDAC tumor soluble-protein recovery varies by sample and lysis protocol. A broad 50-100 mg/mL range is used so conversion uncertainty dominates appropriately.
+  - name: protein_density_high
+    value: 100
+    units: milligram / milliliter
+    description: Upper bound for soluble protein content per wet tumor volume used to convert pg/mg protein to pg/mL tissue.
+    rationale: The range brackets plausible wet-tissue protein densities and avoids overconfidence in converting protein-normalized homogenate data to tissue-volume concentration.
+  - name: il6_molecular_weight
+    value: 26000
+    units: gram / mole
+    description: Mature human IL-6 molecular weight for mass-to-molar conversion.
+    rationale: Mature secreted IL-6 is approximately 26 kDa; this is used only for unit conversion from pg/mL to nM.
+  - name: n_mc_samples
+    value: 100000
+    units: dimensionless
+    description: Monte Carlo sample count for propagating lognormal cytokine and protein-density uncertainty.
+    rationale: Large sample count provides stable percentiles for the derived calibration distribution.
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    rng = np.random.default_rng(42)\n    median = inputs['il6_median_pg_per_mg_protein']\n    iqr = inputs['il6_iqr_pg_per_mg_protein']\n    n_samples = int(inputs['n_mc_samples'].magnitude)\n    # Lognormal closure: for a lognormal with median m and log-SD sigma,\n    # IQR = m * (exp(z*sigma) - exp(-z*sigma)) = 2*m*sinh(z*sigma).\n    # So sigma = arcsinh(IQR / (2*m)) / z.  This is the same closure used\n    # by the CCL2 target derivation; the previous subtract-half-IQR + clamp\n    # parameterization mathematically forced sigma_log ~ 2.76 (CV ~216%)\n    # because IQR > 2*median pushed Q1 negative and triggered the 5% clamp.\n    z = 0.6744897501960817\n    ratio = (iqr / median).to('dimensionless').magnitude\n    sigma_log = np.arcsinh(ratio / 2.0) / z\n    mu_log = np.log(median.magnitude)\n    pg_per_mg = rng.lognormal(mu_log, sigma_log, n_samples) * median.units\n    protein_low = inputs['protein_density_low'].to('milligram / milliliter')\n    protein_high = inputs['protein_density_high'].to('milligram / milliliter')\n    protein_density = rng.uniform(protein_low.magnitude, protein_high.magnitude, n_samples) * protein_low.units\n    mw = inputs['il6_molecular_weight'].to('gram / mole')\n    mass_conc = (pg_per_mg * protein_density).to('picogram / milliliter')\n    molar = (mass_conc.to('gram / liter') / mw).to('nanomolar')\n    return {\n        'median_obs': np.median(molar),\n        'ci95_lower': np.percentile(molar, 2.5),\n        'ci95_upper': np.percentile(molar, 97.5),\n    }\n"
+primary_data_source:
+  source_tag: GhassemZadeh2017
+  title: Distinct pathophysiological cytokine profiles for discrimination between autoimmune pancreatitis, chronic pancreatitis, and pancreatic ductal adenocarcinoma
+  first_author: Ghassem-Zadeh
+  year: 2017
+  doi: 10.1186/s12967-017-1227-3
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The source tissue group is pancreatic ductal adenocarcinoma, matching the PDAC model indication.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Resection tissue homogenates represent baseline human tumor cytokine levels rather than pharmacologically perturbed measurements.
+    tme_compatibility: high
+    tme_compatibility_notes: Human PDAC resection tissue preserves the desmoplastic tumor microenvironment at the point of tissue collection, although homogenization loses spatial localization.
+    measurement_directness: proxy_observable
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: clinical_in_vivo
+    validation_warnings:
+    - Conversion from pg/mg total protein to nM tumor concentration uses an assumed protein density U(50,100) mg/mL.
+    - Cohort overlap with IL-1 and CCL2 targets from same paper (n=12 patients); not statistically independent.
+secondary_data_sources: []

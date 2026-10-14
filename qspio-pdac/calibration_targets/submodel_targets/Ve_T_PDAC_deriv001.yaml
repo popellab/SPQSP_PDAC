@@ -1,0 +1,181 @@
+target_id: Ve_T_PDAC_wang2023_deriv001
+study_interpretation: |
+  Wang et al. 2023 used a multitasking dynamic contrast-enhanced MRI
+  (DCE-MRI) protocol with extended Tofts model fitting to differentiate
+  PDAC from chronic pancreatitis and normal pancreas in vivo. Table 2
+  reports the extracellular extravascular volume fraction (ve, the
+  EES fraction) for six tissue types. The PDAC tumor-mass ROI
+  (the tumor core, which corresponds mechanistically to the QSP model's
+  V_T compartment) has ve = 0.61 +/- 0.11 (mean +/- SD, n=14 patients).
+
+  The QSP-IO PDAC model parameter Ve_T is the INTRACELLULAR volume
+  fraction (per simbio_init.m line 95: 'Intracellular fraction of the
+  tumor'), used in the V_T volume rule as cells*vol_cell/Ve_T. By
+  conservation of volume in tumor tissue (cells + ECM/interstitium ~= 1):
+  Ve_T = 1 - ve_DCE. So this measurement implies Ve_T = 0.39 +/- 0.11.
+
+  This is a primary in vivo human PDAC measurement and replaces the
+  prior Finley 2012 PMID 22547351 citation (verified to be a
+  VEGF compartment-modeling paper that simply inherits Ve_T from
+  upstream parameter tables, NOT a primary measurement source).
+key_assumptions:
+- |
+  Conservation of volume: ve_DCE (extracellular extravascular fraction
+  measured by DCE-MRI) plus the intracellular fraction (Ve_T) sum to 1
+  for tissue volume that excludes the vascular plasma compartment (vp,
+  reported separately). The vp contribution is 0.09 +/- 0.05 in PDAC
+  mass and is small relative to ve, so the (1 - ve) approximation for
+  intracellular fraction has at most ~10% relative error. A more
+  rigorous mapping would be Ve_T = 1 - ve - vp, but the QSP model
+  does not separately partition vascular volume in V_T.
+- |
+  PDAC tumor-mass ROI is the correct mapping for V_T. The paper also
+  reports 'PDAC whole pancreas' (ve = 0.41) and 'upstream / downstream'
+  ROIs — those are non-tumor regions of the affected pancreas and do
+  not correspond to V_T. The 'PDAC mass' ROI is explicitly the tumor
+  core (lower Fp, higher ve; reflects the dense desmoplastic stroma).
+- |
+  DCE-MRI ve in heavily fibrotic PDAC may overestimate true cellular
+  EES because slow-exchanging extravascular contrast accumulates in
+  collagen-rich stroma. This biases ve_DCE upward, biasing Ve_T downward
+  (i.e., true intracellular fraction may be SOMEWHAT higher than 0.39).
+  The translation sigma absorbs this systematic bias.
+key_study_limitations:
+- |
+  Extended Tofts model assumes a well-mixed plasma compartment and
+  fast water exchange, which can be violated in stroma-rich PDAC.
+  Test-retest CoV for ve in PDAC is ~19% (Klauss 2018 PMID 29476781);
+  the Wang sample SD (0.11 / 0.61 = 18% CV) is consistent with this
+  intra-subject variability + cohort heterogeneity.
+- |
+  n=14 PDAC patients is moderate. Sample size determines the standard
+  error of the mean (~0.029) — the population variability (SD = 0.11)
+  is the relevant quantity for prior calibration, not the SE.
+experimental_context:
+  species: human
+  system: clinical_in_vivo
+  cell_lines: null
+  cell_types: null
+  culture_conditions: null
+  indication: PDAC
+primary_data_source:
+  doi: 10.3389/fonc.2022.1007134
+  source_tag: Wang2023
+  title: |
+    Multitasking dynamic contrast enhanced magnetic resonance imaging
+    can accurately differentiate chronic pancreatitis from pancreatic
+    ductal adenocarcinoma
+  authors:
+  - Wang
+  year: 2023
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: |
+      In vivo DCE-MRI of biopsy-confirmed PDAC patients (n=14)
+      with the tumor-mass ROI corresponding directly to the QSP
+      model's V_T compartment. Direct human clinical primary data.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: pathological_state
+    perturbation_relevance: |
+      Diagnosis-state PDAC (untreated at imaging). Matches the QSP
+      model's baseline diagnosis scenario.
+    tme_compatibility: high
+    tme_compatibility_notes: |
+      Direct in vivo measurement of human PDAC tumor mass. The
+      tumor-mass ROI captures the dense desmoplastic stromal
+      compartment that the QSP V_T volume rule represents. DCE-MRI
+      ve is somewhat biased upward by slow extravascular exchange
+      in collagen-rich stroma, which biases Ve_T downward. Translation
+      sigma captures this.
+    measurement_directness: single_inversion
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: clinical_in_vivo
+secondary_data_sources: []
+inputs:
+- name: ve_dce_pdac_mass_mean
+  value: 0.61
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Wang2023
+  source_location: Table 2, row 'PDAC mass', column 've'
+  table_excerpt:
+    table_id: Table 2
+    column: ve
+    row: PDAC mass
+    value: '0.61'
+    context: |
+      Mean ve (extracellular extravascular volume fraction) for the
+      PDAC tumor-mass ROI. Table caption: 'The mean and standard
+      deviation of Fp, vp, Ktrans, and ve for the six types of tissues.'
+- name: ve_dce_pdac_mass_sd
+  value: 0.11
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Wang2023
+  source_location: Table 2, row 'PDAC mass', column 've'
+  table_excerpt:
+    table_id: Table 2
+    column: ve
+    row: PDAC mass
+    value: '0.11'
+    context: |
+      Standard deviation of ve in the PDAC tumor-mass ROI. Table
+      caption confirms reported uncertainty is SD (not SEM).
+- name: n_pdac_patients
+  value: 14
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Wang2023
+  source_location: Methods (patient cohort)
+  value_snippet: 'n=14'
+calibration:
+  parameters:
+  - name: Ve_T
+    units: dimensionless
+  forward_model:
+    type: algebraic
+    formula: ve_DCE = 1 - Ve_T (volume conservation in tumor tissue)
+    code: |
+      def compute(params, inputs):
+          return 1.0 - params['Ve_T']
+    data_rationale: |
+      DCE-MRI extended Tofts model directly measures the
+      extracellular extravascular volume fraction (ve). By volume
+      conservation in tumor tissue (intracellular + extracellular ~= 1
+      after accounting for the small plasma volume vp), the
+      intracellular fraction is 1 - ve.
+    submodel_rationale: |
+      The QSP model parameter Ve_T is the intracellular volume fraction
+      (per simbio_init.m: 'Intracellular fraction of the tumor'),
+      appearing in the V_T volume rule as cells*vol_cell/Ve_T. So
+      the predicted DCE-MRI observable ve_DCE = 1 - Ve_T.
+  error_model:
+  - name: ve_dce_pdac_mass
+    units: dimensionless
+    uses_inputs:
+    - ve_dce_pdac_mass_mean
+    - ve_dce_pdac_mass_sd
+    - n_pdac_patients
+    sample_size_input: n_pdac_patients
+    observation_code: |
+      def derive_observation(inputs, sample_size, rng, n_bootstrap):
+          import numpy as np
+          mean = inputs['ve_dce_pdac_mass_mean']
+          sd = inputs['ve_dce_pdac_mass_sd']
+          # Population-level mean of ve in PDAC tumor-mass ROIs.
+          # Normal bootstrap for the population mean (CV ~18%, well
+          # within the regime where normal approximation is fine and
+          # mass above 1 / below 0 is negligible).
+          return rng.normal(mean, sd / np.sqrt(sample_size), n_bootstrap)
+  identifiability_notes: |
+    Single parameter (Ve_T), single measurement (ve_dce_pdac_mass).
+    Algebraic identity Ve_T = 1 - ve_DCE is fully identified.
+    Translation sigma is small (high-quality direct human PDAC
+    in vivo measurement).
+tags:
+- ai-generated
+- ecm-anchor-audit
+- obed-priority
+extraction_model: claude-opus-4-7

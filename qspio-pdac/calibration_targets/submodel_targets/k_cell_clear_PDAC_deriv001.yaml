@@ -1,0 +1,510 @@
+target_id: k_cell_clear
+inputs:
+- name: uningested_9h_mean
+  value: 1.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 9 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 9 h after X-irradiation
+    row: Apoptotic cell cluster - Uningested
+    value: 1.00 +/- 0.07
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: uningested_9h_sem
+  value: 0.07
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 9 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 9 h after X-irradiation
+    row: Apoptotic cell cluster - Uningested
+    value: 1.00 +/- 0.07
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_intact_9h_mean
+  value: 1.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 9 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 9 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (intact)
+    value: 1.50 +/- 0.31
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_intact_9h_sem
+  value: 0.31
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 9 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 9 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (intact)
+    value: 1.50 +/- 0.31
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_degraded_9h_mean
+  value: 0.02
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 9 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 9 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (degraded)
+    value: 0.02 +/- 0.02
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_degraded_9h_sem
+  value: 0.02
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 9 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 9 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (degraded)
+    value: 0.02 +/- 0.02
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: uningested_10p5h_mean
+  value: 0.78
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 10.5 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 10.5 h after X-irradiation
+    row: Apoptotic cell cluster - Uningested
+    value: 0.78 +/- 0.29
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: uningested_10p5h_sem
+  value: 0.29
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 10.5 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 10.5 h after X-irradiation
+    row: Apoptotic cell cluster - Uningested
+    value: 0.78 +/- 0.29
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_intact_10p5h_mean
+  value: 1.15
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 10.5 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 10.5 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (intact)
+    value: 1.15 +/- 0.29
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_intact_10p5h_sem
+  value: 0.29
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 10.5 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 10.5 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (intact)
+    value: 1.15 +/- 0.29
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_degraded_10p5h_mean
+  value: 0.05
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 10.5 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 10.5 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (degraded)
+    value: 0.05 +/- 0.05
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_degraded_10p5h_sem
+  value: 0.05
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 10.5 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 10.5 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (degraded)
+    value: 0.05 +/- 0.05
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: uningested_12h_mean
+  value: 0.14
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 12 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 12 h after X-irradiation
+    row: Apoptotic cell cluster - Uningested
+    value: 0.14 +/- 0.08
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: uningested_12h_sem
+  value: 0.08
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 12 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 12 h after X-irradiation
+    row: Apoptotic cell cluster - Uningested
+    value: 0.14 +/- 0.08
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_intact_12h_mean
+  value: 0.37
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 12 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 12 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (intact)
+    value: 0.37 +/- 0.17
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_intact_12h_sem
+  value: 0.17
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 12 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 12 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (intact)
+    value: 0.37 +/- 0.17
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_degraded_12h_mean
+  value: 0.54
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 12 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 12 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (degraded)
+    value: 0.54 +/- 0.33
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: ingested_degraded_12h_sem
+  value: 0.33
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I, apoptotic cell clusters, 12 h after X-irradiation
+  table_excerpt:
+    table_id: Table I
+    column: 12 h after X-irradiation
+    row: Apoptotic cell cluster - Ingested (degraded)
+    value: 0.54 +/- 0.33
+    context: Relative number of apoptotic cell clusters per area; number at 9 h after
+      X-irradiation taken as 1.0; means +/- SE across six areas of three sections
+      from three mice.
+- name: n_areas_per_section
+  value: 6.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I footnote
+  value_snippet: six randomly chosen areas of three sections prepared from three mice
+- name: n_sections_per_time
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Iyoda2005
+  source_location: Table I footnote
+  value_snippet: six randomly chosen areas of three sections prepared from three mice
+- name: apop_cluster_total_10p5h_mean
+  value: 1.98
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Total apoptotic cluster burden approximated as sum of uningested, ingested-intact,
+    and ingested-degraded clusters at 10.5 h.
+  source_ref: Iyoda2005
+  source_location: Derived from Table I values at 10.5 h after X-irradiation
+  source_inputs:
+  - uningested_10p5h_mean
+  - ingested_intact_10p5h_mean
+  - ingested_degraded_10p5h_mean
+  formula: uningested_10p5h_mean + ingested_intact_10p5h_mean + ingested_degraded_10p5h_mean
+- name: apop_cluster_total_12h_mean
+  value: 1.05
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Total apoptotic cluster burden approximated as sum of uningested, ingested-intact,
+    and ingested-degraded clusters at 12 h.
+  source_ref: Iyoda2005
+  source_location: Derived from Table I values at 12 h after X-irradiation
+  source_inputs:
+  - uningested_12h_mean
+  - ingested_intact_12h_mean
+  - ingested_degraded_12h_mean
+  formula: uningested_12h_mean + ingested_intact_12h_mean + ingested_degraded_12h_mean
+- name: apop_cluster_total_10p5h_sem
+  value: 0.413
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Standard error of total apoptotic clusters computed assuming independent
+    contributions from each cluster category.
+  source_ref: Iyoda2005
+  source_location: Derived from Table I SE values at 10.5 h after X-irradiation
+  source_inputs:
+  - uningested_10p5h_sem
+  - ingested_intact_10p5h_sem
+  - ingested_degraded_10p5h_sem
+  formula: sqrt(uningested_10p5h_sem**2 + ingested_intact_10p5h_sem**2 + ingested_degraded_10p5h_sem**2)
+- name: apop_cluster_total_12h_sem
+  value: 0.38
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Standard error of total apoptotic clusters computed assuming independent
+    contributions from each cluster category.
+  source_ref: Iyoda2005
+  source_location: Derived from Table I SE values at 12 h after X-irradiation
+  source_inputs:
+  - uningested_12h_sem
+  - ingested_intact_12h_sem
+  - ingested_degraded_12h_sem
+  formula: sqrt(uningested_12h_sem**2 + ingested_intact_12h_sem**2 + ingested_degraded_12h_sem**2)
+- name: n_fields_per_time
+  value: 18.0
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Number of microscopic fields (areas) analyzed per timepoint, computed
+    as six areas per section times three sections per mouse group.
+  source_ref: Iyoda2005
+  source_location: Derived from Table I footnote
+  source_inputs:
+  - n_areas_per_section
+  - n_sections_per_time
+  formula: n_areas_per_section * n_sections_per_time
+calibration:
+  parameters:
+  - name: k_cell_clear
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: Iyoda2005 reports a pulse of massive thymocyte apoptosis after
+      whole-body X-irradiation and the subsequent disappearance of apoptotic clusters
+      over 10.5-12 h. Summed apoptotic cluster counts from Table I behave approximately
+      as a mono-exponential decline over this short window, justifying a first-order
+      decay model for bulk apoptotic burden.
+    submodel_rationale: In the full PDAC QSP model, k_cell_clear governs first-order
+      clearance of dead cancer cells (C_x) and related exhausted or immunosuppressive
+      cells in the tumor compartment. Here, we approximate thymic apoptotic cluster
+      disappearance as driven by an effective first-order clearance rate that maps
+      to the same k_cell_clear parameter, representing generic efferocytic/degradative
+      removal of dead cells.
+    independent_variable:
+      name: time
+      units: day
+      span:
+      - 0.0
+      - 0.0625
+    state_variables:
+    - name: A_apop
+      units: dimensionless
+      initial_condition:
+        input_ref: apop_cluster_total_10p5h_mean
+        rationale: Total apoptotic cluster burden at 10.5 h after X-irradiation, normalized
+          relative to category-specific values at 9 h, taken as the starting apoptotic
+          burden for the 10.5-12 h decay window.
+    type: first_order_decay
+    rate_constant: k_cell_clear
+  error_model:
+  - name: apop_cluster_total_12h
+    observable:
+      type: identity
+      state_variables:
+      - A_apop
+    units: dimensionless
+    uses_inputs:
+    - apop_cluster_total_12h_mean
+    - apop_cluster_total_12h_sem
+    - n_fields_per_time
+    evaluation_points:
+    - 0.0625
+    sample_size_input: n_fields_per_time
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['apop_cluster_total_12h_mean']\n\
+      \    sem = inputs['apop_cluster_total_12h_sem']\n    n = float(sample_size)\n\
+      \    sd = sem * np.sqrt(n)\n    cv = sd / mean\n    sigma_ln = np.sqrt(np.log(1\
+      \ + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(n) if n > 0 else sigma_ln, n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: This target constrains k_cell_clear based on the decay of
+    total apoptotic cluster burden between 10.5 and 12 h after whole-body X-irradiation
+    in mouse thymus. Because the model is a single-state first-order decay with a
+    known initial condition, k_cell_clear is structurally identifiable from the observed
+    12 h burden, but uncertainty remains due to limited sampling (single short time
+    window), use of summed cluster counts as a surrogate for total apoptotic DNA,
+    and translation from murine thymus to human PDAC tumor tissue. The inferred rate
+    should be interpreted as an upper-bound baseline clearance rate in a highly efficient
+    lymphoid environment and will be down-weighted when combined with PDAC-specific
+    targets via translation uncertainty.
+experimental_context:
+  species: mouse
+  system: animal_in_vivo
+  cell_types:
+  - name: thymocytes
+    phenotype: apoptotic CD4/CD8 double-positive T cells induced by whole-body X-irradiation
+    isolation_method: in situ within thymus after X-irradiation
+    source: male B10.Thy1.1 mice, 7-8 weeks old
+  - name: macrophages
+    phenotype: thymic F4/80-positive tissue macrophages
+    isolation_method: resident tissue macrophages in thymus
+    source: male B10.Thy1.1 mice, 7-8 weeks old
+  - name: neutrophils
+    phenotype: infiltrating Gr-1-positive neutrophils
+    isolation_method: in situ after MIP-2-mediated recruitment to thymus
+    source: male B10.Thy1.1 mice, 7-8 weeks old
+  indication: acute thymic apoptosis after whole-body X-irradiation
+study_interpretation: Iyoda2005 uses whole-body X-irradiation of B10.Thy1.1 mice to
+  trigger a pulse of massive thymocyte apoptosis in the thymus and then quantifies
+  apoptotic cluster dynamics and DNA degradation over time. Summing the three apoptotic
+  cluster categories (uningested, ingested-intact, ingested-degraded) shows that total
+  apoptotic burden decreases by about half between 10.5 and 12 h after irradiation.
+  Modeling this decrease as first-order decay provides an estimate of an effective
+  dead-cell clearance rate in a highly active lymphoid environment where macrophages
+  and recruited neutrophils cooperate to rapidly digest apoptotic material. This rate
+  is mapped to k_cell_clear as a baseline efferocytic clearance parameter, with substantial
+  translation uncertainty when applied to the PDAC tumor microenvironment, which is
+  typically less efficient at clearing dead cells.
+key_assumptions:
+- Summed counts of uningested, ingested-intact, and ingested-degraded apoptotic clusters
+  are proportional to the total apoptotic cell burden relevant to k_cell_clear.
+- The decay of total apoptotic cluster burden between 10.5 and 12 h after irradiation
+  can be approximated as a mono-exponential (first-order) process over this short
+  window.
+- The 10.5 h timepoint represents a quasi-peak of apoptotic burden so that the 10.5-12
+  h interval predominantly reflects clearance rather than ongoing generation of new
+  apoptotic cells.
+- Measurement error across different apoptotic cluster categories is independent,
+  allowing SEs to be combined in quadrature when computing the SE for total clusters.
+- Efferocytic clearance kinetics in irradiated mouse thymus (lymphoid tissue with
+  abundant professional phagocytes) provide an upper-bound baseline for generic dead-cell
+  clearance, which will be slower in desmoplastic PDAC tumors; this is handled in
+  the global calibration via translation uncertainty rather than rescaling k_cell_clear
+  here.
+- Species differences (mouse vs human) and organ differences (thymus vs pancreas/liver
+  metastasis) primarily affect the effective clearance rate magnitude but not the
+  basic first-order character of the process.
+key_study_limitations:
+- The experimental system is mouse thymus subjected to whole-body X-irradiation, not
+  PDAC tumor tissue; the clearance machinery (resident macrophages and recruited neutrophils)
+  and tissue architecture differ substantially from desmoplastic PDAC.
+- Total apoptotic burden is approximated using summed cluster counts across three
+  morphological categories rather than a direct biochemical measurement of apoptotic
+  DNA mass; category weighting by cell content is not known.
+- The dynamic window directly used for calibration (10.5 to 12 h) is short and contains
+  only one decay interval, so the estimate of k_cell_clear relies on a single effective
+  half-life rather than a richer timecourse.
+- SE values are treated as SEM across counted fields, and the exact number of independent
+  biological replicates (mice) contributing to the statistics is limited (three mice
+  per timepoint).
+- Irradiation may modulate phagocyte activation states and chemokine production in
+  ways that do not generalize quantitatively to PDAC-associated efferocytosis.
+- Neutrophil recruitment is MIP-2-dependent in this thymus model, whereas PDAC dead-cell
+  clearance likely involves additional chemokines, monocyte-derived macrophages, and
+  stromal barriers that are not represented here.
+primary_data_source:
+  doi: 10.4049/jimmunol.175.6.3475
+  title: Neutrophils Accelerate Macrophage-Mediated Digestion of Apoptotic Cells In
+    Vivo as Well as In Vitro
+  authors:
+  - Takuya Iyoda
+  - Kisaburo Nagata
+  - Makoto Akashi
+  - Yoshiro Kobayashi
+  year: 2005
+  source_tag: Iyoda2005
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study investigates clearance of apoptotic
+      thymocytes in mouse thymus after whole-body X-irradiation, whereas the QSP model
+      targets dead-cell clearance in human PDAC tumors. Both contexts involve professional
+      phagocytes (macrophages and neutrophils) digesting apoptotic cells, but tissue
+      type, stromal composition, and inflammatory milieu differ substantially, so
+      the data are used as a mechanistic proxy for efficient efferocytosis rather
+      than a direct PDAC measurement.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: pathological_state
+    perturbation_relevance: Whole-body X-irradiation induces an acute, non-physiological
+      wave of thymocyte apoptosis, but the subsequent efferocytic clearance and digestion
+      of apoptotic cells by macrophages and neutrophils reflects generic dead-cell
+      processing kinetics that bound the physiological k_cell_clear parameter from
+      above.
+    tme_compatibility: low
+    tme_compatibility_notes: Mouse thymus is a highly vascularized lymphoid organ
+      with abundant resident macrophages and rapid neutrophil recruitment via MIP-2,
+      leading to very efficient apoptotic cell clearance. PDAC tumors, in contrast,
+      have dense desmoplastic stroma, hypoxia, and often inefficient clearance with
+      necrotic cores. Therefore the thymus-derived clearance rate is expected to overestimate
+      k_cell_clear in PDAC by at least an order of magnitude and is down-weighted
+      in global inference via translation uncertainty.
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: animal_in_vivo
+tags:
+- apoptotic_clearance
+- efferocytosis
+- neutrophils
+- macrophages
+- thymus
+- k_cell_clear
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

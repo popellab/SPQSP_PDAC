@@ -1,0 +1,284 @@
+target_id: IL1_50_IL6_ciminieri2023
+inputs:
+- name: IL1b_conc_low_ng_mL
+  value: 0.01
+  units: nanogram/milliliter
+  input_type: direct_measurement
+  source_ref: Ciminieri2023
+  source_location: Methods, Cell and Organoid Culture
+  value_snippet: IL-1beta (0.01, 0.1, 1 ng/ml)
+- name: IL1b_conc_mid_ng_mL
+  value: 0.1
+  units: nanogram/milliliter
+  input_type: direct_measurement
+  source_ref: Ciminieri2023
+  source_location: Methods, Cell and Organoid Culture
+  value_snippet: IL-1beta (0.01, 0.1, 1 ng/ml)
+- name: IL1b_conc_high_ng_mL
+  value: 1.0
+  units: nanogram/milliliter
+  input_type: direct_measurement
+  source_ref: Ciminieri2023
+  source_location: Methods, Cell and Organoid Culture
+  value_snippet: IL-1beta (0.01, 0.1, 1 ng/ml)
+- name: IL1b_MW_kDa
+  value: 17.5
+  units: kilodalton
+  input_type: reference_value
+  rationale: Molecular weight of human IL-1beta (mature form, 153 amino acids)
+  source_ref: Ciminieri2023
+  source_location: Methods
+  value_snippet: IL-1beta
+- name: IL1b_conc_low_nM
+  value: 0.000571
+  units: nanomolarity
+  input_type: derived_arithmetic
+  source_inputs:
+  - IL1b_conc_low_ng_mL
+  - IL1b_MW_kDa
+  formula: IL1b_conc_low_ng_mL / IL1b_MW_kDa
+  rationale: 'Convert ng/mL to nM: nM = (ng/mL) / (kDa)'
+  source_ref: Ciminieri2023
+  source_location: Methods
+- name: IL1b_conc_mid_nM
+  value: 0.00571
+  units: nanomolarity
+  input_type: derived_arithmetic
+  source_inputs:
+  - IL1b_conc_mid_ng_mL
+  - IL1b_MW_kDa
+  formula: IL1b_conc_mid_ng_mL / IL1b_MW_kDa
+  rationale: 'Convert ng/mL to nM: nM = (ng/mL) / (kDa)'
+  source_ref: Ciminieri2023
+  source_location: Methods
+- name: IL1b_conc_high_nM
+  value: 0.0571
+  units: nanomolarity
+  input_type: derived_arithmetic
+  source_inputs:
+  - IL1b_conc_high_ng_mL
+  - IL1b_MW_kDa
+  formula: IL1b_conc_high_ng_mL / IL1b_MW_kDa
+  rationale: 'Convert ng/mL to nM: nM = (ng/mL) / (kDa)'
+  source_ref: Ciminieri2023
+  source_location: Methods
+- name: IL6_fold_low_mean
+  value: 4.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Ciminieri2023
+  source_location: Figure 2I
+  figure_excerpt:
+    figure_id: Figure 2I
+    value: ~4.5
+    description: Mean of 2 digitized data points for IL-6 fold-change at 0.01 ng/mL IL-1beta
+    context: qRT-PCR fold-change (control set at 1), MRC-5 fibroblasts, 24h treatment
+- name: IL6_fold_low_sd
+  value: 40.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Ciminieri2023
+  source_location: Figure 2I
+  figure_excerpt:
+    figure_id: Figure 2I
+    value: SD ~40
+    description: SD from 2 digitized data points for IL-6 at 0.01 ng/mL
+    context: High variability near baseline; one dot negative, one ~33
+- name: IL6_fold_mid_mean
+  value: 108.6
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Ciminieri2023
+  source_location: Figure 2I
+  figure_excerpt:
+    figure_id: Figure 2I
+    value: ~109
+    description: Mean of 2 digitized data points for IL-6 fold-change at 0.1 ng/mL IL-1beta
+    context: qRT-PCR fold-change, MRC-5 fibroblasts, 24h treatment
+- name: IL6_fold_mid_sd
+  value: 18.9
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Ciminieri2023
+  source_location: Figure 2I
+  figure_excerpt:
+    figure_id: Figure 2I
+    value: SD ~19
+    description: SD from 2 digitized data points for IL-6 at 0.1 ng/mL
+    context: WebPlotDigitizer extraction
+- name: IL6_fold_high_mean
+  value: 120.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Ciminieri2023
+  source_location: Figure 2I
+  figure_excerpt:
+    figure_id: Figure 2I
+    value: ~121
+    description: Mean of 2 digitized data points for IL-6 fold-change at 1 ng/mL IL-1beta
+    context: qRT-PCR fold-change, MRC-5 fibroblasts, 24h treatment. Saturated (similar to 0.1 ng/mL).
+- name: IL6_fold_high_sd
+  value: 23.2
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Ciminieri2023
+  source_location: Figure 2I
+  figure_excerpt:
+    figure_id: Figure 2I
+    value: SD ~23
+    description: SD from 2 digitized data points for IL-6 at 1 ng/mL
+    context: WebPlotDigitizer extraction
+- name: n_replicates
+  value: 4
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Ciminieri2023
+  source_location: Figure 2 legend
+  value_snippet: n = 4
+calibration:
+  parameters:
+  - name: IL1_50
+    units: nanomolarity
+  - name: n_IL1
+    units: dimensionless
+  - name: IL6_fold_max
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 4.79
+      sigma: 0.5
+  forward_model:
+    type: direct_fit
+    curve: hill
+    ec50: IL1_50
+    n_hill: n_IL1
+    baseline: '1.0'
+    maximum: IL6_fold_max
+    data_rationale: 'IL-6 mRNA fold-change in MRC-5 lung fibroblasts increases with IL-1beta concentration in a dose-dependent
+      manner across 0.01-1 ng/mL (0.57-57 pM). The response saturates between 0.1 and 1 ng/mL, indicating that IL1_50 is well
+      below 5.7 pM. This constrains the basal EC50 for IL-1 signaling in the QSP model.
+
+      '
+    submodel_rationale: 'The QSP model uses H_IL1_eff = IL1^n / ((IL1_50*(1+TGFb/TGFb_50_IL1R1))^n + IL1^n) to gate IL-1-driven
+      iCAF formation. In this experiment there is no TGFbeta co-treatment, so the effective EC50 simplifies to IL1_50. IL-6
+      is a direct NF-kB target gene and the primary iCAF marker. The fold-change readout maps to the Hill function: fold =
+      1 + (max_fold - 1) * H_IL1.
+
+      '
+  error_model:
+  - name: IL6_at_low
+    units: dimensionless
+    x_input: IL1b_conc_low_nM
+    uses_inputs:
+    - IL6_fold_low_mean
+    - IL6_fold_low_sd
+    - n_replicates
+    sample_size_input: n_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['IL6_fold_low_mean']\n    sd = inputs['IL6_fold_low_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2.0\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+  - name: IL6_at_mid
+    units: dimensionless
+    x_input: IL1b_conc_mid_nM
+    uses_inputs:
+    - IL6_fold_mid_mean
+    - IL6_fold_mid_sd
+    - n_replicates
+    sample_size_input: n_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['IL6_fold_mid_mean']\n    sd = inputs['IL6_fold_mid_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2.0\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+  - name: IL6_at_high
+    units: dimensionless
+    x_input: IL1b_conc_high_nM
+    uses_inputs:
+    - IL6_fold_high_mean
+    - IL6_fold_high_sd
+    - n_replicates
+    sample_size_input: n_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['IL6_fold_high_mean']\n    sd = inputs['IL6_fold_high_sd']\n    cv = sd / mean\n\
+      \    sigma_ln = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2.0\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+  identifiability_notes: 'IL1_50 is constrained by the transition from baseline (~4.5x at 0.6 pM) to saturated (~109x at 5.7
+    pM). The response is nearly saturated by 5.7 pM, placing IL1_50 well below this concentration. n_IL1 and IL6_fold_max
+    trade off with each other but the saturation plateau (0.1 vs 1 ng/mL being similar) pins IL6_fold_max. The CXCL8 target
+    provides additional constraint via shared IL1_50 and n_IL1.
+
+    '
+experimental_context:
+  species: human
+  system: in_vitro_cell_line
+  cell_types:
+  - name: MRC-5 human fetal lung fibroblasts
+    source: Sigma Aldrich 05081101
+    isolation_method: 'Human fetal lung fibroblast cell line. Cultured in 6-well plates.
+
+      '
+  culture_conditions:
+    medium: Standard culture medium (not specified in methods for MRC-5)
+    duration: 24 hours treatment with IL-1beta
+  indication: COPD
+study_interpretation: 'IL-1beta induces IL-6 mRNA in MRC-5 fibroblasts in a dose-dependent manner. The response saturates
+  between 5.7 and 57 pM (0.1 and 1 ng/mL), indicating that IL1_50 is in the low picomolar range. At 0.6 pM (0.01 ng/mL), the
+  response is near baseline. This brackets IL1_50 between ~0.6 and ~5 pM, consistent with the model''s current value of 10
+  pM (0.01 nM).
+
+  '
+key_assumptions:
+- IL-1beta and IL-1alpha have similar affinity for IL-1R1 (same receptor)
+- IL-6 fold-change is a valid proxy for H_IL1_eff (NF-kB activation)
+- 24h qRT-PCR approximates steady-state transcriptional response
+- No TGFbeta in culture, so effective EC50 = basal IL1_50
+key_study_limitations:
+- MRC-5 lung fibroblasts, not PDAC CAFs or PSCs
+- IL-1beta used, model parameter represents IL-1alpha signaling
+- Only 2 digitized dots per condition (broken y-axis complicates WPD)
+- n=4 reported but only 2 dots visible in figure
+- COPD context, not cancer
+primary_data_source:
+  doi: 10.1165/rcmb.2022-0209OC
+  source_tag: Ciminieri2023
+  title: IL-1beta Induces a Proinflammatory Fibroblast Microenvironment that Impairs Lung Progenitors' Function
+  authors:
+  - Ciminieri
+  - Woest
+  - Reynaert
+  - Heijink
+  - Spierings
+  - Brandsma
+  - Konigshoff
+  - Gosens
+  year: 2023
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'MRC-5 human lung fibroblasts used as proxy for PDAC CAFs. IL-1R1 is the same receptor
+      across fibroblast types, so the binding EC50 should be similar. However, downstream NF-kB signaling amplification and
+      IL-6 transcriptional response may differ between lung fibroblasts and pancreatic stellate cells.
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: 'Recombinant IL-1beta treatment at defined concentrations. This directly measures the dose-response
+      of IL-1 receptor signaling, applicable to any cell type expressing IL-1R1.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro monoculture lacks TME components. No TGFbeta co-treatment means we measure basal IL1_50,
+      not the effective EC50 in the TGFbeta-rich PDAC TME (which is modeled separately by TGFb_50_IL1R1).
+
+      '
+    measurement_directness: single_inversion
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_cell_line
+tags:
+- IL1
+- NF-kB
+- iCAF
+- fibroblast_module
+- dose_response

@@ -1,0 +1,223 @@
+groups:
+  - group_id: CAF_death_rates
+    description: >-
+      First-order death/clearance rates for PSC and CAF subtypes. All share
+      stellate cell biology but differ in activation state and survival signaling.
+      Partial pooling lets the Kisseleva 2012 target (k_myCAF_death) inform the
+      group mean while allowing subtype-specific deviations.
+
+    # base_prior omitted — derived at runtime from CSV priors of members
+    # (mean of log-space mu, max of log-space sigma)
+
+    between_member_sd:
+      distribution: half_normal
+      sigma: 0.7  # allows ~2x fold differences between subtypes (exp(0.7))
+
+    members:
+      - name: k_qpsc_death
+        units: 1/day
+        delta_prior:
+          # Quiescent cells are long-lived (G0, low metabolic activity).
+          # Bias toward lower death rate than activated subtypes.
+          distribution: normal
+          mu: -0.5  # ~0.6x the group mean
+          sigma: 0.4
+
+      - name: k_iCAF_death
+        units: 1/day
+        # No informative delta — iCAFs are the default activated subtype.
+        # JAK/STAT survival signaling roughly balances higher metabolic stress.
+
+      - name: k_myCAF_death
+        units: 1/day
+        delta_prior:
+          # Myofibroblasts are apoptosis-resistant (BCL-XL/XIAP upregulation
+          # from ECM stiffness and TGFb, per Hinz & Lagares 2020).
+          # Centered (was mu=-0.2) but group base rate anchors too low for
+          # Kisseleva data — accepted miss (1 obs, group pooling tension).
+          distribution: normal
+          mu: 0.0
+          sigma: 0.5
+
+      - name: k_apCAF_death
+        units: 1/day
+        # No informative delta — insufficient literature to bias.
+        # Will shrink toward the group mean by default.
+
+  # CAF_prolif_rates group dissolved — k_myCAF_prolif and k_iCAF_prolif are
+  # now cascade-cut upstream from caf_prolif_rates_biffi2019 (algebraic, NUTS).
+  # The group caused all 3 prolif rates + k_apCAF_prolif target to merge into
+  # the interconversion/activation NPE component, which showed SBC bias
+  # (k_iCAF_prolif biased_high, k_myCAF_prolif biased_low, k_myCAF_to_iCAF
+  # biased_low). Each prolif rate is directly constrained by its own data:
+  # k_myCAF_prolif and k_iCAF_prolif by Biffi2019 growth curves,
+  # k_apCAF_prolif by its own senescence target. Partial pooling was doing
+  # more harm than good via NPE misspecification.
+
+  # TGFb_EC50_fibroblast group dissolved — TGFb_50_CAF_act is now cascade-cut
+  # upstream from TGFb_50_CAF_act_bachem1992 (algebraic dose-response, NUTS).
+  # The group caused TGFb_50_CAF_act to bridge the Bachem dose-response into
+  # the interconversion/activation NPE component. With the group dissolved
+  # and TGFb_50_CAF_act cut, the NPE shrinks to 2 free params (TGFb_50_IL1R1,
+  # TGFb_50_col_sec). The remaining two EC50s don't warrant partial pooling —
+  # they gate different downstream programs (IL-1R1 repression vs collagen
+  # secretion) and Fine1987 collagen data implies EC50 ~10x below the others.
+
+  - group_id: TGFb_EC50_immune
+    description: >-
+      TGFb half-maximal concentrations for immune cell processes.
+      Same ligand but different cell types (T cells, APCs, NK cells,
+      macrophages) with potentially different TGFbRII expression levels.
+      Wider tau than the fibroblast group.
+
+    between_member_sd:
+      distribution: half_normal
+      sigma: 0.7  # loosened from 0.4 — different cell types with different TGFbRII expression
+
+    members:
+      - name: TGFb_50
+        units: nanomolarity
+        # Generic TGFb EC50 for Th->Treg and M1->M2 polarization
+
+      - name: TGFb_50_APC
+        units: nanomolarity
+
+      - name: TGFb_50_Teff
+        units: nanomolarity
+        delta_prior:
+          # Effector T cells may be somewhat less sensitive to TGFb
+          # (current value 0.14 vs 0.07 for others — 2x higher EC50)
+          distribution: normal
+          mu: 0.3
+          sigma: 0.3
+
+      # TGFb_50_NK removed 2026-04-21 — NK_module is not wired into the active
+      # PDAC model. Source YAML moved to excluded/TGFb_50_NK_PDAC_deriv001.yaml.
+
+  - group_id: IL6_EC50s
+    description: >-
+      IL-6 half-maximal concentrations across cell types. All signal through
+      IL-6R/gp130 (classical or trans-signaling). MDSCs, M2 macrophages,
+      and iCAFs differ in IL-6R surface expression and downstream coupling.
+
+    between_member_sd:
+      distribution: half_normal
+      sigma: 0.4
+
+    members:
+      - name: IL6_50_MDSC
+        units: nanomolarity
+
+      - name: IL6_50_M2
+        units: nanomolarity
+
+      - name: IL6_50_iCAF
+        units: nanomolarity
+
+  - group_id: naive_T_death_rates
+    description: >-
+      Homeostatic death rates for naive T cell populations. Both are naive
+      lymphocytes maintained by IL-7/IL-15 tonic signaling with similar
+      lifespans in the periphery.
+
+    between_member_sd:
+      distribution: half_normal
+      sigma: 0.2  # tight — very similar biology
+
+    members:
+      - name: k_nCD8_death
+        units: 1/day
+
+      - name: k_nTreg_death
+        units: 1/day
+
+  - group_id: CXCL12_secretion_rates
+    description: >-
+      CXCL12 secretion rates from different cell types. Same chemokine
+      (SDF-1/CXCL12), but iCAFs are the primary stromal source while
+      cancer cells contribute via autocrine signaling.
+
+    between_member_sd:
+      distribution: half_normal
+      sigma: 0.5  # wider — different cell types with different secretory machinery
+
+    members:
+      - name: k_CXCL12_sec_iCAF
+        units: nanomolarity*liter/(cell*day)
+        delta_prior:
+          # iCAFs are the dominant CXCL12 source in PDAC stroma
+          distribution: normal
+          mu: 0.2
+          sigma: 0.3
+
+      - name: k_CXCL12_sec_cancer
+        units: nanomolarity*liter/(cell*day)
+
+cascade_cuts:
+  - parameter: IL1_50
+    upstream:
+      - IL1_50_CXCL8_ciminieri2023
+      - IL1_50_IL6_ciminieri2023
+    reason: >
+      Direct dose-response Hill fit cleanly constrains IL1_50 and n_IL1
+      via NUTS. The Biffi ODE only sees IL1_50 through a nested Hill
+      with TGFb antagonism — weak and confounded. Cutting this bridge
+      also frees n_IL1 from NPE approximation.
+
+  - parameter: k_myCAF_prolif
+    upstream:
+      - caf_prolif_rates_biffi2019
+    reason: >
+      Richards logistic growth curves (Biffi2019) directly constrain
+      proliferation rates via an algebraic model (NUTS-solvable). Cutting
+      prevents this well-identified rate from inflating the downstream
+      interconversion/activation NPE component. The NPE showed SBC bias
+      (k_myCAF_prolif biased_low) when jointly estimated with 10+ params.
+
+  - parameter: k_iCAF_prolif
+    upstream:
+      - caf_prolif_rates_biffi2019
+    reason: >
+      Same rationale as k_myCAF_prolif. The NPE showed SBC bias
+      (k_iCAF_prolif biased_high) when jointly estimated. Decoupling
+      from the ODE-based interconversion dynamics lets NUTS exactly
+      infer these rates from the algebraic growth model.
+
+  - parameter: TGFb_50_CAF_act
+    upstream:
+      - TGFb_50_CAF_act_bachem1992
+    reason: >
+      Bachem1992 dose-response directly constrains TGFb_50_CAF_act via
+      algebraic model (NUTS). Cutting reduces the downstream NPE to 2
+      free params (TGFb_50_IL1R1, TGFb_50_col_sec), improving NPE
+      calibration quality (was 5/9 SBC, biased on cascade params).
+
+  - parameter: k_myCAF_to_iCAF
+    upstream:
+      - k_myCAF_to_iCAF
+    reason: >
+      Zhang2025 steady-state iCAF fractions under 3 conditions directly
+      constrain k_myCAF_to_iCAF via an algebraic two-state model (NUTS).
+      The NPE showed biased_high SBC on this parameter (-4695% contraction)
+      when jointly estimated with interconversion ODE dynamics.
+
+  - parameter: k_iCAF_to_myCAF
+    upstream:
+      - k_myCAF_to_iCAF
+    reason: >
+      Zhang2025 steady-state iCAF fractions under 3 conditions directly
+      measure the forward/reverse interconversion ratio.
+
+  # k_PSC_to_myCAF cascade cut removed — with TGFb_50_CAF_act now cascade-cut,
+  # the activation targets would become all-cascade orphans that can't merge.
+  # Instead, k_PSC_to_myCAF stays free and naturally merges the activation
+  # targets with k_PSC_to_apCAF into one component (3 free params).
+
+component_overrides:
+  - target_id: k_CD8_basal_exh
+    inference_method: nuts
+    reason: >
+      2-param linear ODE with 4 data points is trivial for NUTS but
+      NPE struggles (biased SBC, 0% PPC). Forcing NUTS via JAX
+      autodiff of the ODE is more reliable for small components.
+

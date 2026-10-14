@@ -1,0 +1,253 @@
+target_id: q_Treg_T_in
+inputs:
+- name: homing_fraction_tumor_mean
+  value: 0.1
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Wang2012
+  source_location: Results, Active migration of memory, but not naive, FoxP3+ T cells
+    into tumors
+  value_snippet: On average, ,10% of injected FoxP3+ T cells migrated into tumors
+    among the organs examined.
+- name: n_homing_experiments
+  value: 4.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Wang2012
+  source_location: Figure 4 caption
+  value_snippet: Representative and combined data obtained from 4 different experiments
+    are shown.
+- name: tumor_diameter_mm
+  value: 10.0
+  units: millimeter
+  input_type: direct_measurement
+  source_ref: Wang2012
+  source_location: Methods, Tumor formation in mice
+  value_snippet: Most experiments were performed when the tumor diameter was ,10 mm.
+- name: tumor_radius_cm
+  value: 0.5
+  units: centimeter
+  input_type: derived_arithmetic
+  rationale: 'Convert tumor diameter in mm to radius in cm: r = d/2 and 1 mm = 0.1
+    cm, so r_cm = 0.05 * d_mm.'
+  source_ref: Wang2012
+  source_location: Methods, Tumor formation in mice
+  source_inputs:
+  - tumor_diameter_mm
+  formula: 0.05 * tumor_diameter_mm
+- name: tumor_volume_cm3
+  value: 0.5236
+  units: centimeter^3
+  input_type: derived_arithmetic
+  rationale: Approximate tumor as a sphere with radius given by tumor_radius_cm, using
+    V = 4/3 * pi * r^3.
+  source_ref: Wang2012
+  source_location: Methods, Tumor formation in mice (tumor diameter ~10 mm)
+  source_inputs:
+  - tumor_radius_cm
+  formula: 4.0/3.0 * pi * (tumor_radius_cm**3)
+- name: homing_duration_h
+  value: 36.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Wang2012
+  source_location: Methods, Homing experiments
+  value_snippet: The host mice were sacrificed 36 h later, and indicated organs were
+    harvested.
+- name: homing_duration_min
+  value: 2160.0
+  units: minute
+  input_type: derived_arithmetic
+  rationale: 'Convert homing duration from hours to minutes: t_min = 60 * t_h.'
+  source_ref: Wang2012
+  source_location: Methods, Homing experiments
+  source_inputs:
+  - homing_duration_h
+  formula: 60.0 * homing_duration_h
+- name: homing_fraction_spread_factor
+  value: 0.3
+  units: dimensionless
+  input_type: reference_value
+  rationale: In the absence of reported SD/SEM for the tumor-homing fraction, a dimensionless
+    spread factor of 0.3 is introduced as a modeling assumption to capture moderate
+    biological and experimental variability in short-term homing assays.
+  source_ref: Wang2012
+  source_location: Results and Figure 4 (no explicit variance reported for tumor-homing
+    fraction).
+  value_snippet: Representative and combined data obtained from 4 different experiments
+    are shown.
+calibration:
+  parameters:
+  - name: q_Treg_T_in
+    units: 1/(centimeter^3*minute)
+    nuisance: false
+  - name: blood_volume_cm3
+    units: centimeter^3
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.663
+      sigma: 0.25
+  forward_model:
+    data_rationale: Wang2012 performed short-term homing experiments where a known
+      bolus of activated FoxP3+ T cells was injected intravenously into tumor-bearing
+      mice and the fraction of cells homing to tumors of ~10 mm diameter over 36 h
+      was quantified. Under tracer and short-time assumptions, Treg proliferation
+      and death are negligible, so the observed fraction directly reports the integrated
+      influx from blood to tumor over 36 h.
+    submodel_rationale: "In the full QSP PDAC model, Treg influx from blood to tumor\
+      \ is governed by q_Treg_T_in via the reaction V_C.Treg -> V_T.Treg with rate\
+      \ q_Treg_T_in * V_T * V_C.Treg * (C_total^2/(C_total^2 + K_C2_recruit)). For\
+      \ large established tumors (diameter ~10 mm), the recruitment Hill term is expected\
+      \ to be saturated (\u22481). Assuming the injected FoxP3+ T cells are uniformly\
+      \ mixed in a blood volume V_blood and that endogenous Treg numbers are small\
+      \ relative to the tracer, the fraction of injected cells entering tumor over\
+      \ a short interval \u0394t is homing_fraction = q_Treg_T_in * V_T * \u0394t\
+      \ / V_blood. The algebraic forward model implements this exact mechanistic relationship,\
+      \ mapping q_Treg_T_in and blood volume to the experimentally observed homing\
+      \ fraction."
+    type: algebraic
+    formula: homing_fraction = q_Treg_T_in * tumor_volume_cm3 * homing_duration_min
+      / blood_volume_cm3
+    code: "def compute(params, inputs):\n    import numpy as np\n    q = params['q_Treg_T_in']\n\
+      \    V_T = inputs['tumor_volume_cm3']\n    t_min = inputs['homing_duration_min']\n\
+      \    V_blood = params['blood_volume_cm3']\n    # For large tumors in Wang2012\
+      \ (diameter ~10 mm), assume the cancer-dependent recruitment term C_total^2/(C_total^2\
+      \ + K_C2_recruit) is saturated and ~=1.\n    # The QSP model flux term is: rate\
+      \ = q_Treg_T_in * V_T * V_C.Treg * saturation.\n    # With a well-mixed central\
+      \ compartment of volume V_blood, V_C.Treg = N_injected / V_blood, yielding a\
+      \ predicted homing fraction\n    # homing_fraction = q_Treg_T_in * V_T * t_min\
+      \ / V_blood.\n    homing_fraction = q * V_T * t_min / V_blood\n    return homing_fraction"
+  error_model:
+  - name: tumor_homing_fraction_36h
+    units: dimensionless
+    uses_inputs:
+    - homing_fraction_tumor_mean
+    - n_homing_experiments
+    - homing_fraction_spread_factor
+    sample_size_input: n_homing_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['homing_fraction_tumor_mean']\n \
+      \   spread = inputs['homing_fraction_spread_factor']\n    sigma_ln = np.sqrt(np.log(1.0\
+      \ + spread**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2.0\n    # Draw bootstrap\
+      \ samples for the mean across 'sample_size' experiments.\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: This target uses a single tracer-based measurement of the
+    fraction of adoptively transferred FoxP3+ T cells that home to tumors over 36
+    h in Wang2012. Under the assumptions of (i) a well-mixed blood compartment, (ii)
+    negligible proliferation and death of tracer cells over 36 h, and (iii) saturation
+    of the cancer-dependent recruitment term for ~10 mm tumors, the homing fraction
+    depends on the ratio q_Treg_T_in / blood_volume_cm3. To avoid absorbing blood
+    volume uncertainty into q_Treg_T_in, blood_volume_cm3 is included as a nuisance
+    parameter with a physiological lognormal prior centered at 2 cm^3. With this prior,
+    q_Treg_T_in is identifiable up to the modest uncertainty in blood volume and in
+    tumor volume (captured via inputs), but the two parameters will be moderately
+    correlated. The measurement provides a direct constraint on the magnitude of q_Treg_T_in
+    but does not inform other trafficking rates such as q_Treg_P_in or q_Treg_LN_out,
+    nor does it distinguish potential tumor-type-dependent modulation of trafficking
+    (e.g., PDAC-specific immune exclusion).
+experimental_context:
+  species: mouse
+  system: animal_in_vivo
+  cell_types:
+  - name: CD4+ FoxP3+ regulatory T cells
+    phenotype: activated memory FoxP3+ T cells enriched from spleen and lymph nodes
+    isolation_method: "Isolated from RIP-mOVA x DO11.10 Rag2(-/-) or Treg-enriched\
+      \ mice; cultured with IL-2 and OVA323-339 peptide for 5\u20137 days before adoptive\
+      \ transfer."
+    source: RIP-mOVA x DO11.10 Rag2(-/-) Treg-enriched donor mice.
+  indication: Transplantable murine tumors (A20 B cell lymphoma, CT26 colon cancer,
+    4T1 breast cancer, B16 melanoma) used as solid tumor models; proxy for human PDAC
+    tumor Treg trafficking.
+study_interpretation: Wang2012 demonstrates that antigen-primed, memory-phenotype
+  FoxP3+ T cells efficiently home to established solid tumors in mice, with approximately
+  10% of transferred cells entering tumors of ~10 mm diameter within 36 h. Treating
+  the transferred FoxP3+ T cells as tracers and assuming a well-mixed blood compartment
+  allows this homing fraction to be related mechanistically to the volumetric influx
+  parameter q_Treg_T_in in the QSP PDAC model. The resulting submodel interprets the
+  observed 36 h homing fraction as the integrated effect of the QSP blood-to-tumor
+  trafficking reaction under conditions where the cancer-dependent recruitment term
+  is effectively saturated, thereby providing a direct constraint on q_Treg_T_in.
+key_assumptions:
+- Adoptively transferred activated FoxP3+ T cells behave, in terms of trafficking
+  kinetics, like endogenous circulating Tregs relevant to the QSP model parameter
+  q_Treg_T_in.
+- The injected FoxP3+ T cells rapidly equilibrate within an effective central blood
+  volume that is well approximated by a nuisance parameter blood_volume_cm3 with a
+  prior centered at 2 cm^3 for adult mice.
+- "The cancer-dependent recruitment term C_total^2/(C_total^2 + K_C2_recruit) in the\
+  \ QSP model is near-saturated (\u22481) for the ~10 mm diameter tumors used in Wang2012,\
+  \ so it can be treated as 1 in the submodel."
+- Treg proliferation and death, as well as egress from tumors, are negligible over
+  the 36 h homing window, so the net number of tracer Tregs in tumors reflects cumulative
+  influx from blood.
+- Tumors are approximated as spheres with diameter ~10 mm when converting to volume,
+  acknowledging that real tumor shapes may deviate from perfect sphericity.
+- The reported homing fraction of ~10% is treated as a mean value across four experiments;
+  a dimensionless spread factor of 0.3 is introduced as an explicit modeling assumption
+  to represent unreported variability and is encoded as an input rather than as a
+  hardcoded constant.
+key_study_limitations:
+- The tumor models in Wang2012 (A20, CT26, 4T1, B16) are not PDAC and generally lack
+  the dense desmoplastic stroma and strong T cell exclusion typical of human PDAC,
+  so the inferred q_Treg_T_in may overestimate effective Treg influx in PDAC tumors.
+- Treg trafficking is studied using a large bolus of ex vivo activated, antigen-primed
+  Tregs, which may exhibit different homing receptor expression and kinetics compared
+  with endogenous polyclonal Tregs in PDAC patients.
+- Only a single short timepoint (36 h) is available for tumor homing, limiting the
+  ability to detect non-linearities in trafficking or early recirculation of tracer
+  cells.
+- The tumor diameter is reported only approximately (,10 mm), and tumors are heterogeneous
+  in shape; approximating them as 10 mm spheres introduces uncertainty in the tumor
+  volume used to scale the influx rate.
+- The paper does not provide explicit SD/SEM for the tumor homing fraction, so uncertainty
+  is partly represented via an assumed spread factor embedded in the observation model.
+primary_data_source:
+  doi: 10.1371/journal.pone.0030793
+  title: Optimal Population of FoxP3+ T Cells in Tumors Requires an Antigen Priming-Dependent
+    Trafficking Receptor Switch
+  authors:
+  - Wang
+  - Lee JH
+  - Kim CH
+  year: 2012
+  source_tag: Wang2012
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: Wang2012 uses several murine transplantable tumor
+      models (A20 lymphoma, CT26 colon cancer, 4T1 breast cancer, B16 melanoma) rather
+      than pancreatic ductal adenocarcinoma. These are solid tumors that share general
+      principles of T cell and Treg trafficking but differ from PDAC in stromal composition
+      and immune exclusion. Thus, Wang2012 is used as a mechanistic proxy for baseline
+      Treg homing into solid tumors, with the understanding that PDAC-specific features
+      (e.g., dense desmoplastic stroma, CXCL12-mediated exclusion) may reduce effective
+      influx relative to these models.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: pathological_state
+    perturbation_relevance: The study examines Treg trafficking in tumor-bearing mice
+      without additional pharmacologic perturbations; adoptive transfer of activated
+      FoxP3+ T cells is used as a tracer of trafficking capacity under tumor-bearing
+      conditions. This is interpreted as reflecting an upper-bound physiological trafficking
+      rate for memory Tregs in solid tumors, acknowledging some amplification relative
+      to endogenous Tregs due to ex vivo activation and high input numbers.
+    tme_compatibility: low
+    tme_compatibility_notes: The murine tumors in Wang2012 generally lack the strongly
+      desmoplastic, T cell-excluded microenvironment characteristic of human PDAC.
+      As a result, Treg influx measured in these models likely overestimates Treg
+      trafficking into PDAC tumors, which experience greater physical and chemokine-mediated
+      barriers. The inferred q_Treg_T_in should therefore be interpreted as a relatively
+      permissive benchmark subject to downscaling when PDAC-specific exclusion mechanisms
+      are incorporated.
+    measurement_directness: single_inversion
+    temporal_resolution: endpoint_pair
+    experimental_system: animal_in_vivo
+tags:
+- treg_trafficking
+- q_Treg_T_in
+- mouse_solid_tumor
+- homing_assay
+extraction_model: claude-3.5-sonnet-20241022
+extraction_reasoning_effort: high

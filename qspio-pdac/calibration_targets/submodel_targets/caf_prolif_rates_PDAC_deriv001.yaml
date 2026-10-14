@@ -1,0 +1,761 @@
+target_id: caf_prolif_rates_biffi2019
+tags:
+- ai-generated
+- fibroblast-module
+extraction_model: claude-opus-4-6
+study_interpretation: 'Biffi et al. (2019) measured proliferation of mouse pancreatic stellate cells
+
+  (PSCs) cultured under three conditions that enforce distinct CAF phenotypes:
+
+  quiescent PSCs (Matrigel + control media), iCAFs (Matrigel + transwell with
+
+  tumor organoids), and myCAFs (monolayer on plastic). Proliferation was tracked
+
+  by CellTiter-Glo luminescence every 24 hours for 5 days (n=5 technical
+
+  replicates per condition), starting from 6,000 cells seeded in 52 uL Matrigel
+
+  (3D conditions) or on plastic (monolayer).
+
+
+  myCAFs showed the fastest growth (~17x over 5 days, doubling time ~1.0 day),
+
+  iCAFs grew moderately (~4x, doubling time ~2.0 days), and quiescent PSCs
+
+  barely proliferated (~1.4x, doubling time ~7.5 days). The myCAF curve shows
+
+  clear logistic saturation at day 5 (growth rate drops from ~0.9 to ~0.3/day),
+
+  while iCAF and qPSC curves remain approximately exponential.
+
+
+  These in vitro proliferation rates are expected to be upper bounds for in vivo
+
+  rates due to optimal media, absence of immune suppression, and lack of spatial
+
+  constraints. However, the RATIO of myCAF:iCAF proliferation (~2:1) is the key
+
+  constraint for the QSP model, as it determines the steady-state CAF subtype
+
+  composition independently of the carrying capacity.
+
+  '
+key_assumptions:
+- 'Each culture condition maintains cells in a single phenotypic state (no
+
+  interconversion). qPSCs in Matrigel + control media remain quiescent; iCAFs
+
+  in transwell with organoids maintain the inflammatory phenotype via IL-1
+
+  signaling; myCAFs in monolayer maintain the myofibroblastic phenotype. This
+
+  is validated by the gene expression data in Ohlund 2017 and Biffi 2019.
+
+  '
+- 'CellTiter-Glo luminescence is proportional to cell number within each
+
+  phenotype (constant ATP per cell). The proportionality constant may differ
+
+  between phenotypes (different metabolic states), which is why the day 1
+
+  values differ despite identical seeding density.
+
+  '
+- 'Growth is logistic with a shared physical carrying capacity K_well
+
+  determined by the culture vessel, not by cancer cell signals. In the QSP
+
+  model, carrying capacity depends on f_stroma_max * C_total, so K_well is
+
+  a nuisance parameter.
+
+  '
+- 'The quiescent PSC proliferation rate (k_qPSC_prolif) is a nuisance
+
+  parameter with no QSP model equivalent, since qPSCs in the model are
+
+  recruited via encounter rather than proliferating.
+
+  '
+key_study_limitations:
+- 'Technical replicates only (n=5 wells), not biological replicates.
+
+  Well-to-well variation underestimates true biological variability of
+
+  PSC proliferation rates across different PSC isolates.
+
+  '
+- 'Mouse PSCs, not human. Proliferation kinetics may differ between species,
+
+  though the qualitative ordering (myCAF > iCAF >> qPSC) is expected to
+
+  be conserved.
+
+  '
+- 'In vitro 2D (myCAF) vs 3D Matrigel (iCAF, qPSC) culture conditions
+
+  differ in dimensionality. 2D monolayer may artificially enhance myCAF
+
+  proliferation through substrate stiffness signaling.
+
+  '
+- 'CellTiter-Glo measures metabolic activity (ATP), not direct cell counts.
+
+  Changes in per-cell metabolism during culture could bias apparent growth
+
+  rates, though this effect is generally small over 5 days.
+
+  '
+experimental_context:
+  species: mouse
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: quiescent PSCs
+    source: mouse pancreas (KPC model)
+    isolation_method: 'Previously described in Ohlund et al. 2017. PSCs embedded in Matrigel
+
+      and cultured in DMEM with 5% FBS (control media).
+
+      '
+  - name: iCAFs
+    source: mouse pancreas (KPC model)
+    isolation_method: 'PSCs embedded in Matrigel and cultured in transwell with PDAC tumor
+
+      organoids derived from KPC mice. Organoid-conditioned media provides
+
+      IL-1alpha which drives the iCAF phenotype via JAK/STAT signaling.
+
+      '
+  - name: myCAFs
+    source: mouse pancreas (KPC model)
+    isolation_method: 'PSCs cultured in monolayer on plastic in DMEM with 5% FBS. Plastic
+
+      substrate and lack of tumor organoid signals drives the myofibroblastic
+
+      phenotype.
+
+      '
+  culture_conditions:
+    medium: DMEM with 5% FBS
+    duration: 5 days, measurements every 24 hours. 6,000 PSCs per well in 52 uL Matrigel (3D) or on plastic (2D), white 96-well
+      plates (136101, Corning), readout by CellTiter-Glo (G7573, Promega).
+  indication: PDAC
+primary_data_source:
+  doi: 10.1158/2159-8290.CD-18-0710
+  title: 'IL-1-induced JAK/STAT signaling is antagonized by TGF-beta to shape CAF
+
+    heterogeneity in pancreatic ductal adenocarcinoma
+
+    '
+  authors:
+  - Biffi
+  - Oni
+  - Spielman
+  - Hao
+  - Elyada
+  - Park
+  - Preall
+  - Tuveson
+  year: 2019
+  source_tag: Biffi2019
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: 'Mouse pancreatic stellate cells derived from KPC PDAC tumors, the standard
+
+      genetically engineered mouse model for PDAC. Culture conditions that produce
+
+      iCAF and myCAF phenotypes were validated by gene expression profiling
+
+      against in vivo single-cell RNA-seq data from KPC tumors (Ohlund 2017,
+
+      Biffi 2019). This is the closest possible in vitro model for PDAC CAF
+
+      biology.
+
+      '
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: 'Cells measured under standard culture conditions that enforce distinct
+
+      phenotypes. No pharmacological perturbation — the three conditions
+
+      (quiescent, iCAF, myCAF) represent the natural phenotypic states of
+
+      pancreatic stellate cells in response to their microenvironment.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro culture provides the correct phenotypic state (validated by
+
+      transcriptomics) but lacks the 3D ECM, immune cell interactions, and
+
+      spatial constraints of the PDAC TME. Proliferation rates in vitro are
+
+      expected to be upper bounds for in vivo rates. The myCAF:iCAF proliferation
+
+      ratio is the most translatable quantity.
+
+      '
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_primary
+secondary_data_sources: []
+inputs:
+- name: n_tech_replicates
+  value: 5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K legend
+  value_snippet: mean SD of 5 technical replicates
+- name: seeding_density
+  value: 6000
+  units: cell
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Methods, Proliferation assays
+  value_snippet: 6,000 PSCs were plated
+- name: qPSC_day1_mean
+  value: 32258
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~32000
+    description: qPSC luminescence at day 1 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs. Grey curve with circle markers.
+- name: qPSC_day2_mean
+  value: 36290
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~36000
+    description: qPSC luminescence at day 2 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs.
+- name: qPSC_day2_sd
+  value: 9677
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~10000
+    description: qPSC SD at day 2 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+- name: qPSC_day3_mean
+  value: 34677
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~35000
+    description: qPSC luminescence at day 3 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs.
+- name: qPSC_day3_sd
+  value: 11290
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~11000
+    description: qPSC SD at day 3 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+- name: qPSC_day4_mean
+  value: 44355
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~44000
+    description: qPSC luminescence at day 4 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs.
+- name: qPSC_day4_sd
+  value: 10484
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~10000
+    description: qPSC SD at day 4 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+- name: qPSC_day5_mean
+  value: 46774
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~47000
+    description: qPSC luminescence at day 5 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs.
+- name: qPSC_day5_sd
+  value: 12903
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~13000
+    description: qPSC SD at day 5 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+- name: iCAF_day1_mean
+  value: 44355
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~44000
+    description: iCAF luminescence at day 1 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs. Black curve with square markers.
+- name: iCAF_day2_mean
+  value: 61290
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~61000
+    description: iCAF luminescence at day 2 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs.
+- name: iCAF_day2_sd
+  value: 20968
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~21000
+    description: iCAF SD at day 2 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+- name: iCAF_day3_mean
+  value: 78226
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~78000
+    description: iCAF luminescence at day 3 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs.
+- name: iCAF_day3_sd
+  value: 29032
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~29000
+    description: iCAF SD at day 3 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+- name: iCAF_day4_mean
+  value: 117742
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~118000
+    description: iCAF luminescence at day 4 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs.
+- name: iCAF_day4_sd
+  value: 35484
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~35000
+    description: iCAF SD at day 4 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+- name: iCAF_day5_mean
+  value: 178226
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~178000
+    description: iCAF luminescence at day 5 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs.
+- name: iCAF_day5_sd
+  value: 55645
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~56000
+    description: iCAF SD at day 5 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+- name: myCAF_day1_mean
+  value: 46774
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~47000
+    description: myCAF luminescence at day 1 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs. Black curve with triangle markers.
+- name: myCAF_day2_mean
+  value: 116129
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~116000
+    description: myCAF luminescence at day 2 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs.
+- name: myCAF_day2_sd
+  value: 20968
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~21000
+    description: myCAF SD at day 2 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+- name: myCAF_day3_mean
+  value: 240323
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~240000
+    description: myCAF luminescence at day 3 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs.
+- name: myCAF_day3_sd
+  value: 35484
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~35000
+    description: myCAF SD at day 3 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+- name: myCAF_day4_mean
+  value: 602632
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~603000
+    description: myCAF luminescence at day 4 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs.
+- name: myCAF_day4_sd
+  value: 97368
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~97000
+    description: myCAF SD at day 4 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+- name: myCAF_day5_mean
+  value: 800000
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~800000
+    description: myCAF luminescence at day 5 (mean)
+    context: Proliferation curves of quiescent PSCs, iCAFs and myCAFs. ***P<0.001
+- name: myCAF_day5_sd
+  value: 131579
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S6K
+  figure_excerpt:
+    figure_id: Figure S6K
+    value: ~132000
+    description: myCAF SD at day 5 (from error bar height)
+    context: Error bars represent SD, n=5 technical replicates.
+calibration:
+  parameters:
+  - name: k_iCAF_prolif
+    units: 1/day
+  - name: k_myCAF_prolif
+    units: 1/day
+  - name: k_qPSC_prolif
+    units: 1/day
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -2.3
+      sigma: 1.0
+  - name: K_well
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 14.5
+      sigma: 1.0
+  - name: n_logistic
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 1.1
+      sigma: 0.5
+  forward_model:
+    type: algebraic
+    formula: 'Richards logistic: x(t) = K / (1 + ((K/x0)^n - 1) * exp(-k*n*(t-t0)))^(1/n)
+
+      Three independent subtypes evaluated at days 2-5 (t0=1).
+
+      '
+    data_rationale: 'CellTiter-Glo proliferation time courses over 5 days for three distinct
+
+      CAF phenotypes cultured in isolation. Each population grows independently
+
+      under its own conditions with no interconversion between states. The
+
+      logistic saturation visible in the myCAF curve at day 5 constrains the
+
+      well carrying capacity. Analytical Richards logistic solution replaces ODE.
+
+      '
+    submodel_rationale: 'In the full QSP model, k_iCAF_prolif and k_myCAF_prolif are the maximal
+
+      proliferation rate constants for each CAF subtype, gated by a shared
+
+      logistic carrying capacity (f_stroma_max * C_total + K_stiff_niche *
+
+      H_stiff_fib). In vitro, these gating terms are absent — proliferation is
+
+      limited only by the physical well capacity. The measured in vitro rates
+
+      thus represent upper bounds on the maximal rate constants. The ratio
+
+      k_myCAF_prolif / k_iCAF_prolif (~2:1) is the primary constraint, as it
+
+      determines steady-state CAF subtype composition independently of in vivo
+
+      carrying capacity.
+
+      '
+    code: "def compute(params, inputs):\n    k_q = params['k_qPSC_prolif']\n    k_i = params['k_iCAF_prolif']\n    k_m = params['k_myCAF_prolif']\n\
+      \    K = params['K_well']\n    n = params['n_logistic']\n    q0 = inputs['qPSC_day1_mean']\n    i0 = inputs['iCAF_day1_mean']\n\
+      \    m0 = inputs['myCAF_day1_mean']\n\n    def richards(x0, k, t):\n        # x(t) = K / (1 + ((K/x0)^n - 1) * exp(-k*n*t))^(1/n)\n\
+      \        ratio = (K / x0) ** n\n        return K / (1 + (ratio - 1) * np.exp(-k * n * t)) ** (1 / n)\n\n    # t is days\
+      \ since day 1 (t0=1)\n    result = {}\n    for dt, day in [(1, 2), (2, 3), (3, 4), (4, 5)]:\n        result[f'q_{day}']\
+      \ = richards(q0, k_q, dt)\n        result[f'i_{day}'] = richards(i0, k_i, dt)\n        result[f'm_{day}'] = richards(m0,\
+      \ k_m, dt)\n    return result\n"
+  error_model:
+  - name: qPSC_day2
+    units: dimensionless
+    uses_inputs:
+    - qPSC_day2_mean
+    - qPSC_day2_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['qPSC_day2_mean']\n    sd = inputs['qPSC_day2_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['q_2']\n"
+  - name: qPSC_day3
+    units: dimensionless
+    uses_inputs:
+    - qPSC_day3_mean
+    - qPSC_day3_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['qPSC_day3_mean']\n    sd = inputs['qPSC_day3_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['q_3']\n"
+  - name: qPSC_day4
+    units: dimensionless
+    uses_inputs:
+    - qPSC_day4_mean
+    - qPSC_day4_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['qPSC_day4_mean']\n    sd = inputs['qPSC_day4_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['q_4']\n"
+  - name: qPSC_day5
+    units: dimensionless
+    uses_inputs:
+    - qPSC_day5_mean
+    - qPSC_day5_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['qPSC_day5_mean']\n    sd = inputs['qPSC_day5_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['q_5']\n"
+  - name: iCAF_day2
+    units: dimensionless
+    uses_inputs:
+    - iCAF_day2_mean
+    - iCAF_day2_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['iCAF_day2_mean']\n    sd = inputs['iCAF_day2_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['i_2']\n"
+  - name: iCAF_day3
+    units: dimensionless
+    uses_inputs:
+    - iCAF_day3_mean
+    - iCAF_day3_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['iCAF_day3_mean']\n    sd = inputs['iCAF_day3_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['i_3']\n"
+  - name: iCAF_day4
+    units: dimensionless
+    uses_inputs:
+    - iCAF_day4_mean
+    - iCAF_day4_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['iCAF_day4_mean']\n    sd = inputs['iCAF_day4_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['i_4']\n"
+  - name: iCAF_day5
+    units: dimensionless
+    uses_inputs:
+    - iCAF_day5_mean
+    - iCAF_day5_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['iCAF_day5_mean']\n    sd = inputs['iCAF_day5_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['i_5']\n"
+  - name: myCAF_day2
+    units: dimensionless
+    uses_inputs:
+    - myCAF_day2_mean
+    - myCAF_day2_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['myCAF_day2_mean']\n    sd = inputs['myCAF_day2_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['m_2']\n"
+  - name: myCAF_day3
+    units: dimensionless
+    uses_inputs:
+    - myCAF_day3_mean
+    - myCAF_day3_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['myCAF_day3_mean']\n    sd = inputs['myCAF_day3_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['m_3']\n"
+  - name: myCAF_day4
+    units: dimensionless
+    uses_inputs:
+    - myCAF_day4_mean
+    - myCAF_day4_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['myCAF_day4_mean']\n    sd = inputs['myCAF_day4_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['m_4']\n"
+  - name: myCAF_day5
+    units: dimensionless
+    uses_inputs:
+    - myCAF_day5_mean
+    - myCAF_day5_sd
+    - n_tech_replicates
+    sample_size_input: n_tech_replicates
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['myCAF_day5_mean']\n    sd = inputs['myCAF_day5_sd']\n    return rng.lognormal(np.log(mean), sd / mean / np.sqrt(sample_size),\
+      \ n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['m_5']\n"
+  identifiability_notes: 'k_iCAF_prolif and k_myCAF_prolif are well-identified from the exponential
+
+    phase of their respective curves (days 1-4). k_qPSC_prolif (nuisance) is
+
+    weakly identified due to near-flat growth. K_well is primarily constrained
+
+    by the myCAF saturation at day 5. The three populations are independent
+
+    (no shared state variables), so identifiability is equivalent to fitting
+
+    three separate logistic curves. The key model constraint is the RATIO
+
+    k_myCAF_prolif / k_iCAF_prolif, which is robustly determined regardless
+
+    of K_well uncertainty.
+
+    '

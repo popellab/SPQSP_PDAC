@@ -8,25 +8,26 @@ Paths are passed in so callers can override (tests, CI) without env vars.
 """
 from __future__ import annotations
 
+import filecmp
+import os
 import re
 from pathlib import Path
 from typing import Tuple
 
-import os
-
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-# SBML and the MATLAB model both live in pdac-build now (producer of the
-# model contract). Override the pdac-build location with PDAC_BUILD_DIR;
-# defaults to a sibling pdac-build/.
-PDAC_BUILD_DIR = Path(os.environ.get("PDAC_BUILD_DIR", REPO_ROOT.parent / "pdac-build"))
-DEFAULT_SBML = PDAC_BUILD_DIR / "PDAC_model.sbml"
-DEFAULT_MATLAB_MODEL = PDAC_BUILD_DIR / "scripts" / "immune_oncology_model_PDAC.m"
+# qspio-pdac is the MATLAB QSP model (source of truth for ODE, SBML, params).
+QSPIO = Path(os.environ.get("QSPIO_DIR", REPO_ROOT / "qspio-pdac"))
+DEFAULT_SBML = QSPIO / "PDAC_model.sbml"
+DEFAULT_MATLAB_MODEL = QSPIO / "scripts" / "immune_oncology_model_PDAC.m"
 DEFAULT_ODE_CPP = REPO_ROOT / "PDAC" / "qsp" / "ode" / "ODE_system.cpp"
+DEFAULT_ODE_CPP_SRC = QSPIO / "cpp" / "qsp" / "ode" / "ODE_system.cpp"
 DEFAULT_PARAM_SNIPPET = REPO_ROOT / "PDAC" / "qsp" / "ode" / "qsp_params_xml_snippet.xml"
 DEFAULT_PARAM_XML = REPO_ROOT / "PDAC" / "sim" / "resource" / "param_all.xml"
 DEFAULT_DUMP_BIN = REPO_ROOT / "PDAC" / "qsp" / "sim" / "build" / "qsp_sim"
-DEFAULT_PRIORS_CSV = PDAC_BUILD_DIR / "parameters" / "pdac_priors.csv"
+DEFAULT_PRIORS_CSV = REPO_ROOT / "parameters" / "pdac_priors.csv"
+
+ODE_FILES = ("ODE_system.cpp", "ODE_system.h", "QSPParam.cpp", "QSPParam.h", "QSP_enum.h")
 
 Result = Tuple[bool, str]
 
@@ -41,13 +42,13 @@ def check_sbml_newer_than_matlab(
     if not sbml.exists():
         return False, (
             f"SBML missing: {sbml}\n"
-            f"  Re-export in pdac-build: make export-sbml"
+            f"  Re-export: cd qspio-pdac && make export-sbml"
         )
     drift = matlab_script.stat().st_mtime - sbml.stat().st_mtime
     if drift > 0:
         return False, (
             f"{sbml.name} is {drift:.0f}s older than {matlab_script.name}.\n"
-            f"  Re-export in pdac-build: make export-sbml"
+            f"  Re-export: cd qspio-pdac && make export-sbml"
         )
     return True, "SBML is up to date with MATLAB model script"
 
@@ -62,15 +63,40 @@ def check_codegen_newer_than_sbml(
     if not ode_cpp.exists():
         return False, (
             f"Generated ODE missing: {ode_cpp}\n"
-            f"  Regenerate in pdac-build: make refresh-cpp"
+            f"  Regenerate: cd qspio-pdac && make refresh-cpp"
         )
     drift = sbml.stat().st_mtime - ode_cpp.stat().st_mtime
     if drift > 0:
         return False, (
             f"{ode_cpp.name} is {drift:.0f}s older than the SBML.\n"
-            f"  Regenerate in pdac-build: make refresh-cpp"
+            f"  Regenerate: cd qspio-pdac && make refresh-cpp"
         )
     return True, "Generated ODE is up to date with SBML"
+
+
+def check_ode_files_match(
+    abm_ode_dir: Path = DEFAULT_ODE_CPP.parent,
+    qspio_ode_dir: Path = DEFAULT_ODE_CPP_SRC.parent,
+) -> Result:
+    """PDAC/qsp/ode/ must be identical to qspio-pdac/cpp/qsp/ode/."""
+    if not qspio_ode_dir.exists():
+        return True, f"skip: qspio-pdac ODE dir not found ({qspio_ode_dir})"
+    mismatched = []
+    for name in ODE_FILES:
+        abm_f = abm_ode_dir / name
+        src_f = qspio_ode_dir / name
+        if not src_f.exists():
+            continue
+        if not abm_f.exists():
+            mismatched.append(f"{name} (missing in PDAC/)")
+        elif not filecmp.cmp(abm_f, src_f, shallow=False):
+            mismatched.append(name)
+    if mismatched:
+        return False, (
+            f"ODE files out of sync: {', '.join(mismatched)}\n"
+            f"  Fix: make sync-qsp"
+        )
+    return True, f"all {len(ODE_FILES)} ODE files match qspio-pdac"
 
 
 def check_binary_newer_than_codegen(
@@ -107,7 +133,7 @@ def check_param_xml_contains_snippet(
         return False, (
             f"{len(missing)} name(s) in {snippet.name} missing from {param_xml.name}:\n"
             f"  {missing[:20]}\n"
-            f"  Refresh in pdac-build: make refresh-cpp"
+            f"  Fix: make sync-qsp"
         )
     return True, f"{param_xml.name} contains all snippet names"
 
@@ -116,13 +142,7 @@ def check_priors_csv_names_in_param_xml(
     priors_csv: Path = DEFAULT_PRIORS_CSV,
     param_xml: Path = DEFAULT_PARAM_XML,
 ) -> Result:
-    """Every parameter name in pdac_priors.csv must appear in param_all.xml.
-
-    The C++ worker sets each sampled parameter via the XML template; a prior
-    row whose name is absent from the template aborts the sim with
-    ParamNotFoundError before the ODE solver runs. Catches orphan prior rows
-    for modules that were removed from the SimBiology model.
-    """
+    """Every parameter name in pdac_priors.csv must appear in param_all.xml."""
     if not priors_csv.exists():
         return True, f"skip: priors CSV not found ({priors_csv})"
     if not param_xml.exists():
@@ -137,9 +157,7 @@ def check_priors_csv_names_in_param_xml(
             f"{len(missing)} prior(s) in {priors_csv.name} missing from "
             f"{param_xml.name}:\n"
             f"  {missing[:20]}{'...' if len(missing) > 20 else ''}\n"
-            f"  Fix: drop orphan rows from pdac_priors.csv OR in pdac-build "
-            f"run `make refresh-cpp` to regenerate param_all.xml from the "
-            f"current SBML."
+            f"  Fix: ensure qspio-pdac codegen is current, then make sync-qsp"
         )
     return True, f"all {len(prior_names)} prior names present in {param_xml.name}"
 
@@ -147,6 +165,7 @@ def check_priors_csv_names_in_param_xml(
 ALL_CHECKS = [
     check_sbml_newer_than_matlab,
     check_codegen_newer_than_sbml,
+    check_ode_files_match,
     check_binary_newer_than_codegen,
     check_param_xml_contains_snippet,
     check_priors_csv_names_in_param_xml,

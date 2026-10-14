@@ -1,0 +1,199 @@
+study_interpretation: |
+  Shen et al. (2017) quantified PD-1 expression on CD8+ T lymphocytes in resected
+  human PDAC (n=94) by double immunofluorescence staining. The mean PD-1+ fraction
+  of CD8+ TILs was 30.62 ± 16.80% in tumor tissues vs 9.35 ± 6.60% in adjacent
+  non-tumor tissues. This provides a direct measurement of the exhausted CD8 fraction
+  in the PDAC TME, complementing the Shibuya 2014 flow cytometry data (deriv001)
+  with a larger cohort and a different assay methodology (IF vs flow cytometry).
+  The lower mean (31% vs 70%) likely reflects differences in PD-1 detection
+  sensitivity between IF on FFPE sections and flow cytometry on fresh tissue.
+key_assumptions:
+- |
+  PD-1 expression on CD8+ TILs measured by double immunofluorescence is used as a
+  proxy for the exhausted/dysfunctional CD8 subset (V_T.CD8_exh). PD-1 alone is an
+  imperfect marker; some PD-1+ cells retain effector function.
+- |
+  The mean ± SD (30.62 ± 16.80%) is assumed to represent a normal distribution on
+  the fraction, truncated to [0, 1]. Given the moderate CV (~0.55), this is a
+  reasonable approximation.
+- |
+  All 94 patients had resectable PDAC and underwent surgical resection. The study
+  does not report neoadjuvant therapy status, so these are treated as representative
+  of the PDAC TME at diagnosis.
+key_study_limitations:
+- |
+  Single-center Chinese cohort (n=94); ethnic and treatment practice differences may
+  limit generalizability.
+- |
+  Double immunofluorescence on FFPE sections may have lower sensitivity for PD-1
+  detection compared to flow cytometry on fresh tissue, potentially explaining the
+  lower PD-1+ fraction vs Shibuya 2014.
+- |
+  PD-1 alone does not fully define the exhausted T cell state; co-expression of
+  multiple inhibitory receptors (TIM-3, LAG-3) better delineates terminal exhaustion.
+- |
+  Large inter-patient variability (CV ~55%) reflects genuine biological heterogeneity
+  across 94 resected PDAC tumors, spanning a wide range of immune infiltration states.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        import numpy as np
+        cd8_eff = species_dict['V_T.CD8']
+        cd8_exh = species_dict['V_T.CD8_exh']
+        total_cd8 = cd8_eff + cd8_exh
+        frac_array = np.where(total_cd8 > 0.0,
+                              (cd8_exh / total_cd8),
+                              0.0)
+        return frac_array
+
+  units: dimensionless
+  species:
+  - V_T.CD8
+  - V_T.CD8_exh
+  constants: []
+  support: unit_interval
+  mapping_rationale: |
+    Shen et al. measured PD-1+ fraction of CD8+ TILs by double immunofluorescence.
+    In the QSP model, exhausted CD8 T cells are V_T.CD8_exh and functional CD8 T
+    cells are V_T.CD8. The observable maps to V_T.CD8_exh / (V_T.CD8 + V_T.CD8_exh).
+  experimental_denominator: |
+    CD8+ tumor-infiltrating T lymphocytes identified by double immunofluorescence
+    on FFPE tumor sections (n=94 resected PDAC).
+  model_denominator_species:
+  - V_T.CD8
+  - V_T.CD8_exh
+  unmodeled_denominator_components: |
+    None; experimental denominator is all CD8+ T cells in tumor, represented by
+    V_T.CD8 + V_T.CD8_exh.
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: |
+      94 patients with resectable PDAC underwent surgical resection. Neoadjuvant
+      therapy status not reported; patients treated as representative baseline.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Formalin-fixed, paraffin-embedded primary PDAC tumor tissue from surgical
+    resection specimens.
+  assay_type: |
+    Double immunofluorescence staining for CD8 and PD-1 on 4-micrometer FFPE
+    tumor sections, with digital image analysis.
+scenario:
+  description: |
+    Baseline immune state in primary PDAC tumors at surgical resection. CD8+ T cell
+    PD-1 expression measured to characterize exhaustion in the TME.
+  interventions:
+  - intervention_description: |
+      No specific intervention; observational measurement on resected tumor tissue.
+empirical_data:
+  median:
+  - 0.2856
+  ci95:
+  - - 0.0466
+    - 0.6677
+  units: dimensionless
+  sample_size: 94
+  sample_size_rationale: |
+    n=94 resected PDAC patients with double immunofluorescence analysis for PD-1
+    on CD8+ TILs, as stated in the paper methods and results.
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs:
+  - name: mean_pd1_fraction
+    value: 0.3062
+    units: dimensionless
+    description: |
+      Mean PD-1+ fraction of CD8+ tumor-infiltrating T lymphocytes measured by
+      double immunofluorescence in resected human PDAC (n=94).
+    source_ref: Shen2017_PD1_CD8
+    value_location: Results section, Table 1 / text.
+    value_snippet: |
+      the level of PD-1 expression on CD8+ cells (mean ± SD %) was
+      30.62 ± 16.80% in tumour tissues and 9.35 ± 6.60% in adjacent
+      non-tumour tissues
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: sd
+    dispersion_type_rationale: |
+      The paper reports mean ± SD explicitly in the text.
+  - name: sd_pd1_fraction
+    value: 0.168
+    units: dimensionless
+    description: |
+      Standard deviation of PD-1+ fraction of CD8+ TILs across 94 PDAC patients.
+    source_ref: Shen2017_PD1_CD8
+    value_location: Results section, text.
+    value_snippet: |
+      the level of PD-1 expression on CD8+ cells (mean ± SD %) was
+      30.62 ± 16.80% in tumour tissues
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: sd
+    dispersion_type_rationale: |
+      Explicitly reported as SD in the paper text.
+  assumptions: []
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        rng = np.random.default_rng(42)
+        mean = inputs['mean_pd1_fraction'].magnitude
+        sd = inputs['sd_pd1_fraction'].magnitude
+
+        # Beta distribution parameters from mean and SD on [0,1]
+        var = sd ** 2
+        common = mean * (1.0 - mean) / var - 1.0
+        alpha = max(mean * common, 1e-3)
+        beta = max((1.0 - mean) * common, 1e-3)
+
+        samples = rng.beta(alpha, beta, 10000) * ureg.dimensionless
+        return {
+            'median_obs': np.median(samples),
+            'ci95_lower': np.percentile(samples, 2.5),
+            'ci95_upper': np.percentile(samples, 97.5),
+        }
+primary_data_source:
+  source_tag: Shen2017_PD1_CD8
+  title: |
+    Prognostic value of programmed cell death protein 1 expression on CD8+
+    T lymphocytes in pancreatic cancer
+  first_author: Shen
+  year: 2017
+  doi: 10.1038/s41598-017-08479-9
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: Human PDAC patient specimens, directly matching the model indication and disease context.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Observational measurement of treatment-naive PDAC specimens; no experimental perturbation applied.
+    tme_compatibility: high
+    tme_compatibility_notes: Resected PDAC specimens with characteristic desmoplastic, immune-excluded TME matching model
+      assumptions.
+    validation_warnings: []
+secondary_data_sources: []
+calibration_target_id: cd8_exhausted_fraction_shen2017
+cancer_type: PDAC
+tags:
+- manual
+- from-qualitative-bound

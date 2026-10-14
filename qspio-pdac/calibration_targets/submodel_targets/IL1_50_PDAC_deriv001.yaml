@@ -1,0 +1,521 @@
+target_id: IL1_50
+inputs:
+- name: Tj_IL1_dose_pg_per_ml
+  value: 10.0
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Tjomsland2011
+  source_location: Methods, In Vitro Coculture of PDAC Cells and Fibroblasts / Neutralization
+    of IL-1
+  value_snippet: singly cultured CAFs were incubated for 5 days in R10 medium supplemented
+    with 10 pg/ml human recombinant IL-1α
+- name: IL6_control_qpcr_Tj_mean
+  value: 0.2585
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Tjomsland2011
+  source_location: Figure 3E, IL-6 control bar
+  figure_excerpt:
+    figure_id: Figure 3E
+    value: ~0.26
+    description: CAF039 IL-6 mRNA level in untreated control (normalized units)
+    context: qPCR fold-change of COX-2, IL-6, CXCL8 in CAF039; control vs 10 pg/mL
+      IL-1α
+- name: IL6_treated_qpcr_Tj_mean
+  value: 4.4898
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Tjomsland2011
+  source_location: Figure 3E, IL-6 IL-1α-treated bar
+  figure_excerpt:
+    figure_id: Figure 3E
+    value: ~4.5
+    description: CAF039 IL-6 mRNA level after 10 pg/mL IL-1α
+    context: qPCR fold-change of COX-2, IL-6, CXCL8 in CAF039; control vs 10 pg/mL
+      IL-1α
+- name: CXCL8_control_qpcr_Tj_mean
+  value: 0.3892
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Tjomsland2011
+  source_location: Figure 3E, CXCL8 control bar
+  figure_excerpt:
+    figure_id: Figure 3E
+    value: ~0.39
+    description: CAF039 CXCL8 mRNA level in untreated control
+    context: qPCR fold-change of COX-2, IL-6, CXCL8 in CAF039; control vs 10 pg/mL
+      IL-1α
+- name: CXCL8_treated_qpcr_Tj_mean
+  value: 8.3832
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Tjomsland2011
+  source_location: Figure 3E, CXCL8 IL-1α-treated bar
+  figure_excerpt:
+    figure_id: Figure 3E
+    value: ~8.4
+    description: CAF039 CXCL8 mRNA level after 10 pg/mL IL-1α
+    context: qPCR fold-change of COX-2, IL-6, CXCL8 in CAF039; control vs 10 pg/mL
+      IL-1α
+- name: IL6_fold_Tj
+  value: 17.37
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Fold induction of IL-6 mRNA in CAF039 after 10 pg/mL IL-1α, computed
+    as treated/control from Figure 3E.
+  source_ref: Tjomsland2011
+  source_location: Figure 3E
+  source_inputs:
+  - IL6_treated_qpcr_Tj_mean
+  - IL6_control_qpcr_Tj_mean
+  formula: IL6_treated_qpcr_Tj_mean / IL6_control_qpcr_Tj_mean
+- name: CXCL8_fold_Tj
+  value: 21.54
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Fold induction of CXCL8 mRNA in CAF039 after 10 pg/mL IL-1α, computed
+    as treated/control from Figure 3E.
+  source_ref: Tjomsland2011
+  source_location: Figure 3E
+  source_inputs:
+  - CXCL8_treated_qpcr_Tj_mean
+  - CXCL8_control_qpcr_Tj_mean
+  formula: CXCL8_treated_qpcr_Tj_mean / CXCL8_control_qpcr_Tj_mean
+- name: iCAF_proxy_fold_mean_Tj
+  value: 19.45
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Average of IL-6 and CXCL8 fold-induction used as a composite proxy for
+    iCAF-like inflammatory activation in human CAFs at 10 pg/mL IL-1α.
+  source_ref: Tjomsland2011
+  source_location: Figure 3E
+  source_inputs:
+  - IL6_fold_Tj
+  - CXCL8_fold_Tj
+  formula: (IL6_fold_Tj + CXCL8_fold_Tj) / 2.0
+- name: iCAF_proxy_fold_sd_Tj
+  value: 2.95
+  units: dimensionless
+  input_type: derived_arithmetic
+  rationale: Standard deviation of IL-6 and CXCL8 fold-induction values, used as an
+    empirical SD for the composite iCAF activation proxy.
+  source_ref: Tjomsland2011
+  source_location: Figure 3E
+  source_inputs:
+  - IL6_fold_Tj
+  - CXCL8_fold_Tj
+  - iCAF_proxy_fold_mean_Tj
+  formula: ((IL6_fold_Tj - iCAF_proxy_fold_mean_Tj)**2 + (CXCL8_fold_Tj - iCAF_proxy_fold_mean_Tj)**2)**0.5
+- name: n_effective_Tj
+  value: 2.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Number of independent inflammatory markers (IL-6 and CXCL8) combined
+    into the iCAF activation proxy for the Tjomsland2011 experiment.
+  source_ref: Tjomsland2011
+  source_location: Figure 3E
+- name: IL1_dose_Tj_ng_per_ml
+  value: 0.01
+  units: nanogram / milliliter
+  input_type: derived_arithmetic
+  rationale: Conversion of 10 pg/mL IL-1α to ng/mL (divide by 1000).
+  source_ref: Tjomsland2011
+  source_location: Methods, In Vitro Coculture of PDAC Cells and Fibroblasts / Neutralization
+    of IL-1
+  source_inputs:
+  - Tj_IL1_dose_pg_per_ml
+  formula: Tj_IL1_dose_pg_per_ml / 1000.0
+- name: IL1_conc_Tj_nM
+  value: 0.000588
+  units: nanomolar
+  input_type: derived_arithmetic
+  rationale: 'Conversion of 0.01 ng/mL IL-1α to nanomolar assuming 17 kDa molecular
+    weight: nM = (ng/mL)*1000 / 17000.'
+  source_ref: Tjomsland2011
+  source_location: Methods, In Vitro Coculture of PDAC Cells and Fibroblasts / Neutralization
+    of IL-1
+  source_inputs:
+  - IL1_dose_Tj_ng_per_ml
+  formula: IL1_dose_Tj_ng_per_ml * 1000.0 / 17000.0
+- name: IL1_dose_Biffi_0p1_ng_per_ml
+  value: 0.1
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Methods, Drug and antibody treatments
+  value_snippet: Cells were treated with 0.1 or 1 ng/mL mouse IL-1α
+- name: IL1_dose_Biffi_1_ng_per_ml
+  value: 1.0
+  units: nanogram / milliliter
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Methods, Drug and antibody treatments
+  value_snippet: Cells were treated with 0.1 or 1 ng/mL mouse IL-1α
+- name: IL1_conc_Biffi_0p1_nM
+  value: 0.00588
+  units: nanomolar
+  input_type: derived_arithmetic
+  rationale: 'Conversion of 0.1 ng/mL IL-1α to nanomolar assuming 17 kDa molecular
+    weight: nM = (ng/mL)*1000 / 17000.'
+  source_ref: Biffi2019
+  source_location: Methods, Drug and antibody treatments
+  source_inputs:
+  - IL1_dose_Biffi_0p1_ng_per_ml
+  formula: IL1_dose_Biffi_0p1_ng_per_ml * 1000.0 / 17000.0
+- name: IL1_conc_Biffi_1_nM
+  value: 0.05882
+  units: nanomolar
+  input_type: derived_arithmetic
+  rationale: 'Conversion of 1 ng/mL IL-1α to nanomolar assuming 17 kDa molecular weight:
+    nM = (ng/mL)*1000 / 17000.'
+  source_ref: Biffi2019
+  source_location: Methods, Drug and antibody treatments
+  source_inputs:
+  - IL1_dose_Biffi_1_ng_per_ml
+  formula: IL1_dose_Biffi_1_ng_per_ml * 1000.0 / 17000.0
+- name: IL6_fold_Biffi_0p1_mean
+  value: 15.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S2A, 0.1 ng/mL IL-1α condition
+  figure_excerpt:
+    figure_id: Supplementary Figure S2A
+    value: ~15
+    description: Approximate IL-6 mRNA fold-induction in mouse PSCs at 0.1 ng/mL IL-1α
+      relative to untreated control
+    context: Mouse PSCs embedded in Matrigel, treated with graded IL-1α doses for
+      4 days; qPCR for iCAF markers.
+- name: IL6_fold_Biffi_0p1_sd
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S2A, 0.1 ng/mL IL-1α condition
+  figure_excerpt:
+    figure_id: Supplementary Figure S2A
+    value: ~3
+    description: Approximate spread (error bar height) of IL-6 mRNA fold-induction
+      at 0.1 ng/mL IL-1α
+    context: Mouse PSCs embedded in Matrigel, treated with graded IL-1α doses for
+      4 days; qPCR for iCAF markers.
+- name: IL6_fold_Biffi_1_mean
+  value: 20.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S2A, 1 ng/mL IL-1α condition
+  figure_excerpt:
+    figure_id: Supplementary Figure S2A
+    value: ~20
+    description: Approximate IL-6 mRNA fold-induction in mouse PSCs at 1 ng/mL IL-1α
+      relative to untreated control
+    context: Mouse PSCs embedded in Matrigel, treated with graded IL-1α doses for
+      4 days; qPCR for iCAF markers.
+- name: IL6_fold_Biffi_1_sd
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S2A, 1 ng/mL IL-1α condition
+  figure_excerpt:
+    figure_id: Supplementary Figure S2A
+    value: ~3
+    description: Approximate spread (error bar height) of IL-6 mRNA fold-induction
+      at 1 ng/mL IL-1α
+    context: Mouse PSCs embedded in Matrigel, treated with graded IL-1α doses for
+      4 days; qPCR for iCAF markers.
+- name: n_effective_Biffi
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Effective sample size for Biffi2019 IL-6 fold-change measurements, treating
+    the averaged IL-6 response at each IL-1α dose as a single summary observation.
+  source_ref: Biffi2019
+  source_location: Supplementary Figure S2A
+calibration:
+  parameters:
+  - name: IL1_50
+    units: nanomolar
+    nuisance: false
+  - name: n_IL1_iCAF
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.5
+  - name: max_iCAF_induction
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 3.0
+      sigma: 0.7
+  forward_model:
+    data_rationale: Both Tjomsland2011 (human CAFs) and Biffi2019 (mouse PSCs) report
+      steady-state iCAF-like inflammatory marker induction after several days of culture
+      at fixed IL-1α doses, without time courses. Treating marker fold-change as proportional
+      to the fraction of CAFs in an iCAF-like state supports using a static Hill-type
+      dose–response relating IL-1α concentration to normalized fold-change.
+    submodel_rationale: In the full QSPIO-PDAC model, IL1_50 controls the potency
+      of IL-1α-driven iCAF differentiation via a Hill function of IL-1 concentration.
+      This algebraic submodel explicitly reproduces that Hill dependency, using max_iCAF_induction
+      as the asymptotic fold-change and n_IL1_iCAF as the Hill coefficient, so that
+      the inferred IL1_50 is directly reusable in the full model without rescaling.
+    type: algebraic
+    formula: 'Fold-change in iCAF proxy marker expression as a Hill function of IL-1α
+      concentration: R(c) = 1 + (max_iCAF_induction - 1) * ( (c/IL1_50)^n_IL1_iCAF
+      / (1 + (c/IL1_50)^n_IL1_iCAF ) ).'
+    code: "def compute(params, inputs):\n    import numpy as np\n    IL1_50 = params['IL1_50']\
+      \  # nanomolar\n    n_hill = params['n_IL1_iCAF']\n    max_fc = params['max_iCAF_induction']\n\
+      \n    def hill_response(c_nM):\n        # c_nM and IL1_50 are in the same units\
+      \ (nanomolar)\n        x = (c_nM / IL1_50) ** n_hill\n        h = x / (1.0 +\
+      \ x)\n        return 1.0 + (max_fc - 1.0) * h\n\n    return {\n        'Tjomsland_10pg':\
+      \ hill_response(inputs['IL1_conc_Tj_nM']),\n        'Biffi_0p1ng': hill_response(inputs['IL1_conc_Biffi_0p1_nM']),\n\
+      \        'Biffi_1ng': hill_response(inputs['IL1_conc_Biffi_1_nM']),\n    }"
+  error_model:
+  - name: Tjomsland_10pg_iCAFproxy
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['Tjomsland_10pg']"
+    units: dimensionless
+    uses_inputs:
+    - iCAF_proxy_fold_mean_Tj
+    - iCAF_proxy_fold_sd_Tj
+    - n_effective_Tj
+    sample_size_input: n_effective_Tj
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_fc = inputs['iCAF_proxy_fold_mean_Tj']\n \
+      \   sd_fc = inputs['iCAF_proxy_fold_sd_Tj']\n    # Lognormal bootstrap for positive\
+      \ fold-changes, treating IL-6 and CXCL8 as two proxy replicates\n    cv = sd_fc\
+      \ / mean_fc\n    sigma_ln = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln = np.log(mean_fc)\
+      \ - (sigma_ln**2) / 2.0\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size),\
+      \ n_bootstrap)"
+    n_bootstrap: 10000
+  - name: Biffi_0p1ng_IL6
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['Biffi_0p1ng']"
+    units: dimensionless
+    uses_inputs:
+    - IL6_fold_Biffi_0p1_mean
+    - IL6_fold_Biffi_0p1_sd
+    - n_effective_Biffi
+    sample_size_input: n_effective_Biffi
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_fc = inputs['IL6_fold_Biffi_0p1_mean']\n \
+      \   sd_fc = inputs['IL6_fold_Biffi_0p1_sd']\n    cv = sd_fc / mean_fc\n    sigma_ln\
+      \ = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln = np.log(mean_fc) - (sigma_ln**2)\
+      \ / 2.0\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: Biffi_1ng_IL6
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['Biffi_1ng']"
+    units: dimensionless
+    uses_inputs:
+    - IL6_fold_Biffi_1_mean
+    - IL6_fold_Biffi_1_sd
+    - n_effective_Biffi
+    sample_size_input: n_effective_Biffi
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_fc = inputs['IL6_fold_Biffi_1_mean']\n   \
+      \ sd_fc = inputs['IL6_fold_Biffi_1_sd']\n    cv = sd_fc / mean_fc\n    sigma_ln\
+      \ = np.sqrt(np.log(1.0 + cv**2))\n    mu_ln = np.log(mean_fc) - (sigma_ln**2)\
+      \ / 2.0\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  identifiability_notes: 'The algebraic Hill model shares the same functional form
+    as the full QSP model’s IL-1-driven iCAF differentiation term, so IL1_50 is structurally
+    identifiable given a dense dose–response. However, available PDAC data provide
+    only three effective concentrations (0.000588 nM in human CAFs, 0.00588 and 0.0588
+    nM in mouse PSCs) and readouts are proxy markers (IL-6 and CXCL8 mRNA fold-changes).
+    As a result, IL1_50 is only weakly identified and mainly upper-bounded (it must
+    lie well below ~0.006–0.06 nM to reproduce strong responses at these doses). The
+    maximal fold-change max_iCAF_induction and Hill coefficient n_IL1_iCAF are also
+    correlated: higher n allows a larger IL1_50 at fixed low-dose response, while
+    higher max_iCAF_induction can compensate for smaller n. Including both human (Tjomsland2011)
+    and mouse (Biffi2019) data helps decouple these to some extent by adding two higher-dose
+    points that appear close to saturation, but the posterior will still show substantial
+    uncertainty and parameter correlations. Additional IL-1α titration data in human
+    CAFs (especially below 10 pg/mL) or direct quantification of the iCAF fraction
+    versus IL-1α concentration would be required to tighten IL1_50 and n_IL1_iCAF
+    estimates.'
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: cancer-associated fibroblasts
+    phenotype: myofibroblastic / inflammatory CAFs derived from human PDAC tissue
+    isolation_method: CD326-negative fraction from collagenase-digested PDAC surgical
+      specimens
+    source: Primary CAF lines from PDAC patients, e.g., CAF039 (Tjomsland2011).
+  culture_conditions:
+    substrate: 2D tissue-culture plastic (Tjomsland2011 CAFs) or Matrigel-embedded
+      3D culture (Biffi2019 PSCs)
+    serum_concentration: 10.0
+    serum_concentration_units: percent FBS
+    oxygen_level: normoxic
+    culture_type: mixed_2d_3d
+    medium: RPMI-1640 or DMEM with 10% fetal calf serum, antibiotics
+    supplements: Recombinant IL-1α at specified doses; no TGFbeta added in the key
+      conditions used here
+    duration: 5 days (Tjomsland2011) or 4 days (Biffi2019) of IL-1α treatment before
+      qPCR readout
+    notes: Tjomsland2011 used human CAFs in 2D culture; Biffi2019 used primarily mouse
+      PSCs embedded in Matrigel co-cultured with tumor organoids or treated with exogenous
+      IL-1α. Both systems report steady-state inflammatory marker induction after
+      several days of stimulation.
+  indication: pancreatic ductal adenocarcinoma (PDAC)
+study_interpretation: Tjomsland2011 demonstrated that very low concentrations of IL-1α
+  (10 pg/mL ≈ 0.0006 nM) strongly induce inflammatory genes (IL-6, CXCL8, COX-2) in
+  human PDAC CAFs, while higher IL-1α doses produced by tumor cells further maintain
+  a chronic inflammatory milieu. Biffi2019 showed that in mouse PSCs/CAFs, 0.1–1 ng/mL
+  IL-1α (≈0.006–0.06 nM) robustly induces iCAF markers (Il6, Lif, Cxcl1, Csf3) and
+  suppresses myofibroblastic markers, consistent with near-maximal iCAF differentiation
+  in this dose range. Using IL-6 and CXCL8 (human) and IL-6 (mouse) fold-changes as
+  proxies for the iCAF fraction, these studies jointly indicate that the EC50 IL1_50
+  for IL-1α-driven iCAF formation must lie well below ~0.01 nM, since strong activation
+  is already evident at 0.0006–0.006 nM. The Hill-type submodel encodes this relationship
+  directly, allowing Bayesian inference to refine IL1_50, the Hill coefficient n_IL1_iCAF,
+  and the maximal iCAF induction consistent with both human and mouse data.
+key_assumptions:
+- Inflammatory gene expression (especially IL-6 and CXCL8) is proportional to the
+  fraction of CAFs in an iCAF-like state, so fold-change in these markers can be treated
+  as a proxy for iCAF differentiation.
+- Tjomsland2011 IL-6 and CXCL8 responses at 10 pg/mL IL-1α represent near-saturating
+  iCAF activation in human CAFs, based on their large (>15–20-fold) induction and
+  on Biffi2019 data showing little additional gain between 0.1 and 1 ng/mL in mouse
+  PSCs.
+- Mouse PSC responses to IL-1α in Biffi2019 are mechanistically similar in potency
+  to human PDAC CAF responses and can be used, with added translation uncertainty,
+  to help shape the Hill curve at higher IL-1α doses.
+- The molecular weight of IL-1α is approximated as 17 kDa for converting ng/mL to
+  nanomolar; small errors in this value have negligible impact on EC50 on a log scale.
+- Marker-level variability (between IL-6 and CXCL8, and across replicates) can be
+  approximated by a lognormal distribution with SD inferred from the spread between
+  markers (Tjomsland2011) or from approximate error-bar heights (Biffi2019), recognising
+  that this likely underestimates true biological heterogeneity.
+- Culture conditions (2D vs 3D, presence of tumor organoids) mainly affect the maximal
+  attainable iCAF fraction and background activation, not the intrinsic IL-1α potency
+  captured by IL1_50, which is assumed to be relatively robust across these systems.
+key_study_limitations:
+- Neither Tjomsland2011 nor Biffi2019 reports a full IL-1α concentration–response
+  curve for iCAF formation; only one very low dose in human CAFs (10 pg/mL) and two
+  higher doses in mouse PSCs (0.1 and 1 ng/mL) are available, which weakly constrain
+  IL1_50 and leave strong correlations with the Hill exponent and maximal response.
+- The primary readouts are inflammatory mRNA levels (IL-6, CXCL8, etc.), not direct
+  measurements of the fraction of CAFs in an iCAF state; using these as proxies assumes
+  proportionality between marker expression and iCAF abundance, which may not hold
+  exactly, especially at high doses where per-cell expression could saturate before
+  differentiation does.
+- Mouse PSCs in Biffi2019 differ from human PDAC CAFs in species and differentiation
+  state, and they are embedded in Matrigel and often co-cultured with tumor organoids;
+  these differences introduce translation uncertainty for IL1_50 that is not fully
+  captured by the limited data.
+- Approximate fold-change values from Biffi2019 Supplementary Figure S2A were estimated
+  from digitized bar charts and may deviate modestly from the true means and SDs;
+  this affects the inferred shape of the high-dose portion of the Hill curve but is
+  unlikely to change the conclusion that IL1_50 lies well below 0.01 nM.
+- Because only steady-state endpoints are available and potential autocrine loops
+  (e.g., IL-1-induced LIF, IL-6) are not explicitly modelled here, the submodel may
+  effectively capture an apparent IL-1α potency that integrates these downstream amplifications
+  rather than the pure IL-1R1 binding EC50.
+- The TME context in vitro (absence of immune cells, altered ECM, supraphysiologic
+  serum) differs substantially from in vivo PDAC, so IL1_50 inferred here may still
+  require adjustment when embedded in the full QSP model, particularly if in vivo
+  IL-1α levels are spatially heterogeneous.
+primary_data_source:
+  doi: 10.1593/neo.11332
+  title: Interleukin 1α Sustains the Expression of Inflammatory Factors in Human Pancreatic
+    Cancer Microenvironment by Targeting Cancer-Associated Fibroblasts
+  authors:
+  - Tjomsland
+  - Spangeus
+  - Valila
+  - Sandstrom
+  - Borch
+  - Druid
+  - Falkmer
+  - Falkmer
+  - Messmer
+  - Larsson
+  year: 2011
+  source_tag: Tjomsland2011
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The study uses primary human pancreatic ductal
+      adenocarcinoma (PDAC) tissues and derived cancer-associated fibroblasts (CAFs)
+      to examine IL-1α-driven stromal inflammation, directly matching the PDAC indication
+      in the QSPIO-PDAC model.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: Exogenous recombinant IL-1α at 10 pg/mL is applied to
+      human PDAC CAFs to mimic tumor-derived IL-1α and probe its ability to induce
+      inflammatory CAF activation. While this is a supraphysiologic but still low
+      concentration relative to typical in vitro cytokine studies, it is used here
+      to estimate the potency range of IL-1α for driving CAF activation rather than
+      to represent exact in vivo concentrations.
+    tme_compatibility: moderate
+    tme_compatibility_notes: Primary CAFs are cultured in 2D in serum-containing medium
+      without immune cells, vasculature, or the full desmoplastic matrix, so the microenvironment
+      is less complex and less mechanically constrained than in PDAC in vivo. However,
+      the CAFs are derived from PDAC stroma and retain key inflammatory and myofibroblastic
+      features, making them a reasonable but simplified model of stromal IL-1α responses.
+    measurement_directness: proxy_observable
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_primary
+secondary_data_sources:
+- doi: 10.1158/2159-8290.CD-18-0710
+  title: IL-1-induced JAK/STAT signaling is antagonized by TGF-β to shape CAF heterogeneity
+    in pancreatic ductal adenocarcinoma.
+  authors:
+  - Biffi
+  - Oni
+  - Spielman
+  - Hao
+  - Elyada
+  - Park
+  - Preall
+  - Tuveson
+  year: 2019
+  source_tag: Biffi2019
+  contribution: Provides mouse PSC/CAF data showing robust induction of iCAF markers
+    at 0.1–1 ng/mL IL-1α, supporting the assumption that these doses are near-saturating
+    for iCAF differentiation and helping to shape the high-dose portion of the IL-1α
+    Hill response.
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: The study focuses on CAF heterogeneity in pancreatic
+      ductal adenocarcinoma, using KPC (Kras;Trp53;Pdx1-Cre) mouse models and human
+      PDAC specimens, so the disease context matches PDAC even though much of the
+      quantitative in vitro data come from mouse PSCs.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: pharmacological
+    perturbation_relevance: Recombinant mouse IL-1α is added to primary mouse PSCs
+      at 0.1 and 1 ng/mL to drive iCAF differentiation in vitro, providing dose–response
+      information on IL-1α potency. These are experimental perturbations rather than
+      physiological levels, but the relative responses across doses inform the shape
+      and saturation of the IL-1α Hill curve.
+    tme_compatibility: moderate
+    tme_compatibility_notes: Mouse PSCs are cultured in Matrigel and often co-cultured
+      with KPC tumor organoids, providing a desmoplastic, cytokine-rich environment
+      that resembles aspects of PDAC stroma but lacks immune cells and full vascular
+      architecture. Species differences between mouse PSCs and human CAFs introduce
+      additional uncertainty in translating IL-1α potency.
+    measurement_directness: proxy_observable
+    temporal_resolution: endpoint_pair
+    experimental_system: in_vitro_primary
+tags:
+- CAF
+- IL1_alpha
+- iCAF_differentiation
+- dose_response
+- EC50
+- PDAC
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

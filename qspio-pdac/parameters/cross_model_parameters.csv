@@ -1,0 +1,69 @@
+name,TNBC,CRC,UM,NSCLC,HCC,PDAC,unit,description,alias
+V_LN,1112.647398,1112.647398,1112.647398,1374.4467859455344,50000,"916.2979-1357.58 6, 21, 22",millimeter^3,"Lymph node (LN) compartment volume Volume of lumped tumor-draining lymph nodes calculated based on number of LNs and average LN diameter (Schmidt 2007, PMID: 17724531)",
+vol_cell,2572.4407845144424,2572.4407845144424,2572.4407845144424,2527.3112824468485,2325,2642.08,micrometer^3/cell,Average volume of cancer cell Volume of a cancer cell calculated based on cancer cell diameter,
+Ve_T,0.37,0.37,0.37,0.75,1,0.017-0.529,dimensionless,"Void fraction of the tumor (Zhang 2010, PMID: 20713014)",
+k_C1_growth,0.0075 (Gompertzian),0.005 (Logistic),0.002 (Logistic),0.013,0.012,0.0066 3,1/day,"Cancer cell growth rate (Ryu 2014, PMID: 24895040; Desai 2006, PMID: 16489089)",
+C_max,27000 (Gompertzian),NA,NA,150000000000,250000000000,1e10 13,cell,Cancer cell capacity estimated,
+initial_tumour_diameter,2.5,2,1.1,2.64,5,1.43-3.03 9,centimeter,Pre-treatment tumor diameter,
+n_T0_clones,63,63,17,100,100,63 9,dimensionless,Number of T cell clones (estimated),n_CD8_clones
+q_T0_T_in,5.8e-05,5.8e-05,0.000145,0.000145,0.00069,2.5-6.5% 14,1/(centimeter^3*minute),"rate of T0 transport into the tumor compartment calculated based on T cell transmigration rate (Zhu 1996, PMID: 8706023) and T cell adhesion density (Zhu 1996, PMID: 8706023)",q_CD8_T_in
+N_IL2_CD8,10 - 12,11,11,9 - 13,8,10 - 12,dimensionless,"maximum number of activated T cell generations due to IL2 (Marchingo 2014, PMID: 25430770)",
+N_IL2_CD4,7 - 10,8,8,5 - 11,8,7 - 10,dimensionless,"maximum number of activated T cell generations due to IL2 (Marchingo 2014, PMID: 25430770)",
+n_T1_clones,63,63,17,92,100,21-208 16,dimensionless,"Number of T cell clones (Morisaki 2021 PMID: 34193879; Narang 2019, PMID: 30832597)",n_CD4_clones
+q_T1_T_in,5.8e-05,5.8e-05,0.000145,0.000145,0.0005973,0.0001305,1/(centimeter^3*minute),"rate of T1 transport into the tumor compartment calculated based on T cell transmigration rate (Zhu 1996, PMID: 8706023) and T cell adhesion density (Zhu 1996, PMID: 8706023)",q_Treg_T_in
+k_IFNg_Tsec,4e-13,NA,NA,4e-13,4e-13,4e-13,nanomole/cell/day,"rate of IFNg secretion from CD8 T cells (Autenshlyus 2021, PMID: 34059727; Borj 2017, doi:10.15171/ijbms.2017.05)",
+k_P0_d1,1e-07,1e-07,1e-07,1e-07,,1e-07,molarity,"Antigen-MHC kd (Stone 2015, PMID: 25618219)",
+A_cell,907.9202768874502,907.9202768874502,907.9202768874502,897.2702777917808,500,572.555,micrometer^2,Surface area of the Cancer cell calculated based on the average cancer cell diameter (?),
+k_P1_d1,27,10,10,40,40,100 8,nanomolarity,"Antigen-MHC kd (Stone 2015, PMID: 25618219)",
+q_P_aPD1,fitted,NA,NA,,0.000000173655,,liter/second,"Capillary filtration rate of aPD1 between central and peripheral compartment(Ahamadi 2016, PMID: 27863186)",
+q_T_aPD1,"assumed to be constant 8.52e-5, but should vary based on volume fraction of vascular space of the tumor",NA,NA,,8.52e-06,,milliliter/second,"Capillary filtration rate of aPD1 between central and tumor compartment(Wang 2019, PMID: 31218069)",
+gamma_T_aPD1,0.522,NA,NA,0.2,0.718,0.446-0.918,dimensionless,"Volume fraction of interstitial space available to aPD1 in tumor compartment(Coughlin 2010, PMID: 20125040; Finley 2015, PMID: 26783500)",
+q_P_TCE,NA,fitted,fitted,,,,liter/second,"Volumetric flow rate of T cell engager between central and peripheral compartment(Weddell 2023, doi.org/10.1002/psp4.12928)",
+q_T_TCE,NA,8.52e-06,0.001,,,,1/second,"Volumetric flow rate of T cell engager between central and tumor compartment(Weddell 2023, doi.org/10.1002/psp4.12928)",
+gamma_T_TCE,NA,0.522,0.522,,,,dimensionless,"Volume fraction of interstitial space available to T cell enagager in tumor compartment(Coughlin 2010, PMID: 20125040; Finley 2015, PMID: 26783500)",
+k_out_PDL1,50000,50000,50000,50000,50000,50000,molecule/day,"Expression rate of PDL1 on tumor cells (Mimura 2018, PMID: 29034543)",
+k_in_PDL1,1,1,1,1,1,1,1/day,"Degradation rate of PDL1 on tumor cells (Hsu 2018, PMID: 30442814)",
+T_PD1_total,1.2e4 - 6.2e4,62000,62000,1.2e4 - 6.2e4,1.2e4 - 6.2e4,0-400 19,molecule,"concentration of PD1 on T cells (Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 22837483; Gatalica 2014, PMID: 25392179)",
+T_CD28_total,184000,184000,184000,184000,184000,184000,molecule,"concentration of CD28 on T cells (Jansson 2005, PMID: 16034096)",
+T_CTLA4_syn,8000,8000,8000,8000,8000,8000,molecule,"concentration of CTLA4 on T cells (Jansson 2005, PMID: 16034096)",
+T_PDL1_total,79980,186000,186000,79980,79980,79980,molecule,"concentration of PDL1 on T cells (Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 22837483; Gatalica 2014, PMID: 25392179)",
+C1_PDL1_base,5e4 - 2.7e5,180000,180000,5e4 - 2.7e5,5e4 - 2.7e5,5e4 - 2.7e5,molecule,"baseline number of PDL1 molecules per C1 cell (Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 22837483; Shin 2017, PMID: 27903500; Gatalica 2014, PMID: 25392179)",PDL1_C1_baseline
+r_PDL2C1,0.07,0.07,0.07,0.07,0.07,0.07,dimensionless,"PDL2/PDL1 molecule ratio on C1cell (Cheng 2014, PMID: 23417675)",
+C1_CD80_total,80000,NA,80000,80000,80000,80000,molecule,"number of CD80 molecules per C1 cell (Jansson 2005, PMID: 16034096)",
+C1_CD86_total,860000,NA,860000,860000,860000,860000,molecule,"number of CD86 molecules per C1 cell (Jansson 2005, PMID: 16034096)",
+APC_PDL1_base,5e4 - 2.7e5,270000,180000,5e4 - 2.7e5,,0-10e4 15,molecule,"baseline number of PDL1 molecules per APC cell (Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 22837483; Shin 2017, PMID: 27903500; Gatalica 2014, PMID: 25392179)",
+r_PDL2APC,0.07,0.07,0.07,0.07,0.025,0.07,dimensionless,"PDL2/PDL1 molecule ratio on APCcell (Cheng 2014, PMID: 23417675)",
+k_Th_Treg,0.022,0.022,0.022,0.022,0.022,0.022,1/day,"Th differentiation rate to Treg (Robertson-Tessi 2012, PMID: 22051568)",k_Th_to_Treg
+k_TGFb_Tsec,1.2e-10,1.2e-10,1.2e-10,1.2e-10,1.2e-10,1.2e-10,nanomole/cell/day,"TGF secretion rate by Treg (Liyanage 2002, PMID: 12193750)",
+TGFbase,0.016,0.02,0.016,0.016,0.016,0.016,nanomolarity,"Baseline TGFb level in breast tumor (Ivanović 2003, PMID: 12751375; Manuyakorn 2008, PMID: 19317336; Panis 2013, PMID: 23393376)",TGFb_baseline
+k_IFNg_Thsec,80.29521142666667,4E-13 (nanomole/cell/day),5E-13 (nanomole/cell/day),80.29521142666667,80.29521142666667,80.29521142666667,1/day,"IFNg secretion rate by T helper cell estimated assuming IFNg secretion is 3 times lower in CD4 than CD8 T cells (Kasahara 1983, PMID: 6403613)",
+k_CCL2_sec,1.7e-12,1.5e-12,1.7e-12,1.7e-12,1.7e-12,1.7e-12,nanomole/cell/day,"rate of CCL2 secretion (Huang 2007, PMID: 17257744; Dutta 2018, PMID: 29594759)",
+k_MDSC_mig,11000,1.2 (1/day),11000,2000,25000,21000 11,cell/(milliliter*day),"Rate of MDSC recruitment into the tumor (Diaz-Montero 2009, PMID: 18446337; Huang 2006, PMID: 17257744)",k_MDSC_rec
+k_NO_sec,4.8e-07,4.8e-07,4.8e-07,4.8e-07,4.8e-07,4.8e-07,nanomole/cell/day,"rate of NO secretion from MDSCs (Serafini 2008, PMID: 18593947)",
+k_ArgI_sec,0.014,0.014,0.014,0.014,0.014,0.014,(mU*microliter)/cell/day,"rate of ArgI secretion (Serafini 2008, PMID: 18593947)",
+k_Mac_mig,170000,NA,170000,200000,170000,175000 17,cell/(milliliter*day),"Recruitment rate of macrophage into tumor compartment (Yang 2018, PMID: 30026826)",k_Mac_rec
+k_TGFb_Msec,2e-11,NA,2e-11,2e-11,2e-11,2e-11,nanomole/cell/day,"Secretion rate of TGFb by macrophage in tumor compartment (Matsuo 2000, PMID: 10652049)",
+k_vas_Msec,1.7e-05,NA,1.7e-05,1.7e-05,1.7e-05,1.7e-05,picogram/cell/day,"Secretion rate of angiogenic factor by macrophage in tumor compartment (Wu 2010, PMID: 20692534)",
+k_IL12_sec,8.5e-12,NA,8.5e-12,8.5e-12,8.5e-12,8.5e-12,nanomole/cell/day,"Secretion rate of IL-12 by mAPC in tumor compartment (Heufler 1996, PMID: 8605935)",
+k_IL12_Msec,5e-13,NA,5e-13,5e-13,5e-13,5e-13,nanomole/cell/day,"Secretion rate of IL-12 by macrophage in tumor compartment (Clough 2007, PMID: 17597818; Sica 2000, PMID: 10623821)",
+k_IL10_sec,3e-12,NA,3e-12,3e-12,3e-12,3e-12,nanomole/cell/day,"Secretion rate of IL-10 by macrophage in tumor compartment (Autenshlyus 2021, PMID: 34059727)",
+k_M1_pol,0.045,NA,0.001,0.02,0.02,0.05 18,1/day,Rate of M2 to M1 macrophage polarization (estimated based on the M1/M2 ratio),
+C_CD47,100 - 700,NA,500,50 - 150,400,147-665 20,molecule/micrometer^2,"CD47 expression on cancer cells (Morrissey 2020, PMID: 32768386)",
+M_PD1_total,1.5e3 - 6.2e4,NA,12500,1.5e3 - 6.2e4,1.5e3 - 6.2e4,1.5e3 - 6.2e4,molecule,"PD-1 expression on macrophages estimated based on PD-1 expression on T cell (Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 22837483) and adjusted to fit its inhibitory effect on phagocytosis (...",
+k_fib_rec,,,,,1000000,,cell/(milliliter*day),Fitted to 145 +- 9.38 cells/0.785 mm^2 PMID: 19289585,k_CAF_encounter
+k_fib_const,,,,,2000000,,cell/milliliter,Fitted to 145 +- 9.38 cells/0.785 mm^2 PMID: 19289585,k_CAF_const
+k_caf_tran,,,,,0.2,,1/day,Fitted to Ma 2022 single cell data,
+k_ECM_fib_sec,,,,,1.15e-06,,nanomole/cell/day,Assume ECM remodeling halved by fibroblast (Kim et al. PMID: 22205943),
+k_ECM_CAF_sec,,,,,3.45e-06,,nanomole/cell/day,0.432 g/day/cm^3 (Kim et al. PMID: 22205943),k_col_myCAF_sec
+k_ECM_deg,,,,,0.035,,1/day,Hao et al. 10.1073/pnas.1413970111,k_col_deg
+ECM_base,,,,,200000,,nanomolarity,Hao et al. 10.1073/pnas.1413970111 3.26e-3 (g/cm^3) * (1 mole/3e5 g) * (1e3 cm^3/L) *1e9 (mole/nmole),
+ECM_max,,,,,5000000,,nanomolarity,Hao et al. 10.1073/pnas.1413970111 3e-2 (g/cm^3) * /3e5 (g/mole)/1e3 (L/cm^3) *1e9 (mole/nmole),
+ECM_level,,,,,200000,,nanomolarity,initially assigned as ECM base level,
+ECM_MW,,,,,300000,,gram/mole,(Estimated),
+ECM_density,,,,,1.2,,gram/milliliter,(Estimated),
+k_fib_death,,,,,0.0165,,1/day,"death rate of normal fibroblast in tumor compartment (Hao 2015, PMID: 25225370)",k_qpsc_death
+k_CAF_death,,,,,0.0165,,1/day,"death rate of CAFs in tumor compartment (Hao 2015, PMID: 25225370)",k_myCAF_death
+ECM_50_T_exh,,,,,1000000,,nanomolarity,half maximal concentration of ECM induced T cell exhausion(Fitted to Ma 2022 single cell data Texh fraction of all CD8+ T cell 15%),E_50_Texh
+ECM_50_T_mot,,,,,500000,,nanomolarity,half maximal concentration of ECM induced reduced Cancer cell killing due to reduced T cell motility(Estimated),
+vol_Fibcell,,,,,1600,,micrometer^3/cell,Volume of a normal fibroblast cell https://doi.org/10.1016/B0-12-370879-6,vol_qPSCcell
+vol_CAFcell,,,,,1600,,micrometer^3/cell,Volume of a CAF cell https://doi.org/10.1016/B0-12-370879-6,vol_myCAFcell

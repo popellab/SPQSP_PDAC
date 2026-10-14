@@ -1,0 +1,184 @@
+target_id: k_C1_growth_pdac_tumor_doubling_jang2015
+tags:
+- ai-generated
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
+study_interpretation: 'Jang2015 provides direct clinical measurements of tumor volume doubling time for untreated
+
+  early PDAC lesions, derived from serial prediagnostic MRI scans in 22 patients. The reported
+
+  mean VDT of 151.7 days (range 18.3-417.8 days) reflects the net growth of viable cancer
+
+  cells in vivo, encompassing intrinsic proliferation, natural cell death, and ongoing host
+
+  immune interactions.
+
+  '
+key_assumptions:
+- 'Tumor growth between prediagnostic MRIs can be approximated by logistic growth with
+
+  C_total << C_max, so that dC1/dt ~ k_C1_growth * C1 and VDT ~ ln(2)/k_C1_growth.
+
+  '
+- 'The reported lesion volume doubling times primarily reflect intrinsic tumor cell kinetics
+
+  under baseline host immunity and stroma, and can be mapped to an effective net
+
+  proliferation rate.
+
+  '
+- 'The observed minimum and maximum VDT values (18.3 and 417.8 days) approximate a 95%
+
+  interval of an underlying lognormal distribution across patients.
+
+  '
+- 'Early, small PDAC lesions in this cohort have proliferation characteristics representative
+
+  of the PDAC tumors modeled in QSPIO-PDAC.
+
+  '
+key_study_limitations:
+- 'Single-center retrospective cohort from a Korean tertiary hospital (n=22); patient
+
+  demographics and tumor biology may not fully represent global PDAC populations.
+
+  '
+- 'Wide VDT range (18.3-417.8 days) indicates substantial inter-patient heterogeneity
+
+  captured only statistically.
+
+  '
+- 'Volume measurements depend on MRI-based lesion segmentation, which may introduce
+
+  measurement errors especially for small tumors.
+
+  '
+- 'Growth is characterized only over the prediagnostic imaging interval; very early
+
+  microscopic disease and later advanced stages may exhibit different dynamics.
+
+  '
+experimental_context:
+  species: human
+  system: clinical_imaging
+  cell_types:
+  - name: pancreatic ductal adenocarcinoma cells
+    source: primary malignant epithelial cells within patient tumors
+    isolation_method: in situ; serial prediagnostic MRI imaging
+  indication: PDAC
+primary_data_source:
+  doi: 10.1016/j.ejrad.2015.05.012
+  title: 'Missed pancreatic ductal adenocarcinoma: Assessment of early imaging findings
+
+    on prediagnostic magnetic resonance imaging
+
+    '
+  authors:
+  - Kyung Mi Jang
+  - Seong Hyun Kim
+  - Young Kon Kim
+  - Kyoung Doo Song
+  - Soon Jin Lee
+  - Dongil Choi
+  year: 2015
+  source_tag: Jang2015
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: 'Histologically confirmed PDAC in human patients. Tumor volume doubling times from
+
+      prediagnostic MRI scans of untreated individuals.
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: 'Prediagnostic imaging of untreated PDAC lesions. No therapeutic intervention;
+
+      represents natural disease progression prior to diagnosis.
+
+      '
+    tme_compatibility: high
+    tme_compatibility_notes: 'Early-stage PDAC imaged prior to therapy in the native pancreatic microenvironment.
+
+      Highly compatible with the model''s baseline tumor growth representation.
+
+      '
+    measurement_directness: single_inversion
+    temporal_resolution: endpoint_pair
+    experimental_system: clinical_in_vivo
+secondary_data_sources: []
+inputs:
+- name: jang_vdT_mean
+  value: 151.7
+  units: day
+  input_type: direct_measurement
+  source_ref: Jang2015
+  source_location: Abstract
+  value_snippet: The mean VDT of PDAC was 151.7 days (range, 18.3-417.8 days).
+- name: jang_vdT_min
+  value: 18.3
+  units: day
+  input_type: direct_measurement
+  source_ref: Jang2015
+  source_location: Abstract
+  value_snippet: The mean VDT of PDAC was 151.7 days (range, 18.3-417.8 days).
+- name: jang_vdT_max
+  value: 417.8
+  units: day
+  input_type: direct_measurement
+  source_ref: Jang2015
+  source_location: Abstract
+  value_snippet: The mean VDT of PDAC was 151.7 days (range, 18.3-417.8 days).
+- name: jang_n_patients
+  value: 22
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Jang2015
+  source_location: Abstract
+  value_snippet: Twenty-two patients were included
+calibration:
+  parameters:
+  - name: k_C1_growth
+    units: 1/day
+  forward_model:
+    type: algebraic
+    formula: VDT = ln(2) / k_C1_growth
+    data_rationale: 'Jang2015 reports mean VDT for untreated early PDAC lesions imaged serially by MRI.
+
+      The clinical observable is VDT, not the instantaneous proliferation rate; an algebraic
+
+      relationship between k_C1_growth and VDT is appropriate.
+
+      '
+    submodel_rationale: 'In the full model, for small tumors (C_total << C_max), growth reduces to exponential
+
+      with VDT = ln(2)/k_C1_growth. The clinical VDT measurements thus provide a
+
+      mechanistically consistent constraint on k_C1_growth.
+
+      '
+    code: "def compute(params, inputs):\n    k = params['k_C1_growth']\n    t_double = np.log(2) / k\n    return t_double\n"
+  error_model:
+  - name: vdt_jang2015
+    units: day
+    uses_inputs:
+    - jang_vdT_mean
+    - jang_vdT_min
+    - jang_vdT_max
+    - jang_n_patients
+    sample_size_input: jang_n_patients
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean_vdt\
+      \ = inputs['jang_vdT_mean']\n    vdt_min = inputs['jang_vdT_min']\n    vdt_max = inputs['jang_vdT_max']\n    # Approximate\
+      \ log-space SD assuming range ~ 95% CI of lognormal\n    log_min = np.log(vdt_min)\n    log_max = np.log(vdt_max)\n\
+      \    sd_log = (log_max - log_min) / (2 * 1.96)\n    mu_ln = np.log(mean_vdt) - sd_log**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sd_log, size=n_bootstrap)\n"
+  identifiability_notes: 'k_C1_growth is structurally identifiable from VDT via VDT = ln(2)/k. The wide VDT range
+
+    (18.3-417.8 days) reflects substantial inter-patient heterogeneity. This provides a
+
+    complementary constraint to the Ahn2017 target (n=100) with a smaller but independent
+
+    cohort (n=22) using MRI rather than CT.
+
+    '

@@ -1,0 +1,285 @@
+target_id: CXCL12_50_Texcl_PDAC_deriv001
+tags:
+- ai-generated
+- obed-priority
+extraction_model: claude-opus-4-6
+extraction_reasoning_effort: high
+study_interpretation: 'Hesselgesser 1998 provides Scatchard analysis of 125I-SDF-1alpha competitive binding
+
+  on three human T cell lines (Jurkat, CEM, HUT78), yielding direct Kd measurements for
+
+  the CXCR4-CXCL12 interaction. SDF-1alpha Kd values: Jurkat 7.5 +/- 2.6 nM (n=2
+
+  experiments), CEM 7.1 +/- 3.5 nM, HUT78 18 +/- 5.1 nM. SDF-1beta Kd on Jurkat was
+
+  13.7 +/- 4.2 nM, confirming both isoforms bind the same receptor with similar affinity.
+
+
+  The model uses H_CXCL12_Texcl = CXCL12/(CXCL12_50_Texcl + CXCL12), an n=1 Hill
+
+  function identical in form to the receptor occupancy equation where EC50 = Kd. The
+
+  three SDF-1alpha Kd values from different T cell lines directly constrain this
+
+  parameter, with inter-cell-line spread (7-18 nM) capturing biological variability in
+
+  CXCR4 receptor presentation across T cell types.
+
+
+  The functional EC50 for CXCR4 signaling (microphysiometer metabolic acidification) was
+
+  18 nM on Jurkat cells (Figure 5D), consistent with the binding Kd range and indicating
+
+  minimal spare receptor amplification. The current prior median (2 nM) is 4-9x below
+
+  the measured Kd range; this target will pull the posterior upward.
+
+  '
+key_assumptions:
+- 'Hill function EC50 equals receptor binding Kd. This holds for a simple receptor
+
+  occupancy model (n=1 Hill) without cooperativity or spare receptor effects. The
+
+  functional EC50 of 18 nM being comparable to binding Kd (7-18 nM) supports this
+
+  assumption for CXCR4 on T cells.
+
+  '
+- 'SDF-1alpha (CXCL12alpha) Kd is used, not SDF-1beta Kd (13.7 nM). CXCL12alpha is the
+
+  predominant isoform secreted by CAFs in the PDAC stroma. Both isoforms bind CXCR4 with
+
+  similar affinity and compete for the same binding sites (Figure 1).
+
+  '
+- 'CXCR4 binding affinity on immortalized T cell lines (Jurkat, CEM, HUT78) is
+
+  representative of primary T cells infiltrating PDAC. CXCR4 is a broadly expressed
+
+  receptor whose ligand-binding domain is conserved. Transformed cells may differ in
+
+  receptor density (150,000 sites/cell here) but not intrinsic affinity.
+
+  '
+key_study_limitations:
+- 'Transformed T cell lines may have different CXCR4 post-translational modifications
+
+  (glycosylation, sulfation) that affect effective affinity compared to primary TILs.
+
+  However, the consistent Kd across three independent cell lines (7-18 nM) argues
+
+  against cell-line-specific artifacts dominating the measurement.
+
+  '
+- 'Binding assays at 4C may not fully reflect 37C in vivo conditions. However, Kd is
+
+  weakly temperature-dependent for most protein-protein interactions, and the functional
+
+  EC50 at 37C (18 nM from microphysiometer) falls within the 4C binding Kd range.
+
+  '
+- 'The +/- values on Kd are standard errors from Scatchard curve fitting (2 experiments
+
+  for Jurkat, unspecified for CEM and HUT78), not SD across biological replicates. True
+
+  inter-experiment variability may be larger.
+
+  '
+- 'The model''s (1-H) exclusion mechanism is a simplification of the biphasic CXCL12
+
+  response (low dose = attraction, high dose = repulsion/desensitization). The binding
+
+  Kd constrains the receptor sensitivity threshold but does not validate the monotonic
+
+  exclusion assumption.
+
+  '
+experimental_context:
+  species: human
+  system: in_vitro_cell_line
+  cell_lines:
+  - name: Jurkat
+    source: ATCC
+  - name: CEM
+    source: ATCC
+  - name: HUT78
+    source: ATCC
+  cell_types:
+  - name: T lymphocyte
+    source: immortalized cell lines
+  culture_conditions:
+    medium: RPMI 1640 + 10% FBS + 50 ug/mL penicillin/streptomycin
+    notes: 'Binding assays: 5e5 cells/mL incubated with 125I-SDF-1alpha (0.2 nM) and
+
+      varying cold ligand (0.001-1000 nM) at 4C for 1h. Nonspecific binding
+
+      determined with 1 uM unlabeled ligand. Scatchard analysis with IGOR software.
+
+      '
+  indication: general_immunology
+primary_data_source:
+  doi: 10.4049/jimmunol.160.2.877
+  title: 'Identification and Characterization of the CXCR4 Chemokine Receptor in Human
+
+    T Cell Lines: Ligand Binding, Biological Activity, and HIV-1 Infectivity
+
+    '
+  authors:
+  - Joseph Hesselgesser
+  - Meina Liang
+  - James Hoxie
+  - Michael Greenberg
+  - Lawrence F Brass
+  - Michael J Orsini
+  - Dennis Taub
+  - Richard Horuk
+  year: 1998
+  source_tag: Hesselgesser1998
+  source_relevance:
+    indication_match: related
+    indication_match_justification: 'CXCR4 binding affinity for CXCL12 measured on human T cell lines. CXCR4 is a
+
+      broadly expressed chemokine receptor whose ligand-binding domain is conserved
+
+      across T cell types. The Kd is a biophysical constant of the receptor-ligand
+
+      interaction, not disease-specific. The main uncertainty is whether PDAC
+
+      tumor-infiltrating T cells have altered CXCR4 glycosylation or membrane
+
+      environment that shifts effective affinity.
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: 'No exogenous perturbation. Binding affinity measured under equilibrium conditions
+
+      with radiolabeled SDF-1alpha at physiological-range concentrations (0.2 nM tracer,
+
+      0.001-1000 nM cold ligand). Reflects intrinsic receptor-ligand affinity.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'Binding affinity is an intrinsic biophysical property of the CXCR4-CXCL12
+
+      interaction measured in clean in vitro conditions. In the PDAC TME, receptor
+
+      desensitization (demonstrated in this paper, Fig 5B-C), internalization
+
+      (>90% by 2h, Fig 4), and competition with GAG-bound CXCL12 could shift the
+
+      effective EC50 for T cell exclusion. However, the intrinsic Kd constrains the
+
+      lower bound for the functional EC50.
+
+      '
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_cell_line
+secondary_data_sources: []
+inputs:
+- name: Kd_Jurkat_SDF1a
+  value: 7.5
+  units: nanomolar
+  input_type: direct_measurement
+  source_ref: Hesselgesser1998
+  source_location: Results, paragraph 2; Figure 2 inset
+  value_snippet: a Kd of 7.5 nM +/- 2.6 and 163,521 +/- 35,875 binding sites per cell for SDF-1alpha
+- name: Kd_Jurkat_SDF1a_se
+  value: 2.6
+  units: nanomolar
+  input_type: direct_measurement
+  source_ref: Hesselgesser1998
+  source_location: Results, paragraph 2; Figure 2 inset
+  value_snippet: a Kd of 7.5 nM +/- 2.6 and 163,521 +/- 35,875 binding sites per cell for SDF-1alpha
+- name: Kd_CEM_SDF1a
+  value: 7.1
+  units: nanomolar
+  input_type: direct_measurement
+  source_ref: Hesselgesser1998
+  source_location: Results, paragraph 4
+  value_snippet: a Kd of 7.1 nM +/- 3.5 and 120,968 +/- 38,946 binding sites per cell for CEM cells
+- name: Kd_CEM_SDF1a_se
+  value: 3.5
+  units: nanomolar
+  input_type: direct_measurement
+  source_ref: Hesselgesser1998
+  source_location: Results, paragraph 4
+  value_snippet: a Kd of 7.1 nM +/- 3.5 and 120,968 +/- 38,946 binding sites per cell for CEM cells
+- name: Kd_HUT78_SDF1a
+  value: 18.0
+  units: nanomolar
+  input_type: direct_measurement
+  source_ref: Hesselgesser1998
+  source_location: Results, paragraph 4
+  value_snippet: a Kd of 18 nM +/- 5.1 and 101,733 +/- 28,209 binding sites per cell for HUT78 cells
+- name: Kd_HUT78_SDF1a_se
+  value: 5.1
+  units: nanomolar
+  input_type: direct_measurement
+  source_ref: Hesselgesser1998
+  source_location: Results, paragraph 4
+  value_snippet: a Kd of 18 nM +/- 5.1 and 101,733 +/- 28,209 binding sites per cell for HUT78 cells
+- name: n_experiments
+  value: 2
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Hesselgesser1998
+  source_location: Figure 2 legend
+  value_snippet: representative of those found in two similar experiments
+calibration:
+  parameters:
+  - name: CXCL12_50_Texcl
+    units: nanomolar
+  forward_model:
+    type: algebraic
+    formula: 'predicted_Kd = CXCL12_50_Texcl (receptor occupancy model: EC50 = Kd)'
+    data_rationale: 'Scatchard analysis of competitive 125I-SDF-1alpha binding provides direct Kd
+
+      measurements for CXCR4 on three human T cell lines. The Kd represents the
+
+      concentration at which half of receptors are occupied, directly corresponding
+
+      to the EC50 in the model''s Hill function.
+
+      '
+    submodel_rationale: 'The QSP model uses H_CXCL12_Texcl = CXCL12/(CXCL12_50_Texcl + CXCL12),
+
+      an n=1 Hill function identical to the receptor occupancy equation where
+
+      EC50 = Kd. The identity mapping (predicted Kd = parameter value) is exact
+
+      for this model structure.
+
+      '
+    code: "def compute(params, inputs):\n    return params['CXCL12_50_Texcl']\n"
+  error_model:
+  - name: CXCR4_binding_Kd
+    units: nanomolar
+    uses_inputs:
+    - Kd_Jurkat_SDF1a
+    - Kd_Jurkat_SDF1a_se
+    - Kd_CEM_SDF1a
+    - Kd_CEM_SDF1a_se
+    - Kd_HUT78_SDF1a
+    - Kd_HUT78_SDF1a_se
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n\n    # Three\
+      \ T cell line Kd values from Scatchard analysis\n    kd_vals = np.array([\n        inputs['Kd_Jurkat_SDF1a'],\n    \
+      \    inputs['Kd_CEM_SDF1a'],\n        inputs['Kd_HUT78_SDF1a'],\n    ])\n    se_vals = np.array([\n        inputs['Kd_Jurkat_SDF1a_se'],\n\
+      \        inputs['Kd_CEM_SDF1a_se'],\n        inputs['Kd_HUT78_SDF1a_se'],\n    ])\n\n    # Two-level bootstrap:\n  \
+      \  # 1. Sample cell line with replacement (captures inter-line variability)\n    # 2. Add within-line Scatchard fit\
+      \ uncertainty (lognormal, Kd is positive)\n    idx = rng.integers(0, len(kd_vals), n_bootstrap)\n    means = kd_vals[idx]\n\
+      \    ses = se_vals[idx]\n    cv = ses / means\n    return rng.lognormal(np.log(means), cv / np.sqrt(sample_size), n_bootstrap)\n"
+  identifiability_notes: 'Single parameter (CXCL12_50_Texcl) directly measured as binding Kd on three
+
+    independent T cell lines. Well-identified: identity mapping with no degeneracy.
+
+    The inter-cell-line spread (7-18 nM) captures biological variability and will
+
+    produce a posterior centered around ~8-10 nM (geometric mean of 7.5, 7.1, 18 nM).
+
+    '

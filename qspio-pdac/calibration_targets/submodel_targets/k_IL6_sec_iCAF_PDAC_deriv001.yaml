@@ -1,0 +1,297 @@
+target_id: k_IL6_sec_iCAF_saga2018
+tags:
+- ai-generated
+extraction_model: claude-opus-4-6
+study_interpretation: 'Saga et al. (2018) measured IL-6 protein concentration by ELISA in
+
+  supernatants of LX-2 human hepatic stellate cells cultured for 48h under
+
+  control (DMEM + 2% FBS) or TNF-alpha (10 ng/mL) conditions. Control cells
+
+  expressed GFAP (quiescent marker) with low alpha-SMA; TNF-alpha-treated cells
+
+  showed high alpha-SMA expression (activated phenotype). The TNF-alpha-activated
+
+  condition is the relevant proxy for iCAF-like inflammatory stellate cells
+
+  (NF-kB-driven, IL-6-secreting).
+
+
+  At steady state (48h >> IL-6 half-life ~1.7h), the supernatant concentration
+
+  reflects the balance of secretion and degradation:
+
+  C_ss = k_sec * N / (k_deg * V). Both conditions share k_deg, so the pair
+
+  constrains k_sec for basal vs activated states and k_deg jointly.
+
+  '
+key_assumptions:
+- 'LX-2 cells do not proliferate significantly over 48h at 2% FBS. Cell count
+
+  is approximately constant at the seeding density of 1e5 cells/well.
+
+  '
+- 'IL-6 degradation in vitro follows first-order kinetics with rate k_IL6_deg.
+
+  At 48h (>>28 half-lives at k_deg=10/day), the system is at steady state.
+
+  '
+- 'The TNF-alpha-activated LX-2 phenotype (high alpha-SMA, NF-kB activation,
+
+  IL-6 secretion) is representative of the iCAF inflammatory program in PDAC.
+
+  '
+- 'Media volume in 24-well plate is approximately 0.5-1.0 mL. Treated as a
+
+  nuisance parameter with informative prior.
+
+  '
+key_study_limitations:
+- 'LX-2 is an immortalized human hepatic stellate cell line, not primary
+
+  pancreatic stellate cells. HSC and PSC IL-6 secretion may differ quantitatively.
+
+  '
+- 'TNF-alpha activation is a proxy for the IL-1/NF-kB/JAK-STAT pathway that
+
+  drives iCAF identity in PDAC. The actual iCAF program involves IL-1alpha from
+
+  cancer cells, not TNF-alpha, though both converge on NF-kB.
+
+  '
+- 'Media volume is not reported. Standard 24-well plate volumes (0.5-1.0 mL)
+
+  are assumed, introducing ~2-fold uncertainty in absolute secretion rate.
+
+  '
+- 'Sample size for the ELISA is not explicitly stated. The text reports data as
+
+  mean +/- SD but does not specify n for the IL-6 ELISA specifically. Flow
+
+  cytometry experiments used 5-7 separate experiments.
+
+  '
+experimental_context:
+  species: human
+  system: in_vitro_cell_line
+  cell_types:
+  - name: LX-2 human hepatic stellate cell line
+    source: Merck Millipore (Temecula, CA)
+    isolation_method: 'Immortalized human HSC line. Seeded at 1e5 cells/well in 24-well plates
+
+      in DMEM + 2% FBS. Cultured 24h, then treated with TNF-alpha (10 ng/mL)
+
+      or control medium for 48h. Supernatant collected for ELISA.
+
+      '
+  culture_conditions:
+    medium: DMEM + 2% FBS +/- TNF-alpha 10 ng/mL
+    duration: 48h treatment after 24h attachment
+  indication: liver_fibrosis
+primary_data_source:
+  doi: 10.3390/ijms19103043
+  title: 'Secondary Unconjugated Bile Acids Induce Hepatic Stellate Cell Activation
+
+    '
+  authors:
+  - Saga
+  - Iwashita
+  - Hidano
+  - Aso
+  - Isaka
+  - Kido
+  - Tada
+  - Takayama
+  - Masuda
+  - Hirashita
+  - Endo
+  - Ohta
+  - Kobayashi
+  - Inomata
+  year: 2018
+  source_tag: Saga2018
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'Human hepatic stellate cell line (LX-2) as proxy for PDAC pancreatic
+
+      stellate cells / iCAFs. HSCs and PSCs share embryological origin
+
+      (neural crest), stellate morphology, vitamin A storage, and
+
+      activation biology (alpha-SMA, collagen, IL-6 secretion). The
+
+      NF-kB-driven inflammatory program that produces IL-6 is conserved.
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: 'TNF-alpha (10 ng/mL) activates NF-kB signaling, driving the inflammatory
+
+      secretory phenotype analogous to iCAF identity. This provides an upper
+
+      estimate for IL-6 secretion under inflammatory activation. The control
+
+      condition provides the basal (quiescent) rate.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'In vitro 2D culture on plastic with 2% FBS. Lack of 3D ECM context and
+
+      cancer cell paracrine signals. LX-2 is an immortalized line that may
+
+      have altered secretory capacity compared to primary PSCs.
+
+      '
+    measurement_directness: steady_state_inversion
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_cell_line
+secondary_data_sources: []
+inputs:
+- name: IL6_ctrl_mean
+  value: 65.3
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Saga2018
+  source_location: Section 2.3, IL-6 Levels
+  value_snippet: control, 65.3 +/- 4.0
+- name: IL6_ctrl_sd
+  value: 4.0
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Saga2018
+  source_location: Section 2.3, IL-6 Levels
+  value_snippet: control, 65.3 +/- 4.0
+- name: IL6_TNFa_mean
+  value: 243.0
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Saga2018
+  source_location: Section 2.3, IL-6 Levels
+  value_snippet: TNF-alpha, 243 +/- 29.8
+- name: IL6_TNFa_sd
+  value: 29.8
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Saga2018
+  source_location: Section 2.3, IL-6 Levels
+  value_snippet: TNF-alpha, 243 +/- 29.8
+- name: n_cells_e5
+  value: 1.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Saga2018
+  source_location: Section 4.5
+  value_snippet: seeded on a 24-well plate at 1 x 10^5 cells/well
+- name: IL6_MW_Da
+  value: 26000.0
+  units: dalton
+  input_type: reference_value
+  rationale: Molecular weight of human IL-6 (mature form, 26 kDa = 26000 Da)
+  source_ref: Saga2018
+  source_location: Standard reference
+  value_snippet: IL-6
+- name: n_experiments
+  value: 5
+  units: dimensionless
+  input_type: reference_value
+  rationale: Flow cytometry experiments used 5-7 separate experiments (Fig 7 caption). Assuming similar n for ELISA.
+  source_ref: Saga2018
+  source_location: Figure 7 caption
+  value_snippet: 5-7 separate experiments
+calibration:
+  parameters:
+  - name: k_IL6_sec_iCAF
+    units: nanomolarity*liter/(cell*day)
+  - name: k_IL6_deg
+    units: 1/day
+  - name: v_media_mL
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -0.4
+      sigma: 0.3
+  - name: k_IL6_sec_basal
+    units: nanomolarity*liter/(cell*day)
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -25.0
+      sigma: 1.0
+  forward_model:
+    type: algebraic
+    formula: 'C_ss (nM) = k_sec * N / (k_deg * V_L), then C_ss (pg/mL) = C_ss (nM) * MW_Da.
+
+      Conversion: 1 nM = MW_Da pg/mL (since 1 nM × MW g/mol × 1e-9 mol/nmol × 1e12 pg/g × 1e-3 L/mL = MW pg/mL).
+
+      '
+    data_rationale: 'At 48h with k_IL6_deg=10/day (half-life ~1.7h), the system reaches steady
+
+      state within ~8h. The ELISA measurement at 48h directly reads C_ss.
+
+      Two conditions (control + TNF-alpha) with shared k_deg jointly constrain
+
+      k_IL6_sec_iCAF (activated/iCAF rate) and k_IL6_sec_basal (quiescent rate).
+
+      '
+    submodel_rationale: 'Maps to the IL-6 secretion reaction in fibroblast_module_enhanced.m:
+
+      null -> V_T.IL6 at rate k_IL6_sec_iCAF * V_T.iCAF. The QSP model uses
+
+      k_IL6_sec_iCAF for iCAF secretion; the TNF-alpha-activated LX-2 condition
+
+      is the proxy for this rate.
+
+      '
+    code: "def compute(params, inputs):\n    k_sec_iCAF = params['k_IL6_sec_iCAF']\n    k_sec_basal = params['k_IL6_sec_basal']\n\
+      \    k_deg = params['k_IL6_deg']\n    v_mL = params['v_media_mL']\n    N = inputs['n_cells_e5'] * 1e5\n    MW_Da = inputs['IL6_MW_Da']\n\
+      \n    # C_ss (nM) = k_sec * N / (k_deg * V_L)\n    # C_ss (pg/mL) = C_ss (nM) * MW_Da\n\
+      \    # (1 nM * MW_Da g/mol * 1e-9 mol/nmol * 1e12 pg/g * 1e-3 L/mL = MW_Da pg/mL)\n\
+      \    V_L = v_mL / 1000\n    C_ss_ctrl_nM = k_sec_basal * N / (k_deg * V_L)\n\
+      \    C_ss_tnfa_nM = k_sec_iCAF * N / (k_deg * V_L)\n\n    return {\n\
+      \        'ctrl': C_ss_ctrl_nM * MW_Da,\n        'tnfa': C_ss_tnfa_nM * MW_Da,\n    }\n"
+  error_model:
+  - name: IL6_control
+    units: picogram / milliliter
+    uses_inputs:
+    - IL6_ctrl_mean
+    - IL6_ctrl_sd
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['IL6_ctrl_mean']\n    sd = inputs['IL6_ctrl_sd']\n    cv = sd / mean\n    return rng.lognormal(np.log(mean),\
+      \ cv / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ctrl']\n"
+  - name: IL6_TNFa
+    units: picogram / milliliter
+    uses_inputs:
+    - IL6_TNFa_mean
+    - IL6_TNFa_sd
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['IL6_TNFa_mean']\n    sd = inputs['IL6_TNFa_sd']\n    cv = sd / mean\n    return rng.lognormal(np.log(mean),\
+      \ cv / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['tnfa']\n"
+  identifiability_notes: 'Two observations (control + TNF-alpha) constraining four parameters
+
+    (k_IL6_sec_iCAF, k_IL6_sec_basal, k_IL6_deg, v_media_mL). k_IL6_deg has
+
+    a strong prior from the CSV (median=10/day, sigma=0.5). v_media_mL has a
+
+    tight nuisance prior (0.5-1 mL). The ratio of TNF-alpha to control IL-6
+
+    directly constrains the ratio k_sec_iCAF / k_sec_basal independently of
+
+    k_deg and volume. The absolute values then constrain the product
+
+    k_sec / (k_deg * V), with k_deg and V priors breaking the degeneracy.
+
+    '

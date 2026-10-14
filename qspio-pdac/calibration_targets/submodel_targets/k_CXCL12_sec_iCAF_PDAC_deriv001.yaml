@@ -1,0 +1,313 @@
+target_id: k_CXCL12_sec_iCAF_PDAC_deriv001
+inputs:
+- name: n_cells_seeded_coeff
+  value: 2
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Saiman2013
+  source_location: Methods, ELISA for cell supernatant CXCL12
+  value_snippet: We plated 2 x 10^4 JS1 cells in 24-well plates
+- name: n_cells_seeded_exponent
+  value: 4
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Saiman2013
+  source_location: Methods, ELISA for cell supernatant CXCL12
+  value_snippet: We plated 2 x 10^4 JS1 cells in 24-well plates
+- name: n_cells_seeded
+  value: 20000
+  units: cell
+  input_type: derived_arithmetic
+  source_inputs:
+  - n_cells_seeded_coeff
+  - n_cells_seeded_exponent
+  formula: n_cells_seeded_coeff * 10 ** n_cells_seeded_exponent
+  rationale: 2 x 10^4 = 20000 cells
+  source_ref: Saiman2013
+  source_location: Methods, ELISA for cell supernatant CXCL12
+- name: media_volume_uL
+  value: 300
+  units: microliter
+  input_type: direct_measurement
+  source_ref: Saiman2013
+  source_location: Methods, ELISA for cell supernatant CXCL12
+  value_snippet: 300 ul of fresh media added
+- name: n_experiments
+  value: 3
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Saiman2013
+  source_location: Figure 1 caption
+  value_snippet: CXCL12 concentrations are an average of 3 independent experiments
+- name: CXCL12_MW_Da
+  value: 7960
+  units: dalton
+  input_type: reference_value
+  rationale: Mature human CXCL12-alpha (SDF-1alpha) MW from UniProt P48061, 68 aa isoform. R&D Quantikine ELISA standard uses
+    recombinant human CXCL12.
+  source_ref: Saiman2013
+  source_location: Methods, ELISA for cell supernatant CXCL12
+  value_snippet: Purified recombinant human CXCL12 was used to generate a standard curve
+- name: CXCL12_48h_mean_pgml
+  value: 2411
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Saiman2013
+  source_location: Figure 1C
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~2400
+    description: Bar height at 48h time point
+    context: CXCL12 pg/mL in conditioned media from JS1 hepatic stellate cells, 0-96h time course
+- name: CXCL12_48h_sem_pgml
+  value: 178
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Saiman2013
+  source_location: Figure 1C
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: +/-178
+    description: Error bar height at 48h (upper error bar minus bar top)
+    context: Error bars likely represent SEM from n=3 independent experiments; paper states mean +/- SD but CVs of 7-9% are
+      more consistent with SEM
+- name: CXCL12_72h_mean_pgml
+  value: 5068
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Saiman2013
+  source_location: Figure 1C
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~5000
+    description: Bar height at 72h time point
+    context: CXCL12 pg/mL in conditioned media from JS1 hepatic stellate cells
+- name: CXCL12_72h_sem_pgml
+  value: 439
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Saiman2013
+  source_location: Figure 1C
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: +/-439
+    description: Error bar height at 72h
+    context: Error bars likely represent SEM from n=3 independent experiments
+- name: CXCL12_96h_mean_pgml
+  value: 5890
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Saiman2013
+  source_location: Figure 1C
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: ~5900
+    description: Bar height at 96h time point
+    context: CXCL12 pg/mL in conditioned media, described as >6,000 pg/ml in text
+- name: CXCL12_96h_sem_pgml
+  value: 425
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Saiman2013
+  source_location: Figure 1C
+  figure_excerpt:
+    figure_id: Figure 1C
+    value: +/-425
+    description: Error bar height at 96h
+    context: Error bars likely represent SEM from n=3 independent experiments
+calibration:
+  parameters:
+  - name: k_CXCL12_sec_iCAF
+    units: nanomolarity * liter / (cell * day)
+  - name: k_CXCL12_deg
+    units: 1 / day
+  - name: k_prolif_JS1
+    units: 1 / day
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -1.6
+      sigma: 0.5
+  forward_model:
+    type: algebraic
+    formula: 'N(t) = N_div_base * exp(k_prolif * t / 24)  (exponential growth, time in hours, rate in 1/day)
+
+      C(t) = rate * N_div_base / (k_prolif - k_deg) * (exp(k_prolif*t/24) - exp(-k_deg*t/24))
+
+      where rate = k_sec * MW * 1e3 / (V_uL / 1e3)  (nmol/cell/day -> pg/mL/cell/day)
+
+      '
+    data_rationale: Time-course ELISA data from conditioned media. Analytical solution of dN/dt = k_prolif*N (exponential
+      growth) + dC/dt = rate*N - k_deg*C (linear secretion/degradation). C(0)=0.
+    submodel_rationale: 'Maps directly to the CXCL12 secretion reaction in fibroblast_module_enhanced.m: null -> V_T.CXCL12
+      with rate k_CXCL12_sec_iCAF * iCAF. In the in vitro system, iCAF count is replaced by JS1 cell count (proliferating),
+      and degradation occurs simultaneously.'
+    code: "def compute(params, inputs):\n    k_sec = params['k_CXCL12_sec_iCAF']\n    k_deg = params['k_CXCL12_deg']\n   \
+      \ k_prolif = params['k_prolif_JS1']\n    MW = inputs['CXCL12_MW_Da']\n    V_uL = inputs['media_volume_uL']\n    N_div_base\
+      \ = inputs['n_cells_seeded']\n\n    # Convert k_sec from nmol/(cell*day) to pg/mL/(cell*day)\n    pg_per_nmol = MW *\
+      \ 1e3\n    V_mL = V_uL / 1e3\n    rate = k_sec * pg_per_nmol / V_mL\n\n    # Rate constants in 1/day, time in hours\
+      \ -> divide by 24\n    kp = k_prolif / 24\n    kd = k_deg / 24\n\n    # Analytical solution: C(t) = rate*N_div_base/(kp-kd)\
+      \ * (exp(kp*t) - exp(-kd*t))\n    # with C(0)=0, N(t)=N_div_base*exp(kp*t)\n    # Use safe division to handle kp ≈ kd\
+      \ edge case\n    denom = kp + kd  # kp - (-kd) since dC = rate*N - kd*C\n    return {\n        'C_48': rate * N_div_base\
+      \ / denom * (np.exp(kp * 48) - np.exp(-kd * 48)),\n        'C_72': rate * N_div_base / denom * (np.exp(kp * 72) - np.exp(-kd\
+      \ * 72)),\n        'C_96': rate * N_div_base / denom * (np.exp(kp * 96) - np.exp(-kd * 96)),\n    }\n"
+  error_model:
+  - name: CXCL12_48h
+    units: picogram / milliliter
+    uses_inputs:
+    - CXCL12_48h_mean_pgml
+    - CXCL12_48h_sem_pgml
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['CXCL12_48h_mean_pgml']\n    sem = inputs['CXCL12_48h_sem_pgml']\n    n = int(inputs['n_experiments'])\n  \
+      \  sd = sem * np.sqrt(n)\n    cv = sd / mean\n    return rng.lognormal(np.log(mean), cv / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['C_48']\n"
+  - name: CXCL12_72h
+    units: picogram / milliliter
+    uses_inputs:
+    - CXCL12_72h_mean_pgml
+    - CXCL12_72h_sem_pgml
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['CXCL12_72h_mean_pgml']\n    sem = inputs['CXCL12_72h_sem_pgml']\n    n = int(inputs['n_experiments'])\n  \
+      \  sd = sem * np.sqrt(n)\n    cv = sd / mean\n    return rng.lognormal(np.log(mean), cv / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['C_72']\n"
+  - name: CXCL12_96h
+    units: picogram / milliliter
+    uses_inputs:
+    - CXCL12_96h_mean_pgml
+    - CXCL12_96h_sem_pgml
+    - n_experiments
+    sample_size_input: n_experiments
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    mean =\
+      \ inputs['CXCL12_96h_mean_pgml']\n    sem = inputs['CXCL12_96h_sem_pgml']\n    n = int(inputs['n_experiments'])\n  \
+      \  sd = sem * np.sqrt(n)\n    cv = sd / mean\n    return rng.lognormal(np.log(mean), cv / np.sqrt(sample_size), n_bootstrap)\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['C_96']\n"
+  identifiability_notes: 'Three time points (48h, 72h, 96h) constrain three parameters. k_sec and k_deg
+
+    are partially confounded (higher secretion + higher degradation can produce similar
+
+    curves), but the curvature from 72-96h (plateau) helps separate them. k_prolif
+
+    is constrained by the acceleration phase (0-72h). The 24h data point was excluded
+
+    due to unresolvable error bars. Joint inference with other targets constraining
+
+    k_CXCL12_deg (e.g., from chemokine half-life data) will improve identifiability.
+
+    '
+experimental_context:
+  species: mouse
+  system: in_vitro_cell_line
+  cell_lines:
+  - name: JS1
+    source: murine SV40-immortalized hepatic stellate cell line
+    passage_range: null
+  cell_types:
+  - name: hepatic stellate cell
+    source: mouse liver
+    isolation_method: SV40-immortalized cell line with highly activated phenotype
+  culture_conditions:
+    medium: DMEM, 24-well plates
+    duration: 0-96h conditioned media collection
+  indication: liver_fibrosis
+study_interpretation: 'JS1 hepatic stellate cells constitutively secrete CXCL12, accumulating >6000
+
+  pg/mL over 96h from 2e4 cells in 300 uL. The non-linear accumulation profile
+
+  (acceleration 0-72h, plateau 72-96h) is consistent with cell proliferation
+
+  driving increased production that is eventually balanced by degradation.
+
+  This provides a direct measurement of per-cell CXCL12 secretion rate from
+
+  activated stellate cells.
+
+  '
+key_assumptions:
+- JS1 murine hepatic stellate cell CXCL12 secretion rate is representative of human pancreatic iCAF secretion
+- All cells contribute equally to CXCL12 production (no heterogeneity)
+- CXCL12 degradation in conditioned media follows first-order kinetics with the same rate constant as in vivo
+- Error bars in Figure 1C represent SEM (not SD) based on CV analysis; paper states SD but 7-9% CV from n=3 biological replicates
+  is more consistent with SEM
+- Media was not changed during the 0-96h collection period (accumulated)
+- Cell proliferation follows exponential growth over 96h (no contact inhibition yet)
+key_study_limitations:
+- 'Cross-species: murine JS1 cell line vs human PDAC iCAFs'
+- 'Cross-organ: hepatic stellate cells vs pancreatic stellate cells'
+- Immortalized cell line (SV40) may have altered secretory phenotype vs primary cells
+- 2D culture on plastic without ECM — does not recapitulate 3D TME signaling
+- No IL-1 or TGFbeta stimulation — basal secretion only, not iCAF-polarized
+- Autocrine CXCL12/CXCR4 loop (JS1 express both) may confound interpretation
+primary_data_source:
+  doi: 10.1152/ajpgi.00185.2012
+  source_tag: Saiman2013
+  title: CXCL12 induces hepatic stellate cell contraction through a calcium-independent pathway
+  authors:
+  - Saiman
+  - Agarwal
+  - Hickman
+  - Fausther
+  - El-Shamy
+  - Dranoff
+  - Friedman
+  - Bansal
+  year: 2013
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'Murine hepatic stellate cells (JS1) used as proxy for human pancreatic iCAFs.
+
+      Both are vitamin A-storing pericyte-like cells that activate to myofibroblast
+
+      phenotype and secrete CXCL12. HSCs and PSCs share developmental origin,
+
+      morphology, and activation biology (Apte 2012, Omary 2007). However, CXCL12
+
+      secretion rates may differ between liver and pancreas stellate cells, and
+
+      between mouse and human. The JS1 line is SV40-immortalized which may alter
+
+      secretory capacity vs primary cells.
+
+      '
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: 'Cells are measured under standard culture conditions with no exogenous
+
+      stimulation. This represents constitutive CXCL12 secretion from activated
+
+      stellate cells (JS1 are constitutively activated).
+
+      '
+    tme_compatibility: low
+    tme_compatibility_notes: 'JS1 cells are grown on plastic in standard DMEM — no ECM, no co-culture,
+
+      no hypoxia. The PDAC TME has dense desmoplastic stroma, high TGFbeta, and
+
+      complex paracrine signaling that modulates CXCL12 secretion. Expect the
+
+      in vitro rate to be a lower bound for the activated iCAF rate in vivo,
+
+      as stromal inflammation upregulates CXCL12 (Ene-Obong 2013).
+
+      '
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_cell_line
+tags:
+- CXCL12
+- secretion_rate
+- hepatic_stellate_cell
+- proxy_data
+- batch_accumulation
+- fibroblast_module

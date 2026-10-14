@@ -1,0 +1,481 @@
+target_id: k_CD8_basal_exh
+inputs:
+- name: cd8_single_day7_mean_cells
+  value: 1113000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 7, single prime
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "~1.1 \xD7 10^6"
+    description: "Mean absolute number of OT-I (V\u03B12+V\u03B25.1+) CD8+ T cells\
+      \ in spleen at day 7 after single WSN-OVA prime"
+    context: Kinetics of virus-specific CD8+ T cells in spleen for single vs chronic
+      antigen stimulation
+- name: cd8_single_day7_sd_cells
+  value: 703000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 7, single prime
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "error bar height \u2248 1.8 \xD7 10^6"
+    description: Upper error bar for day 7 single-prime OT-I CD8+ T cell counts; SD
+      approximated as difference between mean and upper bar
+    context: "Error bars shown as mean \xB1 SD (n=3) for OT-I CD8+ T cells in spleen"
+- name: cd8_chronic_day7_mean_cells
+  value: 1288000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 7, chronic stimulation
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "~1.3 \xD7 10^6"
+    description: Mean absolute number of OT-I CD8+ T cells in spleen at day 7 during
+      chronic WSN-OVA stimulation
+    context: Kinetics of virus-specific CD8+ T cells in spleen for single vs chronic
+      antigen stimulation
+- name: cd8_chronic_day7_sd_cells
+  value: 623000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 7, chronic stimulation
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "error bar height \u2248 1.9 \xD7 10^6"
+    description: Upper error bar for day 7 chronic-stimulated OT-I CD8+ T cell counts;
+      SD approximated as difference between mean and upper bar
+    context: "Error bars shown as mean \xB1 SD (n=3) for OT-I CD8+ T cells in spleen"
+- name: cd8_single_day14_mean_cells
+  value: 745000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 14, single prime
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "~7.5 \xD7 10^5"
+    description: Mean absolute number of OT-I CD8+ T cells in spleen at day 14 after
+      single WSN-OVA prime
+    context: Kinetics of virus-specific CD8+ T cells in spleen for single vs chronic
+      antigen stimulation
+- name: cd8_single_day14_sd_cells
+  value: 359000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 14, single prime
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "error bar height \u2248 1.1 \xD7 10^6"
+    description: Upper error bar for day 14 single-prime OT-I CD8+ T cell counts;
+      SD approximated as difference between mean and upper bar
+    context: "Error bars shown as mean \xB1 SD (n=3) for OT-I CD8+ T cells in spleen"
+- name: cd8_chronic_day14_mean_cells
+  value: 61100.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 14, chronic stimulation
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "~6 \xD7 10^4"
+    description: Mean absolute number of OT-I CD8+ T cells in spleen at day 14 during
+      chronic WSN-OVA stimulation
+    context: Kinetics of virus-specific CD8+ T cells in spleen for single vs chronic
+      antigen stimulation
+- name: cd8_chronic_day14_sd_cells
+  value: 23600.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 14, chronic stimulation
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "error bar height \u2248 8.5 \xD7 10^4"
+    description: Upper error bar for day 14 chronic-stimulated OT-I CD8+ T cell counts;
+      SD approximated as difference between mean and upper bar
+    context: "Error bars shown as mean \xB1 SD (n=3) for OT-I CD8+ T cells in spleen"
+- name: cd8_single_day21_mean_cells
+  value: 292000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 21, single prime
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "~2.9 \xD7 10^5"
+    description: Mean absolute number of OT-I CD8+ T cells in spleen at day 21 after
+      single WSN-OVA prime
+    context: Kinetics of virus-specific CD8+ T cells in spleen for single vs chronic
+      antigen stimulation
+- name: cd8_single_day21_sd_cells
+  value: 70800.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 21, single prime
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "error bar height \u2248 3.6 \xD7 10^5"
+    description: Upper error bar for day 21 single-prime OT-I CD8+ T cell counts;
+      SD approximated as difference between mean and upper bar
+    context: "Error bars shown as mean \xB1 SD (n=3) for OT-I CD8+ T cells in spleen"
+- name: cd8_chronic_day21_mean_cells
+  value: 136000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 21, chronic stimulation
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "~1.4 \xD7 10^5"
+    description: Mean absolute number of OT-I CD8+ T cells in spleen at day 21 during
+      chronic WSN-OVA stimulation
+    context: Kinetics of virus-specific CD8+ T cells in spleen for single vs chronic
+      antigen stimulation
+- name: cd8_chronic_day21_sd_cells
+  value: 23600.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C, day 21, chronic stimulation
+  figure_excerpt:
+    figure_id: Figure 2C
+    value: "error bar height \u2248 1.6 \xD7 10^5"
+    description: Upper error bar for day 21 chronic-stimulated OT-I CD8+ T cell counts;
+      SD approximated as difference between mean and upper bar
+    context: "Error bars shown as mean \xB1 SD (n=3) for OT-I CD8+ T cells in spleen"
+- name: n_mice_timecourse
+  value: 3.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Figure 2C legend
+  value_snippet: n = 3 mice/group
+- name: cd8_single_day30_mean_cells
+  value: 332000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Results, Reduced quantity of virus-specific CD8+ T cells after
+    chronic Ag stimulation
+  figure_excerpt:
+    figure_id: Text
+    value: "3.32 \xB1 0.32 \xD7 10^5"
+    description: Absolute number of day-30 virus-specific OT-I CD8+ T cells in single
+      prime controls reported in the Results text
+    context: Reduced quantity of virus-specific CD8+ T cells after chronic Ag stimulation;
+      values pooled across n = 20 mice/group
+- name: cd8_single_day30_sd_cells
+  value: 32000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Results, Reduced quantity of virus-specific CD8+ T cells after
+    chronic Ag stimulation
+  figure_excerpt:
+    figure_id: Text
+    value: "3.32 \xB1 0.32 \xD7 10^5"
+    description: "Absolute number of day-30 virus-specific OT-I CD8+ T cells in single\
+      \ prime controls reported in the Results text; SD approximated from the \xB1\
+      \ value"
+    context: Reduced quantity of virus-specific CD8+ T cells after chronic Ag stimulation;
+      values pooled across n = 20 mice/group
+- name: cd8_chronic_day30_mean_cells
+  value: 154000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Results, Reduced quantity of virus-specific CD8+ T cells after
+    chronic Ag stimulation
+  figure_excerpt:
+    figure_id: Text
+    value: "1.54 \xB1 0.15 \xD7 10^5"
+    description: Absolute number of day-30 virus-specific OT-I CD8+ T cells in chronic
+      Ag-stimulated mice reported in the Results text
+    context: Reduced quantity of virus-specific CD8+ T cells after chronic Ag stimulation;
+      values pooled across n = 23 mice/group
+- name: cd8_chronic_day30_sd_cells
+  value: 15000.0
+  units: cell
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Results, Reduced quantity of virus-specific CD8+ T cells after
+    chronic Ag stimulation
+  figure_excerpt:
+    figure_id: Text
+    value: "1.54 \xB1 0.15 \xD7 10^5"
+    description: "Absolute number of day-30 virus-specific OT-I CD8+ T cells in chronic\
+      \ Ag-stimulated mice reported in the Results text; SD approximated from the\
+      \ \xB1 value"
+    context: Reduced quantity of virus-specific CD8+ T cells after chronic Ag stimulation;
+      values pooled across n = 23 mice/group
+- name: n_mice_single_day30
+  value: 20.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Results, Reduced quantity of virus-specific CD8+ T cells after
+    chronic Ag stimulation
+  value_snippet: n = 20 mice/group
+- name: n_mice_chronic_day30
+  value: 23.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Bucks2009
+  source_location: Results, Reduced quantity of virus-specific CD8+ T cells after
+    chronic Ag stimulation
+  value_snippet: n = 23 mice/group
+calibration:
+  parameters:
+  - name: k_CD8_basal_exh
+    units: 1/day
+    nuisance: false
+  - name: k_CD8_death
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: Bucks2009 reports a time course of virus-specific OT-I CD8+ T
+      cell numbers in spleen from day 7 to day 30 for single-primed vs chronically
+      antigen-stimulated mice. After the primary peak around day 7, both groups undergo
+      contraction that is well described by first-order loss dynamics. The chronically
+      stimulated group shows rapid early loss (day 7-14) followed by a plateau/partial
+      recovery (day 14-30) that reflects exhausted progenitor T cell self-renewal —
+      biology not represented in the QSP model. Only the early contraction phase
+      (day 7-14 for chronic, day 7-30 for single) is used, where first-order decay
+      is a valid approximation. The chronic day 21 and day 30 data are excluded
+      because the non-monotonic recovery requires Tex progenitor dynamics absent
+      from the submodel.
+    submodel_rationale: In the full PDAC QSP model, functional intratumoral CD8+ T
+      cells are lost by baseline death at rate k_CD8_death and by conversion to an
+      exhausted state at a basal TCR-driven rate k_CD8_basal_exh that is active under
+      high antigen load. In the chronic influenza model of Bucks2009, there is persistent
+      high viral antigen but minimal systemic inflammation, approximating the condition
+      where the Hill term C_total/(C_total+K_C_exh+cell) in the basal exhaustion reaction
+      is effectively saturated in the chronic group and near zero after viral clearance
+      in the single-primed group. Under these assumptions, functional OT-I CD8+ T
+      cells in the spleen follow first-order decay with rate k_CD8_death in single-primed
+      mice, and k_CD8_death + k_CD8_basal_exh in chronically stimulated mice. The
+      custom ODE reproduces this structure while abstracting away spatial compartments
+      and additional tumor-specific exhaustion pathways (Treg-, PD-L1-, stiffness-mediated),
+      which are not engaged in this influenza model.
+    independent_variable:
+      name: time
+      units: day
+      span:
+      - 7.0
+      - 30.0
+    state_variables:
+    - name: CD8_single
+      units: cell
+      initial_condition:
+        input_ref: cd8_single_day7_mean_cells
+        rationale: Day 7 single-prime OT-I CD8+ T cell count in spleen is taken as
+          the starting point of the contraction phase in Bucks2009 Figure 2C.
+    - name: CD8_chronic
+      units: cell
+      initial_condition:
+        input_ref: cd8_chronic_day7_mean_cells
+        rationale: Day 7 chronic-stimulated OT-I CD8+ T cell count in spleen is taken
+          as the starting point of the contraction/exhaustion phase in Bucks2009 Figure
+          2C.
+    type: custom_ode
+    code: "def ode(t, y, params, inputs):\n    CD8_single, CD8_chronic = y\n    k_death\
+      \ = params['k_CD8_death']\n    k_exh = params['k_CD8_basal_exh']\n    dCD8_single\
+      \ = -k_death * CD8_single\n    dCD8_chronic = -(k_death + k_exh) * CD8_chronic\n\
+      \    return [dCD8_single, dCD8_chronic]\n"
+  error_model:
+  - name: single_day14_count
+    observable:
+      type: identity
+      state_variables:
+      - CD8_single
+    units: cell
+    uses_inputs:
+    - cd8_single_day14_mean_cells
+    - cd8_single_day14_sd_cells
+    - n_mice_timecourse
+    evaluation_points:
+    - 14.0
+    sample_size_input: n_mice_timecourse
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['cd8_single_day14_mean_cells']\n\
+      \    sd = inputs['cd8_single_day14_sd_cells']\n    cv = sd / mean\n    sigma_ln\
+      \ = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2\n\
+      \    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: single_day21_count
+    observable:
+      type: identity
+      state_variables:
+      - CD8_single
+    units: cell
+    uses_inputs:
+    - cd8_single_day21_mean_cells
+    - cd8_single_day21_sd_cells
+    - n_mice_timecourse
+    evaluation_points:
+    - 21.0
+    sample_size_input: n_mice_timecourse
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['cd8_single_day21_mean_cells']\n\
+      \    sd = inputs['cd8_single_day21_sd_cells']\n    cv = sd / mean\n    sigma_ln\
+      \ = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2\n\
+      \    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: single_day30_count
+    observable:
+      type: identity
+      state_variables:
+      - CD8_single
+    units: cell
+    uses_inputs:
+    - cd8_single_day30_mean_cells
+    - cd8_single_day30_sd_cells
+    - n_mice_single_day30
+    evaluation_points:
+    - 30.0
+    sample_size_input: n_mice_single_day30
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['cd8_single_day30_mean_cells']\n\
+      \    sd = inputs['cd8_single_day30_sd_cells']\n    cv = sd / mean\n    sigma_ln\
+      \ = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2\n\
+      \    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: chronic_day14_count
+    observable:
+      type: identity
+      state_variables:
+      - CD8_chronic
+    units: cell
+    uses_inputs:
+    - cd8_chronic_day14_mean_cells
+    - cd8_chronic_day14_sd_cells
+    - n_mice_timecourse
+    evaluation_points:
+    - 14.0
+    sample_size_input: n_mice_timecourse
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['cd8_chronic_day14_mean_cells']\n\
+      \    sd = inputs['cd8_chronic_day14_sd_cells']\n    cv = sd / mean\n    sigma_ln\
+      \ = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2\n\
+      \    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: The single-prime arm provides three timepoints (days 14,
+    21, 30) constraining k_CD8_death via log-linear contraction slope. The chronic
+    arm at day 14 constrains the sum k_CD8_death + k_CD8_basal_exh via the ~20-fold
+    gap between single and chronic counts at the same timepoint. Their difference
+    identifies k_CD8_basal_exh. Chronic days 21 and 30 are excluded because the
+    observed recovery (61k → 136k → 154k) reflects Tex progenitor self-renewal
+    dynamics not represented in the first-order loss submodel, causing structural
+    model misspecification if included. The Hill parameter K_C_exh is not constrained
+    here because antigen levels are not directly observed.
+experimental_context:
+  species: mouse
+  system: animal_in_vivo
+  cell_types:
+  - name: CD8+ T cells
+    phenotype: OT-I TCR transgenic, OVA257-264-specific CD8+ T cells
+    isolation_method: Purified from OT-I transgenic donor mice and adoptively transferred
+      i.v. into C57BL/6 recipients
+    source: OT-I TCR transgenic mice on C57BL/6 background
+  indication: acute and chronic influenza A virus infection
+study_interpretation: Bucks2009 created a mouse model in which OT-I CD8+ T cells experience
+  either a single exposure to influenza WSN-OVA (single prime) or repeated systemic
+  exposure (chronic antigen) without sustained systemic inflammation. Virus-specific
+  CD8+ T cell numbers in spleen rose to a peak around day 7 and then declined over
+  the next 3 weeks. Chronically stimulated mice showed an accelerated loss of OT-I
+  cells between days 14 and 30 compared with single-primed controls, and the remaining
+  cells exhibited markedly reduced secondary expansion and IFN-gamma production upon
+  rechallenge. By modeling the contraction of virus-specific CD8+ T cells as a first-order
+  process, with single-primed mice reflecting baseline death and chronically stimulated
+  mice reflecting baseline death plus additional TCR-driven exhaustion/inactivation,
+  the additional decay component can be interpreted as an effective basal exhaustion
+  rate k_CD8_basal_exh under conditions of high chronic antigen and minimal bystander
+  inflammation.
+key_assumptions:
+- From day 7 onward, the OT-I CD8+ T cell population in spleen is in a contraction
+  phase that can be approximated by first-order loss dynamics.
+- In single-primed mice, persistent antigen load after day 7 is low enough that the
+  basal exhaustion reaction k_CD8_basal_exh * CD8 * C_total/(C_total+K_C_exh+cell)
+  is effectively off, so loss reflects primarily baseline death at rate k_CD8_death.
+- In chronically stimulated mice, repeated virus injections maintain high antigen
+  levels such that C_total >> K_C_exh, so the Hill term in the basal exhaustion rate
+  is effectively 1 and the additional loss rate equals k_CD8_basal_exh.
+- Other exhaustion pathways present in the full PDAC model (Treg-, PD-L1-, stiffness-mediated
+  exhaustion) are negligible in this influenza model and therefore are not included
+  in the submodel.
+- "Error bars in Figure 2C and the \xB1 values in the text are treated as SD rather\
+  \ than SEM; lognormal sampling is used to reflect strictly positive cell counts."
+- Differences between the day-21 time course points and the pooled day-30 values (with
+  larger n) reflect biological and experimental variability rather than systematic
+  changes in kinetics; the simple exponential model averages over these variations.
+key_study_limitations:
+- The system is acute/chronic influenza A infection in mouse spleen with adoptively
+  transferred OT-I CD8+ T cells, not tumor-infiltrating CD8+ T cells in human PDAC;
+  translation requires assuming that basal TCR-driven exhaustion kinetics are similar
+  across contexts.
+- Antigen is viral (OVA peptide in influenza) rather than tumor neoantigen, and the
+  spatial context (spleen, systemic infection) differs substantially from the desmoplastic
+  PDAC tumor microenvironment.
+- The experiment does not distinguish physical deletion from functional exhaustion;
+  accelerated loss of virus-specific CD8+ T cells is interpreted as effective exhaustion/inactivation,
+  which may overestimate the pure conversion rate to a long-lived exhausted state.
+- Antigen load (C_total) and the Hill parameter K_C_exh are not measured, so saturation
+  of the basal exhaustion term in the chronic group and its absence in the single-primed
+  group are inferred rather than demonstrated.
+- Only three nontrivial late timepoints (days 14, 21, 30) are available per group,
+  limiting the precision with which separate death and exhaustion rates can be disentangled
+  and making the two rates partially correlated.
+primary_data_source:
+  doi: 10.4049/jimmunol.0800997
+  title: Chronic Antigen Stimulation Alone Is Sufficient to Drive CD8+ T Cell Exhaustion
+  authors:
+  - Bucks
+  - Norton JA
+  - Boesteanu AC
+  - Mueller YM
+  - Katsikis PD
+  year: 2009
+  source_tag: Bucks2009
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The source study examines CD8+ T cell exhaustion
+      in a murine model of acute and chronic influenza A virus infection, whereas
+      the QSP model targets human pancreatic ductal adenocarcinoma (PDAC). Both contexts
+      involve chronic antigen exposure driving functional impairment of CD8+ T cells,
+      but the infected spleen and lung lack the dense desmoplastic stroma and complex
+      myeloid-rich tumor microenvironment of PDAC. Thus the data are used as a mechanistic
+      proxy for generic TCR-driven exhaustion kinetics rather than PDAC-specific behavior.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: pathological_state
+    perturbation_relevance: The chronic antigen condition is induced by repeated i.p.
+      delivery of live influenza virus without additional pharmacologic or genetic
+      perturbations. This represents a pathological state of persistent antigenemia
+      that approximates sustained TCR stimulation in tumors, providing an upper-bound
+      estimate of basal exhaustion kinetics in a high-antigen environment.
+    tme_compatibility: low
+    tme_compatibility_notes: Influenza infection primarily involves lymphoid organs
+      and lung with transient inflammatory infiltrates, whereas PDAC is characterized
+      by a dense fibrotic stroma, hypovascularity, and layered immunosuppression from
+      CAFs, MDSCs, and Tregs. Basal TCR-driven exhaustion rates inferred from influenza
+      likely overestimate those in PDAC and do not capture modulation by stiffness,
+      hypoxia, or stromal exclusion present in the tumor microenvironment.
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: animal_in_vivo
+tags:
+- CD8_exhaustion
+- chronic_antigen
+- mouse_influenza
+- k_CD8_basal_exh
+- timecourse
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

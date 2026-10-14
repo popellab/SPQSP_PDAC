@@ -1,0 +1,503 @@
+target_id: TGFb_50_Teff
+inputs:
+- name: TGFb_dose_ngml_4c_1
+  value: 0.001
+  units: ng/mL
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  value_snippet: "Suppression of IFN-g was detectable even at a minute concentration\
+    \ (0.001 ng/ml) of TGF-b1 and increased to 30\u201350% with higher doses (Fig.\
+    \ 4, C and D)."
+- name: TGFb_dose_ngml_4c_2
+  value: 0.01
+  units: ng/mL
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  value_snippet: "Suppression of IFN-g was detectable even at a minute concentration\
+    \ (0.001 ng/ml) of TGF-b1 and increased to 30\u201350% with higher doses (Fig.\
+    \ 4, C and D)."
+- name: TGFb_dose_ngml_4c_3
+  value: 0.1
+  units: ng/mL
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  value_snippet: "Suppression of IFN-g was detectable even at a minute concentration\
+    \ (0.001 ng/ml) of TGF-b1 and increased to 30\u201350% with higher doses (Fig.\
+    \ 4, C and D)."
+- name: TGFb_dose_ngml_4c_4
+  value: 1.0
+  units: ng/mL
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  value_snippet: "However, the suppression levels reached their maximum peak at 1\u2013\
+    10 ng/ml TGF-b1."
+- name: TGFb_dose_ngml_4c_5
+  value: 10.0
+  units: ng/mL
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  value_snippet: "However, the suppression levels reached their maximum peak at 1\u2013\
+    10 ng/ml TGF-b1."
+- name: TGFb_ngml_to_nM
+  value: 0.04
+  units: dimensionless
+  input_type: reference_value
+  rationale: "Conversion factor from ng/mL to nM for TGFb1 assuming molecular weight\
+    \ ~25 kDa: 1 ng/mL \u2248 0.04 nM."
+  source_ref: Ahmadzadeh2005
+  source_location: Methods (recombinant human TGF-b1; molecular weight from manufacturer
+    datasheet)
+- name: TGFb_dose_nM_4c_1
+  value: 4.0e-05
+  units: nanomolarity
+  input_type: derived_arithmetic
+  rationale: Convert 0.001 ng/mL TGFb1 to nM using TGFb_ngml_to_nM.
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  source_inputs:
+  - TGFb_dose_ngml_4c_1
+  - TGFb_ngml_to_nM
+  formula: TGFb_dose_ngml_4c_1 * TGFb_ngml_to_nM
+- name: TGFb_dose_nM_4c_2
+  value: 0.0004
+  units: nanomolarity
+  input_type: derived_arithmetic
+  rationale: Convert 0.01 ng/mL TGFb1 to nM using TGFb_ngml_to_nM.
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  source_inputs:
+  - TGFb_dose_ngml_4c_2
+  - TGFb_ngml_to_nM
+  formula: TGFb_dose_ngml_4c_2 * TGFb_ngml_to_nM
+- name: TGFb_dose_nM_4c_3
+  value: 0.004
+  units: nanomolarity
+  input_type: derived_arithmetic
+  rationale: Convert 0.1 ng/mL TGFb1 to nM using TGFb_ngml_to_nM.
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  source_inputs:
+  - TGFb_dose_ngml_4c_3
+  - TGFb_ngml_to_nM
+  formula: TGFb_dose_ngml_4c_3 * TGFb_ngml_to_nM
+- name: TGFb_dose_nM_4c_4
+  value: 0.04
+  units: nanomolarity
+  input_type: derived_arithmetic
+  rationale: Convert 1 ng/mL TGFb1 to nM using TGFb_ngml_to_nM.
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  source_inputs:
+  - TGFb_dose_ngml_4c_4
+  - TGFb_ngml_to_nM
+  formula: TGFb_dose_ngml_4c_4 * TGFb_ngml_to_nM
+- name: TGFb_dose_nM_4c_5
+  value: 0.4
+  units: nanomolarity
+  input_type: derived_arithmetic
+  rationale: Convert 10 ng/mL TGFb1 to nM using TGFb_ngml_to_nM.
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  source_inputs:
+  - TGFb_dose_ngml_4c_5
+  - TGFb_ngml_to_nM
+  formula: TGFb_dose_ngml_4c_5 * TGFb_ngml_to_nM
+- name: percent_supp_mean_4c_1
+  value: 7.61
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: ~8
+    description: Percent IFN-g suppression at 0.001 ng/mL TGF-b1
+    context: Pooled data from six patients; suppression of IFN-g by effector memory
+      CD8 T cells restimulated with peptide-pulsed T2 cells in presence of TGF-b1.
+- name: percent_supp_sem_4c_1
+  value: 3.52
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: error bar height ~3.5
+    description: "Error bar (mean \xB1 SEM) for percent IFN-g suppression at 0.001\
+      \ ng/mL TGF-b1"
+    context: Pooled data from six patients; error bars reported as SEM.
+- name: percent_supp_mean_4c_2
+  value: 16.02
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: ~16
+    description: Percent IFN-g suppression at 0.01 ng/mL TGF-b1
+    context: Pooled data from six patients; suppression of IFN-g by effector memory
+      CD8 T cells restimulated with peptide-pulsed T2 cells in presence of TGF-b1.
+- name: percent_supp_sem_4c_2
+  value: 3.86
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: error bar height ~3.9
+    description: "Error bar (mean \xB1 SEM) for percent IFN-g suppression at 0.01\
+      \ ng/mL TGF-b1"
+    context: Pooled data from six patients; error bars reported as SEM.
+- name: percent_supp_mean_4c_3
+  value: 33.17
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: ~33
+    description: Percent IFN-g suppression at 0.1 ng/mL TGF-b1
+    context: Pooled data from six patients; suppression of IFN-g by effector memory
+      CD8 T cells restimulated with peptide-pulsed T2 cells in presence of TGF-b1.
+- name: percent_supp_sem_4c_3
+  value: 7.61
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: error bar height ~7.6
+    description: "Error bar (mean \xB1 SEM) for percent IFN-g suppression at 0.1 ng/mL\
+      \ TGF-b1"
+    context: Pooled data from six patients; error bars reported as SEM.
+- name: percent_supp_mean_4c_4
+  value: 39.42
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: ~39
+    description: Percent IFN-g suppression at 1 ng/mL TGF-b1
+    context: Pooled data from six patients; suppression of IFN-g by effector memory
+      CD8 T cells restimulated with peptide-pulsed T2 cells in presence of TGF-b1.
+- name: percent_supp_sem_4c_4
+  value: 8.07
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: error bar height ~8.1
+    description: "Error bar (mean \xB1 SEM) for percent IFN-g suppression at 1 ng/mL\
+      \ TGF-b1"
+    context: Pooled data from six patients; error bars reported as SEM.
+- name: percent_supp_mean_4c_5
+  value: 41.24
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: ~41
+    description: Percent IFN-g suppression at 10 ng/mL TGF-b1
+    context: Pooled data from six patients; suppression of IFN-g by effector memory
+      CD8 T cells restimulated with peptide-pulsed T2 cells in presence of TGF-b1.
+- name: percent_supp_sem_4c_5
+  value: 4.54
+  units: percent
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: error bar height ~4.5
+    description: "Error bar (mean \xB1 SEM) for percent IFN-g suppression at 10 ng/mL\
+      \ TGF-b1"
+    context: Pooled data from six patients; error bars reported as SEM.
+- name: n_patients_fig4
+  value: 6.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C legend / Results text
+  value_snippet: Percent IFN-g suppression was calculated from six patients in response
+    to peptide-pulsed T2 cells.
+- name: percent_scale
+  value: 100.0
+  units: percent
+  input_type: reference_value
+  rationale: "Scale factor to convert percentages (0\u2013100%) to fractions (0\u2013\
+    1) for use in the Hill-type inhibitory function."
+  source_ref: Ahmadzadeh2005
+  source_location: Figure 4C
+calibration:
+  parameters:
+  - name: TGFb_50_Teff
+    units: nanomolarity
+    nuisance: false
+  - name: baseline_unsupp_Teff
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -0.51
+      sigma: 0.5
+  - name: maximum_unsupp_Teff
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.2
+  forward_model:
+    data_rationale: "Ahmadzadeh2005 reports a TGFb1 concentration\u2013response curve\
+      \ for acute suppression of IFNg secretion by fully activated human effector\
+      \ memory CD8 T cells (24 h restimulation with peptide-pulsed T2 cells) across\
+      \ 0.001\u201310 ng/mL TGFb1. The pooled percent IFNg suppression vs TGFb1 (Fig.\
+      \ 4C) directly defines an inhibitory Hill-type dose\u2013response suitable for\
+      \ estimating the half-maximal inhibitory concentration."
+    submodel_rationale: In the full QSPIO-PDAC model, TGFb_50_Teff is the EC50 for
+      TGFb-mediated inhibition of CD8 effector T cell function, typically implemented
+      as a multiplicative Hill factor of the form f_inhib = 1 / (1 + (TGFb / TGFb_50_Teff)^n).
+      Fitting a Hill curve to the fraction of IFNg function remaining as a function
+      of TGFb concentration replicates this gating term for Teff cells under near-steady-state
+      in vitro conditions.
+    type: direct_fit
+    curve: hill
+    ec50: TGFb_50_Teff
+    n_hill: '1.0'
+    baseline: baseline_unsupp_Teff
+    maximum: maximum_unsupp_Teff
+    intercept: '0.0'
+  error_model:
+  - name: IFNg_unsupp_frac_Teff_TGFb_0p001ng
+    units: dimensionless
+    uses_inputs:
+    - percent_supp_mean_4c_1
+    - percent_supp_sem_4c_1
+    - n_patients_fig4
+    - percent_scale
+    x_input: TGFb_dose_nM_4c_1
+    sample_size_input: n_patients_fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_pct = inputs['percent_supp_mean_4c_1']\n \
+      \   sem_pct = inputs['percent_supp_sem_4c_1']\n    scale = inputs['percent_scale']\n\
+      \    sd_pct = sem_pct * np.sqrt(sample_size)\n    sd_mean_pct = sd_pct / np.sqrt(sample_size)\n\
+      \    samples_pct = rng.normal(mean_pct, sd_mean_pct, n_bootstrap)\n    samples_frac_unsupp\
+      \ = 1.0 - samples_pct / scale\n    return samples_frac_unsupp\n"
+    n_bootstrap: 10000
+  - name: IFNg_unsupp_frac_Teff_TGFb_0p01ng
+    units: dimensionless
+    uses_inputs:
+    - percent_supp_mean_4c_2
+    - percent_supp_sem_4c_2
+    - n_patients_fig4
+    - percent_scale
+    x_input: TGFb_dose_nM_4c_2
+    sample_size_input: n_patients_fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_pct = inputs['percent_supp_mean_4c_2']\n \
+      \   sem_pct = inputs['percent_supp_sem_4c_2']\n    scale = inputs['percent_scale']\n\
+      \    sd_pct = sem_pct * np.sqrt(sample_size)\n    sd_mean_pct = sd_pct / np.sqrt(sample_size)\n\
+      \    samples_pct = rng.normal(mean_pct, sd_mean_pct, n_bootstrap)\n    samples_frac_unsupp\
+      \ = 1.0 - samples_pct / scale\n    return samples_frac_unsupp\n"
+    n_bootstrap: 10000
+  - name: IFNg_unsupp_frac_Teff_TGFb_0p1ng
+    units: dimensionless
+    uses_inputs:
+    - percent_supp_mean_4c_3
+    - percent_supp_sem_4c_3
+    - n_patients_fig4
+    - percent_scale
+    x_input: TGFb_dose_nM_4c_3
+    sample_size_input: n_patients_fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_pct = inputs['percent_supp_mean_4c_3']\n \
+      \   sem_pct = inputs['percent_supp_sem_4c_3']\n    scale = inputs['percent_scale']\n\
+      \    sd_pct = sem_pct * np.sqrt(sample_size)\n    sd_mean_pct = sd_pct / np.sqrt(sample_size)\n\
+      \    samples_pct = rng.normal(mean_pct, sd_mean_pct, n_bootstrap)\n    samples_frac_unsupp\
+      \ = 1.0 - samples_pct / scale\n    return samples_frac_unsupp\n"
+    n_bootstrap: 10000
+  - name: IFNg_unsupp_frac_Teff_TGFb_1ng
+    units: dimensionless
+    uses_inputs:
+    - percent_supp_mean_4c_4
+    - percent_supp_sem_4c_4
+    - n_patients_fig4
+    - percent_scale
+    x_input: TGFb_dose_nM_4c_4
+    sample_size_input: n_patients_fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_pct = inputs['percent_supp_mean_4c_4']\n \
+      \   sem_pct = inputs['percent_supp_sem_4c_4']\n    scale = inputs['percent_scale']\n\
+      \    sd_pct = sem_pct * np.sqrt(sample_size)\n    sd_mean_pct = sd_pct / np.sqrt(sample_size)\n\
+      \    samples_pct = rng.normal(mean_pct, sd_mean_pct, n_bootstrap)\n    samples_frac_unsupp\
+      \ = 1.0 - samples_pct / scale\n    return samples_frac_unsupp\n"
+    n_bootstrap: 10000
+  - name: IFNg_unsupp_frac_Teff_TGFb_10ng
+    units: dimensionless
+    uses_inputs:
+    - percent_supp_mean_4c_5
+    - percent_supp_sem_4c_5
+    - n_patients_fig4
+    - percent_scale
+    x_input: TGFb_dose_nM_4c_5
+    sample_size_input: n_patients_fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_pct = inputs['percent_supp_mean_4c_5']\n \
+      \   sem_pct = inputs['percent_supp_sem_4c_5']\n    scale = inputs['percent_scale']\n\
+      \    sd_pct = sem_pct * np.sqrt(sample_size)\n    sd_mean_pct = sd_pct / np.sqrt(sample_size)\n\
+      \    samples_pct = rng.normal(mean_pct, sd_mean_pct, n_bootstrap)\n    samples_frac_unsupp\
+      \ = 1.0 - samples_pct / scale\n    return samples_frac_unsupp\n"
+    n_bootstrap: 10000
+  identifiability_notes: "Five dose points spanning >3 orders of magnitude in TGFb1\
+    \ (0.001\u201310 ng/mL \u2248 4e-5\u20130.4 nM) constrain the EC50 TGFb_50_Teff\
+    \ under the assumption of a Hill coefficient fixed at 1.0. Baseline (minimal unsuppressed\
+    \ fraction at high TGFb) and maximum (unsuppressed fraction at zero TGFb) are\
+    \ included as nuisance parameters and are partially constrained by the 0.001\u2013\
+    10 ng/mL data (with 0.001 ng/mL close to the no-TGFb condition). EC50 is expected\
+    \ to be identifiable within roughly a half-log based on the curvature between\
+    \ 0.01 and 0.1 ng/mL, but the Hill coefficient is not separately identifiable\
+    \ and is therefore fixed. Translation from in vitro peptide restimulation to in\
+    \ vivo PDAC Teff function adds uncertainty; this is handled at the source-relevance\
+    \ level rather than by extra parameters."
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: CD8 T cells
+    phenotype: gp100 melanoma antigen-specific effector memory CD8 T cells from vaccinated
+      melanoma patients
+    isolation_method: PBMC by leukapheresis followed by in vitro activation in the
+      presence of peptide and IL-2; antigen-specific cells identified by HLA-A2/gp100
+      tetramers
+    source: Peripheral blood of HLA-A*0201-positive melanoma patients vaccinated with
+      gp100:209-217 (210M) peptide.
+  culture_conditions:
+    substrate: standard tissue culture plastic
+    serum_concentration: 10.0
+    serum_concentration_units: '% human AB serum'
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+    medium: IMDM supplemented with 10% heat-inactivated human AB serum plus antibiotics,
+      HEPES, L-glutamine, and amphotericin B
+    supplements: Recombinant human IL-2 (300 IU/mL) added on day 1 after initial peptide
+      activation; no exogenous IL-2 during 24 h restimulation assays.
+    duration: "Initial activation 10\u201314 days with gp100 peptide and IL-2 to generate\
+      \ effector memory CD8 T cells; 24 h coculture with peptide-pulsed T2 cells \xB1\
+      \ TGFb1 for functional assays."
+    notes: Recombinant human TGFb1 was added at the indicated concentrations only
+      during the 24 h restimulation, isolating acute effects on effector function
+      rather than on differentiation.
+  indication: melanoma
+study_interpretation: "Ahmadzadeh2005 demonstrates that recombinant human TGFb1 acutely\
+  \ suppresses IFNg secretion by fully activated, melanoma antigen-specific effector\
+  \ memory CD8 T cells from vaccinated melanoma patients in a graded, concentration-dependent\
+  \ fashion, with detectable effects at 0.001 ng/mL and near-maximal suppression by\
+  \ 1\u201310 ng/mL. Interpreting IFNg output as a proxy for CD8 Teff effector function,\
+  \ the pooled percent suppression vs TGFb1 concentration in Fig. 4C provides a direct\
+  \ empirical estimate of the TGFb1 EC50 for inhibiting human CD8 effector function.\
+  \ Under the assumption that the intrinsic sensitivity of Teff cells to TGFb is similar\
+  \ across solid tumors, these data inform the QSPIO-PDAC parameter TGFb_50_Teff,\
+  \ which governs a Hill-type inhibitory gate on Teff effector activity in the PDAC\
+  \ tumor microenvironment."
+key_assumptions:
+- Intrinsic TGFb sensitivity (EC50) of human tumor antigen-specific effector memory
+  CD8 T cells is similar between melanoma patients studied in Ahmadzadeh2005 and PDAC
+  patients in the QSP model, so that the fitted EC50 can be applied across indications.
+- CD8 effector function in the QSP model is proportional to IFNg secretion measured
+  in vitro; thus the concentration of TGFb1 that gives half-maximal suppression of
+  IFNg approximates the concentration giving half-maximal suppression of overall effector
+  function (cytotoxicity, cytokine production).
+- "The 24 h restimulation assays reach a quasi-steady-state relationship between extracellular\
+  \ TGFb concentration and IFNg output, justifying use of a static Hill dose\u2013\
+  response rather than explicit signaling dynamics."
+- Recombinant active TGFb1 concentration in the culture medium is well controlled
+  and corresponds to the nominal ng/mL values reported, without significant loss to
+  binding or degradation over 24 h.
+- Fixing the Hill coefficient at 1.0 is an acceptable approximation; the available
+  data are insufficient to reliably identify both EC50 and Hill slope, and n=1 is
+  consistent with a single dominant inhibitory signaling axis (Smad-dependent).
+key_study_limitations:
+- Donor cells are from melanoma patients rather than PDAC, and the in vitro cultures
+  lack the complex PDAC stromal microenvironment (CAF-derived TGFb, matrix binding,
+  gradients), so the effective EC50 in vivo may differ due to spatial and temporal
+  heterogeneity of TGFb exposure.
+- "Effector function is read out solely as IFNg secretion after 24 h; although Ahmadzadeh2005\
+  \ shows similar suppression for GM-CSF and TNFa at single doses, the full dose\u2013\
+  response for these other effector functions is not available, so the fitted EC50\
+  \ is driven mainly by IFNg data."
+- "The TGFb1 concentration axis is relatively sparse (five nonzero doses over 0.001\u2013\
+  10 ng/mL), and there is no explicit 0 ng/mL point in the pooled suppression plot;\
+  \ maximum unsuppressed function is therefore weakly constrained and treated as a\
+  \ nuisance parameter."
+- Error bars in Fig. 4C are reported as SEM from six patients; we infer SD from SEM
+  assuming approximately normal inter-patient variability, which may slightly underestimate
+  heavy-tailed biological variability.
+- The assays are performed in the presence of strong TCR stimulation via peptide-pulsed
+  T2 cells and exogenous IL-2 priming; TGFb EC50 under weaker or chronic antigen stimulation
+  may differ, but the QSP parameter is assumed to reflect this strongly activated
+  Teff state.
+primary_data_source:
+  doi: 10.4049/jimmunol.174.9.5215
+  title: TGF-b1 Attenuates the Acquisition and Expression of Effector Function by
+    Tumor Antigen-Specific Human Memory CD8 T Cells
+  authors:
+  - Ahmadzadeh
+  - Rosenberg SA
+  year: 2005
+  source_tag: Ahmadzadeh2005
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: "The study uses human gp100-specific memory/effector\
+      \ CD8 T cells from melanoma patients to measure TGFb1-mediated suppression of\
+      \ effector function. Although the QSP model targets PDAC rather than melanoma,\
+      \ TGFb receptor expression and downstream Smad signaling pathways in human CD8\
+      \ T cells are expected to be largely conserved across solid tumors. The main\
+      \ difference lies in the tumor microenvironment (stroma, CAFs, cytokine milieu)\
+      \ rather than in the intrinsic TGFb sensitivity of Teff cells, so melanoma-derived\
+      \ CD8 T cell dose\u2013response data are used as a mechanistic proxy for PDAC\
+      \ Teff cells with an added translation uncertainty."
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: "Recombinant human TGFb1 is added exogenously over 0.001\u2013\
+      10 ng/mL to otherwise physiologically activated human Teff cells. This pharmacological\
+      \ titration is ideal for mapping the intrinsic concentration\u2013response relationship\
+      \ (EC50, slope) for TGFb-mediated inhibition, even though in vivo exposures\
+      \ arise from endogenous TGFb sources."
+    tme_compatibility: moderate
+    tme_compatibility_notes: The experiments are conducted in vitro with purified
+      PBMC-derived CD8 T cells and peptide-pulsed T2 cells, lacking the dense desmoplastic
+      stroma and complex immunosuppressive milieu of PDAC. However, the parameter
+      being calibrated (TGFb_50_Teff) is a cell-intrinsic sensitivity of CD8 Teff
+      function to local TGFb concentration, which is expected to be similar in different
+      TMEs. The main TME differences affect the spatial distribution and absolute
+      level of TGFb rather than the EC50 of the Teff response.
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_primary
+tags:
+- TGFbeta
+- CD8_T_cells
+- Teff_suppression
+- human
+- in_vitro
+- dose_response
+- IFNg
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

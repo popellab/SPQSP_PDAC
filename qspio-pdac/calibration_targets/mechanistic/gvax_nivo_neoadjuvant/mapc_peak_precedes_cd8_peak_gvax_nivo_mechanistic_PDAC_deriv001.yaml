@@ -1,0 +1,200 @@
+study_interpretation: |
+  Mechanistic-prior counterpart to mapc_peak_precedes_cd8_peak_gvax for
+  the GVAX+nivolumab arm (NCT02451982 Arm B). The cascade-ordering claim
+  (mAPC dynamics lead CD8 dynamics in tumor) is the same canonical
+  priming cascade; nivolumab adds checkpoint release that further
+  amplifies the CD8 expansion phase but does not invert the temporal
+  ordering — APCs still mature on a faster timescale than T cell
+  expansion.
+
+  Encoded as t_center(CD8 excursion) - t_center(mAPC excursion) measured
+  over the post-GVAX window (t >= 7 d), CI95 [1, 14] days lognormal.
+  Earlier versions used argmax (t_peak(CD8) - t_peak(mAPC)), which
+  returned sentinel values (0 or ±window-length) when species were
+  monotonic and fed those sentinels into NPE training as if they were
+  real measurements at log-infinite distance from the target — distorting
+  posteriors of unrelated parameters (vol_myCAFcell, cDC1_recruit_target_T
+  in the post-#180 audit). Excursion mass-center is smooth in θ, returns
+  NaN cleanly when no excursion above baseline occurs (NaN filter then
+  drops the target for that θ), and preserves the same biological claim.
+key_assumptions:
+- |
+  Mechanistic prior: APC maturation precedes T cell expansion in
+  vaccine-driven cascades. PD-1 blockade modulates the magnitude of
+  CD8 expansion but not its ordering relative to APC maturation.
+- |
+  Observable: excursion mass-center lag,
+  t_center(CD8 above CD8(t=7d)) - t_center(mAPC above mAPC(t=7d))
+  via trapezoidal integration over t in [7, 21] d. Mass-center of an
+  excursion above baseline sits near the peak time when a peak exists
+  and near the centroid of the rise when the species is monotonically
+  increasing — leading/lagging direction is preserved either way.
+- |
+  Window: t >= 7 d (post-GVAX/nivo). GVAX and nivo are both administered
+  at d7 in this scenario; the cascade signal lives in the 14-day
+  post-treatment window before surgery at d21.
+- |
+  Species mapping: V_T.mcDC1 + V_T.mcDC2 for mAPC; V_T.CD8 + V_T.CD8_exh
+  for total CD8.
+- |
+  Distribution width: lognormal CI95 [1.0, 14.0] day, geometric mean
+  ~3.74 d. Same as the argmax-era target — the lognormal soft-prior
+  describes the same biological claim (CD8 dynamics lag mAPC dynamics
+  by 1-14 d), just expressed via a continuous functional.
+key_study_limitations:
+- |
+  When mAPC or CD8 has no excursion above its window-start value (rare
+  in practice, since GVAX drives both upward), the mass-center is NaN
+  and the cal-target framework's NaN filter drops the target for that
+  θ. This trades a structural penalty (the previous argmax sentinel)
+  for honest "no signal" handling.
+- |
+  Excursion mass-center is a smooth functional rather than a literal
+  peak time. For a true peaked profile it sits near the peak; for a
+  monotone rise it sits near the centroid (~2/3 of the integration
+  window). Two monotone-rising species can produce a small but real
+  delta if one rises earlier than the other; this is biologically
+  faithful even though the species themselves haven't "peaked".
+- |
+  No direct literature anchor; this is a mechanistic translation of
+  general vaccine-immunology priors, not a measured human PDAC
+  observable.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        """ε-relaxed excursion-mass-center: t_center(CD8 rise) - t_center(mAPC rise).
+    
+        Replaces the prior NaN-on-no-excursion gate with an ε floor on each
+        excursion integral so the mass-center is *always* defined (never NaN).
+        Reason: qsp-hpc-tools applies a JOINT NaN filter — any NaN in any
+        target drops the entire θ row from training, which would unnecessarily
+        discard rows that fail this target but are fine on the other 59.
+    
+        Output is clipped to a strictly-positive ε_output so the cal target's
+        lognormal log-transform stays finite. When mAPC leads CD8 in time,
+        delta > 0 and lands inside the CI [1, 14]. When CD8 leads (wrong
+        direction) or both are flat, the output is clipped to ε_output —
+        strongly below CI lower bound 1d, providing a bounded soft-prior
+        penalty.
+        """
+        import numpy as np
+    
+        t = np.asarray(time, dtype=float)
+        mapc = species_dict['V_T.mcDC1'] + species_dict['V_T.mcDC2']
+        cd8 = species_dict['V_T.CD8'] + species_dict['V_T.CD8_exh']
+    
+        if t.size < 2 or mapc.size != t.size or cd8.size != t.size:
+            return np.full_like(t, np.nan, dtype=float)
+    
+        mask = t >= 7.0
+        if mask.sum() < 2:
+            return np.full_like(t, np.nan, dtype=float)
+        tw = t[mask]
+        mapc_w, cd8_w = mapc[mask], cd8[mask]
+        if not (np.all(np.isfinite(mapc_w)) and np.all(np.isfinite(cd8_w))):
+            return np.full_like(t, np.nan, dtype=float)
+    
+        trapz = np.trapezoid if hasattr(np, 'trapezoid') else np.trapz
+        EPS_FLOOR = 1e-4
+        EPS_OUTPUT = 0.01
+    
+        def _mass_center(values, scale):
+            weights = values + EPS_FLOOR * max(scale, 1.0)
+            denom = trapz(weights, tw)
+            if not np.isfinite(denom) or denom <= 0:
+                return float('nan')
+            return float(trapz(tw * weights, tw) / denom)
+    
+        t_center_mapc = _mass_center(np.clip(mapc_w - mapc_w[0], 0.0, None), float(np.max(mapc_w)))
+        t_center_cd8 = _mass_center(np.clip(cd8_w - cd8_w[0], 0.0, None), float(np.max(cd8_w)))
+        if not (np.isfinite(t_center_mapc) and np.isfinite(t_center_cd8)):
+            return np.full_like(t, np.nan, dtype=float)
+    
+        delta = t_center_cd8 - t_center_mapc
+        delta_clipped = max(delta, EPS_OUTPUT)
+        return np.full_like(t, delta_clipped, dtype=float)
+
+  units: day
+  species:
+  - V_T.mcDC1
+  - V_T.mcDC2
+  - V_T.CD8
+  - V_T.CD8_exh
+  constants: []
+  support: positive_unbounded
+  mapping_rationale: |
+    Excursion mass-center lag,
+    t_center(CD8 above baseline) - t_center(mAPC above baseline), over
+    t in [7, 21] d. Continuous (smooth in θ) replacement for the old
+    argmax-based lag, which produced sentinel values when species were
+    monotonic. Mechanistic prior asserts this is positive — APC
+    dynamics lead CD8 dynamics under combined vaccination + checkpoint
+    blockade.
+  experimental_denominator: null
+  model_denominator_species: null
+  unmodeled_denominator_components: null
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: on_treatment
+    specifier: |
+      Neoadjuvant Cy + GVAX + nivolumab (NCT02451982 Arm B). Cy d6,
+      GVAX + nivo d7, simulated surgery d21.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: null
+  assay_type: null
+scenario:
+  description: |
+    Neoadjuvant Cy-GVAX + nivolumab scenario; mechanistic-prior target
+    on cascade-ordering of mAPC dynamics preceding CD8 dynamics in
+    tumor.
+  interventions:
+  - intervention_description: Cyclophosphamide d6, GVAX + nivolumab d7.
+empirical_data:
+  median:
+  - 3.742
+  ci95:
+  - - 1.0
+    - 14.0
+  units: day
+  sample_size: 1
+  sample_size_rationale: |
+    Mechanistic prior; sample size 1 (single soft-prior assertion).
+  index_values:
+  - 21.0
+  index_unit: day
+  index_type: time
+  inputs: []
+  assumptions: []
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        rng = np.random.default_rng(42)
+        lo, hi = 1.0, 14.0
+        mu = 0.5 * (np.log(lo) + np.log(hi))
+        sigma = (np.log(hi) - np.log(lo)) / (2.0 * 1.96)
+        samples = rng.lognormal(mu, sigma, 100000) * ureg.day
+        return {
+            'median_obs': np.median(samples),
+            'ci95_lower': np.percentile(samples, 2.5),
+            'ci95_upper': np.percentile(samples, 97.5),
+        }
+epistemic_basis: mechanistic
+primary_data_source: null
+secondary_data_sources: []
+calibration_target_id: mapc_peak_precedes_cd8_peak_gvax_nivo_mechanistic
+cancer_type: PDAC
+tags:
+- mechanistic_prior
+- cascade_ordering
+- from-qualitative-bound

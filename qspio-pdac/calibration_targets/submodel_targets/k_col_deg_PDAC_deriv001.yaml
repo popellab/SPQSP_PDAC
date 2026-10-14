@@ -1,0 +1,241 @@
+target_id: k_col_deg_hepatic_fsr_decaris2015
+tags:
+- ai-generated
+extraction_model: claude-opus-4-6
+extraction_reasoning_effort: high
+study_interpretation: 'Decaris et al. 2015 measured in vivo collagen turnover in human liver tissue using
+
+  stable isotope labeling (deuterium oxide) and mass spectrometry. Hepatic collagen I
+
+  and III FSR ranged from 0.2-0.6% per day across 6 subjects with chronic liver disease
+
+  (fibrosis scores F0-F4). FSR correlated with fibrosis severity (r2=0.79, p<0.05).
+
+  At steady state, FSR equals the degradation rate constant k_col_deg. PDAC desmoplasia
+
+  is comparable to F3-F4 hepatic fibrosis in terms of collagen density and remodeling
+
+  activity, so the fibrotic-end FSR (~0.5-0.6%/day) is the most relevant range.
+
+  '
+key_assumptions:
+- 'At steady state, fractional synthesis rate equals fractional degradation rate.
+
+  FSR = k_col_deg when collagen pool is in dynamic equilibrium. The paper confirms
+
+  active collagen remodeling even in advanced fibrosis (F3-F4 patients had the
+
+  highest FSR, not the lowest).
+
+  '
+- 'PDAC desmoplasia is comparable to F3-F4 hepatic fibrosis for collagen turnover
+
+  rates. Both involve dense collagen deposition by activated myofibroblasts with
+
+  concurrent MMP-mediated remodeling.
+
+  '
+- 'FSR is reported as % new per day from the mono-exponential rise-to-plateau curve
+
+  fit: FSR = -ln(1-F)/t where F is fraction newly synthesized and t is labeling time.
+
+  The monthly values in Fig 3B (% new per 30 days) are converted to daily FSR.
+
+  '
+key_study_limitations:
+- 'Hepatic tissue, not pancreatic. Liver has different ECM composition (more type III),
+
+  different cellular sources (hepatic stellate cells vs pancreatic stellate cells),
+
+  and different mechanical environment.
+
+  '
+- 'Chronic liver disease (HCV, autoimmune hepatitis), not cancer-associated fibrosis.
+
+  Tumor-derived signals (PDGF, TGFb from cancer cells) may alter remodeling rates.
+
+  '
+- 'Small sample (n=6 with tissue proteomic data). Wide inter-patient variability.
+
+  '
+- 'Labeling duration 20-56 days. Very long-lived collagen may be underestimated
+
+  (the three-compartment model may not fully capture the slowest turnover pool).
+
+  '
+experimental_context:
+  species: human
+  system: ex_vivo_tissue
+  cell_types:
+  - name: hepatic tissue (mixed cell types)
+    source: diagnostic liver biopsies
+    isolation_method: 'Percutaneous liver biopsy. Tissue homogenized, proteins extracted,
+
+      trypsin-digested, analyzed by LC-MS/MS. Deuterium incorporation
+
+      measured in collagen-specific peptides.
+
+      '
+  culture_conditions:
+    medium: N/A (in vivo labeling)
+    duration: 20-56 days of oral deuterium oxide intake
+  indication: chronic liver disease (HCV, autoimmune hepatitis)
+primary_data_source:
+  doi: 10.1371/journal.pone.0123311
+  title: 'Turnover Rates of Hepatic Collagen and Circulating Collagen-Associated
+
+    Proteins in Humans with Chronic Liver Disease
+
+    '
+  authors:
+  - Decaris
+  - Emson
+  - Li
+  - Gatmaitan
+  - Luo
+  - Cattin
+  - Nakamura
+  - Holmes
+  - Angel
+  - Peters
+  - Turner
+  - Hellerstein
+  year: 2015
+  source_tag: Decaris2015
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'Hepatic fibrosis (HCV-driven) as proxy for PDAC desmoplasia. Both involve
+
+      activated myofibroblasts depositing dense collagen in a chronically inflamed
+
+      tissue. The collagen degradation machinery (MMPs, TIMPs) is conserved.
+
+      Absolute turnover rates may differ due to tissue-specific factors.
+
+      '
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: pathological_state
+    perturbation_relevance: 'Chronic fibrotic liver disease with active collagen remodeling. F3-F4 fibrosis
+
+      represents advanced desmoplasia comparable to the PDAC stromal environment.
+
+      '
+    tme_compatibility: moderate
+    tme_compatibility_notes: 'Liver fibrosis shares key features with PDAC desmoplasia (activated stellate
+
+      cells, dense collagen, MMP/TIMP balance) but differs in cellular composition
+
+      (hepatocytes vs pancreatic cancer cells) and mechanical environment.
+
+      '
+    measurement_directness: direct
+    temporal_resolution: timecourse
+    experimental_system: clinical_in_vivo
+secondary_data_sources: []
+inputs:
+- name: fsr_monthly_f0
+  value: 8.1
+  units: percent
+  input_type: direct_measurement
+  source_ref: Decaris2015
+  source_location: Figure 3B
+  figure_excerpt:
+    figure_id: Figure 3B
+    description: Bar graph of old vs new collagen I by fibrosis score, normalized to 30 days
+    value: '8.1'
+    context: F0 fibrosis score. Collagen FSR as % newly synthesized per 30 days.
+- name: fsr_monthly_f3
+  value: 18.8
+  units: percent
+  input_type: direct_measurement
+  source_ref: Decaris2015
+  source_location: Figure 3B
+  figure_excerpt:
+    figure_id: Figure 3B
+    description: Bar graph of old vs new collagen I by fibrosis score, normalized to 30 days
+    value: '18.8'
+    context: F3 fibrosis score. Collagen FSR as % newly synthesized per 30 days.
+- name: fsr_monthly_f4
+  value: 16.9
+  units: percent
+  input_type: direct_measurement
+  source_ref: Decaris2015
+  source_location: Figure 3B
+  figure_excerpt:
+    figure_id: Figure 3B
+    description: Bar graph of old vs new collagen I by fibrosis score, normalized to 30 days
+    value: '16.9'
+    context: F4 fibrosis score (cirrhosis). Collagen FSR as % newly synthesized per 30 days.
+- name: fsr_daily_low
+  value: 0.2
+  units: percent / day
+  input_type: direct_measurement
+  source_ref: Decaris2015
+  source_location: Results, Hepatic Collagen FSRs
+  value_snippet: FSRs for collagen types I and III ranged from 0.2-0.6% per day
+- name: fsr_daily_high
+  value: 0.6
+  units: percent / day
+  input_type: direct_measurement
+  source_ref: Decaris2015
+  source_location: Results, Hepatic Collagen FSRs
+  value_snippet: FSRs for collagen types I and III ranged from 0.2-0.6% per day
+- name: n_subjects
+  value: 6
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Decaris2015
+  source_location: Results
+  value_snippet: proteomic data from plasma for all 8 subjects and from liver tissue in 6 of 8 subjects
+calibration:
+  parameters:
+  - name: k_col_deg
+    units: 1/day
+  forward_model:
+    type: algebraic
+    formula: k_col_deg = FSR (at steady state, fractional synthesis = fractional degradation)
+    data_rationale: 'In vivo stable isotope labeling directly measures the fraction of collagen
+
+      that is newly synthesized. At steady state (constant total collagen pool),
+
+      FSR = degradation rate constant. The F3-F4 fibrosis data is most relevant
+
+      for PDAC desmoplasia.
+
+      '
+    submodel_rationale: 'The QSP model uses k_col_deg as a first-order degradation rate:
+
+      d(collagen)/dt = ... - k_col_deg * collagen. At steady state, k_col_deg
+
+      equals the fractional synthesis rate of the collagen pool.
+
+      '
+    code: "def compute(params, inputs):\n    # k_col_deg in 1/day; FSR is in %/day -> divide by 100\n    return params['k_col_deg']\
+      \ * 100\n"
+  error_model:
+  - name: fsr_fibrotic_liver
+    units: percent / day
+    uses_inputs:
+    - fsr_monthly_f3
+    - fsr_monthly_f4
+    - fsr_daily_low
+    - fsr_daily_high
+    - n_subjects
+    sample_size_input: n_subjects
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    fsr_low\
+      \ = inputs['fsr_daily_low']\n    fsr_high = inputs['fsr_daily_high']\n    # Lognormal bootstrap using reported range\
+      \ 0.2-0.6 %/day\n    # Geometric mean of endpoints as central estimate\n    log_low = np.log(fsr_low)\n    log_high\
+      \ = np.log(fsr_high)\n    log_mid = (log_low + log_high) / 2\n    # Estimate SD from range using order statistics for\
+      \ n subjects\n    n = int(inputs['n_subjects'])\n    range_factor = 2 * np.sqrt(2 * np.log(n))\n    sd_log = (log_high\
+      \ - log_low) / range_factor\n    return rng.lognormal(log_mid, sd_log, size=n_bootstrap)\n"
+  identifiability_notes: 'k_col_deg is uniquely identified from the FSR at steady state. The main
+
+    uncertainty is the translation from hepatic fibrosis to PDAC desmoplasia
+
+    (captured by translation sigma) and the inter-patient variability within
+
+    the fibrotic cohort.
+
+    '

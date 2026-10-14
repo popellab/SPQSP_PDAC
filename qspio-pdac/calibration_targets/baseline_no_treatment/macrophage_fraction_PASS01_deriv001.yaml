@@ -1,0 +1,165 @@
+study_interpretation: |
+  PASS-01 (Pancreatic Adenocarcinoma Signature Stratification for Treatment, NCT04098432)
+  multiplex immunohistochemistry (mIHC) data from 95 treatment-naive resected PDAC patients.
+  Per-core cell type fractions computed from single-cell phenotyping with denominator restricted
+  to 8 QSP-mappable cell types (cancer, macrophage, fibroblast, CD4 T, CD8 T, B cell, dendritic,
+  MDSC), excluding artifact, unclassified, endothelial, NK, neutrophil, and other_immune cells
+  to match the QSP model's modeled cell population. Tumor-associated macrophages (M1 + M2) fraction = macrophage count /
+  sum of 8 mappable types.
+key_assumptions:
+- |
+  The denominator is restricted to 8 cell types that have direct QSP model species equivalents.
+  Unmodeled cell types (endothelial, NK, neutrophil, other_immune, t_other) are excluded from
+  both numerator and denominator to ensure the IMC and QSP fractions are computed over the
+  same cell population.
+- |
+  Each TMA core is treated as an independent patient sample (n=95, one core per patient).
+  Intra-tumor spatial heterogeneity is not captured by the single-core sampling.
+- |
+  The IMC cell type classification maps to QSP species as follows: Tumor-associated macrophages (M1 + M2).
+key_study_limitations:
+- |
+  Single TMA core per patient may not capture intra-tumor heterogeneity in cell composition.
+- |
+  Cell phenotyping accuracy depends on marker panel and gating strategy; some cell types
+  (especially rare populations like CD8 T cells) may be under- or over-counted.
+- |
+  The PASS-01 cohort is enriched for resectable PDAC; fractions may not generalize to
+  unresectable or metastatic disease.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        """Fraction of macrophage among QSP-modeled nucleated tumor cells.
+
+        Numerator: Tumor-associated macrophages (M1 + M2)
+        Denominator: all 8 QSP-mappable cell populations (cancer + macrophage +
+        fibroblast + CD4 T + CD8 T + B cell + dendritic + MDSC).
+        """
+        numerator = species_dict['V_T.Mac_M1'] + species_dict['V_T.Mac_M2']
+        denominator = species_dict['V_T.C1'] + species_dict['V_T.Mac_M1'] + species_dict['V_T.Mac_M2'] + species_dict['V_T.iCAF'] + species_dict['V_T.myCAF'] + species_dict['V_T.apCAF'] + species_dict['V_T.Th'] + species_dict['V_T.Th_exh'] + species_dict['V_T.Treg'] + species_dict['V_T.CD8'] + species_dict['V_T.CD8_exh'] + species_dict['V_T.nB'] + species_dict['V_T.aB'] + species_dict['V_T.cDC1'] + species_dict['V_T.cDC2'] + species_dict['V_T.mcDC1'] + species_dict['V_T.mcDC2'] + species_dict['V_T.MDSC'] + species_dict['V_T.nCD8'] + species_dict['V_T.nCD4']
+        return numerator / denominator
+
+  units: dimensionless
+  species:
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  - V_T.C1
+  - V_T.iCAF
+  - V_T.myCAF
+  - V_T.apCAF
+  - V_T.Th
+  - V_T.Th_exh
+  - V_T.Treg
+  - V_T.CD8
+  - V_T.CD8_exh
+  - V_T.nB
+  - V_T.aB
+  - V_T.cDC1
+  - V_T.cDC2
+  - V_T.mcDC1
+  - V_T.mcDC2
+  - V_T.MDSC
+  - V_T.nCD8
+  - V_T.nCD4
+  constants: []
+  support: unit_interval
+  mapping_rationale: |
+    IMC macrophage cells map to Tumor-associated macrophages (M1 + M2). Denominator restricted to 8 QSP-mappable
+    cell types so that IMC and QSP fractions are directly comparable.
+  experimental_denominator: Sum of 8 QSP-mappable cell types per TMA core
+  model_denominator_species:
+  - V_T.C1
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  - V_T.iCAF
+  - V_T.myCAF
+  - V_T.apCAF
+  - V_T.Th
+  - V_T.Th_exh
+  - V_T.Treg
+  - V_T.CD8
+  - V_T.CD8_exh
+  - V_T.nB
+  - V_T.aB
+  - V_T.cDC1
+  - V_T.cDC2
+  - V_T.mcDC1
+  - V_T.mcDC2
+  - V_T.MDSC
+  - V_T.nCD8
+  - V_T.nCD4
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: |
+      Treatment-naive primary PDAC resected at pancreatectomy. PASS-01 trial
+      (NCT04098432) enrolled patients with resectable or borderline resectable PDAC.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Primary pancreatic ductal adenocarcinoma resections, multiplex IHC (mIHC)
+    with single-cell phenotyping on tissue microarray cores.
+  assay_type: |
+    Multiplex immunohistochemistry with computational single-cell phenotyping
+    (cell type and subtype classification from marker expression).
+scenario:
+  description: |
+    Baseline primary PDAC tumors resected by pancreatectomy without prior systemic
+    therapy. Tissue samples processed for multiplex IHC and computationally phenotyped
+    at single-cell resolution.
+  interventions:
+  - intervention_description: |
+      No therapeutic intervention prior to surgical resection; tumors progress under
+      natural disease course until pancreatectomy.
+empirical_data:
+  median:
+  - 0.17832880434782608
+  ci95:
+  - - 0.023794574651324413
+    - 0.5012747083254113
+  units: dimensionless
+  sample_size: 95
+  sample_size_rationale: |
+    n=95 treatment-naive resected PDAC patients from PASS-01 (NCT04098432), each
+    contributing one TMA core with single-cell mIHC phenotyping.
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs: []
+  assumptions: []
+  distribution_code: null
+primary_data_source:
+  source_tag: PASS01_mIHC
+  title: |
+    Pancreatic Adenocarcinoma Signature Stratification for Treatment (PASS-01)
+  first_author: Yen
+  year: 2023
+  doi: null
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: Human PDAC patient specimens from the PASS-01 trial, directly matching the model indication.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Treatment-naive PDAC resections; no experimental perturbation.
+    tme_compatibility: high
+    tme_compatibility_notes: Resected PDAC specimens with characteristic desmoplastic TME matching model assumptions.
+    validation_warnings: []
+secondary_data_sources: []
+calibration_target_id: macrophage_fraction_PASS01
+cancer_type: PDAC
+tags:
+- pass01
+- abundance-fraction
+- mIHC

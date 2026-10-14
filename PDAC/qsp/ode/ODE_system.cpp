@@ -28,7 +28,7 @@ void ODE_system::initSolver(realtype t){
     check_flag(&flag, "CVodeRootInit", 1);
 }
 
-state_type ODE_system::_class_parameter = state_type(470, 0);
+state_type ODE_system::_class_parameter = state_type(478, 0);
 
 void ODE_system::setup_class_parameters(QSPParam& param){
     //k_cell_clear, index: 0, units: MWDERIVEDUNIT_1__day
@@ -905,76 +905,92 @@ void ODE_system::setup_class_parameters(QSPParam& param){
     _class_parameter[P_k_B_act_tumor] = PFILE(QSP_k_B_act_tumor) * 1.15740740740741e-05;
     //k_B_pro_tumor, index: 436, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_B_pro_tumor] = PFILE(QSP_k_B_pro_tumor) * 1.15740740740741e-05;
-    //Tfh_50_plasma, index: 437, units: MWUSERUNIT_cell
+    //rho_B_max, index: 437, units: MWDERIVEDUNIT_cell__milliliter
+    _class_parameter[P_rho_B_max] = PFILE(QSP_rho_B_max) * 1.66053872801495e-18;
+    //Tfh_50_plasma, index: 438, units: MWUSERUNIT_cell
     _class_parameter[P_Tfh_50_plasma] = PFILE(QSP_Tfh_50_plasma) * 1.66053872801495e-24;
-    //k_Ab_sec, index: 438, units: MWDERIVEDUNIT_nanomole__cell__day
+    //k_nB_death, index: 439, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_k_nB_death] = PFILE(QSP_k_nB_death) * 1.15740740740741e-05;
+    //q_nB_LN_in, index: 440, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_q_nB_LN_in] = PFILE(QSP_q_nB_LN_in) * 1.15740740740741e-05;
+    //q_nB_LN_out, index: 441, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_q_nB_LN_out] = PFILE(QSP_q_nB_LN_out) * 1.15740740740741e-05;
+    //q_B_P_in, index: 442, units: MWDERIVEDUNIT_1__minute
+    _class_parameter[P_q_B_P_in] = PFILE(QSP_q_B_P_in) * 0.0166666666666667;
+    //q_B_P_out, index: 443, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_q_B_P_out] = PFILE(QSP_q_B_P_out) * 1.15740740740741e-05;
+    //q_B_LN_out, index: 444, units: MWDERIVEDUNIT_1__day
+    _class_parameter[P_q_B_LN_out] = PFILE(QSP_q_B_LN_out) * 1.15740740740741e-05;
+    //q_B_T_in, index: 445, units: MWDERIVEDUNIT_1__centimeter___3_minute
+    _class_parameter[P_q_B_T_in] = PFILE(QSP_q_B_T_in) * 16666.6666666667;
+    //k_Ab_sec, index: 446, units: MWDERIVEDUNIT_nanomole__cell__day
     _class_parameter[P_k_Ab_sec] = PFILE(QSP_k_Ab_sec) * 6970071747.68519;
-    //k_Ab_deg, index: 439, units: MWDERIVEDUNIT_1__day
+    //k_Ab_deg, index: 447, units: MWDERIVEDUNIT_1__day
     _class_parameter[P_k_Ab_deg] = PFILE(QSP_k_Ab_deg) * 1.15740740740741e-05;
-    //Ab_50_ADCC, index: 440, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
+    //Ab_50_ADCC, index: 448, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
     _class_parameter[P_Ab_50_ADCC] = PFILE(QSP_Ab_50_ADCC) * 1e-06;
-    //ADCC_boost_max, index: 441, units: dimensionless
+    //ADCC_boost_max, index: 449, units: dimensionless
     _class_parameter[P_ADCC_boost_max] = PFILE(QSP_ADCC_boost_max) * 1;
-    //Ab_50_DC, index: 442, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
+    //Ab_50_DC, index: 450, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_molarity
     _class_parameter[P_Ab_50_DC] = PFILE(QSP_Ab_50_DC) * 1e-06;
-    //DC_Ab_boost, index: 443, units: dimensionless
+    //DC_Ab_boost, index: 451, units: dimensionless
     _class_parameter[P_DC_Ab_boost] = PFILE(QSP_DC_Ab_boost) * 1;
-    //H_Ab, index: 444, units: dimensionless
+    //H_Ab, index: 452, units: dimensionless
     _class_parameter[P_H_Ab] = PFILE(QSP_H_Ab) * 1;
-    //H_Ab_DC, index: 445, units: dimensionless
+    //H_Ab_DC, index: 453, units: dimensionless
     _class_parameter[P_H_Ab_DC] = PFILE(QSP_H_Ab_DC) * 1;
-    //CD8_total_T, index: 446, units: MWUSERUNIT_cell
+    //CD8_total_T, index: 454, units: MWUSERUNIT_cell
     _class_parameter[P_CD8_total_T] = PFILE(QSP_CD8_total_T) * 1.66053872801495e-24;
-    //nucleated_total_T, index: 447, units: MWUSERUNIT_cell
+    //nucleated_total_T, index: 455, units: MWUSERUNIT_cell
     _class_parameter[P_nucleated_total_T] = PFILE(QSP_nucleated_total_T) * 1.66053872801495e-24;
-    //CD8_exh_total_T, index: 448, units: MWUSERUNIT_cell
+    //CD8_exh_total_T, index: 456, units: MWUSERUNIT_cell
     _class_parameter[P_CD8_exh_total_T] = PFILE(QSP_CD8_exh_total_T) * 1.66053872801495e-24;
-    //Th_total_T, index: 449, units: MWUSERUNIT_cell
+    //Th_total_T, index: 457, units: MWUSERUNIT_cell
     _class_parameter[P_Th_total_T] = PFILE(QSP_Th_total_T) * 1.66053872801495e-24;
-    //CD4_total_T, index: 450, units: MWUSERUNIT_cell
+    //CD4_total_T, index: 458, units: MWUSERUNIT_cell
     _class_parameter[P_CD4_total_T] = PFILE(QSP_CD4_total_T) * 1.66053872801495e-24;
-    //Tcell_total_T, index: 451, units: MWUSERUNIT_cell
+    //Tcell_total_T, index: 459, units: MWUSERUNIT_cell
     _class_parameter[P_Tcell_total_T] = PFILE(QSP_Tcell_total_T) * 1.66053872801495e-24;
-    //Mac_total_T, index: 452, units: MWUSERUNIT_cell
+    //Mac_total_T, index: 460, units: MWUSERUNIT_cell
     _class_parameter[P_Mac_total_T] = PFILE(QSP_Mac_total_T) * 1.66053872801495e-24;
-    //DC_total_T, index: 453, units: MWUSERUNIT_cell
+    //DC_total_T, index: 461, units: MWUSERUNIT_cell
     _class_parameter[P_DC_total_T] = PFILE(QSP_DC_total_T) * 1.66053872801495e-24;
-    //mDC_total_T, index: 454, units: MWUSERUNIT_cell
+    //mDC_total_T, index: 462, units: MWUSERUNIT_cell
     _class_parameter[P_mDC_total_T] = PFILE(QSP_mDC_total_T) * 1.66053872801495e-24;
-    //cDC1_lineage_T, index: 455, units: MWUSERUNIT_cell
+    //cDC1_lineage_T, index: 463, units: MWUSERUNIT_cell
     _class_parameter[P_cDC1_lineage_T] = PFILE(QSP_cDC1_lineage_T) * 1.66053872801495e-24;
-    //cDC2_lineage_T, index: 456, units: MWUSERUNIT_cell
+    //cDC2_lineage_T, index: 464, units: MWUSERUNIT_cell
     _class_parameter[P_cDC2_lineage_T] = PFILE(QSP_cDC2_lineage_T) * 1.66053872801495e-24;
-    //immune_total_T, index: 457, units: MWUSERUNIT_cell
+    //immune_total_T, index: 465, units: MWUSERUNIT_cell
     _class_parameter[P_immune_total_T] = PFILE(QSP_immune_total_T) * 1.66053872801495e-24;
-    //CD8_total_C, index: 458, units: MWUSERUNIT_cell
+    //CD8_total_C, index: 466, units: MWUSERUNIT_cell
     _class_parameter[P_CD8_total_C] = PFILE(QSP_CD8_total_C) * 1.66053872801495e-24;
-    //CAF_total_T, index: 459, units: MWUSERUNIT_cell
+    //CAF_total_T, index: 467, units: MWUSERUNIT_cell
     _class_parameter[P_CAF_total_T] = PFILE(QSP_CAF_total_T) * 1.66053872801495e-24;
-    //V_C (compartment), index: 460, units: MWBUILTINUNIT_liter
+    //V_C (compartment), index: 468, units: MWBUILTINUNIT_liter
     _class_parameter[P_V_C] = PFILE(QSP_V_C) * 0.001;
-    //V_P (compartment), index: 461, units: MWBUILTINUNIT_liter
+    //V_P (compartment), index: 469, units: MWBUILTINUNIT_liter
     _class_parameter[P_V_P] = PFILE(QSP_V_P) * 0.001;
-    //V_LN (compartment), index: 462, units: MWDERIVEDUNIT_millimeter___3
+    //V_LN (compartment), index: 470, units: MWDERIVEDUNIT_millimeter___3
     _class_parameter[P_V_LN] = PFILE(QSP_V_LN) * 1e-09;
-    //V_e (compartment), index: 463, units: litre
+    //V_e (compartment), index: 471, units: litre
     _class_parameter[P_V_e] = PFILE(QSP_V_e) * 0.001;
-    //A_e (compartment), index: 464, units: MWDERIVEDUNIT_micrometer___2
+    //A_e (compartment), index: 472, units: MWDERIVEDUNIT_micrometer___2
     _class_parameter[P_A_e] = PFILE(QSP_A_e) * 1e-12;
-    //A_s (compartment), index: 465, units: MWDERIVEDUNIT_micrometer___2
+    //A_s (compartment), index: 473, units: MWDERIVEDUNIT_micrometer___2
     _class_parameter[P_A_s] = PFILE(QSP_A_s) * 1e-12;
-    //syn_CD8_C1 (compartment), index: 466, units: MWDERIVEDUNIT_micrometer___2
+    //syn_CD8_C1 (compartment), index: 474, units: MWDERIVEDUNIT_micrometer___2
     _class_parameter[P_syn_CD8_C1] = PFILE(QSP_syn_CD8_C1) * 1e-12;
-    //syn_CD8_APC (compartment), index: 467, units: MWDERIVEDUNIT_micrometer___2
+    //syn_CD8_APC (compartment), index: 475, units: MWDERIVEDUNIT_micrometer___2
     _class_parameter[P_syn_CD8_APC] = PFILE(QSP_syn_CD8_APC) * 1e-12;
-    //syn_M_C (compartment), index: 468, units: MWDERIVEDUNIT_micrometer___2
+    //syn_M_C (compartment), index: 476, units: MWDERIVEDUNIT_micrometer___2
     _class_parameter[P_syn_M_C] = PFILE(QSP_syn_M_C) * 1e-12;
-    //V_ID (compartment), index: 469, units: MWBUILTINUNIT_liter
+    //V_ID (compartment), index: 477, units: MWBUILTINUNIT_liter
     _class_parameter[P_V_ID] = PFILE(QSP_V_ID) * 0.001;
 }
 
 void ODE_system::setupVariables(void){
-    _species_var = std::vector<realtype>(158, 0);
+    _species_var = std::vector<realtype>(160, 0);
     _nonspecies_var = std::vector<realtype>(0, 0);
     _species_other = std::vector<realtype>(0, 0);
 }
@@ -1054,6 +1070,7 @@ realtype ODE_system::get_unit_conversion_species(int i) const {
         1e-15, // V_T.VEGF
         1.66053872801495e-24, // V_T.Treg
         1.66053872801495e-24, // V_T.CD8
+        1.66053872801495e-24, // V_T.nCD8
         1.66053872801495e-24, // V_T.cDC1
         1.66053872801495e-24, // V_T.cDC2
         1.66053872801495e-24, // V_T.mcDC1
@@ -1062,6 +1079,7 @@ realtype ODE_system::get_unit_conversion_species(int i) const {
         0.001, // V_T.P1
         1e-12, // V_T.aPD1
         1.66053872801495e-24, // V_T.Th
+        1.66053872801495e-24, // V_T.nCD4
         1e-12, // V_T.IFNg
         1e-12, // V_T.TGFb
         1.66053872801495e-24, // V_T.MDSC
@@ -1197,7 +1215,7 @@ double ODE_system::getVarOriginalUnit(int i) const {
     // Compute assignment rules from current state
     realtype AUX_VAR_C_total = 0.0 * _class_parameter[P_cell] + _species_var[SP_V_T_C1];
     realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-    realtype AUX_VAR_T_total = 0.0 * _class_parameter[P_cell] + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+    realtype AUX_VAR_T_total = 0.0 * _class_parameter[P_cell] + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
     realtype AUX_VAR_V_T = _class_parameter[P_V_Tmin] + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * _class_parameter[P_vol_cell]) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * _class_parameter[P_vol_Tcell]) + AUX_VAR_M_total * _class_parameter[P_vol_Mcell] + _species_var[SP_V_T_qPSC] * _class_parameter[P_vol_qPSCcell] + _species_var[SP_V_T_iCAF] * _class_parameter[P_vol_iCAFcell] + _species_var[SP_V_T_myCAF] * _class_parameter[P_vol_myCAFcell] + _species_var[SP_V_T_apCAF] * _class_parameter[P_vol_apCAFcell]) / _class_parameter[P_Ve_T]) + _species_var[SP_V_T_collagen] / _class_parameter[P_rho_collagen] + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * _class_parameter[P_vol_Tcell]) / _class_parameter[P_Ve_T]);
     realtype AUX_VAR_syn_M_C_PDL1_total = (_species_var[SP_syn_M_C_PDL1] / _class_parameter[P_syn_M_C]) + (_species_var[SP_syn_M_C_PD1_PDL1] / _class_parameter[P_syn_M_C]) + (_species_var[SP_syn_M_C_PDL1_CD80] / _class_parameter[P_syn_M_C]);
     realtype AUX_VAR_syn_M_C_PDL2_total = (_species_var[SP_syn_M_C_PD1_PDL2] / _class_parameter[P_syn_M_C]) + (_species_var[SP_syn_M_C_PDL2] / _class_parameter[P_syn_M_C]);
@@ -1211,187 +1229,187 @@ double ODE_system::getVarOriginalUnit(int i) const {
         return v * 0.001 / (sub_factor * PARAM(P_V_P));
     case 25: // V_T.VEGF (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 32: // V_T.P0 (conc, dynamic V_T)
+    case 33: // V_T.P0 (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 33: // V_T.P1 (conc, dynamic V_T)
+    case 34: // V_T.P1 (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 34: // V_T.aPD1 (conc, dynamic V_T)
+    case 35: // V_T.aPD1 (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 36: // V_T.IFNg (conc, dynamic V_T)
+    case 38: // V_T.IFNg (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 37: // V_T.TGFb (conc, dynamic V_T)
+    case 39: // V_T.TGFb (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 39: // V_T.NO (conc, dynamic V_T)
+    case 41: // V_T.NO (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 40: // V_T.ArgI (conc, dynamic V_T)
+    case 42: // V_T.ArgI (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 41: // V_T.CCL2 (conc, dynamic V_T)
+    case 43: // V_T.CCL2 (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 44: // V_T.IL12 (conc, dynamic V_T)
+    case 46: // V_T.IL12 (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 45: // V_T.IL10 (conc, dynamic V_T)
+    case 47: // V_T.IL10 (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 51: // V_T.CXCL12 (conc, dynamic V_T)
+    case 53: // V_T.CXCL12 (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 52: // V_T.IL6 (conc, dynamic V_T)
+    case 54: // V_T.IL6 (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 53: // V_T.IL1 (conc, dynamic V_T)
+    case 55: // V_T.IL1 (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 58: // V_T.Ab (conc, dynamic V_T)
+    case 60: // V_T.Ab (conc, dynamic V_T)
         return v * 1e-06 / (sub_factor * AUX_VAR_V_T);
-    case 69: // V_LN.aPD1 (conc, fixed V_LN)
+    case 71: // V_LN.aPD1 (conc, fixed V_LN)
         return v * 1e-09 / (sub_factor * PARAM(P_V_LN));
-    case 72: // V_LN.IFNg (conc, fixed V_LN)
+    case 74: // V_LN.IFNg (conc, fixed V_LN)
         return v * 1e-09 / (sub_factor * PARAM(P_V_LN));
-    case 78: // V_e.P0 (conc, fixed V_e)
+    case 80: // V_e.P0 (conc, fixed V_e)
         return v * 0.001 / (sub_factor * PARAM(P_V_e));
-    case 79: // V_e.p0 (conc, fixed V_e)
+    case 81: // V_e.p0 (conc, fixed V_e)
         return v * 0.001 / (sub_factor * PARAM(P_V_e));
-    case 80: // V_e.P1 (conc, fixed V_e)
+    case 82: // V_e.P1 (conc, fixed V_e)
         return v * 0.001 / (sub_factor * PARAM(P_V_e));
-    case 81: // V_e.p1 (conc, fixed V_e)
+    case 83: // V_e.p1 (conc, fixed V_e)
         return v * 0.001 / (sub_factor * PARAM(P_V_e));
-    case 82: // A_e.M1 (conc, fixed A_e)
+    case 84: // A_e.M1 (conc, fixed A_e)
         return v * 1e-12 / (sub_factor * PARAM(P_A_e));
-    case 83: // A_e.M1p0 (conc, fixed A_e)
+    case 85: // A_e.M1p0 (conc, fixed A_e)
         return v * 1e-12 / (sub_factor * PARAM(P_A_e));
-    case 84: // A_e.M1p1 (conc, fixed A_e)
+    case 86: // A_e.M1p1 (conc, fixed A_e)
         return v * 1e-12 / (sub_factor * PARAM(P_A_e));
-    case 85: // A_s.M1 (conc, fixed A_s)
+    case 87: // A_s.M1 (conc, fixed A_s)
         return v * 1e-12 / (sub_factor * PARAM(P_A_s));
-    case 86: // A_s.M1p0 (conc, fixed A_s)
+    case 88: // A_s.M1p0 (conc, fixed A_s)
         return v * 1e-12 / (sub_factor * PARAM(P_A_s));
-    case 87: // A_s.M1p1 (conc, fixed A_s)
+    case 89: // A_s.M1p1 (conc, fixed A_s)
         return v * 1e-12 / (sub_factor * PARAM(P_A_s));
-    case 88: // syn_CD8_C1.PD1_PDL1 (conc, fixed syn_CD8_C1)
+    case 90: // syn_CD8_C1.PD1_PDL1 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 89: // syn_CD8_C1.PD1_PDL2 (conc, fixed syn_CD8_C1)
+    case 91: // syn_CD8_C1.PD1_PDL2 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 90: // syn_CD8_C1.PD1 (conc, fixed syn_CD8_C1)
+    case 92: // syn_CD8_C1.PD1 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 91: // syn_CD8_C1.PDL1 (conc, fixed syn_CD8_C1)
+    case 93: // syn_CD8_C1.PDL1 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 92: // syn_CD8_C1.PDL2 (conc, fixed syn_CD8_C1)
+    case 94: // syn_CD8_C1.PDL2 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 93: // syn_CD8_C1.PD1_aPD1 (conc, fixed syn_CD8_C1)
+    case 95: // syn_CD8_C1.PD1_aPD1 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 94: // syn_CD8_C1.PD1_aPD1_PD1 (conc, fixed syn_CD8_C1)
+    case 96: // syn_CD8_C1.PD1_aPD1_PD1 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 95: // syn_CD8_C1.TPDL1 (conc, fixed syn_CD8_C1)
+    case 97: // syn_CD8_C1.TPDL1 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 96: // syn_CD8_C1.CD28_CD80 (conc, fixed syn_CD8_C1)
+    case 98: // syn_CD8_C1.CD28_CD80 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 97: // syn_CD8_C1.CD28_CD80_CD28 (conc, fixed syn_CD8_C1)
+    case 99: // syn_CD8_C1.CD28_CD80_CD28 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 98: // syn_CD8_C1.CD28_CD86 (conc, fixed syn_CD8_C1)
+    case 100: // syn_CD8_C1.CD28_CD86 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 99: // syn_CD8_C1.CD80_CTLA4 (conc, fixed syn_CD8_C1)
+    case 101: // syn_CD8_C1.CD80_CTLA4 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 100: // syn_CD8_C1.CD80_CTLA4_CD80 (conc, fixed syn_CD8_C1)
+    case 102: // syn_CD8_C1.CD80_CTLA4_CD80 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 101: // syn_CD8_C1.CTLA4_CD80_CTLA4 (conc, fixed syn_CD8_C1)
+    case 103: // syn_CD8_C1.CTLA4_CD80_CTLA4 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 102: // syn_CD8_C1.CD80_CTLA4_CD80_CTLA4 (conc, fixed syn_CD8_C1)
+    case 104: // syn_CD8_C1.CD80_CTLA4_CD80_CTLA4 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 103: // syn_CD8_C1.CD86_CTLA4 (conc, fixed syn_CD8_C1)
+    case 105: // syn_CD8_C1.CD86_CTLA4 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 104: // syn_CD8_C1.CD86_CTLA4_CD86 (conc, fixed syn_CD8_C1)
+    case 106: // syn_CD8_C1.CD86_CTLA4_CD86 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 105: // syn_CD8_C1.PDL1_CD80 (conc, fixed syn_CD8_C1)
+    case 107: // syn_CD8_C1.PDL1_CD80 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 106: // syn_CD8_C1.PDL1_CD80_CD28 (conc, fixed syn_CD8_C1)
+    case 108: // syn_CD8_C1.PDL1_CD80_CD28 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 107: // syn_CD8_C1.PDL1_CD80_CTLA4 (conc, fixed syn_CD8_C1)
+    case 109: // syn_CD8_C1.PDL1_CD80_CTLA4 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 108: // syn_CD8_C1.CD28 (conc, fixed syn_CD8_C1)
+    case 110: // syn_CD8_C1.CD28 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 109: // syn_CD8_C1.CTLA4 (conc, fixed syn_CD8_C1)
+    case 111: // syn_CD8_C1.CTLA4 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 110: // syn_CD8_C1.CD80 (conc, fixed syn_CD8_C1)
+    case 112: // syn_CD8_C1.CD80 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 111: // syn_CD8_C1.CD80m (conc, fixed syn_CD8_C1)
+    case 113: // syn_CD8_C1.CD80m (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 112: // syn_CD8_C1.CD86 (conc, fixed syn_CD8_C1)
+    case 114: // syn_CD8_C1.CD86 (conc, fixed syn_CD8_C1)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_C1));
-    case 113: // syn_CD8_APC.PD1_PDL1 (conc, fixed syn_CD8_APC)
+    case 115: // syn_CD8_APC.PD1_PDL1 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 114: // syn_CD8_APC.PD1_PDL2 (conc, fixed syn_CD8_APC)
+    case 116: // syn_CD8_APC.PD1_PDL2 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 115: // syn_CD8_APC.PD1 (conc, fixed syn_CD8_APC)
+    case 117: // syn_CD8_APC.PD1 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 116: // syn_CD8_APC.PDL1 (conc, fixed syn_CD8_APC)
+    case 118: // syn_CD8_APC.PDL1 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 117: // syn_CD8_APC.PDL2 (conc, fixed syn_CD8_APC)
+    case 119: // syn_CD8_APC.PDL2 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 118: // syn_CD8_APC.PD1_aPD1 (conc, fixed syn_CD8_APC)
+    case 120: // syn_CD8_APC.PD1_aPD1 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 119: // syn_CD8_APC.PD1_aPD1_PD1 (conc, fixed syn_CD8_APC)
+    case 121: // syn_CD8_APC.PD1_aPD1_PD1 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 120: // syn_CD8_APC.TPDL1 (conc, fixed syn_CD8_APC)
+    case 122: // syn_CD8_APC.TPDL1 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 121: // syn_CD8_APC.CD28_CD80 (conc, fixed syn_CD8_APC)
+    case 123: // syn_CD8_APC.CD28_CD80 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 122: // syn_CD8_APC.CD28_CD80_CD28 (conc, fixed syn_CD8_APC)
+    case 124: // syn_CD8_APC.CD28_CD80_CD28 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 123: // syn_CD8_APC.CD28_CD86 (conc, fixed syn_CD8_APC)
+    case 125: // syn_CD8_APC.CD28_CD86 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 124: // syn_CD8_APC.CD80_CTLA4 (conc, fixed syn_CD8_APC)
+    case 126: // syn_CD8_APC.CD80_CTLA4 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 125: // syn_CD8_APC.CD80_CTLA4_CD80 (conc, fixed syn_CD8_APC)
+    case 127: // syn_CD8_APC.CD80_CTLA4_CD80 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 126: // syn_CD8_APC.CTLA4_CD80_CTLA4 (conc, fixed syn_CD8_APC)
+    case 128: // syn_CD8_APC.CTLA4_CD80_CTLA4 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 127: // syn_CD8_APC.CD80_CTLA4_CD80_CTLA4 (conc, fixed syn_CD8_APC)
+    case 129: // syn_CD8_APC.CD80_CTLA4_CD80_CTLA4 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 128: // syn_CD8_APC.CD86_CTLA4 (conc, fixed syn_CD8_APC)
+    case 130: // syn_CD8_APC.CD86_CTLA4 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 129: // syn_CD8_APC.CD86_CTLA4_CD86 (conc, fixed syn_CD8_APC)
+    case 131: // syn_CD8_APC.CD86_CTLA4_CD86 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 130: // syn_CD8_APC.PDL1_CD80 (conc, fixed syn_CD8_APC)
+    case 132: // syn_CD8_APC.PDL1_CD80 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 131: // syn_CD8_APC.PDL1_CD80_CD28 (conc, fixed syn_CD8_APC)
+    case 133: // syn_CD8_APC.PDL1_CD80_CD28 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 132: // syn_CD8_APC.PDL1_CD80_CTLA4 (conc, fixed syn_CD8_APC)
+    case 134: // syn_CD8_APC.PDL1_CD80_CTLA4 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 133: // syn_CD8_APC.CD28 (conc, fixed syn_CD8_APC)
+    case 135: // syn_CD8_APC.CD28 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 134: // syn_CD8_APC.CTLA4 (conc, fixed syn_CD8_APC)
+    case 136: // syn_CD8_APC.CTLA4 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 135: // syn_CD8_APC.CD80 (conc, fixed syn_CD8_APC)
+    case 137: // syn_CD8_APC.CD80 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 136: // syn_CD8_APC.CD80m (conc, fixed syn_CD8_APC)
+    case 138: // syn_CD8_APC.CD80m (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 137: // syn_CD8_APC.CD86 (conc, fixed syn_CD8_APC)
+    case 139: // syn_CD8_APC.CD86 (conc, fixed syn_CD8_APC)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_CD8_APC));
-    case 138: // syn_M_C.CD47 (conc, fixed syn_M_C)
+    case 140: // syn_M_C.CD47 (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 139: // syn_M_C.SIRPa (conc, fixed syn_M_C)
+    case 141: // syn_M_C.SIRPa (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 140: // syn_M_C.CD47_SIRPa (conc, fixed syn_M_C)
+    case 142: // syn_M_C.CD47_SIRPa (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 141: // syn_M_C.PDL1_total (conc, assignment rule)
+    case 143: // syn_M_C.PDL1_total (conc, assignment rule)
         return AUX_VAR_syn_M_C_PDL1_total * 1e-12 / sub_factor;
-    case 142: // syn_M_C.PDL2_total (conc, assignment rule)
+    case 144: // syn_M_C.PDL2_total (conc, assignment rule)
         return AUX_VAR_syn_M_C_PDL2_total * 1e-12 / sub_factor;
-    case 143: // syn_M_C.PD1_PDL1 (conc, fixed syn_M_C)
+    case 145: // syn_M_C.PD1_PDL1 (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 144: // syn_M_C.PD1_PDL2 (conc, fixed syn_M_C)
+    case 146: // syn_M_C.PD1_PDL2 (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 145: // syn_M_C.PD1 (conc, fixed syn_M_C)
+    case 147: // syn_M_C.PD1 (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 146: // syn_M_C.PDL1 (conc, fixed syn_M_C)
+    case 148: // syn_M_C.PDL1 (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 147: // syn_M_C.PDL2 (conc, fixed syn_M_C)
+    case 149: // syn_M_C.PDL2 (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 148: // syn_M_C.PD1_aPD1 (conc, fixed syn_M_C)
+    case 150: // syn_M_C.PD1_aPD1 (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 149: // syn_M_C.PD1_aPD1_PD1 (conc, fixed syn_M_C)
+    case 151: // syn_M_C.PD1_aPD1_PD1 (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 150: // syn_M_C.PDL1_CD80 (conc, fixed syn_M_C)
+    case 152: // syn_M_C.PDL1_CD80 (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 151: // syn_M_C.CD80 (conc, fixed syn_M_C)
+    case 153: // syn_M_C.CD80 (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
-    case 152: // syn_M_C.CD80m (conc, fixed syn_M_C)
+    case 154: // syn_M_C.CD80m (conc, fixed syn_M_C)
         return v * 1e-12 / (sub_factor * PARAM(P_syn_M_C));
     default:
         break;
@@ -1420,7 +1438,7 @@ realtype ODE_system::get_compartment_volume(const std::string& name) const {
     if (name == "V_T") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         return AUX_VAR_V_T / 1e-06;
     }
@@ -1443,7 +1461,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
         return AUX_VAR_C_total / 1.66053872801495e-24;
     }
     if (name == "T_total") {
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         return AUX_VAR_T_total / 1.66053872801495e-24;
     }
     if (name == "T_total_LN") {
@@ -1458,7 +1476,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
         realtype AUX_VAR_H_Mac_C = (1.0 - ((1.0 - AUX_VAR_H_SIRPa)) * ((1.0 - AUX_VAR_H_PD1_M)));
         realtype AUX_VAR_K_T_Treg = 1.0 / PARAM(P_R50_Treg);
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_Tregs_ = _species_var[SP_V_T_Treg];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_Ab = (_species_var[SP_V_T_Ab] / AUX_VAR_V_T) / (PARAM(P_Ab_50_ADCC) + (_species_var[SP_V_T_Ab] / AUX_VAR_V_T));
@@ -1482,7 +1500,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "C_max") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) / (_species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + PARAM(P_V_Tmin));
         realtype AUX_VAR_C_max = (PARAM(P_C_cap0) + _species_var[SP_V_T_K_vasc] + (PARAM(P_k_stroma_support) * (PARAM(P_k_stroma_myCAF) * _species_var[SP_V_T_myCAF] + PARAM(P_k_stroma_iCAF) * _species_var[SP_V_T_iCAF] + PARAM(P_k_stroma_apCAF) * _species_var[SP_V_T_apCAF]))) * ((1.0 - AUX_VAR_phi_collagen / (AUX_VAR_phi_collagen + PARAM(P_phi_col_50_Kmax))));
         return AUX_VAR_C_max / 1.66053872801495e-24;
@@ -1494,7 +1512,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "vasc_ratio") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_vasc_ratio = _species_var[SP_V_T_K_vasc] / AUX_VAR_V_T / PARAM(P_K50_vasc);
         return AUX_VAR_vasc_ratio / 1;
@@ -1502,7 +1520,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_vasc") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_vasc_ratio = _species_var[SP_V_T_K_vasc] / AUX_VAR_V_T / PARAM(P_K50_vasc);
         realtype AUX_VAR_H_vasc = std::pow(AUX_VAR_vasc_ratio, PARAM(P_n_vasc)) / (1.0 + std::pow(AUX_VAR_vasc_ratio, PARAM(P_n_vasc)));
@@ -1517,7 +1535,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
         realtype AUX_VAR_H_PD1_C1 = (std::pow(((_species_var[SP_syn_CD8_C1_PD1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PD1_PDL2] / PARAM(P_syn_CD8_C1))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) / ((std::pow(((_species_var[SP_syn_CD8_C1_PD1_PDL1] / PARAM(P_syn_CD8_C1)) + (_species_var[SP_syn_CD8_C1_PD1_PDL2] / PARAM(P_syn_CD8_C1))) / PARAM(P_PD1_50), PARAM(P_n_PD1))) + 1.0);
         realtype AUX_VAR_K_T_Treg = 1.0 / PARAM(P_R50_Treg);
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_Tregs_ = _species_var[SP_V_T_Treg];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_ArgI_Teff = (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T) / (PARAM(P_ArgI_50_Teff) + (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T));
@@ -1538,7 +1556,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
         realtype AUX_VAR_H_Mac_C = (1.0 - ((1.0 - AUX_VAR_H_SIRPa)) * ((1.0 - AUX_VAR_H_PD1_M)));
         realtype AUX_VAR_K_T_Treg = 1.0 / PARAM(P_R50_Treg);
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_Tregs_ = _species_var[SP_V_T_Treg];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_Ab = (_species_var[SP_V_T_Ab] / AUX_VAR_V_T) / (PARAM(P_Ab_50_ADCC) + (_species_var[SP_V_T_Ab] / AUX_VAR_V_T));
@@ -1559,7 +1577,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_TGFb_APC") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_TGFb_APC = (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50_APC));
         return AUX_VAR_H_TGFb_APC / 1;
@@ -1680,7 +1698,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_TGFb_Th2Treg") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_TGFb_Th2Treg = (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50_Th2Treg));
         return AUX_VAR_H_TGFb_Th2Treg / 1;
@@ -1688,7 +1706,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_TGFb_chemores") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_TGFb_chemores = (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50_chemores));
         return AUX_VAR_H_TGFb_chemores / 1;
@@ -1696,7 +1714,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_TGFb_Teff") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_TGFb_Teff = (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50_Teff));
         return AUX_VAR_H_TGFb_Teff / 1;
@@ -1704,7 +1722,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_TGFb_Th_exh") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_TGFb_Th_exh = (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50_Th_exh));
         return AUX_VAR_H_TGFb_Th_exh / 1;
@@ -1712,7 +1730,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_NO") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_NO = (_species_var[SP_V_T_NO] / AUX_VAR_V_T) / (PARAM(P_NO_50_Teff) + (_species_var[SP_V_T_NO] / AUX_VAR_V_T));
         return AUX_VAR_H_NO / 1;
@@ -1720,7 +1738,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_ArgI_Teff") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_ArgI_Teff = (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T) / (PARAM(P_ArgI_50_Teff) + (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T));
         return AUX_VAR_H_ArgI_Teff / 1;
@@ -1728,7 +1746,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_ArgI_Treg") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_ArgI_Treg = (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T) / (PARAM(P_ArgI_50_Treg) + (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T));
         return AUX_VAR_H_ArgI_Treg / 1;
@@ -1736,7 +1754,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_MDSC") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_ArgI_Teff = (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T) / (PARAM(P_ArgI_50_Teff) + (_species_var[SP_V_T_ArgI] / AUX_VAR_V_T));
         realtype AUX_VAR_H_NO = (_species_var[SP_V_T_NO] / AUX_VAR_V_T) / (PARAM(P_NO_50_Teff) + (_species_var[SP_V_T_NO] / AUX_VAR_V_T));
@@ -1764,7 +1782,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_IL10_APC") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_IL10_APC = (_species_var[SP_V_T_IL10] / AUX_VAR_V_T) / (PARAM(P_IL10_50_APC) + (_species_var[SP_V_T_IL10] / AUX_VAR_V_T));
         return AUX_VAR_H_IL10_APC / 1;
@@ -1772,7 +1790,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_IL10_Treg") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_IL10_Treg = (_species_var[SP_V_T_IL10] / AUX_VAR_V_T) / (PARAM(P_IL10_50_Treg) + (_species_var[SP_V_T_IL10] / AUX_VAR_V_T));
         return AUX_VAR_H_IL10_Treg / 1;
@@ -1780,7 +1798,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_IL10_phago") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_IL10_phago = (_species_var[SP_V_T_IL10] / AUX_VAR_V_T) / (PARAM(P_IL10_50_phago) + (_species_var[SP_V_T_IL10] / AUX_VAR_V_T));
         return AUX_VAR_H_IL10_phago / 1;
@@ -1788,7 +1806,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_IL12") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_IL12 = (_species_var[SP_V_T_IL12] / AUX_VAR_V_T) / (PARAM(P_IL12_50) + (_species_var[SP_V_T_IL12] / AUX_VAR_V_T));
         return AUX_VAR_H_IL12 / 1;
@@ -1796,7 +1814,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "phi_M2_skew") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_IL6_M2 = (_species_var[SP_V_T_IL6] / AUX_VAR_V_T) / (PARAM(P_IL6_50_M2) + (_species_var[SP_V_T_IL6] / AUX_VAR_V_T));
         realtype AUX_VAR_phi_M2_skew = (((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / ((_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) + PARAM(P_TGFb_50_M2pol))) + ((_species_var[SP_V_T_IL10] / AUX_VAR_V_T) / ((_species_var[SP_V_T_IL10] / AUX_VAR_V_T) + PARAM(P_IL10_50_M2))) + AUX_VAR_H_IL6_M2) / 3.0;
@@ -1805,7 +1823,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "f_nascent") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) / (_species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + PARAM(P_V_Tmin));
         realtype AUX_VAR_f_nascent = PARAM(P_phi_cross_50) / (PARAM(P_phi_cross_50) + AUX_VAR_phi_collagen);
         return AUX_VAR_f_nascent / 1;
@@ -1813,14 +1831,14 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "phi_collagen") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) / (_species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + PARAM(P_V_Tmin));
         return AUX_VAR_phi_collagen / 1;
     }
     if (name == "d_pore") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) / (_species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + PARAM(P_V_Tmin));
         realtype AUX_VAR_d_pore = PARAM(P_d_pore_ref) * (std::pow(PARAM(P_phi_col_ref) / (AUX_VAR_phi_collagen + 1e-6), 0.5));
         return AUX_VAR_d_pore / 1e-06;
@@ -1828,7 +1846,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_pore_T") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) / (_species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + PARAM(P_V_Tmin));
         realtype AUX_VAR_d_pore = PARAM(P_d_pore_ref) * (std::pow(PARAM(P_phi_col_ref) / (AUX_VAR_phi_collagen + 1e-6), 0.5));
         realtype AUX_VAR_H_pore_T = 1.0 / (1.0 + std::pow(AUX_VAR_d_pore / PARAM(P_d_crit_T), PARAM(P_n_pore)));
@@ -1837,7 +1855,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_pore_APC") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) / (_species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + PARAM(P_V_Tmin));
         realtype AUX_VAR_d_pore = PARAM(P_d_pore_ref) * (std::pow(PARAM(P_phi_col_ref) / (AUX_VAR_phi_collagen + 1e-6), 0.5));
         realtype AUX_VAR_H_pore_APC = 1.0 / (1.0 + std::pow(AUX_VAR_d_pore / PARAM(P_d_crit_APC), PARAM(P_n_pore)));
@@ -1846,7 +1864,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "stiffness") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) / (_species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + PARAM(P_V_Tmin));
         realtype AUX_VAR_stiffness = PARAM(P_E_ref) * std::pow(AUX_VAR_phi_collagen / PARAM(P_phi_col_ref), PARAM(P_n_stiff));
         return AUX_VAR_stiffness / 1;
@@ -1854,7 +1872,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_stiff_Texh") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) / (_species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + PARAM(P_V_Tmin));
         realtype AUX_VAR_stiffness = PARAM(P_E_ref) * std::pow(AUX_VAR_phi_collagen / PARAM(P_phi_col_ref), PARAM(P_n_stiff));
         realtype AUX_VAR_H_stiff_Texh = std::pow(AUX_VAR_stiffness, PARAM(P_n_Texh)) / (std::pow(PARAM(P_E_50_Texh), PARAM(P_n_Texh)) + std::pow(AUX_VAR_stiffness, PARAM(P_n_Texh)));
@@ -1863,7 +1881,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_stiff_fib") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_phi_collagen = _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) / (_species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + PARAM(P_V_Tmin));
         realtype AUX_VAR_stiffness = PARAM(P_E_ref) * std::pow(AUX_VAR_phi_collagen / PARAM(P_phi_col_ref), PARAM(P_n_stiff));
         realtype AUX_VAR_H_stiff_fib = std::pow(AUX_VAR_stiffness, PARAM(P_n_fib)) / (std::pow(PARAM(P_E_50_fib), PARAM(P_n_fib)) + std::pow(AUX_VAR_stiffness, PARAM(P_n_fib)));
@@ -1872,7 +1890,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "IL1_ratio") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_IL1_ratio = (_species_var[SP_V_T_IL1] / AUX_VAR_V_T) / (PARAM(P_IL1_50) * (1.0 + (PARAM(P_Emax_IL1R1) * (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / (PARAM(P_TGFb_50_IL1R1) + (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T)))));
         return AUX_VAR_IL1_ratio / 1;
@@ -1880,7 +1898,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_IL1_eff") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_IL1_ratio = (_species_var[SP_V_T_IL1] / AUX_VAR_V_T) / (PARAM(P_IL1_50) * (1.0 + (PARAM(P_Emax_IL1R1) * (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T) / (PARAM(P_TGFb_50_IL1R1) + (_species_var[SP_V_T_TGFb] / AUX_VAR_V_T)))));
         realtype AUX_VAR_H_IL1_eff = std::pow(AUX_VAR_IL1_ratio, PARAM(P_n_IL1)) / (1.0 + std::pow(AUX_VAR_IL1_ratio, PARAM(P_n_IL1)));
@@ -1889,7 +1907,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_apCAF_pMHCII") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_apCAF_pMHCII = (_species_var[SP_V_T_P1] / AUX_VAR_V_T) / ((_species_var[SP_V_T_P1] / AUX_VAR_V_T) + PARAM(P_P1_50_apCAF));
         return AUX_VAR_H_apCAF_pMHCII / 1;
@@ -1897,7 +1915,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_CXCL12_Texcl") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_CXCL12_Texcl = (_species_var[SP_V_T_CXCL12] / AUX_VAR_V_T) / (PARAM(P_CXCL12_50_Texcl) + (_species_var[SP_V_T_CXCL12] / AUX_VAR_V_T));
         return AUX_VAR_H_CXCL12_Texcl / 1;
@@ -1905,7 +1923,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_IL6_MDSC") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_IL6_MDSC = (_species_var[SP_V_T_IL6] / AUX_VAR_V_T) / (PARAM(P_IL6_50_MDSC) + (_species_var[SP_V_T_IL6] / AUX_VAR_V_T));
         return AUX_VAR_H_IL6_MDSC / 1;
@@ -1913,7 +1931,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_IL6_M2") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_IL6_M2 = (_species_var[SP_V_T_IL6] / AUX_VAR_V_T) / (PARAM(P_IL6_50_M2) + (_species_var[SP_V_T_IL6] / AUX_VAR_V_T));
         return AUX_VAR_H_IL6_M2 / 1;
@@ -1921,7 +1939,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_IL6_iCAF") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_IL6_iCAF = (_species_var[SP_V_T_IL6] / AUX_VAR_V_T) / (PARAM(P_IL6_50_iCAF) + (_species_var[SP_V_T_IL6] / AUX_VAR_V_T));
         return AUX_VAR_H_IL6_iCAF / 1;
@@ -1950,7 +1968,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_IL6_Tfh") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_IL6_Tfh = (_species_var[SP_V_T_IL6] / AUX_VAR_V_T) / (PARAM(P_IL6_50_Tfh) + (_species_var[SP_V_T_IL6] / AUX_VAR_V_T));
         return AUX_VAR_H_IL6_Tfh / 1;
@@ -1958,7 +1976,7 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_Ab") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_Ab = (_species_var[SP_V_T_Ab] / AUX_VAR_V_T) / (PARAM(P_Ab_50_ADCC) + (_species_var[SP_V_T_Ab] / AUX_VAR_V_T));
         return AUX_VAR_H_Ab / 1;
@@ -1966,18 +1984,18 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
     if (name == "H_Ab_DC") {
         realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_C1];
         realtype AUX_VAR_M_total = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Tfh];
+        realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_CD8] + _species_var[SP_V_T_nCD8] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Tfh];
         realtype AUX_VAR_V_T = PARAM(P_V_Tmin) + ((((_species_var[SP_V_T_C_x] + AUX_VAR_C_total) * PARAM(P_vol_cell)) + ((_species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_Th_exh] + AUX_VAR_T_total) * PARAM(P_vol_Tcell)) + AUX_VAR_M_total * PARAM(P_vol_Mcell) + _species_var[SP_V_T_qPSC] * PARAM(P_vol_qPSCcell) + _species_var[SP_V_T_iCAF] * PARAM(P_vol_iCAFcell) + _species_var[SP_V_T_myCAF] * PARAM(P_vol_myCAFcell) + _species_var[SP_V_T_apCAF] * PARAM(P_vol_apCAFcell)) / PARAM(P_Ve_T)) + _species_var[SP_V_T_collagen] / PARAM(P_rho_collagen) + (((_species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma]) * PARAM(P_vol_Tcell)) / PARAM(P_Ve_T));
         realtype AUX_VAR_H_Ab_DC = (_species_var[SP_V_T_Ab] / AUX_VAR_V_T) / (PARAM(P_Ab_50_DC) + (_species_var[SP_V_T_Ab] / AUX_VAR_V_T));
         return AUX_VAR_H_Ab_DC / 1;
     }
     if (name == "CD8_total_T") {
-        realtype AUX_VAR_CD8_total_T = _species_var[SP_V_T_CD8] + _species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex];
+        realtype AUX_VAR_CD8_total_T = _species_var[SP_V_T_CD8] + _species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_nCD8];
         return AUX_VAR_CD8_total_T / 1.66053872801495e-24;
     }
     if (name == "nucleated_total_T") {
-        realtype AUX_VAR_CD8_total_T = _species_var[SP_V_T_CD8] + _species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex];
-        realtype AUX_VAR_nucleated_total_T = _species_var[SP_V_T_C1] + _species_var[SP_V_T_C_x] + AUX_VAR_CD8_total_T + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Th_exh] + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2] + _species_var[SP_V_T_MDSC] + _species_var[SP_V_T_cDC1] + _species_var[SP_V_T_cDC2] + _species_var[SP_V_T_mcDC1] + _species_var[SP_V_T_mcDC2] + _species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma] + _species_var[SP_V_T_Tfh] + _species_var[SP_V_T_qPSC] + _species_var[SP_V_T_iCAF] + _species_var[SP_V_T_myCAF] + _species_var[SP_V_T_apCAF];
+        realtype AUX_VAR_CD8_total_T = _species_var[SP_V_T_CD8] + _species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_nCD8];
+        realtype AUX_VAR_nucleated_total_T = _species_var[SP_V_T_C1] + _species_var[SP_V_T_C_x] + AUX_VAR_CD8_total_T + _species_var[SP_V_T_nCD4] + _species_var[SP_V_T_Th] + _species_var[SP_V_T_Th_exh] + _species_var[SP_V_T_Treg] + _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2] + _species_var[SP_V_T_MDSC] + _species_var[SP_V_T_cDC1] + _species_var[SP_V_T_cDC2] + _species_var[SP_V_T_mcDC1] + _species_var[SP_V_T_mcDC2] + _species_var[SP_V_T_nB] + _species_var[SP_V_T_aB] + _species_var[SP_V_T_Plasma] + _species_var[SP_V_T_Tfh] + _species_var[SP_V_T_qPSC] + _species_var[SP_V_T_iCAF] + _species_var[SP_V_T_myCAF] + _species_var[SP_V_T_apCAF];
         return AUX_VAR_nucleated_total_T / 1.66053872801495e-24;
     }
     if (name == "CD8_exh_total_T") {
@@ -1985,17 +2003,17 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
         return AUX_VAR_CD8_exh_total_T / 1.66053872801495e-24;
     }
     if (name == "Th_total_T") {
-        realtype AUX_VAR_Th_total_T = _species_var[SP_V_T_Th] + _species_var[SP_V_T_Th_exh];
+        realtype AUX_VAR_Th_total_T = _species_var[SP_V_T_Th] + _species_var[SP_V_T_Th_exh] + _species_var[SP_V_T_nCD4];
         return AUX_VAR_Th_total_T / 1.66053872801495e-24;
     }
     if (name == "CD4_total_T") {
-        realtype AUX_VAR_Th_total_T = _species_var[SP_V_T_Th] + _species_var[SP_V_T_Th_exh];
+        realtype AUX_VAR_Th_total_T = _species_var[SP_V_T_Th] + _species_var[SP_V_T_Th_exh] + _species_var[SP_V_T_nCD4];
         realtype AUX_VAR_CD4_total_T = AUX_VAR_Th_total_T + _species_var[SP_V_T_Treg];
         return AUX_VAR_CD4_total_T / 1.66053872801495e-24;
     }
     if (name == "Tcell_total_T") {
-        realtype AUX_VAR_CD8_total_T = _species_var[SP_V_T_CD8] + _species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex];
-        realtype AUX_VAR_Th_total_T = _species_var[SP_V_T_Th] + _species_var[SP_V_T_Th_exh];
+        realtype AUX_VAR_CD8_total_T = _species_var[SP_V_T_CD8] + _species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_nCD8];
+        realtype AUX_VAR_Th_total_T = _species_var[SP_V_T_Th] + _species_var[SP_V_T_Th_exh] + _species_var[SP_V_T_nCD4];
         realtype AUX_VAR_CD4_total_T = AUX_VAR_Th_total_T + _species_var[SP_V_T_Treg];
         realtype AUX_VAR_Tcell_total_T = AUX_VAR_CD8_total_T + AUX_VAR_CD4_total_T;
         return AUX_VAR_Tcell_total_T / 1.66053872801495e-24;
@@ -2021,10 +2039,10 @@ realtype ODE_system::get_assignment_rule_value(const std::string& name) const {
         return AUX_VAR_cDC2_lineage_T / 1.66053872801495e-24;
     }
     if (name == "immune_total_T") {
-        realtype AUX_VAR_CD8_total_T = _species_var[SP_V_T_CD8] + _species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex];
+        realtype AUX_VAR_CD8_total_T = _species_var[SP_V_T_CD8] + _species_var[SP_V_T_CD8_exh] + _species_var[SP_V_T_CD8_pex] + _species_var[SP_V_T_nCD8];
         realtype AUX_VAR_DC_total_T = _species_var[SP_V_T_cDC1] + _species_var[SP_V_T_cDC2] + _species_var[SP_V_T_mcDC1] + _species_var[SP_V_T_mcDC2];
         realtype AUX_VAR_Mac_total_T = _species_var[SP_V_T_Mac_M1] + _species_var[SP_V_T_Mac_M2];
-        realtype AUX_VAR_Th_total_T = _species_var[SP_V_T_Th] + _species_var[SP_V_T_Th_exh];
+        realtype AUX_VAR_Th_total_T = _species_var[SP_V_T_Th] + _species_var[SP_V_T_Th_exh] + _species_var[SP_V_T_nCD4];
         realtype AUX_VAR_CD4_total_T = AUX_VAR_Th_total_T + _species_var[SP_V_T_Treg];
         realtype AUX_VAR_Tcell_total_T = AUX_VAR_CD8_total_T + AUX_VAR_CD4_total_T;
         realtype AUX_VAR_immune_total_T = AUX_VAR_Tcell_total_T + AUX_VAR_Mac_total_T + _species_var[SP_V_T_MDSC] + AUX_VAR_DC_total_T;
@@ -2211,270 +2229,274 @@ void ODE_system::setup_instance_variables(QSPParam& param){
     _species_var[SP_V_T_Treg] = PFILE(QSP_V_T_Treg) * 1.66053872801495e-24;
     //V_T.CD8, index: 27, units: MWUSERUNIT_cell
     _species_var[SP_V_T_CD8] = PFILE(QSP_V_T_CD8) * 1.66053872801495e-24;
-    //V_T.cDC1, index: 28, units: MWUSERUNIT_cell
+    //V_T.nCD8, index: 28, units: MWUSERUNIT_cell
+    _species_var[SP_V_T_nCD8] = PFILE(QSP_V_T_nCD8) * 1.66053872801495e-24;
+    //V_T.cDC1, index: 29, units: MWUSERUNIT_cell
     _species_var[SP_V_T_cDC1] = PFILE(QSP_V_T_cDC1) * 1.66053872801495e-24;
-    //V_T.cDC2, index: 29, units: MWUSERUNIT_cell
+    //V_T.cDC2, index: 30, units: MWUSERUNIT_cell
     _species_var[SP_V_T_cDC2] = PFILE(QSP_V_T_cDC2) * 1.66053872801495e-24;
-    //V_T.mcDC1, index: 30, units: MWUSERUNIT_cell
+    //V_T.mcDC1, index: 31, units: MWUSERUNIT_cell
     _species_var[SP_V_T_mcDC1] = PFILE(QSP_V_T_mcDC1) * 1.66053872801495e-24;
-    //V_T.mcDC2, index: 31, units: MWUSERUNIT_cell
+    //V_T.mcDC2, index: 32, units: MWUSERUNIT_cell
     _species_var[SP_V_T_mcDC2] = PFILE(QSP_V_T_mcDC2) * 1.66053872801495e-24;
-    //V_T.P0, index: 32, units: MWDERIVEDUNIT_molarity_milliliter
+    //V_T.P0, index: 33, units: MWDERIVEDUNIT_molarity_milliliter
     _species_var[SP_V_T_P0] = PFILE(QSP_V_T_P0) * PFILE(QSP_V_T) * 0.001;
-    //V_T.P1, index: 33, units: MWDERIVEDUNIT_molarity_milliliter
+    //V_T.P1, index: 34, units: MWDERIVEDUNIT_molarity_milliliter
     _species_var[SP_V_T_P1] = PFILE(QSP_V_T_P1) * PFILE(QSP_V_T) * 0.001;
-    //V_T.aPD1, index: 34, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.aPD1, index: 35, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_aPD1] = PFILE(QSP_V_T_aPD1) * PFILE(QSP_V_T) * 1e-12;
-    //V_T.Th, index: 35, units: MWUSERUNIT_cell
+    //V_T.Th, index: 36, units: MWUSERUNIT_cell
     _species_var[SP_V_T_Th] = PFILE(QSP_V_T_Th) * 1.66053872801495e-24;
-    //V_T.IFNg, index: 36, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.nCD4, index: 37, units: MWUSERUNIT_cell
+    _species_var[SP_V_T_nCD4] = PFILE(QSP_V_T_nCD4) * 1.66053872801495e-24;
+    //V_T.IFNg, index: 38, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_IFNg] = PFILE(QSP_V_T_IFNg) * PFILE(QSP_V_T) * 1e-12;
-    //V_T.TGFb, index: 37, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.TGFb, index: 39, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_TGFb] = PFILE(QSP_V_T_TGFb) * PFILE(QSP_V_T) * 1e-12;
-    //V_T.MDSC, index: 38, units: MWUSERUNIT_cell
+    //V_T.MDSC, index: 40, units: MWUSERUNIT_cell
     _species_var[SP_V_T_MDSC] = PFILE(QSP_V_T_MDSC) * 1.66053872801495e-24;
-    //V_T.NO, index: 39, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.NO, index: 41, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_NO] = PFILE(QSP_V_T_NO) * PFILE(QSP_V_T) * 1e-12;
-    //V_T.ArgI, index: 40, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.ArgI, index: 42, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_ArgI] = PFILE(QSP_V_T_ArgI) * PFILE(QSP_V_T) * 1e-12;
-    //V_T.CCL2, index: 41, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.CCL2, index: 43, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_CCL2] = PFILE(QSP_V_T_CCL2) * PFILE(QSP_V_T) * 1e-12;
-    //V_T.Mac_M1, index: 42, units: MWUSERUNIT_cell
+    //V_T.Mac_M1, index: 44, units: MWUSERUNIT_cell
     _species_var[SP_V_T_Mac_M1] = PFILE(QSP_V_T_Mac_M1) * 1.66053872801495e-24;
-    //V_T.Mac_M2, index: 43, units: MWUSERUNIT_cell
+    //V_T.Mac_M2, index: 45, units: MWUSERUNIT_cell
     _species_var[SP_V_T_Mac_M2] = PFILE(QSP_V_T_Mac_M2) * 1.66053872801495e-24;
-    //V_T.IL12, index: 44, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.IL12, index: 46, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_IL12] = PFILE(QSP_V_T_IL12) * PFILE(QSP_V_T) * 1e-12;
-    //V_T.IL10, index: 45, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.IL10, index: 47, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_IL10] = PFILE(QSP_V_T_IL10) * PFILE(QSP_V_T) * 1e-12;
-    //V_T.qPSC, index: 46, units: MWUSERUNIT_cell
+    //V_T.qPSC, index: 48, units: MWUSERUNIT_cell
     _species_var[SP_V_T_qPSC] = PFILE(QSP_V_T_qPSC) * 1.66053872801495e-24;
-    //V_T.iCAF, index: 47, units: MWUSERUNIT_cell
+    //V_T.iCAF, index: 49, units: MWUSERUNIT_cell
     _species_var[SP_V_T_iCAF] = PFILE(QSP_V_T_iCAF) * 1.66053872801495e-24;
-    //V_T.myCAF, index: 48, units: MWUSERUNIT_cell
+    //V_T.myCAF, index: 50, units: MWUSERUNIT_cell
     _species_var[SP_V_T_myCAF] = PFILE(QSP_V_T_myCAF) * 1.66053872801495e-24;
-    //V_T.apCAF, index: 49, units: MWUSERUNIT_cell
+    //V_T.apCAF, index: 51, units: MWUSERUNIT_cell
     _species_var[SP_V_T_apCAF] = PFILE(QSP_V_T_apCAF) * 1.66053872801495e-24;
-    //V_T.collagen, index: 50, units: MWBUILTINPREFIX_milli_MWBUILTINUNIT_gram
+    //V_T.collagen, index: 52, units: MWBUILTINPREFIX_milli_MWBUILTINUNIT_gram
     _species_var[SP_V_T_collagen] = PFILE(QSP_V_T_collagen) * 1e-06;
-    //V_T.CXCL12, index: 51, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.CXCL12, index: 53, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_CXCL12] = PFILE(QSP_V_T_CXCL12) * PFILE(QSP_V_T) * 1e-12;
-    //V_T.IL6, index: 52, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.IL6, index: 54, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_IL6] = PFILE(QSP_V_T_IL6) * PFILE(QSP_V_T) * 1e-12;
-    //V_T.IL1, index: 53, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.IL1, index: 55, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_IL1] = PFILE(QSP_V_T_IL1) * PFILE(QSP_V_T) * 1e-12;
-    //V_T.Tfh, index: 54, units: MWUSERUNIT_cell
+    //V_T.Tfh, index: 56, units: MWUSERUNIT_cell
     _species_var[SP_V_T_Tfh] = PFILE(QSP_V_T_Tfh) * 1.66053872801495e-24;
-    //V_T.nB, index: 55, units: MWUSERUNIT_cell
+    //V_T.nB, index: 57, units: MWUSERUNIT_cell
     _species_var[SP_V_T_nB] = PFILE(QSP_V_T_nB) * 1.66053872801495e-24;
-    //V_T.aB, index: 56, units: MWUSERUNIT_cell
+    //V_T.aB, index: 58, units: MWUSERUNIT_cell
     _species_var[SP_V_T_aB] = PFILE(QSP_V_T_aB) * 1.66053872801495e-24;
-    //V_T.Plasma, index: 57, units: MWUSERUNIT_cell
+    //V_T.Plasma, index: 59, units: MWUSERUNIT_cell
     _species_var[SP_V_T_Plasma] = PFILE(QSP_V_T_Plasma) * 1.66053872801495e-24;
-    //V_T.Ab, index: 58, units: MWDERIVEDUNIT_nanomolarity_milliliter
+    //V_T.Ab, index: 60, units: MWDERIVEDUNIT_nanomolarity_milliliter
     _species_var[SP_V_T_Ab] = PFILE(QSP_V_T_Ab) * PFILE(QSP_V_T) * 1e-12;
-    //V_LN.nCD4, index: 59, units: MWUSERUNIT_cell
+    //V_LN.nCD4, index: 61, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_nCD4] = PFILE(QSP_V_LN_nCD4) * 1.66053872801495e-24;
-    //V_LN.aTreg, index: 60, units: MWUSERUNIT_cell
+    //V_LN.aTreg, index: 62, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_aTreg] = PFILE(QSP_V_LN_aTreg) * 1.66053872801495e-24;
-    //V_LN.Treg, index: 61, units: MWUSERUNIT_cell
+    //V_LN.Treg, index: 63, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_Treg] = PFILE(QSP_V_LN_Treg) * 1.66053872801495e-24;
-    //V_LN.nCD8, index: 62, units: MWUSERUNIT_cell
+    //V_LN.nCD8, index: 64, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_nCD8] = PFILE(QSP_V_LN_nCD8) * 1.66053872801495e-24;
-    //V_LN.aCD8, index: 63, units: MWUSERUNIT_cell
+    //V_LN.aCD8, index: 65, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_aCD8] = PFILE(QSP_V_LN_aCD8) * 1.66053872801495e-24;
-    //V_LN.CD8, index: 64, units: MWUSERUNIT_cell
+    //V_LN.CD8, index: 66, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_CD8] = PFILE(QSP_V_LN_CD8) * 1.66053872801495e-24;
-    //V_LN.cDC1, index: 65, units: MWUSERUNIT_cell
+    //V_LN.cDC1, index: 67, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_cDC1] = PFILE(QSP_V_LN_cDC1) * 1.66053872801495e-24;
-    //V_LN.cDC2, index: 66, units: MWUSERUNIT_cell
+    //V_LN.cDC2, index: 68, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_cDC2] = PFILE(QSP_V_LN_cDC2) * 1.66053872801495e-24;
-    //V_LN.mcDC1, index: 67, units: MWUSERUNIT_cell
+    //V_LN.mcDC1, index: 69, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_mcDC1] = PFILE(QSP_V_LN_mcDC1) * 1.66053872801495e-24;
-    //V_LN.mcDC2, index: 68, units: MWUSERUNIT_cell
+    //V_LN.mcDC2, index: 70, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_mcDC2] = PFILE(QSP_V_LN_mcDC2) * 1.66053872801495e-24;
-    //V_LN.aPD1, index: 69, units: MWDERIVEDUNIT_nanomolarity_millimeter___3
+    //V_LN.aPD1, index: 71, units: MWDERIVEDUNIT_nanomolarity_millimeter___3
     _species_var[SP_V_LN_aPD1] = PFILE(QSP_V_LN_aPD1) * PFILE(QSP_V_LN) * 1e-15;
-    //V_LN.aTh, index: 70, units: MWUSERUNIT_cell
+    //V_LN.aTh, index: 72, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_aTh] = PFILE(QSP_V_LN_aTh) * 1.66053872801495e-24;
-    //V_LN.Th, index: 71, units: MWUSERUNIT_cell
+    //V_LN.Th, index: 73, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_Th] = PFILE(QSP_V_LN_Th) * 1.66053872801495e-24;
-    //V_LN.IFNg, index: 72, units: MWDERIVEDUNIT_nanomolarity_millimeter___3
+    //V_LN.IFNg, index: 74, units: MWDERIVEDUNIT_nanomolarity_millimeter___3
     _species_var[SP_V_LN_IFNg] = PFILE(QSP_V_LN_IFNg) * PFILE(QSP_V_LN) * 1e-15;
-    //V_LN.aTfh, index: 73, units: MWUSERUNIT_cell
+    //V_LN.aTfh, index: 75, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_aTfh] = PFILE(QSP_V_LN_aTfh) * 1.66053872801495e-24;
-    //V_LN.Tfh, index: 74, units: MWUSERUNIT_cell
+    //V_LN.Tfh, index: 76, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_Tfh] = PFILE(QSP_V_LN_Tfh) * 1.66053872801495e-24;
-    //V_LN.nB, index: 75, units: MWUSERUNIT_cell
+    //V_LN.nB, index: 77, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_nB] = PFILE(QSP_V_LN_nB) * 1.66053872801495e-24;
-    //V_LN.aB, index: 76, units: MWUSERUNIT_cell
+    //V_LN.aB, index: 78, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_aB] = PFILE(QSP_V_LN_aB) * 1.66053872801495e-24;
-    //V_LN.B, index: 77, units: MWUSERUNIT_cell
+    //V_LN.B, index: 79, units: MWUSERUNIT_cell
     _species_var[SP_V_LN_B] = PFILE(QSP_V_LN_B) * 1.66053872801495e-24;
-    //V_e.P0, index: 78, units: MWDERIVEDUNIT_molarity_litre
+    //V_e.P0, index: 80, units: MWDERIVEDUNIT_molarity_litre
     _species_var[SP_V_e_P0] = PFILE(QSP_V_e_P0) * PFILE(QSP_V_e) * 1;
-    //V_e.p0, index: 79, units: MWDERIVEDUNIT_molarity_litre
+    //V_e.p0, index: 81, units: MWDERIVEDUNIT_molarity_litre
     _species_var[SP_V_e_p0] = PFILE(QSP_V_e_p0) * PFILE(QSP_V_e) * 1;
-    //V_e.P1, index: 80, units: MWDERIVEDUNIT_molarity_litre
+    //V_e.P1, index: 82, units: MWDERIVEDUNIT_molarity_litre
     _species_var[SP_V_e_P1] = PFILE(QSP_V_e_P1) * PFILE(QSP_V_e) * 1;
-    //V_e.p1, index: 81, units: MWDERIVEDUNIT_molarity_litre
+    //V_e.p1, index: 83, units: MWDERIVEDUNIT_molarity_litre
     _species_var[SP_V_e_p1] = PFILE(QSP_V_e_p1) * PFILE(QSP_V_e) * 1;
-    //A_e.M1, index: 82, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //A_e.M1, index: 84, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_A_e_M1] = PFILE(QSP_A_e_M1) * PFILE(QSP_A_e) * 1.66053872801495e-24;
-    //A_e.M1p0, index: 83, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //A_e.M1p0, index: 85, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_A_e_M1p0] = PFILE(QSP_A_e_M1p0) * PFILE(QSP_A_e) * 1.66053872801495e-24;
-    //A_e.M1p1, index: 84, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //A_e.M1p1, index: 86, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_A_e_M1p1] = PFILE(QSP_A_e_M1p1) * PFILE(QSP_A_e) * 1.66053872801495e-24;
-    //A_s.M1, index: 85, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //A_s.M1, index: 87, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_A_s_M1] = PFILE(QSP_A_s_M1) * PFILE(QSP_A_s) * 1.66053872801495e-24;
-    //A_s.M1p0, index: 86, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //A_s.M1p0, index: 88, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_A_s_M1p0] = PFILE(QSP_A_s_M1p0) * PFILE(QSP_A_s) * 1.66053872801495e-24;
-    //A_s.M1p1, index: 87, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //A_s.M1p1, index: 89, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_A_s_M1p1] = PFILE(QSP_A_s_M1p1) * PFILE(QSP_A_s) * 1.66053872801495e-24;
-    //syn_CD8_C1.PD1_PDL1, index: 88, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.PD1_PDL1, index: 90, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_PD1_PDL1] = PFILE(QSP_syn_CD8_C1_PD1_PDL1) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.PD1_PDL2, index: 89, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.PD1_PDL2, index: 91, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_PD1_PDL2] = PFILE(QSP_syn_CD8_C1_PD1_PDL2) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.PD1, index: 90, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.PD1, index: 92, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_PD1] = PFILE(QSP_syn_CD8_C1_PD1) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.PDL1, index: 91, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.PDL1, index: 93, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_PDL1] = PFILE(QSP_syn_CD8_C1_PDL1) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.PDL2, index: 92, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.PDL2, index: 94, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_PDL2] = PFILE(QSP_syn_CD8_C1_PDL2) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.PD1_aPD1, index: 93, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.PD1_aPD1, index: 95, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_PD1_aPD1] = PFILE(QSP_syn_CD8_C1_PD1_aPD1) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.PD1_aPD1_PD1, index: 94, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.PD1_aPD1_PD1, index: 96, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_PD1_aPD1_PD1] = PFILE(QSP_syn_CD8_C1_PD1_aPD1_PD1) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.TPDL1, index: 95, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.TPDL1, index: 97, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_TPDL1] = PFILE(QSP_syn_CD8_C1_TPDL1) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD28_CD80, index: 96, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD28_CD80, index: 98, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD28_CD80] = PFILE(QSP_syn_CD8_C1_CD28_CD80) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD28_CD80_CD28, index: 97, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD28_CD80_CD28, index: 99, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD28_CD80_CD28] = PFILE(QSP_syn_CD8_C1_CD28_CD80_CD28) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD28_CD86, index: 98, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD28_CD86, index: 100, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD28_CD86] = PFILE(QSP_syn_CD8_C1_CD28_CD86) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD80_CTLA4, index: 99, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD80_CTLA4, index: 101, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD80_CTLA4] = PFILE(QSP_syn_CD8_C1_CD80_CTLA4) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD80_CTLA4_CD80, index: 100, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD80_CTLA4_CD80, index: 102, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD80_CTLA4_CD80] = PFILE(QSP_syn_CD8_C1_CD80_CTLA4_CD80) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CTLA4_CD80_CTLA4, index: 101, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CTLA4_CD80_CTLA4, index: 103, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CTLA4_CD80_CTLA4] = PFILE(QSP_syn_CD8_C1_CTLA4_CD80_CTLA4) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD80_CTLA4_CD80_CTLA4, index: 102, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD80_CTLA4_CD80_CTLA4, index: 104, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD80_CTLA4_CD80_CTLA4] = PFILE(QSP_syn_CD8_C1_CD80_CTLA4_CD80_CTLA4) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD86_CTLA4, index: 103, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD86_CTLA4, index: 105, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD86_CTLA4] = PFILE(QSP_syn_CD8_C1_CD86_CTLA4) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD86_CTLA4_CD86, index: 104, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD86_CTLA4_CD86, index: 106, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD86_CTLA4_CD86] = PFILE(QSP_syn_CD8_C1_CD86_CTLA4_CD86) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.PDL1_CD80, index: 105, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.PDL1_CD80, index: 107, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_PDL1_CD80] = PFILE(QSP_syn_CD8_C1_PDL1_CD80) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.PDL1_CD80_CD28, index: 106, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.PDL1_CD80_CD28, index: 108, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_PDL1_CD80_CD28] = PFILE(QSP_syn_CD8_C1_PDL1_CD80_CD28) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.PDL1_CD80_CTLA4, index: 107, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.PDL1_CD80_CTLA4, index: 109, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_PDL1_CD80_CTLA4] = PFILE(QSP_syn_CD8_C1_PDL1_CD80_CTLA4) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD28, index: 108, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD28, index: 110, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD28] = PFILE(QSP_syn_CD8_C1_CD28) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CTLA4, index: 109, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CTLA4, index: 111, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CTLA4] = PFILE(QSP_syn_CD8_C1_CTLA4) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD80, index: 110, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD80, index: 112, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD80] = PFILE(QSP_syn_CD8_C1_CD80) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD80m, index: 111, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD80m, index: 113, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD80m] = PFILE(QSP_syn_CD8_C1_CD80m) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_C1.CD86, index: 112, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_C1.CD86, index: 114, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_C1_CD86] = PFILE(QSP_syn_CD8_C1_CD86) * PFILE(QSP_syn_CD8_C1) * 1.66053872801495e-24;
-    //syn_CD8_APC.PD1_PDL1, index: 113, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.PD1_PDL1, index: 115, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_PD1_PDL1] = PFILE(QSP_syn_CD8_APC_PD1_PDL1) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.PD1_PDL2, index: 114, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.PD1_PDL2, index: 116, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_PD1_PDL2] = PFILE(QSP_syn_CD8_APC_PD1_PDL2) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.PD1, index: 115, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.PD1, index: 117, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_PD1] = PFILE(QSP_syn_CD8_APC_PD1) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.PDL1, index: 116, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.PDL1, index: 118, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_PDL1] = PFILE(QSP_syn_CD8_APC_PDL1) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.PDL2, index: 117, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.PDL2, index: 119, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_PDL2] = PFILE(QSP_syn_CD8_APC_PDL2) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.PD1_aPD1, index: 118, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.PD1_aPD1, index: 120, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_PD1_aPD1] = PFILE(QSP_syn_CD8_APC_PD1_aPD1) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.PD1_aPD1_PD1, index: 119, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.PD1_aPD1_PD1, index: 121, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_PD1_aPD1_PD1] = PFILE(QSP_syn_CD8_APC_PD1_aPD1_PD1) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.TPDL1, index: 120, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.TPDL1, index: 122, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_TPDL1] = PFILE(QSP_syn_CD8_APC_TPDL1) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD28_CD80, index: 121, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD28_CD80, index: 123, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD28_CD80] = PFILE(QSP_syn_CD8_APC_CD28_CD80) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD28_CD80_CD28, index: 122, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD28_CD80_CD28, index: 124, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD28_CD80_CD28] = PFILE(QSP_syn_CD8_APC_CD28_CD80_CD28) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD28_CD86, index: 123, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD28_CD86, index: 125, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD28_CD86] = PFILE(QSP_syn_CD8_APC_CD28_CD86) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD80_CTLA4, index: 124, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD80_CTLA4, index: 126, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD80_CTLA4] = PFILE(QSP_syn_CD8_APC_CD80_CTLA4) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD80_CTLA4_CD80, index: 125, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD80_CTLA4_CD80, index: 127, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD80_CTLA4_CD80] = PFILE(QSP_syn_CD8_APC_CD80_CTLA4_CD80) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CTLA4_CD80_CTLA4, index: 126, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CTLA4_CD80_CTLA4, index: 128, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CTLA4_CD80_CTLA4] = PFILE(QSP_syn_CD8_APC_CTLA4_CD80_CTLA4) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD80_CTLA4_CD80_CTLA4, index: 127, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD80_CTLA4_CD80_CTLA4, index: 129, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD80_CTLA4_CD80_CTLA4] = PFILE(QSP_syn_CD8_APC_CD80_CTLA4_CD80_CTLA4) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD86_CTLA4, index: 128, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD86_CTLA4, index: 130, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD86_CTLA4] = PFILE(QSP_syn_CD8_APC_CD86_CTLA4) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD86_CTLA4_CD86, index: 129, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD86_CTLA4_CD86, index: 131, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD86_CTLA4_CD86] = PFILE(QSP_syn_CD8_APC_CD86_CTLA4_CD86) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.PDL1_CD80, index: 130, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.PDL1_CD80, index: 132, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_PDL1_CD80] = PFILE(QSP_syn_CD8_APC_PDL1_CD80) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.PDL1_CD80_CD28, index: 131, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.PDL1_CD80_CD28, index: 133, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_PDL1_CD80_CD28] = PFILE(QSP_syn_CD8_APC_PDL1_CD80_CD28) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.PDL1_CD80_CTLA4, index: 132, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.PDL1_CD80_CTLA4, index: 134, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_PDL1_CD80_CTLA4] = PFILE(QSP_syn_CD8_APC_PDL1_CD80_CTLA4) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD28, index: 133, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD28, index: 135, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD28] = PFILE(QSP_syn_CD8_APC_CD28) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CTLA4, index: 134, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CTLA4, index: 136, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CTLA4] = PFILE(QSP_syn_CD8_APC_CTLA4) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD80, index: 135, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD80, index: 137, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD80] = PFILE(QSP_syn_CD8_APC_CD80) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD80m, index: 136, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD80m, index: 138, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD80m] = PFILE(QSP_syn_CD8_APC_CD80m) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_CD8_APC.CD86, index: 137, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_CD8_APC.CD86, index: 139, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_CD8_APC_CD86] = PFILE(QSP_syn_CD8_APC_CD86) * PFILE(QSP_syn_CD8_APC) * 1.66053872801495e-24;
-    //syn_M_C.CD47, index: 138, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.CD47, index: 140, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_CD47] = PFILE(QSP_syn_M_C_CD47) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.SIRPa, index: 139, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.SIRPa, index: 141, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_SIRPa] = PFILE(QSP_syn_M_C_SIRPa) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.CD47_SIRPa, index: 140, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.CD47_SIRPa, index: 142, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_CD47_SIRPa] = PFILE(QSP_syn_M_C_CD47_SIRPa) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.PDL1_total, index: 141, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.PDL1_total, index: 143, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_PDL1_total] = PFILE(QSP_syn_M_C_PDL1_total) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.PDL2_total, index: 142, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.PDL2_total, index: 144, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_PDL2_total] = PFILE(QSP_syn_M_C_PDL2_total) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.PD1_PDL1, index: 143, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.PD1_PDL1, index: 145, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_PD1_PDL1] = PFILE(QSP_syn_M_C_PD1_PDL1) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.PD1_PDL2, index: 144, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.PD1_PDL2, index: 146, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_PD1_PDL2] = PFILE(QSP_syn_M_C_PD1_PDL2) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.PD1, index: 145, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.PD1, index: 147, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_PD1] = PFILE(QSP_syn_M_C_PD1) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.PDL1, index: 146, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.PDL1, index: 148, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_PDL1] = PFILE(QSP_syn_M_C_PDL1) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.PDL2, index: 147, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.PDL2, index: 149, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_PDL2] = PFILE(QSP_syn_M_C_PDL2) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.PD1_aPD1, index: 148, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.PD1_aPD1, index: 150, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_PD1_aPD1] = PFILE(QSP_syn_M_C_PD1_aPD1) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.PD1_aPD1_PD1, index: 149, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.PD1_aPD1_PD1, index: 151, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_PD1_aPD1_PD1] = PFILE(QSP_syn_M_C_PD1_aPD1_PD1) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.PDL1_CD80, index: 150, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.PDL1_CD80, index: 152, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_PDL1_CD80] = PFILE(QSP_syn_M_C_PDL1_CD80) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.CD80, index: 151, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.CD80, index: 153, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_CD80] = PFILE(QSP_syn_M_C_CD80) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //syn_M_C.CD80m, index: 152, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
+    //syn_M_C.CD80m, index: 154, units: MWDERIVEDUNIT_molecule__micrometer___2_micrometer___2
     _species_var[SP_syn_M_C_CD80m] = PFILE(QSP_syn_M_C_CD80m) * PFILE(QSP_syn_M_C) * 1.66053872801495e-24;
-    //V_ID.GVAX_cells, index: 153, units: MWUSERUNIT_cell
+    //V_ID.GVAX_cells, index: 155, units: MWUSERUNIT_cell
     _species_var[SP_V_ID_GVAX_cells] = PFILE(QSP_V_ID_GVAX_cells) * 1.66053872801495e-24;
-    //V_ID.APC, index: 154, units: MWUSERUNIT_cell
+    //V_ID.APC, index: 156, units: MWUSERUNIT_cell
     _species_var[SP_V_ID_APC] = PFILE(QSP_V_ID_APC) * 1.66053872801495e-24;
-    //V_ID.mAPC, index: 155, units: MWUSERUNIT_cell
+    //V_ID.mAPC, index: 157, units: MWUSERUNIT_cell
     _species_var[SP_V_ID_mAPC] = PFILE(QSP_V_ID_mAPC) * 1.66053872801495e-24;
-    //V_ID.GMCSF, index: 156, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_mole
+    //V_ID.GMCSF, index: 158, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_mole
     _species_var[SP_V_ID_GMCSF] = PFILE(QSP_V_ID_GMCSF) * 1e-09;
-    //V_ID.P1_GVAX, index: 157, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_mole
+    //V_ID.P1_GVAX, index: 159, units: MWBUILTINPREFIX_nano_MWBUILTINUNIT_mole
     _species_var[SP_V_ID_P1_GVAX] = PFILE(QSP_V_ID_P1_GVAX) * 1e-09;
 }
 
 std::string ODE_system::getHeader(){
-    return "V_C.nCD4,V_C.Treg,V_C.nCD8,V_C.CD8,V_C.aPD1,V_C.Th,V_C.Cy,V_C.Cy_eff,V_C.Tfh,V_C.nB,V_C.B,V_P.nCD4,V_P.Treg,V_P.nCD8,V_P.CD8,V_P.aPD1,V_P.Th,V_P.Tfh,V_P.B,V_T.C_x,V_T.CD8_exh,V_T.CD8_pex,V_T.Th_exh,V_T.C1,V_T.K_vasc,V_T.VEGF,V_T.Treg,V_T.CD8,V_T.cDC1,V_T.cDC2,V_T.mcDC1,V_T.mcDC2,V_T.P0,V_T.P1,V_T.aPD1,V_T.Th,V_T.IFNg,V_T.TGFb,V_T.MDSC,V_T.NO,V_T.ArgI,V_T.CCL2,V_T.Mac_M1,V_T.Mac_M2,V_T.IL12,V_T.IL10,V_T.qPSC,V_T.iCAF,V_T.myCAF,V_T.apCAF,V_T.collagen,V_T.CXCL12,V_T.IL6,V_T.IL1,V_T.Tfh,V_T.nB,V_T.aB,V_T.Plasma,V_T.Ab,V_LN.nCD4,V_LN.aTreg,V_LN.Treg,V_LN.nCD8,V_LN.aCD8,V_LN.CD8,V_LN.cDC1,V_LN.cDC2,V_LN.mcDC1,V_LN.mcDC2,V_LN.aPD1,V_LN.aTh,V_LN.Th,V_LN.IFNg,V_LN.aTfh,V_LN.Tfh,V_LN.nB,V_LN.aB,V_LN.B,V_e.P0,V_e.p0,V_e.P1,V_e.p1,A_e.M1,A_e.M1p0,A_e.M1p1,A_s.M1,A_s.M1p0,A_s.M1p1,syn_CD8_C1.PD1_PDL1,syn_CD8_C1.PD1_PDL2,syn_CD8_C1.PD1,syn_CD8_C1.PDL1,syn_CD8_C1.PDL2,syn_CD8_C1.PD1_aPD1,syn_CD8_C1.PD1_aPD1_PD1,syn_CD8_C1.TPDL1,syn_CD8_C1.CD28_CD80,syn_CD8_C1.CD28_CD80_CD28,syn_CD8_C1.CD28_CD86,syn_CD8_C1.CD80_CTLA4,syn_CD8_C1.CD80_CTLA4_CD80,syn_CD8_C1.CTLA4_CD80_CTLA4,syn_CD8_C1.CD80_CTLA4_CD80_CTLA4,syn_CD8_C1.CD86_CTLA4,syn_CD8_C1.CD86_CTLA4_CD86,syn_CD8_C1.PDL1_CD80,syn_CD8_C1.PDL1_CD80_CD28,syn_CD8_C1.PDL1_CD80_CTLA4,syn_CD8_C1.CD28,syn_CD8_C1.CTLA4,syn_CD8_C1.CD80,syn_CD8_C1.CD80m,syn_CD8_C1.CD86,syn_CD8_APC.PD1_PDL1,syn_CD8_APC.PD1_PDL2,syn_CD8_APC.PD1,syn_CD8_APC.PDL1,syn_CD8_APC.PDL2,syn_CD8_APC.PD1_aPD1,syn_CD8_APC.PD1_aPD1_PD1,syn_CD8_APC.TPDL1,syn_CD8_APC.CD28_CD80,syn_CD8_APC.CD28_CD80_CD28,syn_CD8_APC.CD28_CD86,syn_CD8_APC.CD80_CTLA4,syn_CD8_APC.CD80_CTLA4_CD80,syn_CD8_APC.CTLA4_CD80_CTLA4,syn_CD8_APC.CD80_CTLA4_CD80_CTLA4,syn_CD8_APC.CD86_CTLA4,syn_CD8_APC.CD86_CTLA4_CD86,syn_CD8_APC.PDL1_CD80,syn_CD8_APC.PDL1_CD80_CD28,syn_CD8_APC.PDL1_CD80_CTLA4,syn_CD8_APC.CD28,syn_CD8_APC.CTLA4,syn_CD8_APC.CD80,syn_CD8_APC.CD80m,syn_CD8_APC.CD86,syn_M_C.CD47,syn_M_C.SIRPa,syn_M_C.CD47_SIRPa,syn_M_C.PDL1_total,syn_M_C.PDL2_total,syn_M_C.PD1_PDL1,syn_M_C.PD1_PDL2,syn_M_C.PD1,syn_M_C.PDL1,syn_M_C.PDL2,syn_M_C.PD1_aPD1,syn_M_C.PD1_aPD1_PD1,syn_M_C.PDL1_CD80,syn_M_C.CD80,syn_M_C.CD80m,V_ID.GVAX_cells,V_ID.APC,V_ID.mAPC,V_ID.GMCSF,V_ID.P1_GVAX";
+    return "V_C.nCD4,V_C.Treg,V_C.nCD8,V_C.CD8,V_C.aPD1,V_C.Th,V_C.Cy,V_C.Cy_eff,V_C.Tfh,V_C.nB,V_C.B,V_P.nCD4,V_P.Treg,V_P.nCD8,V_P.CD8,V_P.aPD1,V_P.Th,V_P.Tfh,V_P.B,V_T.C_x,V_T.CD8_exh,V_T.CD8_pex,V_T.Th_exh,V_T.C1,V_T.K_vasc,V_T.VEGF,V_T.Treg,V_T.CD8,V_T.nCD8,V_T.cDC1,V_T.cDC2,V_T.mcDC1,V_T.mcDC2,V_T.P0,V_T.P1,V_T.aPD1,V_T.Th,V_T.nCD4,V_T.IFNg,V_T.TGFb,V_T.MDSC,V_T.NO,V_T.ArgI,V_T.CCL2,V_T.Mac_M1,V_T.Mac_M2,V_T.IL12,V_T.IL10,V_T.qPSC,V_T.iCAF,V_T.myCAF,V_T.apCAF,V_T.collagen,V_T.CXCL12,V_T.IL6,V_T.IL1,V_T.Tfh,V_T.nB,V_T.aB,V_T.Plasma,V_T.Ab,V_LN.nCD4,V_LN.aTreg,V_LN.Treg,V_LN.nCD8,V_LN.aCD8,V_LN.CD8,V_LN.cDC1,V_LN.cDC2,V_LN.mcDC1,V_LN.mcDC2,V_LN.aPD1,V_LN.aTh,V_LN.Th,V_LN.IFNg,V_LN.aTfh,V_LN.Tfh,V_LN.nB,V_LN.aB,V_LN.B,V_e.P0,V_e.p0,V_e.P1,V_e.p1,A_e.M1,A_e.M1p0,A_e.M1p1,A_s.M1,A_s.M1p0,A_s.M1p1,syn_CD8_C1.PD1_PDL1,syn_CD8_C1.PD1_PDL2,syn_CD8_C1.PD1,syn_CD8_C1.PDL1,syn_CD8_C1.PDL2,syn_CD8_C1.PD1_aPD1,syn_CD8_C1.PD1_aPD1_PD1,syn_CD8_C1.TPDL1,syn_CD8_C1.CD28_CD80,syn_CD8_C1.CD28_CD80_CD28,syn_CD8_C1.CD28_CD86,syn_CD8_C1.CD80_CTLA4,syn_CD8_C1.CD80_CTLA4_CD80,syn_CD8_C1.CTLA4_CD80_CTLA4,syn_CD8_C1.CD80_CTLA4_CD80_CTLA4,syn_CD8_C1.CD86_CTLA4,syn_CD8_C1.CD86_CTLA4_CD86,syn_CD8_C1.PDL1_CD80,syn_CD8_C1.PDL1_CD80_CD28,syn_CD8_C1.PDL1_CD80_CTLA4,syn_CD8_C1.CD28,syn_CD8_C1.CTLA4,syn_CD8_C1.CD80,syn_CD8_C1.CD80m,syn_CD8_C1.CD86,syn_CD8_APC.PD1_PDL1,syn_CD8_APC.PD1_PDL2,syn_CD8_APC.PD1,syn_CD8_APC.PDL1,syn_CD8_APC.PDL2,syn_CD8_APC.PD1_aPD1,syn_CD8_APC.PD1_aPD1_PD1,syn_CD8_APC.TPDL1,syn_CD8_APC.CD28_CD80,syn_CD8_APC.CD28_CD80_CD28,syn_CD8_APC.CD28_CD86,syn_CD8_APC.CD80_CTLA4,syn_CD8_APC.CD80_CTLA4_CD80,syn_CD8_APC.CTLA4_CD80_CTLA4,syn_CD8_APC.CD80_CTLA4_CD80_CTLA4,syn_CD8_APC.CD86_CTLA4,syn_CD8_APC.CD86_CTLA4_CD86,syn_CD8_APC.PDL1_CD80,syn_CD8_APC.PDL1_CD80_CD28,syn_CD8_APC.PDL1_CD80_CTLA4,syn_CD8_APC.CD28,syn_CD8_APC.CTLA4,syn_CD8_APC.CD80,syn_CD8_APC.CD80m,syn_CD8_APC.CD86,syn_M_C.CD47,syn_M_C.SIRPa,syn_M_C.CD47_SIRPa,syn_M_C.PDL1_total,syn_M_C.PDL2_total,syn_M_C.PD1_PDL1,syn_M_C.PD1_PDL2,syn_M_C.PD1,syn_M_C.PDL1,syn_M_C.PDL2,syn_M_C.PD1_aPD1,syn_M_C.PD1_aPD1_PD1,syn_M_C.PDL1_CD80,syn_M_C.CD80,syn_M_C.CD80m,V_ID.GVAX_cells,V_ID.APC,V_ID.mAPC,V_ID.GMCSF,V_ID.P1_GVAX";
 }
 
 void ODE_system::eval_init_assignment(void){
@@ -2582,7 +2604,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype AUX_VAR_CD8_total_C = SPVAR(SP_V_C_nCD8) * PARAM(P_div_CD8) + SPVAR(SP_V_C_CD8);
 
-    realtype AUX_VAR_CD8_total_T = SPVAR(SP_V_T_CD8) + SPVAR(SP_V_T_CD8_exh) + SPVAR(SP_V_T_CD8_pex);
+    realtype AUX_VAR_CD8_total_T = SPVAR(SP_V_T_CD8) + SPVAR(SP_V_T_CD8_exh) + SPVAR(SP_V_T_CD8_pex) + SPVAR(SP_V_T_nCD8);
 
     realtype AUX_VAR_C_total = 0.0 * PARAM(P_cell) + SPVAR(SP_V_T_C1);
 
@@ -2634,11 +2656,11 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype AUX_VAR_N_aTh = PARAM(P_N_div_base) + PARAM(P_N_div_costim) * AUX_VAR_H_CD28_APC + (PARAM(P_N_IL2_CD4) * AUX_VAR_IL2_niche / (PARAM(P_IL2_50) + AUX_VAR_IL2_niche));
 
-    realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + SPVAR(SP_V_T_Treg) + SPVAR(SP_V_T_CD8) + SPVAR(SP_V_T_Th) + SPVAR(SP_V_T_Tfh);
+    realtype AUX_VAR_T_total = 0.0 * PARAM(P_cell) + SPVAR(SP_V_T_Treg) + SPVAR(SP_V_T_CD8) + SPVAR(SP_V_T_nCD8) + SPVAR(SP_V_T_Th) + SPVAR(SP_V_T_nCD4) + SPVAR(SP_V_T_Tfh);
 
     realtype AUX_VAR_T_total_LN = 0.0 * PARAM(P_cell) + SPVAR(SP_V_LN_Treg) + SPVAR(SP_V_LN_CD8) + SPVAR(SP_V_LN_Th) + SPVAR(SP_V_LN_Tfh);
 
-    realtype AUX_VAR_Th_total_T = SPVAR(SP_V_T_Th) + SPVAR(SP_V_T_Th_exh);
+    realtype AUX_VAR_Th_total_T = SPVAR(SP_V_T_Th) + SPVAR(SP_V_T_Th_exh) + SPVAR(SP_V_T_nCD4);
 
     realtype AUX_VAR_CD4_total_T = AUX_VAR_Th_total_T + SPVAR(SP_V_T_Treg);
 
@@ -2710,7 +2732,7 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype AUX_VAR_mDC_total_T = SPVAR(SP_V_T_mcDC1) + SPVAR(SP_V_T_mcDC2);
 
-    realtype AUX_VAR_nucleated_total_T = SPVAR(SP_V_T_C1) + SPVAR(SP_V_T_C_x) + AUX_VAR_CD8_total_T + SPVAR(SP_V_T_Th) + SPVAR(SP_V_T_Th_exh) + SPVAR(SP_V_T_Treg) + SPVAR(SP_V_T_Mac_M1) + SPVAR(SP_V_T_Mac_M2) + SPVAR(SP_V_T_MDSC) + SPVAR(SP_V_T_cDC1) + SPVAR(SP_V_T_cDC2) + SPVAR(SP_V_T_mcDC1) + SPVAR(SP_V_T_mcDC2) + SPVAR(SP_V_T_nB) + SPVAR(SP_V_T_aB) + SPVAR(SP_V_T_Plasma) + SPVAR(SP_V_T_Tfh) + SPVAR(SP_V_T_qPSC) + SPVAR(SP_V_T_iCAF) + SPVAR(SP_V_T_myCAF) + SPVAR(SP_V_T_apCAF);
+    realtype AUX_VAR_nucleated_total_T = SPVAR(SP_V_T_C1) + SPVAR(SP_V_T_C_x) + AUX_VAR_CD8_total_T + SPVAR(SP_V_T_nCD4) + SPVAR(SP_V_T_Th) + SPVAR(SP_V_T_Th_exh) + SPVAR(SP_V_T_Treg) + SPVAR(SP_V_T_Mac_M1) + SPVAR(SP_V_T_Mac_M2) + SPVAR(SP_V_T_MDSC) + SPVAR(SP_V_T_cDC1) + SPVAR(SP_V_T_cDC2) + SPVAR(SP_V_T_mcDC1) + SPVAR(SP_V_T_mcDC2) + SPVAR(SP_V_T_nB) + SPVAR(SP_V_T_aB) + SPVAR(SP_V_T_Plasma) + SPVAR(SP_V_T_Tfh) + SPVAR(SP_V_T_qPSC) + SPVAR(SP_V_T_iCAF) + SPVAR(SP_V_T_myCAF) + SPVAR(SP_V_T_apCAF);
 
     realtype AUX_VAR_pTCR_p0_MHC_tot = (PARAM(P_k_M1p0_TCR_off) / (PARAM(P_k_M1p0_TCR_off) + PARAM(P_phi_M1p0_TCR))) * (std::pow(PARAM(P_k_M1p0_TCR_p) / (PARAM(P_k_M1p0_TCR_off) + PARAM(P_k_M1p0_TCR_p)), PARAM(P_N_M1p0_TCR))) * 0.5 * (((SPVAR(SP_A_s_M1p0) / PARAM(P_A_s)) / PARAM(P_n_CD4_clones) + PARAM(P_TCR_p0_tot) + PARAM(P_k_M1p0_TCR_off) / PARAM(P_k_M1p0_TCR_on) - PARAM(P_TCR_p0_tot) * (std::pow(std::max((std::pow(((SPVAR(SP_A_s_M1p0) / PARAM(P_A_s)) / PARAM(P_n_CD4_clones) + PARAM(P_TCR_p0_tot) + PARAM(P_k_M1p0_TCR_off) / PARAM(P_k_M1p0_TCR_on)) / PARAM(P_TCR_p0_tot), 2.0) - 4.0 * (SPVAR(SP_A_s_M1p0) / PARAM(P_A_s)) / PARAM(P_n_CD4_clones) / PARAM(P_TCR_p0_tot)), 0.0), 1.0 / 2.0))));
 
@@ -2902,762 +2924,798 @@ int ODE_system::f(realtype t, N_Vector y, N_Vector ydot, void *user_data){
 
     realtype ReactionFlux67 = PARAM(P_q_CD8_LN_out) * SPVAR(SP_V_LN_CD8);
 
-    realtype ReactionFlux68 = AUX_VAR_k_C_Tcell_eff * SPVAR(SP_V_T_C1);
+    realtype ReactionFlux68 = PARAM(P_q_CD8_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_nCD8) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_CXCL12_Texcl)) * AUX_VAR_H_vasc;
 
-    realtype ReactionFlux69 = PARAM(P_k_APC_death) * PARAM(P_cDC1_recruit_target_T) * AUX_VAR_V_T * ((1.0 - AUX_VAR_H_pore_APC));
+    realtype ReactionFlux69 = PARAM(P_k_T_activation_per_APC) * SPVAR(SP_V_T_mcDC1) * SPVAR(SP_V_T_nCD8);
 
-    realtype ReactionFlux70 = PARAM(P_k_APC_death) * SPVAR(SP_V_T_cDC1);
+    realtype ReactionFlux70 = PARAM(P_k_T_activation_per_APC) * SPVAR(SP_V_T_mcDC1) * SPVAR(SP_V_T_nCD8) * PARAM(P_n_CD8_clones);
 
-    realtype ReactionFlux71 = PARAM(P_k_APC_death) * PARAM(P_APC0_cDC1_LN) * PARAM(P_V_LN);
+    realtype ReactionFlux71 = PARAM(P_k_nCD8_death) * SPVAR(SP_V_T_nCD8);
 
-    realtype ReactionFlux72 = PARAM(P_k_APC_death) * SPVAR(SP_V_LN_cDC1);
+    realtype ReactionFlux72 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_nCD8) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
-    realtype ReactionFlux73 = PARAM(P_k_APC_mat_cDC1) * SPVAR(SP_V_T_cDC1) * ((1.0 - ((1.0 - AUX_VAR_H_HMGB1)) * ((1.0 - AUX_VAR_H_IL12)))) * ((1.0 - AUX_VAR_H_IL10_APC)) * ((1.0 - AUX_VAR_H_TGFb_APC));
+    realtype ReactionFlux73 = AUX_VAR_k_C_Tcell_eff * SPVAR(SP_V_T_C1);
 
-    realtype ReactionFlux74 = PARAM(P_k_APC_mig) * SPVAR(SP_V_T_mcDC1) * ((1.0 - AUX_VAR_H_pore_APC));
+    realtype ReactionFlux74 = PARAM(P_k_APC_death) * PARAM(P_cDC1_recruit_target_T) * AUX_VAR_V_T * ((1.0 - AUX_VAR_H_pore_APC));
 
-    realtype ReactionFlux75 = PARAM(P_k_mAPC_death) * SPVAR(SP_V_T_mcDC1);
+    realtype ReactionFlux75 = PARAM(P_k_APC_death) * SPVAR(SP_V_T_cDC1);
 
-    realtype ReactionFlux76 = PARAM(P_k_mAPC_death) * SPVAR(SP_V_LN_mcDC1);
+    realtype ReactionFlux76 = PARAM(P_k_APC_death) * PARAM(P_APC0_cDC1_LN) * PARAM(P_V_LN);
 
-    realtype ReactionFlux77 = PARAM(P_k_APC_death) * PARAM(P_cDC2_recruit_target_T) * AUX_VAR_V_T * ((1.0 - AUX_VAR_H_pore_APC));
+    realtype ReactionFlux77 = PARAM(P_k_APC_death) * SPVAR(SP_V_LN_cDC1);
 
-    realtype ReactionFlux78 = PARAM(P_k_APC_death) * SPVAR(SP_V_T_cDC2);
+    realtype ReactionFlux78 = PARAM(P_k_APC_mat_cDC1) * SPVAR(SP_V_T_cDC1) * ((1.0 - ((1.0 - std::min(AUX_VAR_H_HMGB1 * (1.0 + PARAM(P_DC_Ab_boost) * AUX_VAR_H_Ab_DC), 1.0))) * ((1.0 - AUX_VAR_H_IL12)))) * ((1.0 - AUX_VAR_H_IL10_APC)) * ((1.0 - AUX_VAR_H_TGFb_APC));
 
-    realtype ReactionFlux79 = PARAM(P_k_APC_death) * PARAM(P_APC0_cDC2_LN) * PARAM(P_V_LN);
+    realtype ReactionFlux79 = PARAM(P_k_APC_mig) * SPVAR(SP_V_T_mcDC1) * ((1.0 - AUX_VAR_H_pore_APC));
 
-    realtype ReactionFlux80 = PARAM(P_k_APC_death) * SPVAR(SP_V_LN_cDC2);
+    realtype ReactionFlux80 = PARAM(P_k_mAPC_death) * SPVAR(SP_V_T_mcDC1);
 
-    realtype ReactionFlux81 = PARAM(P_k_APC_mat_cDC2) * SPVAR(SP_V_T_cDC2) * ((1.0 - ((1.0 - AUX_VAR_H_HMGB1)) * ((1.0 - AUX_VAR_H_IL12)))) * ((1.0 - AUX_VAR_H_IL10_APC)) * ((1.0 - AUX_VAR_H_TGFb_APC));
+    realtype ReactionFlux81 = PARAM(P_k_mAPC_death) * SPVAR(SP_V_LN_mcDC1);
 
-    realtype ReactionFlux82 = PARAM(P_k_APC_mig) * SPVAR(SP_V_T_mcDC2) * ((1.0 - AUX_VAR_H_pore_APC));
+    realtype ReactionFlux82 = PARAM(P_k_APC_death) * PARAM(P_cDC2_recruit_target_T) * AUX_VAR_V_T * ((1.0 - AUX_VAR_H_pore_APC));
 
-    realtype ReactionFlux83 = PARAM(P_k_mAPC_death) * SPVAR(SP_V_T_mcDC2);
+    realtype ReactionFlux83 = PARAM(P_k_APC_death) * SPVAR(SP_V_T_cDC2);
 
-    realtype ReactionFlux84 = PARAM(P_k_mAPC_death) * SPVAR(SP_V_LN_mcDC2);
+    realtype ReactionFlux84 = PARAM(P_k_APC_death) * PARAM(P_APC0_cDC2_LN) * PARAM(P_V_LN);
 
-    realtype ReactionFlux85 = (PARAM(P_kout) * (SPVAR(SP_A_e_M1) / PARAM(P_A_e)) * PARAM(P_A_e) - PARAM(P_kin) * (SPVAR(SP_A_s_M1) / PARAM(P_A_s)) * PARAM(P_A_s));
+    realtype ReactionFlux85 = PARAM(P_k_APC_death) * SPVAR(SP_V_LN_cDC2);
 
-    realtype ReactionFlux86 = PARAM(P_n_CD4_clones) * PARAM(P_P0_C1) * AUX_VAR_R_Tcell;
+    realtype ReactionFlux86 = PARAM(P_k_APC_mat_cDC2) * SPVAR(SP_V_T_cDC2) * ((1.0 - ((1.0 - std::min(AUX_VAR_H_HMGB1 * (1.0 + PARAM(P_DC_Ab_boost) * AUX_VAR_H_Ab_DC), 1.0))) * ((1.0 - AUX_VAR_H_IL12)))) * ((1.0 - AUX_VAR_H_IL10_APC)) * ((1.0 - AUX_VAR_H_TGFb_APC));
 
-    realtype ReactionFlux87 = PARAM(P_k_xP0_deg) * (SPVAR(SP_V_T_P0) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux87 = PARAM(P_k_APC_mig) * SPVAR(SP_V_T_mcDC2) * ((1.0 - AUX_VAR_H_pore_APC));
 
-    realtype ReactionFlux88 = PARAM(P_k_P0_up) * AUX_VAR_APC_total_T * (SPVAR(SP_V_T_P0) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux88 = PARAM(P_k_mAPC_death) * SPVAR(SP_V_T_mcDC2);
 
-    realtype ReactionFlux89 = PARAM(P_k_P0_up) * PARAM(P_cell) * (SPVAR(SP_V_T_P0) / AUX_VAR_V_T) * PARAM(P_V_e);
+    realtype ReactionFlux89 = PARAM(P_k_mAPC_death) * SPVAR(SP_V_LN_mcDC2);
 
-    realtype ReactionFlux90 = PARAM(P_k_P0_deg) * (SPVAR(SP_V_e_P0) / PARAM(P_V_e)) * PARAM(P_V_e);
+    realtype ReactionFlux90 = (PARAM(P_kout) * (SPVAR(SP_A_e_M1) / PARAM(P_A_e)) * PARAM(P_A_e) - PARAM(P_kin) * (SPVAR(SP_A_s_M1) / PARAM(P_A_s)) * PARAM(P_A_s));
 
-    realtype ReactionFlux91 = PARAM(P_k_p0_deg) * (SPVAR(SP_V_e_p0) / PARAM(P_V_e)) * PARAM(P_V_e);
+    realtype ReactionFlux91 = PARAM(P_n_CD4_clones) * PARAM(P_P0_C1) * AUX_VAR_R_Tcell;
 
-    realtype ReactionFlux92 = PARAM(P_k_P0_on) * (SPVAR(SP_V_e_p0) / PARAM(P_V_e)) * (SPVAR(SP_A_e_M1) / PARAM(P_A_e)) * PARAM(P_A_e);
+    realtype ReactionFlux92 = PARAM(P_k_xP0_deg) * (SPVAR(SP_V_T_P0) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux93 = PARAM(P_k_P0_d1) * PARAM(P_k_P0_on) * (SPVAR(SP_A_e_M1p0) / PARAM(P_A_e)) * PARAM(P_A_e);
+    realtype ReactionFlux93 = PARAM(P_k_P0_up) * AUX_VAR_APC_total_T * (SPVAR(SP_V_T_P0) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux94 = PARAM(P_k_P0_d1) * PARAM(P_k_P0_on) * (SPVAR(SP_A_s_M1p0) / PARAM(P_A_s)) * PARAM(P_A_s);
+    realtype ReactionFlux94 = PARAM(P_k_P0_up) * PARAM(P_cell) * (SPVAR(SP_V_T_P0) / AUX_VAR_V_T) * PARAM(P_V_e);
 
-    realtype ReactionFlux95 = PARAM(P_kout) * (SPVAR(SP_A_e_M1p0) / PARAM(P_A_e)) * PARAM(P_A_e);
+    realtype ReactionFlux95 = PARAM(P_k_P0_deg) * (SPVAR(SP_V_e_P0) / PARAM(P_V_e)) * PARAM(P_V_e);
 
-    realtype ReactionFlux96 = PARAM(P_n_CD8_clones) * PARAM(P_P1_C1) * AUX_VAR_R_Tcell;
+    realtype ReactionFlux96 = PARAM(P_k_p0_deg) * (SPVAR(SP_V_e_p0) / PARAM(P_V_e)) * PARAM(P_V_e);
 
-    realtype ReactionFlux97 = PARAM(P_k_xP1_deg) * (SPVAR(SP_V_T_P1) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux97 = PARAM(P_k_P0_on) * (SPVAR(SP_V_e_p0) / PARAM(P_V_e)) * (SPVAR(SP_A_e_M1) / PARAM(P_A_e)) * PARAM(P_A_e);
 
-    realtype ReactionFlux98 = PARAM(P_k_P1_up) * AUX_VAR_APC_total_T * (SPVAR(SP_V_T_P1) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux98 = PARAM(P_k_P0_d1) * PARAM(P_k_P0_on) * (SPVAR(SP_A_e_M1p0) / PARAM(P_A_e)) * PARAM(P_A_e);
 
-    realtype ReactionFlux99 = PARAM(P_k_P1_up) * PARAM(P_cell) * (SPVAR(SP_V_T_P1) / AUX_VAR_V_T) * PARAM(P_V_e);
+    realtype ReactionFlux99 = PARAM(P_k_P0_d1) * PARAM(P_k_P0_on) * (SPVAR(SP_A_s_M1p0) / PARAM(P_A_s)) * PARAM(P_A_s);
 
-    realtype ReactionFlux100 = PARAM(P_k_P1_deg) * (SPVAR(SP_V_e_P1) / PARAM(P_V_e)) * PARAM(P_V_e);
+    realtype ReactionFlux100 = PARAM(P_kout) * (SPVAR(SP_A_e_M1p0) / PARAM(P_A_e)) * PARAM(P_A_e);
 
-    realtype ReactionFlux101 = PARAM(P_k_p1_deg) * (SPVAR(SP_V_e_p1) / PARAM(P_V_e)) * PARAM(P_V_e);
+    realtype ReactionFlux101 = PARAM(P_n_CD8_clones) * PARAM(P_P1_C1) * AUX_VAR_R_Tcell;
 
-    realtype ReactionFlux102 = PARAM(P_k_P1_on) * (SPVAR(SP_V_e_p1) / PARAM(P_V_e)) * (SPVAR(SP_A_e_M1) / PARAM(P_A_e)) * PARAM(P_A_e);
+    realtype ReactionFlux102 = PARAM(P_k_xP1_deg) * (SPVAR(SP_V_T_P1) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux103 = PARAM(P_k_P1_d1) * PARAM(P_k_P1_on) * (SPVAR(SP_A_e_M1p1) / PARAM(P_A_e)) * PARAM(P_A_e);
+    realtype ReactionFlux103 = PARAM(P_k_P1_up) * AUX_VAR_APC_total_T * (SPVAR(SP_V_T_P1) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux104 = PARAM(P_k_P1_d1) * PARAM(P_k_P1_on) * (SPVAR(SP_A_s_M1p1) / PARAM(P_A_s)) * PARAM(P_A_s);
+    realtype ReactionFlux104 = PARAM(P_k_P1_up) * PARAM(P_cell) * (SPVAR(SP_V_T_P1) / AUX_VAR_V_T) * PARAM(P_V_e);
 
-    realtype ReactionFlux105 = PARAM(P_kout) * (SPVAR(SP_A_e_M1p1) / PARAM(P_A_e)) * PARAM(P_A_e);
+    realtype ReactionFlux105 = PARAM(P_k_P1_deg) * (SPVAR(SP_V_e_P1) / PARAM(P_V_e)) * PARAM(P_V_e);
 
-    realtype ReactionFlux106 = PARAM(P_q_P_aPD1) * (((SPVAR(SP_V_C_aPD1) / PARAM(P_V_C)) / PARAM(P_gamma_C_aPD1) - (SPVAR(SP_V_P_aPD1) / PARAM(P_V_P)) / PARAM(P_gamma_P_aPD1)));
+    realtype ReactionFlux106 = PARAM(P_k_p1_deg) * (SPVAR(SP_V_e_p1) / PARAM(P_V_e)) * PARAM(P_V_e);
 
-    realtype ReactionFlux107 = PARAM(P_q_T_aPD1) * (((SPVAR(SP_V_C_aPD1) / PARAM(P_V_C)) / PARAM(P_gamma_C_aPD1) - (SPVAR(SP_V_T_aPD1) / AUX_VAR_V_T) / PARAM(P_gamma_T_aPD1)));
+    realtype ReactionFlux107 = PARAM(P_k_P1_on) * (SPVAR(SP_V_e_p1) / PARAM(P_V_e)) * (SPVAR(SP_A_e_M1) / PARAM(P_A_e)) * PARAM(P_A_e);
 
-    realtype ReactionFlux108 = PARAM(P_q_LN_aPD1) * (((SPVAR(SP_V_C_aPD1) / PARAM(P_V_C)) / PARAM(P_gamma_C_aPD1) - (SPVAR(SP_V_LN_aPD1) / PARAM(P_V_LN)) / PARAM(P_gamma_LN_aPD1)));
+    realtype ReactionFlux108 = PARAM(P_k_P1_d1) * PARAM(P_k_P1_on) * (SPVAR(SP_A_e_M1p1) / PARAM(P_A_e)) * PARAM(P_A_e);
 
-    realtype ReactionFlux109 = PARAM(P_q_LD_aPD1) * AUX_VAR_V_T * (SPVAR(SP_V_T_aPD1) / AUX_VAR_V_T) / PARAM(P_gamma_T_aPD1);
+    realtype ReactionFlux109 = PARAM(P_k_P1_d1) * PARAM(P_k_P1_on) * (SPVAR(SP_A_s_M1p1) / PARAM(P_A_s)) * PARAM(P_A_s);
 
-    realtype ReactionFlux110 = PARAM(P_q_LD_aPD1) * AUX_VAR_V_T * (SPVAR(SP_V_LN_aPD1) / PARAM(P_V_LN)) / PARAM(P_gamma_LN_aPD1);
+    realtype ReactionFlux110 = PARAM(P_kout) * (SPVAR(SP_A_e_M1p1) / PARAM(P_A_e)) * PARAM(P_A_e);
 
-    realtype ReactionFlux111 = PARAM(P_k_cl_aPD1) * (SPVAR(SP_V_C_aPD1) / PARAM(P_V_C));
+    realtype ReactionFlux111 = PARAM(P_q_P_aPD1) * (((SPVAR(SP_V_C_aPD1) / PARAM(P_V_C)) / PARAM(P_gamma_C_aPD1) - (SPVAR(SP_V_P_aPD1) / PARAM(P_V_P)) / PARAM(P_gamma_P_aPD1)));
 
-    realtype ReactionFlux112 = (PARAM(P_k_out_PDL1) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_CD8_C1_PDL1_total / ((PARAM(P_C1_PDL1_base) * (1.0 + ((((PARAM(P_r_PDL1_IFNg) - 1.0)) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T)) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))))) / PARAM(P_A_cell))));
+    realtype ReactionFlux112 = PARAM(P_q_T_aPD1) * (((SPVAR(SP_V_C_aPD1) / PARAM(P_V_C)) / PARAM(P_gamma_C_aPD1) - (SPVAR(SP_V_T_aPD1) / AUX_VAR_V_T) / PARAM(P_gamma_T_aPD1)));
 
-    realtype ReactionFlux113 = (PARAM(P_k_out_PDL1) * PARAM(P_r_PDL2C1) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_CD8_C1_PDL2_total / (((PARAM(P_C1_PDL1_base) * (1.0 + ((((PARAM(P_r_PDL1_IFNg) - 1.0)) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T)) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))))) / PARAM(P_A_cell)) * PARAM(P_r_PDL2C1))));
+    realtype ReactionFlux113 = PARAM(P_q_LN_aPD1) * (((SPVAR(SP_V_C_aPD1) / PARAM(P_V_C)) / PARAM(P_gamma_C_aPD1) - (SPVAR(SP_V_LN_aPD1) / PARAM(P_V_LN)) / PARAM(P_gamma_LN_aPD1)));
 
-    realtype ReactionFlux114 = PARAM(P_k_in_PDL1) * ((PARAM(P_C1_PDL1_base) / PARAM(P_A_cell) - AUX_VAR_syn_CD8_C1_PDL1_total)) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux114 = PARAM(P_q_LD_aPD1) * AUX_VAR_V_T * (SPVAR(SP_V_T_aPD1) / AUX_VAR_V_T) / PARAM(P_gamma_T_aPD1);
 
-    realtype ReactionFlux115 = PARAM(P_k_in_PDL1) * ((PARAM(P_C1_PDL1_base) / PARAM(P_A_cell) * PARAM(P_r_PDL2C1) - AUX_VAR_syn_CD8_C1_PDL2_total)) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux115 = PARAM(P_q_LD_aPD1) * AUX_VAR_V_T * (SPVAR(SP_V_LN_aPD1) / PARAM(P_V_LN)) / PARAM(P_gamma_LN_aPD1);
 
-    realtype ReactionFlux116 = ((PARAM(P_kon_PD1_PDL1) * (SPVAR(SP_syn_CD8_C1_PD1) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_PDL1) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_PD1_PDL1) * (SPVAR(SP_syn_CD8_C1_PD1_PDL1) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux116 = PARAM(P_k_cl_aPD1) * (SPVAR(SP_V_C_aPD1) / PARAM(P_V_C));
 
-    realtype ReactionFlux117 = ((PARAM(P_kon_PD1_PDL2) * (SPVAR(SP_syn_CD8_C1_PD1) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_PDL2) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_PD1_PDL2) * (SPVAR(SP_syn_CD8_C1_PD1_PDL2) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux117 = (PARAM(P_k_out_PDL1) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_CD8_C1_PDL1_total / ((PARAM(P_C1_PDL1_base) * (1.0 + ((((PARAM(P_r_PDL1_IFNg) - 1.0)) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T)) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))))) / PARAM(P_A_cell))));
 
-    realtype ReactionFlux118 = ((2.0 * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_CD8_C1_PD1) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_V_T_aPD1) / AUX_VAR_V_T) / PARAM(P_gamma_T_aPD1) - PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_CD8_C1_PD1_aPD1) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux118 = (PARAM(P_k_out_PDL1) * PARAM(P_r_PDL2C1) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_CD8_C1_PDL2_total / (((PARAM(P_C1_PDL1_base) * (1.0 + ((((PARAM(P_r_PDL1_IFNg) - 1.0)) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T)) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))))) / PARAM(P_A_cell)) * PARAM(P_r_PDL2C1))));
 
-    realtype ReactionFlux119 = ((PARAM(P_Chi_PD1_aPD1) * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_CD8_C1_PD1) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_PD1_aPD1) / PARAM(P_syn_CD8_C1)) - 2.0 * PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_CD8_C1_PD1_aPD1_PD1) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux119 = PARAM(P_k_in_PDL1) * ((PARAM(P_C1_PDL1_base) / PARAM(P_A_cell) - AUX_VAR_syn_CD8_C1_PDL1_total)) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux120 = ((2.0 * PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_CD28) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_CD28_CD80) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux120 = PARAM(P_k_in_PDL1) * ((PARAM(P_C1_PDL1_base) / PARAM(P_A_cell) * PARAM(P_r_PDL2C1) - AUX_VAR_syn_CD8_C1_PDL2_total)) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux121 = ((PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_CD28) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD28_CD80) / PARAM(P_syn_CD8_C1)) - 2.0 * PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_CD28_CD80_CD28) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux121 = ((PARAM(P_kon_PD1_PDL1) * (SPVAR(SP_syn_CD8_C1_PD1) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_PDL1) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_PD1_PDL1) * (SPVAR(SP_syn_CD8_C1_PD1_PDL1) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux122 = ((PARAM(P_kon_CD28_CD86) * (SPVAR(SP_syn_CD8_C1_CD28) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD86) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CD28_CD86) * (SPVAR(SP_syn_CD8_C1_CD28_CD86) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux122 = ((PARAM(P_kon_PD1_PDL2) * (SPVAR(SP_syn_CD8_C1_PD1) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_PDL2) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_PD1_PDL2) * (SPVAR(SP_syn_CD8_C1_PD1_PDL2) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux123 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux123 = ((2.0 * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_CD8_C1_PD1) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_V_T_aPD1) / AUX_VAR_V_T) / PARAM(P_gamma_T_aPD1) - PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_CD8_C1_PD1_aPD1) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux124 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4) / PARAM(P_syn_CD8_C1)) - 2.0 * PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux124 = ((PARAM(P_Chi_PD1_aPD1) * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_CD8_C1_PD1) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_PD1_aPD1) / PARAM(P_syn_CD8_C1)) - 2.0 * PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_CD8_C1_PD1_aPD1_PD1) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux125 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux125 = ((2.0 * PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_CD28) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_CD28_CD80) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux126 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80) / PARAM(P_syn_CD8_C1)) - 2.0 * PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4_CD80) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux126 = ((PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_CD28) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD28_CD80) / PARAM(P_syn_CD8_C1)) - 2.0 * PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_CD28_CD80_CD28) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux127 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4_CD80) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux127 = ((PARAM(P_kon_CD28_CD86) * (SPVAR(SP_syn_CD8_C1_CD28) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD86) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CD28_CD86) * (SPVAR(SP_syn_CD8_C1_CD28_CD86) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux128 = ((2.0 * PARAM(P_kon_CTLA4_CD86) * (SPVAR(SP_syn_CD8_C1_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD86) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CTLA4_CD86) * (SPVAR(SP_syn_CD8_C1_CD86_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux128 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux129 = ((PARAM(P_kon_CTLA4_CD86) * (SPVAR(SP_syn_CD8_C1_CD86_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD86) / PARAM(P_syn_CD8_C1)) - 2.0 * PARAM(P_koff_CTLA4_CD86) * (SPVAR(SP_syn_CD8_C1_CD86_CTLA4_CD86) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux129 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4) / PARAM(P_syn_CD8_C1)) - 2.0 * PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux130 = ((PARAM(P_kon_CD80_CD80) * (SPVAR(SP_syn_CD8_C1_CD80m) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80m) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CD80_CD80) * (SPVAR(SP_syn_CD8_C1_CD80) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux130 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux131 = ((PARAM(P_kon_CD80_PDL1) * (SPVAR(SP_syn_CD8_C1_CD80m) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_PDL1) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CD80_PDL1) * (SPVAR(SP_syn_CD8_C1_PDL1_CD80) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux131 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80) / PARAM(P_syn_CD8_C1)) - 2.0 * PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4_CD80) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux132 = ((PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_PDL1_CD80) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD28) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_PDL1_CD80_CD28) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux132 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4_CD80) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_CD80_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux133 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_PDL1_CD80) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CTLA4) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_PDL1_CD80_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
+    realtype ReactionFlux133 = ((2.0 * PARAM(P_kon_CTLA4_CD86) * (SPVAR(SP_syn_CD8_C1_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD86) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CTLA4_CD86) * (SPVAR(SP_syn_CD8_C1_CD86_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux134 = (PARAM(P_k_out_PDL1) * (SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) / ((SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_CD8_APC_PDL1_total / ((PARAM(P_APC_PDL1_base) * (1.0 + ((((PARAM(P_r_PDL1_IFNg) - 1.0)) * (SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN))) / ((SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) + PARAM(P_IFNg_50_ind))))) / PARAM(P_A_APC))));
+    realtype ReactionFlux134 = ((PARAM(P_kon_CTLA4_CD86) * (SPVAR(SP_syn_CD8_C1_CD86_CTLA4) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD86) / PARAM(P_syn_CD8_C1)) - 2.0 * PARAM(P_koff_CTLA4_CD86) * (SPVAR(SP_syn_CD8_C1_CD86_CTLA4_CD86) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux135 = (PARAM(P_k_out_PDL1) * PARAM(P_r_PDL2APC) * (SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) / ((SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_CD8_APC_PDL2_total / (((PARAM(P_APC_PDL1_base) * (1.0 + ((((PARAM(P_r_PDL1_IFNg) - 1.0)) * (SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN))) / ((SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) + PARAM(P_IFNg_50_ind))))) / PARAM(P_A_APC)) * PARAM(P_r_PDL2APC))));
+    realtype ReactionFlux135 = ((PARAM(P_kon_CD80_CD80) * (SPVAR(SP_syn_CD8_C1_CD80m) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD80m) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CD80_CD80) * (SPVAR(SP_syn_CD8_C1_CD80) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux136 = PARAM(P_k_in_PDL1) * ((PARAM(P_APC_PDL1_base) / PARAM(P_A_APC) - AUX_VAR_syn_CD8_APC_PDL1_total)) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux136 = ((PARAM(P_kon_CD80_PDL1) * (SPVAR(SP_syn_CD8_C1_CD80m) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_PDL1) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CD80_PDL1) * (SPVAR(SP_syn_CD8_C1_PDL1_CD80) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux137 = PARAM(P_k_in_PDL1) * ((PARAM(P_APC_PDL1_base) / PARAM(P_A_APC) * PARAM(P_r_PDL2APC) - AUX_VAR_syn_CD8_APC_PDL2_total)) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux137 = ((PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_PDL1_CD80) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CD28) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_C1_PDL1_CD80_CD28) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux138 = ((PARAM(P_kon_PD1_PDL1) * (SPVAR(SP_syn_CD8_APC_PD1) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_PDL1) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_PD1_PDL1) * (SPVAR(SP_syn_CD8_APC_PD1_PDL1) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux138 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_PDL1_CD80) / PARAM(P_syn_CD8_C1)) * (SPVAR(SP_syn_CD8_C1_CTLA4) / PARAM(P_syn_CD8_C1)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_C1_PDL1_CD80_CTLA4) / PARAM(P_syn_CD8_C1)))) * PARAM(P_syn_CD8_C1);
 
-    realtype ReactionFlux139 = ((PARAM(P_kon_PD1_PDL2) * (SPVAR(SP_syn_CD8_APC_PD1) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_PDL2) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_PD1_PDL2) * (SPVAR(SP_syn_CD8_APC_PD1_PDL2) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux139 = (PARAM(P_k_out_PDL1) * (SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) / ((SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_CD8_APC_PDL1_total / ((PARAM(P_APC_PDL1_base) * (1.0 + ((((PARAM(P_r_PDL1_IFNg) - 1.0)) * (SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN))) / ((SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) + PARAM(P_IFNg_50_ind))))) / PARAM(P_A_APC))));
 
-    realtype ReactionFlux140 = ((2.0 * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_CD8_APC_PD1) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_V_LN_aPD1) / PARAM(P_V_LN)) / PARAM(P_gamma_LN_aPD1) - PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_CD8_APC_PD1_aPD1) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux140 = (PARAM(P_k_out_PDL1) * PARAM(P_r_PDL2APC) * (SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) / ((SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_CD8_APC_PDL2_total / (((PARAM(P_APC_PDL1_base) * (1.0 + ((((PARAM(P_r_PDL1_IFNg) - 1.0)) * (SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN))) / ((SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) + PARAM(P_IFNg_50_ind))))) / PARAM(P_A_APC)) * PARAM(P_r_PDL2APC))));
 
-    realtype ReactionFlux141 = ((PARAM(P_Chi_PD1_aPD1) * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_CD8_APC_PD1) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_PD1_aPD1) / PARAM(P_syn_CD8_APC)) - 2.0 * PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_CD8_APC_PD1_aPD1_PD1) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux141 = PARAM(P_k_in_PDL1) * ((PARAM(P_APC_PDL1_base) / PARAM(P_A_APC) - AUX_VAR_syn_CD8_APC_PDL1_total)) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux142 = ((2.0 * PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_CD28) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_CD28_CD80) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux142 = PARAM(P_k_in_PDL1) * ((PARAM(P_APC_PDL1_base) / PARAM(P_A_APC) * PARAM(P_r_PDL2APC) - AUX_VAR_syn_CD8_APC_PDL2_total)) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux143 = ((PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_CD28) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD28_CD80) / PARAM(P_syn_CD8_APC)) - 2.0 * PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_CD28_CD80_CD28) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux143 = ((PARAM(P_kon_PD1_PDL1) * (SPVAR(SP_syn_CD8_APC_PD1) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_PDL1) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_PD1_PDL1) * (SPVAR(SP_syn_CD8_APC_PD1_PDL1) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux144 = ((PARAM(P_kon_CD28_CD86) * (SPVAR(SP_syn_CD8_APC_CD28) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD86) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CD28_CD86) * (SPVAR(SP_syn_CD8_APC_CD28_CD86) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux144 = ((PARAM(P_kon_PD1_PDL2) * (SPVAR(SP_syn_CD8_APC_PD1) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_PDL2) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_PD1_PDL2) * (SPVAR(SP_syn_CD8_APC_PD1_PDL2) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux145 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux145 = ((2.0 * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_CD8_APC_PD1) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_V_LN_aPD1) / PARAM(P_V_LN)) / PARAM(P_gamma_LN_aPD1) - PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_CD8_APC_PD1_aPD1) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux146 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4) / PARAM(P_syn_CD8_APC)) - 2.0 * PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux146 = ((PARAM(P_Chi_PD1_aPD1) * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_CD8_APC_PD1) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_PD1_aPD1) / PARAM(P_syn_CD8_APC)) - 2.0 * PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_CD8_APC_PD1_aPD1_PD1) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux147 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux147 = ((2.0 * PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_CD28) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_CD28_CD80) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux148 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80) / PARAM(P_syn_CD8_APC)) - 2.0 * PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4_CD80) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux148 = ((PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_CD28) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD28_CD80) / PARAM(P_syn_CD8_APC)) - 2.0 * PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_CD28_CD80_CD28) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux149 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4_CD80) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux149 = ((PARAM(P_kon_CD28_CD86) * (SPVAR(SP_syn_CD8_APC_CD28) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD86) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CD28_CD86) * (SPVAR(SP_syn_CD8_APC_CD28_CD86) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux150 = ((2.0 * PARAM(P_kon_CTLA4_CD86) * (SPVAR(SP_syn_CD8_APC_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD86) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CTLA4_CD86) * (SPVAR(SP_syn_CD8_APC_CD86_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux150 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux151 = ((PARAM(P_kon_CTLA4_CD86) * (SPVAR(SP_syn_CD8_APC_CD86_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD86) / PARAM(P_syn_CD8_APC)) - 2.0 * PARAM(P_koff_CTLA4_CD86) * (SPVAR(SP_syn_CD8_APC_CD86_CTLA4_CD86) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux151 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4) / PARAM(P_syn_CD8_APC)) - 2.0 * PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux152 = ((PARAM(P_kon_CD80_CD80) * (SPVAR(SP_syn_CD8_APC_CD80m) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80m) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CD80_CD80) * (SPVAR(SP_syn_CD8_APC_CD80) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux152 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux153 = ((PARAM(P_kon_CD80_PDL1) * (SPVAR(SP_syn_CD8_APC_CD80m) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_PDL1) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CD80_PDL1) * (SPVAR(SP_syn_CD8_APC_PDL1_CD80) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux153 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80) / PARAM(P_syn_CD8_APC)) - 2.0 * PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4_CD80) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux154 = ((PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_PDL1_CD80) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD28) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_PDL1_CD80_CD28) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux154 = ((4.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4_CD80) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_CD80_CTLA4_CD80_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux155 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_PDL1_CD80) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CTLA4) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_PDL1_CD80_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
+    realtype ReactionFlux155 = ((2.0 * PARAM(P_kon_CTLA4_CD86) * (SPVAR(SP_syn_CD8_APC_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD86) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CTLA4_CD86) * (SPVAR(SP_syn_CD8_APC_CD86_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux156 = PARAM(P_k_T_activation_per_APC) * SPVAR(SP_V_LN_mcDC2) * AUX_VAR_H_P1_II * SPVAR(SP_V_LN_nCD4);
+    realtype ReactionFlux156 = ((PARAM(P_kon_CTLA4_CD86) * (SPVAR(SP_syn_CD8_APC_CD86_CTLA4) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD86) / PARAM(P_syn_CD8_APC)) - 2.0 * PARAM(P_koff_CTLA4_CD86) * (SPVAR(SP_syn_CD8_APC_CD86_CTLA4_CD86) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux157 = PARAM(P_k_T_activation_per_APC) * SPVAR(SP_V_LN_mcDC2) * AUX_VAR_H_P1_II * SPVAR(SP_V_LN_nCD4) * PARAM(P_n_CD4_clones) * (1.0 + PARAM(P_f_epitope_spread) * AUX_VAR_H_P1_spread);
+    realtype ReactionFlux157 = ((PARAM(P_kon_CD80_CD80) * (SPVAR(SP_syn_CD8_APC_CD80m) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD80m) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CD80_CD80) * (SPVAR(SP_syn_CD8_APC_CD80) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux158 = PARAM(P_k_CD4_pro) / AUX_VAR_N_aTh * SPVAR(SP_V_LN_aTh);
+    realtype ReactionFlux158 = ((PARAM(P_kon_CD80_PDL1) * (SPVAR(SP_syn_CD8_APC_CD80m) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_PDL1) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CD80_PDL1) * (SPVAR(SP_syn_CD8_APC_PDL1_CD80) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux159 = PARAM(P_k_CD4_pro) / AUX_VAR_N_aTh * std::pow(2.0, AUX_VAR_N_aTh) * SPVAR(SP_V_LN_aTh);
+    realtype ReactionFlux159 = ((PARAM(P_kon_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_PDL1_CD80) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CD28) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CD28_CD80) * (SPVAR(SP_syn_CD8_APC_PDL1_CD80_CD28) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux160 = (PARAM(P_k_Th_to_Treg) * SPVAR(SP_V_T_Th) * AUX_VAR_H_TGFb_Th2Treg * (1.0 + PARAM(P_Emax_ArgI_Treg) * AUX_VAR_H_ArgI_Treg)) + (PARAM(P_k_apCAF_iTreg) * SPVAR(SP_V_T_Th) * (SPVAR(SP_V_T_apCAF) / (AUX_VAR_aPSC_total + PARAM(P_cell))) * AUX_VAR_H_apCAF_pMHCII);
+    realtype ReactionFlux160 = ((2.0 * PARAM(P_kon_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_PDL1_CD80) / PARAM(P_syn_CD8_APC)) * (SPVAR(SP_syn_CD8_APC_CTLA4) / PARAM(P_syn_CD8_APC)) - PARAM(P_koff_CTLA4_CD80) * (SPVAR(SP_syn_CD8_APC_PDL1_CD80_CTLA4) / PARAM(P_syn_CD8_APC)))) * PARAM(P_syn_CD8_APC);
 
-    realtype ReactionFlux161 = PARAM(P_k_CD4_death) * SPVAR(SP_V_C_Th);
+    realtype ReactionFlux161 = PARAM(P_k_T_activation_per_APC) * SPVAR(SP_V_LN_mcDC2) * AUX_VAR_H_P1_II * SPVAR(SP_V_LN_nCD4);
 
-    realtype ReactionFlux162 = PARAM(P_k_CD4_death) * SPVAR(SP_V_P_Th);
+    realtype ReactionFlux162 = PARAM(P_k_T_activation_per_APC) * SPVAR(SP_V_LN_mcDC2) * AUX_VAR_H_P1_II * SPVAR(SP_V_LN_nCD4) * PARAM(P_n_CD4_clones) * (1.0 + PARAM(P_f_epitope_spread) * AUX_VAR_H_P1_spread);
 
-    realtype ReactionFlux163 = PARAM(P_k_CD4_death) * SPVAR(SP_V_LN_Th);
+    realtype ReactionFlux163 = PARAM(P_k_CD4_pro) / AUX_VAR_N_aTh * SPVAR(SP_V_LN_aTh);
 
-    realtype ReactionFlux164 = (PARAM(P_k_Th_basal_exh) * SPVAR(SP_V_T_Th) * AUX_VAR_C_total / (AUX_VAR_C_total + PARAM(P_K_C_exh) + PARAM(P_cell))) * ((1.0 - SPVAR(SP_V_T_Th_exh) / (PARAM(P_rho_Thexh_max) * AUX_VAR_V_T + PARAM(P_cell))));
+    realtype ReactionFlux164 = PARAM(P_k_CD4_pro) / AUX_VAR_N_aTh * std::pow(2.0, AUX_VAR_N_aTh) * SPVAR(SP_V_LN_aTh);
 
-    realtype ReactionFlux165 = PARAM(P_k_TGFb_Th_exh) * SPVAR(SP_V_T_Th) * AUX_VAR_H_TGFb_Th_exh * ((1.0 - SPVAR(SP_V_T_Th_exh) / (PARAM(P_rho_Thexh_max) * AUX_VAR_V_T + PARAM(P_cell))));
+    realtype ReactionFlux165 = (PARAM(P_k_Th_to_Treg) * SPVAR(SP_V_T_Th) * AUX_VAR_H_TGFb_Th2Treg * (1.0 + PARAM(P_Emax_ArgI_Treg) * AUX_VAR_H_ArgI_Treg)) + (PARAM(P_k_apCAF_iTreg) * SPVAR(SP_V_T_Th) * (SPVAR(SP_V_T_apCAF) / (AUX_VAR_aPSC_total + PARAM(P_cell))) * AUX_VAR_H_apCAF_pMHCII);
 
-    realtype ReactionFlux166 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Th) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - SPVAR(SP_V_T_Th_exh) / (PARAM(P_rho_Thexh_max) * AUX_VAR_V_T + PARAM(P_cell))));
+    realtype ReactionFlux166 = PARAM(P_k_CD4_death) * SPVAR(SP_V_C_Th);
 
-    realtype ReactionFlux167 = PARAM(P_k_Th_reflux) * SPVAR(SP_V_T_Th_exh);
+    realtype ReactionFlux167 = PARAM(P_k_CD4_death) * SPVAR(SP_V_P_Th);
 
-    realtype ReactionFlux168 = PARAM(P_q_Treg_P_in) * SPVAR(SP_V_C_Th);
+    realtype ReactionFlux168 = PARAM(P_k_CD4_death) * SPVAR(SP_V_LN_Th);
 
-    realtype ReactionFlux169 = PARAM(P_q_Treg_P_out) * SPVAR(SP_V_P_Th);
+    realtype ReactionFlux169 = (PARAM(P_k_Th_basal_exh) * SPVAR(SP_V_T_Th) * AUX_VAR_C_total / (AUX_VAR_C_total + PARAM(P_K_C_exh) + PARAM(P_cell))) * ((1.0 - SPVAR(SP_V_T_Th_exh) / (PARAM(P_rho_Thexh_max) * AUX_VAR_V_T + PARAM(P_cell))));
 
-    realtype ReactionFlux170 = PARAM(P_q_Treg_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_Th) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_CXCL12_Texcl)) * AUX_VAR_H_vasc;
+    realtype ReactionFlux170 = PARAM(P_k_TGFb_Th_exh) * SPVAR(SP_V_T_Th) * AUX_VAR_H_TGFb_Th_exh * ((1.0 - SPVAR(SP_V_T_Th_exh) / (PARAM(P_rho_Thexh_max) * AUX_VAR_V_T + PARAM(P_cell))));
 
-    realtype ReactionFlux171 = PARAM(P_q_Treg_LN_out) * SPVAR(SP_V_LN_Th);
+    realtype ReactionFlux171 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Th) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - SPVAR(SP_V_T_Th_exh) / (PARAM(P_rho_Thexh_max) * AUX_VAR_V_T + PARAM(P_cell))));
 
-    realtype ReactionFlux172 = PARAM(P_k_Th_pro_tumor) * SPVAR(SP_V_T_Th) / (1.0 + (SPVAR(SP_V_T_Th) / (PARAM(P_rho_Th_max) * AUX_VAR_V_T + PARAM(P_cell))));
+    realtype ReactionFlux172 = PARAM(P_k_Th_reflux) * SPVAR(SP_V_T_Th_exh);
 
-    realtype ReactionFlux173 = PARAM(P_k_CD4_death) * SPVAR(SP_V_T_Th);
+    realtype ReactionFlux173 = PARAM(P_q_Treg_P_in) * SPVAR(SP_V_C_Th);
 
-    realtype ReactionFlux174 = PARAM(P_k_Th_seed) * AUX_VAR_V_T * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+    realtype ReactionFlux174 = PARAM(P_q_Treg_P_out) * SPVAR(SP_V_P_Th);
 
-    realtype ReactionFlux175 = PARAM(P_k_IFNg_Tsec) * SPVAR(SP_V_T_CD8);
+    realtype ReactionFlux175 = PARAM(P_q_Treg_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_Th) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_CXCL12_Texcl)) * AUX_VAR_H_vasc;
 
-    realtype ReactionFlux176 = PARAM(P_k_IFNg_Thsec) * SPVAR(SP_V_T_Th);
+    realtype ReactionFlux176 = PARAM(P_q_Treg_LN_out) * SPVAR(SP_V_LN_Th);
 
-    realtype ReactionFlux177 = PARAM(P_k_IFNg_Tsec) * SPVAR(SP_V_LN_CD8);
+    realtype ReactionFlux177 = PARAM(P_q_Treg_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_nCD4) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_CXCL12_Texcl)) * AUX_VAR_H_vasc;
 
-    realtype ReactionFlux178 = PARAM(P_k_IFNg_Thsec) * SPVAR(SP_V_LN_Th);
+    realtype ReactionFlux178 = PARAM(P_k_T_activation_per_APC) * SPVAR(SP_V_T_mcDC2) * SPVAR(SP_V_T_nCD4);
 
-    realtype ReactionFlux179 = PARAM(P_k_IFNg_deg) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux179 = PARAM(P_k_T_activation_per_APC) * SPVAR(SP_V_T_mcDC2) * SPVAR(SP_V_T_nCD4) * PARAM(P_n_CD4_clones);
 
-    realtype ReactionFlux180 = PARAM(P_k_IFNg_deg) * (SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) * PARAM(P_V_LN);
+    realtype ReactionFlux180 = PARAM(P_k_nTreg_death) * SPVAR(SP_V_T_nCD4);
 
-    realtype ReactionFlux181 = PARAM(P_k_TGFb_deg) * PARAM(P_f_active_TGFb) * PARAM(P_TGFb_baseline) * AUX_VAR_V_T;
+    realtype ReactionFlux181 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_nCD4) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
-    realtype ReactionFlux182 = PARAM(P_k_TGFb_deg) * (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux182 = PARAM(P_k_Th_pro_tumor) * SPVAR(SP_V_T_Th) / (1.0 + (SPVAR(SP_V_T_Th) / (PARAM(P_rho_Th_max) * AUX_VAR_V_T + PARAM(P_cell))));
 
-    realtype ReactionFlux183 = PARAM(P_f_active_TGFb) * PARAM(P_k_TGFb_Tsec) * SPVAR(SP_V_T_Treg);
+    realtype ReactionFlux183 = PARAM(P_k_CD4_death) * SPVAR(SP_V_T_Th);
 
-    realtype ReactionFlux184 = PARAM(P_k_CCL2_sec) * AUX_VAR_C_total;
+    realtype ReactionFlux184 = PARAM(P_k_Th_seed) * AUX_VAR_V_T * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
-    realtype ReactionFlux185 = PARAM(P_k_CCL2_deg) * (SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux185 = PARAM(P_k_IFNg_Tsec) * SPVAR(SP_V_T_CD8);
 
-    realtype ReactionFlux186 = PARAM(P_k_MDSC_rec) * AUX_VAR_V_T * ((SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) + PARAM(P_CCL2_50))) * (1.0 + AUX_VAR_H_IL6_MDSC) * AUX_VAR_H_vasc;
+    realtype ReactionFlux186 = PARAM(P_k_IFNg_Thsec) * SPVAR(SP_V_T_Th);
 
-    realtype ReactionFlux187 = PARAM(P_k_MDSC_death) * SPVAR(SP_V_T_MDSC);
+    realtype ReactionFlux187 = PARAM(P_k_IFNg_Tsec) * SPVAR(SP_V_LN_CD8);
 
-    realtype ReactionFlux188 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_MDSC) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+    realtype ReactionFlux188 = PARAM(P_k_IFNg_Thsec) * SPVAR(SP_V_LN_Th);
 
-    realtype ReactionFlux189 = PARAM(P_k_NO_deg) * (SPVAR(SP_V_T_NO) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux189 = PARAM(P_k_IFNg_deg) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux190 = PARAM(P_k_ArgI_deg) * (SPVAR(SP_V_T_ArgI) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux190 = PARAM(P_k_IFNg_deg) * (SPVAR(SP_V_LN_IFNg) / PARAM(P_V_LN)) * PARAM(P_V_LN);
 
-    realtype ReactionFlux191 = PARAM(P_k_NO_sec) * SPVAR(SP_V_T_MDSC);
+    realtype ReactionFlux191 = PARAM(P_k_TGFb_deg) * PARAM(P_f_active_TGFb) * PARAM(P_TGFb_baseline) * AUX_VAR_V_T;
 
-    realtype ReactionFlux192 = PARAM(P_k_ArgI_sec) * SPVAR(SP_V_T_MDSC);
+    realtype ReactionFlux192 = PARAM(P_k_TGFb_deg) * (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux193 = PARAM(P_k_vas_Msec) * SPVAR(SP_V_T_Mac_M2);
+    realtype ReactionFlux193 = PARAM(P_f_active_TGFb) * PARAM(P_k_TGFb_Tsec) * SPVAR(SP_V_T_Treg);
 
-    realtype ReactionFlux194 = PARAM(P_k_Mac_rec) * AUX_VAR_V_T * ((SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) + PARAM(P_CCL2_50))) * AUX_VAR_H_vasc * ((1.0 - (SPVAR(SP_V_T_Mac_M1) + SPVAR(SP_V_T_Mac_M2)) / (PARAM(P_rho_Mac_max) * AUX_VAR_V_T + PARAM(P_cell))));
+    realtype ReactionFlux194 = PARAM(P_k_CCL2_sec) * AUX_VAR_C_total;
 
-    realtype ReactionFlux195 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Mac_M1) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+    realtype ReactionFlux195 = PARAM(P_k_CCL2_deg) * (SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux196 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Mac_M2) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+    realtype ReactionFlux196 = PARAM(P_k_MDSC_rec) * AUX_VAR_V_T * ((SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) + PARAM(P_CCL2_50))) * (1.0 + AUX_VAR_H_IL6_MDSC) * AUX_VAR_H_vasc;
 
-    realtype ReactionFlux197 = PARAM(P_k_Mac_death) * SPVAR(SP_V_T_Mac_M1);
+    realtype ReactionFlux197 = PARAM(P_k_MDSC_death) * SPVAR(SP_V_T_MDSC);
 
-    realtype ReactionFlux198 = PARAM(P_k_Mac_death) * SPVAR(SP_V_T_Mac_M2);
+    realtype ReactionFlux198 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_MDSC) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
-    realtype ReactionFlux199 = PARAM(P_k_IL12_sec) * SPVAR(SP_V_T_mcDC1);
+    realtype ReactionFlux199 = PARAM(P_k_NO_deg) * (SPVAR(SP_V_T_NO) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux200 = PARAM(P_k_IL12_Msec) * SPVAR(SP_V_T_Mac_M1);
+    realtype ReactionFlux200 = PARAM(P_k_ArgI_deg) * (SPVAR(SP_V_T_ArgI) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux201 = PARAM(P_k_IL12_deg) * (SPVAR(SP_V_T_IL12) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux201 = PARAM(P_k_NO_sec) * SPVAR(SP_V_T_MDSC);
 
-    realtype ReactionFlux202 = PARAM(P_f_active_TGFb) * PARAM(P_k_TGFb_Msec) * SPVAR(SP_V_T_Mac_M2);
+    realtype ReactionFlux202 = PARAM(P_k_ArgI_sec) * SPVAR(SP_V_T_MDSC);
 
-    realtype ReactionFlux203 = PARAM(P_k_IL10_sec) * SPVAR(SP_V_T_Mac_M2);
+    realtype ReactionFlux203 = PARAM(P_k_vas_Msec) * SPVAR(SP_V_T_Mac_M2);
 
-    realtype ReactionFlux204 = PARAM(P_k_ArgI_sec) * SPVAR(SP_V_T_Mac_M2);
+    realtype ReactionFlux204 = PARAM(P_k_Mac_rec) * AUX_VAR_V_T * ((SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_CCL2) / AUX_VAR_V_T) + PARAM(P_CCL2_50))) * AUX_VAR_H_vasc * ((1.0 - (SPVAR(SP_V_T_Mac_M1) + SPVAR(SP_V_T_Mac_M2)) / (PARAM(P_rho_Mac_max) * AUX_VAR_V_T + PARAM(P_cell))));
 
-    realtype ReactionFlux205 = PARAM(P_k_IL10_sec_Treg) * SPVAR(SP_V_T_Treg);
+    realtype ReactionFlux205 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Mac_M1) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
-    realtype ReactionFlux206 = PARAM(P_k_IL10_sec_MDSC) * SPVAR(SP_V_T_MDSC);
+    realtype ReactionFlux206 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Mac_M2) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
-    realtype ReactionFlux207 = PARAM(P_k_IL10_deg) * (SPVAR(SP_V_T_IL10) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux207 = PARAM(P_k_Mac_death) * SPVAR(SP_V_T_Mac_M1);
 
-    realtype ReactionFlux208 = PARAM(P_k_M2_pol) * SPVAR(SP_V_T_Mac_M1) * AUX_VAR_phi_M2_skew;
+    realtype ReactionFlux208 = PARAM(P_k_Mac_death) * SPVAR(SP_V_T_Mac_M2);
 
-    realtype ReactionFlux209 = PARAM(P_k_M1_pol) * SPVAR(SP_V_T_Mac_M2) * ((1.0 - ((1.0 - (SPVAR(SP_V_T_IL12) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_IL12) / AUX_VAR_V_T) + PARAM(P_IL12_50)))) * (std::max(0.0, (1.0 - PARAM(P_k_IFNg_response) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T))))));
+    realtype ReactionFlux209 = PARAM(P_k_IL12_sec) * SPVAR(SP_V_T_mcDC1);
 
-    realtype ReactionFlux210 = (PARAM(P_k_out_PDL1) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_M_C_PDL1_total / (PARAM(P_C1_PDL1_base) * PARAM(P_r_PDL1_IFNg) / PARAM(P_A_cell))));
+    realtype ReactionFlux210 = PARAM(P_k_IL12_Msec) * SPVAR(SP_V_T_Mac_M1);
 
-    realtype ReactionFlux211 = (PARAM(P_k_out_PDL1) * PARAM(P_r_PDL2C1) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_M_C_PDL2_total / (PARAM(P_C1_PDL1_base) * PARAM(P_r_PDL1_IFNg) / PARAM(P_A_cell) * PARAM(P_r_PDL2C1))));
+    realtype ReactionFlux211 = PARAM(P_k_IL12_deg) * (SPVAR(SP_V_T_IL12) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux212 = PARAM(P_k_in_PDL1) * ((PARAM(P_C1_PDL1_base) / PARAM(P_A_cell) - AUX_VAR_syn_M_C_PDL1_total)) * PARAM(P_syn_M_C);
+    realtype ReactionFlux212 = PARAM(P_f_active_TGFb) * PARAM(P_k_TGFb_Msec) * SPVAR(SP_V_T_Mac_M2);
 
-    realtype ReactionFlux213 = PARAM(P_k_in_PDL1) * ((PARAM(P_C1_PDL1_base) / PARAM(P_A_cell) * PARAM(P_r_PDL2C1) - AUX_VAR_syn_M_C_PDL2_total)) * PARAM(P_syn_M_C);
+    realtype ReactionFlux213 = PARAM(P_k_IL10_sec) * SPVAR(SP_V_T_Mac_M2);
 
-    realtype ReactionFlux214 = ((PARAM(P_kon_CD47_SIRPa) * (SPVAR(SP_syn_M_C_CD47) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_SIRPa) / PARAM(P_syn_M_C)) - PARAM(P_koff_CD47_SIRPa) * (SPVAR(SP_syn_M_C_CD47_SIRPa) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
+    realtype ReactionFlux214 = PARAM(P_k_ArgI_sec) * SPVAR(SP_V_T_Mac_M2);
 
-    realtype ReactionFlux215 = ((PARAM(P_kon_PD1_PDL1) * (SPVAR(SP_syn_M_C_PD1) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_PDL1) / PARAM(P_syn_M_C)) - PARAM(P_koff_PD1_PDL1) * (SPVAR(SP_syn_M_C_PD1_PDL1) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
+    realtype ReactionFlux215 = PARAM(P_k_IL10_sec_Treg) * SPVAR(SP_V_T_Treg);
 
-    realtype ReactionFlux216 = ((PARAM(P_kon_PD1_PDL2) * (SPVAR(SP_syn_M_C_PD1) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_PDL2) / PARAM(P_syn_M_C)) - PARAM(P_koff_PD1_PDL2) * (SPVAR(SP_syn_M_C_PD1_PDL2) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
+    realtype ReactionFlux216 = PARAM(P_k_IL10_sec_MDSC) * SPVAR(SP_V_T_MDSC);
 
-    realtype ReactionFlux217 = ((2.0 * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_M_C_PD1) / PARAM(P_syn_M_C)) * (SPVAR(SP_V_T_aPD1) / AUX_VAR_V_T) / PARAM(P_gamma_T_aPD1) - PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_M_C_PD1_aPD1) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
+    realtype ReactionFlux217 = PARAM(P_k_IL10_deg) * (SPVAR(SP_V_T_IL10) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux218 = ((PARAM(P_Chi_PD1_aPD1) * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_M_C_PD1) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_PD1_aPD1) / PARAM(P_syn_M_C)) - 2.0 * PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_M_C_PD1_aPD1_PD1) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
+    realtype ReactionFlux218 = PARAM(P_k_M2_pol) * SPVAR(SP_V_T_Mac_M1) * AUX_VAR_phi_M2_skew;
 
-    realtype ReactionFlux219 = ((PARAM(P_kon_CD80_CD80) * (SPVAR(SP_syn_M_C_CD80m) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_CD80m) / PARAM(P_syn_M_C)) - PARAM(P_koff_CD80_CD80) * (SPVAR(SP_syn_M_C_CD80) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
+    realtype ReactionFlux219 = PARAM(P_k_M1_pol) * SPVAR(SP_V_T_Mac_M2) * ((1.0 - ((1.0 - (SPVAR(SP_V_T_IL12) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_IL12) / AUX_VAR_V_T) + PARAM(P_IL12_50)))) * (std::max(0.0, (1.0 - PARAM(P_k_IFNg_response) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T))))));
 
-    realtype ReactionFlux220 = ((PARAM(P_kon_CD80_PDL1) * (SPVAR(SP_syn_M_C_CD80m) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_PDL1) / PARAM(P_syn_M_C)) - PARAM(P_koff_CD80_PDL1) * (SPVAR(SP_syn_M_C_PDL1_CD80) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
+    realtype ReactionFlux220 = (PARAM(P_k_out_PDL1) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_M_C_PDL1_total / (PARAM(P_C1_PDL1_base) * PARAM(P_r_PDL1_IFNg) / PARAM(P_A_cell))));
 
-    realtype ReactionFlux221 = (PARAM(P_k_M1_phago) * SPVAR(SP_V_T_C1) * SPVAR(SP_V_T_Mac_M1) / (SPVAR(SP_V_T_Mac_M1) + PARAM(P_K_M1_phago) * AUX_VAR_C_total + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_Mac_C)) * ((1.0 - AUX_VAR_H_IL10_phago)) * (1.0 + PARAM(P_ADCC_boost_max) * AUX_VAR_H_Ab);
+    realtype ReactionFlux221 = (PARAM(P_k_out_PDL1) * PARAM(P_r_PDL2C1) * (SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) / ((SPVAR(SP_V_T_IFNg) / AUX_VAR_V_T) + PARAM(P_IFNg_50_ind))) * ((1.0 - AUX_VAR_syn_M_C_PDL2_total / (PARAM(P_C1_PDL1_base) * PARAM(P_r_PDL1_IFNg) / PARAM(P_A_cell) * PARAM(P_r_PDL2C1))));
 
-    realtype ReactionFlux222 = PARAM(P_f_active_TGFb) * PARAM(P_k_TGFb_sec_myCAF) * SPVAR(SP_V_T_myCAF);
+    realtype ReactionFlux222 = PARAM(P_k_in_PDL1) * ((PARAM(P_C1_PDL1_base) / PARAM(P_A_cell) - AUX_VAR_syn_M_C_PDL1_total)) * PARAM(P_syn_M_C);
 
-    realtype ReactionFlux223 = PARAM(P_k_CAF_encounter) * AUX_VAR_V_T * (((PARAM(P_k_CAF_const) - SPVAR(SP_V_T_qPSC) / AUX_VAR_V_T)) / PARAM(P_k_CAF_const));
+    realtype ReactionFlux223 = PARAM(P_k_in_PDL1) * ((PARAM(P_C1_PDL1_base) / PARAM(P_A_cell) * PARAM(P_r_PDL2C1) - AUX_VAR_syn_M_C_PDL2_total)) * PARAM(P_syn_M_C);
 
-    realtype ReactionFlux224 = PARAM(P_k_PSC_to_myCAF) * SPVAR(SP_V_T_qPSC) * ((SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) / (PARAM(P_TGFb_50_CAF_act) + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T)));
+    realtype ReactionFlux224 = ((PARAM(P_kon_CD47_SIRPa) * (SPVAR(SP_syn_M_C_CD47) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_SIRPa) / PARAM(P_syn_M_C)) - PARAM(P_koff_CD47_SIRPa) * (SPVAR(SP_syn_M_C_CD47_SIRPa) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
 
-    realtype ReactionFlux225 = PARAM(P_k_PSC_to_iCAF) * SPVAR(SP_V_T_qPSC) * AUX_VAR_H_IL1_eff * (1.0 + PARAM(P_f_IL6_iCAF) * AUX_VAR_H_IL6_iCAF);
+    realtype ReactionFlux225 = ((PARAM(P_kon_PD1_PDL1) * (SPVAR(SP_syn_M_C_PD1) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_PDL1) / PARAM(P_syn_M_C)) - PARAM(P_koff_PD1_PDL1) * (SPVAR(SP_syn_M_C_PD1_PDL1) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
 
-    realtype ReactionFlux226 = PARAM(P_k_PSC_to_apCAF) * SPVAR(SP_V_T_qPSC);
+    realtype ReactionFlux226 = ((PARAM(P_kon_PD1_PDL2) * (SPVAR(SP_syn_M_C_PD1) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_PDL2) / PARAM(P_syn_M_C)) - PARAM(P_koff_PD1_PDL2) * (SPVAR(SP_syn_M_C_PD1_PDL2) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
 
-    realtype ReactionFlux227 = PARAM(P_k_iCAF_to_myCAF) * SPVAR(SP_V_T_iCAF) * ((SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) / (PARAM(P_TGFb_50_CAF_act) + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T)));
+    realtype ReactionFlux227 = ((2.0 * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_M_C_PD1) / PARAM(P_syn_M_C)) * (SPVAR(SP_V_T_aPD1) / AUX_VAR_V_T) / PARAM(P_gamma_T_aPD1) - PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_M_C_PD1_aPD1) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
 
-    realtype ReactionFlux228 = PARAM(P_k_myCAF_to_iCAF) * SPVAR(SP_V_T_myCAF) * AUX_VAR_H_IL1_eff * (1.0 + PARAM(P_f_IL6_iCAF) * AUX_VAR_H_IL6_iCAF);
+    realtype ReactionFlux228 = ((PARAM(P_Chi_PD1_aPD1) * PARAM(P_kon_PD1_aPD1) * (SPVAR(SP_syn_M_C_PD1) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_PD1_aPD1) / PARAM(P_syn_M_C)) - 2.0 * PARAM(P_koff_PD1_aPD1) * (SPVAR(SP_syn_M_C_PD1_aPD1_PD1) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
 
-    realtype ReactionFlux229 = PARAM(P_k_myCAF_prolif) * SPVAR(SP_V_T_myCAF) * ((1.0 - SPVAR(SP_V_T_myCAF) / ((((1.0 - PARAM(P_f_apCAF_of_total))) * ((1.0 - PARAM(P_f_iCAF_of_non_apCAF))) * (PARAM(P_f_stroma_max) * AUX_VAR_C_total + PARAM(P_K_stiff_niche) * AUX_VAR_H_stiff_fib)) + PARAM(P_cell))));
+    realtype ReactionFlux229 = ((PARAM(P_kon_CD80_CD80) * (SPVAR(SP_syn_M_C_CD80m) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_CD80m) / PARAM(P_syn_M_C)) - PARAM(P_koff_CD80_CD80) * (SPVAR(SP_syn_M_C_CD80) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
 
-    realtype ReactionFlux230 = PARAM(P_k_iCAF_prolif) * SPVAR(SP_V_T_iCAF) * ((1.0 - SPVAR(SP_V_T_iCAF) / ((((1.0 - PARAM(P_f_apCAF_of_total))) * PARAM(P_f_iCAF_of_non_apCAF) * (PARAM(P_f_stroma_max) * AUX_VAR_C_total + PARAM(P_K_stiff_niche) * AUX_VAR_H_stiff_fib)) + PARAM(P_cell))));
+    realtype ReactionFlux230 = ((PARAM(P_kon_CD80_PDL1) * (SPVAR(SP_syn_M_C_CD80m) / PARAM(P_syn_M_C)) * (SPVAR(SP_syn_M_C_PDL1) / PARAM(P_syn_M_C)) - PARAM(P_koff_CD80_PDL1) * (SPVAR(SP_syn_M_C_PDL1_CD80) / PARAM(P_syn_M_C)))) * PARAM(P_syn_M_C);
 
-    realtype ReactionFlux231 = PARAM(P_k_apCAF_prolif) * SPVAR(SP_V_T_apCAF) * ((1.0 - SPVAR(SP_V_T_apCAF) / ((PARAM(P_f_apCAF_of_total) * (PARAM(P_f_stroma_max) * AUX_VAR_C_total + PARAM(P_K_stiff_niche) * AUX_VAR_H_stiff_fib)) + PARAM(P_cell))));
+    realtype ReactionFlux231 = (PARAM(P_k_M1_phago) * SPVAR(SP_V_T_C1) * SPVAR(SP_V_T_Mac_M1) / (SPVAR(SP_V_T_Mac_M1) + PARAM(P_K_M1_phago) * AUX_VAR_C_total + PARAM(P_cell))) * ((1.0 - AUX_VAR_H_Mac_C)) * ((1.0 - AUX_VAR_H_IL10_phago)) * (1.0 + PARAM(P_ADCC_boost_max) * AUX_VAR_H_Ab);
 
-    realtype ReactionFlux232 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_qPSC) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+    realtype ReactionFlux232 = PARAM(P_f_active_TGFb) * PARAM(P_k_TGFb_sec_myCAF) * SPVAR(SP_V_T_myCAF);
 
-    realtype ReactionFlux233 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_iCAF) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_stiff_fib));
+    realtype ReactionFlux233 = PARAM(P_k_CAF_encounter) * AUX_VAR_V_T * (((PARAM(P_k_CAF_const) - SPVAR(SP_V_T_qPSC) / AUX_VAR_V_T)) / PARAM(P_k_CAF_const));
 
-    realtype ReactionFlux234 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_myCAF) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_stiff_fib));
+    realtype ReactionFlux234 = PARAM(P_k_PSC_to_myCAF) * SPVAR(SP_V_T_qPSC) * ((SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) / (PARAM(P_TGFb_50_CAF_act) + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T)));
 
-    realtype ReactionFlux235 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_apCAF) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_stiff_fib));
+    realtype ReactionFlux235 = PARAM(P_k_PSC_to_iCAF) * SPVAR(SP_V_T_qPSC) * AUX_VAR_H_IL1_eff * (1.0 + PARAM(P_f_IL6_iCAF) * AUX_VAR_H_IL6_iCAF);
 
-    realtype ReactionFlux236 = PARAM(P_k_qpsc_death) * SPVAR(SP_V_T_qPSC);
+    realtype ReactionFlux236 = PARAM(P_k_PSC_to_apCAF) * SPVAR(SP_V_T_qPSC);
 
-    realtype ReactionFlux237 = PARAM(P_k_iCAF_death) * SPVAR(SP_V_T_iCAF);
+    realtype ReactionFlux237 = PARAM(P_k_iCAF_to_myCAF) * SPVAR(SP_V_T_iCAF) * ((SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T) / (PARAM(P_TGFb_50_CAF_act) + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T)));
 
-    realtype ReactionFlux238 = PARAM(P_k_myCAF_death) * SPVAR(SP_V_T_myCAF);
+    realtype ReactionFlux238 = PARAM(P_k_myCAF_to_iCAF) * SPVAR(SP_V_T_myCAF) * AUX_VAR_H_IL1_eff * (1.0 + PARAM(P_f_IL6_iCAF) * AUX_VAR_H_IL6_iCAF);
 
-    realtype ReactionFlux239 = PARAM(P_k_apCAF_death) * SPVAR(SP_V_T_apCAF);
+    realtype ReactionFlux239 = PARAM(P_k_myCAF_prolif) * SPVAR(SP_V_T_myCAF) * ((1.0 - SPVAR(SP_V_T_myCAF) / ((((1.0 - PARAM(P_f_apCAF_of_total))) * ((1.0 - PARAM(P_f_iCAF_of_non_apCAF))) * (PARAM(P_f_stroma_max) * AUX_VAR_C_total + PARAM(P_K_stiff_niche) * AUX_VAR_H_stiff_fib)) + PARAM(P_cell))));
 
-    realtype ReactionFlux240 = PARAM(P_k_col_myCAF_sec) * ((1.0 - AUX_VAR_phi_collagen / PARAM(P_phi_col_max))) * SPVAR(SP_V_T_myCAF) * (PARAM(P_f_col_basal) + ((((1.0 - PARAM(P_f_col_basal))) * (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T)) / (PARAM(P_TGFb_50_col_sec) + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T))));
+    realtype ReactionFlux240 = PARAM(P_k_iCAF_prolif) * SPVAR(SP_V_T_iCAF) * ((1.0 - SPVAR(SP_V_T_iCAF) / ((((1.0 - PARAM(P_f_apCAF_of_total))) * PARAM(P_f_iCAF_of_non_apCAF) * (PARAM(P_f_stroma_max) * AUX_VAR_C_total + PARAM(P_K_stiff_niche) * AUX_VAR_H_stiff_fib)) + PARAM(P_cell))));
 
-    realtype ReactionFlux241 = (PARAM(P_k_col_deg) + PARAM(P_k_MMP_M2) * SPVAR(SP_V_T_Mac_M2) / AUX_VAR_V_T * AUX_VAR_f_nascent) * SPVAR(SP_V_T_collagen);
+    realtype ReactionFlux241 = PARAM(P_k_apCAF_prolif) * SPVAR(SP_V_T_apCAF) * ((1.0 - SPVAR(SP_V_T_apCAF) / ((PARAM(P_f_apCAF_of_total) * (PARAM(P_f_stroma_max) * AUX_VAR_C_total + PARAM(P_K_stiff_niche) * AUX_VAR_H_stiff_fib)) + PARAM(P_cell))));
 
-    realtype ReactionFlux242 = PARAM(P_k_CXCL12_sec_iCAF) * SPVAR(SP_V_T_iCAF);
+    realtype ReactionFlux242 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_qPSC) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
-    realtype ReactionFlux243 = PARAM(P_k_CXCL12_sec_cancer) * AUX_VAR_C_total;
+    realtype ReactionFlux243 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_iCAF) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_stiff_fib));
 
-    realtype ReactionFlux244 = PARAM(P_k_CXCL12_deg) * (SPVAR(SP_V_T_CXCL12) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux244 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_myCAF) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_stiff_fib));
 
-    realtype ReactionFlux245 = PARAM(P_k_IL6_sec_iCAF) * SPVAR(SP_V_T_iCAF);
+    realtype ReactionFlux245 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_apCAF) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_stiff_fib));
 
-    realtype ReactionFlux246 = PARAM(P_k_IL6_deg) * (SPVAR(SP_V_T_IL6) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux246 = PARAM(P_k_qpsc_death) * SPVAR(SP_V_T_qPSC);
 
-    realtype ReactionFlux247 = PARAM(P_k_IL1_sec) * AUX_VAR_C_total;
+    realtype ReactionFlux247 = PARAM(P_k_iCAF_death) * SPVAR(SP_V_T_iCAF);
 
-    realtype ReactionFlux248 = PARAM(P_k_IL1_deg) * (SPVAR(SP_V_T_IL1) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux248 = PARAM(P_k_myCAF_death) * SPVAR(SP_V_T_myCAF);
 
-    realtype ReactionFlux249 = PARAM(P_k_vas_myCAF_sec) * SPVAR(SP_V_T_myCAF);
+    realtype ReactionFlux249 = PARAM(P_k_apCAF_death) * SPVAR(SP_V_T_apCAF);
 
-    realtype ReactionFlux250 = PARAM(P_k_CD8_T_vac_pro) * SPVAR(SP_V_T_CD8) * AUX_VAR_H_P1_spread / (1.0 + (SPVAR(SP_V_T_CD8) / (PARAM(P_rho_CD8_max) * AUX_VAR_V_T + PARAM(P_cell))));
+    realtype ReactionFlux250 = PARAM(P_k_col_myCAF_sec) * ((1.0 - AUX_VAR_phi_collagen / PARAM(P_phi_col_max))) * SPVAR(SP_V_T_myCAF) * (PARAM(P_f_col_basal) + ((((1.0 - PARAM(P_f_col_basal))) * (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T)) / (PARAM(P_TGFb_50_col_sec) + (SPVAR(SP_V_T_TGFb) / AUX_VAR_V_T))));
 
-    realtype ReactionFlux251 = PARAM(P_k_GVAX_clearance) * SPVAR(SP_V_ID_GVAX_cells);
+    realtype ReactionFlux251 = (PARAM(P_k_col_deg) + PARAM(P_k_MMP_M2) * SPVAR(SP_V_T_Mac_M2) / AUX_VAR_V_T * AUX_VAR_f_nascent) * SPVAR(SP_V_T_collagen);
 
-    realtype ReactionFlux252 = PARAM(P_k_GMCSF_prod) * SPVAR(SP_V_ID_GVAX_cells) * PARAM(P_V_ID);
+    realtype ReactionFlux252 = PARAM(P_k_CXCL12_sec_iCAF) * SPVAR(SP_V_T_iCAF);
 
-    realtype ReactionFlux253 = PARAM(P_k_GMCSF_deg) * SPVAR(SP_V_ID_GMCSF);
+    realtype ReactionFlux253 = PARAM(P_k_CXCL12_sec_cancer) * AUX_VAR_C_total;
 
-    realtype ReactionFlux254 = PARAM(P_y_Ag_per_cell) * PARAM(P_k_GVAX_clearance) * SPVAR(SP_V_ID_GVAX_cells);
+    realtype ReactionFlux254 = PARAM(P_k_CXCL12_deg) * (SPVAR(SP_V_T_CXCL12) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux255 = PARAM(P_k_P1_deg_ID) * SPVAR(SP_V_ID_P1_GVAX);
+    realtype ReactionFlux255 = PARAM(P_k_IL6_sec_iCAF) * SPVAR(SP_V_T_iCAF);
 
-    realtype ReactionFlux256 = ((PARAM(P_k_APC_recruit0) + PARAM(P_k_APC_recruit_ID) * AUX_VAR_H_GMCSF_ID) * PARAM(P_K_APC_ID)) / (PARAM(P_K_APC_ID) + SPVAR(SP_V_ID_APC) + SPVAR(SP_V_ID_mAPC));
+    realtype ReactionFlux256 = PARAM(P_k_IL6_deg) * (SPVAR(SP_V_T_IL6) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux257 = AUX_VAR_J_mature_ID;
+    realtype ReactionFlux257 = PARAM(P_k_IL1_sec) * AUX_VAR_C_total;
 
-    realtype ReactionFlux258 = PARAM(P_sigma_P1_per_mAPC) * AUX_VAR_J_mature_ID;
+    realtype ReactionFlux258 = PARAM(P_k_IL1_deg) * (SPVAR(SP_V_T_IL1) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
-    realtype ReactionFlux259 = PARAM(P_k_GVAX_present) * PARAM(P_cell) * SPVAR(SP_V_ID_P1_GVAX) / PARAM(P_V_ID) * PARAM(P_V_e);
+    realtype ReactionFlux259 = PARAM(P_k_vas_myCAF_sec) * SPVAR(SP_V_T_myCAF);
 
-    realtype ReactionFlux260 = PARAM(P_k_APC_death_ID) * SPVAR(SP_V_ID_APC);
+    realtype ReactionFlux260 = PARAM(P_k_CD8_T_vac_pro) * SPVAR(SP_V_T_CD8) * AUX_VAR_H_P1_spread / (1.0 + (SPVAR(SP_V_T_CD8) / (PARAM(P_rho_CD8_max) * AUX_VAR_V_T + PARAM(P_cell))));
 
-    realtype ReactionFlux261 = PARAM(P_k_mAPC_death_ID) * SPVAR(SP_V_ID_mAPC);
+    realtype ReactionFlux261 = PARAM(P_k_GVAX_clearance) * SPVAR(SP_V_ID_GVAX_cells);
 
-    realtype ReactionFlux262 = PARAM(P_k_APC_mig_ID_LN) * SPVAR(SP_V_ID_mAPC) / (1.0 + SPVAR(SP_V_LN_mcDC2) / PARAM(P_K_APC_mig));
+    realtype ReactionFlux262 = PARAM(P_k_GMCSF_prod) * SPVAR(SP_V_ID_GVAX_cells) * PARAM(P_V_ID);
 
-    realtype ReactionFlux263 = PARAM(P_k_cDC1_Ag_transfer) * SPVAR(SP_V_LN_cDC1) * SPVAR(SP_V_LN_mcDC2);
+    realtype ReactionFlux263 = PARAM(P_k_GMCSF_deg) * SPVAR(SP_V_ID_GMCSF);
 
-    realtype ReactionFlux264 = PARAM(P_k_Cy_clear) * SPVAR(SP_V_C_Cy);
+    realtype ReactionFlux264 = PARAM(P_y_Ag_per_cell) * PARAM(P_k_GVAX_clearance) * SPVAR(SP_V_ID_GVAX_cells);
 
-    realtype ReactionFlux265 = PARAM(P_k_Cy_on) * (SPVAR(SP_V_C_Cy) / (PARAM(P_Cy_50_Treg) + SPVAR(SP_V_C_Cy)));
+    realtype ReactionFlux265 = PARAM(P_k_P1_deg_ID) * SPVAR(SP_V_ID_P1_GVAX);
 
-    realtype ReactionFlux266 = PARAM(P_k_Cy_eff_decay) * SPVAR(SP_V_C_Cy_eff);
+    realtype ReactionFlux266 = ((PARAM(P_k_APC_recruit0) + PARAM(P_k_APC_recruit_ID) * AUX_VAR_H_GMCSF_ID) * PARAM(P_K_APC_ID)) / (PARAM(P_K_APC_ID) + SPVAR(SP_V_ID_APC) + SPVAR(SP_V_ID_mAPC));
 
-    realtype ReactionFlux267 = PARAM(P_k_Cy_Treg_deplete) * SPVAR(SP_V_T_Treg) * (SPVAR(SP_V_C_Cy) / (PARAM(P_Cy_50_Treg) + SPVAR(SP_V_C_Cy)));
+    realtype ReactionFlux267 = AUX_VAR_J_mature_ID;
 
-    realtype ReactionFlux268 = PARAM(P_k_Tfh_act) * H_APC_Th * AUX_VAR_H_P1 * SPVAR(SP_V_LN_nCD4);
+    realtype ReactionFlux268 = PARAM(P_sigma_P1_per_mAPC) * AUX_VAR_J_mature_ID;
 
-    realtype ReactionFlux269 = PARAM(P_k_Tfh_act) * H_APC_Th * AUX_VAR_H_P1 * SPVAR(SP_V_LN_nCD4) * PARAM(P_n_CD4_clones);
+    realtype ReactionFlux269 = PARAM(P_k_GVAX_present) * PARAM(P_cell) * SPVAR(SP_V_ID_P1_GVAX) / PARAM(P_V_ID) * PARAM(P_V_e);
 
-    realtype ReactionFlux270 = PARAM(P_k_CD4_pro) / AUX_VAR_N_aTh * SPVAR(SP_V_LN_aTfh);
+    realtype ReactionFlux270 = PARAM(P_k_APC_death_ID) * SPVAR(SP_V_ID_APC);
 
-    realtype ReactionFlux271 = PARAM(P_k_CD4_pro) / AUX_VAR_N_aTh * std::pow(2.0, AUX_VAR_N_aTh) * SPVAR(SP_V_LN_aTfh);
+    realtype ReactionFlux271 = PARAM(P_k_mAPC_death_ID) * SPVAR(SP_V_ID_mAPC);
 
-    realtype ReactionFlux272 = PARAM(P_k_CD4_death) * SPVAR(SP_V_C_Tfh);
+    realtype ReactionFlux272 = PARAM(P_k_APC_mig_ID_LN) * SPVAR(SP_V_ID_mAPC) / (1.0 + SPVAR(SP_V_LN_mcDC2) / PARAM(P_K_APC_mig));
 
-    realtype ReactionFlux273 = PARAM(P_k_CD4_death) * SPVAR(SP_V_P_Tfh);
+    realtype ReactionFlux273 = PARAM(P_k_cDC1_Ag_transfer) * SPVAR(SP_V_LN_cDC1) * SPVAR(SP_V_LN_mcDC2);
 
-    realtype ReactionFlux274 = PARAM(P_k_CD4_death) * SPVAR(SP_V_LN_Tfh);
+    realtype ReactionFlux274 = PARAM(P_k_Cy_clear) * SPVAR(SP_V_C_Cy);
 
-    realtype ReactionFlux275 = PARAM(P_k_CD4_death) * SPVAR(SP_V_T_Tfh);
+    realtype ReactionFlux275 = PARAM(P_k_Cy_on) * (SPVAR(SP_V_C_Cy) / (PARAM(P_Cy_50_Treg) + SPVAR(SP_V_C_Cy)));
 
-    realtype ReactionFlux276 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Tfh) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+    realtype ReactionFlux276 = PARAM(P_k_Cy_eff_decay) * SPVAR(SP_V_C_Cy_eff);
 
-    realtype ReactionFlux277 = PARAM(P_k_Tfh_diff_tumor) * AUX_VAR_H_P1 * AUX_VAR_H_IL6_Tfh * SPVAR(SP_V_T_Th);
+    realtype ReactionFlux277 = PARAM(P_k_Cy_Treg_deplete) * SPVAR(SP_V_T_Treg) * (SPVAR(SP_V_C_Cy) / (PARAM(P_Cy_50_Treg) + SPVAR(SP_V_C_Cy)));
 
-    realtype ReactionFlux278 = PARAM(P_q_Treg_P_in) * SPVAR(SP_V_C_Tfh);
+    realtype ReactionFlux278 = PARAM(P_k_Tfh_act) * AUX_VAR_H_APC_Treg * AUX_VAR_H_P1 * SPVAR(SP_V_LN_nCD4);
 
-    realtype ReactionFlux279 = PARAM(P_q_Treg_P_out) * SPVAR(SP_V_P_Tfh);
+    realtype ReactionFlux279 = PARAM(P_k_Tfh_act) * AUX_VAR_H_APC_Treg * AUX_VAR_H_P1 * SPVAR(SP_V_LN_nCD4) * PARAM(P_n_CD4_clones);
 
-    realtype ReactionFlux280 = PARAM(P_q_Treg_LN_out) * SPVAR(SP_V_LN_Tfh);
+    realtype ReactionFlux280 = PARAM(P_k_CD4_pro) / AUX_VAR_N_aTh * SPVAR(SP_V_LN_aTfh);
 
-    realtype ReactionFlux281 = PARAM(P_k_nB_in);
+    realtype ReactionFlux281 = PARAM(P_k_CD4_pro) / AUX_VAR_N_aTh * std::pow(2.0, AUX_VAR_N_aTh) * SPVAR(SP_V_LN_aTfh);
 
-    realtype ReactionFlux282 = PARAM(P_k_nTreg_death) * SPVAR(SP_V_C_nB);
+    realtype ReactionFlux282 = PARAM(P_k_CD4_death) * SPVAR(SP_V_C_Tfh);
 
-    realtype ReactionFlux283 = PARAM(P_k_nTreg_death) * SPVAR(SP_V_LN_nB);
+    realtype ReactionFlux283 = PARAM(P_k_CD4_death) * SPVAR(SP_V_P_Tfh);
 
-    realtype ReactionFlux284 = PARAM(P_q_nCD4_LN_in) * SPVAR(SP_V_C_nB);
+    realtype ReactionFlux284 = PARAM(P_k_CD4_death) * SPVAR(SP_V_LN_Tfh);
 
-    realtype ReactionFlux285 = PARAM(P_q_nCD4_LN_out) * SPVAR(SP_V_LN_nB);
+    realtype ReactionFlux285 = PARAM(P_k_CD4_death) * SPVAR(SP_V_T_Tfh);
 
-    realtype ReactionFlux286 = PARAM(P_k_B_act) * AUX_VAR_H_P1 * (SPVAR(SP_V_LN_Tfh) / (SPVAR(SP_V_LN_Tfh) + PARAM(P_Tfh_50_B))) * SPVAR(SP_V_LN_nB);
+    realtype ReactionFlux286 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Tfh) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
 
-    realtype ReactionFlux287 = PARAM(P_k_B_act) * AUX_VAR_H_P1 * (SPVAR(SP_V_LN_Tfh) / (SPVAR(SP_V_LN_Tfh) + PARAM(P_Tfh_50_B))) * SPVAR(SP_V_LN_nB) * PARAM(P_n_B_clones);
+    realtype ReactionFlux287 = PARAM(P_k_Tfh_diff_tumor) * AUX_VAR_H_P1 * AUX_VAR_H_IL6_Tfh * SPVAR(SP_V_T_Th);
 
-    realtype ReactionFlux288 = PARAM(P_k_B_pro) / AUX_VAR_N_aTh * SPVAR(SP_V_LN_aB);
+    realtype ReactionFlux288 = PARAM(P_q_Treg_P_in) * SPVAR(SP_V_C_Tfh);
 
-    realtype ReactionFlux289 = PARAM(P_k_B_pro) / AUX_VAR_N_aTh * std::pow(2.0, AUX_VAR_N_aTh) * SPVAR(SP_V_LN_aB);
+    realtype ReactionFlux289 = PARAM(P_q_Treg_P_out) * SPVAR(SP_V_P_Tfh);
 
-    realtype ReactionFlux290 = PARAM(P_k_B_death) * SPVAR(SP_V_C_B);
+    realtype ReactionFlux290 = PARAM(P_q_Treg_LN_out) * SPVAR(SP_V_LN_Tfh);
 
-    realtype ReactionFlux291 = PARAM(P_k_B_death) * SPVAR(SP_V_P_B);
+    realtype ReactionFlux291 = PARAM(P_k_nB_in);
 
-    realtype ReactionFlux292 = PARAM(P_k_B_death) * SPVAR(SP_V_LN_B);
+    realtype ReactionFlux292 = PARAM(P_k_nB_death) * SPVAR(SP_V_C_nB);
 
-    realtype ReactionFlux293 = PARAM(P_q_Treg_P_in) * SPVAR(SP_V_C_B);
+    realtype ReactionFlux293 = PARAM(P_k_nB_death) * SPVAR(SP_V_LN_nB);
 
-    realtype ReactionFlux294 = PARAM(P_q_Treg_P_out) * SPVAR(SP_V_P_B);
+    realtype ReactionFlux294 = PARAM(P_q_nB_LN_in) * SPVAR(SP_V_C_nB);
 
-    realtype ReactionFlux295 = PARAM(P_q_Treg_LN_out) * SPVAR(SP_V_LN_B);
+    realtype ReactionFlux295 = PARAM(P_q_nB_LN_out) * SPVAR(SP_V_LN_nB);
 
-    realtype ReactionFlux296 = PARAM(P_q_Treg_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_B) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+    realtype ReactionFlux296 = PARAM(P_k_B_act) * AUX_VAR_H_P1 * (SPVAR(SP_V_LN_Tfh) / (SPVAR(SP_V_LN_Tfh) + PARAM(P_Tfh_50_B))) * SPVAR(SP_V_LN_nB);
 
-    realtype ReactionFlux297 = PARAM(P_k_B_act_tumor) * AUX_VAR_H_P1 * SPVAR(SP_V_T_nB);
+    realtype ReactionFlux297 = PARAM(P_k_B_act) * AUX_VAR_H_P1 * (SPVAR(SP_V_LN_Tfh) / (SPVAR(SP_V_LN_Tfh) + PARAM(P_Tfh_50_B))) * SPVAR(SP_V_LN_nB) * PARAM(P_n_B_clones);
 
-    realtype ReactionFlux298 = PARAM(P_k_B_pro_tumor) * SPVAR(SP_V_T_aB);
+    realtype ReactionFlux298 = PARAM(P_k_B_pro) / AUX_VAR_N_aTh * SPVAR(SP_V_LN_aB);
 
-    realtype ReactionFlux299 = PARAM(P_k_B_to_plasma) * SPVAR(SP_V_T_aB) * (SPVAR(SP_V_T_Tfh) / (SPVAR(SP_V_T_Tfh) + PARAM(P_Tfh_50_plasma)));
+    realtype ReactionFlux299 = PARAM(P_k_B_pro) / AUX_VAR_N_aTh * std::pow(2.0, AUX_VAR_N_aTh) * SPVAR(SP_V_LN_aB);
 
-    realtype ReactionFlux300 = PARAM(P_k_B_death) * SPVAR(SP_V_T_nB);
+    realtype ReactionFlux300 = PARAM(P_k_B_death) * SPVAR(SP_V_C_B);
 
-    realtype ReactionFlux301 = PARAM(P_k_B_death) * SPVAR(SP_V_T_aB);
+    realtype ReactionFlux301 = PARAM(P_k_B_death) * SPVAR(SP_V_P_B);
 
-    realtype ReactionFlux302 = PARAM(P_k_plasma_death) * SPVAR(SP_V_T_Plasma);
+    realtype ReactionFlux302 = PARAM(P_k_B_death) * SPVAR(SP_V_LN_B);
 
-    realtype ReactionFlux303 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_nB) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+    realtype ReactionFlux303 = PARAM(P_q_B_P_in) * SPVAR(SP_V_C_B);
 
-    realtype ReactionFlux304 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_aB) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+    realtype ReactionFlux304 = PARAM(P_q_B_P_out) * SPVAR(SP_V_P_B);
 
-    realtype ReactionFlux305 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Plasma) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+    realtype ReactionFlux305 = PARAM(P_q_B_LN_out) * SPVAR(SP_V_LN_B);
 
-    realtype ReactionFlux306 = PARAM(P_k_Ab_sec) * SPVAR(SP_V_T_Plasma);
+    realtype ReactionFlux306 = (PARAM(P_q_B_T_in) * AUX_VAR_V_T * SPVAR(SP_V_C_B) * (std::pow(AUX_VAR_C_total, 2.0) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit))) * ((1.0 - AUX_VAR_H_CXCL12_Texcl)) * AUX_VAR_H_vasc) / (1.0 + ((SPVAR(SP_V_T_nB) + SPVAR(SP_V_T_aB) + SPVAR(SP_V_T_Plasma)) / (PARAM(P_rho_B_max) * AUX_VAR_V_T + PARAM(P_cell))));
 
-    realtype ReactionFlux307 = PARAM(P_k_Ab_deg) * (SPVAR(SP_V_T_Ab) / AUX_VAR_V_T) * AUX_VAR_V_T;
+    realtype ReactionFlux307 = PARAM(P_k_B_act_tumor) * AUX_VAR_H_P1 * SPVAR(SP_V_T_nB);
+
+    realtype ReactionFlux308 = PARAM(P_k_B_pro_tumor) * SPVAR(SP_V_T_aB) / (1.0 + ((SPVAR(SP_V_T_nB) + SPVAR(SP_V_T_aB) + SPVAR(SP_V_T_Plasma)) / (PARAM(P_rho_B_max) * AUX_VAR_V_T + PARAM(P_cell))));
+
+    realtype ReactionFlux309 = PARAM(P_k_B_to_plasma) * SPVAR(SP_V_T_aB) * (SPVAR(SP_V_T_Tfh) / (SPVAR(SP_V_T_Tfh) + PARAM(P_Tfh_50_plasma)));
+
+    realtype ReactionFlux310 = PARAM(P_k_B_death) * SPVAR(SP_V_T_nB);
+
+    realtype ReactionFlux311 = PARAM(P_k_B_death) * SPVAR(SP_V_T_aB);
+
+    realtype ReactionFlux312 = PARAM(P_k_plasma_death) * SPVAR(SP_V_T_Plasma);
+
+    realtype ReactionFlux313 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_nB) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+
+    realtype ReactionFlux314 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_aB) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+
+    realtype ReactionFlux315 = PARAM(P_k_cell_clear) * SPVAR(SP_V_T_Plasma) * (PARAM(P_K_C2_recruit) / (std::pow(AUX_VAR_C_total, 2.0) + PARAM(P_K_C2_recruit)));
+
+    realtype ReactionFlux316 = PARAM(P_k_Ab_sec) * SPVAR(SP_V_T_Plasma);
+
+    realtype ReactionFlux317 = PARAM(P_k_Ab_deg) * (SPVAR(SP_V_T_Ab) / AUX_VAR_V_T) * AUX_VAR_V_T;
 
     //ODE right-hand side:
 
-    NV_DATA_S(ydot)[SP_V_C_nCD4] = ReactionFlux9 - ReactionFlux13 - ReactionFlux15 + ReactionFlux16 - ReactionFlux17 + ReactionFlux18;
+    NV_DATA_S(ydot)[SP_V_C_nCD4] = ReactionFlux9 - ReactionFlux13 - ReactionFlux15 + ReactionFlux16 - ReactionFlux17 + ReactionFlux18 - ReactionFlux177;
     NV_DATA_S(ydot)[SP_V_C_Treg] = - ReactionFlux25 - ReactionFlux31 + ReactionFlux32 - ReactionFlux33 + ReactionFlux34;
-    NV_DATA_S(ydot)[SP_V_C_nCD8] = ReactionFlux35 - ReactionFlux39 - ReactionFlux41 + ReactionFlux42 - ReactionFlux43 + ReactionFlux44;
+    NV_DATA_S(ydot)[SP_V_C_nCD8] = ReactionFlux35 - ReactionFlux39 - ReactionFlux41 + ReactionFlux42 - ReactionFlux43 + ReactionFlux44 - ReactionFlux68;
     NV_DATA_S(ydot)[SP_V_C_CD8] = - ReactionFlux49 - ReactionFlux64 + ReactionFlux65 - ReactionFlux66 + ReactionFlux67;
-    NV_DATA_S(ydot)[SP_V_C_aPD1] = - ReactionFlux106 - ReactionFlux107 - ReactionFlux108 + ReactionFlux110 - ReactionFlux111;
-    NV_DATA_S(ydot)[SP_V_C_Th] = - ReactionFlux161 - ReactionFlux168 + ReactionFlux169 - ReactionFlux170 + ReactionFlux171;
-    NV_DATA_S(ydot)[SP_V_C_Cy] = - ReactionFlux264;
-    NV_DATA_S(ydot)[SP_V_C_Cy_eff] = ReactionFlux265 - ReactionFlux266;
-    NV_DATA_S(ydot)[SP_V_C_Tfh] = - ReactionFlux272 - ReactionFlux278 + ReactionFlux279 + ReactionFlux280;
-    NV_DATA_S(ydot)[SP_V_C_nB] = ReactionFlux281 - ReactionFlux282 - ReactionFlux284 + ReactionFlux285;
-    NV_DATA_S(ydot)[SP_V_C_B] = - ReactionFlux290 - ReactionFlux293 + ReactionFlux294 + ReactionFlux295 - ReactionFlux296;
+    NV_DATA_S(ydot)[SP_V_C_aPD1] = - ReactionFlux111 - ReactionFlux112 - ReactionFlux113 + ReactionFlux115 - ReactionFlux116;
+    NV_DATA_S(ydot)[SP_V_C_Th] = - ReactionFlux166 - ReactionFlux173 + ReactionFlux174 - ReactionFlux175 + ReactionFlux176;
+    NV_DATA_S(ydot)[SP_V_C_Cy] = - ReactionFlux274;
+    NV_DATA_S(ydot)[SP_V_C_Cy_eff] = ReactionFlux275 - ReactionFlux276;
+    NV_DATA_S(ydot)[SP_V_C_Tfh] = - ReactionFlux282 - ReactionFlux288 + ReactionFlux289 + ReactionFlux290;
+    NV_DATA_S(ydot)[SP_V_C_nB] = ReactionFlux291 - ReactionFlux292 - ReactionFlux294 + ReactionFlux295;
+    NV_DATA_S(ydot)[SP_V_C_B] = - ReactionFlux300 - ReactionFlux303 + ReactionFlux304 + ReactionFlux305 - ReactionFlux306;
     NV_DATA_S(ydot)[SP_V_P_nCD4] = ReactionFlux10 - ReactionFlux12 + ReactionFlux15 - ReactionFlux16;
     NV_DATA_S(ydot)[SP_V_P_Treg] = - ReactionFlux26 + ReactionFlux31 - ReactionFlux32;
     NV_DATA_S(ydot)[SP_V_P_nCD8] = ReactionFlux36 - ReactionFlux38 + ReactionFlux41 - ReactionFlux42;
     NV_DATA_S(ydot)[SP_V_P_CD8] = - ReactionFlux50 + ReactionFlux64 - ReactionFlux65;
-    NV_DATA_S(ydot)[SP_V_P_aPD1] = ReactionFlux106;
-    NV_DATA_S(ydot)[SP_V_P_Th] = - ReactionFlux162 + ReactionFlux168 - ReactionFlux169;
-    NV_DATA_S(ydot)[SP_V_P_Tfh] = - ReactionFlux273 + ReactionFlux278 - ReactionFlux279;
-    NV_DATA_S(ydot)[SP_V_P_B] = - ReactionFlux291 + ReactionFlux293 - ReactionFlux294;
-    NV_DATA_S(ydot)[SP_V_T_C_x] = - ReactionFlux1 + ReactionFlux4 + ReactionFlux68 + ReactionFlux221;
+    NV_DATA_S(ydot)[SP_V_P_aPD1] = ReactionFlux111;
+    NV_DATA_S(ydot)[SP_V_P_Th] = - ReactionFlux167 + ReactionFlux173 - ReactionFlux174;
+    NV_DATA_S(ydot)[SP_V_P_Tfh] = - ReactionFlux283 + ReactionFlux288 - ReactionFlux289;
+    NV_DATA_S(ydot)[SP_V_P_B] = - ReactionFlux301 + ReactionFlux303 - ReactionFlux304;
+    NV_DATA_S(ydot)[SP_V_T_C_x] = - ReactionFlux1 + ReactionFlux4 + ReactionFlux73 + ReactionFlux231;
     NV_DATA_S(ydot)[SP_V_T_CD8_exh] = ReactionFlux55 - ReactionFlux59 + ReactionFlux60;
     NV_DATA_S(ydot)[SP_V_T_CD8_pex] = ReactionFlux54 + ReactionFlux56 + ReactionFlux57 + ReactionFlux58 - ReactionFlux60 - ReactionFlux61 - ReactionFlux62 - ReactionFlux63;
-    NV_DATA_S(ydot)[SP_V_T_Th_exh] = - ReactionFlux2 + ReactionFlux164 + ReactionFlux165 + ReactionFlux166 - ReactionFlux167;
-    NV_DATA_S(ydot)[SP_V_T_C1] = ReactionFlux3 - ReactionFlux4 - ReactionFlux68 - ReactionFlux221;
+    NV_DATA_S(ydot)[SP_V_T_Th_exh] = - ReactionFlux2 + ReactionFlux169 + ReactionFlux170 + ReactionFlux171 - ReactionFlux172;
+    NV_DATA_S(ydot)[SP_V_T_C1] = ReactionFlux3 - ReactionFlux4 - ReactionFlux73 - ReactionFlux231;
     NV_DATA_S(ydot)[SP_V_T_K_vasc] = ReactionFlux7 - ReactionFlux8;
-    NV_DATA_S(ydot)[SP_V_T_VEGF] = ReactionFlux5 - ReactionFlux6 + ReactionFlux193 + ReactionFlux249;
-    NV_DATA_S(ydot)[SP_V_T_Treg] = - ReactionFlux28 - ReactionFlux29 + ReactionFlux30 + ReactionFlux33 + ReactionFlux160 - ReactionFlux267;
-    NV_DATA_S(ydot)[SP_V_T_CD8] = ReactionFlux52 - ReactionFlux53 - ReactionFlux54 - ReactionFlux55 - ReactionFlux56 - ReactionFlux57 - ReactionFlux58 + ReactionFlux62 + ReactionFlux63 + ReactionFlux66 + ReactionFlux250;
-    NV_DATA_S(ydot)[SP_V_T_cDC1] = ReactionFlux69 - ReactionFlux70 - ReactionFlux73;
-    NV_DATA_S(ydot)[SP_V_T_cDC2] = ReactionFlux77 - ReactionFlux78 - ReactionFlux81;
-    NV_DATA_S(ydot)[SP_V_T_mcDC1] = ReactionFlux73 - ReactionFlux74 - ReactionFlux75;
-    NV_DATA_S(ydot)[SP_V_T_mcDC2] = ReactionFlux81 - ReactionFlux82 - ReactionFlux83;
-    NV_DATA_S(ydot)[SP_V_T_P0] = ReactionFlux86 - ReactionFlux87 - ReactionFlux88;
-    NV_DATA_S(ydot)[SP_V_T_P1] = ReactionFlux96 - ReactionFlux97 - ReactionFlux98;
-    NV_DATA_S(ydot)[SP_V_T_aPD1] = ReactionFlux107 - ReactionFlux109;
-    NV_DATA_S(ydot)[SP_V_T_Th] = - ReactionFlux160 - ReactionFlux164 - ReactionFlux165 - ReactionFlux166 + ReactionFlux167 + ReactionFlux170 + ReactionFlux172 - ReactionFlux173 + ReactionFlux174 - ReactionFlux277;
-    NV_DATA_S(ydot)[SP_V_T_IFNg] = ReactionFlux175 + ReactionFlux176 - ReactionFlux179;
-    NV_DATA_S(ydot)[SP_V_T_TGFb] = ReactionFlux181 - ReactionFlux182 + ReactionFlux183 + ReactionFlux202 + ReactionFlux222;
-    NV_DATA_S(ydot)[SP_V_T_MDSC] = ReactionFlux186 - ReactionFlux187 - ReactionFlux188;
-    NV_DATA_S(ydot)[SP_V_T_NO] = - ReactionFlux189 + ReactionFlux191;
-    NV_DATA_S(ydot)[SP_V_T_ArgI] = - ReactionFlux190 + ReactionFlux192 + ReactionFlux204;
-    NV_DATA_S(ydot)[SP_V_T_CCL2] = ReactionFlux184 - ReactionFlux185;
-    NV_DATA_S(ydot)[SP_V_T_Mac_M1] = ReactionFlux194 - ReactionFlux195 - ReactionFlux197 - ReactionFlux208 + ReactionFlux209;
-    NV_DATA_S(ydot)[SP_V_T_Mac_M2] = - ReactionFlux196 - ReactionFlux198 + ReactionFlux208 - ReactionFlux209;
-    NV_DATA_S(ydot)[SP_V_T_IL12] = ReactionFlux199 + ReactionFlux200 - ReactionFlux201;
-    NV_DATA_S(ydot)[SP_V_T_IL10] = ReactionFlux203 + ReactionFlux205 + ReactionFlux206 - ReactionFlux207;
-    NV_DATA_S(ydot)[SP_V_T_qPSC] = ReactionFlux223 - ReactionFlux224 - ReactionFlux225 - ReactionFlux226 - ReactionFlux232 - ReactionFlux236;
-    NV_DATA_S(ydot)[SP_V_T_iCAF] = ReactionFlux225 - ReactionFlux227 + ReactionFlux228 + ReactionFlux230 - ReactionFlux233 - ReactionFlux237;
-    NV_DATA_S(ydot)[SP_V_T_myCAF] = ReactionFlux224 + ReactionFlux227 - ReactionFlux228 + ReactionFlux229 - ReactionFlux234 - ReactionFlux238;
-    NV_DATA_S(ydot)[SP_V_T_apCAF] = ReactionFlux226 + ReactionFlux231 - ReactionFlux235 - ReactionFlux239;
-    NV_DATA_S(ydot)[SP_V_T_collagen] = ReactionFlux240 - ReactionFlux241;
-    NV_DATA_S(ydot)[SP_V_T_CXCL12] = ReactionFlux242 + ReactionFlux243 - ReactionFlux244;
-    NV_DATA_S(ydot)[SP_V_T_IL6] = ReactionFlux245 - ReactionFlux246;
-    NV_DATA_S(ydot)[SP_V_T_IL1] = ReactionFlux247 - ReactionFlux248;
-    NV_DATA_S(ydot)[SP_V_T_Tfh] = - ReactionFlux275 - ReactionFlux276 + ReactionFlux277;
-    NV_DATA_S(ydot)[SP_V_T_nB] = ReactionFlux296 - ReactionFlux297 - ReactionFlux300 - ReactionFlux303;
-    NV_DATA_S(ydot)[SP_V_T_aB] = ReactionFlux297 + ReactionFlux298 - ReactionFlux299 - ReactionFlux301 - ReactionFlux304;
-    NV_DATA_S(ydot)[SP_V_T_Plasma] = ReactionFlux299 - ReactionFlux302 - ReactionFlux305;
-    NV_DATA_S(ydot)[SP_V_T_Ab] = ReactionFlux306 - ReactionFlux307;
-    NV_DATA_S(ydot)[SP_V_LN_nCD4] = ReactionFlux11 - ReactionFlux14 + ReactionFlux17 - ReactionFlux18 - ReactionFlux19 - ReactionFlux21 - ReactionFlux156 - ReactionFlux268;
+    NV_DATA_S(ydot)[SP_V_T_VEGF] = ReactionFlux5 - ReactionFlux6 + ReactionFlux203 + ReactionFlux259;
+    NV_DATA_S(ydot)[SP_V_T_Treg] = - ReactionFlux28 - ReactionFlux29 + ReactionFlux30 + ReactionFlux33 + ReactionFlux165 - ReactionFlux277;
+    NV_DATA_S(ydot)[SP_V_T_CD8] = ReactionFlux52 - ReactionFlux53 - ReactionFlux54 - ReactionFlux55 - ReactionFlux56 - ReactionFlux57 - ReactionFlux58 + ReactionFlux62 + ReactionFlux63 + ReactionFlux66 + ReactionFlux70 + ReactionFlux260;
+    NV_DATA_S(ydot)[SP_V_T_nCD8] = ReactionFlux68 - ReactionFlux69 - ReactionFlux71 - ReactionFlux72;
+    NV_DATA_S(ydot)[SP_V_T_cDC1] = ReactionFlux74 - ReactionFlux75 - ReactionFlux78;
+    NV_DATA_S(ydot)[SP_V_T_cDC2] = ReactionFlux82 - ReactionFlux83 - ReactionFlux86;
+    NV_DATA_S(ydot)[SP_V_T_mcDC1] = ReactionFlux78 - ReactionFlux79 - ReactionFlux80;
+    NV_DATA_S(ydot)[SP_V_T_mcDC2] = ReactionFlux86 - ReactionFlux87 - ReactionFlux88;
+    NV_DATA_S(ydot)[SP_V_T_P0] = ReactionFlux91 - ReactionFlux92 - ReactionFlux93;
+    NV_DATA_S(ydot)[SP_V_T_P1] = ReactionFlux101 - ReactionFlux102 - ReactionFlux103;
+    NV_DATA_S(ydot)[SP_V_T_aPD1] = ReactionFlux112 - ReactionFlux114;
+    NV_DATA_S(ydot)[SP_V_T_Th] = - ReactionFlux165 - ReactionFlux169 - ReactionFlux170 - ReactionFlux171 + ReactionFlux172 + ReactionFlux175 + ReactionFlux179 + ReactionFlux182 - ReactionFlux183 + ReactionFlux184 - ReactionFlux287;
+    NV_DATA_S(ydot)[SP_V_T_nCD4] = ReactionFlux177 - ReactionFlux178 - ReactionFlux180 - ReactionFlux181;
+    NV_DATA_S(ydot)[SP_V_T_IFNg] = ReactionFlux185 + ReactionFlux186 - ReactionFlux189;
+    NV_DATA_S(ydot)[SP_V_T_TGFb] = ReactionFlux191 - ReactionFlux192 + ReactionFlux193 + ReactionFlux212 + ReactionFlux232;
+    NV_DATA_S(ydot)[SP_V_T_MDSC] = ReactionFlux196 - ReactionFlux197 - ReactionFlux198;
+    NV_DATA_S(ydot)[SP_V_T_NO] = - ReactionFlux199 + ReactionFlux201;
+    NV_DATA_S(ydot)[SP_V_T_ArgI] = - ReactionFlux200 + ReactionFlux202 + ReactionFlux214;
+    NV_DATA_S(ydot)[SP_V_T_CCL2] = ReactionFlux194 - ReactionFlux195;
+    NV_DATA_S(ydot)[SP_V_T_Mac_M1] = ReactionFlux204 - ReactionFlux205 - ReactionFlux207 - ReactionFlux218 + ReactionFlux219;
+    NV_DATA_S(ydot)[SP_V_T_Mac_M2] = - ReactionFlux206 - ReactionFlux208 + ReactionFlux218 - ReactionFlux219;
+    NV_DATA_S(ydot)[SP_V_T_IL12] = ReactionFlux209 + ReactionFlux210 - ReactionFlux211;
+    NV_DATA_S(ydot)[SP_V_T_IL10] = ReactionFlux213 + ReactionFlux215 + ReactionFlux216 - ReactionFlux217;
+    NV_DATA_S(ydot)[SP_V_T_qPSC] = ReactionFlux233 - ReactionFlux234 - ReactionFlux235 - ReactionFlux236 - ReactionFlux242 - ReactionFlux246;
+    NV_DATA_S(ydot)[SP_V_T_iCAF] = ReactionFlux235 - ReactionFlux237 + ReactionFlux238 + ReactionFlux240 - ReactionFlux243 - ReactionFlux247;
+    NV_DATA_S(ydot)[SP_V_T_myCAF] = ReactionFlux234 + ReactionFlux237 - ReactionFlux238 + ReactionFlux239 - ReactionFlux244 - ReactionFlux248;
+    NV_DATA_S(ydot)[SP_V_T_apCAF] = ReactionFlux236 + ReactionFlux241 - ReactionFlux245 - ReactionFlux249;
+    NV_DATA_S(ydot)[SP_V_T_collagen] = ReactionFlux250 - ReactionFlux251;
+    NV_DATA_S(ydot)[SP_V_T_CXCL12] = ReactionFlux252 + ReactionFlux253 - ReactionFlux254;
+    NV_DATA_S(ydot)[SP_V_T_IL6] = ReactionFlux255 - ReactionFlux256;
+    NV_DATA_S(ydot)[SP_V_T_IL1] = ReactionFlux257 - ReactionFlux258;
+    NV_DATA_S(ydot)[SP_V_T_Tfh] = - ReactionFlux285 - ReactionFlux286 + ReactionFlux287;
+    NV_DATA_S(ydot)[SP_V_T_nB] = ReactionFlux306 - ReactionFlux307 - ReactionFlux310 - ReactionFlux313;
+    NV_DATA_S(ydot)[SP_V_T_aB] = ReactionFlux307 + ReactionFlux308 - ReactionFlux309 - ReactionFlux311 - ReactionFlux314;
+    NV_DATA_S(ydot)[SP_V_T_Plasma] = ReactionFlux309 - ReactionFlux312 - ReactionFlux315;
+    NV_DATA_S(ydot)[SP_V_T_Ab] = ReactionFlux316 - ReactionFlux317;
+    NV_DATA_S(ydot)[SP_V_LN_nCD4] = ReactionFlux11 - ReactionFlux14 + ReactionFlux17 - ReactionFlux18 - ReactionFlux19 - ReactionFlux21 - ReactionFlux161 - ReactionFlux278;
     NV_DATA_S(ydot)[SP_V_LN_aTreg] = ReactionFlux20 + ReactionFlux22 - ReactionFlux23;
     NV_DATA_S(ydot)[SP_V_LN_Treg] = ReactionFlux24 - ReactionFlux27 - ReactionFlux34;
     NV_DATA_S(ydot)[SP_V_LN_nCD8] = ReactionFlux37 - ReactionFlux40 + ReactionFlux43 - ReactionFlux44 - ReactionFlux45;
     NV_DATA_S(ydot)[SP_V_LN_aCD8] = ReactionFlux46 - ReactionFlux47;
     NV_DATA_S(ydot)[SP_V_LN_CD8] = ReactionFlux48 - ReactionFlux51 - ReactionFlux67;
-    NV_DATA_S(ydot)[SP_V_LN_cDC1] = ReactionFlux71 - ReactionFlux72 - ReactionFlux263;
-    NV_DATA_S(ydot)[SP_V_LN_cDC2] = ReactionFlux79 - ReactionFlux80;
-    NV_DATA_S(ydot)[SP_V_LN_mcDC1] = ReactionFlux74 - ReactionFlux76 + ReactionFlux263;
-    NV_DATA_S(ydot)[SP_V_LN_mcDC2] = ReactionFlux82 - ReactionFlux84 + ReactionFlux262;
-    NV_DATA_S(ydot)[SP_V_LN_aPD1] = ReactionFlux108 + ReactionFlux109 - ReactionFlux110;
-    NV_DATA_S(ydot)[SP_V_LN_aTh] = ReactionFlux157 - ReactionFlux158;
-    NV_DATA_S(ydot)[SP_V_LN_Th] = ReactionFlux159 - ReactionFlux163 - ReactionFlux171;
-    NV_DATA_S(ydot)[SP_V_LN_IFNg] = ReactionFlux177 + ReactionFlux178 - ReactionFlux180;
-    NV_DATA_S(ydot)[SP_V_LN_aTfh] = ReactionFlux269 - ReactionFlux270;
-    NV_DATA_S(ydot)[SP_V_LN_Tfh] = ReactionFlux271 - ReactionFlux274 - ReactionFlux280;
-    NV_DATA_S(ydot)[SP_V_LN_nB] = - ReactionFlux283 + ReactionFlux284 - ReactionFlux285 - ReactionFlux286;
-    NV_DATA_S(ydot)[SP_V_LN_aB] = ReactionFlux287 - ReactionFlux288;
-    NV_DATA_S(ydot)[SP_V_LN_B] = ReactionFlux289 - ReactionFlux292 - ReactionFlux295;
-    NV_DATA_S(ydot)[SP_V_e_P0] = ReactionFlux89 - ReactionFlux90;
-    NV_DATA_S(ydot)[SP_V_e_p0] = ReactionFlux90 - ReactionFlux91 - ReactionFlux92 + ReactionFlux93;
-    NV_DATA_S(ydot)[SP_V_e_P1] = ReactionFlux99 - ReactionFlux100 + ReactionFlux259;
-    NV_DATA_S(ydot)[SP_V_e_p1] = ReactionFlux100 - ReactionFlux101 - ReactionFlux102 + ReactionFlux103;
-    NV_DATA_S(ydot)[SP_A_e_M1] = - ReactionFlux85 - ReactionFlux92 + ReactionFlux93 - ReactionFlux102 + ReactionFlux103;
-    NV_DATA_S(ydot)[SP_A_e_M1p0] = ReactionFlux92 - ReactionFlux93 - ReactionFlux95;
-    NV_DATA_S(ydot)[SP_A_e_M1p1] = ReactionFlux102 - ReactionFlux103 - ReactionFlux105;
-    NV_DATA_S(ydot)[SP_A_s_M1] = ReactionFlux85 + ReactionFlux94 + ReactionFlux104;
-    NV_DATA_S(ydot)[SP_A_s_M1p0] = - ReactionFlux94 + ReactionFlux95;
-    NV_DATA_S(ydot)[SP_A_s_M1p1] = - ReactionFlux104 + ReactionFlux105;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_PD1_PDL1] = ReactionFlux116;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_PD1_PDL2] = ReactionFlux117;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_PD1] = - ReactionFlux116 - ReactionFlux117 - ReactionFlux118 - ReactionFlux119;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_PDL1] = ReactionFlux112 + ReactionFlux114 - ReactionFlux116 - ReactionFlux131;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_PDL2] = ReactionFlux113 + ReactionFlux115 - ReactionFlux117;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_PD1_aPD1] = ReactionFlux118 - ReactionFlux119;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_PD1_aPD1_PD1] = ReactionFlux119;
+    NV_DATA_S(ydot)[SP_V_LN_cDC1] = ReactionFlux76 - ReactionFlux77 - ReactionFlux273;
+    NV_DATA_S(ydot)[SP_V_LN_cDC2] = ReactionFlux84 - ReactionFlux85;
+    NV_DATA_S(ydot)[SP_V_LN_mcDC1] = ReactionFlux79 - ReactionFlux81 + ReactionFlux273;
+    NV_DATA_S(ydot)[SP_V_LN_mcDC2] = ReactionFlux87 - ReactionFlux89 + ReactionFlux272;
+    NV_DATA_S(ydot)[SP_V_LN_aPD1] = ReactionFlux113 + ReactionFlux114 - ReactionFlux115;
+    NV_DATA_S(ydot)[SP_V_LN_aTh] = ReactionFlux162 - ReactionFlux163;
+    NV_DATA_S(ydot)[SP_V_LN_Th] = ReactionFlux164 - ReactionFlux168 - ReactionFlux176;
+    NV_DATA_S(ydot)[SP_V_LN_IFNg] = ReactionFlux187 + ReactionFlux188 - ReactionFlux190;
+    NV_DATA_S(ydot)[SP_V_LN_aTfh] = ReactionFlux279 - ReactionFlux280;
+    NV_DATA_S(ydot)[SP_V_LN_Tfh] = ReactionFlux281 - ReactionFlux284 - ReactionFlux290;
+    NV_DATA_S(ydot)[SP_V_LN_nB] = - ReactionFlux293 + ReactionFlux294 - ReactionFlux295 - ReactionFlux296;
+    NV_DATA_S(ydot)[SP_V_LN_aB] = ReactionFlux297 - ReactionFlux298;
+    NV_DATA_S(ydot)[SP_V_LN_B] = ReactionFlux299 - ReactionFlux302 - ReactionFlux305;
+    NV_DATA_S(ydot)[SP_V_e_P0] = ReactionFlux94 - ReactionFlux95;
+    NV_DATA_S(ydot)[SP_V_e_p0] = ReactionFlux95 - ReactionFlux96 - ReactionFlux97 + ReactionFlux98;
+    NV_DATA_S(ydot)[SP_V_e_P1] = ReactionFlux104 - ReactionFlux105 + ReactionFlux269;
+    NV_DATA_S(ydot)[SP_V_e_p1] = ReactionFlux105 - ReactionFlux106 - ReactionFlux107 + ReactionFlux108;
+    NV_DATA_S(ydot)[SP_A_e_M1] = - ReactionFlux90 - ReactionFlux97 + ReactionFlux98 - ReactionFlux107 + ReactionFlux108;
+    NV_DATA_S(ydot)[SP_A_e_M1p0] = ReactionFlux97 - ReactionFlux98 - ReactionFlux100;
+    NV_DATA_S(ydot)[SP_A_e_M1p1] = ReactionFlux107 - ReactionFlux108 - ReactionFlux110;
+    NV_DATA_S(ydot)[SP_A_s_M1] = ReactionFlux90 + ReactionFlux99 + ReactionFlux109;
+    NV_DATA_S(ydot)[SP_A_s_M1p0] = - ReactionFlux99 + ReactionFlux100;
+    NV_DATA_S(ydot)[SP_A_s_M1p1] = - ReactionFlux109 + ReactionFlux110;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_PD1_PDL1] = ReactionFlux121;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_PD1_PDL2] = ReactionFlux122;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_PD1] = - ReactionFlux121 - ReactionFlux122 - ReactionFlux123 - ReactionFlux124;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_PDL1] = ReactionFlux117 + ReactionFlux119 - ReactionFlux121 - ReactionFlux136;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_PDL2] = ReactionFlux118 + ReactionFlux120 - ReactionFlux122;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_PD1_aPD1] = ReactionFlux123 - ReactionFlux124;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_PD1_aPD1_PD1] = ReactionFlux124;
     NV_DATA_S(ydot)[SP_syn_CD8_C1_TPDL1] = 0.0;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD28_CD80] = ReactionFlux120 - ReactionFlux121;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD28_CD80_CD28] = ReactionFlux121;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD28_CD86] = ReactionFlux122;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD80_CTLA4] = ReactionFlux123 - ReactionFlux124 - ReactionFlux126;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD80_CTLA4_CD80] = ReactionFlux126 - ReactionFlux127;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CTLA4_CD80_CTLA4] = ReactionFlux124 - ReactionFlux125;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD80_CTLA4_CD80_CTLA4] = ReactionFlux125 + ReactionFlux127;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD86_CTLA4] = ReactionFlux128 - ReactionFlux129;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD86_CTLA4_CD86] = ReactionFlux129;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_PDL1_CD80] = ReactionFlux131 - ReactionFlux132 - ReactionFlux133;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_PDL1_CD80_CD28] = ReactionFlux132;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_PDL1_CD80_CTLA4] = ReactionFlux133;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD28] = - ReactionFlux120 - ReactionFlux121 - ReactionFlux122 - ReactionFlux132;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CTLA4] = - ReactionFlux123 - ReactionFlux124 - ReactionFlux127 - ReactionFlux128 - ReactionFlux133;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD80] = - ReactionFlux120 - ReactionFlux123 - ReactionFlux125 - ReactionFlux126 + ReactionFlux130;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD80m] = - ReactionFlux130 - ReactionFlux130 - ReactionFlux131;
-    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD86] = - ReactionFlux122 - ReactionFlux128 - ReactionFlux129;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_PD1_PDL1] = ReactionFlux138;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_PD1_PDL2] = ReactionFlux139;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_PD1] = - ReactionFlux138 - ReactionFlux139 - ReactionFlux140 - ReactionFlux141;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_PDL1] = ReactionFlux134 + ReactionFlux136 - ReactionFlux138 - ReactionFlux153;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_PDL2] = ReactionFlux135 + ReactionFlux137 - ReactionFlux139;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_PD1_aPD1] = ReactionFlux140 - ReactionFlux141;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_PD1_aPD1_PD1] = ReactionFlux141;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD28_CD80] = ReactionFlux125 - ReactionFlux126;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD28_CD80_CD28] = ReactionFlux126;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD28_CD86] = ReactionFlux127;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD80_CTLA4] = ReactionFlux128 - ReactionFlux129 - ReactionFlux131;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD80_CTLA4_CD80] = ReactionFlux131 - ReactionFlux132;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CTLA4_CD80_CTLA4] = ReactionFlux129 - ReactionFlux130;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD80_CTLA4_CD80_CTLA4] = ReactionFlux130 + ReactionFlux132;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD86_CTLA4] = ReactionFlux133 - ReactionFlux134;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD86_CTLA4_CD86] = ReactionFlux134;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_PDL1_CD80] = ReactionFlux136 - ReactionFlux137 - ReactionFlux138;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_PDL1_CD80_CD28] = ReactionFlux137;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_PDL1_CD80_CTLA4] = ReactionFlux138;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD28] = - ReactionFlux125 - ReactionFlux126 - ReactionFlux127 - ReactionFlux137;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CTLA4] = - ReactionFlux128 - ReactionFlux129 - ReactionFlux132 - ReactionFlux133 - ReactionFlux138;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD80] = - ReactionFlux125 - ReactionFlux128 - ReactionFlux130 - ReactionFlux131 + ReactionFlux135;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD80m] = - ReactionFlux135 - ReactionFlux135 - ReactionFlux136;
+    NV_DATA_S(ydot)[SP_syn_CD8_C1_CD86] = - ReactionFlux127 - ReactionFlux133 - ReactionFlux134;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_PD1_PDL1] = ReactionFlux143;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_PD1_PDL2] = ReactionFlux144;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_PD1] = - ReactionFlux143 - ReactionFlux144 - ReactionFlux145 - ReactionFlux146;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_PDL1] = ReactionFlux139 + ReactionFlux141 - ReactionFlux143 - ReactionFlux158;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_PDL2] = ReactionFlux140 + ReactionFlux142 - ReactionFlux144;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_PD1_aPD1] = ReactionFlux145 - ReactionFlux146;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_PD1_aPD1_PD1] = ReactionFlux146;
     NV_DATA_S(ydot)[SP_syn_CD8_APC_TPDL1] = 0.0;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD28_CD80] = ReactionFlux142 - ReactionFlux143;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD28_CD80_CD28] = ReactionFlux143;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD28_CD86] = ReactionFlux144;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD80_CTLA4] = ReactionFlux145 - ReactionFlux146 - ReactionFlux148;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD80_CTLA4_CD80] = ReactionFlux148 - ReactionFlux149;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CTLA4_CD80_CTLA4] = ReactionFlux146 - ReactionFlux147;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD80_CTLA4_CD80_CTLA4] = ReactionFlux147 + ReactionFlux149;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD86_CTLA4] = ReactionFlux150 - ReactionFlux151;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD86_CTLA4_CD86] = ReactionFlux151;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_PDL1_CD80] = ReactionFlux153 - ReactionFlux154 - ReactionFlux155;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_PDL1_CD80_CD28] = ReactionFlux154;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_PDL1_CD80_CTLA4] = ReactionFlux155;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD28] = - ReactionFlux142 - ReactionFlux143 - ReactionFlux144 - ReactionFlux154;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CTLA4] = - ReactionFlux145 - ReactionFlux146 - ReactionFlux149 - ReactionFlux150 - ReactionFlux155;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD80] = - ReactionFlux142 - ReactionFlux145 - ReactionFlux147 - ReactionFlux148 + ReactionFlux152;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD80m] = - ReactionFlux152 - ReactionFlux152 - ReactionFlux153;
-    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD86] = - ReactionFlux144 - ReactionFlux150 - ReactionFlux151;
-    NV_DATA_S(ydot)[SP_syn_M_C_CD47] = - ReactionFlux214;
-    NV_DATA_S(ydot)[SP_syn_M_C_SIRPa] = - ReactionFlux214;
-    NV_DATA_S(ydot)[SP_syn_M_C_CD47_SIRPa] = ReactionFlux214;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD28_CD80] = ReactionFlux147 - ReactionFlux148;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD28_CD80_CD28] = ReactionFlux148;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD28_CD86] = ReactionFlux149;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD80_CTLA4] = ReactionFlux150 - ReactionFlux151 - ReactionFlux153;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD80_CTLA4_CD80] = ReactionFlux153 - ReactionFlux154;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CTLA4_CD80_CTLA4] = ReactionFlux151 - ReactionFlux152;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD80_CTLA4_CD80_CTLA4] = ReactionFlux152 + ReactionFlux154;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD86_CTLA4] = ReactionFlux155 - ReactionFlux156;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD86_CTLA4_CD86] = ReactionFlux156;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_PDL1_CD80] = ReactionFlux158 - ReactionFlux159 - ReactionFlux160;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_PDL1_CD80_CD28] = ReactionFlux159;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_PDL1_CD80_CTLA4] = ReactionFlux160;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD28] = - ReactionFlux147 - ReactionFlux148 - ReactionFlux149 - ReactionFlux159;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CTLA4] = - ReactionFlux150 - ReactionFlux151 - ReactionFlux154 - ReactionFlux155 - ReactionFlux160;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD80] = - ReactionFlux147 - ReactionFlux150 - ReactionFlux152 - ReactionFlux153 + ReactionFlux157;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD80m] = - ReactionFlux157 - ReactionFlux157 - ReactionFlux158;
+    NV_DATA_S(ydot)[SP_syn_CD8_APC_CD86] = - ReactionFlux149 - ReactionFlux155 - ReactionFlux156;
+    NV_DATA_S(ydot)[SP_syn_M_C_CD47] = - ReactionFlux224;
+    NV_DATA_S(ydot)[SP_syn_M_C_SIRPa] = - ReactionFlux224;
+    NV_DATA_S(ydot)[SP_syn_M_C_CD47_SIRPa] = ReactionFlux224;
     NV_DATA_S(ydot)[SP_syn_M_C_PDL1_total] = 0.0;
     NV_DATA_S(ydot)[SP_syn_M_C_PDL2_total] = 0.0;
-    NV_DATA_S(ydot)[SP_syn_M_C_PD1_PDL1] = ReactionFlux215;
-    NV_DATA_S(ydot)[SP_syn_M_C_PD1_PDL2] = ReactionFlux216;
-    NV_DATA_S(ydot)[SP_syn_M_C_PD1] = - ReactionFlux215 - ReactionFlux216 - ReactionFlux217 - ReactionFlux218;
-    NV_DATA_S(ydot)[SP_syn_M_C_PDL1] = ReactionFlux210 + ReactionFlux212 - ReactionFlux215 - ReactionFlux220;
-    NV_DATA_S(ydot)[SP_syn_M_C_PDL2] = ReactionFlux211 + ReactionFlux213 - ReactionFlux216;
-    NV_DATA_S(ydot)[SP_syn_M_C_PD1_aPD1] = ReactionFlux217 - ReactionFlux218;
-    NV_DATA_S(ydot)[SP_syn_M_C_PD1_aPD1_PD1] = ReactionFlux218;
-    NV_DATA_S(ydot)[SP_syn_M_C_PDL1_CD80] = ReactionFlux220;
-    NV_DATA_S(ydot)[SP_syn_M_C_CD80] = ReactionFlux219;
-    NV_DATA_S(ydot)[SP_syn_M_C_CD80m] = - ReactionFlux219 - ReactionFlux219 - ReactionFlux220;
-    NV_DATA_S(ydot)[SP_V_ID_GVAX_cells] = - ReactionFlux251;
-    NV_DATA_S(ydot)[SP_V_ID_APC] = ReactionFlux256 - ReactionFlux257 - ReactionFlux260;
-    NV_DATA_S(ydot)[SP_V_ID_mAPC] = ReactionFlux257 - ReactionFlux261 - ReactionFlux262;
-    NV_DATA_S(ydot)[SP_V_ID_GMCSF] = ReactionFlux252 - ReactionFlux253;
-    NV_DATA_S(ydot)[SP_V_ID_P1_GVAX] = ReactionFlux254 - ReactionFlux255 - ReactionFlux258;
+    NV_DATA_S(ydot)[SP_syn_M_C_PD1_PDL1] = ReactionFlux225;
+    NV_DATA_S(ydot)[SP_syn_M_C_PD1_PDL2] = ReactionFlux226;
+    NV_DATA_S(ydot)[SP_syn_M_C_PD1] = - ReactionFlux225 - ReactionFlux226 - ReactionFlux227 - ReactionFlux228;
+    NV_DATA_S(ydot)[SP_syn_M_C_PDL1] = ReactionFlux220 + ReactionFlux222 - ReactionFlux225 - ReactionFlux230;
+    NV_DATA_S(ydot)[SP_syn_M_C_PDL2] = ReactionFlux221 + ReactionFlux223 - ReactionFlux226;
+    NV_DATA_S(ydot)[SP_syn_M_C_PD1_aPD1] = ReactionFlux227 - ReactionFlux228;
+    NV_DATA_S(ydot)[SP_syn_M_C_PD1_aPD1_PD1] = ReactionFlux228;
+    NV_DATA_S(ydot)[SP_syn_M_C_PDL1_CD80] = ReactionFlux230;
+    NV_DATA_S(ydot)[SP_syn_M_C_CD80] = ReactionFlux229;
+    NV_DATA_S(ydot)[SP_syn_M_C_CD80m] = - ReactionFlux229 - ReactionFlux229 - ReactionFlux230;
+    NV_DATA_S(ydot)[SP_V_ID_GVAX_cells] = - ReactionFlux261;
+    NV_DATA_S(ydot)[SP_V_ID_APC] = ReactionFlux266 - ReactionFlux267 - ReactionFlux270;
+    NV_DATA_S(ydot)[SP_V_ID_mAPC] = ReactionFlux267 - ReactionFlux271 - ReactionFlux272;
+    NV_DATA_S(ydot)[SP_V_ID_GMCSF] = ReactionFlux262 - ReactionFlux263;
+    NV_DATA_S(ydot)[SP_V_ID_P1_GVAX] = ReactionFlux264 - ReactionFlux265 - ReactionFlux268;
 
     return 0;
 }
 
 // --- Analytical Jacobian (generated) ---
 const sunindextype ODE_system::_jac_col_ptrs[] = {
-    0, 3, 6, 9, 12, 16, 19, 22, 24, 26, 28, 31, 33, 35, 37, 39,
-    41, 43, 45, 47, 91, 136, 181, 225, 276, 286, 288, 333, 379, 383, 387, 390,
-    392, 394, 398, 405, 450, 457, 475, 479, 488, 499, 502, 547, 594, 601, 614, 658,
-    704, 749, 793, 837, 842, 851, 855, 901, 943, 986, 1029, 1038, 1043, 1045, 1055, 1058,
-    1066, 1069, 1071, 1072, 1075, 1082, 1086, 1094, 1100, 1103, 1105, 1109, 1112, 1114, 1116, 1118,
-    1121, 1125, 1128, 1134, 1138, 1142, 1144, 1148, 1160, 1173, 1186, 1195, 1200, 1203, 1208, 1213,
-    1214, 1218, 1221, 1224, 1229, 1234, 1239, 1244, 1248, 1251, 1258, 1262, 1266, 1274, 1284, 1293,
-    1297, 1303, 1306, 1309, 1316, 1321, 1324, 1327, 1330, 1331, 1343, 1354, 1365, 1370, 1375, 1380,
-    1385, 1389, 1392, 1399, 1411, 1415, 1423, 1433, 1442, 1446, 1452, 1455, 1458, 1469, 1470, 1471,
-    1482, 1493, 1500, 1505, 1508, 1511, 1514, 1517, 1519, 1523, 1528, 1531, 1534, 1536, 1543,
+    0, 4, 7, 11, 14, 18, 21, 24, 26, 28, 30, 33, 35, 37, 39, 41,
+    43, 45, 47, 49, 98, 148, 198, 247, 302, 318, 320, 370, 421, 470, 474, 478,
+    483, 487, 489, 493, 500, 550, 599, 606, 624, 628, 637, 648, 651, 701, 753, 760,
+    773, 822, 873, 923, 972, 1021, 1032, 1041, 1045, 1095, 1141, 1188, 1236, 1245, 1250, 1252,
+    1262, 1265, 1273, 1276, 1278, 1279, 1282, 1290, 1294, 1302, 1308, 1311, 1313, 1317, 1320, 1322,
+    1324, 1326, 1329, 1333, 1336, 1342, 1346, 1350, 1352, 1356, 1368, 1381, 1394, 1403, 1408, 1411,
+    1416, 1421, 1422, 1426, 1429, 1432, 1437, 1442, 1447, 1452, 1456, 1459, 1466, 1470, 1474, 1482,
+    1492, 1501, 1505, 1511, 1514, 1517, 1524, 1529, 1532, 1535, 1538, 1539, 1551, 1562, 1573, 1578,
+    1583, 1588, 1593, 1597, 1600, 1607, 1619, 1623, 1631, 1641, 1650, 1654, 1660, 1663, 1666, 1677,
+    1678, 1679, 1690, 1701, 1708, 1713, 1716, 1719, 1722, 1725, 1727, 1731, 1736, 1739, 1742, 1744,
+    1751,
 };
 
 const sunindextype ODE_system::_jac_row_indices[] = {
-    0, 11, 59, 1, 12, 26, 2, 13, 62, 3, 14, 27, 4, 15, 34, 69,
-    5, 16, 35, 6, 7, 26, 7, 26, 8, 17, 9, 75, 10, 18, 55, 0,
-    11, 1, 12, 2, 13, 3, 14, 4, 15, 5, 16, 8, 17, 10, 18, 1,
-    3, 4, 5, 10, 19, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 32,
-    33, 34, 35, 37, 38, 42, 43, 46, 47, 48, 49, 50, 54, 55, 67, 68,
-    69, 78, 80, 90, 91, 92, 93, 145, 146, 147, 148, 1, 3, 4, 5, 10,
-    19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
-    37, 38, 42, 43, 46, 47, 48, 49, 50, 54, 55, 67, 68, 69, 78, 80,
-    90, 91, 92, 93, 145, 146, 147, 148, 1, 3, 4, 5, 10, 19, 20, 21,
-    22, 23, 24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 42,
-    43, 46, 47, 48, 49, 50, 54, 55, 67, 68, 69, 78, 80, 90, 91, 92,
-    93, 145, 146, 147, 148, 1, 3, 4, 5, 10, 19, 21, 22, 23, 24, 26,
-    27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 42, 43, 46, 47, 48,
-    49, 50, 54, 55, 67, 68, 69, 78, 80, 90, 91, 92, 93, 145, 146, 147,
-    148, 1, 3, 4, 5, 10, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
-    29, 30, 31, 32, 33, 34, 35, 37, 38, 41, 42, 43, 46, 47, 48, 49,
-    50, 51, 53, 54, 55, 56, 57, 67, 68, 69, 78, 80, 90, 91, 92, 93,
-    145, 146, 147, 148, 1, 3, 5, 23, 24, 26, 27, 35, 38, 42, 24, 25,
-    1, 3, 4, 5, 10, 19, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31,
-    32, 33, 34, 35, 37, 38, 42, 43, 45, 46, 47, 48, 49, 50, 54, 55,
-    67, 68, 69, 78, 80, 90, 91, 92, 93, 145, 146, 147, 148, 1, 3, 4,
-    5, 10, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 32, 33,
-    34, 35, 36, 37, 38, 42, 43, 46, 47, 48, 49, 50, 54, 55, 67, 68,
-    69, 78, 80, 90, 91, 92, 93, 145, 146, 147, 148, 28, 30, 32, 33, 29,
-    31, 32, 33, 30, 44, 67, 31, 68, 32, 78, 26, 33, 35, 80, 4, 34,
-    69, 90, 93, 145, 148, 1, 3, 4, 5, 10, 19, 21, 22, 23, 24, 26,
-    27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 42, 43, 46, 47,
-    48, 49, 50, 54, 55, 67, 68, 69, 78, 80, 90, 91, 92, 93, 145, 146,
-    147, 148, 36, 42, 43, 91, 92, 146, 147, 19, 22, 23, 26, 28, 29, 30,
-    31, 32, 33, 35, 37, 42, 43, 46, 47, 48, 50, 38, 39, 40, 45, 19,
-    23, 28, 29, 30, 31, 32, 33, 39, 19, 23, 26, 28, 29, 30, 31, 32,
-    33, 35, 40, 38, 41, 42, 1, 3, 4, 5, 10, 19, 21, 22, 23, 24,
-    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 42, 43, 44, 46,
-    47, 48, 49, 50, 54, 55, 67, 68, 69, 78, 80, 90, 91, 92, 93, 145,
-    146, 147, 148, 1, 3, 4, 5, 10, 19, 21, 22, 23, 24, 25, 26, 27,
-    28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 40, 42, 43, 45, 46, 47,
-    48, 49, 50, 54, 55, 67, 68, 69, 78, 80, 90, 91, 92, 93, 145, 146,
-    147, 148, 28, 29, 30, 31, 42, 43, 44, 19, 21, 23, 27, 28, 29, 30,
-    31, 32, 33, 42, 43, 45, 1, 3, 4, 5, 10, 19, 21, 22, 23, 24,
-    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 42, 43, 46, 47,
-    48, 49, 50, 54, 55, 67, 68, 69, 78, 80, 90, 91, 92, 93, 145, 146,
-    147, 148, 1, 3, 4, 5, 10, 19, 21, 22, 23, 24, 26, 27, 28, 29,
-    30, 31, 32, 33, 34, 35, 37, 38, 42, 43, 46, 47, 48, 49, 50, 51,
-    52, 54, 55, 67, 68, 69, 78, 80, 90, 91, 92, 93, 145, 146, 147, 148,
-    1, 3, 4, 5, 10, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-    31, 32, 33, 34, 35, 37, 38, 42, 43, 46, 47, 48, 49, 50, 54, 55,
-    67, 68, 69, 78, 80, 90, 91, 92, 93, 145, 146, 147, 148, 1, 3, 4,
+    0, 11, 37, 61, 1, 12, 26, 2, 13, 28, 64, 3, 14, 27, 4, 15,
+    35, 71, 5, 16, 36, 6, 7, 26, 7, 26, 8, 17, 9, 77, 10, 18,
+    57, 0, 11, 1, 12, 2, 13, 3, 14, 4, 15, 5, 16, 8, 17, 10,
+    18, 0, 1, 2, 3, 4, 5, 10, 19, 21, 22, 23, 24, 26, 27, 28,
+    29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40, 44, 45, 48, 49, 50,
+    51, 52, 56, 57, 58, 69, 70, 71, 80, 82, 92, 93, 94, 95, 147, 148,
+    149, 150, 0, 1, 2, 3, 4, 5, 10, 19, 20, 21, 22, 23, 24, 26,
+    27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40, 44, 45, 48,
+    49, 50, 51, 52, 56, 57, 58, 69, 70, 71, 80, 82, 92, 93, 94, 95,
+    147, 148, 149, 150, 0, 1, 2, 3, 4, 5, 10, 19, 20, 21, 22, 23,
+    24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40, 44,
+    45, 48, 49, 50, 51, 52, 56, 57, 58, 69, 70, 71, 80, 82, 92, 93,
+    94, 95, 147, 148, 149, 150, 0, 1, 2, 3, 4, 5, 10, 19, 21, 22,
+    23, 24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40,
+    44, 45, 48, 49, 50, 51, 52, 56, 57, 58, 69, 70, 71, 80, 82, 92,
+    93, 94, 95, 147, 148, 149, 150, 0, 1, 2, 3, 4, 5, 10, 19, 20,
+    21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+    37, 39, 40, 43, 44, 45, 48, 49, 50, 51, 52, 53, 55, 56, 57, 58,
+    59, 69, 70, 71, 80, 82, 92, 93, 94, 95, 147, 148, 149, 150, 0, 1,
+    2, 3, 5, 10, 23, 24, 26, 27, 28, 36, 37, 40, 44, 57, 24, 25,
+    0, 1, 2, 3, 4, 5, 10, 19, 21, 22, 23, 24, 26, 27, 28, 29,
+    30, 31, 32, 33, 34, 35, 36, 37, 39, 40, 44, 45, 47, 48, 49, 50,
+    51, 52, 56, 57, 58, 69, 70, 71, 80, 82, 92, 93, 94, 95, 147, 148,
+    149, 150, 0, 1, 2, 3, 4, 5, 10, 19, 20, 21, 22, 23, 24, 26,
+    27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 44, 45,
+    48, 49, 50, 51, 52, 56, 57, 58, 69, 70, 71, 80, 82, 92, 93, 94,
+    95, 147, 148, 149, 150, 0, 1, 2, 3, 4, 5, 10, 19, 21, 22, 23,
+    24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40, 44,
+    45, 48, 49, 50, 51, 52, 56, 57, 58, 69, 70, 71, 80, 82, 92, 93,
+    94, 95, 147, 148, 149, 150, 29, 31, 33, 34, 30, 32, 33, 34, 27, 28,
+    31, 46, 69, 32, 36, 37, 70, 33, 80, 26, 34, 36, 82, 4, 35, 71,
+    92, 95, 147, 150, 0, 1, 2, 3, 4, 5, 10, 19, 21, 22, 23, 24,
+    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 44,
+    45, 48, 49, 50, 51, 52, 56, 57, 58, 69, 70, 71, 80, 82, 92, 93,
+    94, 95, 147, 148, 149, 150, 0, 1, 2, 3, 4, 5, 10, 19, 21, 22,
+    23, 24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40,
+    44, 45, 48, 49, 50, 51, 52, 56, 57, 58, 69, 70, 71, 80, 82, 92,
+    93, 94, 95, 147, 148, 149, 150, 38, 44, 45, 93, 94, 148, 149, 19, 22,
+    23, 26, 29, 30, 31, 32, 33, 34, 36, 39, 44, 45, 48, 49, 50, 52,
+    40, 41, 42, 47, 19, 23, 29, 30, 31, 32, 33, 34, 41, 19, 23, 26,
+    29, 30, 31, 32, 33, 34, 36, 42, 40, 43, 44, 0, 1, 2, 3, 4,
     5, 10, 19, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 32, 33, 34,
-    35, 37, 38, 42, 43, 46, 47, 48, 49, 50, 54, 55, 67, 68, 69, 78,
-    80, 90, 91, 92, 93, 145, 146, 147, 148, 1, 3, 4, 5, 10, 19, 21,
-    22, 23, 24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 42,
-    43, 46, 47, 48, 49, 50, 54, 55, 67, 68, 69, 78, 80, 90, 91, 92,
-    93, 145, 146, 147, 148, 3, 5, 27, 35, 51, 35, 38, 42, 43, 46, 47,
-    48, 52, 54, 46, 47, 48, 53, 1, 3, 4, 5, 10, 19, 21, 22, 23,
-    24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 42, 43, 46,
-    47, 48, 49, 50, 54, 55, 56, 57, 67, 68, 69, 78, 80, 90, 91, 92,
-    93, 145, 146, 147, 148, 1, 3, 4, 5, 10, 19, 21, 22, 23, 24, 26,
-    27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 42, 43, 46, 47, 48,
-    50, 54, 55, 56, 69, 78, 80, 90, 91, 92, 93, 145, 146, 147, 148, 1,
-    3, 4, 5, 10, 19, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 32,
-    33, 34, 35, 37, 38, 42, 43, 46, 47, 48, 50, 54, 55, 56, 57, 69,
-    78, 80, 90, 91, 92, 93, 145, 146, 147, 148, 1, 3, 4, 5, 10, 19,
-    21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38,
-    42, 43, 46, 47, 48, 50, 54, 55, 57, 58, 69, 78, 80, 90, 91, 92,
-    93, 145, 146, 147, 148, 19, 23, 28, 29, 30, 31, 32, 33, 58, 0, 59,
-    60, 70, 73, 60, 61, 1, 61, 63, 64, 70, 71, 73, 74, 76, 77, 2,
-    62, 63, 63, 64, 70, 71, 73, 74, 76, 77, 3, 64, 72, 65, 67, 66,
-    62, 63, 67, 59, 60, 65, 67, 68, 70, 155, 4, 69, 115, 118, 63, 64,
-    70, 71, 73, 74, 76, 77, 5, 62, 63, 64, 71, 72, 72, 116, 117, 73,
-    74, 8, 74, 75, 76, 9, 75, 76, 76, 77, 10, 77, 78, 79, 79, 82,
-    83, 59, 70, 80, 81, 81, 82, 84, 79, 81, 82, 83, 84, 85, 79, 82,
-    83, 86, 81, 82, 84, 87, 82, 85, 59, 60, 85, 86, 35, 54, 55, 56,
-    59, 62, 63, 73, 75, 76, 85, 87, 19, 21, 23, 27, 28, 29, 30, 31,
-    32, 33, 88, 90, 91, 19, 21, 23, 27, 28, 29, 30, 31, 32, 33, 89,
-    90, 92, 21, 27, 88, 89, 90, 91, 92, 93, 94, 88, 90, 91, 105, 111,
-    89, 90, 92, 21, 27, 90, 93, 94, 21, 27, 90, 93, 94, 95, 96, 97,
-    108, 110, 96, 97, 108, 98, 108, 112, 99, 100, 101, 109, 110, 99, 100, 102,
-    109, 110, 99, 101, 102, 109, 110, 100, 101, 102, 109, 110, 103, 104, 109, 112,
-    103, 104, 112, 91, 105, 106, 107, 108, 109, 111, 91, 105, 106, 108, 91, 105,
-    107, 109, 96, 97, 98, 105, 106, 108, 110, 112, 99, 100, 101, 102, 103, 105,
-    107, 109, 110, 112, 96, 99, 100, 101, 102, 108, 109, 110, 111, 91, 105, 110,
-    111, 98, 103, 104, 108, 109, 112, 113, 115, 116, 114, 115, 117, 113, 114, 115,
-    116, 117, 118, 119, 113, 115, 116, 130, 136, 114, 115, 117, 115, 118, 119, 115,
-    118, 119, 120, 63, 64, 70, 71, 73, 74, 76, 77, 121, 122, 133, 135, 63,
-    64, 70, 71, 73, 74, 76, 77, 121, 122, 133, 63, 64, 70, 71, 73, 74,
-    76, 77, 123, 133, 137, 124, 125, 126, 134, 135, 124, 125, 127, 134, 135, 124,
-    126, 127, 134, 135, 125, 126, 127, 134, 135, 128, 129, 134, 137, 128, 129, 137,
-    116, 130, 131, 132, 133, 134, 136, 63, 64, 70, 71, 73, 74, 76, 77, 116,
-    130, 131, 133, 116, 130, 132, 134, 121, 122, 123, 130, 131, 133, 135, 137, 124,
-    125, 126, 127, 128, 130, 132, 134, 135, 137, 121, 124, 125, 126, 127, 133, 134,
-    135, 136, 116, 130, 135, 136, 123, 128, 129, 133, 134, 137, 138, 139, 140, 138,
-    139, 140, 19, 23, 28, 29, 30, 31, 32, 33, 138, 139, 140, 141, 142, 19,
-    23, 28, 29, 30, 31, 32, 33, 143, 145, 146, 19, 23, 28, 29, 30, 31,
-    32, 33, 144, 145, 147, 143, 144, 145, 146, 147, 148, 149, 143, 145, 146, 150,
-    152, 144, 145, 147, 145, 148, 149, 145, 148, 149, 146, 150, 152, 151, 152, 146,
-    150, 151, 152, 153, 154, 155, 156, 157, 154, 155, 157, 68, 154, 155, 154, 156,
-    27, 63, 70, 80, 154, 155, 157,
+    35, 36, 37, 39, 40, 44, 45, 46, 48, 49, 50, 51, 52, 56, 57, 58,
+    69, 70, 71, 80, 82, 92, 93, 94, 95, 147, 148, 149, 150, 0, 1, 2,
+    3, 4, 5, 10, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+    32, 33, 34, 35, 36, 37, 39, 40, 42, 44, 45, 47, 48, 49, 50, 51,
+    52, 56, 57, 58, 69, 70, 71, 80, 82, 92, 93, 94, 95, 147, 148, 149,
+    150, 29, 30, 31, 32, 44, 45, 46, 19, 21, 23, 27, 29, 30, 31, 32,
+    33, 34, 44, 45, 47, 0, 1, 2, 3, 4, 5, 10, 19, 21, 22, 23,
+    24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40, 44,
+    45, 48, 49, 50, 51, 52, 56, 57, 58, 69, 70, 71, 80, 82, 92, 93,
+    94, 95, 147, 148, 149, 150, 0, 1, 2, 3, 4, 5, 10, 19, 21, 22,
+    23, 24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40,
+    44, 45, 48, 49, 50, 51, 52, 53, 54, 56, 57, 58, 69, 70, 71, 80,
+    82, 92, 93, 94, 95, 147, 148, 149, 150, 0, 1, 2, 3, 4, 5, 10,
+    19, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
+    36, 37, 39, 40, 44, 45, 48, 49, 50, 51, 52, 56, 57, 58, 69, 70,
+    71, 80, 82, 92, 93, 94, 95, 147, 148, 149, 150, 0, 1, 2, 3, 4,
+    5, 10, 19, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+    35, 36, 37, 39, 40, 44, 45, 48, 49, 50, 51, 52, 56, 57, 58, 69,
+    70, 71, 80, 82, 92, 93, 94, 95, 147, 148, 149, 150, 0, 1, 2, 3,
+    4, 5, 10, 19, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 32, 33,
+    34, 35, 36, 37, 39, 40, 44, 45, 48, 49, 50, 51, 52, 56, 57, 58,
+    69, 70, 71, 80, 82, 92, 93, 94, 95, 147, 148, 149, 150, 0, 2, 3,
+    5, 10, 27, 28, 36, 37, 53, 57, 36, 40, 44, 45, 48, 49, 50, 54,
+    56, 48, 49, 50, 55, 0, 1, 2, 3, 4, 5, 10, 19, 21, 22, 23,
+    24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40, 44,
+    45, 48, 49, 50, 51, 52, 56, 57, 58, 59, 69, 70, 71, 80, 82, 92,
+    93, 94, 95, 147, 148, 149, 150, 0, 1, 2, 3, 4, 5, 10, 19, 21,
+    22, 23, 24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39,
+    40, 44, 45, 48, 49, 50, 52, 56, 57, 58, 71, 80, 82, 92, 93, 94,
+    95, 147, 148, 149, 150, 0, 1, 2, 3, 4, 5, 10, 19, 21, 22, 23,
+    24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40, 44,
+    45, 48, 49, 50, 52, 56, 57, 58, 59, 71, 80, 82, 92, 93, 94, 95,
+    147, 148, 149, 150, 0, 1, 2, 3, 4, 5, 10, 19, 21, 22, 23, 24,
+    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40, 44, 45,
+    48, 49, 50, 52, 56, 57, 58, 59, 60, 71, 80, 82, 92, 93, 94, 95,
+    147, 148, 149, 150, 19, 23, 29, 30, 31, 32, 33, 34, 60, 0, 61, 62,
+    72, 75, 62, 63, 1, 63, 65, 66, 72, 73, 75, 76, 78, 79, 2, 64,
+    65, 65, 66, 72, 73, 75, 76, 78, 79, 3, 66, 74, 67, 69, 68, 64,
+    65, 69, 61, 62, 67, 69, 70, 72, 75, 157, 4, 71, 117, 120, 65, 66,
+    72, 73, 75, 76, 78, 79, 5, 64, 65, 66, 73, 74, 74, 118, 119, 75,
+    76, 8, 76, 77, 78, 9, 77, 78, 78, 79, 10, 79, 80, 81, 81, 84,
+    85, 61, 72, 82, 83, 83, 84, 86, 81, 83, 84, 85, 86, 87, 81, 84,
+    85, 88, 83, 84, 86, 89, 84, 87, 61, 62, 87, 88, 36, 56, 57, 58,
+    61, 64, 65, 75, 77, 78, 87, 89, 19, 21, 23, 27, 29, 30, 31, 32,
+    33, 34, 90, 92, 93, 19, 21, 23, 27, 29, 30, 31, 32, 33, 34, 91,
+    92, 94, 21, 27, 90, 91, 92, 93, 94, 95, 96, 90, 92, 93, 107, 113,
+    91, 92, 94, 21, 27, 92, 95, 96, 21, 27, 92, 95, 96, 97, 98, 99,
+    110, 112, 98, 99, 110, 100, 110, 114, 101, 102, 103, 111, 112, 101, 102, 104,
+    111, 112, 101, 103, 104, 111, 112, 102, 103, 104, 111, 112, 105, 106, 111, 114,
+    105, 106, 114, 93, 107, 108, 109, 110, 111, 113, 93, 107, 108, 110, 93, 107,
+    109, 111, 98, 99, 100, 107, 108, 110, 112, 114, 101, 102, 103, 104, 105, 107,
+    109, 111, 112, 114, 98, 101, 102, 103, 104, 110, 111, 112, 113, 93, 107, 112,
+    113, 100, 105, 106, 110, 111, 114, 115, 117, 118, 116, 117, 119, 115, 116, 117,
+    118, 119, 120, 121, 115, 117, 118, 132, 138, 116, 117, 119, 117, 120, 121, 117,
+    120, 121, 122, 65, 66, 72, 73, 75, 76, 78, 79, 123, 124, 135, 137, 65,
+    66, 72, 73, 75, 76, 78, 79, 123, 124, 135, 65, 66, 72, 73, 75, 76,
+    78, 79, 125, 135, 139, 126, 127, 128, 136, 137, 126, 127, 129, 136, 137, 126,
+    128, 129, 136, 137, 127, 128, 129, 136, 137, 130, 131, 136, 139, 130, 131, 139,
+    118, 132, 133, 134, 135, 136, 138, 65, 66, 72, 73, 75, 76, 78, 79, 118,
+    132, 133, 135, 118, 132, 134, 136, 123, 124, 125, 132, 133, 135, 137, 139, 126,
+    127, 128, 129, 130, 132, 134, 136, 137, 139, 123, 126, 127, 128, 129, 135, 136,
+    137, 138, 118, 132, 137, 138, 125, 130, 131, 135, 136, 139, 140, 141, 142, 140,
+    141, 142, 19, 23, 29, 30, 31, 32, 33, 34, 140, 141, 142, 143, 144, 19,
+    23, 29, 30, 31, 32, 33, 34, 145, 147, 148, 19, 23, 29, 30, 31, 32,
+    33, 34, 146, 147, 149, 145, 146, 147, 148, 149, 150, 151, 145, 147, 148, 152,
+    154, 146, 147, 149, 147, 150, 151, 147, 150, 151, 148, 152, 154, 153, 154, 148,
+    152, 153, 154, 155, 156, 157, 158, 159, 156, 157, 159, 70, 156, 157, 156, 158,
+    27, 65, 72, 82, 156, 157, 159,
 };
 
 int ODE_system::jac(realtype t, N_Vector y, N_Vector fy,
@@ -3670,50 +3728,50 @@ int ODE_system::jac(realtype t, N_Vector y, N_Vector fy,
 
     // Restamp the sparsity pattern every call: cheap, and
     // robust against CVODE reallocating between solves.
-    for (sunindextype k = 0; k <= 158; ++k) colptrs[k] = _jac_col_ptrs[k];
-    for (sunindextype k = 0; k < 1543; ++k) rowvals[k] = _jac_row_indices[k];
+    for (sunindextype k = 0; k <= 160; ++k) colptrs[k] = _jac_col_ptrs[k];
+    for (sunindextype k = 0; k < 1751; ++k) rowvals[k] = _jac_row_indices[k];
 
     // Common subexpressions extracted by sympy.cse() from the
     // ~1.7 MB naive Jacobian — compresses to ~40 KB of output.
-    realtype x0 = PARAM(P_k_nTreg_death) + PARAM(P_q_nCD4_LN_in);
-    realtype x1 = std::pow(SPVAR(SP_V_T_C1), 2.0);
-    realtype x2 = PARAM(P_K_C2_recruit) + x1;
-    realtype x3 = 1.0/x2;
-    realtype x4 = x1*x3;
-    realtype x5 = 1.0/PARAM(P_Ve_T);
-    realtype x6 = PARAM(P_vol_Tcell)*x5;
-    realtype x7 = 1.0/PARAM(P_rho_collagen);
-    realtype x8 = SPVAR(SP_V_T_collagen)*x7;
-    realtype x9 = SPVAR(SP_V_T_apCAF)*PARAM(P_vol_apCAFcell);
-    realtype x10 = SPVAR(SP_V_T_iCAF)*PARAM(P_vol_iCAFcell);
-    realtype x11 = SPVAR(SP_V_T_myCAF)*PARAM(P_vol_myCAFcell);
-    realtype x12 = SPVAR(SP_V_T_qPSC)*PARAM(P_vol_qPSCcell);
-    realtype x13 = SPVAR(SP_V_T_Mac_M1) + SPVAR(SP_V_T_Mac_M2);
-    realtype x14 = PARAM(P_V_Tmin) + x5*(PARAM(P_vol_Mcell)*x13 + PARAM(P_vol_Tcell)*(SPVAR(SP_V_T_CD8) + SPVAR(SP_V_T_CD8_exh) + SPVAR(SP_V_T_CD8_pex) + SPVAR(SP_V_T_Tfh) + SPVAR(SP_V_T_Th) + SPVAR(SP_V_T_Th_exh) + SPVAR(SP_V_T_Treg)) + PARAM(P_vol_cell)*(SPVAR(SP_V_T_C1) + SPVAR(SP_V_T_C_x)) + x10 + x11 + x12 + x9) + x8;
-    realtype x15 = x14 + x6*(SPVAR(SP_V_T_Plasma) + SPVAR(SP_V_T_aB) + SPVAR(SP_V_T_nB));
-    realtype x16 = PARAM(P_q_Treg_T_in)*x15;
-    realtype x17 = x16*x4;
-    realtype x18 = 1.0/x15;
-    realtype x19 = SPVAR(SP_V_T_K_vasc)*x18/PARAM(P_K50_vasc);
-    realtype x20 = std::pow(x19, PARAM(P_n_vasc));
-    realtype x21 = x20 + 1.0;
-    realtype x22 = 1.0/x21;
-    realtype x23 = x20*x22;
-    realtype x24 = x17*x23;
-    realtype x25 = SPVAR(SP_V_T_CXCL12)*x18;
-    realtype x26 = PARAM(P_CXCL12_50_Texcl) + x25;
-    realtype x27 = 1.0/x26;
-    realtype x28 = -x25*x27 + 1.0;
+    realtype x0 = SPVAR(SP_V_T_Plasma) + SPVAR(SP_V_T_aB) + SPVAR(SP_V_T_nB);
+    realtype x1 = 1.0/PARAM(P_Ve_T);
+    realtype x2 = PARAM(P_vol_Tcell)*x1;
+    realtype x3 = x0*x2;
+    realtype x4 = 1.0/PARAM(P_rho_collagen);
+    realtype x5 = SPVAR(SP_V_T_collagen)*x4;
+    realtype x6 = SPVAR(SP_V_T_apCAF)*PARAM(P_vol_apCAFcell);
+    realtype x7 = SPVAR(SP_V_T_iCAF)*PARAM(P_vol_iCAFcell);
+    realtype x8 = SPVAR(SP_V_T_myCAF)*PARAM(P_vol_myCAFcell);
+    realtype x9 = SPVAR(SP_V_T_qPSC)*PARAM(P_vol_qPSCcell);
+    realtype x10 = SPVAR(SP_V_T_Mac_M1) + SPVAR(SP_V_T_Mac_M2);
+    realtype x11 = PARAM(P_V_Tmin) + x1*(PARAM(P_vol_Mcell)*x10 + PARAM(P_vol_Tcell)*(SPVAR(SP_V_T_CD8) + SPVAR(SP_V_T_CD8_exh) + SPVAR(SP_V_T_CD8_pex) + SPVAR(SP_V_T_Tfh) + SPVAR(SP_V_T_Th) + SPVAR(SP_V_T_Th_exh) + SPVAR(SP_V_T_Treg) + SPVAR(SP_V_T_nCD4) + SPVAR(SP_V_T_nCD8)) + PARAM(P_vol_cell)*(SPVAR(SP_V_T_C1) + SPVAR(SP_V_T_C_x)) + x6 + x7 + x8 + x9) + x5;
+    realtype x12 = x11 + x3;
+    realtype x13 = 1.0/x12;
+    realtype x14 = SPVAR(SP_V_T_CXCL12)*x13;
+    realtype x15 = PARAM(P_CXCL12_50_Texcl) + x14;
+    realtype x16 = 1.0/x15;
+    realtype x17 = -x14*x16 + 1.0;
+    realtype x18 = SPVAR(SP_V_T_K_vasc)*x13/PARAM(P_K50_vasc);
+    realtype x19 = std::pow(x18, PARAM(P_n_vasc));
+    realtype x20 = x19 + 1.0;
+    realtype x21 = 1.0/x20;
+    realtype x22 = x19*x21;
+    realtype x23 = PARAM(P_q_Treg_T_in)*x22;
+    realtype x24 = std::pow(SPVAR(SP_V_T_C1), 2.0);
+    realtype x25 = PARAM(P_K_C2_recruit) + x24;
+    realtype x26 = 1.0/x25;
+    realtype x27 = x24*x26;
+    realtype x28 = x12*x27;
     realtype x29 = x23*x28;
-    realtype x30 = PARAM(P_q_CD8_T_in)*x4;
-    realtype x31 = x15*x30;
-    realtype x32 = x29*x31;
-    realtype x33 = 1.0/PARAM(P_V_C);
-    realtype x34 = x33/PARAM(P_gamma_C_aPD1);
-    realtype x35 = PARAM(P_q_LN_aPD1)*x34;
-    realtype x36 = PARAM(P_q_P_aPD1)*x34;
-    realtype x37 = PARAM(P_q_T_aPD1)*x34;
-    realtype x38 = x24*x28;
+    realtype x30 = x17*x29;
+    realtype x31 = x22*x28;
+    realtype x32 = PARAM(P_q_CD8_T_in)*x17;
+    realtype x33 = x31*x32;
+    realtype x34 = 1.0/PARAM(P_V_C);
+    realtype x35 = x34/PARAM(P_gamma_C_aPD1);
+    realtype x36 = PARAM(P_q_LN_aPD1)*x35;
+    realtype x37 = PARAM(P_q_P_aPD1)*x35;
+    realtype x38 = PARAM(P_q_T_aPD1)*x35;
     realtype x39 = PARAM(P_k_CD4_death) + PARAM(P_q_Treg_P_in);
     realtype x40 = PARAM(P_Cy_50_Treg) + SPVAR(SP_V_C_Cy);
     realtype x41 = 1.0/x40;
@@ -3721,2197 +3779,2385 @@ int ODE_system::jac(realtype t, N_Vector y, N_Vector fy,
     realtype x43 = PARAM(P_k_Cy_Treg_deplete)*x41;
     realtype x44 = PARAM(P_Cy_eff_50) + SPVAR(SP_V_C_Cy_eff);
     realtype x45 = PARAM(P_Emax_Cy_Treg)/x44;
-    realtype x46 = PARAM(P_cell) + PARAM(P_rho_Treg_max)*x15;
+    realtype x46 = PARAM(P_cell) + PARAM(P_rho_Treg_max)*x12;
     realtype x47 = 1.0/x46;
     realtype x48 = SPVAR(SP_V_T_Treg)*x47 + 1.0;
     realtype x49 = PARAM(P_k_Treg_pro_tumor)/x48;
-    realtype x50 = 1.0/PARAM(P_div_Treg);
-    realtype x51 = PARAM(P_K_nTreg_pro)*x50;
-    realtype x52 = SPVAR(SP_V_P_nCD4) + x51;
-    realtype x53 = PARAM(P_k_nCD4_pro)*x50;
-    realtype x54 = 1.0/PARAM(P_div_CD8);
-    realtype x55 = PARAM(P_K_nCD8_pro)*x54;
-    realtype x56 = SPVAR(SP_V_P_nCD8) + x55;
-    realtype x57 = PARAM(P_k_nCD8_pro)*x54;
-    realtype x58 = PARAM(P_q_P_aPD1)/(PARAM(P_V_P)*PARAM(P_gamma_P_aPD1));
-    realtype x59 = -PARAM(P_k_CD4_death) - PARAM(P_q_Treg_P_out);
-    realtype x60 = PARAM(P_vol_cell)*x5;
-    realtype x61 = PARAM(P_q_Treg_T_in)*x4;
-    realtype x62 = SPVAR(SP_V_C_Treg)*x23;
-    realtype x63 = x61*x62;
-    realtype x64 = x60*x63;
-    realtype x65 = x60*x61;
-    realtype x66 = std::pow(x19, 2*PARAM(P_n_vasc));
-    realtype x67 = std::pow(x21, -2);
-    realtype x68 = x66*x67;
-    realtype x69 = SPVAR(SP_V_C_Treg)*x68;
-    realtype x70 = PARAM(P_n_vasc)*x69;
-    realtype x71 = -PARAM(P_n_vasc)*x64 + x64 + x65*x70;
-    realtype x72 = SPVAR(SP_V_C_CD8)*x29;
-    realtype x73 = x30*x72;
-    realtype x74 = x60*x73;
-    realtype x75 = x28*x68;
-    realtype x76 = SPVAR(SP_V_C_CD8)*x30*x75;
-    realtype x77 = PARAM(P_n_vasc)*x60;
-    realtype x78 = std::pow(x15, -2);
-    realtype x79 = std::pow(x26, -2);
-    realtype x80 = std::pow(SPVAR(SP_V_T_CXCL12), 2)*x79;
-    realtype x81 = std::pow(x15, -3);
-    realtype x82 = x60*x81;
-    realtype x83 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_cell)*x27*x5*x78 - x80*x82;
-    realtype x84 = SPVAR(SP_V_C_CD8)*x31;
-    realtype x85 = x23*x84;
-    realtype x86 = -PARAM(P_n_vasc)*x74 + x74 + x76*x77 + x83*x85;
-    realtype x87 = 1.0/PARAM(P_V_LN);
-    realtype x88 = x87/PARAM(P_gamma_LN_aPD1);
-    realtype x89 = PARAM(P_q_LD_aPD1)*x88;
-    realtype x90 = SPVAR(SP_V_LN_aPD1)*x89;
-    realtype x91 = -x60*x90;
-    realtype x92 = 1.0/PARAM(P_gamma_T_aPD1);
-    realtype x93 = SPVAR(SP_V_T_aPD1)*x92;
-    realtype x94 = PARAM(P_q_T_aPD1)*x93;
-    realtype x95 = x5*x78;
-    realtype x96 = PARAM(P_vol_cell)*x95;
-    realtype x97 = x94*x96;
-    realtype x98 = -x91 - x97;
-    realtype x99 = SPVAR(SP_V_C_Th)*x29;
-    realtype x100 = x65*x99;
-    realtype x101 = PARAM(P_n_vasc)*x100;
-    realtype x102 = SPVAR(SP_V_C_Th)*x75;
-    realtype x103 = PARAM(P_n_vasc)*x102;
-    realtype x104 = x103*x65;
-    realtype x105 = SPVAR(SP_V_C_Th)*x24;
-    realtype x106 = x105*x83;
-    realtype x107 = x100 - x101 + x104 + x106;
-    realtype x108 = SPVAR(SP_V_C_B)*x61;
-    realtype x109 = x108*x60;
-    realtype x110 = -PARAM(P_k_cell_clear);
-    realtype x111 = SPVAR(SP_V_T_IL10)*x18;
-    realtype x112 = PARAM(P_IL10_50_phago) + x111;
-    realtype x113 = 1.0/x112;
-    realtype x114 = std::pow(x112, -2);
-    realtype x115 = std::pow(SPVAR(SP_V_T_IL10), 2);
-    realtype x116 = x115*x82;
-    realtype x117 = 1.0/PARAM(P_syn_M_C);
-    realtype x118 = SPVAR(SP_syn_M_C_CD47_SIRPa)*x117/PARAM(P_SIRPa_50);
-    realtype x119 = std::pow(x118, PARAM(P_n_SIRPa));
-    realtype x120 = x119 + 1.0;
-    realtype x121 = x119/x120;
-    realtype x122 = 1.0 - x121;
-    realtype x123 = 1.0/PARAM(P_PD1_50);
-    realtype x124 = SPVAR(SP_syn_M_C_PD1_PDL1)*x117;
-    realtype x125 = SPVAR(SP_syn_M_C_PD1_PDL2)*x117;
-    realtype x126 = x124 + x125;
-    realtype x127 = x123*x126;
-    realtype x128 = std::pow(x127, PARAM(P_n_PD1));
-    realtype x129 = x128 + 1.0;
-    realtype x130 = x128/x129;
-    realtype x131 = 1.0 - x130;
-    realtype x132 = SPVAR(SP_V_T_Ab)*x18;
-    realtype x133 = PARAM(P_Ab_50_ADCC) + x132;
-    realtype x134 = 1.0/x133;
-    realtype x135 = PARAM(P_ADCC_boost_max)*x134;
-    realtype x136 = x132*x135 + 1.0;
-    realtype x137 = PARAM(P_K_M1_phago)*SPVAR(SP_V_T_C1);
-    realtype x138 = SPVAR(SP_V_T_Mac_M1) + PARAM(P_cell) + x137;
-    realtype x139 = 1.0/x138;
-    realtype x140 = SPVAR(SP_V_T_C1)*x139;
-    realtype x141 = SPVAR(SP_V_T_Mac_M1)*PARAM(P_k_M1_phago)*x131*x136*x140;
-    realtype x142 = x122*x141;
-    realtype x143 = SPVAR(SP_V_T_Ab)*x135;
-    realtype x144 = PARAM(P_ADCC_boost_max)/std::pow(x133, 2);
-    realtype x145 = std::pow(SPVAR(SP_V_T_Ab), 2)*x144;
-    realtype x146 = -x111*x113 + 1.0;
-    realtype x147 = SPVAR(SP_V_T_Mac_M1)*PARAM(P_k_M1_phago)*x122*x131*x146;
-    realtype x148 = x140*x147;
-    realtype x149 = std::pow(SPVAR(SP_V_T_CD8), 2);
-    realtype x150 = 1.0/PARAM(P_cell);
-    realtype x151 = 1.0/PARAM(P_R50_Treg);
-    realtype x152 = SPVAR(SP_V_T_CD8) + PARAM(P_cell);
-    realtype x153 = SPVAR(SP_V_T_Treg)*x151 + x152;
-    realtype x154 = 1.0/x153;
-    realtype x155 = 1.0/x14;
-    realtype x156 = x155*x8;
-    realtype x157 = 1.0/(x156 + 9.9999999999999995e-7);
-    realtype x158 = PARAM(P_d_pore_ref)*std::sqrt(PARAM(P_phi_col_ref)*x157);
-    realtype x159 = std::pow(x158/PARAM(P_d_crit_T), PARAM(P_n_pore));
-    realtype x160 = x159 + 1.0;
-    realtype x161 = 1.0 - 1.0/x160;
-    realtype x162 = SPVAR(SP_V_T_ArgI)*x18;
-    realtype x163 = PARAM(P_ArgI_50_Teff) + x162;
-    realtype x164 = 1.0/x163;
-    realtype x165 = -x162*x164 + 1.0;
-    realtype x166 = SPVAR(SP_V_T_NO)*x18;
-    realtype x167 = PARAM(P_NO_50_Teff) + x166;
-    realtype x168 = 1.0/x167;
-    realtype x169 = -x166*x168 + 1.0;
-    realtype x170 = SPVAR(SP_V_T_TGFb)*x18;
-    realtype x171 = PARAM(P_TGFb_50_Teff) + x170;
-    realtype x172 = 1.0/x171;
-    realtype x173 = PARAM(P_Emax_TGFb_Teff)*x172;
-    realtype x174 = -x170*x173 + 1.0;
-    realtype x175 = 1.0/PARAM(P_syn_CD8_C1);
-    realtype x176 = SPVAR(SP_syn_CD8_C1_PD1_PDL1)*x175;
-    realtype x177 = SPVAR(SP_syn_CD8_C1_PD1_PDL2)*x175;
-    realtype x178 = x176 + x177;
-    realtype x179 = x123*x178;
-    realtype x180 = std::pow(x179, PARAM(P_n_PD1));
-    realtype x181 = x180 + 1.0;
-    realtype x182 = x180/x181;
-    realtype x183 = 1.0 - x182;
-    realtype x184 = SPVAR(SP_V_T_C1)*x183;
-    realtype x185 = PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x150*x154*x161*x165*x169*x174*x184;
-    realtype x186 = x149*x185;
-    realtype x187 = std::pow(x167, -2);
-    realtype x188 = std::pow(SPVAR(SP_V_T_NO), 2)*x187;
-    realtype x189 = PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x149*x150*x154*x161*x165*x174*x18;
-    realtype x190 = x184*x189;
-    realtype x191 = std::pow(x163, -2);
-    realtype x192 = std::pow(SPVAR(SP_V_T_ArgI), 2);
-    realtype x193 = x191*x192;
-    realtype x194 = PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x149*x150*x161*x169*x174*x18*x184;
-    realtype x195 = x154*x194;
-    realtype x196 = PARAM(P_Emax_TGFb_Teff)/std::pow(x171, 2);
-    realtype x197 = std::pow(SPVAR(SP_V_T_TGFb), 2);
-    realtype x198 = x197*x82;
-    realtype x199 = PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x149*x150*x154*x161*x165*x169*x18*x183;
-    realtype x200 = SPVAR(SP_V_T_C1)*x199;
-    realtype x201 = std::pow(x14, -2);
-    realtype x202 = x201*x8;
-    realtype x203 = 0.5*PARAM(P_n_pore)*x157;
-    realtype x204 = x202*x203;
-    realtype x205 = PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x149*x150*x154*x159*x165*x169*x174*x18*x184/std::pow(x160, 2);
-    realtype x206 = x204*x205;
-    realtype x207 = x142*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_cell)*x113*x5*x78 - x114*x116) + x148*(-x143*x96 + x145*x82) - x186*x96 + x190*(SPVAR(SP_V_T_NO)*PARAM(P_vol_cell)*x168*x5*x78 - x188*x82) + x195*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_cell)*x164*x5*x78 - x193*x82) + x200*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_cell)*x172*x5*x78 - x196*x198) + x206*x60;
-    realtype x208 = SPVAR(SP_V_T_CD8)*x60;
-    realtype x209 = PARAM(P_cell) + PARAM(P_rho_pex_max)*x15;
-    realtype x210 = SPVAR(SP_V_T_CD8_pex)*PARAM(P_rho_pex_max)/std::pow(x209, 2);
-    realtype x211 = SPVAR(SP_V_T_C1) + PARAM(P_cell);
-    realtype x212 = SPVAR(SP_V_T_CD8) + x211;
-    realtype x213 = 1.0/x212;
-    realtype x214 = PARAM(P_k_C_CD8_exh)*x182*x213;
-    realtype x215 = SPVAR(SP_V_T_C1)*x214;
-    realtype x216 = x210*x215;
-    realtype x217 = x208*x216;
-    realtype x218 = PARAM(P_K_C_exh) + x211;
-    realtype x219 = 1.0/x218;
-    realtype x220 = PARAM(P_k_CD8_basal_exh)*x183*x219;
-    realtype x221 = SPVAR(SP_V_T_C1)*x220;
-    realtype x222 = SPVAR(SP_V_T_CD8)*x221;
-    realtype x223 = x210*x222;
-    realtype x224 = x223*x60;
-    realtype x225 = SPVAR(SP_V_T_Treg) + x152;
-    realtype x226 = 1.0/x225;
-    realtype x227 = PARAM(P_IL10_50_Treg) + x111;
-    realtype x228 = 1.0/x227;
-    realtype x229 = x111*x228;
-    realtype x230 = SPVAR(SP_V_T_Treg)*PARAM(P_k_Treg_CD8_exh)*x229;
-    realtype x231 = x226*x230;
-    realtype x232 = x210*x231;
-    realtype x233 = x208*x232;
-    realtype x234 = 1.0/PARAM(P_phi_col_ref);
-    realtype x235 = PARAM(P_E_ref)*std::pow(x156*x234, PARAM(P_n_stiff));
-    realtype x236 = std::pow(x235, PARAM(P_n_Texh));
-    realtype x237 = std::pow(PARAM(P_E_50_Texh), PARAM(P_n_Texh)) + x236;
-    realtype x238 = x236/x237;
-    realtype x239 = PARAM(P_k_stiff_CD8_exh)*x238;
-    realtype x240 = SPVAR(SP_V_T_CD8)*x239;
-    realtype x241 = x210*x240;
-    realtype x242 = x241*x60;
-    realtype x243 = SPVAR(SP_V_T_IL10)*x78;
-    realtype x244 = x243*x60;
-    realtype x245 = 1.0/x209;
-    realtype x246 = -SPVAR(SP_V_T_CD8_pex)*x245 + 1.0;
-    realtype x247 = SPVAR(SP_V_T_CD8)*x246;
-    realtype x248 = PARAM(P_k_Treg_CD8_exh)*x226*x247;
-    realtype x249 = SPVAR(SP_V_T_Treg)*x248;
-    realtype x250 = x228*x249;
-    realtype x251 = x244*x250;
-    realtype x252 = x249/std::pow(x227, 2);
-    realtype x253 = x116*x252;
-    realtype x254 = PARAM(P_k_stiff_CD8_exh)*x246;
-    realtype x255 = x238*x254;
-    realtype x256 = PARAM(P_n_Texh)*PARAM(P_n_stiff)*x155;
-    realtype x257 = x208*x256;
-    realtype x258 = x255*x257;
-    realtype x259 = std::pow(x235, 2*PARAM(P_n_Texh))*x254/std::pow(x237, 2);
-    realtype x260 = x257*x259;
-    realtype x261 = x217 + x224 + x233 + x242 - x251 + x253 - x258 + x260;
-    realtype x262 = PARAM(P_k_Th_basal_exh)*x219;
-    realtype x263 = SPVAR(SP_V_T_C1)*x262;
-    realtype x264 = PARAM(P_cell) + PARAM(P_rho_Thexh_max)*x15;
-    realtype x265 = SPVAR(SP_V_T_Th_exh)*PARAM(P_rho_Thexh_max)/std::pow(x264, 2);
-    realtype x266 = SPVAR(SP_V_T_Th)*x265;
-    realtype x267 = x266*x60;
-    realtype x268 = x263*x267;
-    realtype x269 = PARAM(P_K_C2_recruit)*PARAM(P_k_cell_clear);
-    realtype x270 = x269*x3;
-    realtype x271 = x267*x270;
-    realtype x272 = PARAM(P_TGFb_50_Th_exh) + x170;
-    realtype x273 = PARAM(P_k_TGFb_Th_exh)/x272;
-    realtype x274 = x170*x273;
-    realtype x275 = x267*x274;
-    realtype x276 = 1.0/x264;
-    realtype x277 = -SPVAR(SP_V_T_Th_exh)*x276 + 1.0;
-    realtype x278 = SPVAR(SP_V_T_Th)*x277;
-    realtype x279 = x273*x278;
-    realtype x280 = SPVAR(SP_V_T_TGFb)*x78;
-    realtype x281 = x280*x60;
+    realtype x50 = PARAM(P_q_B_T_in)*x17;
+    realtype x51 = PARAM(P_rho_B_max)*x12;
+    realtype x52 = PARAM(P_cell) + x51;
+    realtype x53 = 1.0/x52;
+    realtype x54 = x0*x53 + 1.0;
+    realtype x55 = 1.0/x54;
+    realtype x56 = x31*x55;
+    realtype x57 = x50*x56;
+    realtype x58 = 1.0/PARAM(P_div_Treg);
+    realtype x59 = PARAM(P_K_nTreg_pro)*x58;
+    realtype x60 = SPVAR(SP_V_P_nCD4) + x59;
+    realtype x61 = PARAM(P_k_nCD4_pro)*x58;
+    realtype x62 = 1.0/PARAM(P_div_CD8);
+    realtype x63 = PARAM(P_K_nCD8_pro)*x62;
+    realtype x64 = SPVAR(SP_V_P_nCD8) + x63;
+    realtype x65 = PARAM(P_k_nCD8_pro)*x62;
+    realtype x66 = PARAM(P_q_P_aPD1)/(PARAM(P_V_P)*PARAM(P_gamma_P_aPD1));
+    realtype x67 = -PARAM(P_k_CD4_death) - PARAM(P_q_Treg_P_out);
+    realtype x68 = PARAM(P_vol_cell)*x1;
+    realtype x69 = x27*x68;
+    realtype x70 = x17*x23;
+    realtype x71 = SPVAR(SP_V_C_nCD4)*x70;
+    realtype x72 = x69*x71;
+    realtype x73 = PARAM(P_n_vasc)*x69;
+    realtype x74 = std::pow(x18, 2*PARAM(P_n_vasc));
+    realtype x75 = std::pow(x20, -2);
+    realtype x76 = x74*x75;
+    realtype x77 = PARAM(P_q_Treg_T_in)*x76;
+    realtype x78 = x17*x77;
+    realtype x79 = SPVAR(SP_V_C_nCD4)*x78;
+    realtype x80 = std::pow(x12, -2);
+    realtype x81 = std::pow(x15, -2);
+    realtype x82 = std::pow(SPVAR(SP_V_T_CXCL12), 2)*x81;
+    realtype x83 = std::pow(x12, -3);
+    realtype x84 = x68*x83;
+    realtype x85 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_cell)*x1*x16*x80 - x82*x84;
+    realtype x86 = x29*x85;
+    realtype x87 = SPVAR(SP_V_C_nCD4)*x86 - PARAM(P_n_vasc)*x72 + x72 + x73*x79;
+    realtype x88 = SPVAR(SP_V_C_Treg)*x23;
+    realtype x89 = x27*x88;
+    realtype x90 = x68*x89;
+    realtype x91 = SPVAR(SP_V_C_Treg)*x77;
+    realtype x92 = PARAM(P_n_vasc)*x91;
+    realtype x93 = -PARAM(P_n_vasc)*x90 + x69*x92 + x90;
+    realtype x94 = x22*x32;
+    realtype x95 = x69*x94;
+    realtype x96 = SPVAR(SP_V_C_nCD8)*x95;
+    realtype x97 = x32*x76;
+    realtype x98 = x73*x97;
+    realtype x99 = PARAM(P_q_CD8_T_in)*x31;
+    realtype x100 = x85*x99;
+    realtype x101 = SPVAR(SP_V_C_nCD8)*x100 + SPVAR(SP_V_C_nCD8)*x98 - PARAM(P_n_vasc)*x96 + x96;
+    realtype x102 = SPVAR(SP_V_C_CD8)*x95;
+    realtype x103 = SPVAR(SP_V_C_CD8)*x100 + SPVAR(SP_V_C_CD8)*x98 - PARAM(P_n_vasc)*x102 + x102;
+    realtype x104 = 1.0/PARAM(P_V_LN);
+    realtype x105 = x104/PARAM(P_gamma_LN_aPD1);
+    realtype x106 = PARAM(P_q_LD_aPD1)*x105;
+    realtype x107 = SPVAR(SP_V_LN_aPD1)*x106;
+    realtype x108 = -x107*x68;
+    realtype x109 = 1.0/PARAM(P_gamma_T_aPD1);
+    realtype x110 = SPVAR(SP_V_T_aPD1)*x109;
+    realtype x111 = PARAM(P_q_T_aPD1)*x110;
+    realtype x112 = x1*x80;
+    realtype x113 = PARAM(P_vol_cell)*x112;
+    realtype x114 = x111*x113;
+    realtype x115 = -x108 - x114;
+    realtype x116 = SPVAR(SP_V_C_Th)*x70;
+    realtype x117 = x116*x69;
+    realtype x118 = PARAM(P_n_vasc)*x117;
+    realtype x119 = SPVAR(SP_V_C_Th)*x78;
+    realtype x120 = x119*x73;
+    realtype x121 = SPVAR(SP_V_C_Th)*x86;
+    realtype x122 = x117 - x118 + x120 + x121;
+    realtype x123 = SPVAR(SP_V_C_B)*x50;
+    realtype x124 = x123*x55;
+    realtype x125 = x124*x22;
+    realtype x126 = x124*x76;
+    realtype x127 = std::pow(x54, -2);
+    realtype x128 = std::pow(x52, -2);
+    realtype x129 = x123*x127*x128*x22*x51;
+    realtype x130 = x0*x129;
+    realtype x131 = SPVAR(SP_V_C_B)*PARAM(P_q_B_T_in)*x56;
+    realtype x132 = x125*x69 - x125*x73 + x126*x73 + x130*x69 + x131*x85;
+    realtype x133 = -PARAM(P_k_cell_clear);
+    realtype x134 = SPVAR(SP_V_T_IL10)*x13;
+    realtype x135 = PARAM(P_IL10_50_phago) + x134;
+    realtype x136 = 1.0/x135;
+    realtype x137 = std::pow(x135, -2);
+    realtype x138 = std::pow(SPVAR(SP_V_T_IL10), 2);
+    realtype x139 = x138*x84;
+    realtype x140 = 1.0/PARAM(P_syn_M_C);
+    realtype x141 = SPVAR(SP_syn_M_C_CD47_SIRPa)*x140/PARAM(P_SIRPa_50);
+    realtype x142 = std::pow(x141, PARAM(P_n_SIRPa));
+    realtype x143 = x142 + 1.0;
+    realtype x144 = x142/x143;
+    realtype x145 = 1.0 - x144;
+    realtype x146 = 1.0/PARAM(P_PD1_50);
+    realtype x147 = SPVAR(SP_syn_M_C_PD1_PDL1)*x140;
+    realtype x148 = SPVAR(SP_syn_M_C_PD1_PDL2)*x140;
+    realtype x149 = x147 + x148;
+    realtype x150 = x146*x149;
+    realtype x151 = std::pow(x150, PARAM(P_n_PD1));
+    realtype x152 = x151 + 1.0;
+    realtype x153 = x151/x152;
+    realtype x154 = 1.0 - x153;
+    realtype x155 = SPVAR(SP_V_T_Ab)*x13;
+    realtype x156 = PARAM(P_Ab_50_ADCC) + x155;
+    realtype x157 = 1.0/x156;
+    realtype x158 = PARAM(P_ADCC_boost_max)*x157;
+    realtype x159 = x155*x158 + 1.0;
+    realtype x160 = PARAM(P_K_M1_phago)*SPVAR(SP_V_T_C1);
+    realtype x161 = SPVAR(SP_V_T_Mac_M1) + PARAM(P_cell) + x160;
+    realtype x162 = 1.0/x161;
+    realtype x163 = SPVAR(SP_V_T_C1)*x162;
+    realtype x164 = SPVAR(SP_V_T_Mac_M1)*PARAM(P_k_M1_phago)*x154*x159*x163;
+    realtype x165 = x145*x164;
+    realtype x166 = SPVAR(SP_V_T_Ab)*x113;
+    realtype x167 = PARAM(P_ADCC_boost_max)/std::pow(x156, 2);
+    realtype x168 = std::pow(SPVAR(SP_V_T_Ab), 2);
+    realtype x169 = x168*x84;
+    realtype x170 = -x134*x136 + 1.0;
+    realtype x171 = SPVAR(SP_V_T_Mac_M1)*PARAM(P_k_M1_phago)*x145*x154*x170;
+    realtype x172 = x163*x171;
+    realtype x173 = std::pow(SPVAR(SP_V_T_CD8), 2);
+    realtype x174 = 1.0/PARAM(P_cell);
+    realtype x175 = 1.0/PARAM(P_R50_Treg);
+    realtype x176 = SPVAR(SP_V_T_CD8) + PARAM(P_cell);
+    realtype x177 = SPVAR(SP_V_T_Treg)*x175 + x176;
+    realtype x178 = 1.0/x177;
+    realtype x179 = 1.0/x11;
+    realtype x180 = x179*x5;
+    realtype x181 = 1.0/(x180 + 9.9999999999999995e-7);
+    realtype x182 = PARAM(P_d_pore_ref)*std::sqrt(PARAM(P_phi_col_ref)*x181);
+    realtype x183 = std::pow(x182/PARAM(P_d_crit_T), PARAM(P_n_pore));
+    realtype x184 = x183 + 1.0;
+    realtype x185 = 1.0 - 1.0/x184;
+    realtype x186 = SPVAR(SP_V_T_ArgI)*x13;
+    realtype x187 = PARAM(P_ArgI_50_Teff) + x186;
+    realtype x188 = 1.0/x187;
+    realtype x189 = -x186*x188 + 1.0;
+    realtype x190 = SPVAR(SP_V_T_NO)*x13;
+    realtype x191 = PARAM(P_NO_50_Teff) + x190;
+    realtype x192 = 1.0/x191;
+    realtype x193 = -x190*x192 + 1.0;
+    realtype x194 = SPVAR(SP_V_T_TGFb)*x13;
+    realtype x195 = PARAM(P_TGFb_50_Teff) + x194;
+    realtype x196 = 1.0/x195;
+    realtype x197 = PARAM(P_Emax_TGFb_Teff)*x196;
+    realtype x198 = -x194*x197 + 1.0;
+    realtype x199 = 1.0/PARAM(P_syn_CD8_C1);
+    realtype x200 = SPVAR(SP_syn_CD8_C1_PD1_PDL1)*x199;
+    realtype x201 = SPVAR(SP_syn_CD8_C1_PD1_PDL2)*x199;
+    realtype x202 = x200 + x201;
+    realtype x203 = x146*x202;
+    realtype x204 = std::pow(x203, PARAM(P_n_PD1));
+    realtype x205 = x204 + 1.0;
+    realtype x206 = x204/x205;
+    realtype x207 = 1.0 - x206;
+    realtype x208 = SPVAR(SP_V_T_C1)*x207;
+    realtype x209 = PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x174*x178*x185*x189*x193*x198*x208;
+    realtype x210 = x173*x209;
+    realtype x211 = std::pow(x191, -2);
+    realtype x212 = std::pow(SPVAR(SP_V_T_NO), 2)*x211;
+    realtype x213 = PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x13*x173*x174*x178*x185*x189*x198;
+    realtype x214 = x208*x213;
+    realtype x215 = std::pow(x187, -2);
+    realtype x216 = std::pow(SPVAR(SP_V_T_ArgI), 2);
+    realtype x217 = x215*x216;
+    realtype x218 = PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x13*x173*x174*x185*x193*x198*x208;
+    realtype x219 = x178*x218;
+    realtype x220 = PARAM(P_Emax_TGFb_Teff)/std::pow(x195, 2);
+    realtype x221 = std::pow(SPVAR(SP_V_T_TGFb), 2);
+    realtype x222 = x221*x84;
+    realtype x223 = PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x13*x173*x174*x178*x185*x189*x193*x207;
+    realtype x224 = SPVAR(SP_V_T_C1)*x223;
+    realtype x225 = std::pow(x11, -2);
+    realtype x226 = x225*x5;
+    realtype x227 = 0.5*PARAM(P_n_pore)*x181;
+    realtype x228 = x226*x227;
+    realtype x229 = PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x13*x173*x174*x178*x183*x189*x193*x198*x208/std::pow(x184, 2);
+    realtype x230 = x228*x229;
+    realtype x231 = -x113*x210 + x165*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_cell)*x1*x136*x80 - x137*x139) + x172*(-x158*x166 + x167*x169) + x214*(SPVAR(SP_V_T_NO)*PARAM(P_vol_cell)*x1*x192*x80 - x212*x84) + x219*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_cell)*x1*x188*x80 - x217*x84) + x224*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_cell)*x1*x196*x80 - x220*x222) + x230*x68;
+    realtype x232 = SPVAR(SP_V_T_CD8)*x68;
+    realtype x233 = PARAM(P_cell) + PARAM(P_rho_pex_max)*x12;
+    realtype x234 = SPVAR(SP_V_T_CD8_pex)*PARAM(P_rho_pex_max)/std::pow(x233, 2);
+    realtype x235 = SPVAR(SP_V_T_C1) + PARAM(P_cell);
+    realtype x236 = SPVAR(SP_V_T_CD8) + x235;
+    realtype x237 = 1.0/x236;
+    realtype x238 = PARAM(P_k_C_CD8_exh)*x206*x237;
+    realtype x239 = SPVAR(SP_V_T_C1)*x238;
+    realtype x240 = x234*x239;
+    realtype x241 = x232*x240;
+    realtype x242 = PARAM(P_K_C_exh) + x235;
+    realtype x243 = 1.0/x242;
+    realtype x244 = PARAM(P_k_CD8_basal_exh)*x207*x243;
+    realtype x245 = SPVAR(SP_V_T_C1)*x244;
+    realtype x246 = SPVAR(SP_V_T_CD8)*x245;
+    realtype x247 = x234*x246;
+    realtype x248 = x247*x68;
+    realtype x249 = SPVAR(SP_V_T_Treg) + x176;
+    realtype x250 = 1.0/x249;
+    realtype x251 = PARAM(P_IL10_50_Treg) + x134;
+    realtype x252 = 1.0/x251;
+    realtype x253 = x134*x252;
+    realtype x254 = SPVAR(SP_V_T_Treg)*PARAM(P_k_Treg_CD8_exh)*x253;
+    realtype x255 = x250*x254;
+    realtype x256 = x234*x255;
+    realtype x257 = x232*x256;
+    realtype x258 = 1.0/PARAM(P_phi_col_ref);
+    realtype x259 = PARAM(P_E_ref)*std::pow(x180*x258, PARAM(P_n_stiff));
+    realtype x260 = std::pow(x259, PARAM(P_n_Texh));
+    realtype x261 = std::pow(PARAM(P_E_50_Texh), PARAM(P_n_Texh)) + x260;
+    realtype x262 = x260/x261;
+    realtype x263 = PARAM(P_k_stiff_CD8_exh)*x262;
+    realtype x264 = SPVAR(SP_V_T_CD8)*x263;
+    realtype x265 = x234*x264;
+    realtype x266 = x265*x68;
+    realtype x267 = SPVAR(SP_V_T_IL10)*x80;
+    realtype x268 = x267*x68;
+    realtype x269 = 1.0/x233;
+    realtype x270 = -SPVAR(SP_V_T_CD8_pex)*x269 + 1.0;
+    realtype x271 = SPVAR(SP_V_T_CD8)*x270;
+    realtype x272 = PARAM(P_k_Treg_CD8_exh)*x250*x271;
+    realtype x273 = SPVAR(SP_V_T_Treg)*x272;
+    realtype x274 = x252*x273;
+    realtype x275 = x268*x274;
+    realtype x276 = x273/std::pow(x251, 2);
+    realtype x277 = x139*x276;
+    realtype x278 = PARAM(P_k_stiff_CD8_exh)*x270;
+    realtype x279 = x262*x278;
+    realtype x280 = PARAM(P_n_Texh)*PARAM(P_n_stiff)*x179;
+    realtype x281 = x232*x280;
     realtype x282 = x279*x281;
-    realtype x283 = PARAM(P_k_TGFb_Th_exh)*x278/std::pow(x272, 2);
-    realtype x284 = x198*x283;
-    realtype x285 = x268 + x271 + x275 - x282 + x284;
-    realtype x286 = 1.0/x211;
-    realtype x287 = PARAM(P_C_cap0) + SPVAR(SP_V_T_K_vasc) + PARAM(P_k_stroma_support)*(SPVAR(SP_V_T_apCAF)*PARAM(P_k_stroma_apCAF) + SPVAR(SP_V_T_iCAF)*PARAM(P_k_stroma_iCAF) + SPVAR(SP_V_T_myCAF)*PARAM(P_k_stroma_myCAF));
-    realtype x288 = PARAM(P_phi_col_50_Kmax) + x156;
-    realtype x289 = 1.0/x288;
-    realtype x290 = -x156*x289 + 1.0;
-    realtype x291 = (((x286*x287*x290 - 1.0 < 0) ? (
+    realtype x283 = std::pow(x259, 2*PARAM(P_n_Texh))*x278/std::pow(x261, 2);
+    realtype x284 = x281*x283;
+    realtype x285 = x241 + x248 + x257 + x266 - x275 + x277 - x282 + x284;
+    realtype x286 = PARAM(P_k_Th_basal_exh)*x243;
+    realtype x287 = SPVAR(SP_V_T_C1)*x286;
+    realtype x288 = PARAM(P_cell) + PARAM(P_rho_Thexh_max)*x12;
+    realtype x289 = SPVAR(SP_V_T_Th_exh)*PARAM(P_rho_Thexh_max)/std::pow(x288, 2);
+    realtype x290 = SPVAR(SP_V_T_Th)*x289;
+    realtype x291 = x290*x68;
+    realtype x292 = x287*x291;
+    realtype x293 = PARAM(P_K_C2_recruit)*PARAM(P_k_cell_clear);
+    realtype x294 = x26*x293;
+    realtype x295 = x291*x294;
+    realtype x296 = PARAM(P_TGFb_50_Th_exh) + x194;
+    realtype x297 = PARAM(P_k_TGFb_Th_exh)/x296;
+    realtype x298 = x194*x297;
+    realtype x299 = x291*x298;
+    realtype x300 = 1.0/x288;
+    realtype x301 = -SPVAR(SP_V_T_Th_exh)*x300 + 1.0;
+    realtype x302 = SPVAR(SP_V_T_Th)*x301;
+    realtype x303 = x297*x302;
+    realtype x304 = SPVAR(SP_V_T_TGFb)*x80;
+    realtype x305 = x304*x68;
+    realtype x306 = x303*x305;
+    realtype x307 = PARAM(P_k_TGFb_Th_exh)*x302/std::pow(x296, 2);
+    realtype x308 = x222*x307;
+    realtype x309 = x292 + x295 + x299 - x306 + x308;
+    realtype x310 = 1.0/x235;
+    realtype x311 = PARAM(P_C_cap0) + SPVAR(SP_V_T_K_vasc) + PARAM(P_k_stroma_support)*(SPVAR(SP_V_T_apCAF)*PARAM(P_k_stroma_apCAF) + SPVAR(SP_V_T_iCAF)*PARAM(P_k_stroma_iCAF) + SPVAR(SP_V_T_myCAF)*PARAM(P_k_stroma_myCAF));
+    realtype x312 = PARAM(P_phi_col_50_Kmax) + x180;
+    realtype x313 = 1.0/x312;
+    realtype x314 = -x180*x313 + 1.0;
+    realtype x315 = (((x310*x311*x314 - 1.0 < 0) ? (
    0
 )
-: ((x286*x287*x290 - 1.0 == 0) ? (
+: ((x310*x311*x314 - 1.0 == 0) ? (
    1.0/2.0
 )
 : (
    1
 ))));
-    realtype x292 = x286*x287;
-    realtype x293 = std::fmax(1.0, x290*x292);
-    realtype x294 = 1.0/x293;
-    realtype x295 = std::pow(PARAM(P_rho_collagen), -2);
-    realtype x296 = std::pow(x288, -2);
-    realtype x297 = std::pow(SPVAR(SP_V_T_collagen), 2)*x295*x296/std::pow(x14, 3);
-    realtype x298 = SPVAR(SP_V_T_collagen)*PARAM(P_vol_cell)*x201*x289*x5*x7 - x297*x60;
-    realtype x299 = SPVAR(SP_V_T_VEGF)*x18;
-    realtype x300 = PARAM(P_VEGF_50) + x299;
-    realtype x301 = 1.0/x300;
-    realtype x302 = PARAM(P_k_vas_growth)*x301;
-    realtype x303 = SPVAR(SP_V_T_C1)*x302;
-    realtype x304 = SPVAR(SP_V_T_VEGF)*x303;
-    realtype x305 = SPVAR(SP_V_T_C1)*PARAM(P_k_vas_growth)/std::pow(x300, 2);
-    realtype x306 = std::pow(SPVAR(SP_V_T_VEGF), 2)*x305;
-    realtype x307 = -x304*x96 + x306*x82;
-    realtype x308 = PARAM(P_rho_Treg_max)/std::pow(x46, 2);
-    realtype x309 = -SPVAR(SP_V_C_Cy_eff)*x45 + 1.0;
-    realtype x310 = PARAM(P_k_Treg_pro_tumor)*x309/std::pow(x48, 2);
-    realtype x311 = std::pow(SPVAR(SP_V_T_Treg), 2)*x310;
-    realtype x312 = x308*x311;
-    realtype x313 = SPVAR(SP_V_T_ArgI)*x78;
-    realtype x314 = PARAM(P_ArgI_50_Treg) + x162;
-    realtype x315 = 1.0/x314;
-    realtype x316 = PARAM(P_Emax_ArgI_Treg)*x315;
-    realtype x317 = x313*x316;
-    realtype x318 = PARAM(P_Emax_ArgI_Treg)/std::pow(x314, 2);
-    realtype x319 = x192*x318;
-    realtype x320 = PARAM(P_TGFb_50_Th2Treg) + x170;
-    realtype x321 = 1.0/x320;
-    realtype x322 = SPVAR(SP_V_T_Th)*PARAM(P_k_Th_to_Treg)*x170*x321;
-    realtype x323 = x322*(-x317*x60 + x319*x82);
-    realtype x324 = PARAM(P_k_Th_to_Treg)*(x162*x316 + 1.0);
-    realtype x325 = x324/std::pow(x320, 2);
-    realtype x326 = SPVAR(SP_V_T_Th)*x325;
-    realtype x327 = x198*x326;
-    realtype x328 = x321*x324;
-    realtype x329 = SPVAR(SP_V_T_Th)*x328;
-    realtype x330 = x281*x329;
-    realtype x331 = SPVAR(SP_V_T_P1)*x18;
-    realtype x332 = PARAM(P_P1_50_apCAF) + x331;
-    realtype x333 = SPVAR(SP_V_T_apCAF) + SPVAR(SP_V_T_iCAF) + SPVAR(SP_V_T_myCAF) + PARAM(P_cell);
-    realtype x334 = 1.0/x333;
-    realtype x335 = PARAM(P_k_apCAF_iTreg)*x334;
-    realtype x336 = x335/std::pow(x332, 2);
-    realtype x337 = SPVAR(SP_V_T_apCAF)*x336;
-    realtype x338 = std::pow(SPVAR(SP_V_T_P1), 2)*SPVAR(SP_V_T_Th);
-    realtype x339 = x337*x338;
-    realtype x340 = x339*x82;
-    realtype x341 = 1.0/x332;
-    realtype x342 = x335*x341;
-    realtype x343 = SPVAR(SP_V_T_apCAF)*x342;
-    realtype x344 = SPVAR(SP_V_T_P1)*SPVAR(SP_V_T_Th);
-    realtype x345 = x343*x344;
-    realtype x346 = x345*x96;
-    realtype x347 = x323 + x327 - x330 + x340 - x346;
-    realtype x348 = x312*x60 + x347;
-    realtype x349 = PARAM(P_cell) + PARAM(P_rho_CD8_crowd)*x15;
-    realtype x350 = PARAM(P_rho_CD8_crowd)/std::pow(x349, 2);
-    realtype x351 = PARAM(P_k_CD8_death)*x350;
-    realtype x352 = x149*x351;
-    realtype x353 = PARAM(P_cell) + PARAM(P_rho_CD8_max)*x15;
-    realtype x354 = 1.0/x353;
-    realtype x355 = SPVAR(SP_V_T_CD8)*x354 + 1.0;
-    realtype x356 = std::pow(x355, -2);
-    realtype x357 = PARAM(P_rho_CD8_max)/std::pow(x353, 2);
-    realtype x358 = PARAM(P_k_CD8_T_pro)*x356*x357;
-    realtype x359 = x149*x358;
-    realtype x360 = 1.0/PARAM(P_V_ID);
-    realtype x361 = SPVAR(SP_V_ID_P1_GVAX)*x360;
-    realtype x362 = PARAM(P_EC50_P1_mature) + x361;
-    realtype x363 = 1.0/x362;
-    realtype x364 = x361*x363;
-    realtype x365 = PARAM(P_k_CD8_T_vac_pro)*x356*x357*x364;
-    realtype x366 = x149*x365;
-    realtype x367 = -x217 - x224 - x233 - x242 + x251 - x253 + x258 - x260 + x352*x60 + x359*x60 + x366*x60;
-    realtype x368 = PARAM(P_TGFb_50_APC) + x170;
-    realtype x369 = 1.0/x368;
-    realtype x370 = -x170*x369 + 1.0;
-    realtype x371 = SPVAR(SP_V_T_cDC1)*PARAM(P_k_APC_mat_cDC1);
-    realtype x372 = x370*x371;
-    realtype x373 = PARAM(P_IL10_50_APC) + x111;
-    realtype x374 = 1.0/x373;
-    realtype x375 = -x111*x374 + 1.0;
-    realtype x376 = SPVAR(SP_V_T_IL12)*x18;
-    realtype x377 = PARAM(P_IL12_50) + x376;
+    realtype x316 = x310*x311;
+    realtype x317 = std::fmax(1.0, x314*x316);
+    realtype x318 = 1.0/x317;
+    realtype x319 = std::pow(PARAM(P_rho_collagen), -2);
+    realtype x320 = std::pow(x312, -2);
+    realtype x321 = std::pow(SPVAR(SP_V_T_collagen), 2)*x319*x320/std::pow(x11, 3);
+    realtype x322 = SPVAR(SP_V_T_collagen)*PARAM(P_vol_cell)*x1*x225*x313*x4 - x321*x68;
+    realtype x323 = SPVAR(SP_V_T_VEGF)*x13;
+    realtype x324 = PARAM(P_VEGF_50) + x323;
+    realtype x325 = 1.0/x324;
+    realtype x326 = PARAM(P_k_vas_growth)*x325;
+    realtype x327 = SPVAR(SP_V_T_C1)*x326;
+    realtype x328 = SPVAR(SP_V_T_VEGF)*x327;
+    realtype x329 = SPVAR(SP_V_T_C1)*PARAM(P_k_vas_growth)/std::pow(x324, 2);
+    realtype x330 = std::pow(SPVAR(SP_V_T_VEGF), 2)*x329;
+    realtype x331 = -x113*x328 + x330*x84;
+    realtype x332 = PARAM(P_rho_Treg_max)/std::pow(x46, 2);
+    realtype x333 = -SPVAR(SP_V_C_Cy_eff)*x45 + 1.0;
+    realtype x334 = PARAM(P_k_Treg_pro_tumor)*x333/std::pow(x48, 2);
+    realtype x335 = std::pow(SPVAR(SP_V_T_Treg), 2)*x334;
+    realtype x336 = x332*x335;
+    realtype x337 = SPVAR(SP_V_T_ArgI)*x80;
+    realtype x338 = PARAM(P_ArgI_50_Treg) + x186;
+    realtype x339 = 1.0/x338;
+    realtype x340 = PARAM(P_Emax_ArgI_Treg)*x339;
+    realtype x341 = x337*x340;
+    realtype x342 = PARAM(P_Emax_ArgI_Treg)/std::pow(x338, 2);
+    realtype x343 = x216*x342;
+    realtype x344 = PARAM(P_TGFb_50_Th2Treg) + x194;
+    realtype x345 = 1.0/x344;
+    realtype x346 = SPVAR(SP_V_T_Th)*PARAM(P_k_Th_to_Treg)*x194*x345;
+    realtype x347 = x346*(-x341*x68 + x343*x84);
+    realtype x348 = PARAM(P_k_Th_to_Treg)*(x186*x340 + 1.0);
+    realtype x349 = x348/std::pow(x344, 2);
+    realtype x350 = SPVAR(SP_V_T_Th)*x349;
+    realtype x351 = x222*x350;
+    realtype x352 = x345*x348;
+    realtype x353 = SPVAR(SP_V_T_Th)*x352;
+    realtype x354 = x305*x353;
+    realtype x355 = SPVAR(SP_V_T_P1)*x13;
+    realtype x356 = PARAM(P_P1_50_apCAF) + x355;
+    realtype x357 = SPVAR(SP_V_T_apCAF) + SPVAR(SP_V_T_iCAF) + SPVAR(SP_V_T_myCAF) + PARAM(P_cell);
+    realtype x358 = 1.0/x357;
+    realtype x359 = PARAM(P_k_apCAF_iTreg)*x358;
+    realtype x360 = x359/std::pow(x356, 2);
+    realtype x361 = SPVAR(SP_V_T_apCAF)*x360;
+    realtype x362 = std::pow(SPVAR(SP_V_T_P1), 2)*SPVAR(SP_V_T_Th);
+    realtype x363 = x361*x362;
+    realtype x364 = x363*x84;
+    realtype x365 = 1.0/x356;
+    realtype x366 = x359*x365;
+    realtype x367 = SPVAR(SP_V_T_apCAF)*x366;
+    realtype x368 = SPVAR(SP_V_T_P1)*SPVAR(SP_V_T_Th);
+    realtype x369 = x367*x368;
+    realtype x370 = x113*x369;
+    realtype x371 = x347 + x351 - x354 + x364 - x370;
+    realtype x372 = x336*x68 + x371;
+    realtype x373 = PARAM(P_cell) + PARAM(P_rho_CD8_crowd)*x12;
+    realtype x374 = PARAM(P_rho_CD8_crowd)/std::pow(x373, 2);
+    realtype x375 = PARAM(P_k_CD8_death)*x374;
+    realtype x376 = x173*x375;
+    realtype x377 = PARAM(P_cell) + PARAM(P_rho_CD8_max)*x12;
     realtype x378 = 1.0/x377;
-    realtype x379 = std::pow(x377, -2);
-    realtype x380 = std::pow(SPVAR(SP_V_T_IL12), 2)*x379;
-    realtype x381 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_cell)*x378*x5*x78 - x380*x82;
-    realtype x382 = PARAM(P_k_M1_phago)*x122*x131*x136*x139*x146;
-    realtype x383 = SPVAR(SP_V_T_Mac_M1)*x382;
-    realtype x384 = x174*x199;
-    realtype x385 = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_death) + SPVAR(SP_V_T_C1)*x383 + SPVAR(SP_V_T_C1)*x384;
-    realtype x386 = PARAM(P_HMGB1_50) + x385;
+    realtype x379 = SPVAR(SP_V_T_CD8)*x378 + 1.0;
+    realtype x380 = std::pow(x379, -2);
+    realtype x381 = PARAM(P_rho_CD8_max)/std::pow(x377, 2);
+    realtype x382 = PARAM(P_k_CD8_T_pro)*x380*x381;
+    realtype x383 = x173*x382;
+    realtype x384 = 1.0/PARAM(P_V_ID);
+    realtype x385 = SPVAR(SP_V_ID_P1_GVAX)*x384;
+    realtype x386 = PARAM(P_EC50_P1_mature) + x385;
     realtype x387 = 1.0/x386;
-    realtype x388 = -x385*x387 + 1.0;
-    realtype x389 = x381*x388;
-    realtype x390 = -x376*x378 + 1.0;
-    realtype x391 = x385/std::pow(x386, 2);
-    realtype x392 = x375*(-x389 - x390*(-x207*x387 + x207*x391));
-    realtype x393 = x372*x392;
-    realtype x394 = std::pow(x158/PARAM(P_d_crit_APC), PARAM(P_n_pore));
-    realtype x395 = x394 + 1.0;
-    realtype x396 = 1.0 - 1.0/x395;
-    realtype x397 = std::pow(x395, -2);
-    realtype x398 = std::pow(x368, -2);
-    realtype x399 = x197*x398;
-    realtype x400 = -x388*x390 + 1.0;
-    realtype x401 = x375*x400;
-    realtype x402 = x401*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_cell)*x369*x5*x78 - x399*x82);
-    realtype x403 = std::pow(x373, -2);
-    realtype x404 = x400*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_cell)*x374*x5*x78 - x116*x403);
-    realtype x405 = x371*x402 + x372*x404;
-    realtype x406 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_cell)*x15*x157*x201*x394*x397*x5*x7 - PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_cell)*x396*x5 + x405;
-    realtype x407 = SPVAR(SP_V_T_cDC2)*PARAM(P_k_APC_mat_cDC2);
-    realtype x408 = x370*x407;
-    realtype x409 = x392*x408;
-    realtype x410 = x402*x407 + x404*x408;
-    realtype x411 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_cell)*x15*x157*x201*x394*x397*x5*x7 - PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_cell)*x396*x5 + x410;
-    realtype x412 = x394*x397;
-    realtype x413 = PARAM(P_k_APC_mig)*x204*x412;
-    realtype x414 = x413*x60;
-    realtype x415 = SPVAR(SP_V_T_mcDC1)*x414;
-    realtype x416 = x405 - x415;
-    realtype x417 = SPVAR(SP_V_T_mcDC2)*x414;
-    realtype x418 = x410 - x417;
-    realtype x419 = PARAM(P_P0_C1)*PARAM(P_n_CD4_clones);
-    realtype x420 = PARAM(P_P1_C1)*PARAM(P_n_CD8_clones);
-    realtype x421 = std::pow(SPVAR(SP_V_T_Th), 2);
-    realtype x422 = PARAM(P_cell) + PARAM(P_rho_Th_max)*x15;
-    realtype x423 = std::pow(x422, -2);
-    realtype x424 = 1.0/x422;
-    realtype x425 = SPVAR(SP_V_T_Th)*x424 + 1.0;
-    realtype x426 = std::pow(x425, -2);
-    realtype x427 = SPVAR(SP_V_T_IL6)*x78;
-    realtype x428 = x427*x60;
-    realtype x429 = SPVAR(SP_V_T_IL6)*x18;
-    realtype x430 = PARAM(P_IL6_50_Tfh) + x429;
-    realtype x431 = 1.0/x430;
-    realtype x432 = 1.0/PARAM(P_A_s);
-    realtype x433 = 1.0/PARAM(P_n_CD8_clones);
-    realtype x434 = x432*x433;
-    realtype x435 = SPVAR(SP_A_s_M1p1)*x434;
-    realtype x436 = 1.0/PARAM(P_TCR_p1_tot);
-    realtype x437 = 4.0*x436;
-    realtype x438 = PARAM(P_TCR_p1_tot) + PARAM(P_k_M1p1_TCR_off)/PARAM(P_k_M1p1_TCR_on) + x435;
-    realtype x439 = std::pow(x436*x438, 2.0);
-    realtype x440 = -x435*x437 + x439;
-    realtype x441 = std::sqrt(std::fmax(0.0, x440));
-    realtype x442 = -PARAM(P_TCR_p1_tot)*x441 + x438;
-    realtype x443 = PARAM(P_k_M1p1_TCR_p)/(PARAM(P_k_M1p1_TCR_off) + PARAM(P_k_M1p1_TCR_p));
-    realtype x444 = std::pow(x443, PARAM(P_N_M1p1_TCR));
-    realtype x445 = PARAM(P_k_M1p1_TCR_off) + PARAM(P_phi_M1p1_TCR);
-    realtype x446 = 1.0/x445;
-    realtype x447 = 0.5*PARAM(P_k_M1p1_TCR_off)*x444*x446;
-    realtype x448 = x442*x447;
-    realtype x449 = PARAM(P_p1_50) + x448;
-    realtype x450 = 1.0/x449;
-    realtype x451 = x448*x450;
-    realtype x452 = PARAM(P_k_Tfh_diff_tumor)*x451;
-    realtype x453 = x431*x452;
-    realtype x454 = SPVAR(SP_V_T_Th)*x453;
-    realtype x455 = x428*x454;
-    realtype x456 = std::pow(SPVAR(SP_V_T_IL6), 2);
-    realtype x457 = x456*x82;
-    realtype x458 = SPVAR(SP_V_T_Th)*x452/std::pow(x430, 2);
-    realtype x459 = x457*x458;
-    realtype x460 = -x455 + x459;
-    realtype x461 = PARAM(P_TGFb_baseline)*PARAM(P_f_active_TGFb)*PARAM(P_k_TGFb_deg);
-    realtype x462 = x461*x60;
-    realtype x463 = PARAM(P_IL6_50_MDSC) + x429;
-    realtype x464 = 1.0/x463;
-    realtype x465 = x429*x464 + 1.0;
-    realtype x466 = PARAM(P_k_MDSC_rec)*x465;
-    realtype x467 = SPVAR(SP_V_T_CCL2)*x18;
-    realtype x468 = PARAM(P_CCL2_50) + x467;
-    realtype x469 = std::pow(x468, -2);
-    realtype x470 = x23*x469;
-    realtype x471 = x466*x470;
-    realtype x472 = std::pow(SPVAR(SP_V_T_CCL2), 2);
-    realtype x473 = x472*x96;
-    realtype x474 = 1.0/x468;
-    realtype x475 = x23*x474;
-    realtype x476 = x466*x475;
-    realtype x477 = x467*x77;
-    realtype x478 = x466*x467;
-    realtype x479 = x474*x68;
-    realtype x480 = x479*x77;
-    realtype x481 = x427*x464;
-    realtype x482 = std::pow(x463, -2);
-    realtype x483 = x456*x482;
-    realtype x484 = SPVAR(SP_V_T_CCL2)*PARAM(P_k_MDSC_rec)*x475;
-    realtype x485 = x471*x473 - x476*x477 + x478*x480 + x484*(-x481*x60 + x483*x82);
-    realtype x486 = PARAM(P_cell) + PARAM(P_rho_Mac_max)*x15;
-    realtype x487 = std::pow(x486, -2);
-    realtype x488 = PARAM(P_rho_Mac_max)*x487;
-    realtype x489 = PARAM(P_k_Mac_rec)*x475;
-    realtype x490 = SPVAR(SP_V_T_CCL2)*x489;
-    realtype x491 = x13*x490;
-    realtype x492 = x488*x491;
-    realtype x493 = 1.0/x486;
-    realtype x494 = -x13*x493 + 1.0;
-    realtype x495 = PARAM(P_k_Mac_rec)*x494;
-    realtype x496 = x470*x495;
-    realtype x497 = x489*x494;
-    realtype x498 = x467*x495;
-    realtype x499 = SPVAR(SP_V_T_IFNg)*x18;
-    realtype x500 = -PARAM(P_k_IFNg_response)*x499 + 1.0;
-    realtype x501 = PARAM(P_k_IFNg_response)*x390*(((x500 < 0) ? (
+    realtype x388 = x385*x387;
+    realtype x389 = PARAM(P_k_CD8_T_vac_pro)*x380*x381*x388;
+    realtype x390 = x173*x389;
+    realtype x391 = -x241 - x248 - x257 - x266 + x275 - x277 + x282 - x284 + x376*x68 + x383*x68 + x390*x68;
+    realtype x392 = PARAM(P_TGFb_50_APC) + x194;
+    realtype x393 = 1.0/x392;
+    realtype x394 = -x194*x393 + 1.0;
+    realtype x395 = SPVAR(SP_V_T_cDC1)*PARAM(P_k_APC_mat_cDC1);
+    realtype x396 = x394*x395;
+    realtype x397 = PARAM(P_IL10_50_APC) + x134;
+    realtype x398 = 1.0/x397;
+    realtype x399 = -x134*x398 + 1.0;
+    realtype x400 = SPVAR(SP_V_T_IL12)*x13;
+    realtype x401 = PARAM(P_IL12_50) + x400;
+    realtype x402 = 1.0/x401;
+    realtype x403 = std::pow(x401, -2);
+    realtype x404 = std::pow(SPVAR(SP_V_T_IL12), 2)*x403;
+    realtype x405 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_cell)*x1*x402*x80 - x404*x84;
+    realtype x406 = PARAM(P_k_M1_phago)*x145*x154*x159*x162*x170;
+    realtype x407 = SPVAR(SP_V_T_Mac_M1)*x406;
+    realtype x408 = x198*x223;
+    realtype x409 = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_death) + SPVAR(SP_V_T_C1)*x407 + SPVAR(SP_V_T_C1)*x408;
+    realtype x410 = PARAM(P_HMGB1_50) + x409;
+    realtype x411 = 1.0/x410;
+    realtype x412 = PARAM(P_Ab_50_DC) + x155;
+    realtype x413 = 1.0/x412;
+    realtype x414 = PARAM(P_DC_Ab_boost)*x413;
+    realtype x415 = x155*x414 + 1.0;
+    realtype x416 = x411*x415;
+    realtype x417 = x409*x416;
+    realtype x418 = 1.0 - std::fmin(1.0, x417);
+    realtype x419 = x405*x418;
+    realtype x420 = -x400*x402 + 1.0;
+    realtype x421 = (((x417 - 1.0 > 0) ? (
    0
 )
-: ((x500 == 0) ? (
+: ((x417 - 1.0 == 0) ? (
    1.0/2.0
 )
 : (
    1
 ))));
-    realtype x502 = SPVAR(SP_V_T_IFNg)*x78;
-    realtype x503 = x502*x60;
-    realtype x504 = std::fmax(0.0, x500);
-    realtype x505 = SPVAR(SP_V_T_Mac_M2)*PARAM(P_k_M1_pol);
-    realtype x506 = x505*(-x381*x504 - x501*x503);
-    realtype x507 = PARAM(P_IL10_50_M2) + x111;
-    realtype x508 = 1.0/x507;
-    realtype x509 = 0.33333333333333331*x508;
-    realtype x510 = PARAM(P_IL6_50_M2) + x429;
-    realtype x511 = 1.0/x510;
-    realtype x512 = 0.33333333333333331*x511;
-    realtype x513 = PARAM(P_TGFb_50_M2pol) + x170;
-    realtype x514 = 1.0/x513;
-    realtype x515 = 0.33333333333333331*x514;
-    realtype x516 = 0.33333333333333331/std::pow(x507, 2);
-    realtype x517 = 0.33333333333333331/std::pow(x510, 2);
-    realtype x518 = 0.33333333333333331/std::pow(x513, 2);
-    realtype x519 = SPVAR(SP_V_T_Mac_M1)*PARAM(P_k_M2_pol);
-    realtype x520 = x519*(x116*x516 + x198*x518 - x244*x509 - x281*x515 - x428*x512 + x457*x517);
-    realtype x521 = x473*x496 - x477*x497 + x480*x498 + x492*x60 + x506 - x520;
-    realtype x522 = -x506 + x520;
-    realtype x523 = SPVAR(SP_V_T_qPSC)*x18;
-    realtype x524 = PARAM(P_k_CAF_const) - x523;
-    realtype x525 = 1.0/PARAM(P_k_CAF_const);
-    realtype x526 = PARAM(P_k_CAF_encounter)*x525;
-    realtype x527 = x524*x526;
-    realtype x528 = PARAM(P_IL6_50_iCAF) + x429;
-    realtype x529 = 1.0/x528;
-    realtype x530 = PARAM(P_f_IL6_iCAF)*x529;
-    realtype x531 = PARAM(P_f_IL6_iCAF)/std::pow(x528, 2);
-    realtype x532 = -x428*x530 + x457*x531;
-    realtype x533 = PARAM(P_TGFb_50_IL1R1) + x170;
-    realtype x534 = 1.0/x533;
-    realtype x535 = PARAM(P_Emax_IL1R1)*x534;
-    realtype x536 = x170*x535 + 1.0;
-    realtype x537 = 1.0/x536;
-    realtype x538 = 1.0/PARAM(P_IL1_50);
-    realtype x539 = SPVAR(SP_V_T_IL1)*x18*x538;
-    realtype x540 = x537*x539;
-    realtype x541 = std::pow(x540, PARAM(P_n_IL1));
-    realtype x542 = x541 + 1.0;
-    realtype x543 = x541/x542;
-    realtype x544 = SPVAR(SP_V_T_qPSC)*PARAM(P_k_PSC_to_iCAF)*x543;
-    realtype x545 = x532*x544;
-    realtype x546 = x523*x526;
-    realtype x547 = PARAM(P_n_IL1)/SPVAR(SP_V_T_IL1);
-    realtype x548 = SPVAR(SP_V_T_qPSC)*x547;
-    realtype x549 = x429*x530 + 1.0;
-    realtype x550 = PARAM(P_k_PSC_to_iCAF)*x549;
-    realtype x551 = std::pow(x540, 2*PARAM(P_n_IL1))/std::pow(x542, 2);
-    realtype x552 = x550*x551;
-    realtype x553 = x548*x552;
-    realtype x554 = SPVAR(SP_V_T_IL1)*x537*x538;
-    realtype x555 = PARAM(P_Emax_IL1R1)/std::pow(x533, 2);
-    realtype x556 = x539/std::pow(x536, 2);
-    realtype x557 = PARAM(P_IL1_50)*x15*x536;
-    realtype x558 = x557*(-x554*x96 + x556*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_cell)*x5*x534*x78 - x198*x555));
-    realtype x559 = x553*x558;
-    realtype x560 = x543*x550;
-    realtype x561 = x548*x560;
-    realtype x562 = x558*x561;
-    realtype x563 = PARAM(P_TGFb_50_CAF_act) + x170;
+    realtype x422 = PARAM(P_DC_Ab_boost)/std::pow(x412, 2);
+    realtype x423 = x409*x411;
+    realtype x424 = x423*(-x166*x414 + x169*x422);
+    realtype x425 = x409*x415/std::pow(x410, 2);
+    realtype x426 = x399*(-x419 + x420*x421*(x231*x416 - x231*x425 + x424));
+    realtype x427 = x396*x426;
+    realtype x428 = std::pow(x182/PARAM(P_d_crit_APC), PARAM(P_n_pore));
+    realtype x429 = x428 + 1.0;
+    realtype x430 = 1.0 - 1.0/x429;
+    realtype x431 = std::pow(x429, -2);
+    realtype x432 = std::pow(x392, -2);
+    realtype x433 = x221*x432;
+    realtype x434 = -x418*x420 + 1.0;
+    realtype x435 = x399*x434;
+    realtype x436 = x435*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_cell)*x1*x393*x80 - x433*x84);
+    realtype x437 = std::pow(x397, -2);
+    realtype x438 = x434*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_cell)*x1*x398*x80 - x139*x437);
+    realtype x439 = x395*x436 + x396*x438;
+    realtype x440 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_cell)*x1*x12*x181*x225*x4*x428*x431 - PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_cell)*x1*x430 + x439;
+    realtype x441 = SPVAR(SP_V_T_cDC2)*PARAM(P_k_APC_mat_cDC2);
+    realtype x442 = x394*x441;
+    realtype x443 = x426*x442;
+    realtype x444 = x436*x441 + x438*x442;
+    realtype x445 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_cell)*x1*x12*x181*x225*x4*x428*x431 - PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_cell)*x1*x430 + x444;
+    realtype x446 = x428*x431;
+    realtype x447 = PARAM(P_k_APC_mig)*x228*x446;
+    realtype x448 = x447*x68;
+    realtype x449 = SPVAR(SP_V_T_mcDC1)*x448;
+    realtype x450 = x439 - x449;
+    realtype x451 = SPVAR(SP_V_T_mcDC2)*x448;
+    realtype x452 = x444 - x451;
+    realtype x453 = PARAM(P_P0_C1)*PARAM(P_n_CD4_clones);
+    realtype x454 = PARAM(P_P1_C1)*PARAM(P_n_CD8_clones);
+    realtype x455 = std::pow(SPVAR(SP_V_T_Th), 2);
+    realtype x456 = PARAM(P_cell) + PARAM(P_rho_Th_max)*x12;
+    realtype x457 = std::pow(x456, -2);
+    realtype x458 = 1.0/x456;
+    realtype x459 = SPVAR(SP_V_T_Th)*x458 + 1.0;
+    realtype x460 = std::pow(x459, -2);
+    realtype x461 = SPVAR(SP_V_T_IL6)*x80;
+    realtype x462 = x461*x68;
+    realtype x463 = SPVAR(SP_V_T_IL6)*x13;
+    realtype x464 = PARAM(P_IL6_50_Tfh) + x463;
+    realtype x465 = 1.0/x464;
+    realtype x466 = 1.0/PARAM(P_A_s);
+    realtype x467 = 1.0/PARAM(P_n_CD8_clones);
+    realtype x468 = x466*x467;
+    realtype x469 = SPVAR(SP_A_s_M1p1)*x468;
+    realtype x470 = 1.0/PARAM(P_TCR_p1_tot);
+    realtype x471 = 4.0*x470;
+    realtype x472 = PARAM(P_TCR_p1_tot) + PARAM(P_k_M1p1_TCR_off)/PARAM(P_k_M1p1_TCR_on) + x469;
+    realtype x473 = std::pow(x470*x472, 2.0);
+    realtype x474 = -x469*x471 + x473;
+    realtype x475 = std::sqrt(std::fmax(0.0, x474));
+    realtype x476 = -PARAM(P_TCR_p1_tot)*x475 + x472;
+    realtype x477 = PARAM(P_k_M1p1_TCR_p)/(PARAM(P_k_M1p1_TCR_off) + PARAM(P_k_M1p1_TCR_p));
+    realtype x478 = std::pow(x477, PARAM(P_N_M1p1_TCR));
+    realtype x479 = PARAM(P_k_M1p1_TCR_off) + PARAM(P_phi_M1p1_TCR);
+    realtype x480 = 1.0/x479;
+    realtype x481 = 0.5*PARAM(P_k_M1p1_TCR_off)*x478*x480;
+    realtype x482 = x476*x481;
+    realtype x483 = PARAM(P_p1_50) + x482;
+    realtype x484 = 1.0/x483;
+    realtype x485 = x482*x484;
+    realtype x486 = PARAM(P_k_Tfh_diff_tumor)*x485;
+    realtype x487 = x465*x486;
+    realtype x488 = SPVAR(SP_V_T_Th)*x487;
+    realtype x489 = x462*x488;
+    realtype x490 = std::pow(SPVAR(SP_V_T_IL6), 2);
+    realtype x491 = x490*x84;
+    realtype x492 = SPVAR(SP_V_T_Th)*x486/std::pow(x464, 2);
+    realtype x493 = x491*x492;
+    realtype x494 = -x489 + x493;
+    realtype x495 = PARAM(P_TGFb_baseline)*PARAM(P_f_active_TGFb)*PARAM(P_k_TGFb_deg);
+    realtype x496 = x495*x68;
+    realtype x497 = PARAM(P_IL6_50_MDSC) + x463;
+    realtype x498 = 1.0/x497;
+    realtype x499 = x463*x498 + 1.0;
+    realtype x500 = PARAM(P_k_MDSC_rec)*x499;
+    realtype x501 = SPVAR(SP_V_T_CCL2)*x13;
+    realtype x502 = PARAM(P_CCL2_50) + x501;
+    realtype x503 = std::pow(x502, -2);
+    realtype x504 = x22*x503;
+    realtype x505 = x500*x504;
+    realtype x506 = std::pow(SPVAR(SP_V_T_CCL2), 2);
+    realtype x507 = x113*x506;
+    realtype x508 = 1.0/x502;
+    realtype x509 = x22*x508;
+    realtype x510 = x500*x509;
+    realtype x511 = PARAM(P_n_vasc)*x68;
+    realtype x512 = x501*x511;
+    realtype x513 = x500*x501;
+    realtype x514 = x508*x76;
+    realtype x515 = x511*x514;
+    realtype x516 = x461*x498;
+    realtype x517 = std::pow(x497, -2);
+    realtype x518 = x490*x517;
+    realtype x519 = SPVAR(SP_V_T_CCL2)*PARAM(P_k_MDSC_rec)*x509;
+    realtype x520 = x505*x507 - x510*x512 + x513*x515 + x519*(-x516*x68 + x518*x84);
+    realtype x521 = PARAM(P_cell) + PARAM(P_rho_Mac_max)*x12;
+    realtype x522 = std::pow(x521, -2);
+    realtype x523 = PARAM(P_rho_Mac_max)*x522;
+    realtype x524 = PARAM(P_k_Mac_rec)*x509;
+    realtype x525 = SPVAR(SP_V_T_CCL2)*x524;
+    realtype x526 = x10*x525;
+    realtype x527 = x523*x526;
+    realtype x528 = 1.0/x521;
+    realtype x529 = -x10*x528 + 1.0;
+    realtype x530 = PARAM(P_k_Mac_rec)*x529;
+    realtype x531 = x504*x530;
+    realtype x532 = x524*x529;
+    realtype x533 = x501*x530;
+    realtype x534 = SPVAR(SP_V_T_IFNg)*x13;
+    realtype x535 = -PARAM(P_k_IFNg_response)*x534 + 1.0;
+    realtype x536 = PARAM(P_k_IFNg_response)*x420*(((x535 < 0) ? (
+   0
+)
+: ((x535 == 0) ? (
+   1.0/2.0
+)
+: (
+   1
+))));
+    realtype x537 = SPVAR(SP_V_T_IFNg)*x80;
+    realtype x538 = x537*x68;
+    realtype x539 = std::fmax(0.0, x535);
+    realtype x540 = SPVAR(SP_V_T_Mac_M2)*PARAM(P_k_M1_pol);
+    realtype x541 = x540*(-x405*x539 - x536*x538);
+    realtype x542 = PARAM(P_IL10_50_M2) + x134;
+    realtype x543 = 1.0/x542;
+    realtype x544 = 0.33333333333333331*x543;
+    realtype x545 = PARAM(P_IL6_50_M2) + x463;
+    realtype x546 = 1.0/x545;
+    realtype x547 = 0.33333333333333331*x546;
+    realtype x548 = PARAM(P_TGFb_50_M2pol) + x194;
+    realtype x549 = 1.0/x548;
+    realtype x550 = 0.33333333333333331*x549;
+    realtype x551 = 0.33333333333333331/std::pow(x542, 2);
+    realtype x552 = 0.33333333333333331/std::pow(x545, 2);
+    realtype x553 = 0.33333333333333331/std::pow(x548, 2);
+    realtype x554 = SPVAR(SP_V_T_Mac_M1)*PARAM(P_k_M2_pol);
+    realtype x555 = x554*(x139*x551 + x222*x553 - x268*x544 - x305*x550 - x462*x547 + x491*x552);
+    realtype x556 = x507*x531 - x512*x532 + x515*x533 + x527*x68 + x541 - x555;
+    realtype x557 = -x541 + x555;
+    realtype x558 = SPVAR(SP_V_T_qPSC)*x13;
+    realtype x559 = PARAM(P_k_CAF_const) - x558;
+    realtype x560 = 1.0/PARAM(P_k_CAF_const);
+    realtype x561 = PARAM(P_k_CAF_encounter)*x560;
+    realtype x562 = x559*x561;
+    realtype x563 = PARAM(P_IL6_50_iCAF) + x463;
     realtype x564 = 1.0/x563;
-    realtype x565 = PARAM(P_k_PSC_to_myCAF)*x564;
-    realtype x566 = SPVAR(SP_V_T_qPSC)*x565;
-    realtype x567 = x281*x566;
-    realtype x568 = SPVAR(SP_V_T_qPSC)*PARAM(P_k_PSC_to_myCAF);
-    realtype x569 = std::pow(x563, -2);
-    realtype x570 = x198*x569;
-    realtype x571 = x568*x570;
-    realtype x572 = x567 - x571;
-    realtype x573 = x527*x60 - x545 + x546*x60 + x559 - x562 + x572;
-    realtype x574 = 1.0 - PARAM(P_f_apCAF_of_total);
-    realtype x575 = std::pow(x235, PARAM(P_n_fib));
-    realtype x576 = std::pow(PARAM(P_E_50_fib), PARAM(P_n_fib)) + x575;
-    realtype x577 = 1.0/x576;
-    realtype x578 = x575*x577;
-    realtype x579 = PARAM(P_K_stiff_niche)*x578;
-    realtype x580 = PARAM(P_n_fib)*PARAM(P_n_stiff);
-    realtype x581 = x155*x580;
-    realtype x582 = x581*x60;
-    realtype x583 = std::pow(x235, 2*PARAM(P_n_fib))/std::pow(x576, 2);
-    realtype x584 = x582*x583;
-    realtype x585 = PARAM(P_K_stiff_niche)*x584 - x579*x582;
-    realtype x586 = SPVAR(SP_V_T_C1)*PARAM(P_f_stroma_max) + x579;
-    realtype x587 = x574*x586;
-    realtype x588 = PARAM(P_cell) + PARAM(P_f_iCAF_of_non_apCAF)*x587;
-    realtype x589 = PARAM(P_f_iCAF_of_non_apCAF)/std::pow(x588, 2);
-    realtype x590 = std::pow(SPVAR(SP_V_T_iCAF), 2)*PARAM(P_k_iCAF_prolif)*x589;
-    realtype x591 = x270*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_cell)*x155*x5*x575*x577 - x584);
-    realtype x592 = PARAM(P_k_myCAF_to_iCAF)*x543;
-    realtype x593 = SPVAR(SP_V_T_myCAF)*x592;
-    realtype x594 = x532*x593;
-    realtype x595 = PARAM(P_k_iCAF_to_myCAF)*x564;
-    realtype x596 = SPVAR(SP_V_T_iCAF)*x595;
-    realtype x597 = x281*x596;
-    realtype x598 = SPVAR(SP_V_T_iCAF)*PARAM(P_k_iCAF_to_myCAF);
-    realtype x599 = x570*x598;
-    realtype x600 = x549*x592;
-    realtype x601 = SPVAR(SP_V_T_myCAF)*x547;
-    realtype x602 = x600*x601;
-    realtype x603 = x558*x602;
-    realtype x604 = PARAM(P_k_myCAF_to_iCAF)*x549*x551;
-    realtype x605 = x601*x604;
-    realtype x606 = x558*x605;
-    realtype x607 = x594 + x597 - x599 + x603 - x606;
-    realtype x608 = -SPVAR(SP_V_T_iCAF)*x591 + x545 - x559 + x562 + x607;
-    realtype x609 = SPVAR(SP_V_T_myCAF)*x591;
-    realtype x610 = std::pow(SPVAR(SP_V_T_myCAF), 2);
-    realtype x611 = 1.0 - PARAM(P_f_iCAF_of_non_apCAF);
-    realtype x612 = PARAM(P_cell) + x587*x611;
-    realtype x613 = std::pow(x612, -2);
-    realtype x614 = SPVAR(SP_V_T_apCAF)*x591;
-    realtype x615 = std::pow(SPVAR(SP_V_T_apCAF), 2);
-    realtype x616 = PARAM(P_cell) + PARAM(P_f_apCAF_of_total)*x586;
-    realtype x617 = std::pow(x616, -2);
-    realtype x618 = PARAM(P_TGFb_50_col_sec) + x170;
-    realtype x619 = 1.0/x618;
-    realtype x620 = 1.0 - PARAM(P_f_col_basal);
-    realtype x621 = x619*x620;
-    realtype x622 = PARAM(P_f_col_basal) + x170*x621;
-    realtype x623 = PARAM(P_k_col_myCAF_sec)*x622;
-    realtype x624 = 1.0/PARAM(P_phi_col_max);
-    realtype x625 = x202*x624;
-    realtype x626 = SPVAR(SP_V_T_myCAF)*x623*x625;
-    realtype x627 = PARAM(P_phi_cross_50) + x156;
-    realtype x628 = 1.0/x627;
-    realtype x629 = SPVAR(SP_V_T_Mac_M2)*PARAM(P_k_MMP_M2)*PARAM(P_phi_cross_50)*x628;
-    realtype x630 = PARAM(P_k_MMP_M2)*PARAM(P_phi_cross_50)*x18;
-    realtype x631 = SPVAR(SP_V_T_Mac_M2)*x630/std::pow(x627, 2);
-    realtype x632 = x202*x631;
-    realtype x633 = x620/std::pow(x618, 2);
-    realtype x634 = -x156*x624 + 1.0;
-    realtype x635 = PARAM(P_k_col_myCAF_sec)*x634;
-    realtype x636 = SPVAR(SP_V_T_myCAF)*x635;
-    realtype x637 = -SPVAR(SP_V_T_collagen)*(x60*x632 - x629*x96) + x60*x626 + x636*(x198*x633 - x281*x621);
-    realtype x638 = SPVAR(SP_V_T_P0)*PARAM(P_k_P0_up);
-    realtype x639 = PARAM(P_V_e)*PARAM(P_cell);
-    realtype x640 = x639*x96;
-    realtype x641 = -x638*x640;
-    realtype x642 = SPVAR(SP_V_T_P1)*PARAM(P_k_P1_up);
-    realtype x643 = -x640*x642;
-    realtype x644 = 2.0*PARAM(P_kon_PD1_aPD1);
-    realtype x645 = x644*x93;
-    realtype x646 = x645*x96;
-    realtype x647 = SPVAR(SP_syn_CD8_C1_PD1)*x646;
-    realtype x648 = SPVAR(SP_syn_CD8_C1_PDL1)*x175;
-    realtype x649 = SPVAR(SP_syn_CD8_C1_PDL1_CD80)*x175;
-    realtype x650 = SPVAR(SP_syn_CD8_C1_PDL1_CD80_CD28)*x175 + SPVAR(SP_syn_CD8_C1_PDL1_CD80_CTLA4)*x175 + x176 + x648 + x649;
-    realtype x651 = PARAM(P_IFNg_50_ind) + x499;
-    realtype x652 = 1.0/x651;
-    realtype x653 = PARAM(P_r_PDL1_IFNg) - 1.0;
-    realtype x654 = x652*x653;
-    realtype x655 = x499*x654 + 1.0;
-    realtype x656 = PARAM(P_A_cell)/PARAM(P_C1_PDL1_base);
-    realtype x657 = x656/x655;
-    realtype x658 = -x650*x657 + 1.0;
-    realtype x659 = PARAM(P_k_out_PDL1)*x658;
-    realtype x660 = x503*x652;
-    realtype x661 = std::pow(SPVAR(SP_V_T_IFNg), 2);
-    realtype x662 = std::pow(x651, -2);
-    realtype x663 = x653*x662;
-    realtype x664 = x661*x663;
-    realtype x665 = PARAM(P_k_out_PDL1)*x499*x652;
-    realtype x666 = x656*x665/std::pow(x655, 2);
-    realtype x667 = x666*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_cell)*x5*x652*x653*x78 - x664*x82);
-    realtype x668 = PARAM(P_k_out_PDL1)*PARAM(P_vol_cell)*x5*x658*x661*x662*x81 - x650*x667 - x659*x660;
-    realtype x669 = 1.0/PARAM(P_r_PDL2C1);
-    realtype x670 = SPVAR(SP_syn_CD8_C1_PDL2)*x175;
-    realtype x671 = x177 + x670;
-    realtype x672 = -x657*x669*x671 + 1.0;
-    realtype x673 = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1);
-    realtype x674 = x672*x673;
-    realtype x675 = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_cell)*x5*x661*x662*x672*x81 - x660*x674 - x667*x671;
-    realtype x676 = -x647;
-    realtype x677 = SPVAR(SP_syn_M_C_PD1)*x646;
-    realtype x678 = SPVAR(SP_syn_M_C_PDL1)*x117;
-    realtype x679 = x656/PARAM(P_r_PDL1_IFNg);
-    realtype x680 = x117*x679;
-    realtype x681 = -x680*(SPVAR(SP_syn_M_C_PDL1_CD80)*x117 + x124 + x678) + 1.0;
-    realtype x682 = PARAM(P_k_out_PDL1)*x681;
-    realtype x683 = x661*x662;
-    realtype x684 = x683*x82;
-    realtype x685 = -x660*x682 + x682*x684;
-    realtype x686 = SPVAR(SP_syn_M_C_PDL2)*x117;
-    realtype x687 = -x669*x680*(x125 + x686) + 1.0;
-    realtype x688 = x673*x687;
-    realtype x689 = -x660*x688 + x684*x688;
-    realtype x690 = -x677;
-    realtype x691 = x6*x63;
-    realtype x692 = x6*x61;
-    realtype x693 = -PARAM(P_n_vasc)*x691 + x691 + x692*x70;
-    realtype x694 = -x693;
-    realtype x695 = x6*x73;
-    realtype x696 = PARAM(P_n_vasc)*x695;
-    realtype x697 = PARAM(P_n_vasc)*x6;
-    realtype x698 = x697*x76;
-    realtype x699 = x6*x81;
-    realtype x700 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_Tcell)*x27*x5*x78 - x699*x80;
-    realtype x701 = x700*x85;
-    realtype x702 = x695 - x696 + x698 + x701;
-    realtype x703 = -x702;
-    realtype x704 = -x6*x90;
-    realtype x705 = x6*x78;
-    realtype x706 = x705*x94;
-    realtype x707 = -x704 - x706;
-    realtype x708 = x692*x99;
-    realtype x709 = PARAM(P_n_vasc)*x708;
-    realtype x710 = x103*x692;
-    realtype x711 = x105*x700;
-    realtype x712 = x708 - x709 + x710 + x711;
-    realtype x713 = -x712;
-    realtype x714 = x108*x6;
-    realtype x715 = -x714;
-    realtype x716 = x115*x699;
-    realtype x717 = SPVAR(SP_V_T_Ab)*x78;
-    realtype x718 = x135*x717;
-    realtype x719 = x197*x699;
-    realtype x720 = x142*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_Tcell)*x113*x5*x78 - x114*x716) + x148*(x145*x699 - x6*x718) - x186*x705 + x190*(SPVAR(SP_V_T_NO)*PARAM(P_vol_Tcell)*x168*x5*x78 - x188*x699) + x195*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_Tcell)*x164*x5*x78 - x193*x699) + x200*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Tcell)*x172*x5*x78 - x196*x719);
-    realtype x721 = x206*x6 + x720;
-    realtype x722 = x210*x6;
-    realtype x723 = x240*x722;
-    realtype x724 = x222*x722;
-    realtype x725 = SPVAR(SP_V_T_CD8)*x722;
-    realtype x726 = x215*x725;
-    realtype x727 = x231*x725;
-    realtype x728 = x252*x716;
-    realtype x729 = x243*x6;
-    realtype x730 = x250*x729;
-    realtype x731 = x728 - x730;
-    realtype x732 = x723 + x724 + x726 + x727 + x731;
-    realtype x733 = SPVAR(SP_V_T_CD8)*x6;
-    realtype x734 = x256*x733;
-    realtype x735 = x259*x734;
-    realtype x736 = x255*x734;
-    realtype x737 = x735 - x736;
-    realtype x738 = x732 + x737;
-    realtype x739 = x265*x6;
-    realtype x740 = SPVAR(SP_V_T_Th)*x739;
-    realtype x741 = x283*x719;
-    realtype x742 = x280*x6;
-    realtype x743 = x279*x742;
-    realtype x744 = x741 - x743;
-    realtype x745 = x263*x740 + x270*x740 + x274*x740 + x744;
-    realtype x746 = -SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x286*x287*x291*x294*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_Tcell)*x201*x289*x5*x7 - x297*x6) + x721;
-    realtype x747 = -x746;
-    realtype x748 = SPVAR(SP_V_T_VEGF)*x78;
-    realtype x749 = x303*x748;
-    realtype x750 = x306*x699 - x6*x749;
-    realtype x751 = x308*x6;
-    realtype x752 = x322*(-x317*x6 + x319*x699);
-    realtype x753 = x326*x719;
-    realtype x754 = SPVAR(SP_V_T_Th)*x6;
-    realtype x755 = x280*x328*x754;
-    realtype x756 = x339*x699;
-    realtype x757 = SPVAR(SP_V_T_P1)*x343*x754*x78;
-    realtype x758 = x752 + x753 - x755 + x756 - x757;
-    realtype x759 = x693 + x758;
-    realtype x760 = x311*x751 + x759;
-    realtype x761 = x352*x6 + x359*x6 + x366*x6 + x702 - x728 + x730;
-    realtype x762 = -x723 - x724 - x726 - x727 + x761;
-    realtype x763 = -x735 + x736;
-    realtype x764 = x762 + x763;
-    realtype x765 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_Tcell)*x378*x5*x78 - x380*x699;
-    realtype x766 = x388*x765;
-    realtype x767 = x375*(-x390*(-x387*x721 + x391*x721) - x766);
-    realtype x768 = x372*x767;
-    realtype x769 = -PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_Tcell)*x396*x5;
-    realtype x770 = x401*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Tcell)*x369*x5*x78 - x399*x699);
-    realtype x771 = x400*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_Tcell)*x374*x5*x78 - x403*x716);
-    realtype x772 = x371*x770 + x372*x771;
-    realtype x773 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_Tcell)*x15*x157*x201*x394*x397*x5*x7 + x769 + x772;
-    realtype x774 = -x768 - x773;
-    realtype x775 = x408*x767;
-    realtype x776 = -PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_Tcell)*x396*x5;
-    realtype x777 = x407*x770 + x408*x771;
-    realtype x778 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_Tcell)*x15*x157*x201*x394*x397*x5*x7 + x776 + x777;
-    realtype x779 = -x775 - x778;
-    realtype x780 = x413*x6;
-    realtype x781 = SPVAR(SP_V_T_mcDC1)*x780;
-    realtype x782 = x772 - x781;
-    realtype x783 = x768 + x782;
-    realtype x784 = SPVAR(SP_V_T_mcDC2)*x780;
-    realtype x785 = x777 - x784;
-    realtype x786 = x775 + x785;
-    realtype x787 = x419*x721;
-    realtype x788 = x420*x721;
-    realtype x789 = x427*x453*x754;
-    realtype x790 = x456*x699;
-    realtype x791 = x458*x790;
-    realtype x792 = -x789 + x791;
-    realtype x793 = -PARAM(P_k_Th_seed)*PARAM(P_vol_Tcell)*x1*x3*x5 - x708 + x709 - x710 - x711 + x758;
-    realtype x794 = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*PARAM(P_vol_Tcell)*x421*x423*x426*x5 - x745 - x792 - x793;
-    realtype x795 = x461*x6;
-    realtype x796 = x472*x705;
-    realtype x797 = x467*x697;
-    realtype x798 = x479*x697;
-    realtype x799 = x471*x796 - x476*x797 + x478*x798 + x484*(-x481*x6 + x483*x699);
-    realtype x800 = x502*x6;
-    realtype x801 = x505*(-x501*x800 - x504*x765);
-    realtype x802 = x427*x6;
-    realtype x803 = x519*(-x509*x729 - x512*x802 - x515*x742 + x516*x716 + x517*x790 + x518*x719);
-    realtype x804 = x492*x6 + x496*x796 - x497*x797 + x498*x798 + x801 - x803;
-    realtype x805 = -x801 + x803;
-    realtype x806 = -x530*x802 + x531*x790;
-    realtype x807 = x544*x806;
-    realtype x808 = x557*(-x554*x705 + x556*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Tcell)*x5*x534*x78 - x555*x719));
-    realtype x809 = x553*x808;
-    realtype x810 = x561*x808;
-    realtype x811 = x569*x719;
-    realtype x812 = x566*x742 - x568*x811;
-    realtype x813 = x527*x6 + x546*x6 - x807 + x809 - x810 + x812;
-    realtype x814 = x581*x6;
-    realtype x815 = x583*x814;
-    realtype x816 = x270*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_Tcell)*x155*x5*x575*x577 - x815);
-    realtype x817 = PARAM(P_K_stiff_niche)*x815 - x579*x814;
-    realtype x818 = x593*x806 + x596*x742 - x598*x811 + x602*x808 - x605*x808;
-    realtype x819 = x807 - x809 + x810 + x818;
-    realtype x820 = -SPVAR(SP_V_T_iCAF)*x816 + x574*x590*x817 + x819;
-    realtype x821 = x812 + x818;
-    realtype x822 = -SPVAR(SP_V_T_myCAF)*x816 + PARAM(P_k_myCAF_prolif)*x574*x610*x611*x613*x817 - x821;
-    realtype x823 = -SPVAR(SP_V_T_apCAF)*x816 + PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x615*x617*x817;
-    realtype x824 = x629*x705;
-    realtype x825 = x636*(-x621*x742 + x633*x719);
-    realtype x826 = -SPVAR(SP_V_T_collagen)*(x6*x632 - x824) + x6*x626 + x825;
-    realtype x827 = x639*x705;
-    realtype x828 = -x638*x827;
-    realtype x829 = -x642*x827;
-    realtype x830 = x645*x705;
-    realtype x831 = SPVAR(SP_syn_CD8_C1_PD1)*x830;
-    realtype x832 = x652*x800;
-    realtype x833 = x666*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_Tcell)*x5*x652*x653*x78 - x664*x699);
-    realtype x834 = PARAM(P_k_out_PDL1)*PARAM(P_vol_Tcell)*x5*x658*x661*x662*x81 - x650*x833 - x659*x832;
-    realtype x835 = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_Tcell)*x5*x661*x662*x672*x81 - x671*x833 - x674*x832;
-    realtype x836 = -x831;
-    realtype x837 = SPVAR(SP_syn_M_C_PD1)*x830;
-    realtype x838 = x683*x699;
-    realtype x839 = -x682*x832 + x682*x838;
-    realtype x840 = -x688*x832 + x688*x838;
-    realtype x841 = -x837;
-    realtype x842 = SPVAR(SP_syn_CD8_C1_PD1_aPD1)*x175;
-    realtype x843 = 2.0*x175;
-    realtype x844 = SPVAR(SP_syn_CD8_C1_PD1_aPD1_PD1)*x843 + x842;
-    realtype x845 = SPVAR(SP_syn_CD8_C1_PD1)*x175;
-    realtype x846 = x178 + x844 + x845;
-    realtype x847 = PARAM(P_k_reinvig)/x846;
-    realtype x848 = x844*x847;
-    realtype x849 = SPVAR(SP_V_T_CD8)*(-x245 + x722);
-    realtype x850 = x239*x849;
-    realtype x851 = x221*x849;
-    realtype x852 = x215*x849;
-    realtype x853 = x231*x849;
-    realtype x854 = SPVAR(SP_V_T_Th)*(-x276 + x739);
-    realtype x855 = x270*x854;
-    realtype x856 = x263*x854;
-    realtype x857 = x274*x854;
-    realtype x858 = PARAM(P_k_Th_seed)*x4;
-    realtype x859 = PARAM(P_rho_Th_max)*x423;
-    realtype x860 = PARAM(P_k_Th_pro_tumor)*x421*x426*x859;
-    realtype x861 = x789 - x791;
-    realtype x862 = 2.0*std::pow(SPVAR(SP_V_T_C1), 1.0);
-    realtype x863 = x3*x862;
-    realtype x864 = x16*x62;
-    realtype x865 = std::pow(x2, -2);
-    realtype x866 = 2.0*std::pow(SPVAR(SP_V_T_C1), 3.0)*x865;
-    realtype x867 = x71 + x863*x864 - x864*x866;
-    realtype x868 = PARAM(P_q_CD8_T_in)*x15*x72;
-    realtype x869 = x86 + x863*x868 - x866*x868;
-    realtype x870 = x16*x99;
-    realtype x871 = x107 + x863*x870 - x866*x870;
-    realtype x872 = SPVAR(SP_V_C_B)*x16;
-    realtype x873 = x109 + x863*x872 - x866*x872;
-    realtype x874 = x136*x147/std::pow(x138, 2);
-    realtype x875 = PARAM(P_k_C1_death) - x137*x874 + x207 + x383 + x384;
-    realtype x876 = x269*x862*x865;
-    realtype x877 = SPVAR(SP_V_T_CD8)*x876;
-    realtype x878 = x220*x247;
-    realtype x879 = x214*x247;
-    realtype x880 = SPVAR(SP_V_T_C1)/std::pow(x218, 2);
-    realtype x881 = PARAM(P_k_CD8_basal_exh)*x247;
-    realtype x882 = x183*x880*x881;
-    realtype x883 = SPVAR(SP_V_T_C1)*PARAM(P_k_C_CD8_exh)*x247;
-    realtype x884 = x182*x883/std::pow(x212, 2);
-    realtype x885 = -x884;
-    realtype x886 = x262*x278;
-    realtype x887 = PARAM(P_k_Th_basal_exh)*x278*x880;
-    realtype x888 = x278*x876;
-    realtype x889 = std::fmax(0.0, SPVAR(SP_V_T_C1));
-    realtype x890 = PARAM(P_k_vas_decay)*std::pow(PARAM(P_vas_inhib_vol_scale)*x150, 0.66666666666666663);
-    realtype x891 = 1.0 - PARAM(P_f_nTreg);
-    realtype x892 = x375*(-x389 - x390*(-x387*x875 + x391*x875));
-    realtype x893 = x372*x892;
-    realtype x894 = x408*x892;
-    realtype x895 = PARAM(P_k_Th_seed)*x15;
-    realtype x896 = PARAM(P_f_stroma_max) + x585;
-    realtype x897 = x574*x896;
-    realtype x898 = 1.0 - x578;
-    realtype x899 = x876*x898;
-    realtype x900 = x611*x613;
-    realtype x901 = PARAM(P_k_myCAF_prolif)*x610*x900;
-    realtype x902 = PARAM(P_f_apCAF_of_total)*x617;
-    realtype x903 = PARAM(P_k_apCAF_prolif)*x615*x902;
-    realtype x904 = 1.0/SPVAR(SP_V_T_K_vasc);
-    realtype x905 = PARAM(P_n_vasc)*x904;
-    realtype x906 = x17*x905;
-    realtype x907 = -SPVAR(SP_V_C_Treg)*x24*x905 + x69*x906;
-    realtype x908 = -SPVAR(SP_V_C_CD8)*x32*x905 + x75*x84*x905;
-    realtype x909 = -SPVAR(SP_V_C_Th)*x38*x905 + x102*x906;
-    realtype x910 = x286*x290;
-    realtype x911 = SPVAR(SP_V_T_CCL2)*x479*x905;
-    realtype x912 = x165*x194/std::pow(x153, 2);
-    realtype x913 = -x151*x912;
-    realtype x914 = x721 + x913;
-    realtype x915 = x229*x248;
-    realtype x916 = x230*x247/std::pow(x225, 2);
-    realtype x917 = x738 - x916;
-    realtype x918 = x375*(-x390*(-x387*x914 + x391*x914) - x766);
-    realtype x919 = x372*x918;
-    realtype x920 = x408*x918;
-    realtype x921 = 2*SPVAR(SP_V_T_CD8)*x18*x185 - x912;
-    realtype x922 = x721 + x921;
-    realtype x923 = x215*x246 + x221*x246 + x231*x246 + x255 + x885 + x917;
-    realtype x924 = 1.0/x349;
-    realtype x925 = 1.0/x355;
-    realtype x926 = -x354 + x357*x733;
-    realtype x927 = x375*(-x390*(-x387*x922 + x391*x922) - x766);
-    realtype x928 = x372*x927;
-    realtype x929 = x408*x927;
-    realtype x930 = x370*x401;
-    realtype x931 = PARAM(P_k_APC_mat_cDC1)*x930;
-    realtype x932 = -x638;
-    realtype x933 = -x642;
-    realtype x934 = PARAM(P_k_APC_mat_cDC2)*x930;
-    realtype x935 = PARAM(P_k_APC_mig)*x396;
-    realtype x936 = -PARAM(P_k_mAPC_death) - x935;
-    realtype x937 = SPVAR(SP_V_T_cDC1) + SPVAR(SP_V_T_cDC2);
-    realtype x938 = x18*x639;
-    realtype x939 = -SPVAR(SP_V_T_Th)*SPVAR(SP_V_T_apCAF)*PARAM(P_k_apCAF_iTreg)*x18*x334*x341 + x337*x344*x78;
-    realtype x940 = x18*x92;
-    realtype x941 = PARAM(P_q_T_aPD1)*x940;
-    realtype x942 = PARAM(P_q_LD_aPD1)*x92;
-    realtype x943 = x644*x940;
-    realtype x944 = SPVAR(SP_syn_CD8_C1_PD1)*x943;
-    realtype x945 = SPVAR(SP_syn_M_C_PD1)*x943;
-    realtype x946 = x263*x277 + x270*x277 + x274*x277 + x745;
-    realtype x947 = x170*x328 + x331*x343;
-    realtype x948 = x429*x453 + x792;
-    realtype x949 = -PARAM(P_k_IFNg_deg);
-    realtype x950 = x18*x501*x505;
-    realtype x951 = x502*x662;
-    realtype x952 = x666*(-x18*x654 + x502*x663);
-    realtype x953 = PARAM(P_k_out_PDL1)*x951;
-    realtype x954 = PARAM(P_r_PDL2C1)*x953;
-    realtype x955 = x200*(-x173*x18 + x196*x280);
-    realtype x956 = -x18*x279 + x280*x283;
-    realtype x957 = SPVAR(SP_V_T_Th)*x18;
-    realtype x958 = SPVAR(SP_V_T_Th)*x280;
-    realtype x959 = x325*x958 - x328*x957;
-    realtype x960 = x401*(-x18*x369 + x280*x398);
-    realtype x961 = -x387*x955 + x391*x955;
-    realtype x962 = -SPVAR(SP_V_T_cDC1)*PARAM(P_k_APC_mat_cDC1)*x370*x375*x390*x961 + x371*x960;
-    realtype x963 = -SPVAR(SP_V_T_cDC2)*PARAM(P_k_APC_mat_cDC2)*x370*x375*x390*x961 + x407*x960;
-    realtype x964 = x519*(0.33333333333333331*x18*x514 - x280*x518);
-    realtype x965 = PARAM(P_n_IL1)*x537*(-x18*x535 + x280*x555);
-    realtype x966 = SPVAR(SP_V_T_qPSC)*x965;
-    realtype x967 = x552*x966;
-    realtype x968 = x560*x966;
-    realtype x969 = x280*x569;
-    realtype x970 = -x523*x565 + x568*x969;
-    realtype x971 = SPVAR(SP_V_T_myCAF)*x965;
-    realtype x972 = -x18*x596 + x598*x969 + x600*x971 - x604*x971;
-    realtype x973 = x190*(SPVAR(SP_V_T_NO)*x187*x78 - x168*x18);
-    realtype x974 = x375*x390;
-    realtype x975 = x974*(-x387*x973 + x391*x973);
-    realtype x976 = x372*x975;
-    realtype x977 = x408*x975;
-    realtype x978 = x195*(-x164*x18 + x191*x313);
-    realtype x979 = x322*(PARAM(P_Emax_ArgI_Treg)*x18*x315 - x313*x318);
-    realtype x980 = x974*(-x387*x978 + x391*x978);
-    realtype x981 = x372*x980;
-    realtype x982 = x408*x980;
-    realtype x983 = PARAM(P_vol_Mcell)*x5;
-    realtype x984 = x63*x983;
-    realtype x985 = x61*x983;
-    realtype x986 = -PARAM(P_n_vasc)*x984 + x70*x985 + x984;
-    realtype x987 = -x986;
-    realtype x988 = x73*x983;
-    realtype x989 = PARAM(P_n_vasc)*x983;
-    realtype x990 = x81*x983;
-    realtype x991 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_Mcell)*x27*x5*x78 - x80*x990;
-    realtype x992 = -PARAM(P_n_vasc)*x988 + x76*x989 + x85*x991 + x988;
-    realtype x993 = -x992;
-    realtype x994 = -x90*x983;
-    realtype x995 = PARAM(P_vol_Mcell)*x95;
-    realtype x996 = x94*x995;
-    realtype x997 = -x994 - x996;
-    realtype x998 = x985*x99;
-    realtype x999 = PARAM(P_n_vasc)*x998;
-    realtype x1000 = x103*x985;
-    realtype x1001 = x105*x991;
-    realtype x1002 = -x1000 - x1001 - x998 + x999;
-    realtype x1003 = x108*x983;
-    realtype x1004 = -x1003;
-    realtype x1005 = x115*x990;
-    realtype x1006 = x197*x990;
-    realtype x1007 = x142*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_Mcell)*x113*x5*x78 - x1005*x114) + x148*(-x143*x995 + x145*x990) - x186*x995 + x190*(SPVAR(SP_V_T_NO)*PARAM(P_vol_Mcell)*x168*x5*x78 - x188*x990) + x195*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_Mcell)*x164*x5*x78 - x193*x990) + x200*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Mcell)*x172*x5*x78 - x1006*x196) + x206*x983;
-    realtype x1008 = SPVAR(SP_V_T_C1)*x382 - SPVAR(SP_V_T_C1)*x874;
-    realtype x1009 = x1007 + x1008;
-    realtype x1010 = SPVAR(SP_V_T_CD8)*x216;
-    realtype x1011 = x1010*x983;
-    realtype x1012 = x223*x983;
-    realtype x1013 = SPVAR(SP_V_T_CD8)*x232;
-    realtype x1014 = x1013*x983;
-    realtype x1015 = x241*x983;
-    realtype x1016 = x243*x983;
-    realtype x1017 = x1016*x250;
-    realtype x1018 = x1005*x252;
-    realtype x1019 = SPVAR(SP_V_T_CD8)*x256;
-    realtype x1020 = x1019*x983;
-    realtype x1021 = x1020*x255;
-    realtype x1022 = x1020*x259;
-    realtype x1023 = x1011 + x1012 + x1014 + x1015 - x1017 + x1018 - x1021 + x1022;
-    realtype x1024 = x266*x983;
-    realtype x1025 = x280*x983;
-    realtype x1026 = x1006*x283 + x1024*x263 + x1024*x270 + x1024*x274 - x1025*x279;
-    realtype x1027 = -SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x286*x287*x291*x294*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_Mcell)*x201*x289*x5*x7 - x297*x983) + x1007;
-    realtype x1028 = -x304*x995 + x306*x990;
-    realtype x1029 = x328*x958;
-    realtype x1030 = x1006*x326 - x1029*x983 + x322*(-x317*x983 + x319*x990) + x339*x990 - x345*x995;
-    realtype x1031 = x1030 + x312*x983 + x986;
-    realtype x1032 = -x1011 - x1012 - x1014 - x1015 + x1017 - x1018 + x1021 - x1022 + x352*x983 + x359*x983 + x366*x983 + x992;
-    realtype x1033 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_Mcell)*x378*x5*x78 - x380*x990;
-    realtype x1034 = x1033*x388;
-    realtype x1035 = x375*(-x1034 - x390*(-x1009*x387 + x1009*x391));
-    realtype x1036 = x1035*x372;
-    realtype x1037 = x401*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Mcell)*x369*x5*x78 - x399*x990);
-    realtype x1038 = x400*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_Mcell)*x374*x5*x78 - x1005*x403);
-    realtype x1039 = x1037*x371 + x1038*x372;
-    realtype x1040 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_Mcell)*x15*x157*x201*x394*x397*x5*x7 - PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_Mcell)*x396*x5 + x1039;
-    realtype x1041 = x1035*x408;
-    realtype x1042 = x1037*x407 + x1038*x408;
-    realtype x1043 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_Mcell)*x15*x157*x201*x394*x397*x5*x7 - PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_Mcell)*x396*x5 + x1042;
-    realtype x1044 = x413*x983;
-    realtype x1045 = SPVAR(SP_V_T_mcDC1)*x1044;
-    realtype x1046 = x1039 - x1045;
-    realtype x1047 = SPVAR(SP_V_T_mcDC2)*x1044;
-    realtype x1048 = x1042 - x1047;
-    realtype x1049 = x427*x983;
-    realtype x1050 = x456*x990;
-    realtype x1051 = -x1049*x454 + x1050*x458;
-    realtype x1052 = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*PARAM(P_vol_Mcell)*x421*x423*x426*x5 + PARAM(P_k_Th_seed)*PARAM(P_vol_Mcell)*x1*x3*x5 + x1000 + x1001 - x1026 - x1030 - x1051 + x998 - x999;
-    realtype x1053 = x461*x983;
-    realtype x1054 = x472*x995;
-    realtype x1055 = x467*x989;
-    realtype x1056 = x479*x989;
-    realtype x1057 = x1054*x471 - x1055*x476 + x1056*x478 + x484*(-x481*x983 + x483*x990);
-    realtype x1058 = PARAM(P_rho_Mac_max)*PARAM(P_vol_Mcell)*x13*x487*x5 - x493;
-    realtype x1059 = x1055*x497;
-    realtype x1060 = x502*x983;
-    realtype x1061 = x505*(-x1033*x504 - x1060*x501);
-    realtype x1062 = x519*(x1005*x516 + x1006*x518 - x1016*x509 - x1025*x515 - x1049*x512 + x1050*x517);
-    realtype x1063 = PARAM(P_k_M2_pol)*(x111*x509 + x170*x515 + x429*x512) - x1061 + x1062;
-    realtype x1064 = PARAM(P_k_Mac_death) + x270;
-    realtype x1065 = -x1049*x530 + x1050*x531;
-    realtype x1066 = x1065*x544;
-    realtype x1067 = x557*(-x554*x995 + x556*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Mcell)*x5*x534*x78 - x1006*x555));
-    realtype x1068 = x1067*x553;
-    realtype x1069 = x1067*x561;
-    realtype x1070 = x1006*x569;
-    realtype x1071 = x1025*x566 - x1070*x568;
-    realtype x1072 = -x1066 + x1068 - x1069 + x1071 + x527*x983 + x546*x983;
-    realtype x1073 = x581*x983;
-    realtype x1074 = x1073*x583;
-    realtype x1075 = x270*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_Mcell)*x155*x5*x575*x577 - x1074);
-    realtype x1076 = PARAM(P_K_stiff_niche)*x1074 - x1073*x579;
-    realtype x1077 = x1025*x596 + x1065*x593 + x1067*x602 - x1067*x605 - x1070*x598;
-    realtype x1078 = -SPVAR(SP_V_T_iCAF)*x1075 + x1066 - x1068 + x1069 + x1076*x574*x590 + x1077;
-    realtype x1079 = -SPVAR(SP_V_T_myCAF)*x1075 + PARAM(P_k_myCAF_prolif)*x1076*x574*x610*x611*x613 - x1071 - x1077;
-    realtype x1080 = -SPVAR(SP_V_T_apCAF)*x1075 + PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x1076*x615*x617;
-    realtype x1081 = -x629*x995 + x632*x983;
-    realtype x1082 = x626*x983 + x636*(x1006*x633 - x1025*x621);
-    realtype x1083 = x639*x995;
-    realtype x1084 = -x1083*x638;
-    realtype x1085 = -x1083*x642;
-    realtype x1086 = x645*x995;
-    realtype x1087 = SPVAR(SP_syn_CD8_C1_PD1)*x1086;
-    realtype x1088 = x1060*x652;
-    realtype x1089 = x666*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_Mcell)*x5*x652*x653*x78 - x664*x990);
-    realtype x1090 = PARAM(P_k_out_PDL1)*PARAM(P_vol_Mcell)*x5*x658*x661*x662*x81 - x1088*x659 - x1089*x650;
-    realtype x1091 = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_Mcell)*x5*x661*x662*x672*x81 - x1088*x674 - x1089*x671;
-    realtype x1092 = -x1087;
-    realtype x1093 = SPVAR(SP_syn_M_C_PD1)*x1086;
-    realtype x1094 = x683*x990;
-    realtype x1095 = -x1088*x682 + x1094*x682;
-    realtype x1096 = -x1088*x688 + x1094*x688;
-    realtype x1097 = -x1093;
-    realtype x1098 = x375*(-x1034 - x390*(-x1007*x387 + x1007*x391));
-    realtype x1099 = x1098*x372;
-    realtype x1100 = x1098*x408;
-    realtype x1101 = PARAM(P_k_M1_pol)*(-x390*x504 + 1.0) + x1061 - x1062;
-    realtype x1102 = x628*x630;
-    realtype x1103 = SPVAR(SP_V_T_IL12)*x379*x78 - x18*x378;
-    realtype x1104 = x1103*x375*x388;
-    realtype x1105 = x1104*x372;
-    realtype x1106 = x1104*x408;
-    realtype x1107 = x1103*x504*x505;
-    realtype x1108 = x142*(-x113*x18 + x114*x243);
-    realtype x1109 = -SPVAR(SP_V_T_CD8)*SPVAR(SP_V_T_Treg)*PARAM(P_k_Treg_CD8_exh)*x18*x226*x228*x246 + x243*x252;
-    realtype x1110 = x400*(-x18*x374 + x243*x403);
-    realtype x1111 = -x1108*x387 + x1108*x391;
-    realtype x1112 = -SPVAR(SP_V_T_cDC1)*PARAM(P_k_APC_mat_cDC1)*x1111*x370*x375*x390 + x1110*x372;
-    realtype x1113 = -SPVAR(SP_V_T_cDC2)*PARAM(P_k_APC_mat_cDC2)*x1111*x370*x375*x390 + x1110*x408;
-    realtype x1114 = x519*(0.33333333333333331*x18*x508 - x243*x516);
-    realtype x1115 = PARAM(P_vol_qPSCcell)*x5;
-    realtype x1116 = x1115*x63;
-    realtype x1117 = x1115*x61;
-    realtype x1118 = -PARAM(P_n_vasc)*x1116 + x1116 + x1117*x70;
-    realtype x1119 = x1115*x73;
-    realtype x1120 = PARAM(P_n_vasc)*x1115;
-    realtype x1121 = x1115*x81;
-    realtype x1122 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_qPSCcell)*x27*x5*x78 - x1121*x80;
-    realtype x1123 = -PARAM(P_n_vasc)*x1119 + x1119 + x1120*x76 + x1122*x85;
-    realtype x1124 = -x1115*x90;
-    realtype x1125 = PARAM(P_vol_qPSCcell)*x95;
-    realtype x1126 = x1125*x94;
-    realtype x1127 = x1117*x99;
-    realtype x1128 = PARAM(P_n_vasc)*x1127;
-    realtype x1129 = x103*x1117;
-    realtype x1130 = x105*x1122;
-    realtype x1131 = x108*x1115;
-    realtype x1132 = x1121*x115;
-    realtype x1133 = x1121*x197;
-    realtype x1134 = x1115*x206 - x1125*x186 + x142*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_qPSCcell)*x113*x5*x78 - x1132*x114) + x148*(x1121*x145 - x1125*x143) + x190*(SPVAR(SP_V_T_NO)*PARAM(P_vol_qPSCcell)*x168*x5*x78 - x1121*x188) + x195*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_qPSCcell)*x164*x5*x78 - x1121*x193) + x200*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_qPSCcell)*x172*x5*x78 - x1133*x196);
-    realtype x1135 = x1010*x1115;
-    realtype x1136 = x1115*x223;
-    realtype x1137 = x1013*x1115;
-    realtype x1138 = x1115*x241;
-    realtype x1139 = x1115*x243;
-    realtype x1140 = x1139*x250;
-    realtype x1141 = x1132*x252;
-    realtype x1142 = x1019*x1115;
-    realtype x1143 = x1142*x255;
-    realtype x1144 = x1142*x259;
-    realtype x1145 = x1115*x266;
-    realtype x1146 = x1115*x280;
-    realtype x1147 = x1133*x283 + x1145*x263 + x1145*x270 + x1145*x274 - x1146*x279;
-    realtype x1148 = -x1029*x1115 + x1121*x339 - x1125*x345 + x1133*x326 + x322*(-x1115*x317 + x1121*x319);
-    realtype x1149 = x401*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_qPSCcell)*x369*x5*x78 - x1121*x399);
-    realtype x1150 = x400*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_qPSCcell)*x374*x5*x78 - x1132*x403);
-    realtype x1151 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_qPSCcell)*x378*x5*x78 - x1121*x380;
-    realtype x1152 = x375*(-x1151*x388 - x390*(-x1134*x387 + x1134*x391));
-    realtype x1153 = x1149*x371 + x1150*x372 + x1152*x372;
-    realtype x1154 = x1149*x407 + x1150*x408 + x1152*x408;
-    realtype x1155 = x1115*x413;
-    realtype x1156 = SPVAR(SP_V_T_mcDC1)*x1155;
-    realtype x1157 = SPVAR(SP_V_T_mcDC2)*x1155;
-    realtype x1158 = x1115*x427;
-    realtype x1159 = x1121*x456;
-    realtype x1160 = -x1158*x454 + x1159*x458;
-    realtype x1161 = x1125*x472;
-    realtype x1162 = x1120*x467;
-    realtype x1163 = x1120*x479;
-    realtype x1164 = x488*x491*x5;
-    realtype x1165 = x1115*x502;
-    realtype x1166 = x505*(-x1151*x504 - x1165*x501);
-    realtype x1167 = x519*(x1132*x516 + x1133*x518 - x1139*x509 - x1146*x515 - x1158*x512 + x1159*x517);
-    realtype x1168 = x12*x5;
-    realtype x1169 = x197*x569*x81;
-    realtype x1170 = PARAM(P_k_PSC_to_myCAF)*x1168*x1169 - x1168*x280*x565 + x170*x565;
-    realtype x1171 = -x1158*x530 + x1159*x531;
-    realtype x1172 = x557*(-x1125*x554 + x556*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_qPSCcell)*x5*x534*x78 - x1133*x555));
-    realtype x1173 = x1171*x544 - x1172*x553 + x1172*x561 + x560;
-    realtype x1174 = x1171*x593;
-    realtype x1175 = x1115*x581;
-    realtype x1176 = x1175*x583;
-    realtype x1177 = x270*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_qPSCcell)*x155*x5*x575*x577 - x1176);
-    realtype x1178 = PARAM(P_K_stiff_niche)*x1176 - x1175*x579;
-    realtype x1179 = x1178*x574;
-    realtype x1180 = x1146*x596;
-    realtype x1181 = x569*x598;
-    realtype x1182 = x1133*x1181;
-    realtype x1183 = x1172*x602;
-    realtype x1184 = x1172*x605;
-    realtype x1185 = x1125*x639;
-    realtype x1186 = x1125*x645;
-    realtype x1187 = SPVAR(SP_syn_CD8_C1_PD1)*x1186;
-    realtype x1188 = x1165*x652;
-    realtype x1189 = x666*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_qPSCcell)*x5*x652*x653*x78 - x1121*x664);
-    realtype x1190 = SPVAR(SP_syn_M_C_PD1)*x1186;
-    realtype x1191 = x1121*x683;
-    realtype x1192 = PARAM(P_vol_iCAFcell)*x5;
-    realtype x1193 = x1192*x63;
-    realtype x1194 = x1192*x61;
-    realtype x1195 = -PARAM(P_n_vasc)*x1193 + x1193 + x1194*x70;
-    realtype x1196 = x1192*x73;
-    realtype x1197 = PARAM(P_n_vasc)*x1192;
-    realtype x1198 = x1192*x81;
-    realtype x1199 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_iCAFcell)*x27*x5*x78 - x1198*x80;
-    realtype x1200 = -PARAM(P_n_vasc)*x1196 + x1196 + x1197*x76 + x1199*x85;
-    realtype x1201 = -x1192*x90;
-    realtype x1202 = PARAM(P_vol_iCAFcell)*x95;
-    realtype x1203 = x1202*x94;
-    realtype x1204 = x1194*x99;
-    realtype x1205 = -PARAM(P_n_vasc)*x1204 + x103*x1194 + x105*x1199 + x1204;
-    realtype x1206 = x108*x1192;
-    realtype x1207 = x115*x1198;
-    realtype x1208 = x1198*x197;
-    realtype x1209 = x1192*x206 - x1202*x186 + x142*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_iCAFcell)*x113*x5*x78 - x114*x1207) + x148*(x1198*x145 - x1202*x143) + x190*(SPVAR(SP_V_T_NO)*PARAM(P_vol_iCAFcell)*x168*x5*x78 - x1198*x188) + x195*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_iCAFcell)*x164*x5*x78 - x1198*x193) + x200*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_iCAFcell)*x172*x5*x78 - x1208*x196);
-    realtype x1210 = x1010*x1192;
-    realtype x1211 = x1192*x223;
-    realtype x1212 = x1013*x1192;
-    realtype x1213 = x1192*x241;
-    realtype x1214 = x1192*x243;
-    realtype x1215 = x1214*x250;
-    realtype x1216 = x1207*x252;
-    realtype x1217 = x1019*x1192;
-    realtype x1218 = x1217*x255;
-    realtype x1219 = x1217*x259;
-    realtype x1220 = x1192*x266;
-    realtype x1221 = x1220*x263;
-    realtype x1222 = x1220*x270;
-    realtype x1223 = x1220*x274;
-    realtype x1224 = x1192*x280;
-    realtype x1225 = x1224*x279;
-    realtype x1226 = x1208*x283;
-    realtype x1227 = PARAM(P_k_stroma_support)*x910;
-    realtype x1228 = x322*(-x1192*x317 + x1198*x319);
-    realtype x1229 = SPVAR(SP_V_T_Th)*x331;
-    realtype x1230 = SPVAR(SP_V_T_apCAF)*PARAM(P_k_apCAF_iTreg)*x1229*x341/std::pow(x333, 2);
-    realtype x1231 = -x1230;
-    realtype x1232 = x1208*x326;
-    realtype x1233 = x1029*x1192;
-    realtype x1234 = x1198*x339;
-    realtype x1235 = x1202*x345;
-    realtype x1236 = x401*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_iCAFcell)*x369*x5*x78 - x1198*x399);
-    realtype x1237 = x400*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_iCAFcell)*x374*x5*x78 - x1207*x403);
-    realtype x1238 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_iCAFcell)*x378*x5*x78 - x1198*x380;
-    realtype x1239 = x375*(-x1238*x388 - x390*(-x1209*x387 + x1209*x391));
-    realtype x1240 = x1236*x371 + x1237*x372 + x1239*x372;
-    realtype x1241 = x1236*x407 + x1237*x408 + x1239*x408;
-    realtype x1242 = x1192*x413;
-    realtype x1243 = SPVAR(SP_V_T_mcDC1)*x1242;
-    realtype x1244 = SPVAR(SP_V_T_mcDC2)*x1242;
-    realtype x1245 = x1192*x427;
-    realtype x1246 = x1245*x454;
-    realtype x1247 = x1198*x456;
-    realtype x1248 = x1247*x458;
-    realtype x1249 = x1202*x472;
-    realtype x1250 = x1197*x467;
-    realtype x1251 = x1197*x479;
-    realtype x1252 = x1192*x502;
-    realtype x1253 = x505*(-x1238*x504 - x1252*x501);
-    realtype x1254 = x519*(x1207*x516 + x1208*x518 - x1214*x509 - x1224*x515 - x1245*x512 + x1247*x517);
-    realtype x1255 = x1224*x566;
-    realtype x1256 = x568*x569;
-    realtype x1257 = x1208*x1256;
-    realtype x1258 = -x1245*x530 + x1247*x531;
-    realtype x1259 = x557*(-x1202*x554 + x556*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_iCAFcell)*x5*x534*x78 - x1208*x555));
-    realtype x1260 = -x1258*x544 + x1259*x553 - x1259*x561;
-    realtype x1261 = x270*x898;
-    realtype x1262 = 1.0/x588;
-    realtype x1263 = x1192*x581;
-    realtype x1264 = x1263*x583;
-    realtype x1265 = PARAM(P_K_stiff_niche)*x1264 - x1263*x579;
-    realtype x1266 = x1265*x574;
-    realtype x1267 = x270*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_iCAFcell)*x155*x5*x575*x577 - x1264);
-    realtype x1268 = x10*x5;
-    realtype x1269 = PARAM(P_k_iCAF_to_myCAF)*x1169*x1268 - x1258*x593 - x1259*x602 + x1259*x605 - x1268*x280*x595 + x170*x595;
-    realtype x1270 = x1202*x639;
-    realtype x1271 = x1202*x645;
-    realtype x1272 = SPVAR(SP_syn_CD8_C1_PD1)*x1271;
-    realtype x1273 = x1252*x652;
-    realtype x1274 = x666*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_iCAFcell)*x5*x652*x653*x78 - x1198*x664);
-    realtype x1275 = SPVAR(SP_syn_M_C_PD1)*x1271;
-    realtype x1276 = x1198*x683;
-    realtype x1277 = PARAM(P_vol_myCAFcell)*x5;
-    realtype x1278 = x1277*x63;
-    realtype x1279 = x1277*x61;
-    realtype x1280 = -PARAM(P_n_vasc)*x1278 + x1278 + x1279*x70;
-    realtype x1281 = x1277*x73;
-    realtype x1282 = PARAM(P_n_vasc)*x1277;
-    realtype x1283 = x1277*x81;
-    realtype x1284 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_myCAFcell)*x27*x5*x78 - x1283*x80;
-    realtype x1285 = -PARAM(P_n_vasc)*x1281 + x1281 + x1282*x76 + x1284*x85;
-    realtype x1286 = -x1277*x90;
-    realtype x1287 = PARAM(P_vol_myCAFcell)*x95;
-    realtype x1288 = x1287*x94;
-    realtype x1289 = x1279*x99;
-    realtype x1290 = -PARAM(P_n_vasc)*x1289 + x103*x1279 + x105*x1284 + x1289;
-    realtype x1291 = x108*x1277;
-    realtype x1292 = x115*x1283;
-    realtype x1293 = x1283*x197;
-    realtype x1294 = x1277*x206 - x1287*x186 + x142*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_myCAFcell)*x113*x5*x78 - x114*x1292) + x148*(x1283*x145 - x1287*x143) + x190*(SPVAR(SP_V_T_NO)*PARAM(P_vol_myCAFcell)*x168*x5*x78 - x1283*x188) + x195*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_myCAFcell)*x164*x5*x78 - x1283*x193) + x200*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_myCAFcell)*x172*x5*x78 - x1293*x196);
-    realtype x1295 = x1010*x1277;
-    realtype x1296 = x1277*x223;
-    realtype x1297 = x1013*x1277;
-    realtype x1298 = x1277*x241;
-    realtype x1299 = x1277*x243;
-    realtype x1300 = x1299*x250;
-    realtype x1301 = x1292*x252;
-    realtype x1302 = x1019*x1277;
-    realtype x1303 = x1302*x255;
-    realtype x1304 = x1302*x259;
-    realtype x1305 = x1277*x266;
-    realtype x1306 = x1305*x263;
-    realtype x1307 = x1305*x270;
-    realtype x1308 = x1305*x274;
-    realtype x1309 = x1277*x280;
-    realtype x1310 = x1309*x279;
-    realtype x1311 = x1293*x283;
-    realtype x1312 = x322*(-x1277*x317 + x1283*x319);
-    realtype x1313 = x1293*x326;
-    realtype x1314 = x1029*x1277;
-    realtype x1315 = x1283*x339;
-    realtype x1316 = x1287*x345;
-    realtype x1317 = x401*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_myCAFcell)*x369*x5*x78 - x1283*x399);
-    realtype x1318 = x400*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_myCAFcell)*x374*x5*x78 - x1292*x403);
-    realtype x1319 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_myCAFcell)*x378*x5*x78 - x1283*x380;
-    realtype x1320 = x375*(-x1319*x388 - x390*(-x1294*x387 + x1294*x391));
-    realtype x1321 = x1317*x371 + x1318*x372 + x1320*x372;
-    realtype x1322 = x1317*x407 + x1318*x408 + x1320*x408;
-    realtype x1323 = x1277*x413;
-    realtype x1324 = SPVAR(SP_V_T_mcDC1)*x1323;
-    realtype x1325 = SPVAR(SP_V_T_mcDC2)*x1323;
-    realtype x1326 = x1277*x427;
-    realtype x1327 = x1326*x454;
-    realtype x1328 = x1283*x456;
-    realtype x1329 = x1328*x458;
-    realtype x1330 = x1287*x472;
-    realtype x1331 = x1282*x467;
-    realtype x1332 = x1282*x479;
-    realtype x1333 = x1277*x502;
-    realtype x1334 = x505*(-x1319*x504 - x1333*x501);
-    realtype x1335 = x519*(x1292*x516 + x1293*x518 - x1299*x509 - x1309*x515 - x1326*x512 + x1328*x517);
-    realtype x1336 = -x1326*x530 + x1328*x531;
-    realtype x1337 = x1336*x544;
-    realtype x1338 = x557*(-x1287*x554 + x556*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_myCAFcell)*x5*x534*x78 - x1293*x555));
-    realtype x1339 = x1338*x553;
-    realtype x1340 = x1338*x561;
-    realtype x1341 = -x1256*x1293 + x1309*x566;
-    realtype x1342 = x1277*x581;
-    realtype x1343 = x1342*x583;
-    realtype x1344 = x270*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_myCAFcell)*x155*x5*x575*x577 - x1343);
-    realtype x1345 = PARAM(P_K_stiff_niche)*x1343 - x1342*x579;
-    realtype x1346 = x1345*x574;
-    realtype x1347 = -x1181*x1293 + x1309*x596 + x1336*x593 + x1338*x602 - x1338*x605 + x600;
-    realtype x1348 = 1.0/x612;
-    realtype x1349 = x1287*x639;
-    realtype x1350 = x1287*x645;
-    realtype x1351 = SPVAR(SP_syn_CD8_C1_PD1)*x1350;
-    realtype x1352 = x1333*x652;
-    realtype x1353 = x666*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_myCAFcell)*x5*x652*x653*x78 - x1283*x664);
-    realtype x1354 = SPVAR(SP_syn_M_C_PD1)*x1350;
-    realtype x1355 = x1283*x683;
-    realtype x1356 = PARAM(P_vol_apCAFcell)*x5;
-    realtype x1357 = x1356*x63;
-    realtype x1358 = x1356*x61;
-    realtype x1359 = -PARAM(P_n_vasc)*x1357 + x1357 + x1358*x70;
-    realtype x1360 = x1356*x73;
-    realtype x1361 = PARAM(P_n_vasc)*x1356;
-    realtype x1362 = x1356*x81;
-    realtype x1363 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_apCAFcell)*x27*x5*x78 - x1362*x80;
-    realtype x1364 = -PARAM(P_n_vasc)*x1360 + x1360 + x1361*x76 + x1363*x85;
-    realtype x1365 = -x1356*x90;
-    realtype x1366 = PARAM(P_vol_apCAFcell)*x95;
-    realtype x1367 = x1366*x94;
-    realtype x1368 = x1358*x99;
-    realtype x1369 = PARAM(P_n_vasc)*x1368;
-    realtype x1370 = x103*x1358;
-    realtype x1371 = x105*x1363;
-    realtype x1372 = x108*x1356;
-    realtype x1373 = x115*x1362;
-    realtype x1374 = x1362*x197;
-    realtype x1375 = x1356*x206 - x1366*x186 + x142*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_apCAFcell)*x113*x5*x78 - x114*x1373) + x148*(x1362*x145 - x1366*x143) + x190*(SPVAR(SP_V_T_NO)*PARAM(P_vol_apCAFcell)*x168*x5*x78 - x1362*x188) + x195*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_apCAFcell)*x164*x5*x78 - x1362*x193) + x200*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_apCAFcell)*x172*x5*x78 - x1374*x196);
-    realtype x1376 = x1010*x1356;
-    realtype x1377 = x1356*x223;
-    realtype x1378 = x1013*x1356;
-    realtype x1379 = x1356*x241;
-    realtype x1380 = x1356*x243;
-    realtype x1381 = x1380*x250;
-    realtype x1382 = x1373*x252;
-    realtype x1383 = x1019*x1356;
-    realtype x1384 = x1383*x255;
-    realtype x1385 = x1383*x259;
-    realtype x1386 = x1356*x266;
-    realtype x1387 = x1356*x280;
-    realtype x1388 = x1374*x283 + x1386*x263 + x1386*x270 + x1386*x274 - x1387*x279;
-    realtype x1389 = -x1029*x1356 + x1229*x342 + x1231 + x1374*x326 + x322*(-x1356*x317 + x1362*x319) + x336*x338*x5*x81*x9 - x342*x344*x9*x95;
-    realtype x1390 = x401*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_apCAFcell)*x369*x5*x78 - x1362*x399);
-    realtype x1391 = x400*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_apCAFcell)*x374*x5*x78 - x1373*x403);
-    realtype x1392 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_apCAFcell)*x378*x5*x78 - x1362*x380;
-    realtype x1393 = x375*(-x1392*x388 - x390*(-x1375*x387 + x1375*x391));
-    realtype x1394 = x1390*x371 + x1391*x372 + x1393*x372;
-    realtype x1395 = x1390*x407 + x1391*x408 + x1393*x408;
-    realtype x1396 = x1356*x413;
-    realtype x1397 = SPVAR(SP_V_T_mcDC1)*x1396;
-    realtype x1398 = SPVAR(SP_V_T_mcDC2)*x1396;
-    realtype x1399 = x1356*x427;
-    realtype x1400 = x1362*x456;
-    realtype x1401 = -x1399*x454 + x1400*x458;
-    realtype x1402 = x1366*x472;
-    realtype x1403 = x1361*x467;
-    realtype x1404 = x1361*x479;
-    realtype x1405 = x1356*x502;
-    realtype x1406 = x505*(-x1392*x504 - x1405*x501);
-    realtype x1407 = x519*(x1373*x516 + x1374*x518 - x1380*x509 - x1387*x515 - x1399*x512 + x1400*x517);
-    realtype x1408 = -x1399*x530 + x1400*x531;
-    realtype x1409 = x1408*x544;
-    realtype x1410 = x557*(-x1366*x554 + x556*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_apCAFcell)*x5*x534*x78 - x1374*x555));
-    realtype x1411 = x1410*x553;
-    realtype x1412 = x1410*x561;
-    realtype x1413 = -x1256*x1374 + x1387*x566;
-    realtype x1414 = x1356*x581;
-    realtype x1415 = x1414*x583;
-    realtype x1416 = x270*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_apCAFcell)*x155*x5*x575*x577 - x1415);
-    realtype x1417 = PARAM(P_K_stiff_niche)*x1415 - x1414*x579;
-    realtype x1418 = -x1181*x1374 + x1387*x596 + x1408*x593 + x1410*x602 - x1410*x605;
-    realtype x1419 = 1.0/x616;
-    realtype x1420 = x1366*x639;
-    realtype x1421 = x1366*x645;
-    realtype x1422 = SPVAR(SP_syn_CD8_C1_PD1)*x1421;
-    realtype x1423 = x1405*x652;
-    realtype x1424 = x666*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_apCAFcell)*x5*x652*x653*x78 - x1362*x664);
-    realtype x1425 = SPVAR(SP_syn_M_C_PD1)*x1421;
-    realtype x1426 = x1362*x683;
-    realtype x1427 = x61*x7;
-    realtype x1428 = x1427*x62;
-    realtype x1429 = PARAM(P_n_vasc)*x1427;
-    realtype x1430 = -PARAM(P_n_vasc)*x1428 + x1428 + x1429*x69;
-    realtype x1431 = x7*x73;
-    realtype x1432 = PARAM(P_n_vasc)*x7;
-    realtype x1433 = x7*x81;
-    realtype x1434 = SPVAR(SP_V_T_CXCL12)*x27*x7*x78 - x1433*x80;
-    realtype x1435 = -PARAM(P_n_vasc)*x1431 + x1431 + x1432*x76 + x1434*x85;
-    realtype x1436 = -x7*x90;
-    realtype x1437 = x7*x78;
-    realtype x1438 = x1437*x94;
-    realtype x1439 = x1427*x99;
-    realtype x1440 = x1429*x99;
-    realtype x1441 = x102*x1429;
-    realtype x1442 = x105*x1434;
-    realtype x1443 = x108*x7;
-    realtype x1444 = x115*x1433;
-    realtype x1445 = x1433*x197;
-    realtype x1446 = x155*x7;
-    realtype x1447 = SPVAR(SP_V_T_collagen)*x201*x295;
-    realtype x1448 = -x1446 + x1447;
-    realtype x1449 = x1448*x203;
-    realtype x1450 = x142*(SPVAR(SP_V_T_IL10)*x113*x7*x78 - x114*x1444) - x1437*x186 + x1449*x205 + x148*(x1433*x145 - x7*x718) + x190*(SPVAR(SP_V_T_NO)*x168*x7*x78 - x1433*x188) + x195*(SPVAR(SP_V_T_ArgI)*x164*x7*x78 - x1433*x193) + x200*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*x172*x7*x78 - x1445*x196);
-    realtype x1451 = x1010*x7;
-    realtype x1452 = x223*x7;
-    realtype x1453 = x1013*x7;
-    realtype x1454 = x241*x7;
-    realtype x1455 = x243*x7;
-    realtype x1456 = x1455*x250;
-    realtype x1457 = x1444*x252;
-    realtype x1458 = 1.0/SPVAR(SP_V_T_collagen);
-    realtype x1459 = -x1447*x234 + x155*x234*x7;
-    realtype x1460 = PARAM(P_phi_col_ref)*PARAM(P_rho_collagen)*x14*x1458*x1459;
-    realtype x1461 = SPVAR(SP_V_T_CD8)*PARAM(P_n_Texh)*PARAM(P_n_stiff)*x1460;
-    realtype x1462 = x1461*x255;
-    realtype x1463 = x1461*x259;
-    realtype x1464 = x266*x7;
-    realtype x1465 = x280*x7;
-    realtype x1466 = x1445*x283 + x1464*x263 + x1464*x270 + x1464*x274 - x1465*x279;
-    realtype x1467 = x1433*x339 - x1437*x345 + x1445*x326 - x1465*x329 + x322*(x1433*x319 - x317*x7);
-    realtype x1468 = x149*x7;
-    realtype x1469 = x401*(SPVAR(SP_V_T_TGFb)*x369*x7*x78 - x1433*x399);
-    realtype x1470 = x400*(SPVAR(SP_V_T_IL10)*x374*x7*x78 - x1444*x403);
-    realtype x1471 = SPVAR(SP_V_T_IL12)*x378*x7*x78 - x1433*x380;
-    realtype x1472 = x375*(-x1471*x388 - x390*(-x1450*x387 + x1450*x391));
-    realtype x1473 = x1469*x371 + x1470*x372 + x1472*x372;
-    realtype x1474 = x1469*x407 + x1470*x408 + x1472*x408;
-    realtype x1475 = PARAM(P_k_APC_mig)*x1449*x412;
-    realtype x1476 = SPVAR(SP_V_T_mcDC1)*x1475;
-    realtype x1477 = SPVAR(SP_V_T_mcDC2)*x1475;
-    realtype x1478 = x427*x7;
-    realtype x1479 = x1433*x456;
-    realtype x1480 = -x1478*x454 + x1479*x458;
-    realtype x1481 = x1437*x472;
-    realtype x1482 = x1432*x467;
-    realtype x1483 = x1432*x479;
-    realtype x1484 = x502*x7;
-    realtype x1485 = x505*(-x1471*x504 - x1484*x501);
-    realtype x1486 = x519*(x1444*x516 + x1445*x518 - x1455*x509 - x1465*x515 - x1478*x512 + x1479*x517);
-    realtype x1487 = -x1478*x530 + x1479*x531;
-    realtype x1488 = x1487*x544;
-    realtype x1489 = x557*(-x1437*x554 + x556*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*x534*x7*x78 - x1445*x555));
-    realtype x1490 = x1489*x553;
-    realtype x1491 = x1489*x561;
-    realtype x1492 = x1445*x569;
-    realtype x1493 = x1465*x566 - x1492*x568;
-    realtype x1494 = x1460*x580;
-    realtype x1495 = x1494*x583;
-    realtype x1496 = x270*(-x1494*x578 + x1495);
-    realtype x1497 = PARAM(P_K_stiff_niche)*PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_phi_col_ref)*PARAM(P_rho_collagen)*x14*x1458*x1459*x575*x577 - PARAM(P_K_stiff_niche)*x1495;
-    realtype x1498 = x1465*x596 + x1487*x593 + x1489*x602 - x1489*x605 - x1492*x598;
-    realtype x1499 = x1437*x639;
-    realtype x1500 = x1437*x645;
-    realtype x1501 = SPVAR(SP_syn_CD8_C1_PD1)*x1500;
-    realtype x1502 = x1484*x652;
-    realtype x1503 = x666*(SPVAR(SP_V_T_IFNg)*x652*x653*x7*x78 - x1433*x664);
-    realtype x1504 = SPVAR(SP_syn_M_C_PD1)*x1500;
-    realtype x1505 = x1433*x683;
-    realtype x1506 = SPVAR(SP_V_T_CXCL12)*x78*x79 - x18*x27;
-    realtype x1507 = x1506*x85;
-    realtype x1508 = x105*x1506;
-    realtype x1509 = x427*x458 - x453*x957;
-    realtype x1510 = x519*(0.33333333333333331*x18*x511 - x427*x517);
-    realtype x1511 = PARAM(P_f_IL6_iCAF)*x18*x529 - x427*x531;
-    realtype x1512 = x1511*x544;
-    realtype x1513 = x1511*x593;
-    realtype x1514 = x553 - x561;
-    realtype x1515 = -x602 + x605;
-    realtype x1516 = PARAM(P_Tfh_50_plasma) + SPVAR(SP_V_T_Tfh);
-    realtype x1517 = PARAM(P_k_B_to_plasma)/x1516;
-    realtype x1518 = SPVAR(SP_V_T_Tfh)*SPVAR(SP_V_T_aB)*PARAM(P_k_B_to_plasma)/std::pow(x1516, 2) - SPVAR(SP_V_T_aB)*x1517;
-    realtype x1519 = -x720;
-    realtype x1520 = x375*(-x390*(-x1519*x391 - x387*x720) - x766);
-    realtype x1521 = x1520*x372 + x772;
-    realtype x1522 = -x1521 - x769;
-    realtype x1523 = x1520*x408 + x777;
-    realtype x1524 = -x1523 - x776;
-    realtype x1525 = x419*x720;
-    realtype x1526 = x420*x720;
-    realtype x1527 = -x821;
-    realtype x1528 = SPVAR(SP_V_T_collagen)*x824 + x825;
-    realtype x1529 = PARAM(P_k_B_act_tumor)*x451;
-    realtype x1530 = PARAM(P_k_B_death) + x270;
-    realtype x1531 = SPVAR(SP_V_T_Tfh)*x1517;
-    realtype x1532 = x148*(PARAM(P_ADCC_boost_max)*x134*x18 - x144*x717);
-    realtype x1533 = x974*(-x1532*x387 + x1532*x391);
-    realtype x1534 = x1533*x372;
-    realtype x1535 = x1533*x408;
-    realtype x1536 = SPVAR(SP_V_LN_nCD4) + x51;
-    realtype x1537 = SPVAR(SP_V_LN_mcDC2)*PARAM(P_k_T_activation_per_APC);
-    realtype x1538 = 1.0/PARAM(P_V_e);
-    realtype x1539 = SPVAR(SP_V_e_P1)*x1538;
-    realtype x1540 = PARAM(P_p1_II_50) + x1539;
-    realtype x1541 = 1.0/x1540;
-    realtype x1542 = x1539*x1541;
-    realtype x1543 = x1537*x1542;
-    realtype x1544 = SPVAR(SP_V_LN_mcDC2)*PARAM(P_n_sites_APC);
-    realtype x1545 = SPVAR(SP_V_LN_nCD4)*PARAM(P_n_CD4_clones);
-    realtype x1546 = PARAM(P_cell) + x1544 + x1545;
-    realtype x1547 = 1.0/x1546;
-    realtype x1548 = PARAM(P_f_nTreg)*PARAM(P_k_Treg_act);
-    realtype x1549 = x1547*x1548;
-    realtype x1550 = std::pow(x1546, -2);
-    realtype x1551 = H_APC_Th*PARAM(P_k_Tfh_act);
-    realtype x1552 = x1551*x451;
-    realtype x1553 = 1.0/PARAM(P_n_CD4_clones);
-    realtype x1554 = x1553*x432;
-    realtype x1555 = SPVAR(SP_A_s_M1p0)*x1554;
-    realtype x1556 = 1.0/PARAM(P_TCR_p0_tot);
-    realtype x1557 = 4.0*x1556;
-    realtype x1558 = PARAM(P_TCR_p0_tot) + PARAM(P_k_M1p0_TCR_off)/PARAM(P_k_M1p0_TCR_on) + x1555;
-    realtype x1559 = std::pow(x1556*x1558, 2.0);
-    realtype x1560 = -x1555*x1557 + x1559;
-    realtype x1561 = std::sqrt(std::fmax(0.0, x1560));
-    realtype x1562 = -PARAM(P_TCR_p0_tot)*x1561 + x1558;
-    realtype x1563 = PARAM(P_k_M1p0_TCR_p)/(PARAM(P_k_M1p0_TCR_off) + PARAM(P_k_M1p0_TCR_p));
-    realtype x1564 = std::pow(x1563, PARAM(P_N_M1p0_TCR));
-    realtype x1565 = PARAM(P_k_M1p0_TCR_off) + PARAM(P_phi_M1p0_TCR);
-    realtype x1566 = 1.0/x1565;
-    realtype x1567 = 0.5*PARAM(P_k_M1p0_TCR_off)*x1564*x1566;
-    realtype x1568 = x1562*x1567;
-    realtype x1569 = PARAM(P_p0_50) + x1568;
-    realtype x1570 = 1.0/x1569;
-    realtype x1571 = PARAM(P_k_Treg_act)*x1568*x1570*x891;
-    realtype x1572 = x1544*x1547;
-    realtype x1573 = PARAM(P_k_nTreg_death) + PARAM(P_q_nCD4_LN_out);
-    realtype x1574 = x1548*x1550;
-    realtype x1575 = std::pow(PARAM(P_n_CD4_clones), 2)*x1544;
-    realtype x1576 = SPVAR(SP_V_LN_nCD4)*x1571;
-    realtype x1577 = PARAM(P_f_epitope_spread)*x363;
-    realtype x1578 = x1577*x361 + 1.0;
-    realtype x1579 = 1.0/PARAM(P_IL2_50);
-    realtype x1580 = SPVAR(SP_V_LN_aCD8) + SPVAR(SP_V_LN_aTh)*PARAM(P_w_IL2_help);
-    realtype x1581 = PARAM(P_k_IL2_cons)*x1579;
-    realtype x1582 = PARAM(P_V_niche)*PARAM(P_k_IL2_deg) + x1581*(SPVAR(SP_V_LN_Treg)*PARAM(P_kappa_IL2_Treg) + SPVAR(SP_V_LN_aCD8));
-    realtype x1583 = std::pow(x1582, -2);
-    realtype x1584 = 1.0/x1582;
-    realtype x1585 = PARAM(P_k_IL2_sec)*x1584;
-    realtype x1586 = x1580*x1585;
-    realtype x1587 = PARAM(P_IL2_50) + x1586;
-    realtype x1588 = 1.0/x1587;
-    realtype x1589 = std::pow(PARAM(P_k_IL2_sec), 2);
-    realtype x1590 = std::pow(x1587, -2);
-    realtype x1591 = PARAM(P_N_IL2_CD8)*x1590;
-    realtype x1592 = x1589*x1591;
-    realtype x1593 = PARAM(P_kappa_IL2_Treg)*std::pow(x1580, 2)*x1581/std::pow(x1582, 3);
-    realtype x1594 = x1592*x1593;
-    realtype x1595 = x1586*x1588;
-    realtype x1596 = PARAM(P_Th_50_div) + SPVAR(SP_V_LN_Th);
-    realtype x1597 = 1.0/x1596;
-    realtype x1598 = 1.0/PARAM(P_syn_CD8_APC);
-    realtype x1599 = SPVAR(SP_syn_CD8_APC_CD28_CD80)*x1598;
-    realtype x1600 = SPVAR(SP_syn_CD8_APC_PDL1_CD80_CD28)*x1598;
-    realtype x1601 = 2.0*x1598;
-    realtype x1602 = SPVAR(SP_syn_CD8_APC_CD28_CD80_CD28)*x1601 + SPVAR(SP_syn_CD8_APC_CD28_CD86)*x1598 + x1599 + x1600;
-    realtype x1603 = x1602/PARAM(P_CD28_CD8X_50);
-    realtype x1604 = std::pow(x1603, PARAM(P_n_CD28_CD8X));
-    realtype x1605 = x1604 + 1.0;
-    realtype x1606 = 1.0/x1605;
-    realtype x1607 = PARAM(P_N_div_costim)*x1604*x1606;
-    realtype x1608 = x1597*x1607;
-    realtype x1609 = SPVAR(SP_V_LN_Th)*x1608;
-    realtype x1610 = PARAM(P_N_IL2_CD8)*x1595 + PARAM(P_N_div_base) + x1609;
-    realtype x1611 = SPVAR(SP_V_LN_aCD8)*PARAM(P_k_CD8_pro)/std::pow(x1610, 2);
-    realtype x1612 = x1611*(PARAM(P_N_IL2_CD8)*PARAM(P_k_IL2_cons)*PARAM(P_k_IL2_sec)*PARAM(P_kappa_IL2_Treg)*x1579*x1580*x1583*x1588 - x1594);
-    realtype x1613 = std::pow(2.0, x1610);
-    realtype x1614 = x1580*x1583;
-    realtype x1615 = PARAM(P_k_IL2_sec)*x1581*x1588*x1614;
-    realtype x1616 = PARAM(P_N_IL2_CD8)*x1615;
-    realtype x1617 = PARAM(P_k_CD8_pro)/x1610;
-    realtype x1618 = x1613*x1617;
-    realtype x1619 = SPVAR(SP_V_LN_aCD8)*x1618;
-    realtype x1620 = PARAM(P_N_IL2_CD4)*x1595 + PARAM(P_N_div_base) + x1607;
-    realtype x1621 = std::pow(x1620, -2);
-    realtype x1622 = PARAM(P_N_IL2_CD4)*x1590;
-    realtype x1623 = x1589*x1622;
-    realtype x1624 = x1593*x1623;
-    realtype x1625 = x1621*(PARAM(P_N_IL2_CD4)*PARAM(P_k_IL2_cons)*PARAM(P_k_IL2_sec)*PARAM(P_kappa_IL2_Treg)*x1579*x1580*x1583*x1588 - x1624);
-    realtype x1626 = PARAM(P_k_CD4_pro)*x1625;
-    realtype x1627 = SPVAR(SP_V_LN_aTh)*x1626;
-    realtype x1628 = std::pow(2.0, x1620);
-    realtype x1629 = PARAM(P_N_IL2_CD4)*x1615;
-    realtype x1630 = -0.69314718055994529*PARAM(P_kappa_IL2_Treg)*x1629 + 0.69314718055994529*x1624;
-    realtype x1631 = 1.0/x1620;
-    realtype x1632 = PARAM(P_k_CD4_pro)*x1631;
-    realtype x1633 = x1628*x1632;
-    realtype x1634 = x1630*x1633;
-    realtype x1635 = SPVAR(SP_V_LN_aTfh)*x1626;
-    realtype x1636 = SPVAR(SP_V_LN_aB)*PARAM(P_k_B_pro);
-    realtype x1637 = x1625*x1636;
-    realtype x1638 = PARAM(P_k_B_pro)*x1631;
-    realtype x1639 = x1628*x1638;
-    realtype x1640 = SPVAR(SP_V_LN_aB)*x1639;
-    realtype x1641 = SPVAR(SP_V_LN_nCD8) + x55;
-    realtype x1642 = 1.0 - PARAM(P_f_help_indep);
-    realtype x1643 = PARAM(P_Th_50_help) + SPVAR(SP_V_LN_Th);
-    realtype x1644 = 1.0/x1643;
-    realtype x1645 = SPVAR(SP_V_LN_Th)*x1642*x1644 + PARAM(P_f_help_indep);
-    realtype x1646 = PARAM(P_k_T_activation_per_APC)*x1645*x451;
-    realtype x1647 = SPVAR(SP_V_LN_mcDC1)*x1646;
-    realtype x1648 = PARAM(P_n_CD8_clones)*x1578;
-    realtype x1649 = x1585*x1588;
-    realtype x1650 = PARAM(P_N_IL2_CD8)*x1649;
-    realtype x1651 = x1586*(PARAM(P_k_IL2_cons)*PARAM(P_k_IL2_sec)*x1579*x1580*x1583 - x1585);
-    realtype x1652 = x1591*x1651;
-    realtype x1653 = x1611*(PARAM(P_N_IL2_CD8)*PARAM(P_k_IL2_cons)*PARAM(P_k_IL2_sec)*x1579*x1580*x1583*x1588 - x1650 - x1652);
-    realtype x1654 = PARAM(P_N_IL2_CD4)*x1649;
-    realtype x1655 = x1622*x1651;
-    realtype x1656 = x1621*(PARAM(P_N_IL2_CD4)*PARAM(P_k_IL2_cons)*PARAM(P_k_IL2_sec)*x1579*x1580*x1583*x1588 - x1654 - x1655);
-    realtype x1657 = PARAM(P_k_CD4_pro)*x1656;
-    realtype x1658 = SPVAR(SP_V_LN_aTh)*x1657;
-    realtype x1659 = -0.69314718055994529*x1629 + 0.69314718055994529*x1654 + 0.69314718055994529*x1655;
-    realtype x1660 = x1633*x1659;
-    realtype x1661 = SPVAR(SP_V_LN_aTfh)*x1657;
-    realtype x1662 = x1636*x1656;
-    realtype x1663 = SPVAR(SP_V_LN_mcDC2)*PARAM(P_k_cDC1_Ag_transfer);
-    realtype x1664 = SPVAR(SP_V_LN_nCD8)*x1646;
-    realtype x1665 = PARAM(P_k_T_activation_per_APC)*x1542;
-    realtype x1666 = std::pow(PARAM(P_n_sites_APC), 2);
-    realtype x1667 = SPVAR(SP_V_LN_mcDC2)*x1666;
-    realtype x1668 = SPVAR(SP_V_LN_cDC1)*PARAM(P_k_cDC1_Ag_transfer);
-    realtype x1669 = 1.0/PARAM(P_K_APC_mig);
-    realtype x1670 = SPVAR(SP_V_LN_mcDC2)*x1669 + 1.0;
-    realtype x1671 = SPVAR(SP_V_ID_mAPC)*PARAM(P_k_APC_mig_ID_LN)*x1669/std::pow(x1670, 2);
-    realtype x1672 = x1545*x1578;
-    realtype x1673 = PARAM(P_q_LN_aPD1)*x88 + x15*x89;
-    realtype x1674 = x644*x88;
-    realtype x1675 = SPVAR(SP_syn_CD8_APC_PD1)*x1674;
-    realtype x1676 = PARAM(P_w_IL2_help)*x1614;
-    realtype x1677 = x1592*x1676;
-    realtype x1678 = x1611*(-PARAM(P_w_IL2_help)*x1650 + x1677);
-    realtype x1679 = x1623*x1676;
-    realtype x1680 = x1621*(-PARAM(P_w_IL2_help)*x1654 + x1679);
-    realtype x1681 = PARAM(P_k_CD4_pro)*x1680;
-    realtype x1682 = SPVAR(SP_V_LN_aTh)*x1681;
-    realtype x1683 = 0.69314718055994529*PARAM(P_N_IL2_CD4)*PARAM(P_k_IL2_sec)*PARAM(P_w_IL2_help)*x1584*x1588 - 0.69314718055994529*x1679;
-    realtype x1684 = x1633*x1683;
-    realtype x1685 = SPVAR(SP_V_LN_aTfh)*x1681;
-    realtype x1686 = x1636*x1680;
-    realtype x1687 = -SPVAR(SP_V_LN_Th)*x1642/std::pow(x1643, 2) + x1642*x1644;
-    realtype x1688 = SPVAR(SP_V_LN_mcDC1)*SPVAR(SP_V_LN_nCD8)*PARAM(P_k_T_activation_per_APC);
-    realtype x1689 = SPVAR(SP_V_LN_Th)*x1607/std::pow(x1596, 2);
-    realtype x1690 = x1611*(-x1608 + x1689);
-    realtype x1691 = -PARAM(P_k_CD4_death) - PARAM(P_q_Treg_LN_out);
-    realtype x1692 = SPVAR(SP_V_LN_IFNg)*x87;
-    realtype x1693 = PARAM(P_IFNg_50_ind) + x1692;
-    realtype x1694 = 1.0/x1693;
-    realtype x1695 = SPVAR(SP_syn_CD8_APC_PDL1)*x1598;
-    realtype x1696 = SPVAR(SP_syn_CD8_APC_PDL1_CD80)*x1598;
-    realtype x1697 = SPVAR(SP_syn_CD8_APC_PD1_PDL1)*x1598 + SPVAR(SP_syn_CD8_APC_PDL1_CD80_CTLA4)*x1598 + x1600 + x1695 + x1696;
-    realtype x1698 = x1694*x653;
-    realtype x1699 = x1692*x1698 + 1.0;
-    realtype x1700 = PARAM(P_A_APC)/PARAM(P_APC_PDL1_base);
-    realtype x1701 = x1700/x1699;
-    realtype x1702 = -x1697*x1701 + 1.0;
-    realtype x1703 = std::pow(PARAM(P_V_LN), -2);
-    realtype x1704 = std::pow(x1693, -2);
-    realtype x1705 = SPVAR(SP_V_LN_IFNg)*x1703*x1704;
-    realtype x1706 = PARAM(P_k_out_PDL1)*x1692*x1694;
-    realtype x1707 = x1700*x1706*(SPVAR(SP_V_LN_IFNg)*x1703*x1704*x653 - x1698*x87)/std::pow(x1699, 2);
-    realtype x1708 = SPVAR(SP_syn_CD8_APC_PDL2)*x1598;
-    realtype x1709 = SPVAR(SP_syn_CD8_APC_PD1_PDL2)*x1598 + x1708;
-    realtype x1710 = 1.0 - x1701*x1709/PARAM(P_r_PDL2APC);
-    realtype x1711 = PARAM(P_Tfh_50_B) + SPVAR(SP_V_LN_Tfh);
-    realtype x1712 = 1.0/x1711;
-    realtype x1713 = PARAM(P_k_B_act)*x1712*x451;
-    realtype x1714 = SPVAR(SP_V_LN_Tfh)*SPVAR(SP_V_LN_nB)*PARAM(P_k_B_act);
-    realtype x1715 = x1714*x451/std::pow(x1711, 2);
-    realtype x1716 = SPVAR(SP_V_LN_Tfh)*x1713;
-    realtype x1717 = SPVAR(SP_A_e_M1)*x1538;
-    realtype x1718 = PARAM(P_k_P0_on)*x1717;
-    realtype x1719 = x1538*x1541;
-    realtype x1720 = std::pow(PARAM(P_V_e), -2);
-    realtype x1721 = std::pow(x1540, -2);
-    realtype x1722 = x1537*x1672;
-    realtype x1723 = PARAM(P_k_P1_on)*x1717;
-    realtype x1724 = SPVAR(SP_V_e_p0)*PARAM(P_k_P0_on)*x1538;
-    realtype x1725 = SPVAR(SP_V_e_p1)*PARAM(P_k_P1_on)*x1538;
-    realtype x1726 = PARAM(P_k_P0_d1)*PARAM(P_k_P0_on);
-    realtype x1727 = PARAM(P_k_P1_d1)*PARAM(P_k_P1_on);
-    realtype x1728 = -0.5*PARAM(P_TCR_p0_tot)*(-x1554*x1557 + 2.0*x1554*x1559/x1558)*(((x1560 < 0) ? (
+    realtype x565 = PARAM(P_f_IL6_iCAF)*x564;
+    realtype x566 = PARAM(P_f_IL6_iCAF)/std::pow(x563, 2);
+    realtype x567 = -x462*x565 + x491*x566;
+    realtype x568 = PARAM(P_TGFb_50_IL1R1) + x194;
+    realtype x569 = 1.0/x568;
+    realtype x570 = PARAM(P_Emax_IL1R1)*x569;
+    realtype x571 = x194*x570 + 1.0;
+    realtype x572 = 1.0/x571;
+    realtype x573 = 1.0/PARAM(P_IL1_50);
+    realtype x574 = SPVAR(SP_V_T_IL1)*x13*x573;
+    realtype x575 = x572*x574;
+    realtype x576 = std::pow(x575, PARAM(P_n_IL1));
+    realtype x577 = x576 + 1.0;
+    realtype x578 = x576/x577;
+    realtype x579 = SPVAR(SP_V_T_qPSC)*PARAM(P_k_PSC_to_iCAF)*x578;
+    realtype x580 = x567*x579;
+    realtype x581 = x558*x561;
+    realtype x582 = PARAM(P_n_IL1)/SPVAR(SP_V_T_IL1);
+    realtype x583 = SPVAR(SP_V_T_qPSC)*x582;
+    realtype x584 = x463*x565 + 1.0;
+    realtype x585 = PARAM(P_k_PSC_to_iCAF)*x584;
+    realtype x586 = std::pow(x575, 2*PARAM(P_n_IL1))/std::pow(x577, 2);
+    realtype x587 = x585*x586;
+    realtype x588 = x583*x587;
+    realtype x589 = SPVAR(SP_V_T_IL1)*x572*x573;
+    realtype x590 = PARAM(P_Emax_IL1R1)/std::pow(x568, 2);
+    realtype x591 = x574/std::pow(x571, 2);
+    realtype x592 = PARAM(P_IL1_50)*x12*x571;
+    realtype x593 = x592*(-x113*x589 + x591*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_cell)*x1*x569*x80 - x222*x590));
+    realtype x594 = x588*x593;
+    realtype x595 = x578*x585;
+    realtype x596 = x583*x595;
+    realtype x597 = x593*x596;
+    realtype x598 = PARAM(P_TGFb_50_CAF_act) + x194;
+    realtype x599 = 1.0/x598;
+    realtype x600 = PARAM(P_k_PSC_to_myCAF)*x599;
+    realtype x601 = SPVAR(SP_V_T_qPSC)*x600;
+    realtype x602 = x305*x601;
+    realtype x603 = SPVAR(SP_V_T_qPSC)*PARAM(P_k_PSC_to_myCAF);
+    realtype x604 = std::pow(x598, -2);
+    realtype x605 = x222*x604;
+    realtype x606 = x603*x605;
+    realtype x607 = x602 - x606;
+    realtype x608 = x562*x68 - x580 + x581*x68 + x594 - x597 + x607;
+    realtype x609 = 1.0 - PARAM(P_f_apCAF_of_total);
+    realtype x610 = std::pow(x259, PARAM(P_n_fib));
+    realtype x611 = std::pow(PARAM(P_E_50_fib), PARAM(P_n_fib)) + x610;
+    realtype x612 = 1.0/x611;
+    realtype x613 = x610*x612;
+    realtype x614 = PARAM(P_K_stiff_niche)*x613;
+    realtype x615 = PARAM(P_n_fib)*PARAM(P_n_stiff);
+    realtype x616 = x179*x615;
+    realtype x617 = x616*x68;
+    realtype x618 = std::pow(x259, 2*PARAM(P_n_fib))/std::pow(x611, 2);
+    realtype x619 = x617*x618;
+    realtype x620 = PARAM(P_K_stiff_niche)*x619 - x614*x617;
+    realtype x621 = SPVAR(SP_V_T_C1)*PARAM(P_f_stroma_max) + x614;
+    realtype x622 = x609*x621;
+    realtype x623 = PARAM(P_cell) + PARAM(P_f_iCAF_of_non_apCAF)*x622;
+    realtype x624 = PARAM(P_f_iCAF_of_non_apCAF)/std::pow(x623, 2);
+    realtype x625 = std::pow(SPVAR(SP_V_T_iCAF), 2)*PARAM(P_k_iCAF_prolif)*x624;
+    realtype x626 = x294*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_cell)*x1*x179*x610*x612 - x619);
+    realtype x627 = PARAM(P_k_myCAF_to_iCAF)*x578;
+    realtype x628 = SPVAR(SP_V_T_myCAF)*x627;
+    realtype x629 = x567*x628;
+    realtype x630 = PARAM(P_k_iCAF_to_myCAF)*x599;
+    realtype x631 = SPVAR(SP_V_T_iCAF)*x630;
+    realtype x632 = x305*x631;
+    realtype x633 = SPVAR(SP_V_T_iCAF)*PARAM(P_k_iCAF_to_myCAF);
+    realtype x634 = x605*x633;
+    realtype x635 = x584*x627;
+    realtype x636 = SPVAR(SP_V_T_myCAF)*x582;
+    realtype x637 = x635*x636;
+    realtype x638 = x593*x637;
+    realtype x639 = PARAM(P_k_myCAF_to_iCAF)*x584*x586;
+    realtype x640 = x636*x639;
+    realtype x641 = x593*x640;
+    realtype x642 = x629 + x632 - x634 + x638 - x641;
+    realtype x643 = -SPVAR(SP_V_T_iCAF)*x626 + x580 - x594 + x597 + x642;
+    realtype x644 = SPVAR(SP_V_T_myCAF)*x626;
+    realtype x645 = std::pow(SPVAR(SP_V_T_myCAF), 2);
+    realtype x646 = 1.0 - PARAM(P_f_iCAF_of_non_apCAF);
+    realtype x647 = PARAM(P_cell) + x622*x646;
+    realtype x648 = std::pow(x647, -2);
+    realtype x649 = SPVAR(SP_V_T_apCAF)*x626;
+    realtype x650 = std::pow(SPVAR(SP_V_T_apCAF), 2);
+    realtype x651 = PARAM(P_cell) + PARAM(P_f_apCAF_of_total)*x621;
+    realtype x652 = std::pow(x651, -2);
+    realtype x653 = PARAM(P_TGFb_50_col_sec) + x194;
+    realtype x654 = 1.0/x653;
+    realtype x655 = 1.0 - PARAM(P_f_col_basal);
+    realtype x656 = x654*x655;
+    realtype x657 = PARAM(P_f_col_basal) + x194*x656;
+    realtype x658 = PARAM(P_k_col_myCAF_sec)*x657;
+    realtype x659 = 1.0/PARAM(P_phi_col_max);
+    realtype x660 = x226*x659;
+    realtype x661 = SPVAR(SP_V_T_myCAF)*x658*x660;
+    realtype x662 = PARAM(P_phi_cross_50) + x180;
+    realtype x663 = 1.0/x662;
+    realtype x664 = SPVAR(SP_V_T_Mac_M2)*PARAM(P_k_MMP_M2)*PARAM(P_phi_cross_50)*x663;
+    realtype x665 = PARAM(P_k_MMP_M2)*PARAM(P_phi_cross_50)*x13;
+    realtype x666 = SPVAR(SP_V_T_Mac_M2)*x665/std::pow(x662, 2);
+    realtype x667 = x226*x666;
+    realtype x668 = x655/std::pow(x653, 2);
+    realtype x669 = -x180*x659 + 1.0;
+    realtype x670 = PARAM(P_k_col_myCAF_sec)*x669;
+    realtype x671 = SPVAR(SP_V_T_myCAF)*x670;
+    realtype x672 = -SPVAR(SP_V_T_collagen)*(-x113*x664 + x667*x68) + x661*x68 + x671*(x222*x668 - x305*x656);
+    realtype x673 = PARAM(P_rho_B_max)*x128;
+    realtype x674 = SPVAR(SP_V_T_aB)*PARAM(P_k_B_pro_tumor);
+    realtype x675 = x127*x674;
+    realtype x676 = x0*x673*x675;
+    realtype x677 = x676*x68;
+    realtype x678 = SPVAR(SP_V_T_P0)*PARAM(P_k_P0_up);
+    realtype x679 = PARAM(P_V_e)*PARAM(P_cell);
+    realtype x680 = x113*x679;
+    realtype x681 = -x678*x680;
+    realtype x682 = SPVAR(SP_V_T_P1)*PARAM(P_k_P1_up);
+    realtype x683 = -x680*x682;
+    realtype x684 = 2.0*PARAM(P_kon_PD1_aPD1);
+    realtype x685 = x110*x684;
+    realtype x686 = x113*x685;
+    realtype x687 = SPVAR(SP_syn_CD8_C1_PD1)*x686;
+    realtype x688 = SPVAR(SP_syn_CD8_C1_PDL1)*x199;
+    realtype x689 = SPVAR(SP_syn_CD8_C1_PDL1_CD80)*x199;
+    realtype x690 = SPVAR(SP_syn_CD8_C1_PDL1_CD80_CD28)*x199 + SPVAR(SP_syn_CD8_C1_PDL1_CD80_CTLA4)*x199 + x200 + x688 + x689;
+    realtype x691 = PARAM(P_IFNg_50_ind) + x534;
+    realtype x692 = 1.0/x691;
+    realtype x693 = PARAM(P_r_PDL1_IFNg) - 1.0;
+    realtype x694 = x692*x693;
+    realtype x695 = x534*x694 + 1.0;
+    realtype x696 = PARAM(P_A_cell)/PARAM(P_C1_PDL1_base);
+    realtype x697 = x696/x695;
+    realtype x698 = -x690*x697 + 1.0;
+    realtype x699 = PARAM(P_k_out_PDL1)*x698;
+    realtype x700 = x538*x692;
+    realtype x701 = std::pow(SPVAR(SP_V_T_IFNg), 2);
+    realtype x702 = std::pow(x691, -2);
+    realtype x703 = x693*x702;
+    realtype x704 = x701*x703;
+    realtype x705 = PARAM(P_k_out_PDL1)*x534*x692;
+    realtype x706 = x696*x705/std::pow(x695, 2);
+    realtype x707 = x706*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_cell)*x1*x692*x693*x80 - x704*x84);
+    realtype x708 = PARAM(P_k_out_PDL1)*PARAM(P_vol_cell)*x1*x698*x701*x702*x83 - x690*x707 - x699*x700;
+    realtype x709 = 1.0/PARAM(P_r_PDL2C1);
+    realtype x710 = SPVAR(SP_syn_CD8_C1_PDL2)*x199;
+    realtype x711 = x201 + x710;
+    realtype x712 = -x697*x709*x711 + 1.0;
+    realtype x713 = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1);
+    realtype x714 = x712*x713;
+    realtype x715 = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_cell)*x1*x701*x702*x712*x83 - x700*x714 - x707*x711;
+    realtype x716 = -x687;
+    realtype x717 = SPVAR(SP_syn_M_C_PD1)*x686;
+    realtype x718 = SPVAR(SP_syn_M_C_PDL1)*x140;
+    realtype x719 = x696/PARAM(P_r_PDL1_IFNg);
+    realtype x720 = x140*x719;
+    realtype x721 = -x720*(SPVAR(SP_syn_M_C_PDL1_CD80)*x140 + x147 + x718) + 1.0;
+    realtype x722 = PARAM(P_k_out_PDL1)*x721;
+    realtype x723 = x701*x702;
+    realtype x724 = x723*x84;
+    realtype x725 = -x700*x722 + x722*x724;
+    realtype x726 = SPVAR(SP_syn_M_C_PDL2)*x140;
+    realtype x727 = -x709*x720*(x148 + x726) + 1.0;
+    realtype x728 = x713*x727;
+    realtype x729 = -x700*x728 + x724*x728;
+    realtype x730 = -x717;
+    realtype x731 = x2*x27;
+    realtype x732 = x71*x731;
+    realtype x733 = PARAM(P_n_vasc)*x732;
+    realtype x734 = PARAM(P_n_vasc)*x731;
+    realtype x735 = x734*x79;
+    realtype x736 = x2*x83;
+    realtype x737 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_Tcell)*x1*x16*x80 - x736*x82;
+    realtype x738 = x29*x737;
+    realtype x739 = SPVAR(SP_V_C_nCD4)*x738;
+    realtype x740 = x732 - x733 + x735 + x739;
+    realtype x741 = -x740;
+    realtype x742 = x2*x89;
+    realtype x743 = -PARAM(P_n_vasc)*x742 + x731*x92 + x742;
+    realtype x744 = -x743;
+    realtype x745 = x731*x94;
+    realtype x746 = SPVAR(SP_V_C_nCD8)*x745;
+    realtype x747 = PARAM(P_n_vasc)*x746;
+    realtype x748 = x734*x97;
+    realtype x749 = SPVAR(SP_V_C_nCD8)*x748;
+    realtype x750 = x737*x99;
+    realtype x751 = SPVAR(SP_V_C_nCD8)*x750;
+    realtype x752 = x746 - x747 + x749 + x751;
+    realtype x753 = -x752;
+    realtype x754 = SPVAR(SP_V_C_CD8)*x745;
+    realtype x755 = PARAM(P_n_vasc)*x754;
+    realtype x756 = SPVAR(SP_V_C_CD8)*x748;
+    realtype x757 = SPVAR(SP_V_C_CD8)*x750;
+    realtype x758 = x754 - x755 + x756 + x757;
+    realtype x759 = -x758;
+    realtype x760 = -x107*x2;
+    realtype x761 = x2*x80;
+    realtype x762 = x111*x761;
+    realtype x763 = -x760 - x762;
+    realtype x764 = x116*x731;
+    realtype x765 = PARAM(P_n_vasc)*x764;
+    realtype x766 = x119*x734;
+    realtype x767 = SPVAR(SP_V_C_Th)*x738;
+    realtype x768 = x764 - x765 + x766 + x767;
+    realtype x769 = -x768;
+    realtype x770 = x131*x737;
+    realtype x771 = x125*x731;
+    realtype x772 = x126*x734;
+    realtype x773 = x125*x734;
+    realtype x774 = x770 + x771 + x772 - x773;
+    realtype x775 = x129*x27*x3 + x774;
+    realtype x776 = -x775;
+    realtype x777 = x138*x736;
+    realtype x778 = SPVAR(SP_V_T_Ab)*x80;
+    realtype x779 = x2*x778;
+    realtype x780 = x168*x736;
+    realtype x781 = x221*x736;
+    realtype x782 = x165*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_Tcell)*x1*x136*x80 - x137*x777) + x172*(-x158*x779 + x167*x780) - x210*x761 + x214*(SPVAR(SP_V_T_NO)*PARAM(P_vol_Tcell)*x1*x192*x80 - x212*x736) + x219*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_Tcell)*x1*x188*x80 - x217*x736) + x224*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Tcell)*x1*x196*x80 - x220*x781);
+    realtype x783 = x2*x230 + x782;
+    realtype x784 = x2*x234;
+    realtype x785 = x264*x784;
+    realtype x786 = x246*x784;
+    realtype x787 = SPVAR(SP_V_T_CD8)*x784;
+    realtype x788 = x239*x787;
+    realtype x789 = x255*x787;
+    realtype x790 = x276*x777;
+    realtype x791 = x2*x267;
+    realtype x792 = x274*x791;
+    realtype x793 = x790 - x792;
+    realtype x794 = x785 + x786 + x788 + x789 + x793;
+    realtype x795 = SPVAR(SP_V_T_CD8)*x2;
+    realtype x796 = x280*x795;
+    realtype x797 = x283*x796;
+    realtype x798 = x279*x796;
+    realtype x799 = x797 - x798;
+    realtype x800 = x794 + x799;
+    realtype x801 = x2*x289;
+    realtype x802 = SPVAR(SP_V_T_Th)*x801;
+    realtype x803 = x294*x802;
+    realtype x804 = x287*x802;
+    realtype x805 = x298*x802;
+    realtype x806 = x307*x781;
+    realtype x807 = x2*x304;
+    realtype x808 = x303*x807;
+    realtype x809 = x806 - x808;
+    realtype x810 = x803 + x804 + x805 + x809;
+    realtype x811 = -SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x310*x311*x315*x318*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_Tcell)*x1*x225*x313*x4 - x2*x321) + x783;
+    realtype x812 = -x811;
+    realtype x813 = SPVAR(SP_V_T_VEGF)*x80;
+    realtype x814 = x327*x813;
+    realtype x815 = -x2*x814 + x330*x736;
+    realtype x816 = x2*x332;
+    realtype x817 = x346*(-x2*x341 + x343*x736);
+    realtype x818 = x350*x781;
+    realtype x819 = SPVAR(SP_V_T_Th)*x2;
+    realtype x820 = x304*x352*x819;
+    realtype x821 = x363*x736;
+    realtype x822 = SPVAR(SP_V_T_P1)*x367*x80*x819;
+    realtype x823 = x817 + x818 - x820 + x821 - x822;
+    realtype x824 = x743 + x823;
+    realtype x825 = x335*x816 + x824;
+    realtype x826 = x2*x376 + x2*x383 + x2*x390 + x758 - x790 + x792;
+    realtype x827 = -x785 - x786 - x788 - x789 + x826;
+    realtype x828 = -x797 + x798;
+    realtype x829 = x827 + x828;
+    realtype x830 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_Tcell)*x1*x402*x80 - x404*x736;
+    realtype x831 = x418*x830;
+    realtype x832 = x423*(-x414*x779 + x422*x780);
+    realtype x833 = x399*(x420*x421*(x416*x783 - x425*x783 + x832) - x831);
+    realtype x834 = x396*x833;
+    realtype x835 = -PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_Tcell)*x1*x430;
+    realtype x836 = x435*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Tcell)*x1*x393*x80 - x433*x736);
+    realtype x837 = x434*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_Tcell)*x1*x398*x80 - x437*x777);
+    realtype x838 = x395*x836 + x396*x837;
+    realtype x839 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_Tcell)*x1*x12*x181*x225*x4*x428*x431 + x835 + x838;
+    realtype x840 = -x834 - x839;
+    realtype x841 = x442*x833;
+    realtype x842 = -PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_Tcell)*x1*x430;
+    realtype x843 = x441*x836 + x442*x837;
+    realtype x844 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_Tcell)*x1*x12*x181*x225*x4*x428*x431 + x842 + x843;
+    realtype x845 = -x841 - x844;
+    realtype x846 = x2*x447;
+    realtype x847 = SPVAR(SP_V_T_mcDC1)*x846;
+    realtype x848 = x838 - x847;
+    realtype x849 = x834 + x848;
+    realtype x850 = SPVAR(SP_V_T_mcDC2)*x846;
+    realtype x851 = x843 - x850;
+    realtype x852 = x841 + x851;
+    realtype x853 = x453*x783;
+    realtype x854 = x454*x783;
+    realtype x855 = x461*x487*x819;
+    realtype x856 = x490*x736;
+    realtype x857 = x492*x856;
+    realtype x858 = -x855 + x857;
+    realtype x859 = -PARAM(P_k_Th_seed)*PARAM(P_vol_Tcell)*x1*x24*x26 - x764 + x765 - x766 - x767 + x823;
+    realtype x860 = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*PARAM(P_vol_Tcell)*x1*x455*x457*x460 - x810 - x858 - x859;
+    realtype x861 = x2*x495;
+    realtype x862 = x506*x761;
+    realtype x863 = PARAM(P_n_vasc)*x2;
+    realtype x864 = x501*x863;
+    realtype x865 = x514*x863;
+    realtype x866 = x505*x862 - x510*x864 + x513*x865 + x519*(-x2*x516 + x518*x736);
+    realtype x867 = x2*x537;
+    realtype x868 = x540*(-x536*x867 - x539*x830);
+    realtype x869 = x2*x461;
+    realtype x870 = x554*(-x544*x791 - x547*x869 - x550*x807 + x551*x777 + x552*x856 + x553*x781);
+    realtype x871 = x2*x527 + x531*x862 - x532*x864 + x533*x865 + x868 - x870;
+    realtype x872 = -x868 + x870;
+    realtype x873 = -x565*x869 + x566*x856;
+    realtype x874 = x579*x873;
+    realtype x875 = x592*(-x589*x761 + x591*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Tcell)*x1*x569*x80 - x590*x781));
+    realtype x876 = x588*x875;
+    realtype x877 = x596*x875;
+    realtype x878 = x604*x781;
+    realtype x879 = x601*x807 - x603*x878;
+    realtype x880 = x2*x562 + x2*x581 - x874 + x876 - x877 + x879;
+    realtype x881 = x2*x616;
+    realtype x882 = x618*x881;
+    realtype x883 = x294*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_Tcell)*x1*x179*x610*x612 - x882);
+    realtype x884 = PARAM(P_K_stiff_niche)*x882 - x614*x881;
+    realtype x885 = x628*x873 + x631*x807 - x633*x878 + x637*x875 - x640*x875;
+    realtype x886 = x874 - x876 + x877 + x885;
+    realtype x887 = -SPVAR(SP_V_T_iCAF)*x883 + x609*x625*x884 + x886;
+    realtype x888 = x879 + x885;
+    realtype x889 = -SPVAR(SP_V_T_myCAF)*x883 + PARAM(P_k_myCAF_prolif)*x609*x645*x646*x648*x884 - x888;
+    realtype x890 = -SPVAR(SP_V_T_apCAF)*x883 + PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x650*x652*x884;
+    realtype x891 = x664*x761;
+    realtype x892 = x671*(-x656*x807 + x668*x781);
+    realtype x893 = -SPVAR(SP_V_T_collagen)*(x2*x667 - x891) + x2*x661 + x892;
+    realtype x894 = x3*x673*x675;
+    realtype x895 = x679*x761;
+    realtype x896 = -x678*x895;
+    realtype x897 = -x682*x895;
+    realtype x898 = x685*x761;
+    realtype x899 = SPVAR(SP_syn_CD8_C1_PD1)*x898;
+    realtype x900 = x692*x867;
+    realtype x901 = x706*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_Tcell)*x1*x692*x693*x80 - x704*x736);
+    realtype x902 = PARAM(P_k_out_PDL1)*PARAM(P_vol_Tcell)*x1*x698*x701*x702*x83 - x690*x901 - x699*x900;
+    realtype x903 = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_Tcell)*x1*x701*x702*x712*x83 - x711*x901 - x714*x900;
+    realtype x904 = -x899;
+    realtype x905 = SPVAR(SP_syn_M_C_PD1)*x898;
+    realtype x906 = x723*x736;
+    realtype x907 = -x722*x900 + x722*x906;
+    realtype x908 = -x728*x900 + x728*x906;
+    realtype x909 = -x905;
+    realtype x910 = SPVAR(SP_syn_CD8_C1_PD1_aPD1)*x199;
+    realtype x911 = 2.0*x199;
+    realtype x912 = SPVAR(SP_syn_CD8_C1_PD1_aPD1_PD1)*x911 + x910;
+    realtype x913 = SPVAR(SP_syn_CD8_C1_PD1)*x199;
+    realtype x914 = x202 + x912 + x913;
+    realtype x915 = PARAM(P_k_reinvig)/x914;
+    realtype x916 = x912*x915;
+    realtype x917 = SPVAR(SP_V_T_CD8)*(-x269 + x784);
+    realtype x918 = x263*x917;
+    realtype x919 = x245*x917;
+    realtype x920 = x239*x917;
+    realtype x921 = x255*x917;
+    realtype x922 = SPVAR(SP_V_T_Th)*(-x300 + x801);
+    realtype x923 = x294*x922;
+    realtype x924 = x287*x922;
+    realtype x925 = x298*x922;
+    realtype x926 = PARAM(P_k_Th_seed)*x26;
+    realtype x927 = x24*x926;
+    realtype x928 = PARAM(P_rho_Th_max)*x457;
+    realtype x929 = PARAM(P_k_Th_pro_tumor)*x455*x460*x928;
+    realtype x930 = x855 - x857;
+    realtype x931 = x2*x927 + x2*x929 + x768 - x806 + x808 - x817 - x818 + x820 - x821 + x822 + x930;
+    realtype x932 = std::pow(SPVAR(SP_V_T_C1), 1.0);
+    realtype x933 = 2.0*x12;
+    realtype x934 = x932*x933;
+    realtype x935 = x26*x934;
+    realtype x936 = std::pow(x25, -2);
+    realtype x937 = std::pow(SPVAR(SP_V_T_C1), 3.0)*x933*x936;
+    realtype x938 = x71*x935 - x71*x937 + x87;
+    realtype x939 = x88*x935 - x88*x937 + x93;
+    realtype x940 = SPVAR(SP_V_C_nCD8)*x94;
+    realtype x941 = x101 + x935*x940 - x937*x940;
+    realtype x942 = SPVAR(SP_V_C_CD8)*x94;
+    realtype x943 = x103 + x935*x942 - x937*x942;
+    realtype x944 = x116*x935 - x116*x937 + x122;
+    realtype x945 = x125*x935 - x125*x937 + x132;
+    realtype x946 = x159*x171/std::pow(x161, 2);
+    realtype x947 = PARAM(P_k_C1_death) - x160*x946 + x231 + x407 + x408;
+    realtype x948 = 2.0*x293*x932*x936;
+    realtype x949 = SPVAR(SP_V_T_CD8)*x948;
+    realtype x950 = x244*x271;
+    realtype x951 = x238*x271;
+    realtype x952 = SPVAR(SP_V_T_C1)/std::pow(x242, 2);
+    realtype x953 = PARAM(P_k_CD8_basal_exh)*x271;
+    realtype x954 = x207*x952*x953;
+    realtype x955 = SPVAR(SP_V_T_C1)*PARAM(P_k_C_CD8_exh)*x271;
+    realtype x956 = x206*x955/std::pow(x236, 2);
+    realtype x957 = -x956;
+    realtype x958 = x286*x302;
+    realtype x959 = PARAM(P_k_Th_basal_exh)*x302*x952;
+    realtype x960 = x302*x948;
+    realtype x961 = std::fmax(0.0, SPVAR(SP_V_T_C1));
+    realtype x962 = PARAM(P_k_vas_decay)*std::pow(PARAM(P_vas_inhib_vol_scale)*x174, 0.66666666666666663);
+    realtype x963 = 1.0 - PARAM(P_f_nTreg);
+    realtype x964 = x399*(-x419 + x420*x421*(x416*x947 + x424 - x425*x947));
+    realtype x965 = x396*x964;
+    realtype x966 = x442*x964;
+    realtype x967 = PARAM(P_f_stroma_max) + x620;
+    realtype x968 = x609*x967;
+    realtype x969 = 1.0 - x613;
+    realtype x970 = x948*x969;
+    realtype x971 = x646*x648;
+    realtype x972 = PARAM(P_k_myCAF_prolif)*x645*x971;
+    realtype x973 = PARAM(P_f_apCAF_of_total)*x652;
+    realtype x974 = PARAM(P_k_apCAF_prolif)*x650*x973;
+    realtype x975 = 1.0/SPVAR(SP_V_T_K_vasc);
+    realtype x976 = PARAM(P_n_vasc)*x975;
+    realtype x977 = x30*x976;
+    realtype x978 = x28*x976;
+    realtype x979 = -SPVAR(SP_V_C_nCD4)*x977 + x79*x978;
+    realtype x980 = -SPVAR(SP_V_C_Treg)*x29*x976 + x91*x978;
+    realtype x981 = x33*x976;
+    realtype x982 = x97*x978;
+    realtype x983 = -SPVAR(SP_V_C_nCD8)*x981 + SPVAR(SP_V_C_nCD8)*x982;
+    realtype x984 = -SPVAR(SP_V_C_CD8)*x981 + SPVAR(SP_V_C_CD8)*x982;
+    realtype x985 = -SPVAR(SP_V_C_Th)*x977 + x119*x978;
+    realtype x986 = -SPVAR(SP_V_C_B)*x57*x976 + x126*x978;
+    realtype x987 = x310*x314;
+    realtype x988 = SPVAR(SP_V_T_CCL2)*x514*x976;
+    realtype x989 = x189*x218/std::pow(x177, 2);
+    realtype x990 = -x175*x989;
+    realtype x991 = x783 + x990;
+    realtype x992 = x253*x272;
+    realtype x993 = x254*x271/std::pow(x249, 2);
+    realtype x994 = x800 - x993;
+    realtype x995 = x399*(x420*x421*(x416*x991 - x425*x991 + x832) - x831);
+    realtype x996 = x396*x995;
+    realtype x997 = x442*x995;
+    realtype x998 = 2*SPVAR(SP_V_T_CD8)*x13*x209 - x989;
+    realtype x999 = x783 + x998;
+    realtype x1000 = x239*x270 + x245*x270 + x255*x270 + x279 + x957 + x994;
+    realtype x1001 = 1.0/x373;
+    realtype x1002 = 1.0/x379;
+    realtype x1003 = -x378 + x381*x795;
+    realtype x1004 = x399*(x420*x421*(x416*x999 - x425*x999 + x832) - x831);
+    realtype x1005 = x1004*x396;
+    realtype x1006 = x1004*x442;
+    realtype x1007 = SPVAR(SP_V_T_mcDC1)*PARAM(P_k_T_activation_per_APC);
+    realtype x1008 = x394*x435;
+    realtype x1009 = PARAM(P_k_APC_mat_cDC1)*x1008;
+    realtype x1010 = -x678;
+    realtype x1011 = -x682;
+    realtype x1012 = PARAM(P_k_APC_mat_cDC2)*x1008;
+    realtype x1013 = SPVAR(SP_V_T_nCD8)*PARAM(P_k_T_activation_per_APC);
+    realtype x1014 = PARAM(P_k_APC_mig)*x430;
+    realtype x1015 = -PARAM(P_k_mAPC_death) - x1014;
+    realtype x1016 = SPVAR(SP_V_T_nCD4)*PARAM(P_k_T_activation_per_APC);
+    realtype x1017 = SPVAR(SP_V_T_cDC1) + SPVAR(SP_V_T_cDC2);
+    realtype x1018 = x13*x679;
+    realtype x1019 = -SPVAR(SP_V_T_Th)*SPVAR(SP_V_T_apCAF)*PARAM(P_k_apCAF_iTreg)*x13*x358*x365 + x361*x368*x80;
+    realtype x1020 = x109*x13;
+    realtype x1021 = PARAM(P_q_T_aPD1)*x1020;
+    realtype x1022 = PARAM(P_q_LD_aPD1)*x109;
+    realtype x1023 = x1020*x684;
+    realtype x1024 = SPVAR(SP_syn_CD8_C1_PD1)*x1023;
+    realtype x1025 = SPVAR(SP_syn_M_C_PD1)*x1023;
+    realtype x1026 = x287*x301 + x294*x301 + x298*x301 + x810;
+    realtype x1027 = x194*x352 + x355*x367;
+    realtype x1028 = x463*x487 + x858;
+    realtype x1029 = SPVAR(SP_V_T_mcDC2)*PARAM(P_k_T_activation_per_APC);
+    realtype x1030 = -PARAM(P_k_IFNg_deg);
+    realtype x1031 = x13*x536*x540;
+    realtype x1032 = x537*x702;
+    realtype x1033 = x706*(-x13*x694 + x537*x703);
+    realtype x1034 = PARAM(P_k_out_PDL1)*x1032;
+    realtype x1035 = PARAM(P_r_PDL2C1)*x1034;
+    realtype x1036 = -x13*x197 + x220*x304;
+    realtype x1037 = x1036*x224;
+    realtype x1038 = -x13*x303 + x304*x307;
+    realtype x1039 = SPVAR(SP_V_T_Th)*x13;
+    realtype x1040 = SPVAR(SP_V_T_Th)*x304;
+    realtype x1041 = -x1039*x352 + x1040*x349;
+    realtype x1042 = x435*(-x13*x393 + x304*x432);
+    realtype x1043 = x396*x399;
+    realtype x1044 = x420*x421;
+    realtype x1045 = x1044*(SPVAR(SP_V_T_C1)*PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x1036*x13*x173*x174*x178*x185*x189*x193*x207*x411*x415 - x1037*x425);
+    realtype x1046 = x1042*x395 + x1043*x1045;
+    realtype x1047 = x399*x442;
+    realtype x1048 = x1042*x441 + x1045*x1047;
+    realtype x1049 = x554*(0.33333333333333331*x13*x549 - x304*x553);
+    realtype x1050 = PARAM(P_n_IL1)*x572*(-x13*x570 + x304*x590);
+    realtype x1051 = SPVAR(SP_V_T_qPSC)*x1050;
+    realtype x1052 = x1051*x587;
+    realtype x1053 = x1051*x595;
+    realtype x1054 = x304*x604;
+    realtype x1055 = x1054*x603 - x558*x600;
+    realtype x1056 = SPVAR(SP_V_T_myCAF)*x1050;
+    realtype x1057 = x1054*x633 + x1056*x635 - x1056*x639 - x13*x631;
+    realtype x1058 = SPVAR(SP_V_T_NO)*x211*x80 - x13*x192;
+    realtype x1059 = x1058*x214;
+    realtype x1060 = x1044*(SPVAR(SP_V_T_C1)*PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x1058*x13*x173*x174*x178*x185*x189*x198*x207*x411*x415 - x1059*x425);
+    realtype x1061 = x1043*x1060;
+    realtype x1062 = x1047*x1060;
+    realtype x1063 = -x13*x188 + x215*x337;
+    realtype x1064 = x1063*x219;
+    realtype x1065 = x346*(PARAM(P_Emax_ArgI_Treg)*x13*x339 - x337*x342);
+    realtype x1066 = x1044*(SPVAR(SP_V_T_C1)*PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x1063*x13*x173*x174*x178*x185*x193*x198*x207*x411*x415 - x1064*x425);
+    realtype x1067 = x1043*x1066;
+    realtype x1068 = x1047*x1066;
+    realtype x1069 = PARAM(P_vol_Mcell)*x1;
+    realtype x1070 = x1069*x27;
+    realtype x1071 = PARAM(P_n_vasc)*x1070;
+    realtype x1072 = x1069*x83;
+    realtype x1073 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_Mcell)*x1*x16*x80 - x1072*x82;
+    realtype x1074 = x1073*x29;
+    realtype x1075 = -SPVAR(SP_V_C_nCD4)*PARAM(P_n_vasc)*PARAM(P_q_Treg_T_in)*PARAM(P_vol_Mcell)*x1*x17*x19*x21*x24*x26 + SPVAR(SP_V_C_nCD4)*x1074 + x1070*x71 + x1071*x79;
+    realtype x1076 = -x1075;
+    realtype x1077 = x1069*x89;
+    realtype x1078 = -PARAM(P_n_vasc)*x1077 + x1070*x92 + x1077;
+    realtype x1079 = -x1078;
+    realtype x1080 = x1071*x97;
+    realtype x1081 = x1073*x99;
+    realtype x1082 = -SPVAR(SP_V_C_nCD8)*PARAM(P_n_vasc)*PARAM(P_q_CD8_T_in)*PARAM(P_vol_Mcell)*x1*x17*x19*x21*x24*x26 + SPVAR(SP_V_C_nCD8)*x1080 + SPVAR(SP_V_C_nCD8)*x1081 + x1070*x940;
+    realtype x1083 = -x1082;
+    realtype x1084 = x1070*x942;
+    realtype x1085 = SPVAR(SP_V_C_CD8)*x1080 + SPVAR(SP_V_C_CD8)*x1081 - PARAM(P_n_vasc)*x1084 + x1084;
+    realtype x1086 = -x1085;
+    realtype x1087 = -x1069*x107;
+    realtype x1088 = PARAM(P_vol_Mcell)*x112;
+    realtype x1089 = x1088*x111;
+    realtype x1090 = -x1087 - x1089;
+    realtype x1091 = x1070*x116;
+    realtype x1092 = PARAM(P_n_vasc)*x1091;
+    realtype x1093 = x1071*x119;
+    realtype x1094 = SPVAR(SP_V_C_Th)*x1074;
+    realtype x1095 = -x1091 + x1092 - x1093 - x1094;
+    realtype x1096 = -SPVAR(SP_V_C_B)*PARAM(P_n_vasc)*PARAM(P_q_B_T_in)*PARAM(P_vol_Mcell)*x1*x17*x19*x21*x24*x26*x55 + x1070*x125 + x1070*x130 + x1071*x126 + x1073*x131;
+    realtype x1097 = -x1096;
+    realtype x1098 = x1072*x138;
+    realtype x1099 = SPVAR(SP_V_T_Ab)*x1088;
+    realtype x1100 = x1072*x168;
+    realtype x1101 = x1072*x221;
+    realtype x1102 = x1069*x230 - x1088*x210 + x165*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_Mcell)*x1*x136*x80 - x1098*x137) + x172*(-x1099*x158 + x1100*x167) + x214*(SPVAR(SP_V_T_NO)*PARAM(P_vol_Mcell)*x1*x192*x80 - x1072*x212) + x219*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_Mcell)*x1*x188*x80 - x1072*x217) + x224*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Mcell)*x1*x196*x80 - x1101*x220);
+    realtype x1103 = SPVAR(SP_V_T_C1)*x406 - SPVAR(SP_V_T_C1)*x946;
+    realtype x1104 = x1102 + x1103;
+    realtype x1105 = SPVAR(SP_V_T_CD8)*x240;
+    realtype x1106 = x1069*x1105;
+    realtype x1107 = x1069*x247;
+    realtype x1108 = SPVAR(SP_V_T_CD8)*x256;
+    realtype x1109 = x1069*x1108;
+    realtype x1110 = x1069*x265;
+    realtype x1111 = x1069*x267;
+    realtype x1112 = x1111*x274;
+    realtype x1113 = x1098*x276;
+    realtype x1114 = SPVAR(SP_V_T_CD8)*x280;
+    realtype x1115 = x1069*x1114;
+    realtype x1116 = x1115*x279;
+    realtype x1117 = x1115*x283;
+    realtype x1118 = x1106 + x1107 + x1109 + x1110 - x1112 + x1113 - x1116 + x1117;
+    realtype x1119 = x1069*x290;
+    realtype x1120 = x1069*x304;
+    realtype x1121 = x1101*x307 + x1119*x287 + x1119*x294 + x1119*x298 - x1120*x303;
+    realtype x1122 = -SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x310*x311*x315*x318*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_Mcell)*x1*x225*x313*x4 - x1069*x321) + x1102;
+    realtype x1123 = x1072*x330 - x1088*x328;
+    realtype x1124 = x1040*x352;
+    realtype x1125 = -x1069*x1124 + x1072*x363 - x1088*x369 + x1101*x350 + x346*(-x1069*x341 + x1072*x343);
+    realtype x1126 = x1069*x336 + x1078 + x1125;
+    realtype x1127 = x1069*x376 + x1069*x383 + x1069*x390 + x1085 - x1106 - x1107 - x1109 - x1110 + x1112 - x1113 + x1116 - x1117;
+    realtype x1128 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_Mcell)*x1*x402*x80 - x1072*x404;
+    realtype x1129 = x1128*x418;
+    realtype x1130 = x423*(-x1099*x414 + x1100*x422);
+    realtype x1131 = x399*(-x1129 + x420*x421*(x1104*x416 - x1104*x425 + x1130));
+    realtype x1132 = x1131*x396;
+    realtype x1133 = x435*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Mcell)*x1*x393*x80 - x1072*x433);
+    realtype x1134 = x434*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_Mcell)*x1*x398*x80 - x1098*x437);
+    realtype x1135 = x1133*x395 + x1134*x396;
+    realtype x1136 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_Mcell)*x1*x12*x181*x225*x4*x428*x431 - PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_Mcell)*x1*x430 + x1135;
+    realtype x1137 = x1131*x442;
+    realtype x1138 = x1133*x441 + x1134*x442;
+    realtype x1139 = -0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_Mcell)*x1*x12*x181*x225*x4*x428*x431 - PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_Mcell)*x1*x430 + x1138;
+    realtype x1140 = x1069*x447;
+    realtype x1141 = SPVAR(SP_V_T_mcDC1)*x1140;
+    realtype x1142 = x1135 - x1141;
+    realtype x1143 = SPVAR(SP_V_T_mcDC2)*x1140;
+    realtype x1144 = x1138 - x1143;
+    realtype x1145 = x1069*x461;
+    realtype x1146 = x1072*x490;
+    realtype x1147 = -x1145*x488 + x1146*x492;
+    realtype x1148 = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*PARAM(P_vol_Mcell)*x1*x455*x457*x460 + PARAM(P_k_Th_seed)*PARAM(P_vol_Mcell)*x1*x24*x26 + x1091 - x1092 + x1093 + x1094 - x1121 - x1125 - x1147;
+    realtype x1149 = x1069*x495;
+    realtype x1150 = x1088*x506;
+    realtype x1151 = PARAM(P_n_vasc)*x1069;
+    realtype x1152 = x1151*x501;
+    realtype x1153 = x1151*x514;
+    realtype x1154 = x1150*x505 - x1152*x510 + x1153*x513 + x519*(-x1069*x516 + x1072*x518);
+    realtype x1155 = PARAM(P_rho_Mac_max)*PARAM(P_vol_Mcell)*x1*x10*x522 - x528;
+    realtype x1156 = x1152*x532;
+    realtype x1157 = x1069*x537;
+    realtype x1158 = x540*(-x1128*x539 - x1157*x536);
+    realtype x1159 = x554*(x1098*x551 + x1101*x553 - x1111*x544 - x1120*x550 - x1145*x547 + x1146*x552);
+    realtype x1160 = PARAM(P_k_M2_pol)*(x134*x544 + x194*x550 + x463*x547) - x1158 + x1159;
+    realtype x1161 = PARAM(P_k_Mac_death) + x294;
+    realtype x1162 = -x1145*x565 + x1146*x566;
+    realtype x1163 = x1162*x579;
+    realtype x1164 = x592*(-x1088*x589 + x591*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_Mcell)*x1*x569*x80 - x1101*x590));
+    realtype x1165 = x1164*x588;
+    realtype x1166 = x1164*x596;
+    realtype x1167 = x1101*x604;
+    realtype x1168 = x1120*x601 - x1167*x603;
+    realtype x1169 = x1069*x562 + x1069*x581 - x1163 + x1165 - x1166 + x1168;
+    realtype x1170 = x1069*x616;
+    realtype x1171 = x1170*x618;
+    realtype x1172 = x294*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_Mcell)*x1*x179*x610*x612 - x1171);
+    realtype x1173 = PARAM(P_K_stiff_niche)*x1171 - x1170*x614;
+    realtype x1174 = x1120*x631 + x1162*x628 + x1164*x637 - x1164*x640 - x1167*x633;
+    realtype x1175 = -SPVAR(SP_V_T_iCAF)*x1172 + x1163 - x1165 + x1166 + x1173*x609*x625 + x1174;
+    realtype x1176 = -SPVAR(SP_V_T_myCAF)*x1172 + PARAM(P_k_myCAF_prolif)*x1173*x609*x645*x646*x648 - x1168 - x1174;
+    realtype x1177 = -SPVAR(SP_V_T_apCAF)*x1172 + PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x1173*x650*x652;
+    realtype x1178 = x1069*x667 - x1088*x664;
+    realtype x1179 = x1069*x661 + x671*(x1101*x668 - x1120*x656);
+    realtype x1180 = x1069*x676;
+    realtype x1181 = x1088*x679;
+    realtype x1182 = -x1181*x678;
+    realtype x1183 = -x1181*x682;
+    realtype x1184 = x1088*x685;
+    realtype x1185 = SPVAR(SP_syn_CD8_C1_PD1)*x1184;
+    realtype x1186 = x1157*x692;
+    realtype x1187 = x706*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_Mcell)*x1*x692*x693*x80 - x1072*x704);
+    realtype x1188 = PARAM(P_k_out_PDL1)*PARAM(P_vol_Mcell)*x1*x698*x701*x702*x83 - x1186*x699 - x1187*x690;
+    realtype x1189 = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_Mcell)*x1*x701*x702*x712*x83 - x1186*x714 - x1187*x711;
+    realtype x1190 = -x1185;
+    realtype x1191 = SPVAR(SP_syn_M_C_PD1)*x1184;
+    realtype x1192 = x1072*x723;
+    realtype x1193 = -x1186*x722 + x1192*x722;
+    realtype x1194 = -x1186*x728 + x1192*x728;
+    realtype x1195 = -x1191;
+    realtype x1196 = x399*(-x1129 + x420*x421*(x1102*x416 - x1102*x425 + x1130));
+    realtype x1197 = x1196*x396;
+    realtype x1198 = x1196*x442;
+    realtype x1199 = PARAM(P_k_M1_pol)*(-x420*x539 + 1.0) + x1158 - x1159;
+    realtype x1200 = x663*x665;
+    realtype x1201 = SPVAR(SP_V_T_IL12)*x403*x80 - x13*x402;
+    realtype x1202 = x1201*x418;
+    realtype x1203 = x1043*x1202;
+    realtype x1204 = x1047*x1202;
+    realtype x1205 = x1201*x539*x540;
+    realtype x1206 = -x13*x136 + x137*x267;
+    realtype x1207 = x1206*x165;
+    realtype x1208 = -SPVAR(SP_V_T_CD8)*SPVAR(SP_V_T_Treg)*PARAM(P_k_Treg_CD8_exh)*x13*x250*x252*x270 + x267*x276;
+    realtype x1209 = x434*(-x13*x398 + x267*x437);
+    realtype x1210 = x1044*(SPVAR(SP_V_T_C1)*SPVAR(SP_V_T_Mac_M1)*PARAM(P_k_M1_phago)*x1206*x145*x154*x159*x162*x411*x415 - x1207*x425);
+    realtype x1211 = x1043*x1210 + x1209*x396;
+    realtype x1212 = x1047*x1210 + x1209*x442;
+    realtype x1213 = x554*(0.33333333333333331*x13*x543 - x267*x551);
+    realtype x1214 = PARAM(P_vol_qPSCcell)*x1;
+    realtype x1215 = x1214*x27;
+    realtype x1216 = PARAM(P_n_vasc)*x1215;
+    realtype x1217 = x1214*x83;
+    realtype x1218 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_qPSCcell)*x1*x16*x80 - x1217*x82;
+    realtype x1219 = x1218*x29;
+    realtype x1220 = -SPVAR(SP_V_C_nCD4)*PARAM(P_n_vasc)*PARAM(P_q_Treg_T_in)*PARAM(P_vol_qPSCcell)*x1*x17*x19*x21*x24*x26 + SPVAR(SP_V_C_nCD4)*x1219 + x1215*x71 + x1216*x79;
+    realtype x1221 = x1214*x89;
+    realtype x1222 = -PARAM(P_n_vasc)*x1221 + x1215*x92 + x1221;
+    realtype x1223 = x1216*x97;
+    realtype x1224 = x1218*x99;
+    realtype x1225 = -SPVAR(SP_V_C_nCD8)*PARAM(P_n_vasc)*PARAM(P_q_CD8_T_in)*PARAM(P_vol_qPSCcell)*x1*x17*x19*x21*x24*x26 + SPVAR(SP_V_C_nCD8)*x1223 + SPVAR(SP_V_C_nCD8)*x1224 + x1215*x940;
+    realtype x1226 = x1215*x942;
+    realtype x1227 = SPVAR(SP_V_C_CD8)*x1223 + SPVAR(SP_V_C_CD8)*x1224 - PARAM(P_n_vasc)*x1226 + x1226;
+    realtype x1228 = -x107*x1214;
+    realtype x1229 = PARAM(P_vol_qPSCcell)*x112;
+    realtype x1230 = x111*x1229;
+    realtype x1231 = x116*x1215;
+    realtype x1232 = PARAM(P_n_vasc)*x1231;
+    realtype x1233 = x119*x1216;
+    realtype x1234 = SPVAR(SP_V_C_Th)*x1219;
+    realtype x1235 = -SPVAR(SP_V_C_B)*PARAM(P_n_vasc)*PARAM(P_q_B_T_in)*PARAM(P_vol_qPSCcell)*x1*x17*x19*x21*x24*x26*x55 + x1215*x125 + x1215*x130 + x1216*x126 + x1218*x131;
+    realtype x1236 = x1217*x138;
+    realtype x1237 = SPVAR(SP_V_T_Ab)*x1229;
+    realtype x1238 = x1217*x168;
+    realtype x1239 = x1217*x221;
+    realtype x1240 = x1214*x230 - x1229*x210 + x165*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_qPSCcell)*x1*x136*x80 - x1236*x137) + x172*(-x1237*x158 + x1238*x167) + x214*(SPVAR(SP_V_T_NO)*PARAM(P_vol_qPSCcell)*x1*x192*x80 - x1217*x212) + x219*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_qPSCcell)*x1*x188*x80 - x1217*x217) + x224*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_qPSCcell)*x1*x196*x80 - x1239*x220);
+    realtype x1241 = x1105*x1214;
+    realtype x1242 = x1214*x247;
+    realtype x1243 = x1108*x1214;
+    realtype x1244 = x1214*x265;
+    realtype x1245 = x1214*x267;
+    realtype x1246 = x1245*x274;
+    realtype x1247 = x1236*x276;
+    realtype x1248 = x1114*x1214;
+    realtype x1249 = x1248*x279;
+    realtype x1250 = x1248*x283;
+    realtype x1251 = x1214*x290;
+    realtype x1252 = x1214*x304;
+    realtype x1253 = x1239*x307 + x1251*x287 + x1251*x294 + x1251*x298 - x1252*x303;
+    realtype x1254 = -x1124*x1214 + x1217*x363 - x1229*x369 + x1239*x350 + x346*(-x1214*x341 + x1217*x343);
+    realtype x1255 = x435*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_qPSCcell)*x1*x393*x80 - x1217*x433);
+    realtype x1256 = x434*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_qPSCcell)*x1*x398*x80 - x1236*x437);
+    realtype x1257 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_qPSCcell)*x1*x402*x80 - x1217*x404;
+    realtype x1258 = x399*(-x1257*x418 + x420*x421*(x1240*x416 - x1240*x425 + x423*(-x1237*x414 + x1238*x422)));
+    realtype x1259 = x1255*x395 + x1256*x396 + x1258*x396;
+    realtype x1260 = x1255*x441 + x1256*x442 + x1258*x442;
+    realtype x1261 = x1214*x447;
+    realtype x1262 = SPVAR(SP_V_T_mcDC1)*x1261;
+    realtype x1263 = SPVAR(SP_V_T_mcDC2)*x1261;
+    realtype x1264 = x1214*x461;
+    realtype x1265 = x1217*x490;
+    realtype x1266 = -x1264*x488 + x1265*x492;
+    realtype x1267 = x1229*x506;
+    realtype x1268 = PARAM(P_n_vasc)*x1214;
+    realtype x1269 = x1268*x501;
+    realtype x1270 = x1268*x514;
+    realtype x1271 = x1*x523*x526;
+    realtype x1272 = x1214*x537;
+    realtype x1273 = x540*(-x1257*x539 - x1272*x536);
+    realtype x1274 = x554*(x1236*x551 + x1239*x553 - x1245*x544 - x1252*x550 - x1264*x547 + x1265*x552);
+    realtype x1275 = x1*x9;
+    realtype x1276 = x221*x604*x83;
+    realtype x1277 = PARAM(P_k_PSC_to_myCAF)*x1275*x1276 - x1275*x304*x600 + x194*x600;
+    realtype x1278 = -x1264*x565 + x1265*x566;
+    realtype x1279 = x592*(-x1229*x589 + x591*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_qPSCcell)*x1*x569*x80 - x1239*x590));
+    realtype x1280 = x1278*x579 - x1279*x588 + x1279*x596 + x595;
+    realtype x1281 = x1278*x628;
+    realtype x1282 = x1214*x616;
+    realtype x1283 = x1282*x618;
+    realtype x1284 = x294*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_qPSCcell)*x1*x179*x610*x612 - x1283);
+    realtype x1285 = PARAM(P_K_stiff_niche)*x1283 - x1282*x614;
+    realtype x1286 = x1285*x609;
+    realtype x1287 = x1252*x631;
+    realtype x1288 = x604*x633;
+    realtype x1289 = x1239*x1288;
+    realtype x1290 = x1279*x637;
+    realtype x1291 = x1279*x640;
+    realtype x1292 = x1229*x679;
+    realtype x1293 = x1229*x685;
+    realtype x1294 = SPVAR(SP_syn_CD8_C1_PD1)*x1293;
+    realtype x1295 = x1272*x692;
+    realtype x1296 = x706*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_qPSCcell)*x1*x692*x693*x80 - x1217*x704);
+    realtype x1297 = SPVAR(SP_syn_M_C_PD1)*x1293;
+    realtype x1298 = x1217*x723;
+    realtype x1299 = PARAM(P_vol_iCAFcell)*x1;
+    realtype x1300 = x1299*x27;
+    realtype x1301 = PARAM(P_n_vasc)*x1300;
+    realtype x1302 = x1299*x83;
+    realtype x1303 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_iCAFcell)*x1*x16*x80 - x1302*x82;
+    realtype x1304 = x1303*x29;
+    realtype x1305 = -SPVAR(SP_V_C_nCD4)*PARAM(P_n_vasc)*PARAM(P_q_Treg_T_in)*PARAM(P_vol_iCAFcell)*x1*x17*x19*x21*x24*x26 + SPVAR(SP_V_C_nCD4)*x1304 + x1300*x71 + x1301*x79;
+    realtype x1306 = x1299*x89;
+    realtype x1307 = -PARAM(P_n_vasc)*x1306 + x1300*x92 + x1306;
+    realtype x1308 = x1301*x97;
+    realtype x1309 = x1303*x99;
+    realtype x1310 = -SPVAR(SP_V_C_nCD8)*PARAM(P_n_vasc)*PARAM(P_q_CD8_T_in)*PARAM(P_vol_iCAFcell)*x1*x17*x19*x21*x24*x26 + SPVAR(SP_V_C_nCD8)*x1308 + SPVAR(SP_V_C_nCD8)*x1309 + x1300*x940;
+    realtype x1311 = x1300*x942;
+    realtype x1312 = SPVAR(SP_V_C_CD8)*x1308 + SPVAR(SP_V_C_CD8)*x1309 - PARAM(P_n_vasc)*x1311 + x1311;
+    realtype x1313 = -x107*x1299;
+    realtype x1314 = PARAM(P_vol_iCAFcell)*x112;
+    realtype x1315 = x111*x1314;
+    realtype x1316 = x116*x1300;
+    realtype x1317 = SPVAR(SP_V_C_Th)*x1304 - PARAM(P_n_vasc)*x1316 + x119*x1301 + x1316;
+    realtype x1318 = -SPVAR(SP_V_C_B)*PARAM(P_n_vasc)*PARAM(P_q_B_T_in)*PARAM(P_vol_iCAFcell)*x1*x17*x19*x21*x24*x26*x55 + x125*x1300 + x126*x1301 + x130*x1300 + x1303*x131;
+    realtype x1319 = x1302*x138;
+    realtype x1320 = SPVAR(SP_V_T_Ab)*x1314;
+    realtype x1321 = x1302*x168;
+    realtype x1322 = x1302*x221;
+    realtype x1323 = x1299*x230 - x1314*x210 + x165*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_iCAFcell)*x1*x136*x80 - x1319*x137) + x172*(-x1320*x158 + x1321*x167) + x214*(SPVAR(SP_V_T_NO)*PARAM(P_vol_iCAFcell)*x1*x192*x80 - x1302*x212) + x219*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_iCAFcell)*x1*x188*x80 - x1302*x217) + x224*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_iCAFcell)*x1*x196*x80 - x1322*x220);
+    realtype x1324 = x1105*x1299;
+    realtype x1325 = x1299*x247;
+    realtype x1326 = x1108*x1299;
+    realtype x1327 = x1299*x265;
+    realtype x1328 = x1299*x267;
+    realtype x1329 = x1328*x274;
+    realtype x1330 = x1319*x276;
+    realtype x1331 = x1114*x1299;
+    realtype x1332 = x1331*x279;
+    realtype x1333 = x1331*x283;
+    realtype x1334 = x1299*x290;
+    realtype x1335 = x1334*x287;
+    realtype x1336 = x1334*x294;
+    realtype x1337 = x1334*x298;
+    realtype x1338 = x1299*x304;
+    realtype x1339 = x1338*x303;
+    realtype x1340 = x1322*x307;
+    realtype x1341 = PARAM(P_k_stroma_support)*x987;
+    realtype x1342 = x346*(-x1299*x341 + x1302*x343);
+    realtype x1343 = SPVAR(SP_V_T_Th)*x355;
+    realtype x1344 = SPVAR(SP_V_T_apCAF)*PARAM(P_k_apCAF_iTreg)*x1343*x365/std::pow(x357, 2);
+    realtype x1345 = -x1344;
+    realtype x1346 = x1322*x350;
+    realtype x1347 = x1124*x1299;
+    realtype x1348 = x1302*x363;
+    realtype x1349 = x1314*x369;
+    realtype x1350 = x435*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_iCAFcell)*x1*x393*x80 - x1302*x433);
+    realtype x1351 = x434*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_iCAFcell)*x1*x398*x80 - x1319*x437);
+    realtype x1352 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_iCAFcell)*x1*x402*x80 - x1302*x404;
+    realtype x1353 = x399*(-x1352*x418 + x420*x421*(x1323*x416 - x1323*x425 + x423*(-x1320*x414 + x1321*x422)));
+    realtype x1354 = x1350*x395 + x1351*x396 + x1353*x396;
+    realtype x1355 = x1350*x441 + x1351*x442 + x1353*x442;
+    realtype x1356 = x1299*x447;
+    realtype x1357 = SPVAR(SP_V_T_mcDC1)*x1356;
+    realtype x1358 = SPVAR(SP_V_T_mcDC2)*x1356;
+    realtype x1359 = x1299*x461;
+    realtype x1360 = x1359*x488;
+    realtype x1361 = x1302*x490;
+    realtype x1362 = x1361*x492;
+    realtype x1363 = x1314*x506;
+    realtype x1364 = PARAM(P_n_vasc)*x1299;
+    realtype x1365 = x1364*x501;
+    realtype x1366 = x1364*x514;
+    realtype x1367 = x1299*x537;
+    realtype x1368 = x540*(-x1352*x539 - x1367*x536);
+    realtype x1369 = x554*(x1319*x551 + x1322*x553 - x1328*x544 - x1338*x550 - x1359*x547 + x1361*x552);
+    realtype x1370 = x1338*x601;
+    realtype x1371 = x603*x604;
+    realtype x1372 = x1322*x1371;
+    realtype x1373 = -x1359*x565 + x1361*x566;
+    realtype x1374 = x592*(-x1314*x589 + x591*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_iCAFcell)*x1*x569*x80 - x1322*x590));
+    realtype x1375 = -x1373*x579 + x1374*x588 - x1374*x596;
+    realtype x1376 = x294*x969;
+    realtype x1377 = 1.0/x623;
+    realtype x1378 = x1299*x616;
+    realtype x1379 = x1378*x618;
+    realtype x1380 = PARAM(P_K_stiff_niche)*x1379 - x1378*x614;
+    realtype x1381 = x1380*x609;
+    realtype x1382 = x294*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_iCAFcell)*x1*x179*x610*x612 - x1379);
+    realtype x1383 = x1*x7;
+    realtype x1384 = PARAM(P_k_iCAF_to_myCAF)*x1276*x1383 - x1373*x628 - x1374*x637 + x1374*x640 - x1383*x304*x630 + x194*x630;
+    realtype x1385 = x1314*x679;
+    realtype x1386 = x1314*x685;
+    realtype x1387 = SPVAR(SP_syn_CD8_C1_PD1)*x1386;
+    realtype x1388 = x1367*x692;
+    realtype x1389 = x706*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_iCAFcell)*x1*x692*x693*x80 - x1302*x704);
+    realtype x1390 = SPVAR(SP_syn_M_C_PD1)*x1386;
+    realtype x1391 = x1302*x723;
+    realtype x1392 = PARAM(P_vol_myCAFcell)*x1;
+    realtype x1393 = x1392*x27;
+    realtype x1394 = PARAM(P_n_vasc)*x1393;
+    realtype x1395 = x1392*x83;
+    realtype x1396 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_myCAFcell)*x1*x16*x80 - x1395*x82;
+    realtype x1397 = x1396*x29;
+    realtype x1398 = -SPVAR(SP_V_C_nCD4)*PARAM(P_n_vasc)*PARAM(P_q_Treg_T_in)*PARAM(P_vol_myCAFcell)*x1*x17*x19*x21*x24*x26 + SPVAR(SP_V_C_nCD4)*x1397 + x1393*x71 + x1394*x79;
+    realtype x1399 = x1392*x89;
+    realtype x1400 = -PARAM(P_n_vasc)*x1399 + x1393*x92 + x1399;
+    realtype x1401 = x1394*x97;
+    realtype x1402 = x1396*x99;
+    realtype x1403 = -SPVAR(SP_V_C_nCD8)*PARAM(P_n_vasc)*PARAM(P_q_CD8_T_in)*PARAM(P_vol_myCAFcell)*x1*x17*x19*x21*x24*x26 + SPVAR(SP_V_C_nCD8)*x1401 + SPVAR(SP_V_C_nCD8)*x1402 + x1393*x940;
+    realtype x1404 = x1393*x942;
+    realtype x1405 = SPVAR(SP_V_C_CD8)*x1401 + SPVAR(SP_V_C_CD8)*x1402 - PARAM(P_n_vasc)*x1404 + x1404;
+    realtype x1406 = -x107*x1392;
+    realtype x1407 = PARAM(P_vol_myCAFcell)*x112;
+    realtype x1408 = x111*x1407;
+    realtype x1409 = x116*x1393;
+    realtype x1410 = SPVAR(SP_V_C_Th)*x1397 - PARAM(P_n_vasc)*x1409 + x119*x1394 + x1409;
+    realtype x1411 = -SPVAR(SP_V_C_B)*PARAM(P_n_vasc)*PARAM(P_q_B_T_in)*PARAM(P_vol_myCAFcell)*x1*x17*x19*x21*x24*x26*x55 + x125*x1393 + x126*x1394 + x130*x1393 + x131*x1396;
+    realtype x1412 = x138*x1395;
+    realtype x1413 = SPVAR(SP_V_T_Ab)*x1407;
+    realtype x1414 = x1395*x168;
+    realtype x1415 = x1395*x221;
+    realtype x1416 = x1392*x230 - x1407*x210 + x165*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_myCAFcell)*x1*x136*x80 - x137*x1412) + x172*(-x1413*x158 + x1414*x167) + x214*(SPVAR(SP_V_T_NO)*PARAM(P_vol_myCAFcell)*x1*x192*x80 - x1395*x212) + x219*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_myCAFcell)*x1*x188*x80 - x1395*x217) + x224*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_myCAFcell)*x1*x196*x80 - x1415*x220);
+    realtype x1417 = x1105*x1392;
+    realtype x1418 = x1392*x247;
+    realtype x1419 = x1108*x1392;
+    realtype x1420 = x1392*x265;
+    realtype x1421 = x1392*x267;
+    realtype x1422 = x1421*x274;
+    realtype x1423 = x1412*x276;
+    realtype x1424 = x1114*x1392;
+    realtype x1425 = x1424*x279;
+    realtype x1426 = x1424*x283;
+    realtype x1427 = x1392*x290;
+    realtype x1428 = x1427*x287;
+    realtype x1429 = x1427*x294;
+    realtype x1430 = x1427*x298;
+    realtype x1431 = x1392*x304;
+    realtype x1432 = x1431*x303;
+    realtype x1433 = x1415*x307;
+    realtype x1434 = x346*(-x1392*x341 + x1395*x343);
+    realtype x1435 = x1415*x350;
+    realtype x1436 = x1124*x1392;
+    realtype x1437 = x1395*x363;
+    realtype x1438 = x1407*x369;
+    realtype x1439 = x435*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_myCAFcell)*x1*x393*x80 - x1395*x433);
+    realtype x1440 = x434*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_myCAFcell)*x1*x398*x80 - x1412*x437);
+    realtype x1441 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_myCAFcell)*x1*x402*x80 - x1395*x404;
+    realtype x1442 = x399*(-x1441*x418 + x420*x421*(x1416*x416 - x1416*x425 + x423*(-x1413*x414 + x1414*x422)));
+    realtype x1443 = x1439*x395 + x1440*x396 + x1442*x396;
+    realtype x1444 = x1439*x441 + x1440*x442 + x1442*x442;
+    realtype x1445 = x1392*x447;
+    realtype x1446 = SPVAR(SP_V_T_mcDC1)*x1445;
+    realtype x1447 = SPVAR(SP_V_T_mcDC2)*x1445;
+    realtype x1448 = x1392*x461;
+    realtype x1449 = x1448*x488;
+    realtype x1450 = x1395*x490;
+    realtype x1451 = x1450*x492;
+    realtype x1452 = x1407*x506;
+    realtype x1453 = PARAM(P_n_vasc)*x1392;
+    realtype x1454 = x1453*x501;
+    realtype x1455 = x1453*x514;
+    realtype x1456 = x1392*x537;
+    realtype x1457 = x540*(-x1441*x539 - x1456*x536);
+    realtype x1458 = x554*(x1412*x551 + x1415*x553 - x1421*x544 - x1431*x550 - x1448*x547 + x1450*x552);
+    realtype x1459 = -x1448*x565 + x1450*x566;
+    realtype x1460 = x1459*x579;
+    realtype x1461 = x592*(-x1407*x589 + x591*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_myCAFcell)*x1*x569*x80 - x1415*x590));
+    realtype x1462 = x1461*x588;
+    realtype x1463 = x1461*x596;
+    realtype x1464 = -x1371*x1415 + x1431*x601;
+    realtype x1465 = x1392*x616;
+    realtype x1466 = x1465*x618;
+    realtype x1467 = x294*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_myCAFcell)*x1*x179*x610*x612 - x1466);
+    realtype x1468 = PARAM(P_K_stiff_niche)*x1466 - x1465*x614;
+    realtype x1469 = x1468*x609;
+    realtype x1470 = -x1288*x1415 + x1431*x631 + x1459*x628 + x1461*x637 - x1461*x640 + x635;
+    realtype x1471 = 1.0/x647;
+    realtype x1472 = x1407*x679;
+    realtype x1473 = x1407*x685;
+    realtype x1474 = SPVAR(SP_syn_CD8_C1_PD1)*x1473;
+    realtype x1475 = x1456*x692;
+    realtype x1476 = x706*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_myCAFcell)*x1*x692*x693*x80 - x1395*x704);
+    realtype x1477 = SPVAR(SP_syn_M_C_PD1)*x1473;
+    realtype x1478 = x1395*x723;
+    realtype x1479 = PARAM(P_vol_apCAFcell)*x1;
+    realtype x1480 = x1479*x27;
+    realtype x1481 = PARAM(P_n_vasc)*x1480;
+    realtype x1482 = x1479*x83;
+    realtype x1483 = SPVAR(SP_V_T_CXCL12)*PARAM(P_vol_apCAFcell)*x1*x16*x80 - x1482*x82;
+    realtype x1484 = x1483*x29;
+    realtype x1485 = -SPVAR(SP_V_C_nCD4)*PARAM(P_n_vasc)*PARAM(P_q_Treg_T_in)*PARAM(P_vol_apCAFcell)*x1*x17*x19*x21*x24*x26 + SPVAR(SP_V_C_nCD4)*x1484 + x1480*x71 + x1481*x79;
+    realtype x1486 = x1479*x89;
+    realtype x1487 = -PARAM(P_n_vasc)*x1486 + x1480*x92 + x1486;
+    realtype x1488 = x1481*x97;
+    realtype x1489 = x1483*x99;
+    realtype x1490 = -SPVAR(SP_V_C_nCD8)*PARAM(P_n_vasc)*PARAM(P_q_CD8_T_in)*PARAM(P_vol_apCAFcell)*x1*x17*x19*x21*x24*x26 + SPVAR(SP_V_C_nCD8)*x1488 + SPVAR(SP_V_C_nCD8)*x1489 + x1480*x940;
+    realtype x1491 = x1480*x942;
+    realtype x1492 = SPVAR(SP_V_C_CD8)*x1488 + SPVAR(SP_V_C_CD8)*x1489 - PARAM(P_n_vasc)*x1491 + x1491;
+    realtype x1493 = -x107*x1479;
+    realtype x1494 = PARAM(P_vol_apCAFcell)*x112;
+    realtype x1495 = x111*x1494;
+    realtype x1496 = x116*x1480;
+    realtype x1497 = PARAM(P_n_vasc)*x1496;
+    realtype x1498 = x119*x1481;
+    realtype x1499 = SPVAR(SP_V_C_Th)*x1484;
+    realtype x1500 = -SPVAR(SP_V_C_B)*PARAM(P_n_vasc)*PARAM(P_q_B_T_in)*PARAM(P_vol_apCAFcell)*x1*x17*x19*x21*x24*x26*x55 + x125*x1480 + x126*x1481 + x130*x1480 + x131*x1483;
+    realtype x1501 = x138*x1482;
+    realtype x1502 = SPVAR(SP_V_T_Ab)*x1494;
+    realtype x1503 = x1482*x168;
+    realtype x1504 = x1482*x221;
+    realtype x1505 = x1479*x230 - x1494*x210 + x165*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_apCAFcell)*x1*x136*x80 - x137*x1501) + x172*(-x1502*x158 + x1503*x167) + x214*(SPVAR(SP_V_T_NO)*PARAM(P_vol_apCAFcell)*x1*x192*x80 - x1482*x212) + x219*(SPVAR(SP_V_T_ArgI)*PARAM(P_vol_apCAFcell)*x1*x188*x80 - x1482*x217) + x224*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_apCAFcell)*x1*x196*x80 - x1504*x220);
+    realtype x1506 = x1105*x1479;
+    realtype x1507 = x1479*x247;
+    realtype x1508 = x1108*x1479;
+    realtype x1509 = x1479*x265;
+    realtype x1510 = x1479*x267;
+    realtype x1511 = x1510*x274;
+    realtype x1512 = x1501*x276;
+    realtype x1513 = x1114*x1479;
+    realtype x1514 = x1513*x279;
+    realtype x1515 = x1513*x283;
+    realtype x1516 = x1479*x290;
+    realtype x1517 = x1479*x304;
+    realtype x1518 = x1504*x307 + x1516*x287 + x1516*x294 + x1516*x298 - x1517*x303;
+    realtype x1519 = x1*x360*x362*x6*x83 - x112*x366*x368*x6 - x1124*x1479 + x1343*x366 + x1345 + x1504*x350 + x346*(-x1479*x341 + x1482*x343);
+    realtype x1520 = x435*(SPVAR(SP_V_T_TGFb)*PARAM(P_vol_apCAFcell)*x1*x393*x80 - x1482*x433);
+    realtype x1521 = x434*(SPVAR(SP_V_T_IL10)*PARAM(P_vol_apCAFcell)*x1*x398*x80 - x1501*x437);
+    realtype x1522 = SPVAR(SP_V_T_IL12)*PARAM(P_vol_apCAFcell)*x1*x402*x80 - x1482*x404;
+    realtype x1523 = x399*(-x1522*x418 + x420*x421*(x1505*x416 - x1505*x425 + x423*(-x1502*x414 + x1503*x422)));
+    realtype x1524 = x1520*x395 + x1521*x396 + x1523*x396;
+    realtype x1525 = x1520*x441 + x1521*x442 + x1523*x442;
+    realtype x1526 = x1479*x447;
+    realtype x1527 = SPVAR(SP_V_T_mcDC1)*x1526;
+    realtype x1528 = SPVAR(SP_V_T_mcDC2)*x1526;
+    realtype x1529 = x1479*x461;
+    realtype x1530 = x1482*x490;
+    realtype x1531 = -x1529*x488 + x1530*x492;
+    realtype x1532 = x1494*x506;
+    realtype x1533 = PARAM(P_n_vasc)*x1479;
+    realtype x1534 = x1533*x501;
+    realtype x1535 = x1533*x514;
+    realtype x1536 = x1479*x537;
+    realtype x1537 = x540*(-x1522*x539 - x1536*x536);
+    realtype x1538 = x554*(x1501*x551 + x1504*x553 - x1510*x544 - x1517*x550 - x1529*x547 + x1530*x552);
+    realtype x1539 = -x1529*x565 + x1530*x566;
+    realtype x1540 = x1539*x579;
+    realtype x1541 = x592*(-x1494*x589 + x591*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*PARAM(P_vol_apCAFcell)*x1*x569*x80 - x1504*x590));
+    realtype x1542 = x1541*x588;
+    realtype x1543 = x1541*x596;
+    realtype x1544 = -x1371*x1504 + x1517*x601;
+    realtype x1545 = x1479*x616;
+    realtype x1546 = x1545*x618;
+    realtype x1547 = x294*(PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_vol_apCAFcell)*x1*x179*x610*x612 - x1546);
+    realtype x1548 = PARAM(P_K_stiff_niche)*x1546 - x1545*x614;
+    realtype x1549 = -x1288*x1504 + x1517*x631 + x1539*x628 + x1541*x637 - x1541*x640;
+    realtype x1550 = 1.0/x651;
+    realtype x1551 = x1494*x679;
+    realtype x1552 = x1494*x685;
+    realtype x1553 = SPVAR(SP_syn_CD8_C1_PD1)*x1552;
+    realtype x1554 = x1536*x692;
+    realtype x1555 = x706*(SPVAR(SP_V_T_IFNg)*PARAM(P_vol_apCAFcell)*x1*x692*x693*x80 - x1482*x704);
+    realtype x1556 = SPVAR(SP_syn_M_C_PD1)*x1552;
+    realtype x1557 = x1482*x723;
+    realtype x1558 = x27*x4;
+    realtype x1559 = x1558*x70;
+    realtype x1560 = PARAM(P_n_vasc)*x1558;
+    realtype x1561 = x1560*x78;
+    realtype x1562 = x4*x83;
+    realtype x1563 = SPVAR(SP_V_T_CXCL12)*x16*x4*x80 - x1562*x82;
+    realtype x1564 = x1563*x29;
+    realtype x1565 = -SPVAR(SP_V_C_nCD4)*PARAM(P_n_vasc)*PARAM(P_q_Treg_T_in)*x17*x19*x21*x24*x26*x4 + SPVAR(SP_V_C_nCD4)*x1559 + SPVAR(SP_V_C_nCD4)*x1561 + SPVAR(SP_V_C_nCD4)*x1564;
+    realtype x1566 = x1558*x88;
+    realtype x1567 = -PARAM(P_n_vasc)*x1566 + x1560*x91 + x1566;
+    realtype x1568 = x1558*x94;
+    realtype x1569 = x1560*x97;
+    realtype x1570 = x1563*x99;
+    realtype x1571 = -SPVAR(SP_V_C_nCD8)*PARAM(P_n_vasc)*PARAM(P_q_CD8_T_in)*x17*x19*x21*x24*x26*x4 + SPVAR(SP_V_C_nCD8)*x1568 + SPVAR(SP_V_C_nCD8)*x1569 + SPVAR(SP_V_C_nCD8)*x1570;
+    realtype x1572 = SPVAR(SP_V_C_CD8)*x1568 + SPVAR(SP_V_C_CD8)*x1569 + SPVAR(SP_V_C_CD8)*x1570 - x1560*x942;
+    realtype x1573 = -x107*x4;
+    realtype x1574 = x4*x80;
+    realtype x1575 = x111*x1574;
+    realtype x1576 = SPVAR(SP_V_C_Th)*x1559;
+    realtype x1577 = PARAM(P_n_vasc)*x1576;
+    realtype x1578 = SPVAR(SP_V_C_Th)*x1561;
+    realtype x1579 = SPVAR(SP_V_C_Th)*x1564;
+    realtype x1580 = -SPVAR(SP_V_C_B)*PARAM(P_n_vasc)*PARAM(P_q_B_T_in)*x17*x19*x21*x24*x26*x4*x55 + x125*x1558 + x126*x1560 + x130*x1558 + x131*x1563;
+    realtype x1581 = x138*x1562;
+    realtype x1582 = x4*x778;
+    realtype x1583 = x1562*x168;
+    realtype x1584 = x1562*x221;
+    realtype x1585 = x179*x4;
+    realtype x1586 = SPVAR(SP_V_T_collagen)*x225*x319;
+    realtype x1587 = -x1585 + x1586;
+    realtype x1588 = x1587*x227;
+    realtype x1589 = -x1574*x210 + x1588*x229 + x165*(SPVAR(SP_V_T_IL10)*x136*x4*x80 - x137*x1581) + x172*(-x158*x1582 + x1583*x167) + x214*(SPVAR(SP_V_T_NO)*x192*x4*x80 - x1562*x212) + x219*(SPVAR(SP_V_T_ArgI)*x188*x4*x80 - x1562*x217) + x224*(PARAM(P_Emax_TGFb_Teff)*SPVAR(SP_V_T_TGFb)*x196*x4*x80 - x1584*x220);
+    realtype x1590 = x1105*x4;
+    realtype x1591 = x247*x4;
+    realtype x1592 = x1108*x4;
+    realtype x1593 = x265*x4;
+    realtype x1594 = x267*x4;
+    realtype x1595 = x1594*x274;
+    realtype x1596 = x1581*x276;
+    realtype x1597 = 1.0/SPVAR(SP_V_T_collagen);
+    realtype x1598 = -x1586*x258 + x179*x258*x4;
+    realtype x1599 = PARAM(P_phi_col_ref)*PARAM(P_rho_collagen)*x11*x1597*x1598;
+    realtype x1600 = SPVAR(SP_V_T_CD8)*PARAM(P_n_Texh)*PARAM(P_n_stiff)*x1599;
+    realtype x1601 = x1600*x279;
+    realtype x1602 = x1600*x283;
+    realtype x1603 = x290*x4;
+    realtype x1604 = x304*x4;
+    realtype x1605 = x1584*x307 + x1603*x287 + x1603*x294 + x1603*x298 - x1604*x303;
+    realtype x1606 = x1562*x363 - x1574*x369 + x1584*x350 - x1604*x353 + x346*(x1562*x343 - x341*x4);
+    realtype x1607 = x173*x4;
+    realtype x1608 = x435*(SPVAR(SP_V_T_TGFb)*x393*x4*x80 - x1562*x433);
+    realtype x1609 = x434*(SPVAR(SP_V_T_IL10)*x398*x4*x80 - x1581*x437);
+    realtype x1610 = SPVAR(SP_V_T_IL12)*x4*x402*x80 - x1562*x404;
+    realtype x1611 = x399*(-x1610*x418 + x420*x421*(x1589*x416 - x1589*x425 + x423*(-x1582*x414 + x1583*x422)));
+    realtype x1612 = x1608*x395 + x1609*x396 + x1611*x396;
+    realtype x1613 = x1608*x441 + x1609*x442 + x1611*x442;
+    realtype x1614 = PARAM(P_k_APC_mig)*x1588*x446;
+    realtype x1615 = SPVAR(SP_V_T_mcDC1)*x1614;
+    realtype x1616 = SPVAR(SP_V_T_mcDC2)*x1614;
+    realtype x1617 = x4*x461;
+    realtype x1618 = x1562*x490;
+    realtype x1619 = -x1617*x488 + x1618*x492;
+    realtype x1620 = x1574*x506;
+    realtype x1621 = PARAM(P_n_vasc)*x4;
+    realtype x1622 = x1621*x501;
+    realtype x1623 = x1621*x514;
+    realtype x1624 = x4*x537;
+    realtype x1625 = x540*(-x1610*x539 - x1624*x536);
+    realtype x1626 = x554*(x1581*x551 + x1584*x553 - x1594*x544 - x1604*x550 - x1617*x547 + x1618*x552);
+    realtype x1627 = -x1617*x565 + x1618*x566;
+    realtype x1628 = x1627*x579;
+    realtype x1629 = x592*(-x1574*x589 + x591*(PARAM(P_Emax_IL1R1)*SPVAR(SP_V_T_TGFb)*x4*x569*x80 - x1584*x590));
+    realtype x1630 = x1629*x588;
+    realtype x1631 = x1629*x596;
+    realtype x1632 = x1584*x604;
+    realtype x1633 = x1604*x601 - x1632*x603;
+    realtype x1634 = x1599*x615;
+    realtype x1635 = x1634*x618;
+    realtype x1636 = x294*(-x1634*x613 + x1635);
+    realtype x1637 = PARAM(P_K_stiff_niche)*PARAM(P_n_fib)*PARAM(P_n_stiff)*PARAM(P_phi_col_ref)*PARAM(P_rho_collagen)*x11*x1597*x1598*x610*x612 - PARAM(P_K_stiff_niche)*x1635;
+    realtype x1638 = x1604*x631 + x1627*x628 + x1629*x637 - x1629*x640 - x1632*x633;
+    realtype x1639 = x1574*x679;
+    realtype x1640 = x1574*x685;
+    realtype x1641 = SPVAR(SP_syn_CD8_C1_PD1)*x1640;
+    realtype x1642 = x1624*x692;
+    realtype x1643 = x706*(SPVAR(SP_V_T_IFNg)*x4*x692*x693*x80 - x1562*x704);
+    realtype x1644 = SPVAR(SP_syn_M_C_PD1)*x1640;
+    realtype x1645 = x1562*x723;
+    realtype x1646 = SPVAR(SP_V_T_CXCL12)*x80*x81 - x13*x16;
+    realtype x1647 = x1646*x29;
+    realtype x1648 = SPVAR(SP_V_C_nCD4)*x1647;
+    realtype x1649 = x1646*x99;
+    realtype x1650 = SPVAR(SP_V_C_nCD8)*x1649;
+    realtype x1651 = SPVAR(SP_V_C_CD8)*x1649;
+    realtype x1652 = SPVAR(SP_V_C_Th)*x1647;
+    realtype x1653 = x131*x1646;
+    realtype x1654 = -x1039*x487 + x461*x492;
+    realtype x1655 = x554*(0.33333333333333331*x13*x546 - x461*x552);
+    realtype x1656 = PARAM(P_f_IL6_iCAF)*x13*x564 - x461*x566;
+    realtype x1657 = x1656*x579;
+    realtype x1658 = x1656*x628;
+    realtype x1659 = x588 - x596;
+    realtype x1660 = -x637 + x640;
+    realtype x1661 = PARAM(P_Tfh_50_plasma) + SPVAR(SP_V_T_Tfh);
+    realtype x1662 = PARAM(P_k_B_to_plasma)/x1661;
+    realtype x1663 = SPVAR(SP_V_T_Tfh)*SPVAR(SP_V_T_aB)*PARAM(P_k_B_to_plasma)/std::pow(x1661, 2) - SPVAR(SP_V_T_aB)*x1662;
+    realtype x1664 = PARAM(P_rho_B_max)*PARAM(P_vol_Tcell)*x0*x1*x128 - x53;
+    realtype x1665 = x127*x1664;
+    realtype x1666 = x123*x1665*x31;
+    realtype x1667 = x1666 + x774;
+    realtype x1668 = -x1667;
+    realtype x1669 = -x782;
+    realtype x1670 = x399*(x420*x421*(x1669*x425 + x416*x782 + x832) - x831);
+    realtype x1671 = x1670*x396 + x838;
+    realtype x1672 = -x1671 - x835;
+    realtype x1673 = x1670*x442 + x843;
+    realtype x1674 = -x1673 - x842;
+    realtype x1675 = x453*x782;
+    realtype x1676 = x454*x782;
+    realtype x1677 = -x888;
+    realtype x1678 = SPVAR(SP_V_T_collagen)*x891 + x892;
+    realtype x1679 = PARAM(P_k_B_act_tumor)*x484;
+    realtype x1680 = x1679*x482;
+    realtype x1681 = PARAM(P_k_B_death) + x294;
+    realtype x1682 = x1665*x674;
+    realtype x1683 = SPVAR(SP_V_T_Tfh)*x1662;
+    realtype x1684 = x172*(PARAM(P_ADCC_boost_max)*x13*x157 - x167*x778);
+    realtype x1685 = x1044*(x1684*x416 - x1684*x425 + x423*(PARAM(P_DC_Ab_boost)*x13*x413 - x422*x778));
+    realtype x1686 = x1043*x1685;
+    realtype x1687 = x1047*x1685;
+    realtype x1688 = SPVAR(SP_V_LN_nCD4) + x59;
+    realtype x1689 = PARAM(P_f_nTreg)*PARAM(P_k_Treg_act);
+    realtype x1690 = SPVAR(SP_V_LN_mcDC2)*PARAM(P_n_sites_APC);
+    realtype x1691 = SPVAR(SP_V_LN_nCD4)*PARAM(P_n_CD4_clones);
+    realtype x1692 = PARAM(P_cell) + x1690 + x1691;
+    realtype x1693 = 1.0/x1692;
+    realtype x1694 = x1690*x1693;
+    realtype x1695 = SPVAR(SP_V_LN_mcDC2)*PARAM(P_k_T_activation_per_APC);
+    realtype x1696 = 1.0/PARAM(P_V_e);
+    realtype x1697 = SPVAR(SP_V_e_P1)*x1696;
+    realtype x1698 = PARAM(P_p1_II_50) + x1697;
+    realtype x1699 = 1.0/x1698;
+    realtype x1700 = x1697*x1699;
+    realtype x1701 = x1695*x1700;
+    realtype x1702 = std::pow(x1692, -2);
+    realtype x1703 = PARAM(P_k_Tfh_act)*x485;
+    realtype x1704 = PARAM(P_k_Treg_act)*x1694*x963;
+    realtype x1705 = 1.0/PARAM(P_n_CD4_clones);
+    realtype x1706 = x1705*x466;
+    realtype x1707 = SPVAR(SP_A_s_M1p0)*x1706;
+    realtype x1708 = 1.0/PARAM(P_TCR_p0_tot);
+    realtype x1709 = 4.0*x1708;
+    realtype x1710 = PARAM(P_TCR_p0_tot) + PARAM(P_k_M1p0_TCR_off)/PARAM(P_k_M1p0_TCR_on) + x1707;
+    realtype x1711 = std::pow(x1708*x1710, 2.0);
+    realtype x1712 = -x1707*x1709 + x1711;
+    realtype x1713 = std::sqrt(std::fmax(0.0, x1712));
+    realtype x1714 = -PARAM(P_TCR_p0_tot)*x1713 + x1710;
+    realtype x1715 = PARAM(P_k_M1p0_TCR_p)/(PARAM(P_k_M1p0_TCR_off) + PARAM(P_k_M1p0_TCR_p));
+    realtype x1716 = std::pow(x1715, PARAM(P_N_M1p0_TCR));
+    realtype x1717 = PARAM(P_k_M1p0_TCR_off) + PARAM(P_phi_M1p0_TCR);
+    realtype x1718 = 1.0/x1717;
+    realtype x1719 = 0.5*PARAM(P_k_M1p0_TCR_off)*x1716*x1718;
+    realtype x1720 = x1714*x1719;
+    realtype x1721 = PARAM(P_p0_50) + x1720;
+    realtype x1722 = 1.0/x1721;
+    realtype x1723 = x1720*x1722;
+    realtype x1724 = SPVAR(SP_V_LN_nCD4)*x1689;
+    realtype x1725 = std::pow(PARAM(P_n_CD4_clones), 2)*x1690;
+    realtype x1726 = PARAM(P_k_Treg_act)*x1723*x963;
+    realtype x1727 = SPVAR(SP_V_LN_nCD4)*x1726;
+    realtype x1728 = PARAM(P_f_epitope_spread)*x387;
+    realtype x1729 = x1728*x385 + 1.0;
+    realtype x1730 = SPVAR(SP_V_LN_nCD4)*x1703;
+    realtype x1731 = 1.0/PARAM(P_IL2_50);
+    realtype x1732 = SPVAR(SP_V_LN_aCD8) + SPVAR(SP_V_LN_aTh)*PARAM(P_w_IL2_help);
+    realtype x1733 = PARAM(P_k_IL2_cons)*x1731;
+    realtype x1734 = PARAM(P_V_niche)*PARAM(P_k_IL2_deg) + x1733*(SPVAR(SP_V_LN_Treg)*PARAM(P_kappa_IL2_Treg) + SPVAR(SP_V_LN_aCD8));
+    realtype x1735 = std::pow(x1734, -2);
+    realtype x1736 = 1.0/x1734;
+    realtype x1737 = PARAM(P_k_IL2_sec)*x1736;
+    realtype x1738 = x1732*x1737;
+    realtype x1739 = PARAM(P_IL2_50) + x1738;
+    realtype x1740 = 1.0/x1739;
+    realtype x1741 = std::pow(PARAM(P_k_IL2_sec), 2);
+    realtype x1742 = std::pow(x1739, -2);
+    realtype x1743 = PARAM(P_N_IL2_CD8)*x1742;
+    realtype x1744 = x1741*x1743;
+    realtype x1745 = PARAM(P_kappa_IL2_Treg)*std::pow(x1732, 2)*x1733/std::pow(x1734, 3);
+    realtype x1746 = x1744*x1745;
+    realtype x1747 = x1738*x1740;
+    realtype x1748 = PARAM(P_Th_50_div) + SPVAR(SP_V_LN_Th);
+    realtype x1749 = 1.0/x1748;
+    realtype x1750 = 1.0/PARAM(P_syn_CD8_APC);
+    realtype x1751 = SPVAR(SP_syn_CD8_APC_CD28_CD80)*x1750;
+    realtype x1752 = SPVAR(SP_syn_CD8_APC_PDL1_CD80_CD28)*x1750;
+    realtype x1753 = 2.0*x1750;
+    realtype x1754 = SPVAR(SP_syn_CD8_APC_CD28_CD80_CD28)*x1753 + SPVAR(SP_syn_CD8_APC_CD28_CD86)*x1750 + x1751 + x1752;
+    realtype x1755 = x1754/PARAM(P_CD28_CD8X_50);
+    realtype x1756 = std::pow(x1755, PARAM(P_n_CD28_CD8X));
+    realtype x1757 = x1756 + 1.0;
+    realtype x1758 = 1.0/x1757;
+    realtype x1759 = PARAM(P_N_div_costim)*x1756*x1758;
+    realtype x1760 = x1749*x1759;
+    realtype x1761 = SPVAR(SP_V_LN_Th)*x1760;
+    realtype x1762 = PARAM(P_N_IL2_CD8)*x1747 + PARAM(P_N_div_base) + x1761;
+    realtype x1763 = SPVAR(SP_V_LN_aCD8)*PARAM(P_k_CD8_pro)/std::pow(x1762, 2);
+    realtype x1764 = x1763*(PARAM(P_N_IL2_CD8)*PARAM(P_k_IL2_cons)*PARAM(P_k_IL2_sec)*PARAM(P_kappa_IL2_Treg)*x1731*x1732*x1735*x1740 - x1746);
+    realtype x1765 = std::pow(2.0, x1762);
+    realtype x1766 = x1732*x1735;
+    realtype x1767 = PARAM(P_k_IL2_sec)*x1733*x1740*x1766;
+    realtype x1768 = PARAM(P_N_IL2_CD8)*x1767;
+    realtype x1769 = PARAM(P_k_CD8_pro)/x1762;
+    realtype x1770 = x1765*x1769;
+    realtype x1771 = SPVAR(SP_V_LN_aCD8)*x1770;
+    realtype x1772 = PARAM(P_N_IL2_CD4)*x1747 + PARAM(P_N_div_base) + x1759;
+    realtype x1773 = std::pow(x1772, -2);
+    realtype x1774 = PARAM(P_N_IL2_CD4)*x1742;
+    realtype x1775 = x1741*x1774;
+    realtype x1776 = x1745*x1775;
+    realtype x1777 = x1773*(PARAM(P_N_IL2_CD4)*PARAM(P_k_IL2_cons)*PARAM(P_k_IL2_sec)*PARAM(P_kappa_IL2_Treg)*x1731*x1732*x1735*x1740 - x1776);
+    realtype x1778 = PARAM(P_k_CD4_pro)*x1777;
+    realtype x1779 = SPVAR(SP_V_LN_aTh)*x1778;
+    realtype x1780 = std::pow(2.0, x1772);
+    realtype x1781 = PARAM(P_N_IL2_CD4)*x1767;
+    realtype x1782 = -0.69314718055994529*PARAM(P_kappa_IL2_Treg)*x1781 + 0.69314718055994529*x1776;
+    realtype x1783 = 1.0/x1772;
+    realtype x1784 = PARAM(P_k_CD4_pro)*x1783;
+    realtype x1785 = x1780*x1784;
+    realtype x1786 = x1782*x1785;
+    realtype x1787 = SPVAR(SP_V_LN_aTfh)*x1778;
+    realtype x1788 = SPVAR(SP_V_LN_aB)*PARAM(P_k_B_pro);
+    realtype x1789 = x1777*x1788;
+    realtype x1790 = PARAM(P_k_B_pro)*x1783;
+    realtype x1791 = x1780*x1790;
+    realtype x1792 = SPVAR(SP_V_LN_aB)*x1791;
+    realtype x1793 = SPVAR(SP_V_LN_nCD8) + x63;
+    realtype x1794 = 1.0 - PARAM(P_f_help_indep);
+    realtype x1795 = PARAM(P_Th_50_help) + SPVAR(SP_V_LN_Th);
+    realtype x1796 = 1.0/x1795;
+    realtype x1797 = SPVAR(SP_V_LN_Th)*x1794*x1796 + PARAM(P_f_help_indep);
+    realtype x1798 = SPVAR(SP_V_LN_mcDC1)*PARAM(P_k_T_activation_per_APC)*x1797;
+    realtype x1799 = x1798*x485;
+    realtype x1800 = PARAM(P_n_CD8_clones)*x1729;
+    realtype x1801 = x1737*x1740;
+    realtype x1802 = PARAM(P_N_IL2_CD8)*x1801;
+    realtype x1803 = x1738*(PARAM(P_k_IL2_cons)*PARAM(P_k_IL2_sec)*x1731*x1732*x1735 - x1737);
+    realtype x1804 = x1743*x1803;
+    realtype x1805 = x1763*(PARAM(P_N_IL2_CD8)*PARAM(P_k_IL2_cons)*PARAM(P_k_IL2_sec)*x1731*x1732*x1735*x1740 - x1802 - x1804);
+    realtype x1806 = PARAM(P_N_IL2_CD4)*x1801;
+    realtype x1807 = x1774*x1803;
+    realtype x1808 = x1773*(PARAM(P_N_IL2_CD4)*PARAM(P_k_IL2_cons)*PARAM(P_k_IL2_sec)*x1731*x1732*x1735*x1740 - x1806 - x1807);
+    realtype x1809 = PARAM(P_k_CD4_pro)*x1808;
+    realtype x1810 = SPVAR(SP_V_LN_aTh)*x1809;
+    realtype x1811 = -0.69314718055994529*x1781 + 0.69314718055994529*x1806 + 0.69314718055994529*x1807;
+    realtype x1812 = x1785*x1811;
+    realtype x1813 = SPVAR(SP_V_LN_aTfh)*x1809;
+    realtype x1814 = x1788*x1808;
+    realtype x1815 = SPVAR(SP_V_LN_mcDC2)*PARAM(P_k_cDC1_Ag_transfer);
+    realtype x1816 = SPVAR(SP_V_LN_nCD8)*PARAM(P_k_T_activation_per_APC)*x485;
+    realtype x1817 = x1797*x1816;
+    realtype x1818 = PARAM(P_n_sites_APC)*x1693;
+    realtype x1819 = PARAM(P_k_T_activation_per_APC)*x1700;
+    realtype x1820 = std::pow(PARAM(P_n_sites_APC), 2);
+    realtype x1821 = SPVAR(SP_V_LN_mcDC2)*x1820;
+    realtype x1822 = SPVAR(SP_V_LN_cDC1)*PARAM(P_k_cDC1_Ag_transfer);
+    realtype x1823 = 1.0/PARAM(P_K_APC_mig);
+    realtype x1824 = SPVAR(SP_V_LN_mcDC2)*x1823 + 1.0;
+    realtype x1825 = SPVAR(SP_V_ID_mAPC)*PARAM(P_k_APC_mig_ID_LN)*x1823/std::pow(x1824, 2);
+    realtype x1826 = x1691*x1729;
+    realtype x1827 = PARAM(P_q_LN_aPD1)*x105 + x106*x12;
+    realtype x1828 = x105*x684;
+    realtype x1829 = SPVAR(SP_syn_CD8_APC_PD1)*x1828;
+    realtype x1830 = PARAM(P_w_IL2_help)*x1766;
+    realtype x1831 = x1744*x1830;
+    realtype x1832 = x1763*(-PARAM(P_w_IL2_help)*x1802 + x1831);
+    realtype x1833 = x1775*x1830;
+    realtype x1834 = x1773*(-PARAM(P_w_IL2_help)*x1806 + x1833);
+    realtype x1835 = PARAM(P_k_CD4_pro)*x1834;
+    realtype x1836 = SPVAR(SP_V_LN_aTh)*x1835;
+    realtype x1837 = 0.69314718055994529*PARAM(P_N_IL2_CD4)*PARAM(P_k_IL2_sec)*PARAM(P_w_IL2_help)*x1736*x1740 - 0.69314718055994529*x1833;
+    realtype x1838 = x1785*x1837;
+    realtype x1839 = SPVAR(SP_V_LN_aTfh)*x1835;
+    realtype x1840 = x1788*x1834;
+    realtype x1841 = -SPVAR(SP_V_LN_Th)*x1794/std::pow(x1795, 2) + x1794*x1796;
+    realtype x1842 = SPVAR(SP_V_LN_Th)*x1759/std::pow(x1748, 2);
+    realtype x1843 = x1763*(-x1760 + x1842);
+    realtype x1844 = -PARAM(P_k_CD4_death) - PARAM(P_q_Treg_LN_out);
+    realtype x1845 = SPVAR(SP_V_LN_IFNg)*x104;
+    realtype x1846 = PARAM(P_IFNg_50_ind) + x1845;
+    realtype x1847 = 1.0/x1846;
+    realtype x1848 = SPVAR(SP_syn_CD8_APC_PDL1)*x1750;
+    realtype x1849 = SPVAR(SP_syn_CD8_APC_PDL1_CD80)*x1750;
+    realtype x1850 = SPVAR(SP_syn_CD8_APC_PD1_PDL1)*x1750 + SPVAR(SP_syn_CD8_APC_PDL1_CD80_CTLA4)*x1750 + x1752 + x1848 + x1849;
+    realtype x1851 = x1847*x693;
+    realtype x1852 = x1845*x1851 + 1.0;
+    realtype x1853 = PARAM(P_A_APC)/PARAM(P_APC_PDL1_base);
+    realtype x1854 = x1853/x1852;
+    realtype x1855 = -x1850*x1854 + 1.0;
+    realtype x1856 = std::pow(PARAM(P_V_LN), -2);
+    realtype x1857 = std::pow(x1846, -2);
+    realtype x1858 = SPVAR(SP_V_LN_IFNg)*x1856*x1857;
+    realtype x1859 = PARAM(P_k_out_PDL1)*x1845*x1847;
+    realtype x1860 = x1853*x1859*(SPVAR(SP_V_LN_IFNg)*x1856*x1857*x693 - x104*x1851)/std::pow(x1852, 2);
+    realtype x1861 = SPVAR(SP_syn_CD8_APC_PDL2)*x1750;
+    realtype x1862 = SPVAR(SP_syn_CD8_APC_PD1_PDL2)*x1750 + x1861;
+    realtype x1863 = 1.0 - x1854*x1862/PARAM(P_r_PDL2APC);
+    realtype x1864 = PARAM(P_Tfh_50_B) + SPVAR(SP_V_LN_Tfh);
+    realtype x1865 = 1.0/x1864;
+    realtype x1866 = PARAM(P_k_B_act)*x1865*x485;
+    realtype x1867 = SPVAR(SP_V_LN_Tfh)*SPVAR(SP_V_LN_nB)*PARAM(P_k_B_act);
+    realtype x1868 = x1867*x485/std::pow(x1864, 2);
+    realtype x1869 = SPVAR(SP_V_LN_Tfh)*x1866;
+    realtype x1870 = SPVAR(SP_A_e_M1)*x1696;
+    realtype x1871 = PARAM(P_k_P0_on)*x1870;
+    realtype x1872 = x1696*x1699;
+    realtype x1873 = std::pow(PARAM(P_V_e), -2);
+    realtype x1874 = std::pow(x1698, -2);
+    realtype x1875 = x1695*x1826;
+    realtype x1876 = PARAM(P_k_P1_on)*x1870;
+    realtype x1877 = SPVAR(SP_V_e_p0)*PARAM(P_k_P0_on)*x1696;
+    realtype x1878 = SPVAR(SP_V_e_p1)*PARAM(P_k_P1_on)*x1696;
+    realtype x1879 = PARAM(P_k_P0_d1)*PARAM(P_k_P0_on);
+    realtype x1880 = PARAM(P_k_P1_d1)*PARAM(P_k_P1_on);
+    realtype x1881 = -0.5*PARAM(P_TCR_p0_tot)*(-x1706*x1709 + 2.0*x1706*x1711/x1710)*(((x1712 < 0) ? (
    0
 )
-: ((x1560 == 0) ? (
+: ((x1712 == 0) ? (
    1.0/2.0
 )
 : (
    1
-))))/x1561 + x1553*x432;
-    realtype x1729 = PARAM(P_k_Treg_act)*x1572*x1728*x891;
-    realtype x1730 = SPVAR(SP_V_LN_nCD4)*x1729;
-    realtype x1731 = 0.25*std::pow(PARAM(P_k_M1p0_TCR_off), 2)*x1562*std::pow(x1563, 2*PARAM(P_N_M1p0_TCR))/(std::pow(x1565, 2)*std::pow(x1569, 2));
-    realtype x1732 = -0.5*PARAM(P_TCR_p1_tot)*(-x434*x437 + 2.0*x434*x439/x438)*(((x440 < 0) ? (
+))))/x1713 + x1705*x466;
+    realtype x1882 = x1704*x1881;
+    realtype x1883 = SPVAR(SP_V_LN_nCD4)*x1882;
+    realtype x1884 = 0.25*std::pow(PARAM(P_k_M1p0_TCR_off), 2)*x1714*std::pow(x1715, 2*PARAM(P_N_M1p0_TCR))/(std::pow(x1717, 2)*std::pow(x1721, 2));
+    realtype x1885 = -0.5*PARAM(P_TCR_p1_tot)*(-x468*x471 + 2.0*x468*x473/x472)*(((x474 < 0) ? (
    0
 )
-: ((x440 == 0) ? (
+: ((x474 == 0) ? (
    1.0/2.0
 )
 : (
    1
-))))/x441 + x432*x433;
-    realtype x1733 = x447*x450;
-    realtype x1734 = x1732*x1733;
-    realtype x1735 = SPVAR(SP_V_T_Th)*PARAM(P_k_Tfh_diff_tumor)*x429*x431;
-    realtype x1736 = 0.25*std::pow(PARAM(P_k_M1p1_TCR_off), 2)*x442*std::pow(x443, 2*PARAM(P_N_M1p1_TCR))/(std::pow(x445, 2)*std::pow(x449, 2));
-    realtype x1737 = x1732*x1736;
-    realtype x1738 = -x1734*x1735 + x1735*x1737;
-    realtype x1739 = SPVAR(SP_V_T_nB)*PARAM(P_k_B_act_tumor)*x1732;
-    realtype x1740 = -x1733*x1739 + x1736*x1739;
-    realtype x1741 = SPVAR(SP_V_LN_nCD4)*x1551;
-    realtype x1742 = x1645*x1688;
-    realtype x1743 = x1737*x1742;
-    realtype x1744 = x1712*x1714;
-    realtype x1745 = x1737*x1744;
-    realtype x1746 = PARAM(P_n_PD1)*x175/x178;
-    realtype x1747 = x1746*x182;
-    realtype x1748 = 2*PARAM(P_n_PD1);
-    realtype x1749 = x1746*std::pow(x179, x1748)/std::pow(x181, 2);
-    realtype x1750 = SPVAR(SP_V_T_C1)*(-x1747 + x1749);
-    realtype x1751 = x169*x1750*x189;
-    realtype x1752 = SPVAR(SP_V_T_CD8_pex)*x175;
-    realtype x1753 = PARAM(P_k_reinvig)*x844/std::pow(x846, 2);
-    realtype x1754 = x1752*x1753;
-    realtype x1755 = x213*x883;
-    realtype x1756 = x1747*x1755 - x1749*x1755 + x1750*x219*x881 + x1754;
-    realtype x1757 = -x1751;
-    realtype x1758 = -x1756;
-    realtype x1759 = x974*(-x1751*x387 + x1751*x391);
-    realtype x1760 = x1759*x372;
-    realtype x1761 = x1759*x408;
-    realtype x1762 = -x1760;
-    realtype x1763 = -x1761;
-    realtype x1764 = x1751*x419;
-    realtype x1765 = x1751*x420;
-    realtype x1766 = -PARAM(P_koff_PD1_PDL1);
-    realtype x1767 = PARAM(P_k_in_PDL1) + x175*x657*x665;
-    realtype x1768 = -PARAM(P_koff_PD1_PDL2);
-    realtype x1769 = PARAM(P_kon_PD1_PDL1)*x648;
-    realtype x1770 = PARAM(P_kon_PD1_PDL2)*x670;
-    realtype x1771 = PARAM(P_Chi_PD1_aPD1)*PARAM(P_kon_PD1_aPD1);
-    realtype x1772 = x1771*x842;
-    realtype x1773 = SPVAR(SP_V_T_aPD1)*x943;
-    realtype x1774 = -x1773;
-    realtype x1775 = PARAM(P_kon_PD1_PDL1)*x845;
-    realtype x1776 = SPVAR(SP_syn_CD8_C1_CD80m)*x175;
-    realtype x1777 = PARAM(P_kon_CD80_PDL1)*x1776;
-    realtype x1778 = PARAM(P_kon_PD1_PDL2)*x845;
-    realtype x1779 = -x1752*x847 + x1754;
-    realtype x1780 = -PARAM(P_koff_PD1_aPD1);
-    realtype x1781 = x1771*x845;
-    realtype x1782 = SPVAR(SP_V_T_CD8_pex)*x843;
-    realtype x1783 = x1753*x1782 - x1782*x847;
-    realtype x1784 = 2.0*PARAM(P_koff_PD1_aPD1);
-    realtype x1785 = -x1784;
-    realtype x1786 = PARAM(P_kon_CD28_CD80)*x175;
-    realtype x1787 = SPVAR(SP_syn_CD8_C1_CD28)*x1786;
-    realtype x1788 = -x1787;
-    realtype x1789 = 2.0*PARAM(P_koff_CD28_CD80);
-    realtype x1790 = -x1789;
-    realtype x1791 = -PARAM(P_koff_CD28_CD86);
-    realtype x1792 = PARAM(P_kon_CTLA4_CD80)*x843;
-    realtype x1793 = SPVAR(SP_syn_CD8_C1_CD80)*x1792;
-    realtype x1794 = SPVAR(SP_syn_CD8_C1_CTLA4)*x1792;
-    realtype x1795 = -x1794;
-    realtype x1796 = 2.0*PARAM(P_koff_CTLA4_CD80);
-    realtype x1797 = 4.0*PARAM(P_kon_CTLA4_CD80);
-    realtype x1798 = x175*x1797;
-    realtype x1799 = SPVAR(SP_syn_CD8_C1_CTLA4)*x1798;
-    realtype x1800 = -x1799;
-    realtype x1801 = SPVAR(SP_syn_CD8_C1_CD80)*x1798;
-    realtype x1802 = -x1801;
-    realtype x1803 = -2*PARAM(P_koff_CTLA4_CD80);
-    realtype x1804 = SPVAR(SP_syn_CD8_C1_CD86)*x175;
-    realtype x1805 = PARAM(P_kon_CTLA4_CD86)*x1804;
-    realtype x1806 = 2.0*PARAM(P_koff_CTLA4_CD86);
-    realtype x1807 = -x1806;
-    realtype x1808 = -PARAM(P_koff_CD80_PDL1);
-    realtype x1809 = -x1767;
-    realtype x1810 = -PARAM(P_koff_CD28_CD80);
-    realtype x1811 = -PARAM(P_koff_CTLA4_CD80);
-    realtype x1812 = SPVAR(SP_syn_CD8_C1_CD28_CD80)*x1786;
-    realtype x1813 = PARAM(P_kon_CD28_CD80)*x843;
-    realtype x1814 = SPVAR(SP_syn_CD8_C1_CD80)*x1813;
-    realtype x1815 = -x1814;
-    realtype x1816 = PARAM(P_kon_CD28_CD86)*x1804;
-    realtype x1817 = PARAM(P_kon_CD28_CD80)*x649;
-    realtype x1818 = SPVAR(SP_syn_CD8_C1_CD80_CTLA4)*x1792;
-    realtype x1819 = SPVAR(SP_syn_CD8_C1_CD80_CTLA4_CD80)*x1798;
-    realtype x1820 = PARAM(P_kon_CTLA4_CD86)*x843;
-    realtype x1821 = SPVAR(SP_syn_CD8_C1_CD86)*x1820;
-    realtype x1822 = 2.0*PARAM(P_kon_CTLA4_CD80);
-    realtype x1823 = x1822*x649;
-    realtype x1824 = SPVAR(SP_syn_CD8_C1_CD28)*x1813;
-    realtype x1825 = SPVAR(SP_syn_CD8_C1_CTLA4_CD80_CTLA4)*x1798;
-    realtype x1826 = 2*PARAM(P_koff_CD80_CD80);
-    realtype x1827 = PARAM(P_kon_CD80_PDL1)*x648;
-    realtype x1828 = PARAM(P_kon_CD80_CD80)*x1776;
-    realtype x1829 = PARAM(P_kon_CD28_CD86)*SPVAR(SP_syn_CD8_C1_CD28)*x175;
-    realtype x1830 = PARAM(P_kon_CTLA4_CD86)*SPVAR(SP_syn_CD8_C1_CD86_CTLA4)*x175;
-    realtype x1831 = SPVAR(SP_syn_CD8_C1_CTLA4)*x1820;
-    realtype x1832 = -x1831;
-    realtype x1833 = PARAM(P_k_in_PDL1) + x1598*x1701*x1706;
-    realtype x1834 = PARAM(P_kon_PD1_PDL1)*x1695;
-    realtype x1835 = PARAM(P_kon_PD1_PDL2)*x1708;
-    realtype x1836 = SPVAR(SP_syn_CD8_APC_PD1_aPD1)*x1598*x1771;
-    realtype x1837 = SPVAR(SP_V_LN_aPD1)*x1674;
-    realtype x1838 = SPVAR(SP_syn_CD8_APC_PD1)*x1598;
-    realtype x1839 = PARAM(P_kon_PD1_PDL1)*x1838;
-    realtype x1840 = SPVAR(SP_syn_CD8_APC_CD80m)*x1598;
-    realtype x1841 = PARAM(P_kon_CD80_PDL1)*x1840;
-    realtype x1842 = PARAM(P_kon_PD1_PDL2)*x1838;
-    realtype x1843 = x1771*x1838;
-    realtype x1844 = 1.0/x1602;
-    realtype x1845 = PARAM(P_n_CD28_CD8X)*x1844;
-    realtype x1846 = x1598*x1845;
-    realtype x1847 = PARAM(P_N_div_costim)*std::pow(x1603, 2*PARAM(P_n_CD28_CD8X))/std::pow(x1605, 2);
-    realtype x1848 = x1846*x1847;
-    realtype x1849 = SPVAR(SP_V_LN_Th)*x1597;
-    realtype x1850 = x1611*(-x1609*x1846 + x1848*x1849);
-    realtype x1851 = -x1850;
-    realtype x1852 = 0.69314718055994529*x1848;
-    realtype x1853 = x1613*x1850 + x1619*(0.69314718055994529*PARAM(P_N_div_costim)*SPVAR(SP_V_LN_Th)*PARAM(P_n_CD28_CD8X)*x1597*x1598*x1604*x1606*x1844 - x1849*x1852);
-    realtype x1854 = x1621*(-x1607*x1846 + x1848);
-    realtype x1855 = PARAM(P_k_CD4_pro)*x1854;
-    realtype x1856 = SPVAR(SP_V_LN_aTh)*x1855;
-    realtype x1857 = -x1856;
-    realtype x1858 = 0.69314718055994529*PARAM(P_N_div_costim)*PARAM(P_n_CD28_CD8X)*x1598*x1604*x1606*x1844 - x1852;
-    realtype x1859 = x1633*x1858;
-    realtype x1860 = SPVAR(SP_V_LN_aTh)*x1859 + x1628*x1856;
-    realtype x1861 = SPVAR(SP_V_LN_aTfh)*x1855;
-    realtype x1862 = -x1861;
-    realtype x1863 = SPVAR(SP_V_LN_aTfh)*x1859 + x1628*x1861;
-    realtype x1864 = x1636*x1854;
-    realtype x1865 = -x1864;
-    realtype x1866 = x1628*x1864 + x1640*x1858;
-    realtype x1867 = SPVAR(SP_syn_CD8_APC_CD28)*x1598;
-    realtype x1868 = PARAM(P_kon_CD28_CD80)*x1867;
-    realtype x1869 = -x1868;
-    realtype x1870 = x1601*x1845;
-    realtype x1871 = x1847*x1870;
-    realtype x1872 = x1611*(-x1609*x1870 + x1849*x1871);
-    realtype x1873 = 1.3862943611198906*x1848;
-    realtype x1874 = x1621*(-x1607*x1870 + x1871);
-    realtype x1875 = PARAM(P_k_CD4_pro)*x1874;
-    realtype x1876 = SPVAR(SP_V_LN_aTh)*x1875;
-    realtype x1877 = 1.3862943611198906*PARAM(P_N_div_costim)*PARAM(P_n_CD28_CD8X)*x1598*x1604*x1606*x1844 - x1873;
-    realtype x1878 = x1633*x1877;
-    realtype x1879 = SPVAR(SP_V_LN_aTfh)*x1875;
-    realtype x1880 = x1636*x1874;
-    realtype x1881 = PARAM(P_kon_CTLA4_CD80)*x1601;
-    realtype x1882 = SPVAR(SP_syn_CD8_APC_CD80)*x1881;
-    realtype x1883 = SPVAR(SP_syn_CD8_APC_CTLA4)*x1881;
-    realtype x1884 = -x1883;
-    realtype x1885 = x1598*x1797;
-    realtype x1886 = SPVAR(SP_syn_CD8_APC_CTLA4)*x1885;
-    realtype x1887 = -x1886;
-    realtype x1888 = SPVAR(SP_syn_CD8_APC_CD80)*x1885;
-    realtype x1889 = -x1888;
-    realtype x1890 = SPVAR(SP_syn_CD8_APC_CD86)*x1598;
-    realtype x1891 = PARAM(P_kon_CTLA4_CD86)*x1890;
-    realtype x1892 = -x1833;
-    realtype x1893 = PARAM(P_kon_CD28_CD80)*x1599;
-    realtype x1894 = PARAM(P_kon_CD28_CD80)*x1601;
-    realtype x1895 = SPVAR(SP_syn_CD8_APC_CD80)*x1894;
-    realtype x1896 = -x1895;
-    realtype x1897 = PARAM(P_kon_CD28_CD86)*x1890;
-    realtype x1898 = PARAM(P_kon_CD28_CD80)*x1696;
-    realtype x1899 = SPVAR(SP_syn_CD8_APC_CD80_CTLA4)*x1881;
-    realtype x1900 = SPVAR(SP_syn_CD8_APC_CD80_CTLA4_CD80)*x1885;
-    realtype x1901 = PARAM(P_kon_CTLA4_CD86)*x1601;
-    realtype x1902 = SPVAR(SP_syn_CD8_APC_CD86)*x1901;
-    realtype x1903 = x1696*x1822;
-    realtype x1904 = SPVAR(SP_syn_CD8_APC_CD28)*x1894;
-    realtype x1905 = SPVAR(SP_syn_CD8_APC_CTLA4_CD80_CTLA4)*x1885;
-    realtype x1906 = PARAM(P_kon_CD80_PDL1)*x1695;
-    realtype x1907 = PARAM(P_kon_CD80_CD80)*x1840;
-    realtype x1908 = PARAM(P_kon_CD28_CD86)*x1867;
-    realtype x1909 = PARAM(P_kon_CTLA4_CD86)*SPVAR(SP_syn_CD8_APC_CD86_CTLA4)*x1598;
-    realtype x1910 = SPVAR(SP_syn_CD8_APC_CTLA4)*x1901;
-    realtype x1911 = -x1910;
-    realtype x1912 = PARAM(P_kon_CD47_SIRPa)*x117;
-    realtype x1913 = SPVAR(SP_syn_M_C_SIRPa)*x1912;
-    realtype x1914 = -x1913;
-    realtype x1915 = SPVAR(SP_syn_M_C_CD47)*x1912;
-    realtype x1916 = -x1915;
-    realtype x1917 = PARAM(P_n_SIRPa)/SPVAR(SP_syn_M_C_CD47_SIRPa);
-    realtype x1918 = x141*x146*(std::pow(x118, 2*PARAM(P_n_SIRPa))*x1917/std::pow(x120, 2) - x121*x1917);
-    realtype x1919 = x974*(-x1918*x387 + x1918*x391);
-    realtype x1920 = x1919*x372;
-    realtype x1921 = x1919*x408;
-    realtype x1922 = PARAM(P_n_PD1)*x117/x126;
-    realtype x1923 = SPVAR(SP_V_T_Mac_M1)*PARAM(P_k_M1_phago)*x122*x136*x140*x146*(std::pow(x127, x1748)*x1922/std::pow(x129, 2) - x130*x1922);
-    realtype x1924 = -x1923;
-    realtype x1925 = x974*(-x1923*x387 + x1923*x391);
-    realtype x1926 = x1925*x372;
-    realtype x1927 = x1925*x408;
-    realtype x1928 = -x1926;
-    realtype x1929 = -x1927;
-    realtype x1930 = x1923*x419;
-    realtype x1931 = x1923*x420;
-    realtype x1932 = PARAM(P_k_in_PDL1)*x117 + x665*x679/std::pow(PARAM(P_syn_M_C), 2);
-    realtype x1933 = PARAM(P_kon_PD1_PDL1)*x678;
-    realtype x1934 = PARAM(P_kon_PD1_PDL2)*x686;
-    realtype x1935 = SPVAR(SP_syn_M_C_PD1_aPD1)*x117*x1771;
-    realtype x1936 = SPVAR(SP_syn_M_C_PD1)*x117;
-    realtype x1937 = PARAM(P_kon_PD1_PDL1)*x1936;
-    realtype x1938 = SPVAR(SP_syn_M_C_CD80m)*x117;
-    realtype x1939 = PARAM(P_kon_CD80_PDL1)*x1938;
-    realtype x1940 = PARAM(P_kon_PD1_PDL2)*x1936;
-    realtype x1941 = x1771*x1936;
-    realtype x1942 = PARAM(P_kon_CD80_PDL1)*x678;
-    realtype x1943 = PARAM(P_kon_CD80_CD80)*x1938;
-    realtype x1944 = SPVAR(SP_V_ID_GVAX_cells)*PARAM(P_k_GVAX_clearance);
-    realtype x1945 = PARAM(P_HMGB1_50_ID) + x1944;
-    realtype x1946 = 1.0/x1945;
-    realtype x1947 = PARAM(P_k_APC_mature_ID)*x1946*x364;
-    realtype x1948 = SPVAR(SP_V_ID_APC)*PARAM(P_k_GVAX_clearance)*x1947;
-    realtype x1949 = SPVAR(SP_V_ID_APC)*PARAM(P_k_APC_mature_ID);
-    realtype x1950 = SPVAR(SP_V_ID_GVAX_cells)*std::pow(PARAM(P_k_GVAX_clearance), 2)*x1949*x364/std::pow(x1945, 2);
-    realtype x1951 = -x1948 + x1950;
-    realtype x1952 = x1944*x1947;
-    realtype x1953 = PARAM(P_K_APC_ID) + SPVAR(SP_V_ID_APC) + SPVAR(SP_V_ID_mAPC);
-    realtype x1954 = SPVAR(SP_V_ID_GMCSF)*x360;
-    realtype x1955 = PARAM(P_EC50_GMCSF) + x1954;
-    realtype x1956 = PARAM(P_k_APC_recruit_ID)/x1955;
-    realtype x1957 = PARAM(P_K_APC_ID)*(PARAM(P_k_APC_recruit0) + x1954*x1956)/std::pow(x1953, 2);
-    realtype x1958 = PARAM(P_k_APC_mig_ID_LN)/x1670;
-    realtype x1959 = std::pow(PARAM(P_V_ID), -2);
-    realtype x1960 = SPVAR(SP_V_T_CD8)*PARAM(P_k_CD8_T_vac_pro)*x925;
-    realtype x1961 = x360*x363;
-    realtype x1962 = std::pow(x362, -2);
-    realtype x1963 = SPVAR(SP_V_ID_P1_GVAX)*x1959*x1962;
-    realtype x1964 = -PARAM(P_f_epitope_spread)*x1963 + x1577*x360;
-    realtype x1965 = x1944*x1946*x1949*x1961;
-    realtype x1966 = -SPVAR(SP_V_ID_APC)*SPVAR(SP_V_ID_GVAX_cells)*SPVAR(SP_V_ID_P1_GVAX)*PARAM(P_k_APC_mature_ID)*PARAM(P_k_GVAX_clearance)*x1946*x1959*x1962 + x1965;
+))))/x475 + x466*x467;
+    realtype x1886 = x1885*x481*x484;
+    realtype x1887 = SPVAR(SP_V_T_Th)*PARAM(P_k_Tfh_diff_tumor)*x463*x465;
+    realtype x1888 = 0.25*std::pow(PARAM(P_k_M1p1_TCR_off), 2)*x476*std::pow(x477, 2*PARAM(P_N_M1p1_TCR))/(std::pow(x479, 2)*std::pow(x483, 2));
+    realtype x1889 = x1885*x1888;
+    realtype x1890 = -x1886*x1887 + x1887*x1889;
+    realtype x1891 = SPVAR(SP_V_T_nB)*x1885;
+    realtype x1892 = PARAM(P_k_B_act_tumor)*x1888*x1891 - x1679*x1891*x481;
+    realtype x1893 = PARAM(P_k_Tfh_act)*x1694;
+    realtype x1894 = SPVAR(SP_V_LN_nCD4)*x1893;
+    realtype x1895 = SPVAR(SP_V_LN_nCD8)*x1798;
+    realtype x1896 = x1889*x1895;
+    realtype x1897 = x1865*x1867;
+    realtype x1898 = x1889*x1897;
+    realtype x1899 = PARAM(P_n_PD1)*x199/x202;
+    realtype x1900 = x1899*x206;
+    realtype x1901 = 2*PARAM(P_n_PD1);
+    realtype x1902 = x1899*std::pow(x203, x1901)/std::pow(x205, 2);
+    realtype x1903 = -x1900 + x1902;
+    realtype x1904 = SPVAR(SP_V_T_C1)*x1903;
+    realtype x1905 = x1904*x193*x213;
+    realtype x1906 = SPVAR(SP_V_T_CD8_pex)*x199;
+    realtype x1907 = PARAM(P_k_reinvig)*x912/std::pow(x914, 2);
+    realtype x1908 = x1906*x1907;
+    realtype x1909 = x237*x955;
+    realtype x1910 = x1900*x1909 - x1902*x1909 + x1904*x243*x953 + x1908;
+    realtype x1911 = -x1905;
+    realtype x1912 = -x1910;
+    realtype x1913 = x1044*(SPVAR(SP_V_T_C1)*PARAM(P_p_T_kill_per_contact)*PARAM(P_v_T_search_volume)*x13*x173*x174*x178*x185*x189*x1903*x193*x198*x411*x415 - x1905*x425);
+    realtype x1914 = x1043*x1913;
+    realtype x1915 = -x1914;
+    realtype x1916 = x1047*x1913;
+    realtype x1917 = -x1916;
+    realtype x1918 = x1905*x453;
+    realtype x1919 = x1905*x454;
+    realtype x1920 = -PARAM(P_koff_PD1_PDL1);
+    realtype x1921 = PARAM(P_k_in_PDL1) + x199*x697*x705;
+    realtype x1922 = -PARAM(P_koff_PD1_PDL2);
+    realtype x1923 = PARAM(P_kon_PD1_PDL1)*x688;
+    realtype x1924 = PARAM(P_kon_PD1_PDL2)*x710;
+    realtype x1925 = PARAM(P_Chi_PD1_aPD1)*PARAM(P_kon_PD1_aPD1);
+    realtype x1926 = x1925*x910;
+    realtype x1927 = SPVAR(SP_V_T_aPD1)*x1023;
+    realtype x1928 = -x1927;
+    realtype x1929 = PARAM(P_kon_PD1_PDL1)*x913;
+    realtype x1930 = SPVAR(SP_syn_CD8_C1_CD80m)*x199;
+    realtype x1931 = PARAM(P_kon_CD80_PDL1)*x1930;
+    realtype x1932 = PARAM(P_kon_PD1_PDL2)*x913;
+    realtype x1933 = -x1906*x915 + x1908;
+    realtype x1934 = -PARAM(P_koff_PD1_aPD1);
+    realtype x1935 = x1925*x913;
+    realtype x1936 = SPVAR(SP_V_T_CD8_pex)*x911;
+    realtype x1937 = x1907*x1936 - x1936*x915;
+    realtype x1938 = 2.0*PARAM(P_koff_PD1_aPD1);
+    realtype x1939 = -x1938;
+    realtype x1940 = PARAM(P_kon_CD28_CD80)*x199;
+    realtype x1941 = SPVAR(SP_syn_CD8_C1_CD28)*x1940;
+    realtype x1942 = -x1941;
+    realtype x1943 = 2.0*PARAM(P_koff_CD28_CD80);
+    realtype x1944 = -x1943;
+    realtype x1945 = -PARAM(P_koff_CD28_CD86);
+    realtype x1946 = PARAM(P_kon_CTLA4_CD80)*x911;
+    realtype x1947 = SPVAR(SP_syn_CD8_C1_CD80)*x1946;
+    realtype x1948 = SPVAR(SP_syn_CD8_C1_CTLA4)*x1946;
+    realtype x1949 = -x1948;
+    realtype x1950 = 2.0*PARAM(P_koff_CTLA4_CD80);
+    realtype x1951 = 4.0*PARAM(P_kon_CTLA4_CD80);
+    realtype x1952 = x1951*x199;
+    realtype x1953 = SPVAR(SP_syn_CD8_C1_CTLA4)*x1952;
+    realtype x1954 = -x1953;
+    realtype x1955 = SPVAR(SP_syn_CD8_C1_CD80)*x1952;
+    realtype x1956 = -x1955;
+    realtype x1957 = -2*PARAM(P_koff_CTLA4_CD80);
+    realtype x1958 = SPVAR(SP_syn_CD8_C1_CD86)*x199;
+    realtype x1959 = PARAM(P_kon_CTLA4_CD86)*x1958;
+    realtype x1960 = 2.0*PARAM(P_koff_CTLA4_CD86);
+    realtype x1961 = -x1960;
+    realtype x1962 = -PARAM(P_koff_CD80_PDL1);
+    realtype x1963 = -x1921;
+    realtype x1964 = -PARAM(P_koff_CD28_CD80);
+    realtype x1965 = -PARAM(P_koff_CTLA4_CD80);
+    realtype x1966 = SPVAR(SP_syn_CD8_C1_CD28_CD80)*x1940;
+    realtype x1967 = PARAM(P_kon_CD28_CD80)*x911;
+    realtype x1968 = SPVAR(SP_syn_CD8_C1_CD80)*x1967;
+    realtype x1969 = -x1968;
+    realtype x1970 = PARAM(P_kon_CD28_CD86)*x1958;
+    realtype x1971 = PARAM(P_kon_CD28_CD80)*x689;
+    realtype x1972 = SPVAR(SP_syn_CD8_C1_CD80_CTLA4)*x1946;
+    realtype x1973 = SPVAR(SP_syn_CD8_C1_CD80_CTLA4_CD80)*x1952;
+    realtype x1974 = PARAM(P_kon_CTLA4_CD86)*x911;
+    realtype x1975 = SPVAR(SP_syn_CD8_C1_CD86)*x1974;
+    realtype x1976 = 2.0*PARAM(P_kon_CTLA4_CD80);
+    realtype x1977 = x1976*x689;
+    realtype x1978 = SPVAR(SP_syn_CD8_C1_CD28)*x1967;
+    realtype x1979 = SPVAR(SP_syn_CD8_C1_CTLA4_CD80_CTLA4)*x1952;
+    realtype x1980 = 2*PARAM(P_koff_CD80_CD80);
+    realtype x1981 = PARAM(P_kon_CD80_PDL1)*x688;
+    realtype x1982 = PARAM(P_kon_CD80_CD80)*x1930;
+    realtype x1983 = PARAM(P_kon_CD28_CD86)*SPVAR(SP_syn_CD8_C1_CD28)*x199;
+    realtype x1984 = PARAM(P_kon_CTLA4_CD86)*SPVAR(SP_syn_CD8_C1_CD86_CTLA4)*x199;
+    realtype x1985 = SPVAR(SP_syn_CD8_C1_CTLA4)*x1974;
+    realtype x1986 = -x1985;
+    realtype x1987 = PARAM(P_k_in_PDL1) + x1750*x1854*x1859;
+    realtype x1988 = PARAM(P_kon_PD1_PDL1)*x1848;
+    realtype x1989 = PARAM(P_kon_PD1_PDL2)*x1861;
+    realtype x1990 = SPVAR(SP_syn_CD8_APC_PD1_aPD1)*x1750*x1925;
+    realtype x1991 = SPVAR(SP_V_LN_aPD1)*x1828;
+    realtype x1992 = SPVAR(SP_syn_CD8_APC_PD1)*x1750;
+    realtype x1993 = PARAM(P_kon_PD1_PDL1)*x1992;
+    realtype x1994 = SPVAR(SP_syn_CD8_APC_CD80m)*x1750;
+    realtype x1995 = PARAM(P_kon_CD80_PDL1)*x1994;
+    realtype x1996 = PARAM(P_kon_PD1_PDL2)*x1992;
+    realtype x1997 = x1925*x1992;
+    realtype x1998 = 1.0/x1754;
+    realtype x1999 = PARAM(P_n_CD28_CD8X)*x1998;
+    realtype x2000 = x1750*x1999;
+    realtype x2001 = PARAM(P_N_div_costim)*std::pow(x1755, 2*PARAM(P_n_CD28_CD8X))/std::pow(x1757, 2);
+    realtype x2002 = x2000*x2001;
+    realtype x2003 = SPVAR(SP_V_LN_Th)*x1749;
+    realtype x2004 = x1763*(-x1761*x2000 + x2002*x2003);
+    realtype x2005 = -x2004;
+    realtype x2006 = 0.69314718055994529*x2002;
+    realtype x2007 = x1765*x2004 + x1771*(0.69314718055994529*PARAM(P_N_div_costim)*SPVAR(SP_V_LN_Th)*PARAM(P_n_CD28_CD8X)*x1749*x1750*x1756*x1758*x1998 - x2003*x2006);
+    realtype x2008 = x1773*(-x1759*x2000 + x2002);
+    realtype x2009 = PARAM(P_k_CD4_pro)*x2008;
+    realtype x2010 = SPVAR(SP_V_LN_aTh)*x2009;
+    realtype x2011 = -x2010;
+    realtype x2012 = 0.69314718055994529*PARAM(P_N_div_costim)*PARAM(P_n_CD28_CD8X)*x1750*x1756*x1758*x1998 - x2006;
+    realtype x2013 = x1785*x2012;
+    realtype x2014 = SPVAR(SP_V_LN_aTh)*x2013 + x1780*x2010;
+    realtype x2015 = SPVAR(SP_V_LN_aTfh)*x2009;
+    realtype x2016 = -x2015;
+    realtype x2017 = SPVAR(SP_V_LN_aTfh)*x2013 + x1780*x2015;
+    realtype x2018 = x1788*x2008;
+    realtype x2019 = -x2018;
+    realtype x2020 = x1780*x2018 + x1792*x2012;
+    realtype x2021 = SPVAR(SP_syn_CD8_APC_CD28)*x1750;
+    realtype x2022 = PARAM(P_kon_CD28_CD80)*x2021;
+    realtype x2023 = -x2022;
+    realtype x2024 = x1753*x1999;
+    realtype x2025 = x2001*x2024;
+    realtype x2026 = x1763*(-x1761*x2024 + x2003*x2025);
+    realtype x2027 = 1.3862943611198906*x2002;
+    realtype x2028 = x1773*(-x1759*x2024 + x2025);
+    realtype x2029 = PARAM(P_k_CD4_pro)*x2028;
+    realtype x2030 = SPVAR(SP_V_LN_aTh)*x2029;
+    realtype x2031 = 1.3862943611198906*PARAM(P_N_div_costim)*PARAM(P_n_CD28_CD8X)*x1750*x1756*x1758*x1998 - x2027;
+    realtype x2032 = x1785*x2031;
+    realtype x2033 = SPVAR(SP_V_LN_aTfh)*x2029;
+    realtype x2034 = x1788*x2028;
+    realtype x2035 = PARAM(P_kon_CTLA4_CD80)*x1753;
+    realtype x2036 = SPVAR(SP_syn_CD8_APC_CD80)*x2035;
+    realtype x2037 = SPVAR(SP_syn_CD8_APC_CTLA4)*x2035;
+    realtype x2038 = -x2037;
+    realtype x2039 = x1750*x1951;
+    realtype x2040 = SPVAR(SP_syn_CD8_APC_CTLA4)*x2039;
+    realtype x2041 = -x2040;
+    realtype x2042 = SPVAR(SP_syn_CD8_APC_CD80)*x2039;
+    realtype x2043 = -x2042;
+    realtype x2044 = SPVAR(SP_syn_CD8_APC_CD86)*x1750;
+    realtype x2045 = PARAM(P_kon_CTLA4_CD86)*x2044;
+    realtype x2046 = -x1987;
+    realtype x2047 = PARAM(P_kon_CD28_CD80)*x1751;
+    realtype x2048 = PARAM(P_kon_CD28_CD80)*x1753;
+    realtype x2049 = SPVAR(SP_syn_CD8_APC_CD80)*x2048;
+    realtype x2050 = -x2049;
+    realtype x2051 = PARAM(P_kon_CD28_CD86)*x2044;
+    realtype x2052 = PARAM(P_kon_CD28_CD80)*x1849;
+    realtype x2053 = SPVAR(SP_syn_CD8_APC_CD80_CTLA4)*x2035;
+    realtype x2054 = SPVAR(SP_syn_CD8_APC_CD80_CTLA4_CD80)*x2039;
+    realtype x2055 = PARAM(P_kon_CTLA4_CD86)*x1753;
+    realtype x2056 = SPVAR(SP_syn_CD8_APC_CD86)*x2055;
+    realtype x2057 = x1849*x1976;
+    realtype x2058 = SPVAR(SP_syn_CD8_APC_CD28)*x2048;
+    realtype x2059 = SPVAR(SP_syn_CD8_APC_CTLA4_CD80_CTLA4)*x2039;
+    realtype x2060 = PARAM(P_kon_CD80_PDL1)*x1848;
+    realtype x2061 = PARAM(P_kon_CD80_CD80)*x1994;
+    realtype x2062 = PARAM(P_kon_CD28_CD86)*x2021;
+    realtype x2063 = PARAM(P_kon_CTLA4_CD86)*SPVAR(SP_syn_CD8_APC_CD86_CTLA4)*x1750;
+    realtype x2064 = SPVAR(SP_syn_CD8_APC_CTLA4)*x2055;
+    realtype x2065 = -x2064;
+    realtype x2066 = PARAM(P_kon_CD47_SIRPa)*x140;
+    realtype x2067 = SPVAR(SP_syn_M_C_SIRPa)*x2066;
+    realtype x2068 = -x2067;
+    realtype x2069 = SPVAR(SP_syn_M_C_CD47)*x2066;
+    realtype x2070 = -x2069;
+    realtype x2071 = PARAM(P_n_SIRPa)/SPVAR(SP_syn_M_C_CD47_SIRPa);
+    realtype x2072 = std::pow(x141, 2*PARAM(P_n_SIRPa))*x2071/std::pow(x143, 2) - x144*x2071;
+    realtype x2073 = x164*x170*x2072;
+    realtype x2074 = x1044*(SPVAR(SP_V_T_C1)*SPVAR(SP_V_T_Mac_M1)*PARAM(P_k_M1_phago)*x154*x159*x162*x170*x2072*x411*x415 - x2073*x425);
+    realtype x2075 = x1043*x2074;
+    realtype x2076 = x1047*x2074;
+    realtype x2077 = PARAM(P_n_PD1)*x140/x149;
+    realtype x2078 = std::pow(x150, x1901)*x2077/std::pow(x152, 2) - x153*x2077;
+    realtype x2079 = SPVAR(SP_V_T_Mac_M1)*PARAM(P_k_M1_phago)*x145*x159*x163*x170*x2078;
+    realtype x2080 = -x2079;
+    realtype x2081 = x1044*(SPVAR(SP_V_T_C1)*SPVAR(SP_V_T_Mac_M1)*PARAM(P_k_M1_phago)*x145*x159*x162*x170*x2078*x411*x415 - x2079*x425);
+    realtype x2082 = x1043*x2081;
+    realtype x2083 = -x2082;
+    realtype x2084 = x1047*x2081;
+    realtype x2085 = -x2084;
+    realtype x2086 = x2079*x453;
+    realtype x2087 = x2079*x454;
+    realtype x2088 = PARAM(P_k_in_PDL1)*x140 + x705*x719/std::pow(PARAM(P_syn_M_C), 2);
+    realtype x2089 = PARAM(P_kon_PD1_PDL1)*x718;
+    realtype x2090 = PARAM(P_kon_PD1_PDL2)*x726;
+    realtype x2091 = SPVAR(SP_syn_M_C_PD1_aPD1)*x140*x1925;
+    realtype x2092 = SPVAR(SP_syn_M_C_PD1)*x140;
+    realtype x2093 = PARAM(P_kon_PD1_PDL1)*x2092;
+    realtype x2094 = SPVAR(SP_syn_M_C_CD80m)*x140;
+    realtype x2095 = PARAM(P_kon_CD80_PDL1)*x2094;
+    realtype x2096 = PARAM(P_kon_PD1_PDL2)*x2092;
+    realtype x2097 = x1925*x2092;
+    realtype x2098 = PARAM(P_kon_CD80_PDL1)*x718;
+    realtype x2099 = PARAM(P_kon_CD80_CD80)*x2094;
+    realtype x2100 = SPVAR(SP_V_ID_GVAX_cells)*PARAM(P_k_GVAX_clearance);
+    realtype x2101 = PARAM(P_HMGB1_50_ID) + x2100;
+    realtype x2102 = 1.0/x2101;
+    realtype x2103 = PARAM(P_k_APC_mature_ID)*x2102*x388;
+    realtype x2104 = SPVAR(SP_V_ID_APC)*PARAM(P_k_GVAX_clearance)*x2103;
+    realtype x2105 = SPVAR(SP_V_ID_APC)*PARAM(P_k_APC_mature_ID);
+    realtype x2106 = SPVAR(SP_V_ID_GVAX_cells)*std::pow(PARAM(P_k_GVAX_clearance), 2)*x2105*x388/std::pow(x2101, 2);
+    realtype x2107 = -x2104 + x2106;
+    realtype x2108 = x2100*x2103;
+    realtype x2109 = PARAM(P_K_APC_ID) + SPVAR(SP_V_ID_APC) + SPVAR(SP_V_ID_mAPC);
+    realtype x2110 = SPVAR(SP_V_ID_GMCSF)*x384;
+    realtype x2111 = PARAM(P_EC50_GMCSF) + x2110;
+    realtype x2112 = PARAM(P_k_APC_recruit_ID)/x2111;
+    realtype x2113 = PARAM(P_K_APC_ID)*(PARAM(P_k_APC_recruit0) + x2110*x2112)/std::pow(x2109, 2);
+    realtype x2114 = PARAM(P_k_APC_mig_ID_LN)/x1824;
+    realtype x2115 = std::pow(PARAM(P_V_ID), -2);
+    realtype x2116 = SPVAR(SP_V_T_CD8)*PARAM(P_k_CD8_T_vac_pro)*x1002;
+    realtype x2117 = x384*x387;
+    realtype x2118 = std::pow(x386, -2);
+    realtype x2119 = SPVAR(SP_V_ID_P1_GVAX)*x2115*x2118;
+    realtype x2120 = -PARAM(P_f_epitope_spread)*x2119 + x1728*x384;
+    realtype x2121 = x2100*x2102*x2105*x2117;
+    realtype x2122 = -SPVAR(SP_V_ID_APC)*SPVAR(SP_V_ID_GVAX_cells)*SPVAR(SP_V_ID_P1_GVAX)*PARAM(P_k_APC_mature_ID)*PARAM(P_k_GVAX_clearance)*x2102*x2115*x2118 + x2121;
 
     // Jacobian values (CSC order, matches _jac_row_indices / _jac_col_ptrs):
-    data[0] = -PARAM(P_q_nCD4_P_in) - x0;
+    data[0] = -PARAM(P_k_nTreg_death) - PARAM(P_q_nCD4_LN_in) - PARAM(P_q_nCD4_P_in) - x30;
     data[1] = PARAM(P_q_nCD4_P_in);
-    data[2] = PARAM(P_q_nCD4_LN_in);
-    data[3] = -PARAM(P_k_Treg_death) - PARAM(P_q_Treg_P_in) - x24;
-    data[4] = PARAM(P_q_Treg_P_in);
-    data[5] = x24;
-    data[6] = -PARAM(P_k_nCD8_death) - PARAM(P_q_nCD8_LN_in) - PARAM(P_q_nCD8_P_in);
-    data[7] = PARAM(P_q_nCD8_P_in);
-    data[8] = PARAM(P_q_nCD8_LN_in);
-    data[9] = -PARAM(P_k_CD8_death) - PARAM(P_q_CD8_P_in) - x32;
-    data[10] = PARAM(P_q_CD8_P_in);
-    data[11] = x32;
-    data[12] = -PARAM(P_k_cl_aPD1)*x33 - x35 - x36 - x37;
-    data[13] = x36;
-    data[14] = x37;
-    data[15] = x35;
-    data[16] = -x38 - x39;
-    data[17] = PARAM(P_q_Treg_P_in);
-    data[18] = x38;
-    data[19] = -PARAM(P_k_Cy_clear);
-    data[20] = PARAM(P_k_Cy_on)*x41 - PARAM(P_k_Cy_on)*x42;
-    data[21] = SPVAR(SP_V_T_Treg)*PARAM(P_k_Cy_Treg_deplete)*x42 - SPVAR(SP_V_T_Treg)*x43;
-    data[22] = -PARAM(P_k_Cy_eff_decay);
-    data[23] = SPVAR(SP_V_T_Treg)*x49*(PARAM(P_Emax_Cy_Treg)*SPVAR(SP_V_C_Cy_eff)/std::pow(x44, 2) - x45);
-    data[24] = -x39;
-    data[25] = PARAM(P_q_Treg_P_in);
-    data[26] = -x0;
-    data[27] = PARAM(P_q_nCD4_LN_in);
-    data[28] = -PARAM(P_k_B_death) - PARAM(P_q_Treg_P_in) - x17;
-    data[29] = PARAM(P_q_Treg_P_in);
-    data[30] = x17;
-    data[31] = PARAM(P_q_nCD4_P_out);
-    data[32] = -SPVAR(SP_V_P_nCD4)*x53/std::pow(x52, 2) + PARAM(P_k_nCD4_pro)*x50/x52 - PARAM(P_k_nTreg_death) - PARAM(P_q_nCD4_P_out);
-    data[33] = PARAM(P_q_Treg_P_out);
-    data[34] = -PARAM(P_k_Treg_death) - PARAM(P_q_Treg_P_out);
-    data[35] = PARAM(P_q_nCD8_P_out);
-    data[36] = -SPVAR(SP_V_P_nCD8)*x57/std::pow(x56, 2) - PARAM(P_k_nCD8_death) + PARAM(P_k_nCD8_pro)*x54/x56 - PARAM(P_q_nCD8_P_out);
-    data[37] = PARAM(P_q_CD8_P_out);
-    data[38] = -PARAM(P_k_CD8_death) - PARAM(P_q_CD8_P_out);
-    data[39] = x58;
-    data[40] = -x58;
-    data[41] = PARAM(P_q_Treg_P_out);
-    data[42] = x59;
+    data[2] = x30;
+    data[3] = PARAM(P_q_nCD4_LN_in);
+    data[4] = -PARAM(P_k_Treg_death) - PARAM(P_q_Treg_P_in) - x29;
+    data[5] = PARAM(P_q_Treg_P_in);
+    data[6] = x29;
+    data[7] = -PARAM(P_k_nCD8_death) - PARAM(P_q_nCD8_LN_in) - PARAM(P_q_nCD8_P_in) - x33;
+    data[8] = PARAM(P_q_nCD8_P_in);
+    data[9] = x33;
+    data[10] = PARAM(P_q_nCD8_LN_in);
+    data[11] = -PARAM(P_k_CD8_death) - PARAM(P_q_CD8_P_in) - x33;
+    data[12] = PARAM(P_q_CD8_P_in);
+    data[13] = x33;
+    data[14] = -PARAM(P_k_cl_aPD1)*x34 - x36 - x37 - x38;
+    data[15] = x37;
+    data[16] = x38;
+    data[17] = x36;
+    data[18] = -x30 - x39;
+    data[19] = PARAM(P_q_Treg_P_in);
+    data[20] = x30;
+    data[21] = -PARAM(P_k_Cy_clear);
+    data[22] = PARAM(P_k_Cy_on)*x41 - PARAM(P_k_Cy_on)*x42;
+    data[23] = SPVAR(SP_V_T_Treg)*PARAM(P_k_Cy_Treg_deplete)*x42 - SPVAR(SP_V_T_Treg)*x43;
+    data[24] = -PARAM(P_k_Cy_eff_decay);
+    data[25] = SPVAR(SP_V_T_Treg)*x49*(PARAM(P_Emax_Cy_Treg)*SPVAR(SP_V_C_Cy_eff)/std::pow(x44, 2) - x45);
+    data[26] = -x39;
+    data[27] = PARAM(P_q_Treg_P_in);
+    data[28] = -PARAM(P_k_nB_death) - PARAM(P_q_nB_LN_in);
+    data[29] = PARAM(P_q_nB_LN_in);
+    data[30] = -PARAM(P_k_B_death) - PARAM(P_q_B_P_in) - x57;
+    data[31] = PARAM(P_q_B_P_in);
+    data[32] = x57;
+    data[33] = PARAM(P_q_nCD4_P_out);
+    data[34] = -SPVAR(SP_V_P_nCD4)*x61/std::pow(x60, 2) + PARAM(P_k_nCD4_pro)*x58/x60 - PARAM(P_k_nTreg_death) - PARAM(P_q_nCD4_P_out);
+    data[35] = PARAM(P_q_Treg_P_out);
+    data[36] = -PARAM(P_k_Treg_death) - PARAM(P_q_Treg_P_out);
+    data[37] = PARAM(P_q_nCD8_P_out);
+    data[38] = -SPVAR(SP_V_P_nCD8)*x65/std::pow(x64, 2) - PARAM(P_k_nCD8_death) + PARAM(P_k_nCD8_pro)*x62/x64 - PARAM(P_q_nCD8_P_out);
+    data[39] = PARAM(P_q_CD8_P_out);
+    data[40] = -PARAM(P_k_CD8_death) - PARAM(P_q_CD8_P_out);
+    data[41] = x66;
+    data[42] = -x66;
     data[43] = PARAM(P_q_Treg_P_out);
-    data[44] = x59;
+    data[44] = x67;
     data[45] = PARAM(P_q_Treg_P_out);
-    data[46] = -PARAM(P_k_B_death) - PARAM(P_q_Treg_P_out);
-    data[47] = -x71;
-    data[48] = -x86;
-    data[49] = x98;
-    data[50] = -x107;
-    data[51] = -x109;
-    data[52] = x110 + x207;
-    data[53] = x261;
-    data[54] = x285;
-    data[55] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x286*x287*x291*x294*x298 - x207;
-    data[56] = x307;
-    data[57] = x348 + x71;
-    data[58] = x367 + x86;
-    data[59] = -x393 - x406;
-    data[60] = -x409 - x411;
-    data[61] = x393 + x416;
-    data[62] = x409 + x418;
-    data[63] = x207*x419;
-    data[64] = x207*x420;
-    data[65] = x97;
-    data[66] = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*PARAM(P_vol_cell)*x421*x423*x426*x5 + PARAM(P_k_Th_seed)*PARAM(P_vol_cell)*x1*x3*x5 + x100 - x101 + x104 + x106 - x285 - x347 - x460;
-    data[67] = x462;
-    data[68] = x485;
-    data[69] = x521;
-    data[70] = x522;
-    data[71] = x573;
-    data[72] = x574*x585*x590 + x608;
-    data[73] = PARAM(P_k_myCAF_prolif)*x574*x585*x610*x611*x613 - x572 - x607 - x609;
-    data[74] = PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x585*x615*x617 - x614;
-    data[75] = x637;
-    data[76] = x460;
-    data[77] = x109;
-    data[78] = x415;
-    data[79] = x417;
-    data[80] = x91;
-    data[81] = x641;
-    data[82] = x643;
-    data[83] = x647;
-    data[84] = x668;
-    data[85] = x675;
-    data[86] = x676;
-    data[87] = x677;
-    data[88] = x685;
-    data[89] = x689;
-    data[90] = x690;
-    data[91] = x694;
-    data[92] = x703;
-    data[93] = x707;
-    data[94] = x713;
-    data[95] = x715;
-    data[96] = x721;
-    data[97] = -PARAM(P_k_CD8_exh_death);
-    data[98] = x738;
-    data[99] = x745;
-    data[100] = x747;
-    data[101] = x750;
-    data[102] = x760;
-    data[103] = x764;
-    data[104] = x774;
-    data[105] = x779;
-    data[106] = x783;
-    data[107] = x786;
-    data[108] = x787;
-    data[109] = x788;
-    data[110] = x706;
-    data[111] = x794;
-    data[112] = x795;
-    data[113] = x799;
-    data[114] = x804;
-    data[115] = x805;
-    data[116] = x813;
-    data[117] = x820;
-    data[118] = x822;
-    data[119] = x823;
-    data[120] = x826;
-    data[121] = x792;
-    data[122] = x714;
-    data[123] = x781;
-    data[124] = x784;
-    data[125] = x704;
-    data[126] = x828;
-    data[127] = x829;
-    data[128] = x831;
-    data[129] = x834;
-    data[130] = x835;
-    data[131] = x836;
-    data[132] = x837;
-    data[133] = x839;
-    data[134] = x840;
-    data[135] = x841;
-    data[136] = x694;
-    data[137] = x703;
-    data[138] = x707;
-    data[139] = x713;
-    data[140] = x715;
-    data[141] = x721;
-    data[142] = PARAM(P_k_pex_diff);
-    data[143] = -PARAM(P_k_pex_death) - PARAM(P_k_pex_diff) - PARAM(P_k_pex_reflux) + x731 + x737 - x848 + x850 + x851 + x852 + x853;
-    data[144] = x745;
-    data[145] = x747;
-    data[146] = x750;
-    data[147] = x760;
-    data[148] = PARAM(P_k_pex_reflux) + x761 + x763 + x848 - x850 - x851 - x852 - x853;
-    data[149] = x774;
-    data[150] = x779;
-    data[151] = x783;
-    data[152] = x786;
-    data[153] = x787;
-    data[154] = x788;
-    data[155] = x706;
-    data[156] = x794;
-    data[157] = x795;
-    data[158] = x799;
-    data[159] = x804;
-    data[160] = x805;
-    data[161] = x813;
-    data[162] = x820;
-    data[163] = x822;
-    data[164] = x823;
-    data[165] = x826;
-    data[166] = x792;
-    data[167] = x714;
-    data[168] = x781;
-    data[169] = x784;
-    data[170] = x704;
-    data[171] = x828;
-    data[172] = x829;
-    data[173] = x831;
-    data[174] = x834;
-    data[175] = x835;
-    data[176] = x836;
-    data[177] = x837;
-    data[178] = x839;
-    data[179] = x840;
-    data[180] = x841;
-    data[181] = x694;
-    data[182] = x703;
-    data[183] = x707;
-    data[184] = x713;
-    data[185] = x715;
-    data[186] = x721;
-    data[187] = x738;
-    data[188] = -PARAM(P_k_Th_reflux) + x110 + x744 + x855 + x856 + x857;
-    data[189] = x747;
-    data[190] = x750;
-    data[191] = x760;
-    data[192] = x764;
-    data[193] = x774;
-    data[194] = x779;
-    data[195] = x783;
-    data[196] = x786;
-    data[197] = x787;
-    data[198] = x788;
-    data[199] = x706;
-    data[200] = PARAM(P_k_Th_reflux) + x6*x858 + x6*x860 + x712 - x741 + x743 - x752 - x753 + x755 - x756 + x757 - x855 - x856 - x857 + x861;
-    data[201] = x795;
-    data[202] = x799;
-    data[203] = x804;
-    data[204] = x805;
-    data[205] = x813;
-    data[206] = x820;
-    data[207] = x822;
-    data[208] = x823;
-    data[209] = x826;
-    data[210] = x792;
-    data[211] = x714;
-    data[212] = x781;
-    data[213] = x784;
-    data[214] = x704;
-    data[215] = x828;
-    data[216] = x829;
-    data[217] = x831;
-    data[218] = x834;
-    data[219] = x835;
-    data[220] = x836;
-    data[221] = x837;
-    data[222] = x839;
-    data[223] = x840;
-    data[224] = x841;
-    data[225] = -x867;
-    data[226] = -x869;
-    data[227] = x98;
-    data[228] = -x871;
-    data[229] = -x873;
-    data[230] = x875;
-    data[231] = -x877;
-    data[232] = x261 + x878 + x879 - x882 + x885;
-    data[233] = x285 + x886 - x887 - x888;
-    data[234] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x291*x294*(x292*x298 - x287*x290/std::pow(x211, 2)) + PARAM(P_k_C1_growth)*std::log(x293) - x875;
-    data[235] = -0.66666666666666663*SPVAR(SP_V_T_K_vasc)*std::pow(x889, -0.33333333333333337)*x890*(((SPVAR(SP_V_T_C1) < 0) ? (
+    data[46] = x67;
+    data[47] = PARAM(P_q_B_P_out);
+    data[48] = -PARAM(P_k_B_death) - PARAM(P_q_B_P_out);
+    data[49] = -x87;
+    data[50] = -x93;
+    data[51] = -x101;
+    data[52] = -x103;
+    data[53] = x115;
+    data[54] = -x122;
+    data[55] = -x132;
+    data[56] = x133 + x231;
+    data[57] = x285;
+    data[58] = x309;
+    data[59] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x310*x311*x315*x318*x322 - x231;
+    data[60] = x331;
+    data[61] = x372 + x93;
+    data[62] = x103 + x391;
+    data[63] = x101;
+    data[64] = -x427 - x440;
+    data[65] = -x443 - x445;
+    data[66] = x427 + x450;
+    data[67] = x443 + x452;
+    data[68] = x231*x453;
+    data[69] = x231*x454;
+    data[70] = x114;
+    data[71] = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*PARAM(P_vol_cell)*x1*x455*x457*x460 + PARAM(P_k_Th_seed)*PARAM(P_vol_cell)*x1*x24*x26 + x117 - x118 + x120 + x121 - x309 - x371 - x494;
+    data[72] = x87;
+    data[73] = x496;
+    data[74] = x520;
+    data[75] = x556;
+    data[76] = x557;
+    data[77] = x608;
+    data[78] = x609*x620*x625 + x643;
+    data[79] = PARAM(P_k_myCAF_prolif)*x609*x620*x645*x646*x648 - x607 - x642 - x644;
+    data[80] = PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x620*x650*x652 - x649;
+    data[81] = x672;
+    data[82] = x494;
+    data[83] = x132;
+    data[84] = x677;
+    data[85] = x449;
+    data[86] = x451;
+    data[87] = x108;
+    data[88] = x681;
+    data[89] = x683;
+    data[90] = x687;
+    data[91] = x708;
+    data[92] = x715;
+    data[93] = x716;
+    data[94] = x717;
+    data[95] = x725;
+    data[96] = x729;
+    data[97] = x730;
+    data[98] = x741;
+    data[99] = x744;
+    data[100] = x753;
+    data[101] = x759;
+    data[102] = x763;
+    data[103] = x769;
+    data[104] = x776;
+    data[105] = x783;
+    data[106] = -PARAM(P_k_CD8_exh_death);
+    data[107] = x800;
+    data[108] = x810;
+    data[109] = x812;
+    data[110] = x815;
+    data[111] = x825;
+    data[112] = x829;
+    data[113] = x752;
+    data[114] = x840;
+    data[115] = x845;
+    data[116] = x849;
+    data[117] = x852;
+    data[118] = x853;
+    data[119] = x854;
+    data[120] = x762;
+    data[121] = x860;
+    data[122] = x740;
+    data[123] = x861;
+    data[124] = x866;
+    data[125] = x871;
+    data[126] = x872;
+    data[127] = x880;
+    data[128] = x887;
+    data[129] = x889;
+    data[130] = x890;
+    data[131] = x893;
+    data[132] = x858;
+    data[133] = x775;
+    data[134] = x894;
+    data[135] = x847;
+    data[136] = x850;
+    data[137] = x760;
+    data[138] = x896;
+    data[139] = x897;
+    data[140] = x899;
+    data[141] = x902;
+    data[142] = x903;
+    data[143] = x904;
+    data[144] = x905;
+    data[145] = x907;
+    data[146] = x908;
+    data[147] = x909;
+    data[148] = x741;
+    data[149] = x744;
+    data[150] = x753;
+    data[151] = x759;
+    data[152] = x763;
+    data[153] = x769;
+    data[154] = x776;
+    data[155] = x783;
+    data[156] = PARAM(P_k_pex_diff);
+    data[157] = -PARAM(P_k_pex_death) - PARAM(P_k_pex_diff) - PARAM(P_k_pex_reflux) + x793 + x799 - x916 + x918 + x919 + x920 + x921;
+    data[158] = x810;
+    data[159] = x812;
+    data[160] = x815;
+    data[161] = x825;
+    data[162] = PARAM(P_k_pex_reflux) + x826 + x828 + x916 - x918 - x919 - x920 - x921;
+    data[163] = x752;
+    data[164] = x840;
+    data[165] = x845;
+    data[166] = x849;
+    data[167] = x852;
+    data[168] = x853;
+    data[169] = x854;
+    data[170] = x762;
+    data[171] = x860;
+    data[172] = x740;
+    data[173] = x861;
+    data[174] = x866;
+    data[175] = x871;
+    data[176] = x872;
+    data[177] = x880;
+    data[178] = x887;
+    data[179] = x889;
+    data[180] = x890;
+    data[181] = x893;
+    data[182] = x858;
+    data[183] = x775;
+    data[184] = x894;
+    data[185] = x847;
+    data[186] = x850;
+    data[187] = x760;
+    data[188] = x896;
+    data[189] = x897;
+    data[190] = x899;
+    data[191] = x902;
+    data[192] = x903;
+    data[193] = x904;
+    data[194] = x905;
+    data[195] = x907;
+    data[196] = x908;
+    data[197] = x909;
+    data[198] = x741;
+    data[199] = x744;
+    data[200] = x753;
+    data[201] = x759;
+    data[202] = x763;
+    data[203] = x769;
+    data[204] = x776;
+    data[205] = x783;
+    data[206] = x800;
+    data[207] = -PARAM(P_k_Th_reflux) + x133 + x809 + x923 + x924 + x925;
+    data[208] = x812;
+    data[209] = x815;
+    data[210] = x825;
+    data[211] = x829;
+    data[212] = x752;
+    data[213] = x840;
+    data[214] = x845;
+    data[215] = x849;
+    data[216] = x852;
+    data[217] = x853;
+    data[218] = x854;
+    data[219] = x762;
+    data[220] = PARAM(P_k_Th_reflux) - x923 - x924 - x925 + x931;
+    data[221] = x740;
+    data[222] = x861;
+    data[223] = x866;
+    data[224] = x871;
+    data[225] = x872;
+    data[226] = x880;
+    data[227] = x887;
+    data[228] = x889;
+    data[229] = x890;
+    data[230] = x893;
+    data[231] = x858;
+    data[232] = x775;
+    data[233] = x894;
+    data[234] = x847;
+    data[235] = x850;
+    data[236] = x760;
+    data[237] = x896;
+    data[238] = x897;
+    data[239] = x899;
+    data[240] = x902;
+    data[241] = x903;
+    data[242] = x904;
+    data[243] = x905;
+    data[244] = x907;
+    data[245] = x908;
+    data[246] = x909;
+    data[247] = -x938;
+    data[248] = -x939;
+    data[249] = -x941;
+    data[250] = -x943;
+    data[251] = x115;
+    data[252] = -x944;
+    data[253] = -x945;
+    data[254] = x947;
+    data[255] = -x949;
+    data[256] = x285 + x950 + x951 - x954 + x957;
+    data[257] = x309 + x958 - x959 - x960;
+    data[258] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x315*x318*(x316*x322 - x311*x314/std::pow(x235, 2)) + PARAM(P_k_C1_growth)*std::log(x317) - x947;
+    data[259] = -0.66666666666666663*SPVAR(SP_V_T_K_vasc)*std::pow(x961, -0.33333333333333337)*x962*(((SPVAR(SP_V_T_C1) < 0) ? (
    0
 )
 : ((SPVAR(SP_V_T_C1) == 0) ? (
@@ -5919,1314 +6165,1498 @@ int ODE_system::jac(realtype t, N_Vector y, N_Vector fy,
 )
 : (
    1
-)))) + x299*x302 + x307;
-    data[236] = PARAM(P_k_vas_Csec);
-    data[237] = SPVAR(SP_V_T_Treg)*x876*x891 + x348 + x867;
-    data[238] = x367 + x869 + x877 - x878 - x879 + x882 + x884;
-    data[239] = -x406 - x893;
-    data[240] = -x411 - x894;
-    data[241] = x416 + x893;
-    data[242] = x418 + x894;
-    data[243] = x419*x875;
-    data[244] = x420*x875;
-    data[245] = x97;
-    data[246] = -x268 - x271 - x275 + x282 - x284 - x323 - x327 + x330 - x340 + x346 + x455 - x459 + x60*x858 + x60*x860 + x863*x895 - x866*x895 + x871 - x886 + x887 + x888;
-    data[247] = x462;
-    data[248] = SPVAR(SP_V_T_MDSC)*x876 + x485;
-    data[249] = PARAM(P_k_CCL2_sec);
-    data[250] = SPVAR(SP_V_T_Mac_M1)*x876 + x521;
-    data[251] = SPVAR(SP_V_T_Mac_M2)*x876 + x522;
-    data[252] = SPVAR(SP_V_T_qPSC)*x876 + x573;
-    data[253] = SPVAR(SP_V_T_iCAF)*x899 + x590*x897 + x608;
-    data[254] = SPVAR(SP_V_T_myCAF)*x899 - x567 + x571 - x594 - x597 + x599 - x603 + x606 - x609 + x897*x901;
-    data[255] = SPVAR(SP_V_T_apCAF)*x899 - x614 + x896*x903;
-    data[256] = x637;
-    data[257] = PARAM(P_k_CXCL12_sec_cancer);
-    data[258] = PARAM(P_k_IL1_sec);
-    data[259] = SPVAR(SP_V_T_Tfh)*x876 + x460;
-    data[260] = SPVAR(SP_V_T_nB)*x876 + x873;
-    data[261] = SPVAR(SP_V_T_aB)*x876;
-    data[262] = SPVAR(SP_V_T_Plasma)*x876;
-    data[263] = x415;
-    data[264] = x417;
-    data[265] = x91;
-    data[266] = x641;
-    data[267] = x643;
-    data[268] = x647;
-    data[269] = x668;
-    data[270] = x675;
-    data[271] = x676;
-    data[272] = x677;
-    data[273] = x685;
-    data[274] = x689;
-    data[275] = x690;
-    data[276] = x907;
-    data[277] = x908;
-    data[278] = x909;
-    data[279] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x291*x294*x910;
-    data[280] = -std::pow(x889, 0.66666666666666663)*x890;
-    data[281] = -x907;
-    data[282] = -x908;
-    data[283] = -x909;
-    data[284] = SPVAR(SP_V_T_CCL2)*PARAM(P_k_MDSC_rec)*PARAM(P_n_vasc)*x20*x22*x465*x474*x904 - x466*x911;
-    data[285] = SPVAR(SP_V_T_CCL2)*PARAM(P_k_Mac_rec)*PARAM(P_n_vasc)*x20*x22*x474*x494*x904 - x495*x911;
-    data[286] = SPVAR(SP_V_T_C1)*PARAM(P_k_vas_growth)*x18*x301 - x305*x748;
-    data[287] = -PARAM(P_k_vas_deg);
-    data[288] = x694;
-    data[289] = x703;
-    data[290] = x707;
-    data[291] = x713;
-    data[292] = x715;
-    data[293] = x914;
-    data[294] = x915 + x917;
-    data[295] = x745;
-    data[296] = -x746 - x913;
-    data[297] = x750;
-    data[298] = -SPVAR(SP_V_C_Cy)*x43 + SPVAR(SP_V_T_Treg)*x310*(SPVAR(SP_V_T_Treg)*x751 - x47) - PARAM(P_k_Treg_death) - x270*x891 + x309*x49 + x759;
-    data[299] = x764 - x915 + x916;
-    data[300] = -x773 - x919;
-    data[301] = -x778 - x920;
-    data[302] = x782 + x919;
-    data[303] = x785 + x920;
-    data[304] = x419*x914;
-    data[305] = x420*x914;
-    data[306] = x706;
-    data[307] = x794;
-    data[308] = PARAM(P_f_active_TGFb)*PARAM(P_k_TGFb_Tsec) + x795;
-    data[309] = x799;
-    data[310] = x804;
-    data[311] = x805;
-    data[312] = PARAM(P_k_IL10_sec_Treg);
-    data[313] = x813;
-    data[314] = x820;
-    data[315] = x822;
-    data[316] = x823;
-    data[317] = x826;
-    data[318] = x792;
-    data[319] = x714;
-    data[320] = x781;
-    data[321] = x784;
-    data[322] = x704;
-    data[323] = x828;
-    data[324] = x829;
-    data[325] = x831;
-    data[326] = x834;
-    data[327] = x835;
-    data[328] = x836;
-    data[329] = x837;
-    data[330] = x839;
-    data[331] = x840;
-    data[332] = x841;
-    data[333] = x694;
-    data[334] = x703;
-    data[335] = x707;
-    data[336] = x713;
-    data[337] = x715;
-    data[338] = x922;
-    data[339] = x270;
-    data[340] = x923;
-    data[341] = x745;
-    data[342] = -x746 - x921;
-    data[343] = x750;
-    data[344] = x760;
-    data[345] = SPVAR(SP_V_ID_P1_GVAX)*SPVAR(SP_V_T_CD8)*PARAM(P_k_CD8_T_vac_pro)*x356*x360*x363*x926 + SPVAR(SP_V_ID_P1_GVAX)*PARAM(P_k_CD8_T_vac_pro)*x360*x363*x925 + SPVAR(SP_V_T_CD8)*PARAM(P_k_CD8_T_pro)*x356*x926 - SPVAR(SP_V_T_CD8)*PARAM(P_k_CD8_death)*(-x350*x733 + x924) + PARAM(P_k_CD8_T_pro)*x925 - PARAM(P_k_CD8_death)*(SPVAR(SP_V_T_CD8)*x924 + 1.0) - x270 + x695 - x696 + x698 + x701 - x923;
-    data[346] = -x773 - x928;
-    data[347] = -x778 - x929;
-    data[348] = x782 + x928;
-    data[349] = x785 + x929;
-    data[350] = x419*x922;
-    data[351] = x420*x922;
-    data[352] = x706;
-    data[353] = x794;
-    data[354] = PARAM(P_k_IFNg_Tsec);
-    data[355] = x795;
-    data[356] = x799;
-    data[357] = x804;
-    data[358] = x805;
-    data[359] = x813;
-    data[360] = x820;
-    data[361] = x822;
-    data[362] = x823;
-    data[363] = x826;
-    data[364] = x792;
-    data[365] = x714;
-    data[366] = x781;
-    data[367] = x784;
-    data[368] = x704;
-    data[369] = x828;
-    data[370] = x829;
-    data[371] = x831;
-    data[372] = x834;
-    data[373] = x835;
-    data[374] = x836;
-    data[375] = x837;
-    data[376] = x839;
-    data[377] = x840;
-    data[378] = x841;
-    data[379] = -PARAM(P_k_APC_death) - x931;
-    data[380] = x931;
-    data[381] = x932;
-    data[382] = x933;
-    data[383] = -PARAM(P_k_APC_death) - x934;
-    data[384] = x934;
-    data[385] = x932;
-    data[386] = x933;
-    data[387] = x936;
-    data[388] = PARAM(P_k_IL12_sec);
-    data[389] = x935;
-    data[390] = x936;
-    data[391] = x935;
-    data[392] = -PARAM(P_k_P0_up)*x937 - PARAM(P_k_xP0_deg);
-    data[393] = PARAM(P_k_P0_up)*x938;
-    data[394] = -x939;
-    data[395] = -PARAM(P_k_P1_up)*x937 - PARAM(P_k_xP1_deg);
-    data[396] = x939;
-    data[397] = PARAM(P_k_P1_up)*x938;
-    data[398] = x941;
-    data[399] = -x941 - x942;
-    data[400] = x942;
-    data[401] = -x944;
-    data[402] = x944;
-    data[403] = -x945;
-    data[404] = x945;
-    data[405] = x694;
-    data[406] = x703;
-    data[407] = x707;
-    data[408] = x713;
-    data[409] = x715;
-    data[410] = x721;
-    data[411] = x738;
-    data[412] = x946;
-    data[413] = x747;
-    data[414] = x750;
-    data[415] = x760 + x947;
-    data[416] = x764;
-    data[417] = x774;
-    data[418] = x779;
-    data[419] = x783;
-    data[420] = x786;
-    data[421] = x787;
-    data[422] = x788;
-    data[423] = x706;
-    data[424] = SPVAR(SP_V_T_Th)*PARAM(P_k_Th_pro_tumor)*x426*(-x424 + x754*x859) - PARAM(P_k_CD4_death) + PARAM(P_k_Th_pro_tumor)/x425 - x793 - x946 - x947 - x948;
-    data[425] = PARAM(P_k_IFNg_Thsec);
-    data[426] = x795;
-    data[427] = x799;
-    data[428] = x804;
-    data[429] = x805;
-    data[430] = x813;
-    data[431] = x820;
-    data[432] = x822;
-    data[433] = x823;
-    data[434] = x826;
-    data[435] = x948;
-    data[436] = x714;
-    data[437] = x781;
-    data[438] = x784;
-    data[439] = x704;
-    data[440] = x828;
-    data[441] = x829;
-    data[442] = x831;
-    data[443] = x834;
-    data[444] = x835;
-    data[445] = x836;
-    data[446] = x837;
-    data[447] = x839;
-    data[448] = x840;
-    data[449] = x841;
-    data[450] = x949;
-    data[451] = x950;
-    data[452] = -x950;
-    data[453] = PARAM(P_k_out_PDL1)*x18*x652*x658 - x650*x952 - x659*x951;
-    data[454] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*x18*x652*x672 - x671*x952 - x672*x954;
-    data[455] = PARAM(P_k_out_PDL1)*x18*x652*x681 - x681*x953;
-    data[456] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*x18*x652*x687 - x687*x954;
-    data[457] = x955;
-    data[458] = -x956;
-    data[459] = -x955;
-    data[460] = -x959;
-    data[461] = -x962;
-    data[462] = -x963;
-    data[463] = x962;
-    data[464] = x963;
-    data[465] = x419*x955;
-    data[466] = x420*x955;
-    data[467] = x956 + x959;
-    data[468] = -PARAM(P_k_TGFb_deg);
-    data[469] = -x964;
-    data[470] = x964;
-    data[471] = x967 - x968 + x970;
-    data[472] = -x967 + x968 + x972;
-    data[473] = -x970 - x972;
-    data[474] = x636*(x18*x619*x620 - x280*x633);
-    data[475] = -PARAM(P_k_MDSC_death) - x270;
-    data[476] = PARAM(P_k_NO_sec);
-    data[477] = PARAM(P_k_ArgI_sec);
-    data[478] = PARAM(P_k_IL10_sec_MDSC);
-    data[479] = x973;
-    data[480] = -x973;
-    data[481] = x976;
-    data[482] = x977;
-    data[483] = -x976;
-    data[484] = -x977;
-    data[485] = x419*x973;
-    data[486] = x420*x973;
-    data[487] = -PARAM(P_k_NO_deg);
-    data[488] = x978;
-    data[489] = -x978;
-    data[490] = x979;
-    data[491] = x981;
-    data[492] = x982;
-    data[493] = -x981;
-    data[494] = -x982;
-    data[495] = x419*x978;
-    data[496] = x420*x978;
-    data[497] = -x979;
-    data[498] = -PARAM(P_k_ArgI_deg);
-    data[499] = PARAM(P_k_MDSC_rec)*x20*x22*x465*x474 - x470*x478;
-    data[500] = -PARAM(P_k_CCL2_deg);
-    data[501] = PARAM(P_k_Mac_rec)*x20*x22*x474*x494 - x467*x496;
-    data[502] = x987;
-    data[503] = x993;
-    data[504] = x997;
-    data[505] = x1002;
-    data[506] = x1004;
-    data[507] = x1009;
-    data[508] = x1023;
+)))) + x323*x326 + x331;
+    data[260] = PARAM(P_k_vas_Csec);
+    data[261] = SPVAR(SP_V_T_Treg)*x948*x963 + x372 + x939;
+    data[262] = x391 + x943 + x949 - x950 - x951 + x954 + x956;
+    data[263] = SPVAR(SP_V_T_nCD8)*x948 + x941;
+    data[264] = -x440 - x965;
+    data[265] = -x445 - x966;
+    data[266] = x450 + x965;
+    data[267] = x452 + x966;
+    data[268] = x453*x947;
+    data[269] = x454*x947;
+    data[270] = x114;
+    data[271] = -PARAM(P_k_Th_seed)*x937 - x292 - x295 - x299 + x306 - x308 - x347 - x351 + x354 - x364 + x370 + x489 - x493 + x68*x927 + x68*x929 + x926*x934 + x944 - x958 + x959 + x960;
+    data[272] = SPVAR(SP_V_T_nCD4)*x948 + x938;
+    data[273] = x496;
+    data[274] = SPVAR(SP_V_T_MDSC)*x948 + x520;
+    data[275] = PARAM(P_k_CCL2_sec);
+    data[276] = SPVAR(SP_V_T_Mac_M1)*x948 + x556;
+    data[277] = SPVAR(SP_V_T_Mac_M2)*x948 + x557;
+    data[278] = SPVAR(SP_V_T_qPSC)*x948 + x608;
+    data[279] = SPVAR(SP_V_T_iCAF)*x970 + x625*x968 + x643;
+    data[280] = SPVAR(SP_V_T_myCAF)*x970 - x602 + x606 - x629 - x632 + x634 - x638 + x641 - x644 + x968*x972;
+    data[281] = SPVAR(SP_V_T_apCAF)*x970 - x649 + x967*x974;
+    data[282] = x672;
+    data[283] = PARAM(P_k_CXCL12_sec_cancer);
+    data[284] = PARAM(P_k_IL1_sec);
+    data[285] = SPVAR(SP_V_T_Tfh)*x948 + x494;
+    data[286] = SPVAR(SP_V_T_nB)*x948 + x945;
+    data[287] = SPVAR(SP_V_T_aB)*x948 + x677;
+    data[288] = SPVAR(SP_V_T_Plasma)*x948;
+    data[289] = x449;
+    data[290] = x451;
+    data[291] = x108;
+    data[292] = x681;
+    data[293] = x683;
+    data[294] = x687;
+    data[295] = x708;
+    data[296] = x715;
+    data[297] = x716;
+    data[298] = x717;
+    data[299] = x725;
+    data[300] = x729;
+    data[301] = x730;
+    data[302] = x979;
+    data[303] = x980;
+    data[304] = x983;
+    data[305] = x984;
+    data[306] = x985;
+    data[307] = x986;
+    data[308] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x315*x318*x987;
+    data[309] = -std::pow(x961, 0.66666666666666663)*x962;
+    data[310] = -x980;
+    data[311] = -x984;
+    data[312] = -x983;
+    data[313] = -x985;
+    data[314] = -x979;
+    data[315] = SPVAR(SP_V_T_CCL2)*PARAM(P_k_MDSC_rec)*PARAM(P_n_vasc)*x19*x21*x499*x508*x975 - x500*x988;
+    data[316] = SPVAR(SP_V_T_CCL2)*PARAM(P_k_Mac_rec)*PARAM(P_n_vasc)*x19*x21*x508*x529*x975 - x530*x988;
+    data[317] = -x986;
+    data[318] = SPVAR(SP_V_T_C1)*PARAM(P_k_vas_growth)*x13*x325 - x329*x813;
+    data[319] = -PARAM(P_k_vas_deg);
+    data[320] = x741;
+    data[321] = x744;
+    data[322] = x753;
+    data[323] = x759;
+    data[324] = x763;
+    data[325] = x769;
+    data[326] = x776;
+    data[327] = x991;
+    data[328] = x992 + x994;
+    data[329] = x810;
+    data[330] = -x811 - x990;
+    data[331] = x815;
+    data[332] = -SPVAR(SP_V_C_Cy)*x43 + SPVAR(SP_V_T_Treg)*x334*(SPVAR(SP_V_T_Treg)*x816 - x47) - PARAM(P_k_Treg_death) - x294*x963 + x333*x49 + x824;
+    data[333] = x829 - x992 + x993;
+    data[334] = x752;
+    data[335] = -x839 - x996;
+    data[336] = -x844 - x997;
+    data[337] = x848 + x996;
+    data[338] = x851 + x997;
+    data[339] = x453*x991;
+    data[340] = x454*x991;
+    data[341] = x762;
+    data[342] = x860;
+    data[343] = x740;
+    data[344] = PARAM(P_f_active_TGFb)*PARAM(P_k_TGFb_Tsec) + x861;
+    data[345] = x866;
+    data[346] = x871;
+    data[347] = x872;
+    data[348] = PARAM(P_k_IL10_sec_Treg);
+    data[349] = x880;
+    data[350] = x887;
+    data[351] = x889;
+    data[352] = x890;
+    data[353] = x893;
+    data[354] = x858;
+    data[355] = x775;
+    data[356] = x894;
+    data[357] = x847;
+    data[358] = x850;
+    data[359] = x760;
+    data[360] = x896;
+    data[361] = x897;
+    data[362] = x899;
+    data[363] = x902;
+    data[364] = x903;
+    data[365] = x904;
+    data[366] = x905;
+    data[367] = x907;
+    data[368] = x908;
+    data[369] = x909;
+    data[370] = x741;
+    data[371] = x744;
+    data[372] = x753;
+    data[373] = x759;
+    data[374] = x763;
+    data[375] = x769;
+    data[376] = x776;
+    data[377] = x999;
+    data[378] = x294;
+    data[379] = x1000;
+    data[380] = x810;
+    data[381] = -x811 - x998;
+    data[382] = x815;
+    data[383] = x825;
+    data[384] = SPVAR(SP_V_ID_P1_GVAX)*SPVAR(SP_V_T_CD8)*PARAM(P_k_CD8_T_vac_pro)*x1003*x380*x384*x387 + SPVAR(SP_V_ID_P1_GVAX)*PARAM(P_k_CD8_T_vac_pro)*x1002*x384*x387 + SPVAR(SP_V_T_CD8)*PARAM(P_k_CD8_T_pro)*x1003*x380 - SPVAR(SP_V_T_CD8)*PARAM(P_k_CD8_death)*(x1001 - x374*x795) + PARAM(P_k_CD8_T_pro)*x1002 - PARAM(P_k_CD8_death)*(SPVAR(SP_V_T_CD8)*x1001 + 1.0) - x1000 - x294 + x754 - x755 + x756 + x757;
+    data[385] = x752;
+    data[386] = -x1005 - x839;
+    data[387] = -x1006 - x844;
+    data[388] = x1005 + x848;
+    data[389] = x1006 + x851;
+    data[390] = x453*x999;
+    data[391] = x454*x999;
+    data[392] = x762;
+    data[393] = x860;
+    data[394] = x740;
+    data[395] = PARAM(P_k_IFNg_Tsec);
+    data[396] = x861;
+    data[397] = x866;
+    data[398] = x871;
+    data[399] = x872;
+    data[400] = x880;
+    data[401] = x887;
+    data[402] = x889;
+    data[403] = x890;
+    data[404] = x893;
+    data[405] = x858;
+    data[406] = x775;
+    data[407] = x894;
+    data[408] = x847;
+    data[409] = x850;
+    data[410] = x760;
+    data[411] = x896;
+    data[412] = x897;
+    data[413] = x899;
+    data[414] = x902;
+    data[415] = x903;
+    data[416] = x904;
+    data[417] = x905;
+    data[418] = x907;
+    data[419] = x908;
+    data[420] = x909;
+    data[421] = x741;
+    data[422] = x744;
+    data[423] = x753;
+    data[424] = x759;
+    data[425] = x763;
+    data[426] = x769;
+    data[427] = x776;
+    data[428] = x783;
+    data[429] = x800;
+    data[430] = x810;
+    data[431] = x812;
+    data[432] = x815;
+    data[433] = x825;
+    data[434] = PARAM(P_n_CD8_clones)*x1007 + x829;
+    data[435] = -PARAM(P_k_nCD8_death) - x1007 - x294 + x746 - x747 + x749 + x751;
+    data[436] = x840;
+    data[437] = x845;
+    data[438] = x849;
+    data[439] = x852;
+    data[440] = x853;
+    data[441] = x854;
+    data[442] = x762;
+    data[443] = x860;
+    data[444] = x740;
+    data[445] = x861;
+    data[446] = x866;
+    data[447] = x871;
+    data[448] = x872;
+    data[449] = x880;
+    data[450] = x887;
+    data[451] = x889;
+    data[452] = x890;
+    data[453] = x893;
+    data[454] = x858;
+    data[455] = x775;
+    data[456] = x894;
+    data[457] = x847;
+    data[458] = x850;
+    data[459] = x760;
+    data[460] = x896;
+    data[461] = x897;
+    data[462] = x899;
+    data[463] = x902;
+    data[464] = x903;
+    data[465] = x904;
+    data[466] = x905;
+    data[467] = x907;
+    data[468] = x908;
+    data[469] = x909;
+    data[470] = -PARAM(P_k_APC_death) - x1009;
+    data[471] = x1009;
+    data[472] = x1010;
+    data[473] = x1011;
+    data[474] = -PARAM(P_k_APC_death) - x1012;
+    data[475] = x1012;
+    data[476] = x1010;
+    data[477] = x1011;
+    data[478] = PARAM(P_n_CD8_clones)*x1013;
+    data[479] = -x1013;
+    data[480] = x1015;
+    data[481] = PARAM(P_k_IL12_sec);
+    data[482] = x1014;
+    data[483] = x1015;
+    data[484] = PARAM(P_n_CD4_clones)*x1016;
+    data[485] = -x1016;
+    data[486] = x1014;
+    data[487] = -PARAM(P_k_P0_up)*x1017 - PARAM(P_k_xP0_deg);
+    data[488] = PARAM(P_k_P0_up)*x1018;
+    data[489] = -x1019;
+    data[490] = -PARAM(P_k_P1_up)*x1017 - PARAM(P_k_xP1_deg);
+    data[491] = x1019;
+    data[492] = PARAM(P_k_P1_up)*x1018;
+    data[493] = x1021;
+    data[494] = -x1021 - x1022;
+    data[495] = x1022;
+    data[496] = -x1024;
+    data[497] = x1024;
+    data[498] = -x1025;
+    data[499] = x1025;
+    data[500] = x741;
+    data[501] = x744;
+    data[502] = x753;
+    data[503] = x759;
+    data[504] = x763;
+    data[505] = x769;
+    data[506] = x776;
+    data[507] = x783;
+    data[508] = x800;
     data[509] = x1026;
-    data[510] = -x1008 - x1027;
-    data[511] = x1028;
-    data[512] = x1031;
-    data[513] = x1032;
-    data[514] = -x1036 - x1040;
-    data[515] = -x1041 - x1043;
-    data[516] = x1036 + x1046;
-    data[517] = x1041 + x1048;
-    data[518] = x1009*x419;
-    data[519] = x1009*x420;
-    data[520] = x996;
-    data[521] = x1052;
-    data[522] = x1053;
-    data[523] = x1057;
-    data[524] = SPVAR(SP_V_T_CCL2)*PARAM(P_k_Mac_rec)*PARAM(P_n_vasc)*PARAM(P_vol_Mcell)*x18*x474*x494*x5*x66*x67 + SPVAR(SP_V_T_CCL2)*PARAM(P_k_Mac_rec)*x1058*x20*x22*x474 + PARAM(P_k_Mac_rec)*PARAM(P_vol_Mcell)*x20*x22*x469*x472*x494*x5*x78 - x1059 - x1063 - x1064;
-    data[525] = x1063;
-    data[526] = PARAM(P_k_IL12_Msec);
-    data[527] = x1072;
-    data[528] = x1078;
-    data[529] = x1079;
-    data[530] = x1080;
-    data[531] = -SPVAR(SP_V_T_collagen)*x1081 + x1082;
-    data[532] = x1051;
-    data[533] = x1003;
-    data[534] = x1045;
-    data[535] = x1047;
-    data[536] = x994;
-    data[537] = x1084;
-    data[538] = x1085;
-    data[539] = x1087;
-    data[540] = x1090;
-    data[541] = x1091;
-    data[542] = x1092;
-    data[543] = x1093;
-    data[544] = x1095;
-    data[545] = x1096;
-    data[546] = x1097;
-    data[547] = x987;
-    data[548] = x993;
-    data[549] = x997;
-    data[550] = x1002;
-    data[551] = x1004;
-    data[552] = x1007;
-    data[553] = x1023;
-    data[554] = x1026;
-    data[555] = -x1027;
-    data[556] = x1028;
-    data[557] = PARAM(P_k_vas_Msec);
-    data[558] = x1031;
-    data[559] = x1032;
-    data[560] = -x1040 - x1099;
-    data[561] = -x1043 - x1100;
-    data[562] = x1046 + x1099;
-    data[563] = x1048 + x1100;
-    data[564] = x1007*x419;
-    data[565] = x1007*x420;
-    data[566] = x996;
-    data[567] = x1052;
-    data[568] = PARAM(P_f_active_TGFb)*PARAM(P_k_TGFb_Msec) + x1053;
-    data[569] = x1057;
-    data[570] = PARAM(P_k_ArgI_sec);
-    data[571] = x1054*x496 + x1056*x498 + x1058*x490 - x1059 + x1101;
-    data[572] = -x1064 - x1101;
-    data[573] = PARAM(P_k_IL10_sec);
-    data[574] = x1072;
-    data[575] = x1078;
-    data[576] = x1079;
-    data[577] = x1080;
-    data[578] = -SPVAR(SP_V_T_collagen)*(x1081 + x1102) + x1082;
-    data[579] = x1051;
-    data[580] = x1003;
-    data[581] = x1045;
-    data[582] = x1047;
-    data[583] = x994;
-    data[584] = x1084;
-    data[585] = x1085;
-    data[586] = x1087;
-    data[587] = x1090;
-    data[588] = x1091;
-    data[589] = x1092;
-    data[590] = x1093;
-    data[591] = x1095;
-    data[592] = x1096;
-    data[593] = x1097;
-    data[594] = x1105;
-    data[595] = x1106;
-    data[596] = -x1105;
-    data[597] = -x1106;
-    data[598] = -x1107;
-    data[599] = x1107;
-    data[600] = -PARAM(P_k_IL12_deg);
-    data[601] = x1108;
-    data[602] = -x1109;
-    data[603] = -x1108;
-    data[604] = x1109;
-    data[605] = -x1112;
-    data[606] = -x1113;
-    data[607] = x1112;
-    data[608] = x1113;
-    data[609] = x1108*x419;
-    data[610] = x1108*x420;
-    data[611] = -x1114;
-    data[612] = x1114;
-    data[613] = -PARAM(P_k_IL10_deg);
-    data[614] = -x1118;
-    data[615] = -x1123;
-    data[616] = -x1124 - x1126;
-    data[617] = -x1127 + x1128 - x1129 - x1130;
-    data[618] = -x1131;
-    data[619] = x1134;
-    data[620] = x1135 + x1136 + x1137 + x1138 - x1140 + x1141 - x1143 + x1144;
-    data[621] = x1147;
-    data[622] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x286*x287*x291*x294*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_qPSCcell)*x201*x289*x5*x7 - x1115*x297) - x1134;
-    data[623] = x1121*x306 - x1125*x304;
-    data[624] = x1115*x312 + x1118 + x1148;
-    data[625] = x1115*x352 + x1115*x359 + x1115*x366 + x1123 - x1135 - x1136 - x1137 - x1138 + x1140 - x1141 + x1143 - x1144;
-    data[626] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_qPSCcell)*x15*x157*x201*x394*x397*x5*x7 + PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_qPSCcell)*x396*x5 - x1153;
-    data[627] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_qPSCcell)*x15*x157*x201*x394*x397*x5*x7 + PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_qPSCcell)*x396*x5 - x1154;
-    data[628] = x1153 - x1156;
-    data[629] = x1154 - x1157;
-    data[630] = x1134*x419;
-    data[631] = x1134*x420;
-    data[632] = x1126;
-    data[633] = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*PARAM(P_vol_qPSCcell)*x421*x423*x426*x5 + PARAM(P_k_Th_seed)*PARAM(P_vol_qPSCcell)*x1*x3*x5 + x1127 - x1128 + x1129 + x1130 - x1147 - x1148 - x1160;
-    data[634] = x1115*x461;
-    data[635] = x1161*x471 - x1162*x476 + x1163*x478 + x484*(-x1115*x481 + x1121*x483);
-    data[636] = PARAM(P_vol_qPSCcell)*x1164 + x1161*x496 - x1162*x497 + x1163*x498 + x1166 - x1167;
-    data[637] = -x1166 + x1167;
-    data[638] = PARAM(P_k_CAF_encounter)*PARAM(P_vol_qPSCcell)*x5*x524*x525 + PARAM(P_k_CAF_encounter)*x15*x525*(x12*x95 - x18) - PARAM(P_k_PSC_to_apCAF) - PARAM(P_k_qpsc_death) - x1170 - x1173 - x270;
-    data[639] = -SPVAR(SP_V_T_iCAF)*x1177 + x1173 + x1174 + x1179*x590 + x1180 - x1182 + x1183 - x1184;
-    data[640] = -SPVAR(SP_V_T_myCAF)*x1177 + x1170 - x1174 + x1179*x901 - x1180 + x1182 - x1183 + x1184;
-    data[641] = -SPVAR(SP_V_T_apCAF)*x1177 + PARAM(P_k_PSC_to_apCAF) + x1178*x903;
-    data[642] = -SPVAR(SP_V_T_collagen)*(x1115*x632 - x1125*x629) + x1115*x626 + x636*(x1133*x633 - x1146*x621);
-    data[643] = x1160;
-    data[644] = x1131;
-    data[645] = x1156;
-    data[646] = x1157;
-    data[647] = x1124;
-    data[648] = -x1185*x638;
-    data[649] = -x1185*x642;
-    data[650] = x1187;
-    data[651] = PARAM(P_k_out_PDL1)*PARAM(P_vol_qPSCcell)*x5*x658*x661*x662*x81 - x1188*x659 - x1189*x650;
-    data[652] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_qPSCcell)*x5*x661*x662*x672*x81 - x1188*x674 - x1189*x671;
-    data[653] = -x1187;
-    data[654] = x1190;
-    data[655] = -x1188*x682 + x1191*x682;
-    data[656] = -x1188*x688 + x1191*x688;
-    data[657] = -x1190;
-    data[658] = -x1195;
-    data[659] = -x1200;
-    data[660] = -x1201 - x1203;
-    data[661] = -x1205;
-    data[662] = -x1206;
-    data[663] = x1209;
-    data[664] = x1210 + x1211 + x1212 + x1213 - x1215 + x1216 - x1218 + x1219;
-    data[665] = x1221 + x1222 + x1223 - x1225 + x1226;
-    data[666] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x291*x294*(PARAM(P_k_stroma_iCAF)*x1227 + x292*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_iCAFcell)*x201*x289*x5*x7 - x1192*x297)) - x1209;
-    data[667] = x1198*x306 - x1202*x304;
-    data[668] = x1192*x312 + x1195 + x1228 + x1231 + x1232 - x1233 + x1234 - x1235;
-    data[669] = x1192*x352 + x1192*x359 + x1192*x366 + x1200 - x1210 - x1211 - x1212 - x1213 + x1215 - x1216 + x1218 - x1219;
-    data[670] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_iCAFcell)*x15*x157*x201*x394*x397*x5*x7 + PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_iCAFcell)*x396*x5 - x1240;
-    data[671] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_iCAFcell)*x15*x157*x201*x394*x397*x5*x7 + PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_iCAFcell)*x396*x5 - x1241;
-    data[672] = x1240 - x1243;
-    data[673] = x1241 - x1244;
-    data[674] = x1209*x419;
-    data[675] = x1209*x420;
-    data[676] = x1203;
-    data[677] = x1192*x858 + x1192*x860 + x1205 - x1221 - x1222 - x1223 + x1225 - x1226 - x1228 + x1230 - x1232 + x1233 - x1234 + x1235 + x1246 - x1248;
-    data[678] = x1192*x461;
-    data[679] = x1249*x471 - x1250*x476 + x1251*x478 + x484*(-x1192*x481 + x1198*x483);
-    data[680] = PARAM(P_vol_iCAFcell)*x1164 + x1249*x496 - x1250*x497 + x1251*x498 + x1253 - x1254;
-    data[681] = -x1253 + x1254;
-    data[682] = x1192*x527 + x1192*x546 + x1255 - x1257 + x1260;
-    data[683] = SPVAR(SP_V_T_iCAF)*PARAM(P_k_iCAF_prolif)*(SPVAR(SP_V_T_iCAF)*x1266*x589 - x1262) - SPVAR(SP_V_T_iCAF)*x1267 - PARAM(P_k_iCAF_death) + PARAM(P_k_iCAF_prolif)*(-SPVAR(SP_V_T_iCAF)*x1262 + 1.0) - x1260 - x1261 - x1269;
-    data[684] = -SPVAR(SP_V_T_myCAF)*x1267 - x1255 + x1257 + x1266*x901 + x1269;
-    data[685] = -SPVAR(SP_V_T_apCAF)*x1267 + PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x1265*x615*x617;
-    data[686] = -SPVAR(SP_V_T_collagen)*(x1192*x632 - x1202*x629) + x1192*x626 + x636*(x1208*x633 - x1224*x621);
-    data[687] = PARAM(P_k_CXCL12_sec_iCAF);
-    data[688] = PARAM(P_k_IL6_sec_iCAF);
-    data[689] = -x1246 + x1248;
-    data[690] = x1206;
-    data[691] = x1243;
-    data[692] = x1244;
-    data[693] = x1201;
-    data[694] = -x1270*x638;
-    data[695] = -x1270*x642;
-    data[696] = x1272;
-    data[697] = PARAM(P_k_out_PDL1)*PARAM(P_vol_iCAFcell)*x5*x658*x661*x662*x81 - x1273*x659 - x1274*x650;
-    data[698] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_iCAFcell)*x5*x661*x662*x672*x81 - x1273*x674 - x1274*x671;
-    data[699] = -x1272;
-    data[700] = x1275;
-    data[701] = -x1273*x682 + x1276*x682;
-    data[702] = -x1273*x688 + x1276*x688;
-    data[703] = -x1275;
-    data[704] = -x1280;
-    data[705] = -x1285;
-    data[706] = -x1286 - x1288;
-    data[707] = -x1290;
-    data[708] = -x1291;
-    data[709] = x1294;
-    data[710] = x1295 + x1296 + x1297 + x1298 - x1300 + x1301 - x1303 + x1304;
-    data[711] = x1306 + x1307 + x1308 - x1310 + x1311;
-    data[712] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x291*x294*(PARAM(P_k_stroma_myCAF)*x1227 + x292*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_myCAFcell)*x201*x289*x5*x7 - x1277*x297)) - x1294;
-    data[713] = x1283*x306 - x1287*x304;
-    data[714] = PARAM(P_k_vas_myCAF_sec);
-    data[715] = x1231 + x1277*x312 + x1280 + x1312 + x1313 - x1314 + x1315 - x1316;
-    data[716] = x1277*x352 + x1277*x359 + x1277*x366 + x1285 - x1295 - x1296 - x1297 - x1298 + x1300 - x1301 + x1303 - x1304;
-    data[717] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_myCAFcell)*x15*x157*x201*x394*x397*x5*x7 + PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_myCAFcell)*x396*x5 - x1321;
-    data[718] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_myCAFcell)*x15*x157*x201*x394*x397*x5*x7 + PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_myCAFcell)*x396*x5 - x1322;
-    data[719] = x1321 - x1324;
-    data[720] = x1322 - x1325;
-    data[721] = x1294*x419;
-    data[722] = x1294*x420;
-    data[723] = x1288;
-    data[724] = x1230 + x1277*x858 + x1277*x860 + x1290 - x1306 - x1307 - x1308 + x1310 - x1311 - x1312 - x1313 + x1314 - x1315 + x1316 + x1327 - x1329;
-    data[725] = PARAM(P_f_active_TGFb)*PARAM(P_k_TGFb_sec_myCAF) + x1277*x461;
-    data[726] = x1330*x471 - x1331*x476 + x1332*x478 + x484*(-x1277*x481 + x1283*x483);
-    data[727] = PARAM(P_vol_myCAFcell)*x1164 + x1330*x496 - x1331*x497 + x1332*x498 + x1334 - x1335;
-    data[728] = -x1334 + x1335;
-    data[729] = x1277*x527 + x1277*x546 - x1337 + x1339 - x1340 + x1341;
-    data[730] = -SPVAR(SP_V_T_iCAF)*x1344 + x1337 - x1339 + x1340 + x1346*x590 + x1347;
-    data[731] = SPVAR(SP_V_T_myCAF)*PARAM(P_k_myCAF_prolif)*(SPVAR(SP_V_T_myCAF)*x1346*x900 - x1348) - SPVAR(SP_V_T_myCAF)*x1344 - PARAM(P_k_myCAF_death) + PARAM(P_k_myCAF_prolif)*(-SPVAR(SP_V_T_myCAF)*x1348 + 1.0) - x1261 - x1341 - x1347;
-    data[732] = -SPVAR(SP_V_T_apCAF)*x1344 + PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x1345*x615*x617;
-    data[733] = -SPVAR(SP_V_T_collagen)*(x1277*x632 - x1287*x629) + x11*x5*x623*x625 + x622*x635 + x636*(x1293*x633 - x1309*x621);
-    data[734] = -x1327 + x1329;
-    data[735] = x1291;
-    data[736] = x1324;
-    data[737] = x1325;
-    data[738] = x1286;
-    data[739] = -x1349*x638;
-    data[740] = -x1349*x642;
-    data[741] = x1351;
-    data[742] = PARAM(P_k_out_PDL1)*PARAM(P_vol_myCAFcell)*x5*x658*x661*x662*x81 - x1352*x659 - x1353*x650;
-    data[743] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_myCAFcell)*x5*x661*x662*x672*x81 - x1352*x674 - x1353*x671;
-    data[744] = -x1351;
-    data[745] = x1354;
-    data[746] = -x1352*x682 + x1355*x682;
-    data[747] = -x1352*x688 + x1355*x688;
-    data[748] = -x1354;
-    data[749] = -x1359;
-    data[750] = -x1364;
-    data[751] = -x1365 - x1367;
-    data[752] = -x1368 + x1369 - x1370 - x1371;
-    data[753] = -x1372;
-    data[754] = x1375;
-    data[755] = x1376 + x1377 + x1378 + x1379 - x1381 + x1382 - x1384 + x1385;
-    data[756] = x1388;
-    data[757] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x291*x294*(PARAM(P_k_stroma_apCAF)*x1227 + x292*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_apCAFcell)*x201*x289*x5*x7 - x1356*x297)) - x1375;
-    data[758] = x1362*x306 - x1366*x304;
-    data[759] = x1356*x312 + x1359 + x1389;
-    data[760] = x1356*x352 + x1356*x359 + x1356*x366 + x1364 - x1376 - x1377 - x1378 - x1379 + x1381 - x1382 + x1384 - x1385;
-    data[761] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_apCAFcell)*x15*x157*x201*x394*x397*x5*x7 + PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_apCAFcell)*x396*x5 - x1394;
-    data[762] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_apCAFcell)*x15*x157*x201*x394*x397*x5*x7 + PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_apCAFcell)*x396*x5 - x1395;
-    data[763] = x1394 - x1397;
-    data[764] = x1395 - x1398;
-    data[765] = x1375*x419;
-    data[766] = x1375*x420;
-    data[767] = x1367;
-    data[768] = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*PARAM(P_vol_apCAFcell)*x421*x423*x426*x5 + PARAM(P_k_Th_seed)*PARAM(P_vol_apCAFcell)*x1*x3*x5 + x1368 - x1369 + x1370 + x1371 - x1388 - x1389 - x1401;
-    data[769] = x1356*x461;
-    data[770] = x1402*x471 - x1403*x476 + x1404*x478 + x484*(-x1356*x481 + x1362*x483);
-    data[771] = PARAM(P_vol_apCAFcell)*x1164 + x1402*x496 - x1403*x497 + x1404*x498 + x1406 - x1407;
-    data[772] = -x1406 + x1407;
-    data[773] = x1356*x527 + x1356*x546 - x1409 + x1411 - x1412 + x1413;
-    data[774] = -SPVAR(SP_V_T_iCAF)*x1416 + x1409 - x1411 + x1412 + x1417*x574*x590 + x1418;
-    data[775] = -SPVAR(SP_V_T_myCAF)*x1416 + PARAM(P_k_myCAF_prolif)*x1417*x574*x610*x611*x613 - x1413 - x1418;
-    data[776] = SPVAR(SP_V_T_apCAF)*PARAM(P_k_apCAF_prolif)*(SPVAR(SP_V_T_apCAF)*x1417*x902 - x1419) - SPVAR(SP_V_T_apCAF)*x1416 - PARAM(P_k_apCAF_death) + PARAM(P_k_apCAF_prolif)*(-SPVAR(SP_V_T_apCAF)*x1419 + 1.0) - x1261;
-    data[777] = -SPVAR(SP_V_T_collagen)*(x1356*x632 - x1366*x629) + x1356*x626 + x636*(x1374*x633 - x1387*x621);
-    data[778] = x1401;
-    data[779] = x1372;
-    data[780] = x1397;
-    data[781] = x1398;
-    data[782] = x1365;
-    data[783] = -x1420*x638;
-    data[784] = -x1420*x642;
-    data[785] = x1422;
-    data[786] = PARAM(P_k_out_PDL1)*PARAM(P_vol_apCAFcell)*x5*x658*x661*x662*x81 - x1423*x659 - x1424*x650;
-    data[787] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_apCAFcell)*x5*x661*x662*x672*x81 - x1423*x674 - x1424*x671;
-    data[788] = -x1422;
-    data[789] = x1425;
-    data[790] = -x1423*x682 + x1426*x682;
-    data[791] = -x1423*x688 + x1426*x688;
-    data[792] = -x1425;
-    data[793] = -x1430;
-    data[794] = -x1435;
-    data[795] = -x1436 - x1438;
-    data[796] = -x1439 + x1440 - x1441 - x1442;
-    data[797] = -x1443;
-    data[798] = x1450;
-    data[799] = x1451 + x1452 + x1453 + x1454 - x1456 + x1457 + x1462 - x1463;
-    data[800] = x1466;
-    data[801] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x286*x287*x291*x294*(SPVAR(SP_V_T_collagen)*x201*x289*x295 - x1446*x289 - x1448*x156*x296) - x1450;
-    data[802] = x1433*x306 - x7*x749;
-    data[803] = x1430 + x1467 + x312*x7;
-    data[804] = x1435 - x1451 - x1452 - x1453 - x1454 + x1456 - x1457 - x1462 + x1463 + x1468*x351 + x1468*x358 + x1468*x365;
-    data[805] = 0.5*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*x1448*x15*x157*x394*x397 + PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*x396*x7 - x1473;
-    data[806] = 0.5*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*x1448*x15*x157*x394*x397 + PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*x396*x7 - x1474;
-    data[807] = x1473 - x1476;
-    data[808] = x1474 - x1477;
-    data[809] = x1450*x419;
-    data[810] = x1450*x420;
-    data[811] = x1438;
-    data[812] = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*x421*x423*x426*x7 + PARAM(P_k_Th_seed)*x1*x3*x7 + x1439 - x1440 + x1441 + x1442 - x1466 - x1467 - x1480;
-    data[813] = x461*x7;
-    data[814] = x1481*x471 - x1482*x476 + x1483*x478 + x484*(x1433*x483 - x481*x7);
-    data[815] = x1481*x496 - x1482*x497 + x1483*x498 + x1485 - x1486 + x492*x7;
-    data[816] = -x1485 + x1486;
-    data[817] = -x1488 + x1490 - x1491 + x1493 + x527*x7 + x546*x7;
-    data[818] = -SPVAR(SP_V_T_iCAF)*x1496 + x1488 - x1490 + x1491 + x1497*x574*x590 + x1498;
-    data[819] = -SPVAR(SP_V_T_myCAF)*x1496 + PARAM(P_k_myCAF_prolif)*x1497*x574*x610*x611*x613 - x1493 - x1498;
-    data[820] = -SPVAR(SP_V_T_apCAF)*x1496 + PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x1497*x615*x617;
-    data[821] = -SPVAR(SP_V_T_Mac_M2)*x1102 - SPVAR(SP_V_T_collagen)*(-x1437*x629 + x1448*x631) + SPVAR(SP_V_T_myCAF)*PARAM(P_k_col_myCAF_sec)*x622*(-x1446*x624 + x1447*x624) + SPVAR(SP_V_T_myCAF)*PARAM(P_k_col_myCAF_sec)*x634*(x1445*x633 - x1465*x621) - PARAM(P_k_col_deg);
-    data[822] = x1480;
-    data[823] = x1443;
-    data[824] = x1476;
-    data[825] = x1477;
-    data[826] = x1436;
-    data[827] = -x1499*x638;
-    data[828] = -x1499*x642;
-    data[829] = x1501;
-    data[830] = PARAM(P_k_out_PDL1)*x658*x661*x662*x7*x81 - x1502*x659 - x1503*x650;
-    data[831] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*x661*x662*x672*x7*x81 - x1502*x674 - x1503*x671;
-    data[832] = -x1501;
-    data[833] = x1504;
-    data[834] = -x1502*x682 + x1505*x682;
-    data[835] = -x1502*x688 + x1505*x688;
-    data[836] = -x1504;
-    data[837] = -x1507;
-    data[838] = -x1508;
-    data[839] = x1507;
-    data[840] = x1508;
-    data[841] = -PARAM(P_k_CXCL12_deg);
-    data[842] = x1509;
-    data[843] = x484*(x18*x464 - x427*x482);
-    data[844] = -x1510;
-    data[845] = x1510;
-    data[846] = -x1512;
-    data[847] = x1512 + x1513;
-    data[848] = -x1513;
-    data[849] = -PARAM(P_k_IL6_deg);
-    data[850] = -x1509;
-    data[851] = x1514;
-    data[852] = -x1514 - x1515;
-    data[853] = x1515;
-    data[854] = -PARAM(P_k_IL1_deg);
-    data[855] = x694;
-    data[856] = x703;
-    data[857] = x707;
-    data[858] = x713;
-    data[859] = x715;
-    data[860] = x721;
-    data[861] = x738;
-    data[862] = x745;
-    data[863] = x747;
-    data[864] = x750;
-    data[865] = x760;
-    data[866] = x764;
-    data[867] = x774;
-    data[868] = x779;
-    data[869] = x783;
-    data[870] = x786;
-    data[871] = x787;
-    data[872] = x788;
-    data[873] = x706;
-    data[874] = x794;
-    data[875] = x795;
-    data[876] = x799;
-    data[877] = x804;
-    data[878] = x805;
-    data[879] = x813;
-    data[880] = x820;
-    data[881] = x822;
-    data[882] = x823;
-    data[883] = x826;
-    data[884] = -PARAM(P_k_CD4_death) - x270 - x861;
-    data[885] = x714;
-    data[886] = x1518;
-    data[887] = -x1518;
-    data[888] = x781;
-    data[889] = x784;
-    data[890] = x704;
-    data[891] = x828;
-    data[892] = x829;
-    data[893] = x831;
-    data[894] = x834;
-    data[895] = x835;
-    data[896] = x836;
-    data[897] = x837;
-    data[898] = x839;
-    data[899] = x840;
-    data[900] = x841;
-    data[901] = x694;
-    data[902] = x703;
-    data[903] = x707;
-    data[904] = x713;
-    data[905] = x715;
-    data[906] = x720;
-    data[907] = x732;
-    data[908] = x745;
-    data[909] = x1519;
-    data[910] = x750;
-    data[911] = x760;
-    data[912] = x762;
-    data[913] = x1522;
-    data[914] = x1524;
-    data[915] = x1521;
-    data[916] = x1523;
-    data[917] = x1525;
-    data[918] = x1526;
-    data[919] = x706;
-    data[920] = x794;
-    data[921] = x795;
-    data[922] = x799;
-    data[923] = x804;
-    data[924] = x805;
-    data[925] = x813;
-    data[926] = x819;
-    data[927] = x1527;
-    data[928] = x1528;
-    data[929] = x792;
-    data[930] = -x1529 - x1530 - x715;
-    data[931] = x1529;
-    data[932] = x704;
-    data[933] = x828;
-    data[934] = x829;
-    data[935] = x831;
-    data[936] = x834;
-    data[937] = x835;
-    data[938] = x836;
-    data[939] = x837;
-    data[940] = x839;
-    data[941] = x840;
-    data[942] = x841;
-    data[943] = x694;
-    data[944] = x703;
-    data[945] = x707;
-    data[946] = x713;
-    data[947] = x715;
-    data[948] = x720;
-    data[949] = x732;
-    data[950] = x745;
-    data[951] = x1519;
-    data[952] = x750;
-    data[953] = x760;
-    data[954] = x762;
-    data[955] = x1522;
-    data[956] = x1524;
-    data[957] = x1521;
-    data[958] = x1523;
-    data[959] = x1525;
-    data[960] = x1526;
-    data[961] = x706;
-    data[962] = x794;
-    data[963] = x795;
-    data[964] = x799;
-    data[965] = x804;
-    data[966] = x805;
-    data[967] = x813;
-    data[968] = x819;
-    data[969] = x1527;
-    data[970] = x1528;
-    data[971] = x792;
-    data[972] = x714;
-    data[973] = PARAM(P_k_B_pro_tumor) - x1530 - x1531;
-    data[974] = x1531;
-    data[975] = x704;
-    data[976] = x828;
-    data[977] = x829;
-    data[978] = x831;
-    data[979] = x834;
-    data[980] = x835;
-    data[981] = x836;
-    data[982] = x837;
-    data[983] = x839;
-    data[984] = x840;
-    data[985] = x841;
-    data[986] = x694;
-    data[987] = x703;
-    data[988] = x707;
-    data[989] = x713;
-    data[990] = x715;
-    data[991] = x720;
-    data[992] = x732;
-    data[993] = x745;
-    data[994] = x1519;
-    data[995] = x750;
-    data[996] = x760;
-    data[997] = x762;
-    data[998] = x1522;
-    data[999] = x1524;
-    data[1000] = x1521;
-    data[1001] = x1523;
-    data[1002] = x1525;
-    data[1003] = x1526;
-    data[1004] = x706;
-    data[1005] = x794;
-    data[1006] = x795;
-    data[1007] = x799;
-    data[1008] = x804;
-    data[1009] = x805;
-    data[1010] = x813;
-    data[1011] = x819;
-    data[1012] = x1527;
-    data[1013] = x1528;
-    data[1014] = x792;
-    data[1015] = x714;
-    data[1016] = -PARAM(P_k_plasma_death) - x270;
-    data[1017] = PARAM(P_k_Ab_sec);
-    data[1018] = x704;
-    data[1019] = x828;
-    data[1020] = x829;
-    data[1021] = x831;
-    data[1022] = x834;
-    data[1023] = x835;
-    data[1024] = x836;
-    data[1025] = x837;
-    data[1026] = x839;
-    data[1027] = x840;
-    data[1028] = x841;
-    data[1029] = x1532;
-    data[1030] = -x1532;
-    data[1031] = x1534;
-    data[1032] = x1535;
-    data[1033] = -x1534;
-    data[1034] = -x1535;
-    data[1035] = x1532*x419;
-    data[1036] = x1532*x420;
-    data[1037] = -PARAM(P_k_Ab_deg);
-    data[1038] = PARAM(P_q_nCD4_LN_out);
-    data[1039] = SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_f_nTreg)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1550 + 0.5*SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p0_TCR_off)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1550*x1562*x1564*x1566*x1570*x891 - SPVAR(SP_V_LN_nCD4)*x53/std::pow(x1536, 2) + PARAM(P_k_nCD4_pro)*x50/x1536 - x1543 - x1544*x1549 - x1552 - x1571*x1572 - x1573;
-    data[1040] = SPVAR(SP_V_LN_mcDC2)*PARAM(P_f_nTreg)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1547 + 0.5*SPVAR(SP_V_LN_mcDC2)*PARAM(P_k_M1p0_TCR_off)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1547*x1562*x1564*x1566*x1570*x891 - SPVAR(SP_V_LN_nCD4)*x1574*x1575 - x1550*x1575*x1576;
-    data[1041] = PARAM(P_n_CD4_clones)*x1543*x1578;
-    data[1042] = PARAM(P_n_CD4_clones)*x1552;
-    data[1043] = -PARAM(P_k_Treg_pro);
-    data[1044] = PARAM(P_k_Treg_pro);
-    data[1045] = PARAM(P_q_Treg_LN_out);
-    data[1046] = -PARAM(P_k_Treg_death) - PARAM(P_q_Treg_LN_out);
-    data[1047] = -x1612;
-    data[1048] = x1612*x1613 + x1619*(-0.69314718055994529*PARAM(P_kappa_IL2_Treg)*x1616 + 0.69314718055994529*x1594);
-    data[1049] = -x1627;
-    data[1050] = SPVAR(SP_V_LN_aTh)*x1634 + x1627*x1628;
-    data[1051] = -x1635;
-    data[1052] = SPVAR(SP_V_LN_aTfh)*x1634 + x1628*x1635;
-    data[1053] = -x1637;
-    data[1054] = x1628*x1637 + x1630*x1640;
-    data[1055] = PARAM(P_q_nCD8_LN_out);
-    data[1056] = -SPVAR(SP_V_LN_nCD8)*x57/std::pow(x1641, 2) - PARAM(P_k_nCD8_death) + PARAM(P_k_nCD8_pro)*x54/x1641 - PARAM(P_q_nCD8_LN_out) - x1647;
-    data[1057] = x1647*x1648;
-    data[1058] = -x1617 - x1653;
-    data[1059] = x1613*x1653 + x1618 + x1619*(-0.69314718055994529*x1616 + 0.69314718055994529*x1650 + 0.69314718055994529*x1652);
-    data[1060] = -x1658;
-    data[1061] = SPVAR(SP_V_LN_aTh)*x1660 + x1628*x1658;
-    data[1062] = -x1661;
-    data[1063] = SPVAR(SP_V_LN_aTfh)*x1660 + x1628*x1661;
-    data[1064] = -x1662;
-    data[1065] = x1628*x1662 + x1640*x1659;
-    data[1066] = PARAM(P_q_CD8_LN_out);
-    data[1067] = -PARAM(P_k_CD8_death) - PARAM(P_q_CD8_LN_out);
-    data[1068] = PARAM(P_k_IFNg_Tsec);
-    data[1069] = -PARAM(P_k_APC_death) - x1663;
-    data[1070] = x1663;
-    data[1071] = -PARAM(P_k_APC_death);
-    data[1072] = -x1664;
-    data[1073] = x1648*x1664;
-    data[1074] = -PARAM(P_k_mAPC_death);
-    data[1075] = SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_f_nTreg)*PARAM(P_k_Treg_act)*x1550*x1666 + 0.5*SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p0_TCR_off)*PARAM(P_k_Treg_act)*x1550*x1562*x1564*x1566*x1570*x1666*x891 - SPVAR(SP_V_LN_nCD4)*PARAM(P_n_sites_APC)*x1549 - SPVAR(SP_V_LN_nCD4)*x1665 - PARAM(P_n_sites_APC)*x1547*x1576;
-    data[1076] = SPVAR(SP_V_LN_nCD4)*PARAM(P_f_nTreg)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1547 + 0.5*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p0_TCR_off)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1547*x1562*x1564*x1566*x1570*x891 - x1545*x1550*x1571*x1667 - x1545*x1574*x1667;
-    data[1077] = -x1668;
-    data[1078] = x1668;
-    data[1079] = -PARAM(P_k_mAPC_death) - x1671;
-    data[1080] = x1665*x1672;
-    data[1081] = x1671;
-    data[1082] = x1673;
-    data[1083] = -x1673;
-    data[1084] = -x1675;
-    data[1085] = x1675;
-    data[1086] = -x1678;
-    data[1087] = x1613*x1678 + x1619*(0.69314718055994529*PARAM(P_N_IL2_CD8)*PARAM(P_k_IL2_sec)*PARAM(P_w_IL2_help)*x1584*x1588 - 0.69314718055994529*x1677);
-    data[1088] = -x1632 - x1682;
-    data[1089] = SPVAR(SP_V_LN_aTh)*x1684 + x1628*x1682 + x1633;
-    data[1090] = -x1685;
-    data[1091] = SPVAR(SP_V_LN_aTfh)*x1684 + x1628*x1685;
-    data[1092] = -x1686;
-    data[1093] = x1628*x1686 + x1640*x1683;
-    data[1094] = PARAM(P_q_Treg_LN_out);
-    data[1095] = -x1687*x1688*x451;
-    data[1096] = 0.5*SPVAR(SP_V_LN_mcDC1)*SPVAR(SP_V_LN_nCD8)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_k_T_activation_per_APC)*PARAM(P_n_CD8_clones)*x1578*x1687*x442*x444*x446*x450 - x1690;
-    data[1097] = x1613*x1690 + x1619*(0.69314718055994529*PARAM(P_N_div_costim)*x1597*x1604*x1606 - 0.69314718055994529*x1689);
-    data[1098] = x1691;
-    data[1099] = PARAM(P_k_IFNg_Thsec);
-    data[1100] = x949;
-    data[1101] = PARAM(P_k_out_PDL1)*x1694*x1702*x87 - PARAM(P_k_out_PDL1)*x1702*x1705 - x1697*x1707;
-    data[1102] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2APC)*x1694*x1710*x87 - PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2APC)*x1705*x1710 - x1707*x1709;
-    data[1103] = -x1632;
-    data[1104] = x1633;
-    data[1105] = PARAM(P_q_Treg_LN_out);
-    data[1106] = x1691;
-    data[1107] = -SPVAR(SP_V_LN_nB)*x1713 + x1715;
-    data[1108] = 0.5*SPVAR(SP_V_LN_nB)*PARAM(P_k_B_act)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_n_B_clones)*x1712*x442*x444*x446*x450 - PARAM(P_n_B_clones)*x1715;
-    data[1109] = PARAM(P_q_nCD4_LN_out);
-    data[1110] = -x1573 - x1716;
-    data[1111] = PARAM(P_n_B_clones)*x1716;
-    data[1112] = -x1638;
-    data[1113] = x1639;
-    data[1114] = PARAM(P_q_Treg_LN_out);
-    data[1115] = -PARAM(P_k_B_death) - PARAM(P_q_Treg_LN_out);
-    data[1116] = -PARAM(P_k_P0_deg);
-    data[1117] = PARAM(P_k_P0_deg);
-    data[1118] = -PARAM(P_k_p0_deg) - x1718;
-    data[1119] = -x1718;
-    data[1120] = x1718;
-    data[1121] = SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*SPVAR(SP_V_e_P1)*PARAM(P_k_T_activation_per_APC)*x1720*x1721 - SPVAR(SP_V_LN_nCD4)*x1537*x1719;
-    data[1122] = -SPVAR(SP_V_e_P1)*x1720*x1721*x1722 + x1719*x1722;
-    data[1123] = -PARAM(P_k_P1_deg);
-    data[1124] = PARAM(P_k_P1_deg);
-    data[1125] = -PARAM(P_k_p1_deg) - x1723;
-    data[1126] = -x1723;
-    data[1127] = x1723;
-    data[1128] = -x1724;
-    data[1129] = -x1725;
-    data[1130] = -PARAM(P_kout) - x1724 - x1725;
-    data[1131] = x1724;
-    data[1132] = x1725;
-    data[1133] = PARAM(P_kout);
-    data[1134] = x1726;
-    data[1135] = x1726;
-    data[1136] = -PARAM(P_kout) - x1726;
-    data[1137] = PARAM(P_kout);
-    data[1138] = x1727;
-    data[1139] = x1727;
-    data[1140] = -PARAM(P_kout) - x1727;
-    data[1141] = PARAM(P_kout);
-    data[1142] = PARAM(P_kin);
-    data[1143] = -PARAM(P_kin);
-    data[1144] = -x1567*x1570*x1730 + x1730*x1731;
-    data[1145] = 0.5*SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p0_TCR_off)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1547*x1564*x1566*x1570*x1728*x891 - x1545*x1729*x1731;
-    data[1146] = x1726;
-    data[1147] = -x1726;
-    data[1148] = x1738;
-    data[1149] = -x1738;
-    data[1150] = x1740;
-    data[1151] = -x1740;
-    data[1152] = -x1734*x1741 + x1737*x1741;
-    data[1153] = -x1734*x1742 + x1743;
-    data[1154] = 0.5*SPVAR(SP_V_LN_mcDC1)*SPVAR(SP_V_LN_nCD8)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_k_T_activation_per_APC)*PARAM(P_n_CD8_clones)*x1578*x1645*x1732*x444*x446*x450 - x1648*x1743;
-    data[1155] = 0.5*H_APC_Th*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_k_Tfh_act)*PARAM(P_n_CD4_clones)*x1732*x444*x446*x450 - x1545*x1551*x1737;
-    data[1156] = -x1734*x1744 + x1745;
-    data[1157] = 0.5*SPVAR(SP_V_LN_Tfh)*SPVAR(SP_V_LN_nB)*PARAM(P_k_B_act)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_n_B_clones)*x1712*x1732*x444*x446*x450 - PARAM(P_n_B_clones)*x1745;
-    data[1158] = x1727;
-    data[1159] = -x1727;
-    data[1160] = x1751;
-    data[1161] = x1756;
-    data[1162] = x1757;
-    data[1163] = x1758;
-    data[1164] = x1760;
-    data[1165] = x1761;
-    data[1166] = x1762;
-    data[1167] = x1763;
-    data[1168] = x1764;
-    data[1169] = x1765;
-    data[1170] = x1766;
-    data[1171] = PARAM(P_koff_PD1_PDL1);
-    data[1172] = -x1766 - x1767;
-    data[1173] = x1751;
-    data[1174] = x1756;
-    data[1175] = x1757;
-    data[1176] = x1758;
-    data[1177] = x1760;
-    data[1178] = x1761;
-    data[1179] = x1762;
-    data[1180] = x1763;
-    data[1181] = x1764;
-    data[1182] = x1765;
-    data[1183] = x1768;
-    data[1184] = PARAM(P_koff_PD1_PDL2);
-    data[1185] = -x1767 - x1768;
-    data[1186] = x1754;
-    data[1187] = -x1754;
-    data[1188] = x1769;
-    data[1189] = x1770;
-    data[1190] = -x1769 - x1770 - x1772 - x1773;
-    data[1191] = -x1769;
-    data[1192] = -x1770;
-    data[1193] = -x1772 - x1774;
-    data[1194] = x1772;
-    data[1195] = x1775;
-    data[1196] = -x1775;
-    data[1197] = -x1767 - x1775 - x1777;
-    data[1198] = x1777;
-    data[1199] = -x1777;
-    data[1200] = x1778;
-    data[1201] = -x1778;
-    data[1202] = -x1767 - x1778;
-    data[1203] = x1779;
-    data[1204] = -x1779;
-    data[1205] = -x1780 - x1781;
-    data[1206] = -PARAM(P_koff_PD1_aPD1) - x1781;
-    data[1207] = x1781;
-    data[1208] = x1783;
-    data[1209] = -x1783;
-    data[1210] = x1784;
-    data[1211] = x1784;
-    data[1212] = x1785;
-    data[1213] = 0;
-    data[1214] = -PARAM(P_koff_CD28_CD80) - x1787;
-    data[1215] = x1787;
-    data[1216] = PARAM(P_koff_CD28_CD80) + x1788;
-    data[1217] = PARAM(P_koff_CD28_CD80);
-    data[1218] = x1789;
-    data[1219] = x1790;
-    data[1220] = x1789;
-    data[1221] = x1791;
-    data[1222] = PARAM(P_koff_CD28_CD86);
-    data[1223] = PARAM(P_koff_CD28_CD86);
-    data[1224] = -PARAM(P_koff_CTLA4_CD80) - x1793 - x1794;
-    data[1225] = x1793;
-    data[1226] = x1794;
-    data[1227] = PARAM(P_koff_CTLA4_CD80) + x1795;
-    data[1228] = PARAM(P_koff_CTLA4_CD80) - x1793;
-    data[1229] = x1796;
-    data[1230] = -x1796 - x1799;
-    data[1231] = x1799;
-    data[1232] = x1800;
-    data[1233] = x1796;
-    data[1234] = x1796;
-    data[1235] = -x1796 - x1801;
-    data[1236] = x1801;
-    data[1237] = x1796;
-    data[1238] = x1802;
-    data[1239] = PARAM(P_koff_CTLA4_CD80);
-    data[1240] = PARAM(P_koff_CTLA4_CD80);
-    data[1241] = x1803;
-    data[1242] = PARAM(P_koff_CTLA4_CD80);
-    data[1243] = PARAM(P_koff_CTLA4_CD80);
-    data[1244] = -PARAM(P_koff_CTLA4_CD86) - x1805;
-    data[1245] = x1805;
-    data[1246] = PARAM(P_koff_CTLA4_CD86);
-    data[1247] = PARAM(P_koff_CTLA4_CD86) - x1805;
-    data[1248] = x1806;
-    data[1249] = x1807;
-    data[1250] = x1806;
-    data[1251] = -x1767 - x1808;
-    data[1252] = -PARAM(P_koff_CD80_PDL1) - x1787 - x1794;
-    data[1253] = x1787;
-    data[1254] = x1794;
-    data[1255] = x1788;
-    data[1256] = x1795;
-    data[1257] = PARAM(P_koff_CD80_PDL1);
-    data[1258] = x1809;
-    data[1259] = PARAM(P_koff_CD28_CD80);
-    data[1260] = x1810;
-    data[1261] = PARAM(P_koff_CD28_CD80);
-    data[1262] = x1809;
-    data[1263] = PARAM(P_koff_CTLA4_CD80);
-    data[1264] = x1811;
-    data[1265] = PARAM(P_koff_CTLA4_CD80);
-    data[1266] = -x1812 - x1815;
-    data[1267] = x1812;
-    data[1268] = x1816;
-    data[1269] = -x1817;
-    data[1270] = x1817;
-    data[1271] = -x1812 - x1814 - x1816 - x1817;
-    data[1272] = x1815;
-    data[1273] = -x1816;
-    data[1274] = x1801 - x1818;
-    data[1275] = -x1819;
-    data[1276] = x1818;
-    data[1277] = x1819;
-    data[1278] = x1821;
-    data[1279] = -x1823;
-    data[1280] = x1823;
-    data[1281] = -x1801 - x1818 - x1819 - x1821 - x1823;
-    data[1282] = x1802;
-    data[1283] = -x1821;
-    data[1284] = x1824;
-    data[1285] = -x1800 - x1818;
-    data[1286] = x1818;
-    data[1287] = -x1825;
-    data[1288] = x1825;
-    data[1289] = -x1824;
-    data[1290] = x1800;
-    data[1291] = -PARAM(P_koff_CD80_CD80) - x1799 - x1818 - x1824 - x1825;
-    data[1292] = x1826;
-    data[1293] = -x1827;
-    data[1294] = x1827;
-    data[1295] = 2*x1828;
-    data[1296] = -x1827 - 4*x1828;
-    data[1297] = x1829;
-    data[1298] = -x1830 - x1832;
-    data[1299] = x1830;
-    data[1300] = -x1829;
-    data[1301] = x1832;
-    data[1302] = -x1829 - x1830 - x1831;
-    data[1303] = x1766;
-    data[1304] = PARAM(P_koff_PD1_PDL1);
-    data[1305] = -x1766 - x1833;
-    data[1306] = x1768;
-    data[1307] = PARAM(P_koff_PD1_PDL2);
-    data[1308] = -x1768 - x1833;
-    data[1309] = x1834;
-    data[1310] = x1835;
-    data[1311] = -x1834 - x1835 - x1836 - x1837;
-    data[1312] = -x1834;
-    data[1313] = -x1835;
-    data[1314] = -x1836 + x1837;
-    data[1315] = x1836;
-    data[1316] = x1839;
-    data[1317] = -x1839;
-    data[1318] = -x1833 - x1839 - x1841;
-    data[1319] = x1841;
-    data[1320] = -x1841;
-    data[1321] = x1842;
-    data[1322] = -x1842;
-    data[1323] = -x1833 - x1842;
-    data[1324] = -x1780 - x1843;
-    data[1325] = -PARAM(P_koff_PD1_aPD1) - x1843;
-    data[1326] = x1843;
-    data[1327] = x1784;
-    data[1328] = x1784;
-    data[1329] = x1785;
-    data[1330] = 0;
-    data[1331] = x1851;
-    data[1332] = x1853;
-    data[1333] = x1857;
-    data[1334] = x1860;
-    data[1335] = x1862;
-    data[1336] = x1863;
-    data[1337] = x1865;
-    data[1338] = x1866;
-    data[1339] = -PARAM(P_koff_CD28_CD80) - x1868;
-    data[1340] = x1868;
-    data[1341] = PARAM(P_koff_CD28_CD80) + x1869;
-    data[1342] = PARAM(P_koff_CD28_CD80);
-    data[1343] = -x1872;
-    data[1344] = x1613*x1872 + x1619*(1.3862943611198906*PARAM(P_N_div_costim)*SPVAR(SP_V_LN_Th)*PARAM(P_n_CD28_CD8X)*x1597*x1598*x1604*x1606*x1844 - x1849*x1873);
-    data[1345] = -x1876;
-    data[1346] = SPVAR(SP_V_LN_aTh)*x1878 + x1628*x1876;
-    data[1347] = -x1879;
-    data[1348] = SPVAR(SP_V_LN_aTfh)*x1878 + x1628*x1879;
-    data[1349] = -x1880;
-    data[1350] = x1628*x1880 + x1640*x1877;
-    data[1351] = x1789;
-    data[1352] = x1790;
-    data[1353] = x1789;
-    data[1354] = x1851;
-    data[1355] = x1853;
-    data[1356] = x1857;
-    data[1357] = x1860;
-    data[1358] = x1862;
-    data[1359] = x1863;
-    data[1360] = x1865;
-    data[1361] = x1866;
-    data[1362] = x1791;
-    data[1363] = PARAM(P_koff_CD28_CD86);
-    data[1364] = PARAM(P_koff_CD28_CD86);
-    data[1365] = -PARAM(P_koff_CTLA4_CD80) - x1882 - x1883;
-    data[1366] = x1882;
-    data[1367] = x1883;
-    data[1368] = PARAM(P_koff_CTLA4_CD80) + x1884;
-    data[1369] = PARAM(P_koff_CTLA4_CD80) - x1882;
-    data[1370] = x1796;
-    data[1371] = -x1796 - x1886;
-    data[1372] = x1886;
-    data[1373] = x1887;
-    data[1374] = x1796;
-    data[1375] = x1796;
-    data[1376] = -x1796 - x1888;
-    data[1377] = x1888;
-    data[1378] = x1796;
-    data[1379] = x1889;
-    data[1380] = PARAM(P_koff_CTLA4_CD80);
-    data[1381] = PARAM(P_koff_CTLA4_CD80);
-    data[1382] = x1803;
-    data[1383] = PARAM(P_koff_CTLA4_CD80);
-    data[1384] = PARAM(P_koff_CTLA4_CD80);
-    data[1385] = -PARAM(P_koff_CTLA4_CD86) - x1891;
-    data[1386] = x1891;
-    data[1387] = PARAM(P_koff_CTLA4_CD86);
-    data[1388] = PARAM(P_koff_CTLA4_CD86) - x1891;
-    data[1389] = x1806;
-    data[1390] = x1807;
-    data[1391] = x1806;
-    data[1392] = -x1808 - x1833;
-    data[1393] = -PARAM(P_koff_CD80_PDL1) - x1868 - x1883;
-    data[1394] = x1868;
-    data[1395] = x1883;
-    data[1396] = x1869;
-    data[1397] = x1884;
-    data[1398] = PARAM(P_koff_CD80_PDL1);
-    data[1399] = x1851;
-    data[1400] = x1853;
-    data[1401] = x1857;
-    data[1402] = x1860;
-    data[1403] = x1862;
-    data[1404] = x1863;
-    data[1405] = x1865;
-    data[1406] = x1866;
-    data[1407] = x1892;
-    data[1408] = PARAM(P_koff_CD28_CD80);
-    data[1409] = x1810;
-    data[1410] = PARAM(P_koff_CD28_CD80);
-    data[1411] = x1892;
-    data[1412] = PARAM(P_koff_CTLA4_CD80);
-    data[1413] = x1811;
-    data[1414] = PARAM(P_koff_CTLA4_CD80);
-    data[1415] = -x1893 - x1896;
-    data[1416] = x1893;
-    data[1417] = x1897;
-    data[1418] = -x1898;
-    data[1419] = x1898;
-    data[1420] = -x1893 - x1895 - x1897 - x1898;
-    data[1421] = x1896;
-    data[1422] = -x1897;
-    data[1423] = x1888 - x1899;
-    data[1424] = -x1900;
-    data[1425] = x1899;
-    data[1426] = x1900;
-    data[1427] = x1902;
-    data[1428] = -x1903;
-    data[1429] = x1903;
-    data[1430] = -x1888 - x1899 - x1900 - x1902 - x1903;
-    data[1431] = x1889;
-    data[1432] = -x1902;
-    data[1433] = x1904;
-    data[1434] = -x1887 - x1899;
-    data[1435] = x1899;
-    data[1436] = -x1905;
-    data[1437] = x1905;
-    data[1438] = -x1904;
-    data[1439] = x1887;
-    data[1440] = -PARAM(P_koff_CD80_CD80) - x1886 - x1899 - x1904 - x1905;
-    data[1441] = x1826;
-    data[1442] = -x1906;
-    data[1443] = x1906;
-    data[1444] = 2*x1907;
-    data[1445] = -x1906 - 4*x1907;
-    data[1446] = x1908;
-    data[1447] = -x1909 - x1911;
-    data[1448] = x1909;
-    data[1449] = -x1908;
-    data[1450] = x1911;
-    data[1451] = -x1908 - x1909 - x1910;
-    data[1452] = x1914;
-    data[1453] = x1914;
-    data[1454] = x1913;
-    data[1455] = x1916;
-    data[1456] = x1916;
-    data[1457] = x1915;
-    data[1458] = x1918;
-    data[1459] = -x1918;
-    data[1460] = x1920;
-    data[1461] = x1921;
-    data[1462] = -x1920;
-    data[1463] = -x1921;
-    data[1464] = x1918*x419;
-    data[1465] = x1918*x420;
-    data[1466] = PARAM(P_koff_CD47_SIRPa);
-    data[1467] = PARAM(P_koff_CD47_SIRPa);
-    data[1468] = -PARAM(P_koff_CD47_SIRPa);
-    data[1469] = 0;
-    data[1470] = 0;
-    data[1471] = x1923;
-    data[1472] = x1924;
-    data[1473] = x1926;
-    data[1474] = x1927;
-    data[1475] = x1928;
-    data[1476] = x1929;
-    data[1477] = x1930;
-    data[1478] = x1931;
-    data[1479] = x1766;
-    data[1480] = PARAM(P_koff_PD1_PDL1);
-    data[1481] = -x1766 - x1932;
-    data[1482] = x1923;
-    data[1483] = x1924;
-    data[1484] = x1926;
-    data[1485] = x1927;
-    data[1486] = x1928;
-    data[1487] = x1929;
-    data[1488] = x1930;
-    data[1489] = x1931;
-    data[1490] = x1768;
-    data[1491] = PARAM(P_koff_PD1_PDL2);
-    data[1492] = -x1768 - x1932;
-    data[1493] = x1933;
-    data[1494] = x1934;
-    data[1495] = -x1773 - x1933 - x1934 - x1935;
-    data[1496] = -x1933;
-    data[1497] = -x1934;
-    data[1498] = -x1774 - x1935;
-    data[1499] = x1935;
-    data[1500] = x1937;
-    data[1501] = -x1937;
-    data[1502] = -x1932 - x1937 - x1939;
-    data[1503] = x1939;
-    data[1504] = -x1939;
-    data[1505] = x1940;
-    data[1506] = -x1940;
-    data[1507] = -x1932 - x1940;
-    data[1508] = -x1780 - x1941;
-    data[1509] = -PARAM(P_koff_PD1_aPD1) - x1941;
-    data[1510] = x1941;
-    data[1511] = x1784;
-    data[1512] = x1784;
-    data[1513] = x1785;
-    data[1514] = -x1808 - x1932;
-    data[1515] = x1808;
-    data[1516] = PARAM(P_koff_CD80_PDL1);
-    data[1517] = -PARAM(P_koff_CD80_CD80);
-    data[1518] = x1826;
-    data[1519] = -x1942;
-    data[1520] = x1942;
-    data[1521] = 2*x1943;
-    data[1522] = -x1942 - 4*x1943;
-    data[1523] = -PARAM(P_k_GVAX_clearance);
-    data[1524] = x1951;
-    data[1525] = -x1951;
-    data[1526] = PARAM(P_V_ID)*PARAM(P_k_GMCSF_prod);
-    data[1527] = PARAM(P_k_GVAX_clearance)*PARAM(P_y_Ag_per_cell) - PARAM(P_sigma_P1_per_mAPC)*x1948 + PARAM(P_sigma_P1_per_mAPC)*x1950;
-    data[1528] = -PARAM(P_k_APC_death_ID) - x1952 - x1957;
-    data[1529] = x1952;
-    data[1530] = -PARAM(P_sigma_P1_per_mAPC)*x1952;
-    data[1531] = x1958;
-    data[1532] = -x1957;
-    data[1533] = -PARAM(P_k_mAPC_death_ID) - x1958;
-    data[1534] = PARAM(P_K_APC_ID)*(-SPVAR(SP_V_ID_GMCSF)*PARAM(P_k_APC_recruit_ID)*x1959/std::pow(x1955, 2) + x1956*x360)/x1953;
-    data[1535] = -PARAM(P_k_GMCSF_deg);
-    data[1536] = x1960*x1961 - x1960*x1963;
-    data[1537] = SPVAR(SP_V_LN_nCD8)*PARAM(P_n_CD8_clones)*x1647*x1964;
-    data[1538] = x1543*x1545*x1964;
-    data[1539] = PARAM(P_k_GVAX_present)*x360*x639;
-    data[1540] = -x1966;
-    data[1541] = x1966;
-    data[1542] = SPVAR(SP_V_ID_APC)*SPVAR(SP_V_ID_GVAX_cells)*SPVAR(SP_V_ID_P1_GVAX)*PARAM(P_k_APC_mature_ID)*PARAM(P_k_GVAX_clearance)*PARAM(P_sigma_P1_per_mAPC)*x1946*x1959*x1962 - PARAM(P_k_P1_deg_ID) - PARAM(P_sigma_P1_per_mAPC)*x1965;
+    data[510] = x812;
+    data[511] = x815;
+    data[512] = x1027 + x825;
+    data[513] = x829;
+    data[514] = x752;
+    data[515] = x840;
+    data[516] = x845;
+    data[517] = x849;
+    data[518] = x852;
+    data[519] = x853;
+    data[520] = x854;
+    data[521] = x762;
+    data[522] = SPVAR(SP_V_T_Th)*PARAM(P_k_Th_pro_tumor)*x460*(-x458 + x819*x928) - PARAM(P_k_CD4_death) + PARAM(P_k_Th_pro_tumor)/x459 - x1026 - x1027 - x1028 - x859;
+    data[523] = x740;
+    data[524] = PARAM(P_k_IFNg_Thsec);
+    data[525] = x861;
+    data[526] = x866;
+    data[527] = x871;
+    data[528] = x872;
+    data[529] = x880;
+    data[530] = x887;
+    data[531] = x889;
+    data[532] = x890;
+    data[533] = x893;
+    data[534] = x1028;
+    data[535] = x775;
+    data[536] = x894;
+    data[537] = x847;
+    data[538] = x850;
+    data[539] = x760;
+    data[540] = x896;
+    data[541] = x897;
+    data[542] = x899;
+    data[543] = x902;
+    data[544] = x903;
+    data[545] = x904;
+    data[546] = x905;
+    data[547] = x907;
+    data[548] = x908;
+    data[549] = x909;
+    data[550] = x741;
+    data[551] = x744;
+    data[552] = x753;
+    data[553] = x759;
+    data[554] = x763;
+    data[555] = x769;
+    data[556] = x776;
+    data[557] = x783;
+    data[558] = x800;
+    data[559] = x810;
+    data[560] = x812;
+    data[561] = x815;
+    data[562] = x825;
+    data[563] = x829;
+    data[564] = x752;
+    data[565] = x840;
+    data[566] = x845;
+    data[567] = x849;
+    data[568] = x852;
+    data[569] = x853;
+    data[570] = x854;
+    data[571] = x762;
+    data[572] = PARAM(P_n_CD4_clones)*x1029 - x803 - x804 - x805 + x931;
+    data[573] = -PARAM(P_k_nTreg_death) - x1029 - x294 + x732 - x733 + x735 + x739;
+    data[574] = x861;
+    data[575] = x866;
+    data[576] = x871;
+    data[577] = x872;
+    data[578] = x880;
+    data[579] = x887;
+    data[580] = x889;
+    data[581] = x890;
+    data[582] = x893;
+    data[583] = x858;
+    data[584] = x775;
+    data[585] = x894;
+    data[586] = x847;
+    data[587] = x850;
+    data[588] = x760;
+    data[589] = x896;
+    data[590] = x897;
+    data[591] = x899;
+    data[592] = x902;
+    data[593] = x903;
+    data[594] = x904;
+    data[595] = x905;
+    data[596] = x907;
+    data[597] = x908;
+    data[598] = x909;
+    data[599] = x1030;
+    data[600] = x1031;
+    data[601] = -x1031;
+    data[602] = PARAM(P_k_out_PDL1)*x13*x692*x698 - x1032*x699 - x1033*x690;
+    data[603] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*x13*x692*x712 - x1033*x711 - x1035*x712;
+    data[604] = PARAM(P_k_out_PDL1)*x13*x692*x721 - x1034*x721;
+    data[605] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*x13*x692*x727 - x1035*x727;
+    data[606] = x1037;
+    data[607] = -x1038;
+    data[608] = -x1037;
+    data[609] = -x1041;
+    data[610] = -x1046;
+    data[611] = -x1048;
+    data[612] = x1046;
+    data[613] = x1048;
+    data[614] = x1037*x453;
+    data[615] = x1037*x454;
+    data[616] = x1038 + x1041;
+    data[617] = -PARAM(P_k_TGFb_deg);
+    data[618] = -x1049;
+    data[619] = x1049;
+    data[620] = x1052 - x1053 + x1055;
+    data[621] = -x1052 + x1053 + x1057;
+    data[622] = -x1055 - x1057;
+    data[623] = x671*(x13*x654*x655 - x304*x668);
+    data[624] = -PARAM(P_k_MDSC_death) - x294;
+    data[625] = PARAM(P_k_NO_sec);
+    data[626] = PARAM(P_k_ArgI_sec);
+    data[627] = PARAM(P_k_IL10_sec_MDSC);
+    data[628] = x1059;
+    data[629] = -x1059;
+    data[630] = -x1061;
+    data[631] = -x1062;
+    data[632] = x1061;
+    data[633] = x1062;
+    data[634] = x1059*x453;
+    data[635] = x1059*x454;
+    data[636] = -PARAM(P_k_NO_deg);
+    data[637] = x1064;
+    data[638] = -x1064;
+    data[639] = x1065;
+    data[640] = -x1067;
+    data[641] = -x1068;
+    data[642] = x1067;
+    data[643] = x1068;
+    data[644] = x1064*x453;
+    data[645] = x1064*x454;
+    data[646] = -x1065;
+    data[647] = -PARAM(P_k_ArgI_deg);
+    data[648] = PARAM(P_k_MDSC_rec)*x19*x21*x499*x508 - x504*x513;
+    data[649] = -PARAM(P_k_CCL2_deg);
+    data[650] = PARAM(P_k_Mac_rec)*x19*x21*x508*x529 - x501*x531;
+    data[651] = x1076;
+    data[652] = x1079;
+    data[653] = x1083;
+    data[654] = x1086;
+    data[655] = x1090;
+    data[656] = x1095;
+    data[657] = x1097;
+    data[658] = x1104;
+    data[659] = x1118;
+    data[660] = x1121;
+    data[661] = -x1103 - x1122;
+    data[662] = x1123;
+    data[663] = x1126;
+    data[664] = x1127;
+    data[665] = x1082;
+    data[666] = -x1132 - x1136;
+    data[667] = -x1137 - x1139;
+    data[668] = x1132 + x1142;
+    data[669] = x1137 + x1144;
+    data[670] = x1104*x453;
+    data[671] = x1104*x454;
+    data[672] = x1089;
+    data[673] = x1148;
+    data[674] = x1075;
+    data[675] = x1149;
+    data[676] = x1154;
+    data[677] = SPVAR(SP_V_T_CCL2)*PARAM(P_k_Mac_rec)*PARAM(P_n_vasc)*PARAM(P_vol_Mcell)*x1*x13*x508*x529*x74*x75 + SPVAR(SP_V_T_CCL2)*PARAM(P_k_Mac_rec)*x1155*x19*x21*x508 + PARAM(P_k_Mac_rec)*PARAM(P_vol_Mcell)*x1*x19*x21*x503*x506*x529*x80 - x1156 - x1160 - x1161;
+    data[678] = x1160;
+    data[679] = PARAM(P_k_IL12_Msec);
+    data[680] = x1169;
+    data[681] = x1175;
+    data[682] = x1176;
+    data[683] = x1177;
+    data[684] = -SPVAR(SP_V_T_collagen)*x1178 + x1179;
+    data[685] = x1147;
+    data[686] = x1096;
+    data[687] = x1180;
+    data[688] = x1141;
+    data[689] = x1143;
+    data[690] = x1087;
+    data[691] = x1182;
+    data[692] = x1183;
+    data[693] = x1185;
+    data[694] = x1188;
+    data[695] = x1189;
+    data[696] = x1190;
+    data[697] = x1191;
+    data[698] = x1193;
+    data[699] = x1194;
+    data[700] = x1195;
+    data[701] = x1076;
+    data[702] = x1079;
+    data[703] = x1083;
+    data[704] = x1086;
+    data[705] = x1090;
+    data[706] = x1095;
+    data[707] = x1097;
+    data[708] = x1102;
+    data[709] = x1118;
+    data[710] = x1121;
+    data[711] = -x1122;
+    data[712] = x1123;
+    data[713] = PARAM(P_k_vas_Msec);
+    data[714] = x1126;
+    data[715] = x1127;
+    data[716] = x1082;
+    data[717] = -x1136 - x1197;
+    data[718] = -x1139 - x1198;
+    data[719] = x1142 + x1197;
+    data[720] = x1144 + x1198;
+    data[721] = x1102*x453;
+    data[722] = x1102*x454;
+    data[723] = x1089;
+    data[724] = x1148;
+    data[725] = x1075;
+    data[726] = PARAM(P_f_active_TGFb)*PARAM(P_k_TGFb_Msec) + x1149;
+    data[727] = x1154;
+    data[728] = PARAM(P_k_ArgI_sec);
+    data[729] = x1150*x531 + x1153*x533 + x1155*x525 - x1156 + x1199;
+    data[730] = -x1161 - x1199;
+    data[731] = PARAM(P_k_IL10_sec);
+    data[732] = x1169;
+    data[733] = x1175;
+    data[734] = x1176;
+    data[735] = x1177;
+    data[736] = -SPVAR(SP_V_T_collagen)*(x1178 + x1200) + x1179;
+    data[737] = x1147;
+    data[738] = x1096;
+    data[739] = x1180;
+    data[740] = x1141;
+    data[741] = x1143;
+    data[742] = x1087;
+    data[743] = x1182;
+    data[744] = x1183;
+    data[745] = x1185;
+    data[746] = x1188;
+    data[747] = x1189;
+    data[748] = x1190;
+    data[749] = x1191;
+    data[750] = x1193;
+    data[751] = x1194;
+    data[752] = x1195;
+    data[753] = x1203;
+    data[754] = x1204;
+    data[755] = -x1203;
+    data[756] = -x1204;
+    data[757] = -x1205;
+    data[758] = x1205;
+    data[759] = -PARAM(P_k_IL12_deg);
+    data[760] = x1207;
+    data[761] = -x1208;
+    data[762] = -x1207;
+    data[763] = x1208;
+    data[764] = -x1211;
+    data[765] = -x1212;
+    data[766] = x1211;
+    data[767] = x1212;
+    data[768] = x1207*x453;
+    data[769] = x1207*x454;
+    data[770] = -x1213;
+    data[771] = x1213;
+    data[772] = -PARAM(P_k_IL10_deg);
+    data[773] = -x1220;
+    data[774] = -x1222;
+    data[775] = -x1225;
+    data[776] = -x1227;
+    data[777] = -x1228 - x1230;
+    data[778] = -x1231 + x1232 - x1233 - x1234;
+    data[779] = -x1235;
+    data[780] = x1240;
+    data[781] = x1241 + x1242 + x1243 + x1244 - x1246 + x1247 - x1249 + x1250;
+    data[782] = x1253;
+    data[783] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x310*x311*x315*x318*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_qPSCcell)*x1*x225*x313*x4 - x1214*x321) - x1240;
+    data[784] = x1217*x330 - x1229*x328;
+    data[785] = x1214*x336 + x1222 + x1254;
+    data[786] = x1214*x376 + x1214*x383 + x1214*x390 + x1227 - x1241 - x1242 - x1243 - x1244 + x1246 - x1247 + x1249 - x1250;
+    data[787] = x1225;
+    data[788] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_qPSCcell)*x1*x12*x181*x225*x4*x428*x431 + PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_qPSCcell)*x1*x430 - x1259;
+    data[789] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_qPSCcell)*x1*x12*x181*x225*x4*x428*x431 + PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_qPSCcell)*x1*x430 - x1260;
+    data[790] = x1259 - x1262;
+    data[791] = x1260 - x1263;
+    data[792] = x1240*x453;
+    data[793] = x1240*x454;
+    data[794] = x1230;
+    data[795] = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*PARAM(P_vol_qPSCcell)*x1*x455*x457*x460 + PARAM(P_k_Th_seed)*PARAM(P_vol_qPSCcell)*x1*x24*x26 + x1231 - x1232 + x1233 + x1234 - x1253 - x1254 - x1266;
+    data[796] = x1220;
+    data[797] = x1214*x495;
+    data[798] = x1267*x505 - x1269*x510 + x1270*x513 + x519*(-x1214*x516 + x1217*x518);
+    data[799] = PARAM(P_vol_qPSCcell)*x1271 + x1267*x531 - x1269*x532 + x1270*x533 + x1273 - x1274;
+    data[800] = -x1273 + x1274;
+    data[801] = PARAM(P_k_CAF_encounter)*PARAM(P_vol_qPSCcell)*x1*x559*x560 + PARAM(P_k_CAF_encounter)*x12*x560*(x112*x9 - x13) - PARAM(P_k_PSC_to_apCAF) - PARAM(P_k_qpsc_death) - x1277 - x1280 - x294;
+    data[802] = -SPVAR(SP_V_T_iCAF)*x1284 + x1280 + x1281 + x1286*x625 + x1287 - x1289 + x1290 - x1291;
+    data[803] = -SPVAR(SP_V_T_myCAF)*x1284 + x1277 - x1281 + x1286*x972 - x1287 + x1289 - x1290 + x1291;
+    data[804] = -SPVAR(SP_V_T_apCAF)*x1284 + PARAM(P_k_PSC_to_apCAF) + x1285*x974;
+    data[805] = -SPVAR(SP_V_T_collagen)*(x1214*x667 - x1229*x664) + x1214*x661 + x671*(x1239*x668 - x1252*x656);
+    data[806] = x1266;
+    data[807] = x1235;
+    data[808] = x1214*x676;
+    data[809] = x1262;
+    data[810] = x1263;
+    data[811] = x1228;
+    data[812] = -x1292*x678;
+    data[813] = -x1292*x682;
+    data[814] = x1294;
+    data[815] = PARAM(P_k_out_PDL1)*PARAM(P_vol_qPSCcell)*x1*x698*x701*x702*x83 - x1295*x699 - x1296*x690;
+    data[816] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_qPSCcell)*x1*x701*x702*x712*x83 - x1295*x714 - x1296*x711;
+    data[817] = -x1294;
+    data[818] = x1297;
+    data[819] = -x1295*x722 + x1298*x722;
+    data[820] = -x1295*x728 + x1298*x728;
+    data[821] = -x1297;
+    data[822] = -x1305;
+    data[823] = -x1307;
+    data[824] = -x1310;
+    data[825] = -x1312;
+    data[826] = -x1313 - x1315;
+    data[827] = -x1317;
+    data[828] = -x1318;
+    data[829] = x1323;
+    data[830] = x1324 + x1325 + x1326 + x1327 - x1329 + x1330 - x1332 + x1333;
+    data[831] = x1335 + x1336 + x1337 - x1339 + x1340;
+    data[832] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x315*x318*(PARAM(P_k_stroma_iCAF)*x1341 + x316*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_iCAFcell)*x1*x225*x313*x4 - x1299*x321)) - x1323;
+    data[833] = x1302*x330 - x1314*x328;
+    data[834] = x1299*x336 + x1307 + x1342 + x1345 + x1346 - x1347 + x1348 - x1349;
+    data[835] = x1299*x376 + x1299*x383 + x1299*x390 + x1312 - x1324 - x1325 - x1326 - x1327 + x1329 - x1330 + x1332 - x1333;
+    data[836] = x1310;
+    data[837] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_iCAFcell)*x1*x12*x181*x225*x4*x428*x431 + PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_iCAFcell)*x1*x430 - x1354;
+    data[838] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_iCAFcell)*x1*x12*x181*x225*x4*x428*x431 + PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_iCAFcell)*x1*x430 - x1355;
+    data[839] = x1354 - x1357;
+    data[840] = x1355 - x1358;
+    data[841] = x1323*x453;
+    data[842] = x1323*x454;
+    data[843] = x1315;
+    data[844] = x1299*x927 + x1299*x929 + x1317 - x1335 - x1336 - x1337 + x1339 - x1340 - x1342 + x1344 - x1346 + x1347 - x1348 + x1349 + x1360 - x1362;
+    data[845] = x1305;
+    data[846] = x1299*x495;
+    data[847] = x1363*x505 - x1365*x510 + x1366*x513 + x519*(-x1299*x516 + x1302*x518);
+    data[848] = PARAM(P_vol_iCAFcell)*x1271 + x1363*x531 - x1365*x532 + x1366*x533 + x1368 - x1369;
+    data[849] = -x1368 + x1369;
+    data[850] = x1299*x562 + x1299*x581 + x1370 - x1372 + x1375;
+    data[851] = SPVAR(SP_V_T_iCAF)*PARAM(P_k_iCAF_prolif)*(SPVAR(SP_V_T_iCAF)*x1381*x624 - x1377) - SPVAR(SP_V_T_iCAF)*x1382 - PARAM(P_k_iCAF_death) + PARAM(P_k_iCAF_prolif)*(-SPVAR(SP_V_T_iCAF)*x1377 + 1.0) - x1375 - x1376 - x1384;
+    data[852] = -SPVAR(SP_V_T_myCAF)*x1382 - x1370 + x1372 + x1381*x972 + x1384;
+    data[853] = -SPVAR(SP_V_T_apCAF)*x1382 + PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x1380*x650*x652;
+    data[854] = -SPVAR(SP_V_T_collagen)*(x1299*x667 - x1314*x664) + x1299*x661 + x671*(x1322*x668 - x1338*x656);
+    data[855] = PARAM(P_k_CXCL12_sec_iCAF);
+    data[856] = PARAM(P_k_IL6_sec_iCAF);
+    data[857] = -x1360 + x1362;
+    data[858] = x1318;
+    data[859] = x1299*x676;
+    data[860] = x1357;
+    data[861] = x1358;
+    data[862] = x1313;
+    data[863] = -x1385*x678;
+    data[864] = -x1385*x682;
+    data[865] = x1387;
+    data[866] = PARAM(P_k_out_PDL1)*PARAM(P_vol_iCAFcell)*x1*x698*x701*x702*x83 - x1388*x699 - x1389*x690;
+    data[867] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_iCAFcell)*x1*x701*x702*x712*x83 - x1388*x714 - x1389*x711;
+    data[868] = -x1387;
+    data[869] = x1390;
+    data[870] = -x1388*x722 + x1391*x722;
+    data[871] = -x1388*x728 + x1391*x728;
+    data[872] = -x1390;
+    data[873] = -x1398;
+    data[874] = -x1400;
+    data[875] = -x1403;
+    data[876] = -x1405;
+    data[877] = -x1406 - x1408;
+    data[878] = -x1410;
+    data[879] = -x1411;
+    data[880] = x1416;
+    data[881] = x1417 + x1418 + x1419 + x1420 - x1422 + x1423 - x1425 + x1426;
+    data[882] = x1428 + x1429 + x1430 - x1432 + x1433;
+    data[883] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x315*x318*(PARAM(P_k_stroma_myCAF)*x1341 + x316*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_myCAFcell)*x1*x225*x313*x4 - x1392*x321)) - x1416;
+    data[884] = x1395*x330 - x1407*x328;
+    data[885] = PARAM(P_k_vas_myCAF_sec);
+    data[886] = x1345 + x1392*x336 + x1400 + x1434 + x1435 - x1436 + x1437 - x1438;
+    data[887] = x1392*x376 + x1392*x383 + x1392*x390 + x1405 - x1417 - x1418 - x1419 - x1420 + x1422 - x1423 + x1425 - x1426;
+    data[888] = x1403;
+    data[889] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_myCAFcell)*x1*x12*x181*x225*x4*x428*x431 + PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_myCAFcell)*x1*x430 - x1443;
+    data[890] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_myCAFcell)*x1*x12*x181*x225*x4*x428*x431 + PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_myCAFcell)*x1*x430 - x1444;
+    data[891] = x1443 - x1446;
+    data[892] = x1444 - x1447;
+    data[893] = x1416*x453;
+    data[894] = x1416*x454;
+    data[895] = x1408;
+    data[896] = x1344 + x1392*x927 + x1392*x929 + x1410 - x1428 - x1429 - x1430 + x1432 - x1433 - x1434 - x1435 + x1436 - x1437 + x1438 + x1449 - x1451;
+    data[897] = x1398;
+    data[898] = PARAM(P_f_active_TGFb)*PARAM(P_k_TGFb_sec_myCAF) + x1392*x495;
+    data[899] = x1452*x505 - x1454*x510 + x1455*x513 + x519*(-x1392*x516 + x1395*x518);
+    data[900] = PARAM(P_vol_myCAFcell)*x1271 + x1452*x531 - x1454*x532 + x1455*x533 + x1457 - x1458;
+    data[901] = -x1457 + x1458;
+    data[902] = x1392*x562 + x1392*x581 - x1460 + x1462 - x1463 + x1464;
+    data[903] = -SPVAR(SP_V_T_iCAF)*x1467 + x1460 - x1462 + x1463 + x1469*x625 + x1470;
+    data[904] = SPVAR(SP_V_T_myCAF)*PARAM(P_k_myCAF_prolif)*(SPVAR(SP_V_T_myCAF)*x1469*x971 - x1471) - SPVAR(SP_V_T_myCAF)*x1467 - PARAM(P_k_myCAF_death) + PARAM(P_k_myCAF_prolif)*(-SPVAR(SP_V_T_myCAF)*x1471 + 1.0) - x1376 - x1464 - x1470;
+    data[905] = -SPVAR(SP_V_T_apCAF)*x1467 + PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x1468*x650*x652;
+    data[906] = -SPVAR(SP_V_T_collagen)*(x1392*x667 - x1407*x664) + x1*x658*x660*x8 + x657*x670 + x671*(x1415*x668 - x1431*x656);
+    data[907] = -x1449 + x1451;
+    data[908] = x1411;
+    data[909] = x1392*x676;
+    data[910] = x1446;
+    data[911] = x1447;
+    data[912] = x1406;
+    data[913] = -x1472*x678;
+    data[914] = -x1472*x682;
+    data[915] = x1474;
+    data[916] = PARAM(P_k_out_PDL1)*PARAM(P_vol_myCAFcell)*x1*x698*x701*x702*x83 - x1475*x699 - x1476*x690;
+    data[917] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_myCAFcell)*x1*x701*x702*x712*x83 - x1475*x714 - x1476*x711;
+    data[918] = -x1474;
+    data[919] = x1477;
+    data[920] = -x1475*x722 + x1478*x722;
+    data[921] = -x1475*x728 + x1478*x728;
+    data[922] = -x1477;
+    data[923] = -x1485;
+    data[924] = -x1487;
+    data[925] = -x1490;
+    data[926] = -x1492;
+    data[927] = -x1493 - x1495;
+    data[928] = -x1496 + x1497 - x1498 - x1499;
+    data[929] = -x1500;
+    data[930] = x1505;
+    data[931] = x1506 + x1507 + x1508 + x1509 - x1511 + x1512 - x1514 + x1515;
+    data[932] = x1518;
+    data[933] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x315*x318*(PARAM(P_k_stroma_apCAF)*x1341 + x316*(SPVAR(SP_V_T_collagen)*PARAM(P_vol_apCAFcell)*x1*x225*x313*x4 - x1479*x321)) - x1505;
+    data[934] = x1482*x330 - x1494*x328;
+    data[935] = x1479*x336 + x1487 + x1519;
+    data[936] = x1479*x376 + x1479*x383 + x1479*x390 + x1492 - x1506 - x1507 - x1508 - x1509 + x1511 - x1512 + x1514 - x1515;
+    data[937] = x1490;
+    data[938] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_apCAFcell)*x1*x12*x181*x225*x4*x428*x431 + PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_apCAFcell)*x1*x430 - x1524;
+    data[939] = 0.5*SPVAR(SP_V_T_collagen)*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*PARAM(P_vol_apCAFcell)*x1*x12*x181*x225*x4*x428*x431 + PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_vol_apCAFcell)*x1*x430 - x1525;
+    data[940] = x1524 - x1527;
+    data[941] = x1525 - x1528;
+    data[942] = x1505*x453;
+    data[943] = x1505*x454;
+    data[944] = x1495;
+    data[945] = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*PARAM(P_vol_apCAFcell)*x1*x455*x457*x460 + PARAM(P_k_Th_seed)*PARAM(P_vol_apCAFcell)*x1*x24*x26 + x1496 - x1497 + x1498 + x1499 - x1518 - x1519 - x1531;
+    data[946] = x1485;
+    data[947] = x1479*x495;
+    data[948] = x1532*x505 - x1534*x510 + x1535*x513 + x519*(-x1479*x516 + x1482*x518);
+    data[949] = PARAM(P_vol_apCAFcell)*x1271 + x1532*x531 - x1534*x532 + x1535*x533 + x1537 - x1538;
+    data[950] = -x1537 + x1538;
+    data[951] = x1479*x562 + x1479*x581 - x1540 + x1542 - x1543 + x1544;
+    data[952] = -SPVAR(SP_V_T_iCAF)*x1547 + x1540 - x1542 + x1543 + x1548*x609*x625 + x1549;
+    data[953] = -SPVAR(SP_V_T_myCAF)*x1547 + PARAM(P_k_myCAF_prolif)*x1548*x609*x645*x646*x648 - x1544 - x1549;
+    data[954] = SPVAR(SP_V_T_apCAF)*PARAM(P_k_apCAF_prolif)*(SPVAR(SP_V_T_apCAF)*x1548*x973 - x1550) - SPVAR(SP_V_T_apCAF)*x1547 - PARAM(P_k_apCAF_death) + PARAM(P_k_apCAF_prolif)*(-SPVAR(SP_V_T_apCAF)*x1550 + 1.0) - x1376;
+    data[955] = -SPVAR(SP_V_T_collagen)*(x1479*x667 - x1494*x664) + x1479*x661 + x671*(x1504*x668 - x1517*x656);
+    data[956] = x1531;
+    data[957] = x1500;
+    data[958] = x1479*x676;
+    data[959] = x1527;
+    data[960] = x1528;
+    data[961] = x1493;
+    data[962] = -x1551*x678;
+    data[963] = -x1551*x682;
+    data[964] = x1553;
+    data[965] = PARAM(P_k_out_PDL1)*PARAM(P_vol_apCAFcell)*x1*x698*x701*x702*x83 - x1554*x699 - x1555*x690;
+    data[966] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*PARAM(P_vol_apCAFcell)*x1*x701*x702*x712*x83 - x1554*x714 - x1555*x711;
+    data[967] = -x1553;
+    data[968] = x1556;
+    data[969] = -x1554*x722 + x1557*x722;
+    data[970] = -x1554*x728 + x1557*x728;
+    data[971] = -x1556;
+    data[972] = -x1565;
+    data[973] = -x1567;
+    data[974] = -x1571;
+    data[975] = -x1572;
+    data[976] = -x1573 - x1575;
+    data[977] = -x1576 + x1577 - x1578 - x1579;
+    data[978] = -x1580;
+    data[979] = x1589;
+    data[980] = x1590 + x1591 + x1592 + x1593 - x1595 + x1596 + x1601 - x1602;
+    data[981] = x1605;
+    data[982] = SPVAR(SP_V_T_C1)*PARAM(P_k_C1_growth)*x310*x311*x315*x318*(SPVAR(SP_V_T_collagen)*x225*x313*x319 - x1585*x313 - x1587*x180*x320) - x1589;
+    data[983] = x1562*x330 - x4*x814;
+    data[984] = x1567 + x1606 + x336*x4;
+    data[985] = x1572 - x1590 - x1591 - x1592 - x1593 + x1595 - x1596 - x1601 + x1602 + x1607*x375 + x1607*x382 + x1607*x389;
+    data[986] = x1571;
+    data[987] = 0.5*PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*x12*x1587*x181*x428*x431 + PARAM(P_cDC1_recruit_target_T)*PARAM(P_k_APC_death)*x4*x430 - x1612;
+    data[988] = 0.5*PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*PARAM(P_n_pore)*x12*x1587*x181*x428*x431 + PARAM(P_cDC2_recruit_target_T)*PARAM(P_k_APC_death)*x4*x430 - x1613;
+    data[989] = x1612 - x1615;
+    data[990] = x1613 - x1616;
+    data[991] = x1589*x453;
+    data[992] = x1589*x454;
+    data[993] = x1575;
+    data[994] = PARAM(P_k_Th_pro_tumor)*PARAM(P_rho_Th_max)*x4*x455*x457*x460 + PARAM(P_k_Th_seed)*x24*x26*x4 + x1576 - x1577 + x1578 + x1579 - x1605 - x1606 - x1619;
+    data[995] = x1565;
+    data[996] = x4*x495;
+    data[997] = x1620*x505 - x1622*x510 + x1623*x513 + x519*(x1562*x518 - x4*x516);
+    data[998] = x1620*x531 - x1622*x532 + x1623*x533 + x1625 - x1626 + x4*x527;
+    data[999] = -x1625 + x1626;
+    data[1000] = -x1628 + x1630 - x1631 + x1633 + x4*x562 + x4*x581;
+    data[1001] = -SPVAR(SP_V_T_iCAF)*x1636 + x1628 - x1630 + x1631 + x1637*x609*x625 + x1638;
+    data[1002] = -SPVAR(SP_V_T_myCAF)*x1636 + PARAM(P_k_myCAF_prolif)*x1637*x609*x645*x646*x648 - x1633 - x1638;
+    data[1003] = -SPVAR(SP_V_T_apCAF)*x1636 + PARAM(P_f_apCAF_of_total)*PARAM(P_k_apCAF_prolif)*x1637*x650*x652;
+    data[1004] = -SPVAR(SP_V_T_Mac_M2)*x1200 - SPVAR(SP_V_T_collagen)*(-x1574*x664 + x1587*x666) + SPVAR(SP_V_T_myCAF)*PARAM(P_k_col_myCAF_sec)*x657*(-x1585*x659 + x1586*x659) + SPVAR(SP_V_T_myCAF)*PARAM(P_k_col_myCAF_sec)*x669*(x1584*x668 - x1604*x656) - PARAM(P_k_col_deg);
+    data[1005] = x1619;
+    data[1006] = x1580;
+    data[1007] = x4*x676;
+    data[1008] = x1615;
+    data[1009] = x1616;
+    data[1010] = x1573;
+    data[1011] = -x1639*x678;
+    data[1012] = -x1639*x682;
+    data[1013] = x1641;
+    data[1014] = PARAM(P_k_out_PDL1)*x4*x698*x701*x702*x83 - x1642*x699 - x1643*x690;
+    data[1015] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2C1)*x4*x701*x702*x712*x83 - x1642*x714 - x1643*x711;
+    data[1016] = -x1641;
+    data[1017] = x1644;
+    data[1018] = -x1642*x722 + x1645*x722;
+    data[1019] = -x1642*x728 + x1645*x728;
+    data[1020] = -x1644;
+    data[1021] = -x1648;
+    data[1022] = -x1650;
+    data[1023] = -x1651;
+    data[1024] = -x1652;
+    data[1025] = -x1653;
+    data[1026] = x1651;
+    data[1027] = x1650;
+    data[1028] = x1652;
+    data[1029] = x1648;
+    data[1030] = -PARAM(P_k_CXCL12_deg);
+    data[1031] = x1653;
+    data[1032] = x1654;
+    data[1033] = x519*(x13*x498 - x461*x517);
+    data[1034] = -x1655;
+    data[1035] = x1655;
+    data[1036] = -x1657;
+    data[1037] = x1657 + x1658;
+    data[1038] = -x1658;
+    data[1039] = -PARAM(P_k_IL6_deg);
+    data[1040] = -x1654;
+    data[1041] = x1659;
+    data[1042] = -x1659 - x1660;
+    data[1043] = x1660;
+    data[1044] = -PARAM(P_k_IL1_deg);
+    data[1045] = x741;
+    data[1046] = x744;
+    data[1047] = x753;
+    data[1048] = x759;
+    data[1049] = x763;
+    data[1050] = x769;
+    data[1051] = x776;
+    data[1052] = x783;
+    data[1053] = x800;
+    data[1054] = x810;
+    data[1055] = x812;
+    data[1056] = x815;
+    data[1057] = x825;
+    data[1058] = x829;
+    data[1059] = x752;
+    data[1060] = x840;
+    data[1061] = x845;
+    data[1062] = x849;
+    data[1063] = x852;
+    data[1064] = x853;
+    data[1065] = x854;
+    data[1066] = x762;
+    data[1067] = x860;
+    data[1068] = x740;
+    data[1069] = x861;
+    data[1070] = x866;
+    data[1071] = x871;
+    data[1072] = x872;
+    data[1073] = x880;
+    data[1074] = x887;
+    data[1075] = x889;
+    data[1076] = x890;
+    data[1077] = x893;
+    data[1078] = -PARAM(P_k_CD4_death) - x294 - x930;
+    data[1079] = x775;
+    data[1080] = x1663 + x894;
+    data[1081] = -x1663;
+    data[1082] = x847;
+    data[1083] = x850;
+    data[1084] = x760;
+    data[1085] = x896;
+    data[1086] = x897;
+    data[1087] = x899;
+    data[1088] = x902;
+    data[1089] = x903;
+    data[1090] = x904;
+    data[1091] = x905;
+    data[1092] = x907;
+    data[1093] = x908;
+    data[1094] = x909;
+    data[1095] = x741;
+    data[1096] = x744;
+    data[1097] = x753;
+    data[1098] = x759;
+    data[1099] = x763;
+    data[1100] = x769;
+    data[1101] = x1668;
+    data[1102] = x782;
+    data[1103] = x794;
+    data[1104] = x810;
+    data[1105] = x1669;
+    data[1106] = x815;
+    data[1107] = x825;
+    data[1108] = x827;
+    data[1109] = x752;
+    data[1110] = x1672;
+    data[1111] = x1674;
+    data[1112] = x1671;
+    data[1113] = x1673;
+    data[1114] = x1675;
+    data[1115] = x1676;
+    data[1116] = x762;
+    data[1117] = x860;
+    data[1118] = x740;
+    data[1119] = x861;
+    data[1120] = x866;
+    data[1121] = x871;
+    data[1122] = x872;
+    data[1123] = x880;
+    data[1124] = x886;
+    data[1125] = x1677;
+    data[1126] = x1678;
+    data[1127] = x858;
+    data[1128] = x1666 - x1680 - x1681 + x770 + x771 + x772 - x773;
+    data[1129] = x1680 + x1682;
+    data[1130] = x760;
+    data[1131] = x896;
+    data[1132] = x897;
+    data[1133] = x899;
+    data[1134] = x902;
+    data[1135] = x903;
+    data[1136] = x904;
+    data[1137] = x905;
+    data[1138] = x907;
+    data[1139] = x908;
+    data[1140] = x909;
+    data[1141] = x741;
+    data[1142] = x744;
+    data[1143] = x753;
+    data[1144] = x759;
+    data[1145] = x763;
+    data[1146] = x769;
+    data[1147] = x1668;
+    data[1148] = x782;
+    data[1149] = x794;
+    data[1150] = x810;
+    data[1151] = x1669;
+    data[1152] = x815;
+    data[1153] = x825;
+    data[1154] = x827;
+    data[1155] = x752;
+    data[1156] = x1672;
+    data[1157] = x1674;
+    data[1158] = x1671;
+    data[1159] = x1673;
+    data[1160] = x1675;
+    data[1161] = x1676;
+    data[1162] = x762;
+    data[1163] = x860;
+    data[1164] = x740;
+    data[1165] = x861;
+    data[1166] = x866;
+    data[1167] = x871;
+    data[1168] = x872;
+    data[1169] = x880;
+    data[1170] = x886;
+    data[1171] = x1677;
+    data[1172] = x1678;
+    data[1173] = x858;
+    data[1174] = x1667;
+    data[1175] = SPVAR(SP_V_T_aB)*PARAM(P_k_B_pro_tumor)*x127*x1664 + PARAM(P_k_B_pro_tumor)*x55 - x1681 - x1683;
+    data[1176] = x1683;
+    data[1177] = x760;
+    data[1178] = x896;
+    data[1179] = x897;
+    data[1180] = x899;
+    data[1181] = x902;
+    data[1182] = x903;
+    data[1183] = x904;
+    data[1184] = x905;
+    data[1185] = x907;
+    data[1186] = x908;
+    data[1187] = x909;
+    data[1188] = x741;
+    data[1189] = x744;
+    data[1190] = x753;
+    data[1191] = x759;
+    data[1192] = x763;
+    data[1193] = x769;
+    data[1194] = x1668;
+    data[1195] = x782;
+    data[1196] = x794;
+    data[1197] = x810;
+    data[1198] = x1669;
+    data[1199] = x815;
+    data[1200] = x825;
+    data[1201] = x827;
+    data[1202] = x752;
+    data[1203] = x1672;
+    data[1204] = x1674;
+    data[1205] = x1671;
+    data[1206] = x1673;
+    data[1207] = x1675;
+    data[1208] = x1676;
+    data[1209] = x762;
+    data[1210] = x860;
+    data[1211] = x740;
+    data[1212] = x861;
+    data[1213] = x866;
+    data[1214] = x871;
+    data[1215] = x872;
+    data[1216] = x880;
+    data[1217] = x886;
+    data[1218] = x1677;
+    data[1219] = x1678;
+    data[1220] = x858;
+    data[1221] = x1667;
+    data[1222] = x1682;
+    data[1223] = -PARAM(P_k_plasma_death) - x294;
+    data[1224] = PARAM(P_k_Ab_sec);
+    data[1225] = x760;
+    data[1226] = x896;
+    data[1227] = x897;
+    data[1228] = x899;
+    data[1229] = x902;
+    data[1230] = x903;
+    data[1231] = x904;
+    data[1232] = x905;
+    data[1233] = x907;
+    data[1234] = x908;
+    data[1235] = x909;
+    data[1236] = x1684;
+    data[1237] = -x1684;
+    data[1238] = -x1686;
+    data[1239] = -x1687;
+    data[1240] = x1686;
+    data[1241] = x1687;
+    data[1242] = x1684*x453;
+    data[1243] = x1684*x454;
+    data[1244] = -PARAM(P_k_Ab_deg);
+    data[1245] = PARAM(P_q_nCD4_LN_out);
+    data[1246] = SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_f_nTreg)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1702 + 0.5*SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p0_TCR_off)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1702*x1714*x1716*x1718*x1722*x963 + 0.5*SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_k_Tfh_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1702*x476*x478*x480*x484 - SPVAR(SP_V_LN_nCD4)*x61/std::pow(x1688, 2) + PARAM(P_k_nCD4_pro)*x58/x1688 - PARAM(P_k_nTreg_death) - PARAM(P_q_nCD4_LN_out) - x1689*x1694 - x1694*x1703 - x1701 - x1704*x1723;
+    data[1247] = SPVAR(SP_V_LN_mcDC2)*PARAM(P_f_nTreg)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1693 + 0.5*SPVAR(SP_V_LN_mcDC2)*PARAM(P_k_M1p0_TCR_off)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1693*x1714*x1716*x1718*x1722*x963 - x1702*x1724*x1725 - x1702*x1725*x1727;
+    data[1248] = PARAM(P_n_CD4_clones)*x1701*x1729;
+    data[1249] = 0.5*SPVAR(SP_V_LN_mcDC2)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_k_Tfh_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1693*x476*x478*x480*x484 - x1702*x1725*x1730;
+    data[1250] = -PARAM(P_k_Treg_pro);
+    data[1251] = PARAM(P_k_Treg_pro);
+    data[1252] = PARAM(P_q_Treg_LN_out);
+    data[1253] = -PARAM(P_k_Treg_death) - PARAM(P_q_Treg_LN_out);
+    data[1254] = -x1764;
+    data[1255] = x1764*x1765 + x1771*(-0.69314718055994529*PARAM(P_kappa_IL2_Treg)*x1768 + 0.69314718055994529*x1746);
+    data[1256] = -x1779;
+    data[1257] = SPVAR(SP_V_LN_aTh)*x1786 + x1779*x1780;
+    data[1258] = -x1787;
+    data[1259] = SPVAR(SP_V_LN_aTfh)*x1786 + x1780*x1787;
+    data[1260] = -x1789;
+    data[1261] = x1780*x1789 + x1782*x1792;
+    data[1262] = PARAM(P_q_nCD8_LN_out);
+    data[1263] = -SPVAR(SP_V_LN_nCD8)*x65/std::pow(x1793, 2) - PARAM(P_k_nCD8_death) + PARAM(P_k_nCD8_pro)*x62/x1793 - PARAM(P_q_nCD8_LN_out) - x1799;
+    data[1264] = x1799*x1800;
+    data[1265] = -x1769 - x1805;
+    data[1266] = x1765*x1805 + x1770 + x1771*(-0.69314718055994529*x1768 + 0.69314718055994529*x1802 + 0.69314718055994529*x1804);
+    data[1267] = -x1810;
+    data[1268] = SPVAR(SP_V_LN_aTh)*x1812 + x1780*x1810;
+    data[1269] = -x1813;
+    data[1270] = SPVAR(SP_V_LN_aTfh)*x1812 + x1780*x1813;
+    data[1271] = -x1814;
+    data[1272] = x1780*x1814 + x1792*x1811;
+    data[1273] = PARAM(P_q_CD8_LN_out);
+    data[1274] = -PARAM(P_k_CD8_death) - PARAM(P_q_CD8_LN_out);
+    data[1275] = PARAM(P_k_IFNg_Tsec);
+    data[1276] = -PARAM(P_k_APC_death) - x1815;
+    data[1277] = x1815;
+    data[1278] = -PARAM(P_k_APC_death);
+    data[1279] = -x1817;
+    data[1280] = x1800*x1817;
+    data[1281] = -PARAM(P_k_mAPC_death);
+    data[1282] = SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_f_nTreg)*PARAM(P_k_Treg_act)*x1702*x1820 + 0.5*SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p0_TCR_off)*PARAM(P_k_Treg_act)*x1702*x1714*x1716*x1718*x1722*x1820*x963 + 0.5*SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_k_Tfh_act)*x1702*x1820*x476*x478*x480*x484 - SPVAR(SP_V_LN_nCD4)*x1819 - x1724*x1818 - x1727*x1818 - x1730*x1818;
+    data[1283] = SPVAR(SP_V_LN_nCD4)*PARAM(P_f_nTreg)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1693 + 0.5*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p0_TCR_off)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1693*x1714*x1716*x1718*x1722*x963 - x1689*x1691*x1702*x1821 - x1691*x1702*x1726*x1821;
+    data[1284] = -x1822;
+    data[1285] = x1822;
+    data[1286] = -PARAM(P_k_mAPC_death) - x1825;
+    data[1287] = x1819*x1826;
+    data[1288] = 0.5*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_k_Tfh_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1693*x476*x478*x480*x484 - x1691*x1702*x1703*x1821;
+    data[1289] = x1825;
+    data[1290] = x1827;
+    data[1291] = -x1827;
+    data[1292] = -x1829;
+    data[1293] = x1829;
+    data[1294] = -x1832;
+    data[1295] = x1765*x1832 + x1771*(0.69314718055994529*PARAM(P_N_IL2_CD8)*PARAM(P_k_IL2_sec)*PARAM(P_w_IL2_help)*x1736*x1740 - 0.69314718055994529*x1831);
+    data[1296] = -x1784 - x1836;
+    data[1297] = SPVAR(SP_V_LN_aTh)*x1838 + x1780*x1836 + x1785;
+    data[1298] = -x1839;
+    data[1299] = SPVAR(SP_V_LN_aTfh)*x1838 + x1780*x1839;
+    data[1300] = -x1840;
+    data[1301] = x1780*x1840 + x1792*x1837;
+    data[1302] = PARAM(P_q_Treg_LN_out);
+    data[1303] = -SPVAR(SP_V_LN_mcDC1)*x1816*x1841;
+    data[1304] = 0.5*SPVAR(SP_V_LN_mcDC1)*SPVAR(SP_V_LN_nCD8)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_k_T_activation_per_APC)*PARAM(P_n_CD8_clones)*x1729*x1841*x476*x478*x480*x484 - x1843;
+    data[1305] = x1765*x1843 + x1771*(0.69314718055994529*PARAM(P_N_div_costim)*x1749*x1756*x1758 - 0.69314718055994529*x1842);
+    data[1306] = x1844;
+    data[1307] = PARAM(P_k_IFNg_Thsec);
+    data[1308] = x1030;
+    data[1309] = PARAM(P_k_out_PDL1)*x104*x1847*x1855 - PARAM(P_k_out_PDL1)*x1855*x1858 - x1850*x1860;
+    data[1310] = PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2APC)*x104*x1847*x1863 - PARAM(P_k_out_PDL1)*PARAM(P_r_PDL2APC)*x1858*x1863 - x1860*x1862;
+    data[1311] = -x1784;
+    data[1312] = x1785;
+    data[1313] = PARAM(P_q_Treg_LN_out);
+    data[1314] = x1844;
+    data[1315] = -SPVAR(SP_V_LN_nB)*x1866 + x1868;
+    data[1316] = 0.5*SPVAR(SP_V_LN_nB)*PARAM(P_k_B_act)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_n_B_clones)*x1865*x476*x478*x480*x484 - PARAM(P_n_B_clones)*x1868;
+    data[1317] = PARAM(P_q_nB_LN_out);
+    data[1318] = -PARAM(P_k_nB_death) - PARAM(P_q_nB_LN_out) - x1869;
+    data[1319] = PARAM(P_n_B_clones)*x1869;
+    data[1320] = -x1790;
+    data[1321] = x1791;
+    data[1322] = PARAM(P_q_B_LN_out);
+    data[1323] = -PARAM(P_k_B_death) - PARAM(P_q_B_LN_out);
+    data[1324] = -PARAM(P_k_P0_deg);
+    data[1325] = PARAM(P_k_P0_deg);
+    data[1326] = -PARAM(P_k_p0_deg) - x1871;
+    data[1327] = -x1871;
+    data[1328] = x1871;
+    data[1329] = SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*SPVAR(SP_V_e_P1)*PARAM(P_k_T_activation_per_APC)*x1873*x1874 - SPVAR(SP_V_LN_nCD4)*x1695*x1872;
+    data[1330] = -SPVAR(SP_V_e_P1)*x1873*x1874*x1875 + x1872*x1875;
+    data[1331] = -PARAM(P_k_P1_deg);
+    data[1332] = PARAM(P_k_P1_deg);
+    data[1333] = -PARAM(P_k_p1_deg) - x1876;
+    data[1334] = -x1876;
+    data[1335] = x1876;
+    data[1336] = -x1877;
+    data[1337] = -x1878;
+    data[1338] = -PARAM(P_kout) - x1877 - x1878;
+    data[1339] = x1877;
+    data[1340] = x1878;
+    data[1341] = PARAM(P_kout);
+    data[1342] = x1879;
+    data[1343] = x1879;
+    data[1344] = -PARAM(P_kout) - x1879;
+    data[1345] = PARAM(P_kout);
+    data[1346] = x1880;
+    data[1347] = x1880;
+    data[1348] = -PARAM(P_kout) - x1880;
+    data[1349] = PARAM(P_kout);
+    data[1350] = PARAM(P_kin);
+    data[1351] = -PARAM(P_kin);
+    data[1352] = -x1719*x1722*x1883 + x1883*x1884;
+    data[1353] = 0.5*SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p0_TCR_off)*PARAM(P_k_Treg_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1693*x1716*x1718*x1722*x1881*x963 - x1691*x1882*x1884;
+    data[1354] = x1879;
+    data[1355] = -x1879;
+    data[1356] = x1890;
+    data[1357] = -x1890;
+    data[1358] = x1892;
+    data[1359] = -x1892;
+    data[1360] = -x1886*x1894 + x1889*x1894;
+    data[1361] = -x1886*x1895 + x1896;
+    data[1362] = 0.5*SPVAR(SP_V_LN_mcDC1)*SPVAR(SP_V_LN_nCD8)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_k_T_activation_per_APC)*PARAM(P_n_CD8_clones)*x1729*x1797*x1885*x478*x480*x484 - x1800*x1896;
+    data[1363] = 0.5*SPVAR(SP_V_LN_mcDC2)*SPVAR(SP_V_LN_nCD4)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_k_Tfh_act)*PARAM(P_n_CD4_clones)*PARAM(P_n_sites_APC)*x1693*x1885*x478*x480*x484 - x1691*x1889*x1893;
+    data[1364] = -x1886*x1897 + x1898;
+    data[1365] = 0.5*SPVAR(SP_V_LN_Tfh)*SPVAR(SP_V_LN_nB)*PARAM(P_k_B_act)*PARAM(P_k_M1p1_TCR_off)*PARAM(P_n_B_clones)*x1865*x1885*x478*x480*x484 - PARAM(P_n_B_clones)*x1898;
+    data[1366] = x1880;
+    data[1367] = -x1880;
+    data[1368] = x1905;
+    data[1369] = x1910;
+    data[1370] = x1911;
+    data[1371] = x1912;
+    data[1372] = x1915;
+    data[1373] = x1917;
+    data[1374] = x1914;
+    data[1375] = x1916;
+    data[1376] = x1918;
+    data[1377] = x1919;
+    data[1378] = x1920;
+    data[1379] = PARAM(P_koff_PD1_PDL1);
+    data[1380] = -x1920 - x1921;
+    data[1381] = x1905;
+    data[1382] = x1910;
+    data[1383] = x1911;
+    data[1384] = x1912;
+    data[1385] = x1915;
+    data[1386] = x1917;
+    data[1387] = x1914;
+    data[1388] = x1916;
+    data[1389] = x1918;
+    data[1390] = x1919;
+    data[1391] = x1922;
+    data[1392] = PARAM(P_koff_PD1_PDL2);
+    data[1393] = -x1921 - x1922;
+    data[1394] = x1908;
+    data[1395] = -x1908;
+    data[1396] = x1923;
+    data[1397] = x1924;
+    data[1398] = -x1923 - x1924 - x1926 - x1927;
+    data[1399] = -x1923;
+    data[1400] = -x1924;
+    data[1401] = -x1926 - x1928;
+    data[1402] = x1926;
+    data[1403] = x1929;
+    data[1404] = -x1929;
+    data[1405] = -x1921 - x1929 - x1931;
+    data[1406] = x1931;
+    data[1407] = -x1931;
+    data[1408] = x1932;
+    data[1409] = -x1932;
+    data[1410] = -x1921 - x1932;
+    data[1411] = x1933;
+    data[1412] = -x1933;
+    data[1413] = -x1934 - x1935;
+    data[1414] = -PARAM(P_koff_PD1_aPD1) - x1935;
+    data[1415] = x1935;
+    data[1416] = x1937;
+    data[1417] = -x1937;
+    data[1418] = x1938;
+    data[1419] = x1938;
+    data[1420] = x1939;
+    data[1421] = 0;
+    data[1422] = -PARAM(P_koff_CD28_CD80) - x1941;
+    data[1423] = x1941;
+    data[1424] = PARAM(P_koff_CD28_CD80) + x1942;
+    data[1425] = PARAM(P_koff_CD28_CD80);
+    data[1426] = x1943;
+    data[1427] = x1944;
+    data[1428] = x1943;
+    data[1429] = x1945;
+    data[1430] = PARAM(P_koff_CD28_CD86);
+    data[1431] = PARAM(P_koff_CD28_CD86);
+    data[1432] = -PARAM(P_koff_CTLA4_CD80) - x1947 - x1948;
+    data[1433] = x1947;
+    data[1434] = x1948;
+    data[1435] = PARAM(P_koff_CTLA4_CD80) + x1949;
+    data[1436] = PARAM(P_koff_CTLA4_CD80) - x1947;
+    data[1437] = x1950;
+    data[1438] = -x1950 - x1953;
+    data[1439] = x1953;
+    data[1440] = x1954;
+    data[1441] = x1950;
+    data[1442] = x1950;
+    data[1443] = -x1950 - x1955;
+    data[1444] = x1955;
+    data[1445] = x1950;
+    data[1446] = x1956;
+    data[1447] = PARAM(P_koff_CTLA4_CD80);
+    data[1448] = PARAM(P_koff_CTLA4_CD80);
+    data[1449] = x1957;
+    data[1450] = PARAM(P_koff_CTLA4_CD80);
+    data[1451] = PARAM(P_koff_CTLA4_CD80);
+    data[1452] = -PARAM(P_koff_CTLA4_CD86) - x1959;
+    data[1453] = x1959;
+    data[1454] = PARAM(P_koff_CTLA4_CD86);
+    data[1455] = PARAM(P_koff_CTLA4_CD86) - x1959;
+    data[1456] = x1960;
+    data[1457] = x1961;
+    data[1458] = x1960;
+    data[1459] = -x1921 - x1962;
+    data[1460] = -PARAM(P_koff_CD80_PDL1) - x1941 - x1948;
+    data[1461] = x1941;
+    data[1462] = x1948;
+    data[1463] = x1942;
+    data[1464] = x1949;
+    data[1465] = PARAM(P_koff_CD80_PDL1);
+    data[1466] = x1963;
+    data[1467] = PARAM(P_koff_CD28_CD80);
+    data[1468] = x1964;
+    data[1469] = PARAM(P_koff_CD28_CD80);
+    data[1470] = x1963;
+    data[1471] = PARAM(P_koff_CTLA4_CD80);
+    data[1472] = x1965;
+    data[1473] = PARAM(P_koff_CTLA4_CD80);
+    data[1474] = -x1966 - x1969;
+    data[1475] = x1966;
+    data[1476] = x1970;
+    data[1477] = -x1971;
+    data[1478] = x1971;
+    data[1479] = -x1966 - x1968 - x1970 - x1971;
+    data[1480] = x1969;
+    data[1481] = -x1970;
+    data[1482] = x1955 - x1972;
+    data[1483] = -x1973;
+    data[1484] = x1972;
+    data[1485] = x1973;
+    data[1486] = x1975;
+    data[1487] = -x1977;
+    data[1488] = x1977;
+    data[1489] = -x1955 - x1972 - x1973 - x1975 - x1977;
+    data[1490] = x1956;
+    data[1491] = -x1975;
+    data[1492] = x1978;
+    data[1493] = -x1954 - x1972;
+    data[1494] = x1972;
+    data[1495] = -x1979;
+    data[1496] = x1979;
+    data[1497] = -x1978;
+    data[1498] = x1954;
+    data[1499] = -PARAM(P_koff_CD80_CD80) - x1953 - x1972 - x1978 - x1979;
+    data[1500] = x1980;
+    data[1501] = -x1981;
+    data[1502] = x1981;
+    data[1503] = 2*x1982;
+    data[1504] = -x1981 - 4*x1982;
+    data[1505] = x1983;
+    data[1506] = -x1984 - x1986;
+    data[1507] = x1984;
+    data[1508] = -x1983;
+    data[1509] = x1986;
+    data[1510] = -x1983 - x1984 - x1985;
+    data[1511] = x1920;
+    data[1512] = PARAM(P_koff_PD1_PDL1);
+    data[1513] = -x1920 - x1987;
+    data[1514] = x1922;
+    data[1515] = PARAM(P_koff_PD1_PDL2);
+    data[1516] = -x1922 - x1987;
+    data[1517] = x1988;
+    data[1518] = x1989;
+    data[1519] = -x1988 - x1989 - x1990 - x1991;
+    data[1520] = -x1988;
+    data[1521] = -x1989;
+    data[1522] = -x1990 + x1991;
+    data[1523] = x1990;
+    data[1524] = x1993;
+    data[1525] = -x1993;
+    data[1526] = -x1987 - x1993 - x1995;
+    data[1527] = x1995;
+    data[1528] = -x1995;
+    data[1529] = x1996;
+    data[1530] = -x1996;
+    data[1531] = -x1987 - x1996;
+    data[1532] = -x1934 - x1997;
+    data[1533] = -PARAM(P_koff_PD1_aPD1) - x1997;
+    data[1534] = x1997;
+    data[1535] = x1938;
+    data[1536] = x1938;
+    data[1537] = x1939;
+    data[1538] = 0;
+    data[1539] = x2005;
+    data[1540] = x2007;
+    data[1541] = x2011;
+    data[1542] = x2014;
+    data[1543] = x2016;
+    data[1544] = x2017;
+    data[1545] = x2019;
+    data[1546] = x2020;
+    data[1547] = -PARAM(P_koff_CD28_CD80) - x2022;
+    data[1548] = x2022;
+    data[1549] = PARAM(P_koff_CD28_CD80) + x2023;
+    data[1550] = PARAM(P_koff_CD28_CD80);
+    data[1551] = -x2026;
+    data[1552] = x1765*x2026 + x1771*(1.3862943611198906*PARAM(P_N_div_costim)*SPVAR(SP_V_LN_Th)*PARAM(P_n_CD28_CD8X)*x1749*x1750*x1756*x1758*x1998 - x2003*x2027);
+    data[1553] = -x2030;
+    data[1554] = SPVAR(SP_V_LN_aTh)*x2032 + x1780*x2030;
+    data[1555] = -x2033;
+    data[1556] = SPVAR(SP_V_LN_aTfh)*x2032 + x1780*x2033;
+    data[1557] = -x2034;
+    data[1558] = x1780*x2034 + x1792*x2031;
+    data[1559] = x1943;
+    data[1560] = x1944;
+    data[1561] = x1943;
+    data[1562] = x2005;
+    data[1563] = x2007;
+    data[1564] = x2011;
+    data[1565] = x2014;
+    data[1566] = x2016;
+    data[1567] = x2017;
+    data[1568] = x2019;
+    data[1569] = x2020;
+    data[1570] = x1945;
+    data[1571] = PARAM(P_koff_CD28_CD86);
+    data[1572] = PARAM(P_koff_CD28_CD86);
+    data[1573] = -PARAM(P_koff_CTLA4_CD80) - x2036 - x2037;
+    data[1574] = x2036;
+    data[1575] = x2037;
+    data[1576] = PARAM(P_koff_CTLA4_CD80) + x2038;
+    data[1577] = PARAM(P_koff_CTLA4_CD80) - x2036;
+    data[1578] = x1950;
+    data[1579] = -x1950 - x2040;
+    data[1580] = x2040;
+    data[1581] = x2041;
+    data[1582] = x1950;
+    data[1583] = x1950;
+    data[1584] = -x1950 - x2042;
+    data[1585] = x2042;
+    data[1586] = x1950;
+    data[1587] = x2043;
+    data[1588] = PARAM(P_koff_CTLA4_CD80);
+    data[1589] = PARAM(P_koff_CTLA4_CD80);
+    data[1590] = x1957;
+    data[1591] = PARAM(P_koff_CTLA4_CD80);
+    data[1592] = PARAM(P_koff_CTLA4_CD80);
+    data[1593] = -PARAM(P_koff_CTLA4_CD86) - x2045;
+    data[1594] = x2045;
+    data[1595] = PARAM(P_koff_CTLA4_CD86);
+    data[1596] = PARAM(P_koff_CTLA4_CD86) - x2045;
+    data[1597] = x1960;
+    data[1598] = x1961;
+    data[1599] = x1960;
+    data[1600] = -x1962 - x1987;
+    data[1601] = -PARAM(P_koff_CD80_PDL1) - x2022 - x2037;
+    data[1602] = x2022;
+    data[1603] = x2037;
+    data[1604] = x2023;
+    data[1605] = x2038;
+    data[1606] = PARAM(P_koff_CD80_PDL1);
+    data[1607] = x2005;
+    data[1608] = x2007;
+    data[1609] = x2011;
+    data[1610] = x2014;
+    data[1611] = x2016;
+    data[1612] = x2017;
+    data[1613] = x2019;
+    data[1614] = x2020;
+    data[1615] = x2046;
+    data[1616] = PARAM(P_koff_CD28_CD80);
+    data[1617] = x1964;
+    data[1618] = PARAM(P_koff_CD28_CD80);
+    data[1619] = x2046;
+    data[1620] = PARAM(P_koff_CTLA4_CD80);
+    data[1621] = x1965;
+    data[1622] = PARAM(P_koff_CTLA4_CD80);
+    data[1623] = -x2047 - x2050;
+    data[1624] = x2047;
+    data[1625] = x2051;
+    data[1626] = -x2052;
+    data[1627] = x2052;
+    data[1628] = -x2047 - x2049 - x2051 - x2052;
+    data[1629] = x2050;
+    data[1630] = -x2051;
+    data[1631] = x2042 - x2053;
+    data[1632] = -x2054;
+    data[1633] = x2053;
+    data[1634] = x2054;
+    data[1635] = x2056;
+    data[1636] = -x2057;
+    data[1637] = x2057;
+    data[1638] = -x2042 - x2053 - x2054 - x2056 - x2057;
+    data[1639] = x2043;
+    data[1640] = -x2056;
+    data[1641] = x2058;
+    data[1642] = -x2041 - x2053;
+    data[1643] = x2053;
+    data[1644] = -x2059;
+    data[1645] = x2059;
+    data[1646] = -x2058;
+    data[1647] = x2041;
+    data[1648] = -PARAM(P_koff_CD80_CD80) - x2040 - x2053 - x2058 - x2059;
+    data[1649] = x1980;
+    data[1650] = -x2060;
+    data[1651] = x2060;
+    data[1652] = 2*x2061;
+    data[1653] = -x2060 - 4*x2061;
+    data[1654] = x2062;
+    data[1655] = -x2063 - x2065;
+    data[1656] = x2063;
+    data[1657] = -x2062;
+    data[1658] = x2065;
+    data[1659] = -x2062 - x2063 - x2064;
+    data[1660] = x2068;
+    data[1661] = x2068;
+    data[1662] = x2067;
+    data[1663] = x2070;
+    data[1664] = x2070;
+    data[1665] = x2069;
+    data[1666] = x2073;
+    data[1667] = -x2073;
+    data[1668] = -x2075;
+    data[1669] = -x2076;
+    data[1670] = x2075;
+    data[1671] = x2076;
+    data[1672] = x2073*x453;
+    data[1673] = x2073*x454;
+    data[1674] = PARAM(P_koff_CD47_SIRPa);
+    data[1675] = PARAM(P_koff_CD47_SIRPa);
+    data[1676] = -PARAM(P_koff_CD47_SIRPa);
+    data[1677] = 0;
+    data[1678] = 0;
+    data[1679] = x2079;
+    data[1680] = x2080;
+    data[1681] = x2083;
+    data[1682] = x2085;
+    data[1683] = x2082;
+    data[1684] = x2084;
+    data[1685] = x2086;
+    data[1686] = x2087;
+    data[1687] = x1920;
+    data[1688] = PARAM(P_koff_PD1_PDL1);
+    data[1689] = -x1920 - x2088;
+    data[1690] = x2079;
+    data[1691] = x2080;
+    data[1692] = x2083;
+    data[1693] = x2085;
+    data[1694] = x2082;
+    data[1695] = x2084;
+    data[1696] = x2086;
+    data[1697] = x2087;
+    data[1698] = x1922;
+    data[1699] = PARAM(P_koff_PD1_PDL2);
+    data[1700] = -x1922 - x2088;
+    data[1701] = x2089;
+    data[1702] = x2090;
+    data[1703] = -x1927 - x2089 - x2090 - x2091;
+    data[1704] = -x2089;
+    data[1705] = -x2090;
+    data[1706] = -x1928 - x2091;
+    data[1707] = x2091;
+    data[1708] = x2093;
+    data[1709] = -x2093;
+    data[1710] = -x2088 - x2093 - x2095;
+    data[1711] = x2095;
+    data[1712] = -x2095;
+    data[1713] = x2096;
+    data[1714] = -x2096;
+    data[1715] = -x2088 - x2096;
+    data[1716] = -x1934 - x2097;
+    data[1717] = -PARAM(P_koff_PD1_aPD1) - x2097;
+    data[1718] = x2097;
+    data[1719] = x1938;
+    data[1720] = x1938;
+    data[1721] = x1939;
+    data[1722] = -x1962 - x2088;
+    data[1723] = x1962;
+    data[1724] = PARAM(P_koff_CD80_PDL1);
+    data[1725] = -PARAM(P_koff_CD80_CD80);
+    data[1726] = x1980;
+    data[1727] = -x2098;
+    data[1728] = x2098;
+    data[1729] = 2*x2099;
+    data[1730] = -x2098 - 4*x2099;
+    data[1731] = -PARAM(P_k_GVAX_clearance);
+    data[1732] = x2107;
+    data[1733] = -x2107;
+    data[1734] = PARAM(P_V_ID)*PARAM(P_k_GMCSF_prod);
+    data[1735] = PARAM(P_k_GVAX_clearance)*PARAM(P_y_Ag_per_cell) - PARAM(P_sigma_P1_per_mAPC)*x2104 + PARAM(P_sigma_P1_per_mAPC)*x2106;
+    data[1736] = -PARAM(P_k_APC_death_ID) - x2108 - x2113;
+    data[1737] = x2108;
+    data[1738] = -PARAM(P_sigma_P1_per_mAPC)*x2108;
+    data[1739] = x2114;
+    data[1740] = -x2113;
+    data[1741] = -PARAM(P_k_mAPC_death_ID) - x2114;
+    data[1742] = PARAM(P_K_APC_ID)*(-SPVAR(SP_V_ID_GMCSF)*PARAM(P_k_APC_recruit_ID)*x2115/std::pow(x2111, 2) + x2112*x384)/x2109;
+    data[1743] = -PARAM(P_k_GMCSF_deg);
+    data[1744] = x2116*x2117 - x2116*x2119;
+    data[1745] = SPVAR(SP_V_LN_nCD8)*PARAM(P_n_CD8_clones)*x1799*x2120;
+    data[1746] = x1691*x1701*x2120;
+    data[1747] = PARAM(P_k_GVAX_present)*x384*x679;
+    data[1748] = -x2122;
+    data[1749] = x2122;
+    data[1750] = SPVAR(SP_V_ID_APC)*SPVAR(SP_V_ID_GVAX_cells)*SPVAR(SP_V_ID_P1_GVAX)*PARAM(P_k_APC_mature_ID)*PARAM(P_k_GVAX_clearance)*PARAM(P_sigma_P1_per_mAPC)*x2102*x2115*x2118 - PARAM(P_k_P1_deg_ID) - PARAM(P_sigma_P1_per_mAPC)*x2121;
 
     // Boundary-state safety clamp. Analytical Jacobian entries can produce
     // NaN/Inf when a species is exactly zero and its rate law contains a
@@ -7236,7 +7666,7 @@ int ODE_system::jac(realtype t, N_Vector y, N_Vector fy,
     // step controller rejects the step if Newton fails to converge, and
     // once species move off zero on subsequent substeps the entries become
     // finite. This is the same remedy AMICI and libroadrunner use.
-    for (sunindextype k = 0; k < 1543; ++k) {
+    for (sunindextype k = 0; k < 1751; ++k) {
         if (!std::isfinite(data[k])) data[k] = 0.0;
     }
     return 0;

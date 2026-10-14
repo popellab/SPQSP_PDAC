@@ -1,0 +1,720 @@
+target_id: f_IL6_iCAF
+inputs:
+- name: alphaSMA_mRNA_EtOH_IL6ab_mean
+  value: 1.51
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4A
+  figure_excerpt:
+    figure_id: Figure 4A
+    value: ~1.5 (relative mRNA expression)
+    description: Bar height for EtOH + IL-6 antibody condition, alpha-SMA mRNA
+    context: HP-1 human pancreatic stellate cells treated 24 h with EtOH (50 mM) plus
+      anti-IL-6 antibody; qRT-PCR normalized to beta-actin and expressed relative
+      to vehicle (N/A) = 1.0
+- name: alphaSMA_mRNA_EtOH_IL6ab_sd
+  value: 0.25
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4A
+  figure_excerpt:
+    figure_id: Figure 4A
+    value: error bar ~0.25
+    description: Error bar size for EtOH + IL-6 antibody condition, alpha-SMA mRNA
+    context: "HP-1 cells; data shown as mean \xB1 SD, n = 6/group"
+- name: alphaSMA_mRNA_EtOH_IgG_mean
+  value: 2.01
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4A
+  figure_excerpt:
+    figure_id: Figure 4A
+    value: ~2.0
+    description: Bar height for EtOH + IgG control condition, alpha-SMA mRNA
+    context: HP-1 cells treated 24 h with EtOH (50 mM) plus control IgG; qRT-PCR relative
+      expression
+- name: alphaSMA_mRNA_EtOH_IgG_sd
+  value: 0.23
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4A
+  figure_excerpt:
+    figure_id: Figure 4A
+    value: error bar ~0.23
+    description: Error bar size for EtOH + IgG control, alpha-SMA mRNA
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: alphaSMA_mRNA_LPS_IL6ab_mean
+  value: 1.44
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4A
+  figure_excerpt:
+    figure_id: Figure 4A
+    value: ~1.44
+    description: Bar height for LPS + IL-6 antibody, alpha-SMA mRNA
+    context: HP-1 cells treated 24 h with LPS (100 ng/mL) plus anti-IL-6 antibody
+- name: alphaSMA_mRNA_LPS_IL6ab_sd
+  value: 0.29
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4A
+  figure_excerpt:
+    figure_id: Figure 4A
+    value: error bar ~0.29
+    description: Error bar size for LPS + IL-6 antibody, alpha-SMA mRNA
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: alphaSMA_mRNA_LPS_IgG_mean
+  value: 1.9
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4A
+  figure_excerpt:
+    figure_id: Figure 4A
+    value: ~1.9
+    description: Bar height for LPS + IgG control, alpha-SMA mRNA
+    context: HP-1 cells treated 24 h with LPS (100 ng/mL) plus control IgG
+- name: alphaSMA_mRNA_LPS_IgG_sd
+  value: 0.27
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4A
+  figure_excerpt:
+    figure_id: Figure 4A
+    value: error bar ~0.27
+    description: Error bar size for LPS + IgG control, alpha-SMA mRNA
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: alphaSMA_protein_EtOH_IL6ab_mean
+  value: 52.2
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4B
+  figure_excerpt:
+    figure_id: Figure 4B
+    value: ~52
+    description: Bar height for EtOH + IL-6 antibody, alpha-SMA protein
+    context: HP-1 cells treated 48 h with EtOH (50 mM) plus anti-IL-6 antibody; ELISA
+      readout (arbitrary protein units)
+- name: alphaSMA_protein_EtOH_IL6ab_sd
+  value: 3.31
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4B
+  figure_excerpt:
+    figure_id: Figure 4B
+    value: error bar ~3.3
+    description: Error bar size for EtOH + IL-6 antibody, alpha-SMA protein
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: alphaSMA_protein_EtOH_IgG_mean
+  value: 62.6
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4B
+  figure_excerpt:
+    figure_id: Figure 4B
+    value: ~63
+    description: Bar height for EtOH + IgG control, alpha-SMA protein
+    context: HP-1 cells treated 48 h with EtOH (50 mM) plus control IgG; ELISA
+- name: alphaSMA_protein_EtOH_IgG_sd
+  value: 5.56
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4B
+  figure_excerpt:
+    figure_id: Figure 4B
+    value: error bar ~5.6
+    description: Error bar size for EtOH + IgG control, alpha-SMA protein
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: alphaSMA_protein_LPS_IL6ab_mean
+  value: 51.1
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4B
+  figure_excerpt:
+    figure_id: Figure 4B
+    value: ~51
+    description: Bar height for LPS + IL-6 antibody, alpha-SMA protein
+    context: HP-1 cells treated 48 h with LPS (100 ng/mL) plus anti-IL-6 antibody
+- name: alphaSMA_protein_LPS_IL6ab_sd
+  value: 3.84
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4B
+  figure_excerpt:
+    figure_id: Figure 4B
+    value: error bar ~3.8
+    description: Error bar size for LPS + IL-6 antibody, alpha-SMA protein
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: alphaSMA_protein_LPS_IgG_mean
+  value: 60.1
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4B
+  figure_excerpt:
+    figure_id: Figure 4B
+    value: ~60
+    description: Bar height for LPS + IgG control, alpha-SMA protein
+    context: HP-1 cells treated 48 h with LPS (100 ng/mL) plus control IgG; ELISA
+- name: alphaSMA_protein_LPS_IgG_sd
+  value: 4.77
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4B
+  figure_excerpt:
+    figure_id: Figure 4B
+    value: error bar ~4.8
+    description: Error bar size for LPS + IgG control, alpha-SMA protein
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: Col1a1_mRNA_EtOH_IL6ab_mean
+  value: 1.35
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: ~1.35
+    description: Bar height for EtOH + IL-6 antibody, Col1a1 mRNA
+    context: HP-1 cells treated 24 h with EtOH (50 mM) plus anti-IL-6 antibody; qRT-PCR
+      relative expression
+- name: Col1a1_mRNA_EtOH_IL6ab_sd
+  value: 0.22
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: error bar ~0.22
+    description: Error bar size for EtOH + IL-6 antibody, Col1a1 mRNA
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: Col1a1_mRNA_EtOH_IgG_mean
+  value: 1.9
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: ~1.9
+    description: Bar height for EtOH + IgG control, Col1a1 mRNA
+    context: HP-1 cells treated 24 h with EtOH (50 mM) plus control IgG; qRT-PCR
+- name: Col1a1_mRNA_EtOH_IgG_sd
+  value: 0.25
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: error bar ~0.25
+    description: Error bar size for EtOH + IgG control, Col1a1 mRNA
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: Col1a1_mRNA_LPS_IL6ab_mean
+  value: 1.38
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: ~1.38
+    description: Bar height for LPS + IL-6 antibody, Col1a1 mRNA
+    context: HP-1 cells treated 24 h with LPS (100 ng/mL) plus anti-IL-6 antibody
+- name: Col1a1_mRNA_LPS_IL6ab_sd
+  value: 0.29
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: error bar ~0.29
+    description: Error bar size for LPS + IL-6 antibody, Col1a1 mRNA
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: Col1a1_mRNA_LPS_IgG_mean
+  value: 1.85
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: ~1.85
+    description: Bar height for LPS + IgG control, Col1a1 mRNA
+    context: HP-1 cells treated 24 h with LPS (100 ng/mL) plus control IgG
+- name: Col1a1_mRNA_LPS_IgG_sd
+  value: 0.33
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4C
+  figure_excerpt:
+    figure_id: Figure 4C
+    value: error bar ~0.33
+    description: Error bar size for LPS + IgG control, Col1a1 mRNA
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: Col1_protein_EtOH_IL6ab_mean
+  value: 42.1
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4D
+  figure_excerpt:
+    figure_id: Figure 4D
+    value: ~42
+    description: Bar height for EtOH + IL-6 antibody, collagen I protein
+    context: HP-1 cells treated 48 h with EtOH (50 mM) plus anti-IL-6 antibody; ELISA
+- name: Col1_protein_EtOH_IL6ab_sd
+  value: 4.6
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4D
+  figure_excerpt:
+    figure_id: Figure 4D
+    value: error bar ~4.6
+    description: Error bar size for EtOH + IL-6 antibody, collagen I protein
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: Col1_protein_EtOH_IgG_mean
+  value: 51.9
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4D
+  figure_excerpt:
+    figure_id: Figure 4D
+    value: ~52
+    description: Bar height for EtOH + IgG control, collagen I protein
+    context: HP-1 cells treated 48 h with EtOH (50 mM) plus control IgG
+- name: Col1_protein_EtOH_IgG_sd
+  value: 4.5
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4D
+  figure_excerpt:
+    figure_id: Figure 4D
+    value: error bar ~4.5
+    description: Error bar size for EtOH + IgG control, collagen I protein
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: Col1_protein_LPS_IL6ab_mean
+  value: 42.6
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4D
+  figure_excerpt:
+    figure_id: Figure 4D
+    value: ~43
+    description: Bar height for LPS + IL-6 antibody, collagen I protein
+    context: HP-1 cells treated 48 h with LPS (100 ng/mL) plus anti-IL-6 antibody
+- name: Col1_protein_LPS_IL6ab_sd
+  value: 3.78
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4D
+  figure_excerpt:
+    figure_id: Figure 4D
+    value: error bar ~3.8
+    description: Error bar size for LPS + IL-6 antibody, collagen I protein
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: Col1_protein_LPS_IgG_mean
+  value: 50.7
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4D
+  figure_excerpt:
+    figure_id: Figure 4D
+    value: ~51
+    description: Bar height for LPS + IgG control, collagen I protein
+    context: HP-1 cells treated 48 h with LPS (100 ng/mL) plus control IgG
+- name: Col1_protein_LPS_IgG_sd
+  value: 5.05
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4D
+  figure_excerpt:
+    figure_id: Figure 4D
+    value: error bar ~5.0
+    description: Error bar size for LPS + IgG control, collagen I protein
+    context: "HP-1 cells; mean \xB1 SD, n = 6/group"
+- name: n_reps_HP1_Fig4
+  value: 6.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Zheng2021
+  source_location: Figure 4 legend
+  value_snippet: (n = 6/group)
+calibration:
+  parameters:
+  - name: f_IL6_iCAF
+    units: dimensionless
+    nuisance: false
+  - name: H_IL6_culture_EtOH
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -0.7
+      sigma: 1.0
+  - name: H_IL6_culture_LPS
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -0.7
+      sigma: 1.0
+  forward_model:
+    data_rationale: Zheng2021 Figure 4 reports alpha-SMA and Col1a1 mRNA and protein
+      levels in HP-1 human pancreatic stellate cells stimulated with EtOH or LPS in
+      the presence of anti-IL-6 antibody or control IgG. The fold-change in activation
+      markers between IL-6-neutralized and IL-6-competent conditions quantifies how
+      much IL-6 autocrine signaling amplifies PSC activation. We model these measurements
+      as ratios of activation marker levels that depend on the IL-6 autocrine amplification
+      factor.
+    submodel_rationale: In the full QSPIO-PDAC model, IL-6 autocrine feedback on inflammatory
+      CAF (iCAF) formation multiplies the IL-1-driven activation rate as (1 + f_IL6_iCAF
+      * H_IL6_iCAF). Under IL-6 neutralization, H_IL6_iCAF -> 0 so the factor is 1;
+      under IL-6-competent conditions it is 1 + f_IL6_iCAF * H_IL6_context. The algebraic
+      forward model directly maps this structure to the experimentally observed fold-change
+      in activation marker levels between anti-IL-6 and IgG control for EtOH and LPS
+      stimulation. Context-specific IL-6 Hill terms H_IL6_culture_EtOH and H_IL6_culture_LPS
+      are treated as nuisance parameters representing the effective value of the IL-6
+      Hill function in these in vitro cultures.
+    type: algebraic
+    formula: ratio = 1 + f_IL6_iCAF * H_IL6_context
+    code: "def compute(params, inputs):\n    import numpy as np\n    f = params['f_IL6_iCAF']\n\
+      \    H_EtOH = params['H_IL6_culture_EtOH']\n    H_LPS = params['H_IL6_culture_LPS']\n\
+      \    ratio_EtOH = 1.0 + f * H_EtOH\n    ratio_LPS = 1.0 + f * H_LPS\n    return\
+      \ {\n        'ratio_EtOH': ratio_EtOH,\n        'ratio_LPS': ratio_LPS,\n  \
+      \  }\n"
+  error_model:
+  - name: ratio_EtOH_alphaSMA_mRNA
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ratio_EtOH']\n"
+    units: dimensionless
+    uses_inputs:
+    - alphaSMA_mRNA_EtOH_IL6ab_mean
+    - alphaSMA_mRNA_EtOH_IL6ab_sd
+    - alphaSMA_mRNA_EtOH_IgG_mean
+    - alphaSMA_mRNA_EtOH_IgG_sd
+    - n_reps_HP1_Fig4
+    sample_size_input: n_reps_HP1_Fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mu_den = inputs['alphaSMA_mRNA_EtOH_IL6ab_mean']\n\
+      \    sd_den = inputs['alphaSMA_mRNA_EtOH_IL6ab_sd']\n    mu_num = inputs['alphaSMA_mRNA_EtOH_IgG_mean']\n\
+      \    sd_num = inputs['alphaSMA_mRNA_EtOH_IgG_sd']\n    n = int(sample_size)\n\
+      \    sd_den_mean = sd_den / np.sqrt(n)\n    sd_num_mean = sd_num / np.sqrt(n)\n\
+      \    mean_den = rng.normal(mu_den, sd_den_mean, n_bootstrap)\n    mean_num =\
+      \ rng.normal(mu_num, sd_num_mean, n_bootstrap)\n    ratio = mean_num / mean_den\n\
+      \    return ratio\n"
+    n_bootstrap: 10000
+  - name: ratio_EtOH_alphaSMA_protein
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ratio_EtOH']\n"
+    units: dimensionless
+    uses_inputs:
+    - alphaSMA_protein_EtOH_IL6ab_mean
+    - alphaSMA_protein_EtOH_IL6ab_sd
+    - alphaSMA_protein_EtOH_IgG_mean
+    - alphaSMA_protein_EtOH_IgG_sd
+    - n_reps_HP1_Fig4
+    sample_size_input: n_reps_HP1_Fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mu_den = inputs['alphaSMA_protein_EtOH_IL6ab_mean']\n\
+      \    sd_den = inputs['alphaSMA_protein_EtOH_IL6ab_sd']\n    mu_num = inputs['alphaSMA_protein_EtOH_IgG_mean']\n\
+      \    sd_num = inputs['alphaSMA_protein_EtOH_IgG_sd']\n    n = int(sample_size)\n\
+      \    sd_den_mean = sd_den / np.sqrt(n)\n    sd_num_mean = sd_num / np.sqrt(n)\n\
+      \    mean_den = rng.normal(mu_den, sd_den_mean, n_bootstrap)\n    mean_num =\
+      \ rng.normal(mu_num, sd_num_mean, n_bootstrap)\n    ratio = mean_num / mean_den\n\
+      \    return ratio\n"
+    n_bootstrap: 10000
+  - name: ratio_EtOH_Col1a1_mRNA
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ratio_EtOH']\n"
+    units: dimensionless
+    uses_inputs:
+    - Col1a1_mRNA_EtOH_IL6ab_mean
+    - Col1a1_mRNA_EtOH_IL6ab_sd
+    - Col1a1_mRNA_EtOH_IgG_mean
+    - Col1a1_mRNA_EtOH_IgG_sd
+    - n_reps_HP1_Fig4
+    sample_size_input: n_reps_HP1_Fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mu_den = inputs['Col1a1_mRNA_EtOH_IL6ab_mean']\n\
+      \    sd_den = inputs['Col1a1_mRNA_EtOH_IL6ab_sd']\n    mu_num = inputs['Col1a1_mRNA_EtOH_IgG_mean']\n\
+      \    sd_num = inputs['Col1a1_mRNA_EtOH_IgG_sd']\n    n = int(sample_size)\n\
+      \    sd_den_mean = sd_den / np.sqrt(n)\n    sd_num_mean = sd_num / np.sqrt(n)\n\
+      \    mean_den = rng.normal(mu_den, sd_den_mean, n_bootstrap)\n    mean_num =\
+      \ rng.normal(mu_num, sd_num_mean, n_bootstrap)\n    ratio = mean_num / mean_den\n\
+      \    return ratio\n"
+    n_bootstrap: 10000
+  - name: ratio_EtOH_Col1_protein
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ratio_EtOH']\n"
+    units: dimensionless
+    uses_inputs:
+    - Col1_protein_EtOH_IL6ab_mean
+    - Col1_protein_EtOH_IL6ab_sd
+    - Col1_protein_EtOH_IgG_mean
+    - Col1_protein_EtOH_IgG_sd
+    - n_reps_HP1_Fig4
+    sample_size_input: n_reps_HP1_Fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mu_den = inputs['Col1_protein_EtOH_IL6ab_mean']\n\
+      \    sd_den = inputs['Col1_protein_EtOH_IL6ab_sd']\n    mu_num = inputs['Col1_protein_EtOH_IgG_mean']\n\
+      \    sd_num = inputs['Col1_protein_EtOH_IgG_sd']\n    n = int(sample_size)\n\
+      \    sd_den_mean = sd_den / np.sqrt(n)\n    sd_num_mean = sd_num / np.sqrt(n)\n\
+      \    mean_den = rng.normal(mu_den, sd_den_mean, n_bootstrap)\n    mean_num =\
+      \ rng.normal(mu_num, sd_num_mean, n_bootstrap)\n    ratio = mean_num / mean_den\n\
+      \    return ratio\n"
+    n_bootstrap: 10000
+  - name: ratio_LPS_alphaSMA_mRNA
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ratio_LPS']\n"
+    units: dimensionless
+    uses_inputs:
+    - alphaSMA_mRNA_LPS_IL6ab_mean
+    - alphaSMA_mRNA_LPS_IL6ab_sd
+    - alphaSMA_mRNA_LPS_IgG_mean
+    - alphaSMA_mRNA_LPS_IgG_sd
+    - n_reps_HP1_Fig4
+    sample_size_input: n_reps_HP1_Fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mu_den = inputs['alphaSMA_mRNA_LPS_IL6ab_mean']\n\
+      \    sd_den = inputs['alphaSMA_mRNA_LPS_IL6ab_sd']\n    mu_num = inputs['alphaSMA_mRNA_LPS_IgG_mean']\n\
+      \    sd_num = inputs['alphaSMA_mRNA_LPS_IgG_sd']\n    n = int(sample_size)\n\
+      \    sd_den_mean = sd_den / np.sqrt(n)\n    sd_num_mean = sd_num / np.sqrt(n)\n\
+      \    mean_den = rng.normal(mu_den, sd_den_mean, n_bootstrap)\n    mean_num =\
+      \ rng.normal(mu_num, sd_num_mean, n_bootstrap)\n    ratio = mean_num / mean_den\n\
+      \    return ratio\n"
+    n_bootstrap: 10000
+  - name: ratio_LPS_alphaSMA_protein
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ratio_LPS']\n"
+    units: dimensionless
+    uses_inputs:
+    - alphaSMA_protein_LPS_IL6ab_mean
+    - alphaSMA_protein_LPS_IL6ab_sd
+    - alphaSMA_protein_LPS_IgG_mean
+    - alphaSMA_protein_LPS_IgG_sd
+    - n_reps_HP1_Fig4
+    sample_size_input: n_reps_HP1_Fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mu_den = inputs['alphaSMA_protein_LPS_IL6ab_mean']\n\
+      \    sd_den = inputs['alphaSMA_protein_LPS_IL6ab_sd']\n    mu_num = inputs['alphaSMA_protein_LPS_IgG_mean']\n\
+      \    sd_num = inputs['alphaSMA_protein_LPS_IgG_sd']\n    n = int(sample_size)\n\
+      \    sd_den_mean = sd_den / np.sqrt(n)\n    sd_num_mean = sd_num / np.sqrt(n)\n\
+      \    mean_den = rng.normal(mu_den, sd_den_mean, n_bootstrap)\n    mean_num =\
+      \ rng.normal(mu_num, sd_num_mean, n_bootstrap)\n    ratio = mean_num / mean_den\n\
+      \    return ratio\n"
+    n_bootstrap: 10000
+  - name: ratio_LPS_Col1a1_mRNA
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ratio_LPS']\n"
+    units: dimensionless
+    uses_inputs:
+    - Col1a1_mRNA_LPS_IL6ab_mean
+    - Col1a1_mRNA_LPS_IL6ab_sd
+    - Col1a1_mRNA_LPS_IgG_mean
+    - Col1a1_mRNA_LPS_IgG_sd
+    - n_reps_HP1_Fig4
+    sample_size_input: n_reps_HP1_Fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mu_den = inputs['Col1a1_mRNA_LPS_IL6ab_mean']\n\
+      \    sd_den = inputs['Col1a1_mRNA_LPS_IL6ab_sd']\n    mu_num = inputs['Col1a1_mRNA_LPS_IgG_mean']\n\
+      \    sd_num = inputs['Col1a1_mRNA_LPS_IgG_sd']\n    n = int(sample_size)\n \
+      \   sd_den_mean = sd_den / np.sqrt(n)\n    sd_num_mean = sd_num / np.sqrt(n)\n\
+      \    mean_den = rng.normal(mu_den, sd_den_mean, n_bootstrap)\n    mean_num =\
+      \ rng.normal(mu_num, sd_num_mean, n_bootstrap)\n    ratio = mean_num / mean_den\n\
+      \    return ratio\n"
+    n_bootstrap: 10000
+  - name: ratio_LPS_Col1_protein
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['ratio_LPS']\n"
+    units: dimensionless
+    uses_inputs:
+    - Col1_protein_LPS_IL6ab_mean
+    - Col1_protein_LPS_IL6ab_sd
+    - Col1_protein_LPS_IgG_mean
+    - Col1_protein_LPS_IgG_sd
+    - n_reps_HP1_Fig4
+    sample_size_input: n_reps_HP1_Fig4
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mu_den = inputs['Col1_protein_LPS_IL6ab_mean']\n\
+      \    sd_den = inputs['Col1_protein_LPS_IL6ab_sd']\n    mu_num = inputs['Col1_protein_LPS_IgG_mean']\n\
+      \    sd_num = inputs['Col1_protein_LPS_IgG_sd']\n    n = int(sample_size)\n\
+      \    sd_den_mean = sd_den / np.sqrt(n)\n    sd_num_mean = sd_num / np.sqrt(n)\n\
+      \    mean_den = rng.normal(mu_den, sd_den_mean, n_bootstrap)\n    mean_num =\
+      \ rng.normal(mu_num, sd_num_mean, n_bootstrap)\n    ratio = mean_num / mean_den\n\
+      \    return ratio\n"
+    n_bootstrap: 10000
+  identifiability_notes: All eight measurements (alpha-SMA and Col1a1 mRNA and protein
+    under EtOH or LPS, with IL-6 antibody vs IgG) constrain the fold-change in PSC
+    activation between IL-6-neutralized and IL-6-competent conditions. In this submodel,
+    that fold-change is 1 + f_IL6_iCAF * H_IL6_context, where H_IL6_context is the
+    effective IL-6 Hill term in the specific culture (EtOH or LPS). Because H_IL6_culture_EtOH
+    and H_IL6_culture_LPS are nuisance parameters bounded implicitly by their priors,
+    the data primarily constrain the products f_IL6_iCAF * H_IL6_culture_EtOH and
+    f_IL6_iCAF * H_IL6_culture_LPS. This yields a lower bound on f_IL6_iCAF (since
+    H <= O(1)) but does not fully separate f_IL6_iCAF from H in a likelihood-identifiable
+    way. Including both EtOH and LPS contexts provides two independent products, modestly
+    improving identifiability. The use of multiple markers (alpha-SMA and Col1a1,
+    mRNA and protein) adds redundancy and helps stabilize inference but does not introduce
+    new independent mechanistic structure, since all are modeled as responding to
+    the same fold-change factor in activation rate.
+experimental_context:
+  species: human
+  system: in_vitro_cell_line
+  cell_lines:
+  - name: HP-1
+    species: human
+    tissue_origin: pancreas
+    cell_type: pancreatic stellate cell line
+    source: Sun et al., Int J Med Sci. 2020;17:137-144.
+  cell_types:
+  - name: monocyte-derived macrophage
+    phenotype: human peripheral blood monocytes differentiated with M-CSF
+    isolation_method: CD14 magnetic bead selection from PBMCs
+    source: Buffy coat preparations from healthy donors
+  culture_conditions:
+    substrate: tissue culture plastic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+    medium: DMEM for HP-1; RPMI with 10% FBS and M-CSF for macrophages
+    supplements: M-CSF 10 ng/mL for macrophage differentiation
+    duration: HP-1 serum-starved to 0.5% FBS for 12 h, then stimulated with EtOH or
+      LPS for 24 h (mRNA) or 48 h (protein)
+    notes: Ethanol 50 mM or LPS 100 ng/mL was added to mimic alcohol-induced or endotoxin-triggered
+      activation; some conditions included neutralizing anti-IL-6 antibody (5 ug/mL)
+      or control IgG.
+  indication: alcoholic chronic pancreatitis
+study_interpretation: Zheng2021 demonstrates that IL-6 produced by human pancreatic
+  stellate cells and macrophages contributes significantly to PSC activation and collagen
+  I synthesis in alcoholic chronic pancreatitis. In HP-1 human PSCs, ethanol or LPS
+  stimulation increases alpha-SMA and Col1a1 mRNA and protein, and neutralizing IL-6
+  with antibody partially reverses these increases, indicating that IL-6 autocrine
+  signaling amplifies an underlying IL-1/TGFbeta-driven activation program. By comparing
+  activation marker levels in EtOH or LPS conditions with and without IL-6 antibody,
+  we estimate the fold-change in effective PSC activation attributable to IL-6 autocrine
+  feedback, which maps directly onto the multiplicative factor (1 + f_IL6_iCAF * H_IL6_iCAF)
+  used for iCAF formation in the QSPIO-PDAC model. Although the markers measured are
+  myofibroblastic (alpha-SMA, collagen I), the magnitude of IL-6-dependent amplification
+  is taken as a proxy for IL-6-driven enhancement of inflammatory CAF formation in
+  PDAC.
+key_assumptions:
+- Alpha-SMA and Col1a1 mRNA and protein levels in HP-1 cells are proportional to the
+  fraction or activity of activated pancreatic stellate cells, so the ratio of these
+  markers with and without IL-6 blockade reflects the fold-change in effective activation
+  rate.
+- IL-6 antibody effectively eliminates IL-6 autocrine signaling in HP-1 cultures,
+  such that residual activation in the presence of antibody corresponds to IL-6-independent,
+  primarily IL-1/TGFbeta-driven activation (i.e., H_IL6_iCAF approximately 0).
+- Control IgG does not affect PSC activation, so EtOH/LPS + IgG accurately reflects
+  IL-6-competent conditions and can be compared directly to EtOH/LPS + IL-6 antibody.
+- The effective IL-6 Hill terms under EtOH and LPS stimulation (H_IL6_culture_EtOH
+  and H_IL6_culture_LPS) can be treated as constant, context-specific nuisance parameters
+  that summarize the IL-6 concentration and EC50 relationship in these cultures.
+- The magnitude of IL-6 autocrine amplification of PSC activation in alcoholic chronic
+  pancreatitis is comparable to IL-6 feedback on iCAF formation in PDAC stroma, after
+  accounting for translation uncertainty in the hierarchical prior.
+- Measurement errors for qRT-PCR and ELISA-derived bar graphs are approximately normal
+  around the reported means, and error bar heights in Figure 4 represent standard
+  deviations across 6 replicates.
+key_study_limitations:
+- The experimental system uses an immortalized human pancreatic stellate cell line
+  (HP-1) and monocyte-derived macrophages from non-cancer donors in the context of
+  alcoholic chronic pancreatitis, not PDAC; the tumor-derived signals and full PDAC
+  microenvironment are absent.
+- The readouts used here (alpha-SMA and collagen I) primarily mark myofibroblastic
+  activation rather than the IL-6high, alpha-SMAlow iCAF phenotype characterized in
+  PDAC, so we assume that the fractional IL-6 contribution to activation is similar
+  across PSC/CAF subtypes.
+- Ethanol and LPS are pharmacologic triggers that may induce supraphysiologic IL-6
+  and TGFbeta levels compared to PDAC tumors, potentially altering the apparent strength
+  of IL-6 feedback relative to in vivo conditions.
+- Figure-based digitization of bar heights and error bars introduces additional numerical
+  uncertainty beyond the experimental variability reported by the authors.
+- The submodel does not explicitly include STAT3 or TGFbeta/Smad dynamics, instead
+  collapsing these into a single fold-change in activation, which may neglect kinetic
+  nuances such as delayed responses and pathway saturation.
+primary_data_source:
+  doi: 10.1016/j.cyto.2021.155536
+  title: Interleukin-6 participates in human pancreatic stellate cell activation and
+    collagen I production via TGF-beta1/Smad pathway
+  authors:
+  - Meifang Zheng
+  - Hongyan Li
+  - Li Sun
+  - David R Brigstock
+  - Runping Gao
+  year: 2021
+  source_tag: Zheng2021
+  source_relevance:
+    indication_match: related
+    indication_match_justification: The study investigates human pancreatic stellate
+      cells and macrophages in the context of alcoholic chronic pancreatitis, which
+      shares fibrogenic stellate cell biology and IL-6/TGFbeta signaling with PDAC
+      but lacks malignant epithelial cells. Thus it is a related pancreatic fibrotic
+      indication rather than PDAC itself.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: Ethanol (50 mM), LPS (100 ng/mL), exogenous IL-6 (100
+      ng/mL), and pathway inhibitors (anti-IL-6 antibody, STAT3 inhibitor, si-IL-6R,
+      si-TGFbeta1) are pharmacologic or genetic perturbations that may not match physiological
+      concentrations. Here they are used to establish and quantify the causal contribution
+      of IL-6 signaling to PSC activation; the inferred fold-change in activation
+      is interpreted as an approximate upper bound on IL-6 autocrine amplification
+      under strong stimulation, with additional uncertainty carried in the prior when
+      translating to PDAC iCAF formation.
+    tme_compatibility: moderate
+    tme_compatibility_notes: The in vitro system captures key aspects of pancreatic
+      fibrogenesis (activated stellate cells, IL-6/STAT3 and TGFbeta/Smad signaling)
+      but lacks the full PDAC tumor microenvironment, including malignant epithelial
+      cells, complex immune infiltrates, and desmoplastic architecture. Chronic pancreatitis
+      stroma is inflamed and fibrotic but not malignant; IL-6 feedback on PSC activation
+      is likely similar in magnitude but may differ quantitatively from IL-6 feedback
+      on CAF subsets in PDAC.
+    measurement_directness: proxy_observable
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_cell_line
+tags:
+- CAF
+- IL6
+- pancreatic stellate cell
+- fibrosis
+- autocrine signaling
+- PDAC_QSP_submodel
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

@@ -1,0 +1,308 @@
+target_id: k_MDSC_rec_Hong2015_B16_MDSC_fraction
+tags:
+- ai-generated
+- mdsc-module
+extraction_model: claude-opus-4-6
+study_interpretation: 'Hong et al. (2015) quantified Gr1+/CD11b+ myeloid-derived suppressor cells
+
+  by flow cytometry in subcutaneous B16 melanoma and LLC tumors grown in
+
+  control and pericyte-deficient (pdgfb-ret/ret) mice. In control B16 tumors,
+
+  MDSCs comprised 8.1% +/- 2.4% of total viable tumor cells (n=10-15, mean
+
+  +/- SD). In control LLC tumors, MDSCs were 14.1% +/- 4.1%. The control B16
+
+  condition provides a baseline MDSC fraction in an established solid tumor
+
+  that constrains the recruitment-death balance for MDSCs.
+
+  '
+key_assumptions:
+- 'B16 melanoma tumors at 2-3 weeks post-inoculation are in quasi-steady
+
+  state with respect to MDSC numbers, with recruitment approximately
+
+  balancing death/egress.
+
+  '
+- 'Gr1+/CD11b+ cells identified by flow cytometry correspond to the MDSC
+
+  population represented in the QSP model. Both granulocytic (Ly6G+) and
+
+  monocytic (Ly6C+) subsets are included.
+
+  '
+- 'CCL2-driven recruitment in established B16 tumors is near saturation
+
+  (H_CCL2 approximately 1), and IL-6 enhancement is moderate (H_IL6_MDSC
+
+  treated as nuisance). At steady state: MDSC fraction =
+
+  k_MDSC_rec * H_CCL2 * (1 + H_IL6) / (k_MDSC_death * total_cell_density).
+
+  '
+- 'The total viable cell density in B16 tumors can be approximated from
+
+  standard oncology estimates (~10^8-10^9 cells/mL for solid tumors).
+
+  This is treated as a nuisance parameter.
+
+  '
+key_study_limitations:
+- 'B16 melanoma is highly immunogenic and T cell-permissive, unlike PDAC
+
+  which has dense desmoplastic stroma. MDSC recruitment dynamics may differ
+
+  due to different chemokine profiles and vascular architecture.
+
+  '
+- 'Flow cytometry measures % of viable cells, not absolute density. The
+
+  conversion to absolute MDSC density (needed for k_MDSC_rec) requires
+
+  an estimate of total cell density, introducing additional uncertainty.
+
+  '
+- 'Tumors were harvested at 2-3 weeks; the exact timing and tumor size at
+
+  harvest are not reported, introducing variability in the steady-state
+
+  assumption.
+
+  '
+- 'Only two tumor models (B16 melanoma and LLC lung carcinoma) were studied.
+
+  Neither is PDAC, so cross-indication translation uncertainty is substantial.
+
+  '
+experimental_context:
+  species: mouse
+  system: in_vivo_syngeneic_tumor_model
+  cell_lines:
+  - name: B16
+    species: mouse
+    tissue_origin: skin
+    cell_type: melanoma
+  cell_types:
+  - name: myeloid-derived suppressor cells
+    phenotype: Gr1+/CD11b+ (includes granulocytic Ly6G+ and monocytic Ly6C+ subsets)
+    isolation_method: 'Flow cytometry on single-cell suspensions from digested tumors.
+
+      Anti-CD16/32 Fc block, then Gr1, CD45, CD11b antibodies.
+
+      '
+  culture_conditions: null
+  indication: murine melanoma (solid tumor)
+primary_data_source:
+  doi: 10.1093/jnci/djv209
+  title: 'Role of Tumor Pericytes in the Recruitment of Myeloid-Derived
+
+    Suppressor Cells
+
+    '
+  authors:
+  - Hong
+  - Tobin
+  - Rundqvist
+  - Li
+  - Lavergne
+  - Garcia-Ibanez
+  - Qin
+  - Paulsson
+  - Zeitelhofer
+  - Adzemovic
+  - Nilsson
+  - Roswall
+  - Hartman
+  - Johnson
+  - Ostman
+  - Bergh
+  - Poljakovic
+  - Genove
+  year: 2015
+  source_tag: Hong2015
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: 'B16 melanoma provides quantitative MDSC fraction data in an established
+
+      solid tumor. While tumor type differs from PDAC, CCL2-driven MDSC
+
+      recruitment is conserved across solid tumors. PDAC may have higher
+
+      MDSC recruitment due to elevated IL-6 from iCAFs, but the baseline
+
+      CCL2-dependent component is similar.
+
+      '
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: pathological_state
+    perturbation_relevance: 'Control (wild-type pericyte) B16 tumors at 2-3 weeks. The MDSC fraction
+
+      reflects the pathological steady state of the tumor microenvironment
+
+      without genetic perturbation.
+
+      '
+    tme_compatibility: low
+    tme_compatibility_notes: 'B16 melanoma has different stromal architecture than PDAC. PDAC has
+
+      dense desmoplastic stroma that may alter absolute MDSC recruitment
+
+      rates. However, the MDSC fraction as % of viable cells provides a
+
+      dimensionless constraint that partially cancels out absolute density
+
+      differences.
+
+      '
+    measurement_directness: steady_state_inversion
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: animal_in_vivo
+secondary_data_sources: []
+inputs:
+- name: mdsc_fraction_b16_control
+  value: 8.1
+  units: percent
+  input_type: direct_measurement
+  source_ref: Hong2015
+  source_location: Results, page 5
+  value_snippet: 'B16, control 8.1% +/-2.4
+
+    '
+- name: mdsc_fraction_b16_sd
+  value: 2.4
+  units: percent
+  input_type: direct_measurement
+  source_ref: Hong2015
+  source_location: Results, page 5
+  value_snippet: 'B16, control 8.1% +/-2.4
+
+    '
+- name: mdsc_fraction_llc_control
+  value: 14.1
+  units: percent
+  input_type: direct_measurement
+  source_ref: Hong2015
+  source_location: Results, page 5
+  value_snippet: 'LLC, control 14.1% +/-4.1
+
+    '
+- name: mdsc_fraction_llc_sd
+  value: 4.1
+  units: percent
+  input_type: direct_measurement
+  source_ref: Hong2015
+  source_location: Results, page 5
+  value_snippet: 'LLC, control 14.1% +/-4.1
+
+    '
+- name: n_b16_control
+  value: 10
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Hong2015
+  source_location: Results, page 5
+  value_snippet: 'n = 10 to 15 in each group
+
+    '
+calibration:
+  parameters:
+  - name: k_MDSC_rec
+    units: cell/(milliliter*day)
+  - name: k_MDSC_death
+    units: 1/day
+  - name: H_CCL2_MDSC_eff
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -0.22
+      sigma: 0.4
+  - name: H_IL6_MDSC_eff
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.5
+  - name: total_cell_density
+    units: cell/milliliter
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 20.72
+      sigma: 0.7
+  - name: r_LLC_B16
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.55
+      sigma: 0.3
+  forward_model:
+    type: algebraic
+    formula: 'B16: MDSC_frac = k_rec * H_CCL2 * (1+H_IL6) / (k_death * rho) * 100;
+      LLC: same * r_LLC_B16'
+    code: "def compute(params, inputs):\n    k_rec = params['k_MDSC_rec']\n    k_death = params['k_MDSC_death']\n\
+      \    H_CCL2 = params['H_CCL2_MDSC_eff']\n    H_IL6 = params['H_IL6_MDSC_eff']\n    rho_total = params['total_cell_density']\n\
+      \    r_llc = params['r_LLC_B16']\n\n    mdsc_density = k_rec * H_CCL2 * (1 + H_IL6) / k_death\n    frac_b16 = mdsc_density\
+      \ / rho_total * 100\n    return {'b16': frac_b16, 'llc': frac_b16 * r_llc}\n"
+    data_rationale: 'Hong et al. report 8.1% +/- 2.4% Gr1+/CD11b+ MDSCs in control B16
+
+      tumors (n=10-15, mean +/- SD by flow cytometry). LLC tumors show
+
+      14.1% +/- 4.1%. Both conditions provide independent measurements
+
+      of baseline MDSC fraction in established solid tumors.
+
+      '
+    submodel_rationale: "In the QSP model, MDSC recruitment is:\n  rate = k_MDSC_rec * V_T * (CCL2/(CCL2+CCL2_50)) * (1+H_IL6_MDSC)\n\
+      At steady state: MDSC_density = k_MDSC_rec * H_CCL2 * (1+H_IL6) / k_MDSC_death.\nThe fraction observable (MDSC_density\
+      \ / total_cell_density) constrains\nthe ratio k_MDSC_rec / (k_MDSC_death * total_cell_density).\n"
+  error_model:
+  - name: mdsc_fraction_b16
+    units: percent
+    uses_inputs:
+    - mdsc_fraction_b16_control
+    - mdsc_fraction_b16_sd
+    - n_b16_control
+    sample_size_input: n_b16_control
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    b16_mean\
+      \ = inputs['mdsc_fraction_b16_control']\n    b16_sd = inputs['mdsc_fraction_b16_sd']\n    n = int(inputs['n_b16_control'])\n\
+      \    cv = b16_sd / b16_mean\n    return rng.lognormal(\n        np.log(b16_mean),\n        cv / np.sqrt(n),\n        n_bootstrap\n\
+      \    )\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['b16']\n"
+  - name: mdsc_fraction_llc
+    units: percent
+    uses_inputs:
+    - mdsc_fraction_llc_control
+    - mdsc_fraction_llc_sd
+    - n_b16_control
+    sample_size_input: n_b16_control
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n    import numpy as np\n    llc_mean\
+      \ = inputs['mdsc_fraction_llc_control']\n    llc_sd = inputs['mdsc_fraction_llc_sd']\n    n = int(inputs['n_b16_control'])\n\
+      \    cv = llc_sd / llc_mean\n    return rng.lognormal(\n        np.log(llc_mean),\n        cv / np.sqrt(n),\n        n_bootstrap\n\
+      \    )\n"
+    observable:
+      type: custom
+      code: "def compute(t, y, y_start):\n    return y['llc']\n"
+  identifiability_notes: 'The MDSC fraction constrains k_MDSC_rec / (k_MDSC_death *
+
+    total_cell_density). With total_cell_density as nuisance (broad prior)
+
+    and k_MDSC_death from the CSV prior, k_MDSC_rec is the primary
+
+    parameter constrained. Two tumor models (B16 8.1%, LLC 14.1%) provide
+
+    independent observations; the 1.7x difference reflects cross-tumor
+
+    variability in MDSC recruitment. H_CCL2 and H_IL6 nuisance terms
+
+    absorb uncertainty in the effective chemokine drive.
+
+    '

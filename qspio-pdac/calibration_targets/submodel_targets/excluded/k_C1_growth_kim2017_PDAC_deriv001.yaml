@@ -1,0 +1,266 @@
+target_id: k_C1_growth_pdac_human_2d_pdt_kim2017
+tags:
+- ai-generated
+- in-vitro-2d
+- intrinsic-proliferation
+- complements-tvdt-targets
+extraction_model: claude-opus-4-7
+study_interpretation: |
+  Kim et al. established 6 novel patient-derived primary PDAC cell lines (AMCPAC01-06) from
+  surgically resected tumours of Korean PDAC patients and characterised their in vitro growth.
+  Population doubling time (PDT) was measured by MTT assay in 96-well plates seeded at 1e4
+  cells/well, with optical density at 570 nm read at 24-h intervals over 7 consecutive days.
+  Cells at passage 15 were used and each cell line was assayed in 2 independent experiments
+  with technical triplicates (n=6 wells per line). Reported PDTs ranged from 48 h (AMCPAC04)
+  to 87 h (AMCPAC02). These 2D-monolayer PDTs are direct measurements of intrinsic cell-cycle-
+  driven proliferation under high-nutrient/oxygen culture conditions in the absence of
+  desmoplastic stroma, hypoxia, immune killing, or therapy. They thus constrain the upper
+  envelope of the QSP model parameter k_C1_growth, which represents the same intrinsic
+  per-cell birth rate before tumour-microenvironment-mediated suppression. Existing submodel
+  targets for k_C1_growth (Ahn2017, Jang2015) use clinical CT/MRI tumour volume doubling times;
+  those measurements conflate cancer cell proliferation with desmoplastic stromal accumulation
+  and are therefore biased toward slower net growth, leaving k_C1_growth at a posterior median
+  of ~0.009/day (cell-doubling time ~75 days) — implausibly slow for an actively cycling
+  pancreatic adenocarcinoma cell. This 2D-cell-line target adds an upper-bound anchor at the
+  cell-cycle-only end of the spectrum.
+key_assumptions:
+- |
+  Population doubling time measured by MTT in 96-well plates over 7 days approximates the
+  intrinsic per-cell-cycle proliferation rate when cell density is below the contact-inhibition
+  threshold; cells were seeded at 1e4/well to remain in log-phase growth during the assay window.
+- |
+  Baseline cell death (apoptosis, anoikis) in 2D culture under standard medium and high oxygen
+  is small but non-zero. We model this as a nuisance parameter k_death_2d_culture with a
+  weakly-informative lognormal prior centered at 0.02/day, distinct from the in-tumour
+  k_C1_death which the QSP model uses for stroma-, hypoxia-, and immune-driven death.
+- |
+  Inter-cell-line biological variability across 6 patient-derived primary lines approximates
+  the population spread of intrinsic proliferation rates among PDAC patients; we bootstrap
+  PDT across these 6 lines to derive the calibration target distribution.
+- |
+  Optical density at 570 nm is proportional to viable cell number across the assay range,
+  so PDT extracted from the MTT growth curve equals the true population doubling time. This
+  is standard for PDAC cell lines below confluence and is implicit in Kim et al.'s analysis.
+key_study_limitations:
+- |
+  Cells were passaged 15 times before assay; long-term passaging may select for fast-growing
+  subclones and shift PDT toward the lower (faster) end of patient-level variability.
+- |
+  2D monolayer culture lacks the desmoplastic ECM, hypoxia gradients, nutrient limitation,
+  and immune effectors that constrain in-vivo PDAC proliferation. The PDT distribution
+  therefore reflects an upper bound on the effective intrinsic growth rate observed in an
+  intact tumour microenvironment.
+- |
+  Only point estimates of PDT are reported per cell line; technical replicate variability
+  (n=6 wells per line) is not provided. We attribute all observed spread to inter-cell-line
+  biology, which is the relevant axis for population-level model calibration but ignores
+  measurement noise per estimate.
+- |
+  All 6 lines are from Korean patients at a single tertiary centre; ethnic and selection
+  biases may affect generalisability of the proliferation distribution to other PDAC cohorts.
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: pancreatic ductal adenocarcinoma cells
+    source: |
+      Patient-derived primary epithelial cancer cells dissociated from surgically resected
+      PDAC tumours of Korean patients (AMCPAC01-06).
+    isolation_method: |
+      Tumour tissue dissociation followed by 2D adherent culture and serial passaging;
+      cells at passage 15 used for MTT growth-rate assay. Six independent patient-derived
+      lines maintained as monolayers in 96-well plates.
+  culture_conditions:
+    medium: |
+      Standard 2D culture medium with serum (composition not specified explicitly in
+      Methods), 96-well plates seeded at 1e4 cells/well, 37 deg C, 5 percent CO2,
+      humidified atmosphere.
+    duration: |
+      7 days, with MTT readout (0.5 mg/mL MTT, DMSO solubilisation, OD 570 nm) at 24-h
+      intervals; each cell line assayed in 2 independent experiments with technical
+      triplicates.
+  indication: pancreatic ductal adenocarcinoma (PDAC)
+primary_data_source:
+  doi: 10.1186/s12935-017-0416-8
+  title: |
+    Establishment and characterization of 6 novel patient-derived primary pancreatic ductal
+    adenocarcinoma cell lines from Korean pancreatic cancer patients
+  authors:
+  - Kim
+  year: 2017
+  source_tag: Kim2017
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: |
+      Patient-derived primary pancreatic ductal adenocarcinoma cell lines from human PDAC
+      resection specimens, directly matching the PDAC model indication.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: |
+      Untreated 2D log-phase culture; no pharmacological or genetic perturbation. Reflects
+      baseline cell-cycle-driven proliferation kinetics in the absence of TME effects.
+    tme_compatibility: low
+    tme_compatibility_notes: |
+      2D monolayer culture lacks desmoplastic ECM, oxygen and nutrient gradients, immune
+      effectors, and CAF/macrophage paracrine signalling. The PDT therefore captures
+      intrinsic cell-cycle proliferation under maximally permissive conditions and is an
+      upper bound on the effective rate observed in an intact PDAC tumour microenvironment.
+      In-vivo k_C1_growth may be 2-5x slower than this in-vitro population estimate.
+    measurement_directness: direct
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_cell_line
+    validation_warnings: []
+secondary_data_sources: []
+inputs:
+- name: pdt_AMCPAC01_h
+  value: 68.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Kim2017
+  source_location: Table 3, AMCPAC01 row, "Population doubling time (h)" column
+  table_excerpt:
+    table_id: Table 3
+    column: Population doubling time (h)
+    row: AMCPAC01
+    value: '68'
+    context: Cytologic characteristics and growth rate of established cell lines; 2D MTT-based PDT in 96-well plates over 7 days.
+- name: pdt_AMCPAC02_h
+  value: 87.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Kim2017
+  source_location: Table 3, AMCPAC02 row, "Population doubling time (h)" column
+  table_excerpt:
+    table_id: Table 3
+    column: Population doubling time (h)
+    row: AMCPAC02
+    value: '87'
+    context: Cytologic characteristics and growth rate of established cell lines; 2D MTT-based PDT in 96-well plates over 7 days.
+- name: pdt_AMCPAC03_h
+  value: 68.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Kim2017
+  source_location: Table 3, AMCPAC03 row, "Population doubling time (h)" column
+  table_excerpt:
+    table_id: Table 3
+    column: Population doubling time (h)
+    row: AMCPAC03
+    value: '68'
+    context: Cytologic characteristics and growth rate of established cell lines; 2D MTT-based PDT in 96-well plates over 7 days.
+- name: pdt_AMCPAC04_h
+  value: 48.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Kim2017
+  source_location: Table 3, AMCPAC04 row, "Population doubling time (h)" column
+  table_excerpt:
+    table_id: Table 3
+    column: Population doubling time (h)
+    row: AMCPAC04
+    value: '48'
+    context: Cytologic characteristics and growth rate of established cell lines; 2D MTT-based PDT in 96-well plates over 7 days.
+- name: pdt_AMCPAC05_h
+  value: 75.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Kim2017
+  source_location: Table 3, AMCPAC05 row, "Population doubling time (h)" column
+  table_excerpt:
+    table_id: Table 3
+    column: Population doubling time (h)
+    row: AMCPAC05
+    value: '75'
+    context: Cytologic characteristics and growth rate of established cell lines; 2D MTT-based PDT in 96-well plates over 7 days.
+- name: pdt_AMCPAC06_h
+  value: 51.0
+  units: hour
+  input_type: direct_measurement
+  source_ref: Kim2017
+  source_location: Table 3, AMCPAC06 row, "Population doubling time (h)" column
+  table_excerpt:
+    table_id: Table 3
+    column: Population doubling time (h)
+    row: AMCPAC06
+    value: '51'
+    context: Cytologic characteristics and growth rate of established cell lines; 2D MTT-based PDT in 96-well plates over 7 days.
+- name: n_cell_lines
+  value: 6
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Kim2017
+  source_location: Results, "Establishment of cell lines" subsection
+  value_snippet: AMCPAC01-AMCPAC06
+calibration:
+  parameters:
+  - name: k_C1_growth
+    units: 1/day
+  - name: k_death_2d_culture
+    units: 1/day
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -3.912
+      sigma: 0.7
+  forward_model:
+    type: algebraic
+    formula: PDT_h = ln(2) / (k_C1_growth - k_death_2d_culture) * 24
+    code: |
+      def compute(params, inputs):
+          import numpy as np
+          k_growth = params['k_C1_growth']
+          k_death = params['k_death_2d_culture']
+          k_eff = k_growth - k_death
+          k_eff_safe = np.maximum(k_eff, 1e-6)
+          pdt_h = np.log(2) / k_eff_safe * 24.0
+          return pdt_h
+    data_rationale: |
+      Population doubling time measured by MTT in 2D monolayer culture for 7 days at sub-
+      confluent densities reflects the log-phase exponential growth phase, where viable cell
+      number C(t) follows dC/dt = (k_growth - k_death_2d_culture) * C. The doubling time of
+      the population is then PDT = ln(2) / (k_growth - k_death_2d_culture).
+    submodel_rationale: |
+      In the QSP model, viable cancer cells expand via dC1/dt = k_C1_growth * C1 *
+      (1 - C_total/C_max) - k_C1_death * C1. For C_total << C_max (sub-confluent in vitro),
+      this reduces to dC1/dt = (k_C1_growth - k_C1_death) * C1. Because the in-tumour
+      k_C1_death captures stroma-, hypoxia-, and immune-mediated death whereas 2D-culture
+      death is dominated only by spontaneous apoptosis/anoikis, we use a nuisance
+      k_death_2d_culture distinct from the QSP k_C1_death. This isolates the constraint on
+      k_C1_growth as the cell-cycle-only intrinsic rate.
+  error_model:
+  - name: pdt_population
+    units: hour
+    uses_inputs:
+    - pdt_AMCPAC01_h
+    - pdt_AMCPAC02_h
+    - pdt_AMCPAC03_h
+    - pdt_AMCPAC04_h
+    - pdt_AMCPAC05_h
+    - pdt_AMCPAC06_h
+    - n_cell_lines
+    sample_size_input: n_cell_lines
+    observation_code: |
+      def derive_observation(inputs, sample_size, rng, n_bootstrap):
+          import numpy as np
+          pdts = np.array([
+              inputs['pdt_AMCPAC01_h'],
+              inputs['pdt_AMCPAC02_h'],
+              inputs['pdt_AMCPAC03_h'],
+              inputs['pdt_AMCPAC04_h'],
+              inputs['pdt_AMCPAC05_h'],
+              inputs['pdt_AMCPAC06_h'],
+          ])
+          # Bootstrap mean PDT across the 6 cell lines, sampling with replacement
+          # at the reported sample size to capture inter-line biological variability.
+          n = int(sample_size)
+          samples = rng.choice(pdts, size=(n_bootstrap, n), replace=True).mean(axis=1)
+          return samples
+  identifiability_notes: |
+    Single-condition population mean PDT yields a tight constraint on the difference
+    (k_C1_growth - k_death_2d_culture). The two are individually identified only via
+    the nuisance prior on k_death_2d_culture. Because k_death_2d_culture has a weakly-
+    informative lognormal prior centered well below typical k_C1_growth, the resulting
+    posterior on k_C1_growth is dominated by the data with a small (~5-10%) downward
+    correction for baseline 2D-culture death.

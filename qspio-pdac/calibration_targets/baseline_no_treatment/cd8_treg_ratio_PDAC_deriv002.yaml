@@ -1,0 +1,203 @@
+study_interpretation: |
+  Golesworthy et al. (2022) performed multiplex IHC on resected PDAC specimens and
+  directly computed the per-patient CD8+:FOXP3+ ratio by dividing CD8+ T cell count
+  by FOXP3+ Treg count in each TMA core and averaging across replicates. For the
+  HR/MMR-intact subgroup (n=166), the mean ± SD ratio was 9.8 ± 23.8. This is the
+  directly reported per-patient ratio, avoiding the ratio-of-means bias that would
+  arise from dividing aggregate CD8 density (40.5 cells/mm²) by aggregate Treg
+  density (13.6 cells/mm²). The high CV (243%) reflects both biological heterogeneity
+  and the mathematical amplification of variance when dividing two right-skewed
+  quantities. This provides an independent constraint from a different cohort and
+  assay platform than the existing deriv001 target (Liudahl/Sivagnanam 2021, n=113).
+key_assumptions:
+- |
+  CD8+ T cells from mIHC include both effector and exhausted phenotypes,
+  corresponding to V_T.CD8 + V_T.CD8_exh.
+- |
+  FOXP3+ cells identified by IHC correspond to V_T.Treg. Transient FOXP3
+  expression in activated conventional CD4+ T cells may cause mild overestimation.
+- |
+  The directly reported per-patient ratio (mean 9.8 ± SD 23.8) is modeled as
+  lognormal, which is appropriate for a strictly positive, highly right-skewed
+  ratio variable (CV = 2.43).
+- |
+  Only the HR/MMR-intact subgroup (n=166) is used; the HR-deficient subgroup
+  (n=25, higher ratio of 23.9 ± 52.7) is excluded as atypical of PDAC.
+key_study_limitations:
+- |
+  Single-center cohort from a Canadian institution; may not generalize to
+  other populations.
+- |
+  Very high inter-patient variability (CV 243%) means the lognormal
+  parameterization is sensitive to the assumed distribution shape. The true
+  distribution may have heavier tails or be multimodal.
+- |
+  TMA cores may not fully capture intra-tumoral heterogeneity in immune cell
+  distributions, though averaging across replicates mitigates this.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        cd8 = species_dict['V_T.CD8']
+        cd8_exh = species_dict['V_T.CD8_exh']
+        treg = species_dict['V_T.Treg']
+        ratio = ((cd8 + cd8_exh) / treg)
+        return ratio
+
+  units: dimensionless
+  species:
+  - V_T.CD8
+  - V_T.CD8_exh
+  - V_T.Treg
+  constants: []
+  support: positive_unbounded
+  mapping_rationale: |
+    Golesworthy et al. computed CD8+:FOXP3+ ratio per patient by dividing CD8+ count
+    by FOXP3+ count in each TMA core. In the QSP model, CD8+ T cells include both
+    effector (V_T.CD8) and exhausted (V_T.CD8_exh) populations, both of which express
+    CD8 and would be counted by IHC. The observable maps to
+    (V_T.CD8 + V_T.CD8_exh) / V_T.Treg.
+  experimental_denominator: FOXP3+ Treg count per TMA core
+  model_denominator_species:
+  - V_T.Treg
+  unmodeled_denominator_components: null
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: |
+      166 HR/MMR-intact resected PDAC patients. Neoadjuvant therapy status not
+      detailed; cohort treated as representative of resectable PDAC baseline.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Formalin-fixed, paraffin-embedded primary PDAC tumor tissue from surgical
+    resection specimens at a single Canadian institution. Tissue microarray (TMA)
+    with replicate cores per patient.
+  assay_type: |
+    Multiplex immunohistochemistry with digital image analysis for CD8+ and
+    FOXP3+ cell quantification in intra-tumoral regions of TMA cores.
+scenario:
+  description: |
+    Baseline immune state in primary PDAC tumors at surgical resection.
+    Per-patient CD8+:FOXP3+ ratio computed to characterize the effector-to-suppressor
+    balance in the TME.
+  interventions:
+  - intervention_description: |
+      No specific intervention; observational measurement on resected tumor tissue.
+empirical_data:
+  median:
+  - 3.685
+  ci95:
+  - - 0.2422
+    - 57.6188
+  units: dimensionless
+  sample_size: 166
+  sample_size_rationale: |
+    n=166 HR/MMR-intact resected PDAC patients from Golesworthy et al. 2022,
+    with per-patient CD8+:FOXP3+ ratios directly reported as group mean ± SD.
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs:
+  - name: cd8_foxp3_ratio_mean
+    value: 9.8
+    units: dimensionless
+    description: |
+      Mean per-patient CD8+:FOXP3+ ratio in the HR/MMR-intact PDAC subgroup,
+      computed by dividing CD8+ count by FOXP3+ count per TMA core and averaging.
+    source_ref: Golesworthy2022_HRD_PDAC
+    value_location: Results section, immune cell density comparisons.
+    value_snippet: |
+      the ratio of CD8+ to FOXP3+ cells was higher in HR-d versus HR/MMR-intact
+      cases (23.9 ± 52.7 versus 9.8 ± 23.8, p=0.023)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: sd
+    dispersion_type_rationale: |
+      Paper reports mean ± SD for the per-patient ratio.
+  - name: cd8_foxp3_ratio_sd
+    value: 23.8
+    units: dimensionless
+    description: |
+      Standard deviation of per-patient CD8+:FOXP3+ ratio in the HR/MMR-intact
+      PDAC subgroup.
+    source_ref: Golesworthy2022_HRD_PDAC
+    value_location: Results section.
+    value_snippet: |
+      9.8 ± 23.8
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: sd
+    dispersion_type_rationale: |
+      Explicitly reported as SD.
+  assumptions:
+  - name: n_mc_samples
+    value: 100000.0
+    units: dimensionless
+    description: Number of Monte Carlo samples for uncertainty propagation.
+    rationale: 100,000 samples provide stable median and 95% CI estimates.
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        rng = np.random.default_rng(42)
+
+        mean = inputs['cd8_foxp3_ratio_mean'].magnitude
+        sd = inputs['cd8_foxp3_ratio_sd'].magnitude
+
+        # Lognormal parameterization from mean and SD
+        var = sd ** 2
+        sigma2 = np.log(1.0 + var / mean ** 2)
+        sigma = np.sqrt(sigma2)
+        mu = np.log(mean) - 0.5 * sigma2
+
+        n = int(inputs['n_mc_samples'].magnitude)
+        samples = rng.lognormal(mu, sigma, n)
+
+        return {
+            'median_obs': np.median(samples) * ureg.dimensionless,
+            'ci95_lower': np.percentile(samples, 2.5) * ureg.dimensionless,
+            'ci95_upper': np.percentile(samples, 97.5) * ureg.dimensionless,
+        }
+primary_data_source:
+  source_tag: Golesworthy2022_HRD_PDAC
+  title: |
+    Intra-Tumoral CD8+ T-Cell Infiltration and PD-L1 Positivity in Homologous
+    Recombination Deficient Pancreatic Ductal Adenocarcinoma
+  first_author: Golesworthy
+  year: 2022
+  doi: 10.3389/fonc.2022.860767
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: Human PDAC patient specimens, directly matching the model indication and disease context.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Observational measurement of treatment-naive PDAC specimens; no experimental perturbation applied.
+    tme_compatibility: high
+    tme_compatibility_notes: Resected PDAC specimens with characteristic desmoplastic, immune-excluded TME matching model
+      assumptions.
+    validation_warnings: []
+secondary_data_sources: []
+calibration_target_id: cd8_treg_ratio_golesworthy2022
+cancer_type: PDAC
+tags:
+- manual
+- from-qualitative-bound

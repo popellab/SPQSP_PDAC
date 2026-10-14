@@ -1,0 +1,339 @@
+target_id: TGFb_50_NK
+inputs:
+- name: TGFb_dose0_ng_per_mL
+  value: 0.0
+  units: ng/mL
+  input_type: direct_measurement
+  source_ref: Wilson2011
+  source_location: Figure 3A, top panel
+  figure_excerpt:
+    figure_id: Figure 3A
+    value: '0'
+    description: Lane with IL-15 only and no added TGF-beta (control, labelled 0 ng/mL)
+      in granzyme B immunoblot
+    context: "NK cells stimulated with 20 ng/mL IL-15 for 48 h and increasing concentrations\
+      \ of TGF-beta1 (0\u20135 ng/mL); top panel granzyme B (GZMB) immunoblot."
+- name: TGFb_dose_mid_ng_per_mL
+  value: 0.5
+  units: ng/mL
+  input_type: direct_measurement
+  source_ref: Wilson2011
+  source_location: Figure 3A, top panel
+  figure_excerpt:
+    figure_id: Figure 3A
+    value: ~0.5
+    description: Intermediate TGF-beta lane between 0 and 5 ng/mL in granzyme B immunoblot;
+      approximate concentration digitized from lane label and spacing
+    context: "NK cells stimulated with 20 ng/mL IL-15 for 48 h and increasing concentrations\
+      \ of TGF-beta1 (0\u20135 ng/mL); top panel granzyme B (GZMB) immunoblot."
+- name: TGFb_dose5_ng_per_mL
+  value: 5.0
+  units: ng/mL
+  input_type: direct_measurement
+  source_ref: Wilson2011
+  source_location: Figure 3A, top panel
+  figure_excerpt:
+    figure_id: Figure 3A
+    value: '5'
+    description: Highest TGF-beta lane labelled 5 ng/mL in granzyme B immunoblot
+    context: "NK cells stimulated with 20 ng/mL IL-15 for 48 h and increasing concentrations\
+      \ of TGF-beta1 (0\u20135 ng/mL); top panel granzyme B (GZMB) immunoblot."
+- name: TGFb_MW_kDa
+  value: 25.0
+  units: kilodalton
+  input_type: reference_value
+  source_ref: Wilson2011
+  source_location: unit conversion
+  rationale: "TGF-beta1 homodimer molecular weight ~25 kDa. Used to convert ng/mL
+    to nM: nM = (ng/mL) / (kDa) = (ng/mL) / 25."
+- name: TGFb_dose0_nM
+  value: 0.0
+  units: nanomolarity
+  input_type: derived_arithmetic
+  rationale: Convert 0 ng/mL TGF-beta to nM
+  source_ref: Wilson2011
+  source_location: Figure 3A
+  source_inputs:
+  - TGFb_dose0_ng_per_mL
+  - TGFb_MW_kDa
+  formula: TGFb_dose0_ng_per_mL / TGFb_MW_kDa
+- name: TGFb_dose_mid_nM
+  value: 0.02
+  units: nanomolarity
+  input_type: derived_arithmetic
+  rationale: Convert ~0.5 ng/mL TGF-beta to nM
+  source_ref: Wilson2011
+  source_location: Figure 3A
+  source_inputs:
+  - TGFb_dose_mid_ng_per_mL
+  - TGFb_MW_kDa
+  formula: TGFb_dose_mid_ng_per_mL / TGFb_MW_kDa
+- name: TGFb_dose5_nM
+  value: 0.2
+  units: nanomolarity
+  input_type: derived_arithmetic
+  rationale: Convert 5 ng/mL TGF-beta to nM
+  source_ref: Wilson2011
+  source_location: Figure 3A
+  source_inputs:
+  - TGFb_dose5_ng_per_mL
+  - TGFb_MW_kDa
+  formula: TGFb_dose5_ng_per_mL / TGFb_MW_kDa
+- name: GZMB_intensity_TGFb0
+  value: 14.967426710097723
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Wilson2011
+  source_location: Figure 3A, top panel
+  figure_excerpt:
+    figure_id: Figure 3A
+    value: "Bar1 \u2248 15 (a.u.)"
+    description: Densitometric intensity of GZMB band in 0 ng/mL TGF-beta lane (IL-15
+      only control); taken as maximal expression
+    context: Digitized using WebPlotDigitizer from GZMB immunoblot with increasing
+      TGF-beta1 concentrations. Intensities in arbitrary units; relative, not absolute
+      protein amounts.
+- name: GZMB_intensity_TGFb_mid
+  value: 2.0521172638436465
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Wilson2011
+  source_location: Figure 3A, top panel
+  figure_excerpt:
+    figure_id: Figure 3A
+    value: "Bar2 \u2248 2.1 (a.u.)"
+    description: Densitometric intensity of GZMB band in intermediate TGF-beta lane
+      (approx. 0.5 ng/mL)
+    context: Digitized using WebPlotDigitizer from GZMB immunoblot with increasing
+      TGF-beta1 concentrations. Intensities in arbitrary units; relative, not absolute
+      protein amounts.
+- name: GZMB_intensity_TGFb5
+  value: 0.9771986970684017
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Wilson2011
+  source_location: Figure 3A, top panel
+  figure_excerpt:
+    figure_id: Figure 3A
+    value: "Bar0 \u2248 1.0 (a.u.)"
+    description: Densitometric intensity of GZMB band in 5 ng/mL TGF-beta lane (maximally
+      inhibited condition)
+    context: Digitized using WebPlotDigitizer from GZMB immunoblot with increasing
+      TGF-beta1 concentrations. Intensities in arbitrary units; relative, not absolute
+      protein amounts.
+- name: n_gzmb_bands
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Each TGF-beta concentration is represented by a single GZMB immunoblot
+    band in Figure 3A; no explicit biological replicates are visible, so we treat
+    n=1 for the purpose of parametric bootstrap.
+  source_ref: Wilson2011
+  source_location: Figure 3A, top panel
+  value_snippet: '"For granzyme B, NK cells were stimulated 20 ng/ml IL-15 for 48
+    hrs and increasing amounts of TGF-b (ranging from 0 to 5 ng/ml). The immunoblot
+    shows granzyme B expression (GZMB) and actin as a loading control."'
+calibration:
+  parameters:
+  - name: TGFb_50_NK
+    units: nanomolarity
+    nuisance: false
+  forward_model:
+    data_rationale: "Wilson2011 Figure 3A provides a multi-dose titration (0, ~0.5,\
+      \ 5 ng/mL) of recombinant human TGF-beta1 added to IL-15\u2013activated primary\
+      \ human NK cells, with granzyme B protein levels measured by immunoblot. Densitometric\
+      \ band intensities across doses form an inhibitory concentration\u2013response\
+      \ curve that can be fit with an inhibitory Hill function."
+    submodel_rationale: "In the full PDAC QSP model, TGFb_50_NK controls the potency\
+      \ of TGF-beta\u2013mediated suppression of NK cytotoxic function, typically\
+      \ implemented as an inhibitory Hill factor on NK killing. Granzyme B is a key\
+      \ component of the NK cytotoxic apparatus and is strongly downregulated by TGF-beta.\
+      \ We therefore use the TGF-beta dose\u2013response of GZMB protein in IL-15\u2013\
+      activated NK cells as a mechanistic proxy for the TGFb_50_NK parameter, assuming\
+      \ that half-maximal suppression of GZMB tracks with half-maximal suppression\
+      \ of NK cytotoxic capacity."
+    type: direct_fit
+    curve: hill
+    ec50: TGFb_50_NK
+    n_hill: '1.0'
+    baseline:
+      input_ref: GZMB_intensity_TGFb5
+    maximum:
+      input_ref: GZMB_intensity_TGFb0
+    intercept: '0.0'
+  error_model:
+  - name: gzmb_TGFb0
+    units: dimensionless
+    uses_inputs:
+    - GZMB_intensity_TGFb0
+    - n_gzmb_bands
+    x_input: TGFb_dose0_nM
+    sample_size_input: n_gzmb_bands
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['GZMB_intensity_TGFb0']\n    # Treat\
+      \ band intensity as a positive count-like quantity and use a Poisson bootstrap\
+      \ around the mean\n    lam = mean\n    return rng.poisson(lam, n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: gzmb_TGFb_mid
+    units: dimensionless
+    uses_inputs:
+    - GZMB_intensity_TGFb_mid
+    - n_gzmb_bands
+    x_input: TGFb_dose_mid_nM
+    sample_size_input: n_gzmb_bands
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['GZMB_intensity_TGFb_mid']\n    lam\
+      \ = mean\n    return rng.poisson(lam, n_bootstrap)\n"
+    n_bootstrap: 10000
+  - name: gzmb_TGFb5
+    units: dimensionless
+    uses_inputs:
+    - GZMB_intensity_TGFb5
+    - n_gzmb_bands
+    x_input: TGFb_dose5_nM
+    sample_size_input: n_gzmb_bands
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['GZMB_intensity_TGFb5']\n    lam\
+      \ = mean\n    return rng.poisson(lam, n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: "This target constrains a single QSP parameter, TGFb_50_NK,\
+    \ by fitting an inhibitory Hill curve to three TGF-beta doses (0, ~0.5, 5 ng/mL)\
+    \ versus granzyme B protein levels in IL-15\u2013activated human NK cells. With\
+    \ baseline and maximum fixed from the 0 and 5 ng/mL lanes and the Hill coefficient\
+    \ fixed at 1, the EC50 is identifiable from the intermediate point but subject\
+    \ to uncertainty from limited sampling, densitometry noise, and the approximate\
+    \ assignment of the intermediate TGF-beta dose. Because only one band per dose\
+    \ is available, we approximate measurement variability using a Poisson bootstrap\
+    \ around the observed intensity values, which provides nonzero spread without\
+    \ introducing additional fitted uncertainty parameters. The mapping from GZMB\
+    \ suppression to overall NK cytotoxic inhibition is mechanistic but indirect,\
+    \ so this target should be combined with additional functional NK inhibition data\
+    \ (e.g. killing or degranulation at 5\u201310 ng/mL from Otegbeye2018 or Trotta2008)\
+    \ in joint inference to refine TGFb_50_NK and the maximal inhibition level."
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: NK cells
+    phenotype: CD56+ CD3- primary human natural killer cells from peripheral blood
+      of healthy donors
+    isolation_method: Negative selection NK cell isolation kit from peripheral blood
+      mononuclear cells
+    source: Peripheral blood of healthy volunteer donors
+  culture_conditions:
+    substrate: Standard tissue culture plastic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+    medium: DMEM with 10% fetal calf serum and 10% human AB serum (for NK cultures)
+      as described in Methods
+    supplements: Recombinant human IL-15 (20 ng/mL) for NK activation; recombinant
+      human TGF-beta1 titrated from 0 to 5 ng/mL
+    duration: 48 hours IL-15 +/- TGF-beta before immunoblotting for granzyme B
+    notes: "Granzyme B immunoblot in Figure 3A uses NK cells cultured for 48 h with\
+      \ IL-15 (20 ng/mL) plus a titration of TGF-beta1 (0\u20135 ng/mL)."
+  indication: solid tumours (ovarian and colorectal tumour co-culture context), used
+    as proxy for PDAC NK biology
+study_interpretation: "Wilson2011 demonstrates that chronic exposure of primary human\
+  \ NK cells to TGF-beta1 in the presence of IL-15 strongly suppresses granzyme B\
+  \ protein expression, NK activation receptor expression, and tumour cell killing.\
+  \ The granzyme B immunoblot with a 0\u20135 ng/mL TGF-beta titration provides a\
+  \ direct concentration\u2013response for one key component of the NK cytotoxic machinery.\
+  \ Assuming that suppression of granzyme B tracks with suppression of overall NK\
+  \ cytotoxic capacity, we use the TGF-beta dose\u2013response of GZMB protein as\
+  \ a mechanistic proxy to estimate the TGFb_50_NK parameter governing TGF-beta potency\
+  \ on NK effector function in the PDAC QSP model. The resulting EC50 is expected\
+  \ to lie in the tens to low hundreds of picomolar range, consistent with strong\
+  \ functional inhibition observed at 5\u201310 ng/mL TGF-beta in this and other human\
+  \ NK studies."
+key_assumptions:
+- Suppression of granzyme B protein by TGF-beta is a good mechanistic proxy for suppression
+  of overall NK cytotoxic capacity in the PDAC tumour microenvironment.
+- "The inhibitory Hill function acting on NK killing in the full QSP model has the\
+  \ same TGFb_50_NK potency as the Hill function governing GZMB suppression in IL-15\u2013\
+  activated NK cells."
+- The intermediate TGF-beta lane in Figure 3A corresponds approximately to 0.5 ng/mL
+  based on its position between 0 and 5 ng/mL; this approximation introduces modest
+  uncertainty but retains the overall scale of the EC50.
+- Band intensities from a single immunoblot lane per dose are treated as single observations
+  (n=1); a Poisson bootstrap around the observed intensity values is used to generate
+  nonzero variability without introducing additional fitted uncertainty parameters.
+- NK cell intrinsic responses to TGF-beta (granzyme B suppression) are similar across
+  solid tumour contexts (ovarian, colorectal, PDAC), so this in vitro human NK dataset
+  is transferable as a proxy for PDAC NK biology.
+key_study_limitations:
+- Granzyme B protein levels are a surrogate rather than a direct functional readout
+  of NK tumour killing; additional data on degranulation, IFN-gamma production, or
+  cytotoxicity at multiple TGF-beta doses would strengthen the mapping to TGFb_50_NK.
+- "The granzyme B dose\u2013response is derived from a single immunoblot without visible\
+  \ replicates, so technical variability and donor-to-donor variation cannot be quantified\
+  \ precisely from this figure."
+- The intermediate TGF-beta dose is inferred approximately from the figure (estimated
+  ~0.5 ng/mL) rather than explicitly specified in the text, which adds uncertainty
+  to the precise EC50 estimate.
+- "Experiments are performed with IL-15\u2013activated peripheral blood NK cells from\
+  \ healthy donors co-cultured with colorectal and ovarian tumour cell lines, not\
+  \ with NK cells in the PDAC microenvironment; additional PDAC-specific data would\
+  \ improve tumour-context fidelity."
+- "TGF-beta concentrations in vitro (0\u20135 ng/mL) may exceed or differ from free\
+  \ TGF-beta levels in human PDAC tumours due to binding, activation state, and compartmentalization,\
+  \ so absolute EC50 values may require adjustment when mapped to in vivo conditions."
+primary_data_source:
+  doi: 10.1371/journal.pone.0022842
+  title: Human Tumour Immune Evasion via TGF-b Blocks NK Cell Activation but Not Survival
+    Allowing Therapeutic Restoration of Anti-Tumour Activity
+  authors:
+  - Wilson
+  - El-Jawhari JJ
+  - Neilson AL
+  - Hall GD
+  - Melcher AA
+  - Meade JL
+  - Cook GP
+  year: 2011
+  source_tag: Wilson2011
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: "Wilson2011 studies human NK cells from healthy\
+      \ donor peripheral blood interacting with colorectal and ovarian tumour cell\
+      \ lines and primary ovarian tumour cells, whereas the QSP model targets PDAC.\
+      \ The TGF-beta effect being quantified here\u2014suppression of NK granzyme\
+      \ B expression in response to recombinant TGF-beta1\u2014is intrinsic to human\
+      \ NK cells and not strongly dependent on tumour type, so ovarian/colorectal\
+      \ systems serve as a mechanistic proxy for PDAC NK biology. Nonetheless, differences\
+      \ in tumour-derived co-signals and stromal context may shift effective TGF-beta\
+      \ sensitivity, introducing translation uncertainty."
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: "Recombinant human TGF-beta1 is added exogenously over\
+      \ a concentration range (0\u20135 ng/mL) to IL-15\u2013activated NK cells. These\
+      \ doses are chosen to mimic pathophysiologically relevant and slightly supraphysiologic\
+      \ TGF-beta levels seen in cancer patients. The resulting EC50 is interpreted\
+      \ as the intrinsic potency of TGF-beta signalling on human NK cells and assumed\
+      \ to approximate the effective potency in the PDAC tumour microenvironment,\
+      \ acknowledging potential differences in ligand activation, binding proteins,\
+      \ and receptor expression."
+    tme_compatibility: moderate
+    tme_compatibility_notes: The experiments capture NK intrinsic responses to TGF-beta
+      in a simplified in vitro setting without the dense desmoplastic stroma, MDSC
+      populations, or complex cytokine milieu of PDAC. However, PDAC and the ovarian/colorectal
+      tumour settings used in Wilson2011 all feature high TGF-beta exposure and NK
+      suppression. We therefore treat the TGF-beta potency on NK cells as moderately
+      transferable while recognizing that the absolute EC50 in vivo may differ due
+      to stromal sequestration or receptor modulation.
+    measurement_directness: proxy_observable
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_primary
+tags:
+- NK
+- TGFbeta
+- dose_response
+- granzymeB
+- human
+- in_vitro
+- PDAC_proxy
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

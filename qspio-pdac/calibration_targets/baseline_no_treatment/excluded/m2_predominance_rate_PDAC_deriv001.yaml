@@ -1,0 +1,224 @@
+study_interpretation: |
+  Ino et al. (2013) performed IHC on 212 resected pancreatic ductal carcinomas
+  using CD68 (pan-macrophage), HLA-DR+CD68+ (M1), CD163 and CD204 (M2) markers.
+  M2 macrophages were predominant among tumor-infiltrating macrophages in 78% of
+  cases. Higher M2 infiltration was significantly associated with shorter survival.
+  This provides a population-level constraint on the M2:M1 balance complementary
+  to the continuous M1/M2 ratio target from Dias Costa 2022 (deriv001).
+key_assumptions:
+- |
+  "M2 predominant" is interpreted as M2 count > M1 count per tumor, corresponding
+  to a model threshold of Mac_M2 / (Mac_M1 + Mac_M2) > 0.5.
+- |
+  The 78% figure implies approximately 165 of 212 patients had M2 > M1. The exact
+  count is not specified; we use round(0.78 * 212) = 165.
+- |
+  IHC markers HLA-DR+CD68+ (M1) and CD163/CD204+ (M2) map to model species
+  V_T.Mac_M1 and V_T.Mac_M2 respectively.
+- |
+  The response rate is modeled as a Beta posterior with uniform prior:
+  Beta(166, 48), yielding median 0.777, CI95 [0.718, 0.829].
+key_study_limitations:
+- |
+  Single-center Japanese cohort (n=212); generalizability to other populations
+  may be limited.
+- |
+  The paper reports only the proportion of M2-predominant cases, not the
+  distribution of M2/M1 ratios. This limits constraining power to a binary
+  classification.
+- |
+  Macrophage polarization assessed by limited IHC markers may not capture the
+  full continuum of TAM phenotypes.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        M1 = species_dict['V_T.Mac_M1']
+        M2 = species_dict['V_T.Mac_M2']
+        total = M1 + M2
+        frac_m2 = (M2 / total)
+        return frac_m2
+
+  units: dimensionless
+  species:
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  constants:
+  - name: m2_predominance_threshold
+    value: 0.5
+    units: dimensionless
+    biological_basis: |
+      M2 predominance defined as M2 fraction of total macrophages > 50%, i.e.,
+      more M2 than M1 macrophages in the tumor.
+    source_type: literature
+    reference_db_name: null
+    reference_db_names: null
+    source_tag: Ino2013_MacrophagePDAC
+  support: unit_interval
+  mapping_rationale: |
+    Ino et al. classified tumors as M2-predominant when M2 macrophages outnumbered
+    M1. The observable computes M2 fraction of total macrophages, and the
+    aggregation classifies virtual patients as M2-predominant when this fraction
+    exceeds 0.5. The population-level response rate (fraction of M2-predominant
+    virtual patients) is compared to the observed 78%.
+  experimental_denominator: Total tumor-infiltrating macrophages (CD68+)
+  model_denominator_species:
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  unmodeled_denominator_components: null
+  aggregation:
+    type: response_rate
+    threshold_code: |
+      def classify_patient(time, species_dict, constants, ureg):
+          """Classify a virtual patient as M2-predominant.
+
+          Returns True if M2 macrophages outnumber M1 at the end of simulation
+          (representing resection), matching the IHC-based classification.
+          """
+          M1 = species_dict['V_T.Mac_M1']
+          M2 = species_dict['V_T.Mac_M2']
+
+          if hasattr(M1, '__len__'):
+              M1_val = M1[-1]
+              M2_val = M2[-1]
+          else:
+              M1_val = M1
+              M2_val = M2
+
+          total = M1_val + M2_val
+          frac_m2 = (M2_val / total).to('dimensionless')
+          threshold = constants['m2_predominance_threshold']
+          return bool(frac_m2 >= threshold)
+    time_point: null
+    time_unit: null
+    rationale: |
+      The clinical observable is the proportion of PDAC tumors with M2-predominant
+      macrophage infiltration (78% of 212 cases). This is a population summary
+      requiring response-rate aggregation across virtual patients.
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: |
+      212 patients with pancreatic ductal carcinoma who underwent surgical
+      resection. Neoadjuvant therapy status not detailed.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Formalin-fixed, paraffin-embedded primary pancreatic ductal carcinoma from
+    surgical resection specimens.
+  assay_type: |
+    Immunohistochemistry for CD68 (pan-macrophage), HLA-DR+CD68+ (M1), CD163
+    and CD204 (M2) with semi-quantitative scoring.
+scenario:
+  description: |
+    Baseline macrophage polarization in primary PDAC tumors at surgical resection.
+    M2 predominance assessed by IHC to characterize the immunosuppressive TME.
+  interventions:
+  - intervention_description: |
+      No specific intervention; observational measurement on resected tumor tissue.
+empirical_data:
+  median:
+  - 0.7767
+  ci95:
+  - - 0.7176
+    - 0.8289
+  units: dimensionless
+  sample_size: 212
+  sample_size_rationale: |
+    n=212 resected pancreatic ductal carcinomas from Ino et al. 2013, with
+    macrophage polarization assessed by IHC.
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs:
+  - name: n_m2_predominant
+    value: 165.0
+    units: dimensionless
+    description: |
+      Number of tumors classified as M2-predominant (M2 > M1). Inferred from
+      78% of 212 cases = 165.4, rounded to 165.
+    source_ref: Ino2013_MacrophagePDAC
+    value_location: Results section.
+    value_snippet: |
+      In 78% of the cases, M2 were predominant among tumour-infiltrating
+      macrophages.
+    input_type: inferred_estimate
+    conversion_formula: round(0.78 * 212) = 165
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: |
+      Exact count not stated; derived from reported percentage (78%) and
+      sample size (212).
+    dispersion_type: null
+    dispersion_type_rationale: null
+  - name: n_total
+    value: 212.0
+    units: dimensionless
+    description: |
+      Total number of resected PDAC tumors evaluated for macrophage polarization.
+    source_ref: Ino2013_MacrophagePDAC
+    value_location: Methods section.
+    value_snippet: |
+      tumour-infiltrating immune/inflammatory cells in 212 cases
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: manual
+    extraction_notes: null
+    dispersion_type: null
+    dispersion_type_rationale: null
+  assumptions: []
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        from scipy import stats
+        n_pos = int(inputs['n_m2_predominant'].magnitude)
+        n_tot = int(inputs['n_total'].magnitude)
+        # Beta posterior with uniform prior
+        a = n_pos + 1
+        b = (n_tot - n_pos) + 1
+        median_obs = stats.beta.median(a, b)
+        ci95_lower = stats.beta.ppf(0.025, a, b)
+        ci95_upper = stats.beta.ppf(0.975, a, b)
+        return {
+            'median_obs': median_obs * ureg.dimensionless,
+            'ci95_lower': ci95_lower * ureg.dimensionless,
+            'ci95_upper': ci95_upper * ureg.dimensionless,
+        }
+primary_data_source:
+  source_tag: Ino2013_MacrophagePDAC
+  title: |
+    Immune cell infiltration as an indicator of the immune microenvironment
+    of pancreatic cancer
+  first_author: Ino
+  year: 2013
+  doi: 10.1038/bjc.2013.32
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: |
+      212 resected pancreatic ductal carcinomas, directly matching the PDAC indication.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Observational measurement of treatment-naive PDAC specimens; no experimental perturbation applied.
+    tme_compatibility: high
+    tme_compatibility_notes: |
+      Large cohort (n=212) with detailed macrophage polarization phenotyping.
+    validation_warnings:
+    - Exact count of M2-predominant cases inferred from percentage (78% of 212).
+secondary_data_sources: []
+calibration_target_id: m2_predominance_rate_ino2013
+cancer_type: PDAC
+tags:
+- manual
+- from-qualitative-bound

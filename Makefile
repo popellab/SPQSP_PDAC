@@ -1,19 +1,40 @@
-# SPQSP_PDAC consumer-side invariants.
+# SPQSP_PDAC — project-level build and sync targets.
 #
-# Codegen (SBML -> C++) lives upstream in pdac-build via `make refresh-cpp`,
-# which drives the standalone `qsp-codegen` tool and writes into this repo's
-# PDAC/qsp/ode/ directory. This Makefile only holds checks that verify the
-# current working tree is internally consistent.
+# The QSP model source of truth is qspio-pdac/ (MATLAB → SBML → C++ codegen).
+# The ABM in PDAC/ embeds a copy of the generated C++ ODE code plus a merged
+# param XML. These targets keep the two sides in sync.
 
 PY ?= python3
+QSPIO := qspio-pdac
+ABM_ODE := PDAC/qsp/ode
+SRC_ODE := $(QSPIO)/cpp/qsp/ode
 
-.PHONY: help check-sync
+ODE_FILES := ODE_system.cpp ODE_system.h QSPParam.cpp QSPParam.h QSP_enum.h
+
+.PHONY: help sync-qsp check-qsp-sync check-sync
 
 help:
 	@echo "SPQSP_PDAC targets"
-	@echo "  make check-sync   -- run PDAC/codegen/check_sync.py (SBML/ODE/binary/XML drift)"
-	@echo
-	@echo "Codegen itself is driven from pdac-build: `cd ../pdac-build && make refresh-cpp`"
+	@echo ""
+	@echo "  make sync-qsp        -- copy ODE files from qspio-pdac → PDAC/qsp/ode/"
+	@echo "  make check-qsp-sync  -- verify ODE files + params are in sync (read-only)"
+	@echo "  make check-sync      -- alias for check-qsp-sync"
+	@echo ""
+	@echo "QSP codegen (SBML → C++):"
+	@echo "  cd qspio-pdac && make refresh-cpp   -- regenerate C++ from SBML"
+	@echo "  make sync-qsp                       -- then copy into PDAC/"
 
-check-sync:
+sync-qsp:
+	@echo "Syncing ODE files: $(SRC_ODE) → $(ABM_ODE)"
+	@for f in $(ODE_FILES); do \
+		cp -v "$(SRC_ODE)/$$f" "$(ABM_ODE)/$$f"; \
+	done
+	@if [ -f "$(SRC_ODE)/qsp_params_xml_snippet.xml" ]; then \
+		cp -v "$(SRC_ODE)/qsp_params_xml_snippet.xml" "$(ABM_ODE)/qsp_params_xml_snippet.xml"; \
+	fi
+	@echo "Sync complete. Rebuild the ABM: cd PDAC/sim && ./build.sh"
+
+check-qsp-sync:
 	$(PY) PDAC/codegen/check_sync.py
+
+check-sync: check-qsp-sync

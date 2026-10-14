@@ -1,0 +1,454 @@
+target_id: IL12_50
+inputs:
+- name: IL12_MW_kDa_MS
+  value: 75.0
+  units: kilodalton
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Methods, Manufacture of IL-12 loaded pH responsive nanoparticles
+  value_snippet: "NPs containing IL-12 (MW\u224875 kDa), were produced using a modified\
+    \ water-in-oil-in-water (w/o/w) double emulsion-solvent evaporation technique"
+- name: IL12_conc_62_5_pg_ml
+  value: 62.5
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Methods, Nitric oxide (NO) release bioassay in 2D macrophages
+  value_snippet: different concentrations of free IL-12 or different NPs (62.5, 125,
+    250, 500 pg/mL with respect to the IL-12) in medium
+- name: IL12_conc_125_pg_ml
+  value: 125.0
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Methods, Nitric oxide (NO) release bioassay in 2D macrophages
+  value_snippet: different concentrations of free IL-12 or different NPs (62.5, 125,
+    250, 500 pg/mL with respect to the IL-12) in medium
+- name: IL12_conc_250_pg_ml
+  value: 250.0
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Methods, Nitric oxide (NO) release bioassay in 2D macrophages
+  value_snippet: different concentrations of free IL-12 or different NPs (62.5, 125,
+    250, 500 pg/mL with respect to the IL-12) in medium
+- name: IL12_conc_500_pg_ml
+  value: 500.0
+  units: picogram / milliliter
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Methods, Nitric oxide (NO) release bioassay in 2D macrophages
+  value_snippet: different concentrations of free IL-12 or different NPs (62.5, 125,
+    250, 500 pg/mL with respect to the IL-12) in medium
+- name: IL12_conc_62_5_pM
+  value: 0.83
+  units: picomolarity
+  input_type: derived_arithmetic
+  rationale: Convert IL-12 concentration from pg/mL to picomolarity using the reported
+    molecular weight of 75 kDa; for IL-12, conc_pM = conc_pg_ml / MW_kDa.
+  source_ref: Silveira2025
+  source_location: Derived from Methods (IL-12 MW) and NO bioassay concentrations
+  source_inputs:
+  - IL12_MW_kDa_MS
+  - IL12_conc_62_5_pg_ml
+  formula: IL12_conc_62_5_pg_ml / IL12_MW_kDa_MS
+- name: IL12_conc_125_pM
+  value: 1.67
+  units: picomolarity
+  input_type: derived_arithmetic
+  rationale: Convert IL-12 concentration from pg/mL to picomolarity using conc_pM
+    = conc_pg_ml / MW_kDa with MW=75 kDa.
+  source_ref: Silveira2025
+  source_location: Derived from Methods (IL-12 MW) and NO bioassay concentrations
+  source_inputs:
+  - IL12_MW_kDa_MS
+  - IL12_conc_125_pg_ml
+  formula: IL12_conc_125_pg_ml / IL12_MW_kDa_MS
+- name: IL12_conc_250_pM
+  value: 3.33
+  units: picomolarity
+  input_type: derived_arithmetic
+  rationale: Convert IL-12 concentration from pg/mL to picomolarity using conc_pM
+    = conc_pg_ml / MW_kDa with MW=75 kDa.
+  source_ref: Silveira2025
+  source_location: Derived from Methods (IL-12 MW) and NO bioassay concentrations
+  source_inputs:
+  - IL12_MW_kDa_MS
+  - IL12_conc_250_pg_ml
+  formula: IL12_conc_250_pg_ml / IL12_MW_kDa_MS
+- name: IL12_conc_500_pM
+  value: 6.67
+  units: picomolarity
+  input_type: derived_arithmetic
+  rationale: Convert IL-12 concentration from pg/mL to picomolarity using conc_pM
+    = conc_pg_ml / MW_kDa with MW=75 kDa.
+  source_ref: Silveira2025
+  source_location: Derived from Methods (IL-12 MW) and NO bioassay concentrations
+  source_inputs:
+  - IL12_MW_kDa_MS
+  - IL12_conc_500_pg_ml
+  formula: IL12_conc_500_pg_ml / IL12_MW_kDa_MS
+- name: NO_foldchange_mean_hMDM_IL12_62_5
+  value: 0.94
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Figure 2D, human monocyte-derived macrophages, free IL-12, 62.5
+    pg/mL
+  figure_excerpt:
+    figure_id: Figure 2D
+    value: ~0.94 fold
+    description: Height of the green bar (free IL-12) at 62.5 pg/mL IL-12 for human
+      monocyte-derived macrophages
+    context: Fold change in NO release relative to M0 macrophages after 24 h stimulation
+      with IL-12 formulations
+- name: NO_foldchange_sd_hMDM_IL12_62_5
+  value: 0.04
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Figure 2D, human monocyte-derived macrophages, free IL-12, 62.5
+    pg/mL
+  figure_excerpt:
+    figure_id: Figure 2D
+    value: error bar ~0.98 vs mean ~0.94
+    description: Error bar height of the green bar (free IL-12) at 62.5 pg/mL; SD
+      approximated as (mean_plus_error - mean)
+    context: "Fold change in NO release relative to M0 macrophages; error bars reported\
+      \ as SD (n\u22653)"
+- name: NO_foldchange_mean_hMDM_IL12_125
+  value: 1.21
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Figure 2D, human monocyte-derived macrophages, free IL-12, 125
+    pg/mL
+  figure_excerpt:
+    figure_id: Figure 2D
+    value: ~1.21 fold
+    description: Height of the green bar (free IL-12) at 125 pg/mL IL-12 for human
+      monocyte-derived macrophages
+    context: Fold change in NO release relative to M0 macrophages after 24 h stimulation
+      with IL-12 formulations
+- name: NO_foldchange_sd_hMDM_IL12_125
+  value: 0.03
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Figure 2D, human monocyte-derived macrophages, free IL-12, 125
+    pg/mL
+  figure_excerpt:
+    figure_id: Figure 2D
+    value: error bar ~1.24 vs mean ~1.21
+    description: Error bar height of the green bar (free IL-12) at 125 pg/mL; SD approximated
+      as (mean_plus_error - mean)
+    context: "Fold change in NO release relative to M0 macrophages; error bars reported\
+      \ as SD (n\u22653)"
+- name: NO_foldchange_mean_hMDM_IL12_250
+  value: 1.31
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Figure 2D, human monocyte-derived macrophages, free IL-12, 250
+    pg/mL
+  figure_excerpt:
+    figure_id: Figure 2D
+    value: ~1.31 fold
+    description: Height of the green bar (free IL-12) at 250 pg/mL IL-12 for human
+      monocyte-derived macrophages
+    context: Fold change in NO release relative to M0 macrophages after 24 h stimulation
+      with IL-12 formulations
+- name: NO_foldchange_sd_hMDM_IL12_250
+  value: 0.02
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Figure 2D, human monocyte-derived macrophages, free IL-12, 250
+    pg/mL
+  figure_excerpt:
+    figure_id: Figure 2D
+    value: error bar ~1.32 vs mean ~1.31
+    description: Error bar height of the green bar (free IL-12) at 250 pg/mL; SD approximated
+      as (mean_plus_error - mean)
+    context: "Fold change in NO release relative to M0 macrophages; error bars reported\
+      \ as SD (n\u22653)"
+- name: NO_foldchange_mean_hMDM_IL12_500
+  value: 1.39
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Figure 2D, human monocyte-derived macrophages, free IL-12, 500
+    pg/mL
+  figure_excerpt:
+    figure_id: Figure 2D
+    value: ~1.39 fold
+    description: Height of the green bar (free IL-12) at 500 pg/mL IL-12 for human
+      monocyte-derived macrophages
+    context: Fold change in NO release relative to M0 macrophages after 24 h stimulation
+      with IL-12 formulations
+- name: NO_foldchange_sd_hMDM_IL12_500
+  value: 0.04
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Silveira2025
+  source_location: Figure 2D, human monocyte-derived macrophages, free IL-12, 500
+    pg/mL
+  figure_excerpt:
+    figure_id: Figure 2D
+    value: error bar ~1.43 vs mean ~1.39
+    description: Error bar height of the green bar (free IL-12) at 500 pg/mL; SD approximated
+      as (mean_plus_error - mean)
+    context: "Fold change in NO release relative to M0 macrophages; error bars reported\
+      \ as SD (n\u22653)"
+- name: n_replicates_NO_hMDM
+  value: 3.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Silveira2025 reports that all efficacy studies, including NO and cytokine
+    measurements, were conducted independently at least three times; we conservatively
+    use n=3 as the effective sample size for each condition.
+  source_ref: Silveira2025
+  source_location: Methods, Statistical analysis and efficacy studies description
+  value_snippet: All efficacy studies were conducted independently at least three
+    times.
+calibration:
+  parameters:
+  - name: IL12_50
+    units: picomolarity
+    nuisance: false
+  - name: NO_baseline_hMDM
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 0.5
+  - name: NO_max_hMDM
+    units: dimensionless
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: 0.4
+      sigma: 0.7
+  forward_model:
+    data_rationale: "Silveira2025 reports a graded IL-12 concentration-response (62.5\u2013\
+      500 pg/mL) for fold-change NO release from human monocyte-derived macrophages\
+      \ after 24 h stimulation with free IL-12. NO is a canonical M1-associated effector\
+      \ molecule, and its fold-change relative to M0 macrophages provides a functional\
+      \ readout of IL-12-driven M2\u2192M1-like polarization at quasi-steady state."
+    submodel_rationale: "In the full QSPIO-PDAC model, the M2\u2192M1 polarization\
+      \ rate is modulated by IL-12 via a Hill term IL12/(IL12+IL12_50). At steady\
+      \ state, M1-associated functions such as NO production scale approximately with\
+      \ this activation term. We therefore model NO fold-change as a Hill function\
+      \ of IL-12 concentration with EC50 equal to IL12_50, allowing us to infer IL12_50\
+      \ directly from the macrophage dose\u2013response while treating baseline and\
+      \ maximal NO levels as experiment-specific nuisance parameters."
+    type: direct_fit
+    curve: hill
+    ec50: IL12_50
+    n_hill: '1.0'
+    baseline: NO_baseline_hMDM
+    maximum: NO_max_hMDM
+    intercept: '0.0'
+  error_model:
+  - name: NO_hMDM_IL12_62_5
+    units: dimensionless
+    uses_inputs:
+    - NO_foldchange_mean_hMDM_IL12_62_5
+    - NO_foldchange_sd_hMDM_IL12_62_5
+    - n_replicates_NO_hMDM
+    - IL12_conc_62_5_pM
+    x_input: IL12_conc_62_5_pM
+    sample_size_input: n_replicates_NO_hMDM
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['NO_foldchange_mean_hMDM_IL12_62_5']\n\
+      \    sd = inputs['NO_foldchange_sd_hMDM_IL12_62_5']\n    cv = sd / mean\n  \
+      \  sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: NO_hMDM_IL12_125
+    units: dimensionless
+    uses_inputs:
+    - NO_foldchange_mean_hMDM_IL12_125
+    - NO_foldchange_sd_hMDM_IL12_125
+    - n_replicates_NO_hMDM
+    - IL12_conc_125_pM
+    x_input: IL12_conc_125_pM
+    sample_size_input: n_replicates_NO_hMDM
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['NO_foldchange_mean_hMDM_IL12_125']\n\
+      \    sd = inputs['NO_foldchange_sd_hMDM_IL12_125']\n    cv = sd / mean\n   \
+      \ sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: NO_hMDM_IL12_250
+    units: dimensionless
+    uses_inputs:
+    - NO_foldchange_mean_hMDM_IL12_250
+    - NO_foldchange_sd_hMDM_IL12_250
+    - n_replicates_NO_hMDM
+    - IL12_conc_250_pM
+    x_input: IL12_conc_250_pM
+    sample_size_input: n_replicates_NO_hMDM
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['NO_foldchange_mean_hMDM_IL12_250']\n\
+      \    sd = inputs['NO_foldchange_sd_hMDM_IL12_250']\n    cv = sd / mean\n   \
+      \ sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  - name: NO_hMDM_IL12_500
+    units: dimensionless
+    uses_inputs:
+    - NO_foldchange_mean_hMDM_IL12_500
+    - NO_foldchange_sd_hMDM_IL12_500
+    - n_replicates_NO_hMDM
+    - IL12_conc_500_pM
+    x_input: IL12_conc_500_pM
+    sample_size_input: n_replicates_NO_hMDM
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['NO_foldchange_mean_hMDM_IL12_500']\n\
+      \    sd = inputs['NO_foldchange_sd_hMDM_IL12_500']\n    cv = sd / mean\n   \
+      \ sigma_ln = np.sqrt(np.log(1 + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2\
+      \ / 2\n    return rng.lognormal(mu_ln, sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  identifiability_notes: "This target uses four IL-12 concentrations (0.83\u20136.67\
+    \ pM) and their corresponding NO fold-change measurements in human monocyte-derived\
+    \ macrophages to infer IL12_50 through a Hill-type direct_fit model. The dynamic\
+    \ range of the response is modest (~0.9\u20131.4 fold), so IL12_50 is expected\
+    \ to be only moderately constrained and somewhat correlated with the nuisance\
+    \ baseline and maximum NO parameters. Because all points are at a single 24 h\
+    \ timepoint and no explicit M1/M2 fractions are measured, this target informs\
+    \ the effective IL-12 potency for inducing an M1-like effector (NO) under these\
+    \ culture conditions, which is assumed to approximate the IL-12 EC50 for M2\u2192\
+    M1 polarization in the tumor. The posterior of IL12_50 from this target should\
+    \ remain within the same order of magnitude as the prior (median 15 pM) but may\
+    \ shift toward slightly lower values (a few pM) depending on the fit; additional\
+    \ targets using IFN-\u03B3 or M1/M2 marker data could further refine this parameter\
+    \ and reduce correlation with the nuisance NO_max_hMDM."
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: human monocyte-derived macrophages
+    phenotype: monocytes differentiated to macrophages with M-CSF
+    isolation_method: RosetteSep human monocyte enrichment from buffy coats followed
+      by Histopaque-1077 gradient
+    source: Peripheral blood from healthy donors provided by Centro Hospitalar Universitario
+      Sao Joao
+  culture_conditions:
+    substrate: tissue culture plastic (24- or 96-well plates)
+    serum_concentration: 10.0
+    serum_concentration_units: percent_volume
+    oxygen_level: normoxic, 5% CO2, 37 C
+    culture_type: 2d_monolayer
+    medium: RPMI1640 supplemented with 10% FBS, penicillin-streptomycin, and 2 mM
+      L-glutamine
+    supplements: M-CSF (50 ng/mL) for 7 days during differentiation; IL-12 added for
+      24 h during NO assay
+    duration: 7 days differentiation with M-CSF + 24 h IL-12 stimulation for NO readout
+    notes: "Macrophages were not pre-polarized for the main NO dose\u2013response;\
+      \ M1 and M2 controls were run in parallel but are not used quantitatively in\
+      \ this target."
+  indication: colorectal cancer spheroid model used as general solid tumor immuno-microenvironment
+    proxy
+study_interpretation: "Silveira2025 demonstrates that human monocyte-derived macrophages\
+  \ increase NO production modestly but consistently in response to increasing concentrations\
+  \ of free IL-12 in vitro, with doses spanning 62.5\u2013500 pg/mL (\u22480.8\u2013\
+  6.7 pM). Because NO is a hallmark effector of classically activated (M1-like) macrophages,\
+  \ the IL-12 concentration\u2013NO fold-change relationship provides a functional\
+  \ surrogate for the strength of the IL-12 signal driving M2\u2192M1 polarization.\
+  \ By fitting a Hill function whose EC50 is identified with IL12_50, we map these\
+  \ in vitro dose\u2013response data to the IL-12 potency parameter that modulates\
+  \ the M2\u2192M1 polarization rate in the QSPIO-PDAC model. Although the experiments\
+  \ are performed in CRC-oriented systems and healthy donor macrophages rather than\
+  \ PDAC TAMs, IL-12 receptor signaling biochemistry is conserved across tissues,\
+  \ making this a reasonable first-order proxy for IL12_50 that can later be refined\
+  \ with PDAC-specific data."
+key_assumptions:
+- "Human monocyte-derived macrophages from healthy donors have IL-12 receptor expression\
+  \ and downstream signaling potency similar to tumor-associated macrophages in PDAC,\
+  \ so the IL-12 EC50 for NO induction approximates the EC50 for M2\u2192M1 polarization\
+  \ in the PDAC TME."
+- NO fold-change after 24 h IL-12 stimulation is approximately proportional to the
+  fraction of macrophages in an M1-like state, allowing a simple Hill model in IL-12
+  concentration to capture the effective polarization signal without explicitly modeling
+  macrophage state dynamics.
+- Endogenous IFN-gamma production by macrophages and other cells in this 2D culture
+  is limited enough that IL-12 is the dominant driver of NO induction, so the effective
+  IL-12 EC50 extracted here can be mapped onto the IL12_50 term in the combined IL-12/IFN-gamma
+  polarization rate law of the QSP model.
+- The reported error bars for NO fold-change represent standard deviations from at
+  least three independent experiments; we approximate the sample size as n=3 for bootstrap
+  uncertainty quantification.
+- Concentrations of IL-12 in the culture medium are assumed constant over the 24 h
+  assay (no significant degradation or consumption), so the nominal added dose is
+  treated as the effective extracellular IL-12 concentration seen by macrophages.
+key_study_limitations:
+- The experimental system uses macrophages derived from healthy donor blood and CRC-oriented
+  co-cultures rather than PDAC tumor-associated macrophages, so tissue-specific conditioning
+  and desmoplastic stromal influences on IL-12 responsiveness are not captured.
+- "The NO response of human macrophages to IL-12 is relatively modest (\u22481.5-fold\
+  \ dynamic range), which limits how tightly IL12_50 can be constrained and increases\
+  \ correlation with the nuisance baseline and maximum NO parameters."
+- Only four non-zero IL-12 concentrations were tested, all at a single 24 h timepoint,
+  so potential time-dependent adaptation or desensitization of IL-12 signaling is
+  not constrained by these data.
+- The assay does not directly measure M1 vs M2 macrophage fractions but instead uses
+  NO as a functional surrogate; other aspects of M1 polarization (e.g., surface markers,
+  cytokine profiles) might have slightly different IL-12 sensitivities.
+- Culture pH and the presence of nanoparticles are controlled in the experiments,
+  but the NO data used here are taken from the free IL-12 condition and may still
+  differ from the complex pH- and nanoparticle-modulated IL-12 exposure patterns encountered
+  in vivo.
+primary_data_source:
+  doi: 10.1007/s13346-025-01896-8
+  title: Immunostimulatory effects of IL-12 targeted pH-responsive nanoparticles in
+    macrophage-enriched 3D immuno-spheroids in vitro model
+  authors:
+  - Maria Jose Silveira
+  - Claudia Martins
+  - Ana P. Cardoso
+  - Marc J. K. Ankone
+  - Rhianna R. R. Blyth
+  - Maria Jose Oliveira
+  - Bruno Sarmento
+  - Jai Prakash
+  year: 2025
+  source_tag: Silveira2025
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: "The study focuses on colorectal cancer (CRC)\
+      \ 2D and 3D immuno-spheroid models rather than PDAC, but the IL-12 dose\u2013\
+      response of human monocyte-derived macrophages is expected to depend primarily\
+      \ on IL-12 receptor signaling biochemistry, which is broadly conserved across\
+      \ solid tumors. We therefore treat CRC-derived macrophage IL-12 potency as a\
+      \ mechanistic proxy for PDAC TAMs, acknowledging possible tissue-specific conditioning\
+      \ effects."
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: pharmacological
+    perturbation_relevance: "Macrophages are exposed to exogenous IL-12 at supraphysiologic\
+      \ yet clinically relevant concentrations (62.5\u2013500 pg/mL) to map out the\
+      \ full concentration\u2013response curve for NO production. These data characterize\
+      \ the intrinsic signaling potency of IL-12 rather than endogenous cytokine levels,\
+      \ and thus directly inform the IL12_50 parameter governing how strongly a given\
+      \ IL-12 concentration in the tumor microenvironment drives M2\u2192M1 polarization."
+    tme_compatibility: moderate
+    tme_compatibility_notes: "The 2D human monocyte-derived macrophage cultures lack\
+      \ the dense desmoplastic stroma, chronic hypoxia, and complex immune\u2013stromal\
+      \ interactions of PDAC, which may modulate macrophage polarization thresholds.\
+      \ However, receptor-level IL-12 signaling and proximal STAT4 activation are\
+      \ expected to be similar, so the main impact is on translation of absolute EC50\
+      \ values rather than on qualitative response shape."
+    measurement_directness: direct
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: in_vitro_primary
+tags:
+- IL12
+- macrophage_polarization
+- NO_release
+- dose_response
+- in_vitro_human
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

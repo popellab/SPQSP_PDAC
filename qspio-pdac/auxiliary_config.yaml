@@ -1,0 +1,80 @@
+# Auxiliary parameter groups for joint QSP inference.
+#
+# Loaded by qsp_inference.auxiliary.load_auxiliary_config + walked alongside
+# calibration_targets/ via discover_auxiliary_members(). Each group declares
+# the structural prior shared by all auxiliary parameters that reference it
+# (members are auto-discovered from observable.auxiliary_parameters blocks
+# on cal-target YAMLs — they are NOT enumerated here).
+#
+# Sampling pattern (option 4 — implicit group mean, see qsp_inference.auxiliary):
+#
+#     log mu_g ~ Normal(base_prior.mu, base_prior.sigma)         # per-sim, NOT inferred
+#     delta_i ~ Normal(0, member_deviation_sigma)                # per-sim, per-member
+#     log theta_i = log mu_g + delta_i                           # for lognormal base
+#
+# So the marginal joint over sibling members is multivariate normal in log
+# space with shared `sigma**2` off-diagonal and `sigma**2 + tau**2` on the
+# diagonal. The prior is composed with the QSP prior (independent block),
+# and posteriors land per-member in `posterior_samples.csv`.
+
+groups:
+  serum_to_tumor:
+    description: >
+      Serum:tumor-tissue concentration ratio for cytokines whose published
+      values come from human serum/plasma but whose model species are
+      tumor-compartment concentrations (V_T.*). Each member bridges one
+      cytokine: observable.code multiplies the V_T species by the auxiliary
+      factor before comparison to the serum measurement. Members within
+      the group share a common base prior (centered on a 1:1 ratio) but
+      get wide per-cytokine deviations, because bridging biology differs
+      strongly by cytokine (locally produced + cleared in serum like IL-12
+      vs systemic like TGFb1).
+    base_prior:
+      distribution: lognormal
+      mu: 0.0       # log-space — group-mean ratio centered on 1
+      sigma: 0.7    # ~ exp(0.7) ≈ 2.01 → factor-of-two band on the group mean
+    # Bumped 0.3 → 2.0 (2026-05-11): the misspec audit had IL-12 serum
+    # outside the prior CI because the prior-marginal log-σ on f_serum_to_tumor_IL12
+    # was sqrt(0.7^2 + 0.3^2) ≈ 0.76, so the 1%ile only reached ~exp(-1.8) ≈ 0.17,
+    # while bridging tumor IL12 (~15 pg/mL) to the LLOQ-censored serum target
+    # (~0.11 pg/mL) needs a ratio near 0.0074. With member_deviation_sigma=2.0
+    # the marginal log-σ becomes sqrt(0.49 + 4) ≈ 2.12; the 1%ile reaches
+    # ~exp(-4.94) ≈ 0.007, putting locally-produced cytokine cases (IL-12) in
+    # tail-reach without distorting the group-mean prior on TGFb1 / ArgI.
+    member_deviation_sigma: 2.0   # log-space — per-member spread around the group mean
+
+  serum_to_tumor_local:
+    description: >
+      Serum:tumor concentration ratio for cytokines produced locally in
+      the tumor microenvironment with negligible systemic spillover —
+      serum levels are dominated by leak/clearance and are typically
+      orders of magnitude below tumor levels. Split out from the
+      generic serum_to_tumor group so the group prior can be centered
+      on a small ratio (~0.05) without distorting bridges for cytokines
+      with substantive systemic pools (TGFb1 platelet release, ArgI).
+      Default single-member group (IL-12); add more locally-produced
+      cytokine bridges here as they're added.
+    base_prior:
+      distribution: lognormal
+      mu: -3.0    # log-space — ratio centered on ~0.05 (serum ≪ tumor)
+      sigma: 2.0  # 95% CI roughly [9e-4, 2.7] in log-space
+    member_deviation_sigma: 0.0
+
+  active_fraction:
+    description: >
+      Bioactive fraction of a cytokine in an assay that measures total
+      protein (latent + active, or extracellular pro-form + secreted active).
+      Used when the literature observable is a tissue/serum lysate total
+      while the QSP species is the bioactive extracellular pool. Each
+      member bridges one cytokine; default is a single-member group, so
+      member_deviation_sigma=0.0 (the per-sim group draw is the per-member
+      draw). Lognormal centered on ~0.25 with σ=0.6 covers the 0.05–0.5
+      range plausible for IL-1α/family in PDAC tissue lysate (the prior
+      had been ln(0.1) but the post-fix audit rail-pinned
+      active_fraction_IL1 against the upper edge — IL-1α active fraction
+      in PDAC tissue is likely higher than the IL-1β-typical 0.1).
+    base_prior:
+      distribution: lognormal
+      mu: -1.386294  # ln(0.25) — centered on 25% active fraction
+      sigma: 0.6     # ~ exp(0.6) ≈ 1.82 → 95% CI roughly [0.077, 0.81]
+    member_deviation_sigma: 0.0

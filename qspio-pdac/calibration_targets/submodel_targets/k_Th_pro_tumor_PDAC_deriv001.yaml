@@ -1,0 +1,245 @@
+target_id: k_Th_pro_tumor
+inputs:
+- name: GBM_CD4_Ki67_fraction_median
+  value: 0.311
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Mauldin2021_Cells_GBM
+  source_location: Results section 3.3 and Figure 1B
+  value_snippet: Ki67 identified proliferating CD8+ T cells (median 4.3/mm2, 14.7%
+    of CD8+ cells), CD4+ T cells (median 1.3/mm2, 31.1% of CD4+ cells), and B cells
+    (median 0.3/mm2, 8.1% of CD20+ cells).
+- name: GBM_CD4_Ki67_n_patients
+  value: 77.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Mauldin2021_Cells_GBM
+  source_location: Results section 3.1 (Patient demographics)
+  value_snippet: Thus, our final cohort was comprised of 77 patients (45 males, 32
+    females) with IDH wild type GBM.
+- name: GBM_CD4_Ki67_fraction_spread_ref
+  value: 0.5
+  units: dimensionless
+  input_type: reference_value
+  rationale: Conservative reference spread factor (interpreted as an approximate coefficient
+    of variation of 50%) for the fraction of Ki67+ CD4+ T cells across glioblastoma
+    patients, based on the visual spread of boxplots in Figure 1B and typical inter-patient
+    variability in TIL proliferation fractions. Used only to define observational
+    uncertainty in the error model.
+  source_ref: Mauldin2021_Cells_GBM
+  source_location: Figure 1B (boxplots for CD4+ and CD4+Ki67+ densities)
+  value_snippet: Box plots for CD4+Ki67+ densities show substantial interquartile
+    spread, consistent with high inter-patient variability.
+calibration:
+  parameters:
+  - name: k_Th_pro_tumor
+    units: 1/day
+    nuisance: false
+  - name: k_CD4_cycle_rate
+    units: 1/day
+    nuisance: true
+    prior:
+      distribution: lognormal
+      mu: -0.37
+      sigma: 0.5
+  forward_model:
+    data_rationale: Mauldin2021 quantified that a median of 31.1% of intratumoral
+      CD4+ T cells in IDH-wildtype glioblastoma are Ki67+, providing a direct estimate
+      of the Ki67 growth fraction (a) for Th-like cells in a human solid tumor microenvironment.
+      This fraction reflects the balance of proliferating vs resting CD4+ TIL under
+      quasi-steady-state conditions.
+    submodel_rationale: "In the full QSP PDAC model, tumor-local Th proliferation\
+      \ is implemented as a logistic birth process: dTh/dt = k_Th_pro_tumor * Th *\
+      \ (1 - Th/(rho_Th_max*V_T + cell)), with separate CD4 death and differentiation\
+      \ reactions. When the Th population is well below its carrying capacity (1 -\
+      \ Th/(rho_Th_max*V_T + cell) \u2248 1), the per-capita birth rate reduces to\
+      \ k_Th_pro_tumor. Following Sachsenberg1998, the population-level birth rate\
+      \ can be written as k_birth \u2248 a * k_cycle, where a is the Ki67 growth fraction\
+      \ (fraction of cells in cycling phases) and k_cycle is the intrinsic cell-cycle\
+      \ progression rate of proliferating CD4+ T cells. This algebraic submodel therefore\
+      \ maps the QSP proliferation parameter and a nuisance cycle-rate parameter to\
+      \ the observable Ki67 fraction via a = k_Th_pro_tumor / k_CD4_cycle_rate, preserving\
+      \ the mechanistic meaning of k_Th_pro_tumor as a per-capita birth rate while\
+      \ approximating the logistic factor as unity for unsaturated Th densities."
+    type: algebraic
+    formula: Ki67_fraction_CD4_TIL = k_Th_pro_tumor / k_CD4_cycle_rate
+    code: "def compute(params, inputs):\n    import numpy as np\n    k_pro = params['k_Th_pro_tumor']\
+      \          # tumor-local Th proliferation rate (per-capita birth rate)\n   \
+      \ k_cycle = params['k_CD4_cycle_rate']      # intrinsic CD4+ T-cell cycle progression\
+      \ rate (per cycling cell)\n    # Under the assumption that the logistic carrying\
+      \ capacity term is not saturated,\n    # the population-level birth rate is\
+      \ approximately k_pro = a * k_cycle, where a is the Ki67 growth fraction.\n\
+      \    # Therefore, the predicted Ki67+ fraction among CD4+ TIL is:\n    return\
+      \ k_pro / k_cycle"
+  error_model:
+  - name: Ki67_fraction_CD4_TIL_GBM
+    units: dimensionless
+    uses_inputs:
+    - GBM_CD4_Ki67_fraction_median
+    - GBM_CD4_Ki67_n_patients
+    - GBM_CD4_Ki67_fraction_spread_ref
+    sample_size_input: GBM_CD4_Ki67_n_patients
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['GBM_CD4_Ki67_fraction_median']\n\
+      \    cv = inputs['GBM_CD4_Ki67_fraction_spread_ref']\n    sigma_ln = np.sqrt(np.log(1\
+      \ + cv**2))\n    mu_ln = np.log(mean) - sigma_ln**2 / 2\n    return rng.lognormal(mu_ln,\
+      \ sigma_ln / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  identifiability_notes: This target constrains the tumor-local Th proliferation rate
+    k_Th_pro_tumor indirectly via the Ki67+ fraction among intratumoral CD4+ T cells
+    measured in glioblastoma. The algebraic relationship a = k_Th_pro_tumor / k_CD4_cycle_rate
+    introduces a strong correlation between k_Th_pro_tumor and the nuisance parameter
+    k_CD4_cycle_rate (intrinsic CD4 cell-cycle rate). To mitigate non-identifiability,
+    k_CD4_cycle_rate is given a strongly informative lognormal prior centered on 0.69
+    1/day, as used by Sachsenberg1998 for human CD4+ T cells, with moderate dispersion
+    to allow for tumor-specific modulation. Under this prior, the posterior for k_Th_pro_tumor
+    effectively reflects an informed estimate of a * k_cycle with cross-indication
+    uncertainty from GBM to PDAC. The logistic carrying capacity term in the full
+    QSP model is approximated as unity (unsaturated Th densities), so this target
+    primarily informs the low-density per-capita birth rate; it does not constrain
+    Th carrying capacity rho_Th_max or CD4 death/exhaustion rates, which must be informed
+    by other data. Translation from GBM to PDAC TME (organ and stromal differences)
+    remains a major limitation, and the resulting constraint on k_Th_pro_tumor should
+    be treated as a cross-indication prior rather than a precise PDAC-specific estimate.
+experimental_context:
+  species: human
+  system: clinical_in_vivo
+  cell_types:
+  - name: CD4+ tumor-infiltrating lymphocytes
+    phenotype: FOXP3- CD4+ T cells (Th-like) infiltrating IDH-wildtype glioblastoma
+    isolation_method: Multiplex immunofluorescence histology (mIFH) on FFPE tumor
+      sections; in situ phenotyping, no cell isolation
+    source: Primary glioblastoma tumor resections from patients treated with standard-of-care
+      surgery, radiation, and temozolomide
+  indication: glioblastoma (IDH-wildtype)
+study_interpretation: "Mauldin2021 measured that approximately one-third (31.1%) of\
+  \ intratumoral CD4+ T cells in human IDH-wildtype glioblastoma are Ki67+, indicating\
+  \ a high cycling fraction of Th-like cells in a solid tumor microenvironment. Using\
+  \ the Ki67-based turnover framework from Sachsenberg1998, the Ki67+ fraction can\
+  \ be related to the per-capita birth rate of the CD4+ T-cell population via k_birth\
+  \ \u2248 a * k_cycle. By treating the intrinsic CD4 cell-cycle rate as a constrained\
+  \ nuisance parameter (centered on 0.69 1/day) and mapping the observed Ki67+ fraction\
+  \ to k_Th_pro_tumor, this submodel provides an order-of-magnitude constraint on\
+  \ tumor-local Th proliferation in the PDAC QSP model. Because glioblastoma and PDAC\
+  \ share features of immunosuppression and poor T-cell infiltration but differ markedly\
+  \ in organ site and stromal architecture, the inferred k_Th_pro_tumor should be\
+  \ interpreted as a cross-indication prior rather than a PDAC-specific measurement,\
+  \ suitable for refining but not overriding the existing QSP prior around ~0.1\u2013\
+  0.2 1/day."
+key_assumptions:
+- The fraction of Ki67+ CD4+ tumor-infiltrating lymphocytes in glioblastoma (31.1%)
+  is representative of the order of magnitude of cycling Th-like cells in the PDAC
+  tumor microenvironment, despite differences in organ site and stromal context.
+- The logistic carrying capacity term in the QSP Th proliferation reaction (1 - Th/(rho_Th_max*V_T
+  + cell)) is close to 1 in the Mauldin-like setting, i.e., Th densities are well
+  below carrying capacity, so the per-capita birth rate is approximated by k_Th_pro_tumor.
+- The intrinsic cell-cycle progression rate of proliferating CD4+ T cells in tumors
+  is similar to that used by Sachsenberg1998 for peripheral blood CD4+ T cells (median
+  ~0.69 1/day), with moderate variability captured by the nuisance prior on k_CD4_cycle_rate.
+- The reported 31.1% Ki67+ among CD4+ T cells, given as a median across 77 patients,
+  can be used as a proxy for the mean Ki67 growth fraction for the purpose of parametric
+  bootstrap and likelihood construction.
+- The reference spread factor of 50% for the Ki67+ fraction, encoded as an input,
+  reflects substantial inter-patient heterogeneity and is chosen so that observational
+  uncertainty does not artificially over-constrain k_Th_pro_tumor.
+- Potential differences in Th proliferation between glioblastoma and PDAC (due to
+  antigen burden, immunosuppressive networks, and therapy history) are accounted for
+  later in the pipeline via translation sigma on this cross-indication target.
+key_study_limitations:
+- 'Cancer type mismatch: Mauldin2021 focuses on glioblastoma rather than PDAC, and
+  brain tumors differ substantially from pancreatic tumors in vasculature, stromal
+  density, and resident immune cell populations.'
+- Ki67 marks cells in active cell-cycle phases but does not distinguish local proliferation
+  from recent influx of cycling cells; the measured Ki67+ fraction thus conflates
+  in situ proliferation with trafficking dynamics.
+- Only a single timepoint (initial surgical resection) is available, so dynamic adaptation
+  of Th proliferation over disease course or treatment is not captured.
+- No explicit standard deviations for the Ki67+ CD4+ fraction are reported; uncertainty
+  must be approximated from visual inspection of boxplots and typical biological variability.
+- Intrinsic CD4 cell-cycle rate (k_CD4_cycle_rate) is not measured in Mauldin2021
+  and is instead inferred from peripheral blood data and broader T-cell biology, introducing
+  additional uncertainty in mapping Ki67 fractions to k_Th_pro_tumor.
+primary_data_source:
+  doi: 10.3390/cells10123378
+  title: Proliferating CD8+ T Cell Infiltrates Are Associated with Improved Survival
+    in Glioblastoma
+  authors: []
+  year: 2021
+  source_tag: Mauldin2021_Cells_GBM
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The source study quantifies Ki67+ fractions among
+      intratumoral CD4+ and CD8+ T cells in IDH-wildtype glioblastoma. While the target
+      QSP model is for PDAC, both diseases are solid tumors with poor prognosis and
+      immunosuppressive microenvironments where T-cell infiltration is limited. The
+      Ki67 fraction among CD4+ TIL in GBM is therefore used as a cross-indication
+      benchmark for the order of magnitude of Th proliferation in PDAC, recognizing
+      that organ site, stromal composition, and antigenic drivers differ and may shift
+      absolute rates.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Tumor samples were obtained at initial surgical resection
+      from patients receiving standard-of-care chemoradiation; there was no experimental
+      pharmacological perturbation applied specifically to modulate T-cell proliferation,
+      so the Ki67+ fractions reflect the baseline tumor-bearing state under standard
+      therapy.
+    tme_compatibility: moderate
+    tme_compatibility_notes: "Both glioblastoma and PDAC exhibit immunosuppressive,\
+      \ poorly inflamed microenvironments with low effector T-cell infiltration, but\
+      \ they differ in organ site (brain vs pancreas), physical barriers (blood\u2013\
+      brain barrier vs desmoplastic stroma), and resident myeloid populations. These\
+      \ differences likely introduce 2\u20133-fold uncertainty in translating Th proliferation\
+      \ fractions between the two indications."
+    measurement_directness: single_inversion
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: clinical_in_vivo
+secondary_data_sources:
+- doi: 10.1084/jem.187.8.1295
+  title: Turnover of CD4+ and CD8+ T lymphocytes in HIV-1 infection as measured by
+    Ki-67 antigen
+  authors: []
+  year: 1998
+  source_tag: Sachsenberg1998_JEM_HIV_Ki67
+  contribution: "Provides the theoretical framework linking Ki67 growth fraction (a),\
+    \ intrinsic CD4+ T-cell proliferation rate (k_cycle \u2248 0.69 1/day), potential\
+    \ doubling time, and daily turnover in humans, which is used here to interpret\
+    \ Ki67+ fractions among intratumoral CD4+ T cells as constraints on the per-capita\
+    \ birth rate k_Th_pro_tumor."
+  source_relevance:
+    indication_match: unrelated
+    indication_match_justification: "Sachsenberg1998 studies peripheral blood CD4+\
+      \ and CD8+ T-cell turnover in HIV-1\u2013infected and healthy adults, not tumor-infiltrating\
+      \ lymphocytes in PDAC. The biological context (systemic viral infection vs solid\
+      \ tumor microenvironment) and the observed compartments (blood vs tumor tissue)\
+      \ differ substantially. The study is used here only to transfer a general, mechanistic\
+      \ mapping between Ki67 growth fraction and proliferation/turnover rates, not\
+      \ to import HIV-specific kinetics."
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: pathological_state
+    perturbation_relevance: "HIV infection provides a chronic pathological perturbation\
+      \ that alters systemic T-cell turnover; however, the key quantity used here\
+      \ is the intrinsic per-capita proliferation rate of proliferating CD4+ T cells\
+      \ (k_cycle \u2248 0.69 1/day), which Sachsenberg derived from independent cell-cycle\
+      \ literature rather than HIV-specific measurements. This value is treated as\
+      \ an approximate physiological constant for human CD4+ T cells."
+    tme_compatibility: low
+    tme_compatibility_notes: The study characterizes circulating T cells in blood
+      under HIV infection, not tumor-infiltrating T cells in a desmoplastic PDAC microenvironment.
+      Thus, its direct relevance to intratumoral T-cell kinetics is limited; it is
+      used only to inform the nuisance prior on k_CD4_cycle_rate, not as a direct
+      constraint on tumor-local proliferation.
+    measurement_directness: proxy_observable
+    temporal_resolution: snapshot_or_equilibrium
+    experimental_system: clinical_in_vivo
+tags:
+- PDAC_QSP
+- Th_proliferation
+- Ki67_mapping
+- cross_indication
+- algebraic_model
+extraction_model: gpt-4.1
+extraction_reasoning_effort: high

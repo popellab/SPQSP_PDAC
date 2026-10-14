@@ -1,0 +1,290 @@
+target_id: k_IL2_sec
+inputs:
+- name: IL2_rate_Tkach_base_molecules_per_s
+  value: 7.5
+  units: molecule/second
+  input_type: reference_value
+  rationale: Baseline per-cell IL-2 secretion rate inferred by Tkach et al. from fitting
+    a mechanistic IL-2 pathway model to IL-2 accumulation time courses; parameter
+    k_TCR>IL2 is reported as 7.5 molecules/s per activated T cell and used here as
+    a quantitative estimate for typical IL-2 secretion by an activated CD4 T cell.
+  source_ref: Tkach2014
+  source_location: "Parameters table, page 25, row 'TCR-dependent secretion rate of\
+    \ IL-2' (k_TCR>IL2 = 7.5\xD73600 h^-1)"
+  value_snippet: "TCR-dependent secretion rate of IL-2 k_TCR>IL2 = 7.5\xD73600 h^-1"
+- name: avogadro_constant
+  value: 6.022e+23
+  units: 1/mol
+  input_type: reference_value
+  rationale: Physical Avogadro constant used to convert between moles and number of
+    molecules when mapping nmol/cell/hour to molecules/second in the algebraic forward
+    model.
+  source_ref: Tkach2014
+  source_location: Not explicitly stated; standard physical constant used for unit
+    conversion in this analysis.
+- name: seconds_per_hour
+  value: 3600.0
+  units: second
+  input_type: reference_value
+  rationale: Number of seconds per hour, needed to convert secretion rates between
+    per-hour and per-second units in the algebraic forward model.
+  source_ref: Tkach2014
+  source_location: Not explicitly stated; standard physical constant used for unit
+    conversion in this analysis.
+- name: nano_to_mole_factor
+  value: 1.0e-09
+  units: mol/nmol
+  input_type: reference_value
+  rationale: Unit conversion factor from nanomoles to moles used in mapping k_IL2_sec
+    (nmol/cell/hour) to molecules/second.
+  source_ref: Tkach2014
+  source_location: Not explicitly stated; standard unit conversion used for nmol to
+    mol in this analysis.
+- name: IL2_rate_Tkach_rel_sd
+  value: 0.5
+  units: dimensionless
+  input_type: reference_value
+  rationale: Relative standard deviation (50%) assigned to the IL-2 per-cell secretion
+    rate parameter inferred by Tkach et al., reflecting combined uncertainty from
+    model fitting, biological variability, and lack of an explicitly reported SD.
+  source_ref: Tkach2014
+  source_location: No explicit uncertainty reported for k_TCR>IL2; this relative SD
+    is introduced for parametric bootstrap in this calibration target.
+- name: n_effective_samples_Tkach
+  value: 1.0
+  units: dimensionless
+  input_type: reference_value
+  rationale: Treats the fitted IL-2 secretion rate from Tkach et al. as a single effective
+    measurement when generating bootstrap samples, since no replicate parameter estimates
+    are reported.
+  source_ref: Tkach2014
+  source_location: Parameter table reports a single best-fit value for k_TCR>IL2 without
+    replicate estimates; we therefore set an effective sample size of 1.
+calibration:
+  parameters:
+  - name: k_IL2_sec
+    units: nanomole/cell/hour
+    nuisance: false
+  forward_model:
+    data_rationale: Tkach et al. (2014) report an explicit per-cell IL-2 secretion
+      rate parameter (k_TCR>IL2 = 7.5 molecules/s) for activated T cells, derived
+      by fitting a mechanistic IL-2 pathway model to IL-2 accumulation time courses.
+      This provides a direct quantitative constraint on the typical IL-2 secretion
+      rate per activated T cell, which we convert to the QSP parameter k_IL2_sec (nmol/cell/hour).
+    submodel_rationale: In the QSPIO-PDAC model, k_IL2_sec controls the rate at which
+      each activated CD8 or Th cell in the tumor-draining lymph node secretes IL-2
+      into the LN compartment. The Tkach et al. model describes IL-2 secretion from
+      individual activated T cells driven by TCR signaling, with an explicit baseline
+      secretion rate per cell. By equating the per-cell secretion concepts and using
+      only unit conversions, the algebraic forward model maps k_IL2_sec to the experimentally
+      inferred per-cell secretion rate (molecules/s) without altering the mechanistic
+      role of k_IL2_sec in the full QSP model.
+    type: algebraic
+    formula: rate_molecules_per_s = k_IL2_sec * nano_to_mole_factor * avogadro_constant
+      / seconds_per_hour
+    code: "def compute(params, inputs):\n    import numpy as np\n    k = params['k_IL2_sec']\
+      \  # nmol/cell/hour\n    av = inputs['avogadro_constant']\n    sec_per_hour\
+      \ = inputs['seconds_per_hour']\n    nano_to_mole = inputs['nano_to_mole_factor']\n\
+      \    # Convert k (nmol/cell/hour) -> molecules/second per cell\n    # k [nmol/h]\
+      \ * nano_to_mole [mol/nmol] -> mol/h\n    # mol/h * av [molecules/mol] / sec_per_hour\
+      \ [s/h] -> molecules/s\n    rate_molecules_per_s = k * nano_to_mole * av / sec_per_hour\n\
+      \    return rate_molecules_per_s"
+  error_model:
+  - name: IL2_single_cell_secretion_rate_Tkach2014
+    units: molecule/second
+    uses_inputs:
+    - IL2_rate_Tkach_base_molecules_per_s
+    - IL2_rate_Tkach_rel_sd
+    - n_effective_samples_Tkach
+    sample_size_input: n_effective_samples_Tkach
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean = inputs['IL2_rate_Tkach_base_molecules_per_s']\n\
+      \    rel_sd = inputs['IL2_rate_Tkach_rel_sd']\n    # Lognormal bootstrap for\
+      \ a positive secretion rate with specified relative SD\n    return rng.lognormal(np.log(mean),\
+      \ rel_sd / np.sqrt(sample_size), n_bootstrap)"
+    n_bootstrap: 10000
+  identifiability_notes: This target uses a single effective measurement (the fitted
+    baseline secretion rate k_TCR>IL2 = 7.5 molecules/s from Tkach et al.) to constrain
+    k_IL2_sec via unit conversion. With one algebraic observable and one QSP parameter,
+    k_IL2_sec is structurally identifiable within this submodel, but the uncertainty
+    remains relatively broad due to the assigned relative SD and the fact that the
+    source value is model-derived from murine T cells in vitro. The calibration effectively
+    anchors k_IL2_sec to the order of magnitude 10^0 molecules/s per cell, corresponding
+    to ~10^-11 nmol/cell/hour, while allowing for ~50% lognormal variability in that
+    base rate. Additional targets (e.g., human single-cell IL-2 secretion data from
+    Portmann2023) would further refine this estimate and help quantify inter-species
+    and assay-dependent differences.
+experimental_context:
+  species: mouse
+  system: in_vitro_primary_cells
+  cell_types:
+  - name: CD4+ T cells
+    phenotype: Naive 5C.C7 TCR-transgenic CD4+ T cells specific for moth cytochrome
+      c peptide presented on I-Ek, activated in vitro by peptide-pulsed antigen-presenting
+      cells.
+    isolation_method: Lymph node and spleen cells from 5C.C7 Rag2-/- TCR-transgenic
+      mice; CD4+ T cells identified by flow cytometry.
+    source: 5C.C7 Rag2-/- TCR-transgenic mice (B10.A background).
+  culture_conditions:
+    substrate: Plastic culture plates
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic (37 C, 5% CO2 incubator)
+    culture_type: 2d_monolayer
+    medium: RPMI 1640 supplemented with 10% heat-inactivated fetal bovine serum, 2
+      mM L-glutamine, 10 mM HEPES, 0.1 mM non-essential amino acids, 1 mM sodium pyruvate,
+      100 ug/mL penicillin, 100 ug/mL streptomycin, and 50 uM beta-mercaptoethanol.
+    supplements: Antigen-presenting splenocytes pulsed with K5 peptide (ANERADLIAYFKAATKF)
+      at varying concentrations; no exogenous IL-2 added during secretion-rate inference.
+    duration: T cell-APC co-cultures followed for up to ~150 h with IL-2 accumulation
+      measured over time; baseline secretion rate parameter reflects early-phase IL-2
+      production before strong consumption dominates.
+    notes: Cultures were performed at 37 C, 5% CO2. IL-2 in the supernatant was quantified
+      by ELISA at regular intervals; these time courses were used to fit the mechanistic
+      model that yielded the per-cell IL-2 secretion rate.
+  indication: T cell activation in response to cognate peptide antigen (non-tumor
+    context)
+study_interpretation: Tkach et al. studied IL-2 production and sensing in vitro using
+  murine 5C.C7 TCR-transgenic CD4+ T cells activated by peptide-pulsed antigen-presenting
+  cells. By fitting a mechanistic model of the IL-2 pathway to detailed IL-2 accumulation
+  time courses across multiple antigen doses and T cell population sizes, they inferred
+  a baseline per-cell IL-2 secretion rate of 7.5 molecules/s for activated T cells
+  (k_TCR>IL2), with a dynamic Boost process capable of temporarily increasing this
+  rate up to ~30-fold. In the present submodel, we interpret this baseline rate as
+  a quantitative estimate of the typical IL-2 secretion rate for an activated T cell
+  under strong TCR stimulation, and map it by unit conversion to the QSPIO-PDAC parameter
+  k_IL2_sec (nmol/cell/hour) governing IL-2 secretion by activated CD8 and Th cells
+  in the tumor-draining lymph node.
+key_assumptions:
+- The baseline secretion rate k_TCR>IL2 = 7.5 molecules/s reported by Tkach et al.
+  is an accurate estimate of the typical IL-2 production rate per activated T cell
+  during the early phase of activation, before strong consumption and nonlinear boosting
+  dominate.
+- IL-2 secretion kinetics for murine 5C.C7 CD4+ T cells activated by cognate peptide
+  in vitro are representative in order of magnitude of human activated CD4 and CD8
+  T cells in tumor-draining lymph nodes, so that a single per-cell secretion rate
+  parameter k_IL2_sec can be applied across species and contexts with an added uncertainty
+  factor.
+- The QSPIO-PDAC parameter k_IL2_sec, which multiplies the counts of activated CD8
+  and Th cells in the LN to drive IL-2 production, can be directly identified with
+  the baseline per-cell secretion rate from Tkach et al. without explicitly modeling
+  the time-dependent Boost process that can transiently increase IL-2 secretion rates.
+- Differences in antigen affinity, co-stimulation strength, and cytokine milieu between
+  the Tkach in vitro system and the PDAC lymph-node environment are captured implicitly
+  by the assigned relative SD on the secretion rate, rather than by introducing additional
+  mechanistic modifiers in this submodel.
+- The mechanistic model used by Tkach et al. to infer k_TCR>IL2 correctly accounts
+  for IL-2 consumption and receptor dynamics, so that the reported 7.5 molecules/s
+  can be treated as a direct observable of per-cell secretion rate for calibration
+  purposes.
+key_study_limitations:
+- The primary data come from murine TCR-transgenic CD4+ T cells stimulated in vitro
+  by peptide-pulsed splenocytes, which differs from human polyclonal T cells responding
+  to tumor antigens in PDAC-draining lymph nodes in terms of species, TCR repertoire,
+  and microenvironment.
+- The reported per-cell IL-2 secretion rate is a model-derived parameter rather than
+  a direct single-cell measurement; its uncertainty is not explicitly quantified,
+  so we must assign a moderate relative SD for calibration.
+- The Tkach model includes a nonlinear Boost process that can raise IL-2 secretion
+  rates up to ~30-fold over the baseline 7.5 molecules/s; the QSPIO-PDAC model currently
+  represents IL-2 secretion as a single constant per activated cell, so temporal variation
+  in secretion rates is not explicitly captured by k_IL2_sec.
+- Culture conditions in Tkach et al. lack the immunosuppressive factors (e.g., TGFbeta,
+  IL-10, MDSC-derived mediators) present in the PDAC tumor-draining lymph node, so
+  the inferred secretion rate likely represents an upper bound relative to in vivo
+  PDAC conditions.
+- Only CD4+ T cells were modeled explicitly in Tkach et al.; IL-2 secretion characteristics
+  of CD8+ T cells may differ somewhat, but are assumed to be of similar order of magnitude
+  for the purposes of this calibration.
+primary_data_source:
+  doi: 10.7554/eLife.01944
+  title: T cells translate individual, quantal activation into collective, analog
+    cytokine responses via time-integrated feedbacks
+  authors:
+  - Karen E Tkach
+  - Debashis Barik
+  - Guillaume Voisinne
+  - Nicole Malandro
+  - Matthew M Hathorn
+  - Jesse W Cotari
+  - Robert Vogel
+  - Taha Merghoub
+  - Jedd Wolchok
+  - Oleg Krichevsky
+  - Gregoire Altan-Bonnet
+  year: 2014
+  source_tag: Tkach2014
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study investigates IL-2 secretion dynamics
+      in murine 5C.C7 TCR-transgenic CD4+ T cells activated in vitro by cognate peptide-pulsed
+      antigen-presenting cells, not in PDAC or other solid tumors. We use these data
+      as a mechanistic proxy for per-cell IL-2 secretion by activated human T cells
+      in PDAC-draining lymph nodes, assuming that the core IL-2 production machinery
+      is conserved across contexts while acknowledging that tumor-associated immunosuppression
+      and chronic antigen exposure may alter effective rates in vivo.
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: T cells are activated by cognate peptide presented on
+      MHC II without pharmacologic IL-2 modulators; the inferred secretion rate thus
+      reflects near-physiological TCR-driven IL-2 production, though in a simplified
+      in vitro setting.
+    tme_compatibility: moderate
+    tme_compatibility_notes: The experimental system uses lymphoid tissues and splenic
+      APCs without stromal barriers or tumor-associated suppressive cells, whereas
+      PDAC-draining lymph nodes experience chronic antigen exposure and systemic inflammation.
+      These differences likely make the in vitro secretion rate an upper bound for
+      PDAC, but the intrinsic IL-2 production machinery per activated T cell should
+      remain similar, justifying moderate rather than low compatibility.
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_primary
+secondary_data_sources:
+- doi: 10.1016/j.crmeth.2023.100502
+  title: Single-cell deep phenotyping of cytokine release unmasks stimulation-specific
+    biological signatures and distinct secretion dynamics
+  authors:
+  - Kevin Portmann
+  - Aline Linder
+  - Nicole Oelgarth
+  - Klaus Eyer
+  year: 2023
+  source_tag: Portmann2023
+  contribution: Provides human single-cell secretion-rate measurements (molecules/s)
+    for IL-2 and other cytokines from PBMCs stimulated with PMA/ionomycin or anti-CD3/anti-CD28,
+    supporting the order-of-magnitude of IL-2 per-cell secretion rates inferred from
+    the murine Tkach2014 model.
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: Portmann et al. measure cytokine secretion from
+      human PBMCs from healthy donors, not from PDAC patients or tumor-draining lymph
+      nodes. These data are used qualitatively to corroborate the order-of-magnitude
+      of IL-2 secretion rates rather than as direct calibration for PDAC.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_in_vitro
+    perturbation_type: physiological_baseline
+    perturbation_relevance: PBMCs are stimulated ex vivo with defined stimuli (e.g.,
+      PMA/ionomycin, anti-CD3/anti-CD28) to elicit cytokine secretion without pharmacologic
+      manipulation of IL-2 pathways beyond activation; thus, the measured secretion
+      rates approximate maximal physiological outputs.
+    tme_compatibility: moderate
+    tme_compatibility_notes: The DropMap droplets isolate individual cells in small
+      volumes without stromal or suppressive signals, while PDAC-draining lymph nodes
+      are embedded in an immunosuppressive systemic environment. Nevertheless, per-cell
+      cytokine secretion machinery is expected to be similar, making these data a
+      reasonable proxy for upper-bound IL-2 secretion rates.
+    measurement_directness: direct
+    temporal_resolution: timecourse
+    experimental_system: in_vitro_primary
+tags:
+- cytokine_secretion
+- IL2
+- T_cell_activation
+- mouse_in_vitro
+- unit_conversion
+- QSPIO-PDAC
+extraction_model: gpt-4.1-mini
+extraction_reasoning_effort: standard

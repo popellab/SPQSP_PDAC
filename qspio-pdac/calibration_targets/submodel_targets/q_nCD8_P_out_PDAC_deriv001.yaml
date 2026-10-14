@@ -1,0 +1,289 @@
+target_id: q_nCD8_P_out
+inputs:
+- name: spleen_res_time_mean_min
+  value: 144.0
+  units: minute
+  input_type: direct_measurement
+  source_ref: Ganusov2014
+  source_location: Table 1
+  table_excerpt:
+    table_id: Table 1
+    column: Residence time in organ, mins
+    row: Spleen
+    value: "144 (115\u2013173)"
+    context: Average residence time of thoracic duct lymphocytes (TDLs) in each organ
+      estimated from whole-body recirculation model.
+- name: spleen_res_time_lower_min
+  value: 115.0
+  units: minute
+  input_type: direct_measurement
+  source_ref: Ganusov2014
+  source_location: Table 1
+  table_excerpt:
+    table_id: Table 1
+    column: Residence time in organ, mins
+    row: Spleen
+    value: "144 (115\u2013173)"
+    context: 95% confidence interval on average residence time of TDLs in spleen.
+- name: spleen_res_time_upper_min
+  value: 173.0
+  units: minute
+  input_type: direct_measurement
+  source_ref: Ganusov2014
+  source_location: Table 1
+  table_excerpt:
+    table_id: Table 1
+    column: Residence time in organ, mins
+    row: Spleen
+    value: "144 (115\u2013173)"
+    context: 95% confidence interval on average residence time of TDLs in spleen.
+- name: z_95
+  value: 1.96
+  units: dimensionless
+  input_type: reference_value
+  rationale: Standard normal 97.5th percentile used to convert 95% confidence interval
+    to an approximate standard deviation assuming normal errors.
+  source_ref: Ganusov2014
+  source_location: Table 1
+  value_snippet: "144 (115\u2013173)"
+- name: spleen_res_time_sd_min
+  value: 14.8
+  units: minute
+  input_type: derived_arithmetic
+  rationale: Approximate standard deviation of spleen residence time in minutes, derived
+    from the reported 95% confidence interval assuming a normal distribution.
+  source_ref: Ganusov2014
+  source_location: Table 1
+  source_inputs:
+  - spleen_res_time_upper_min
+  - spleen_res_time_lower_min
+  - z_95
+  formula: (spleen_res_time_upper_min - spleen_res_time_lower_min) / (2 * z_95)
+- name: n_animals_spleen
+  value: 5.0
+  units: dimensionless
+  input_type: direct_measurement
+  source_ref: Ganusov2014
+  source_location: Materials and Methods, Experimental data
+  value_snippet: The average percent of labeled TDLs was calculated from at least
+    5 rats [65].
+- name: hours_per_day
+  value: 24.0
+  units: hour/day
+  input_type: reference_value
+  rationale: Unit conversion factor between days and hours used to map the QSP rate
+    parameter (1/day) to an observed residence time in hours.
+  source_ref: Ganusov2014
+  source_location: Results, Migration kinetics of lymphocytes via spleen and major
+    lymph nodes
+  value_snippet: "We estimate that the average residence time of TDLs in the spleen\
+    \ is 2.4 hours while it takes on average 10 hours for TDLs to leave lymph nodes\
+    \ or Peyer\u2019s patches (Table 1)."
+- name: min_per_hour
+  value: 60.0
+  units: minute/hour
+  input_type: reference_value
+  rationale: Unit conversion factor between minutes and hours for converting reported
+    residence times (in minutes) to hours in the observation model.
+  source_ref: Ganusov2014
+  source_location: Table 1
+  value_snippet: Residence time in organ, mins
+calibration:
+  parameters:
+  - name: q_nCD8_P_out
+    units: 1/day
+    nuisance: false
+  forward_model:
+    data_rationale: Ganusov et al. re-analyzed classic Smith & Ford rat recirculation
+      data with a whole-body ODE model and reported the mean residence time of thoracic
+      duct lymphocytes (TDLs) in the spleen and its 95% confidence interval. We treat
+      this spleen residence time as a proxy for the average time a naive T cell spends
+      in a generic peripheral lymphoid tissue before returning to blood.
+    submodel_rationale: In the full QSP model, naive CD8+ T cells leave the peripheral
+      compartment V_P and return to the central blood compartment V_C via a first-order
+      process V_P.nCD8 -> V_C.nCD8 with rate q_nCD8_P_out * V_P.nCD8. For such a linear
+      egress process, the mean residence time in the peripheral compartment equals
+      the inverse of the rate constant (in days). This algebraic submodel maps the
+      QSP parameter q_nCD8_P_out to the experimentally inferred mean residence time
+      of TDLs in the spleen, assuming the spleen is representative of peripheral lymphoid
+      tissues outside tumor-draining lymph nodes.
+    type: algebraic
+    formula: t_res_hours = hours_per_day / q_nCD8_P_out
+    code: "def compute(params, inputs):\n    import numpy as np\n    q_out = params['q_nCD8_P_out']\
+      \  # 1/day\n    hours_per_day = inputs['hours_per_day']  # h/day\n    # Mean\
+      \ residence time in the peripheral (spleen-like) compartment in hours\n    return\
+      \ hours_per_day / q_out\n"
+  error_model:
+  - name: spleen_residence_time
+    units: hour
+    uses_inputs:
+    - spleen_res_time_mean_min
+    - spleen_res_time_sd_min
+    - min_per_hour
+    sample_size_input: n_animals_spleen
+    observation_code: "def derive_observation(inputs, sample_size, rng, n_bootstrap):\n\
+      \    import numpy as np\n    mean_min = inputs['spleen_res_time_mean_min']\n\
+      \    sd_min = inputs['spleen_res_time_sd_min']\n    min_per_hour = inputs['min_per_hour']\n\
+      \    # Convert reported residence time and SD from minutes to hours\n    mean_hr\
+      \ = mean_min / min_per_hour\n    sd_hr = sd_min / min_per_hour\n    # Bootstrap\
+      \ distribution of the sample mean under approximate normal errors\n    return\
+      \ rng.normal(mean_hr, sd_hr / np.sqrt(sample_size), n_bootstrap)\n"
+    n_bootstrap: 10000
+  identifiability_notes: This target uses a single algebraic relationship between
+    the naive CD8+ T-cell peripheral egress rate q_nCD8_P_out (1/day) and the experimentally
+    inferred mean residence time of thoracic duct lymphocytes (TDLs) in the spleen
+    from Ganusov2014. Under a first-order egress assumption, the mean residence time
+    in the peripheral compartment in hours is 24/q_nCD8_P_out. Because the observable
+    is directly proportional to 1/q_nCD8_P_out and we have an estimate with uncertainty
+    (mean and approximate SD), the parameter is well identified from this target alone,
+    up to cross-species and cell-subset translation uncertainty. No additional QSP
+    parameters enter the mapping, so correlations with other trafficking or death
+    rates will arise only through joint inference with other targets rather than within
+    this submodel.
+experimental_context:
+  species: rat
+  system: animal_in_vivo
+  cell_types:
+  - name: thoracic duct lymphocytes
+    phenotype: mixed recirculating lymphocytes, predominantly naive T cells with minority
+      B cells
+    isolation_method: thoracic duct cannulation and overnight lymph collection
+    source: AO rats, male donors
+  indication: healthy, non-tumor-bearing rats
+study_interpretation: "Ganusov and Auerbach (2014) fit a whole-organism recirculation\
+  \ model to classic Smith & Ford 51Cr-labeled thoracic duct lymphocyte (TDL) tracking\
+  \ data in rats, estimating organ-specific trafficking rates and corresponding residence\
+  \ times. They report that TDLs spend on average about 2.4 hours in the spleen (144\
+  \ minutes with a 95% CI of 115\u2013173 minutes) before exiting back to the blood,\
+  \ in contrast to sub-minute transit through lung and liver vasculature and longer\
+  \ residence in lymph nodes and Peyer\u2019s patches. In the QSPIO-PDAC model, the\
+  \ peripheral compartment V_P lumps spleen and other non\u2013tumor-draining peripheral\
+  \ tissues (excluding explicit lymph nodes), and naive CD8+ T cells leave this compartment\
+  \ via a first-order process with rate q_nCD8_P_out. Treating the spleen residence\
+  \ time as representative of generic peripheral lymphoid residence, we relate the\
+  \ measured mean residence time directly to q_nCD8_P_out via t_res_hours = 24/q_nCD8_P_out\
+  \ and use the reported mean and confidence interval to constrain this rate parameter,\
+  \ after accounting for unit conversions and experimental uncertainty."
+key_assumptions:
+- Thoracic duct lymphocytes in rats are a reasonable proxy for recirculating naive
+  CD8+ T cells in humans with respect to residence time in the spleen and other peripheral
+  lymphoid tissues.
+- "The spleen residence time estimated by Ganusov2014 is representative of the average\
+  \ residence time of naive CD8+ T cells in the QSP model\u2019s lumped peripheral\
+  \ compartment V_P, which aggregates spleen and other non\u2013tumor-draining tissues\
+  \ but excludes the explicit tumor-draining lymph node compartment."
+- Egress from the peripheral compartment in the QSP model is well described by first-order
+  kinetics, so that the mean residence time equals the inverse of the rate constant
+  q_nCD8_P_out (after converting between days and hours).
+- Cell death and homeostatic proliferation within the peripheral compartment make
+  only a minor contribution to the effective residence time compared with trafficking,
+  so they can be neglected in this mapping.
+- Differences between rat and human physiology (body size, spleen blood flow, lymphocyte
+  subset composition) introduce uncertainty but do not change the order of magnitude
+  of naive T-cell residence times in peripheral lymphoid tissues.
+- The approximate normality of the bootstrap distribution for the mean residence time
+  is acceptable for translating the reported 95% confidence interval into an effective
+  standard deviation for use in likelihood construction.
+key_study_limitations:
+- The source data are from healthy rats rather than human PDAC patients, so species
+  differences in hemodynamics, spleen structure, and immune activation state may alter
+  quantitative residence times.
+- Thoracic duct lymphocytes are a mixed population (predominantly naive T cells but
+  including both CD4 and CD8 T cells and some B cells), whereas the QSP parameter
+  q_nCD8_P_out applies specifically to naive CD8+ T cells.
+- Ganusov2014 estimates residence times using a multi-compartment whole-body model
+  that includes explicit lung, liver, spleen, and lymph node compartments; mapping
+  a single spleen residence time onto a lumped peripheral compartment inevitably compresses
+  organ-specific heterogeneity.
+- The original experiments used 51Cr labeling and passage through an intermediate
+  host to minimize cold handling, which may still alter homing properties compared
+  with truly untouched naive T cells.
+- Reported confidence intervals on residence times arise from model fitting and bootstrapping
+  of organ-level time courses, not from direct replicate measurements of residence
+  time per animal; our conversion from CI to SD assumes approximate normal errors.
+primary_data_source:
+  doi: 10.1371/journal.pcbi.1003586
+  title: Mathematical Modeling Reveals Kinetics of Lymphocyte Recirculation in the
+    Whole Organism
+  authors:
+  - Ganusov
+  - Auerbach
+  year: 2014
+  source_tag: Ganusov2014
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: The study quantifies whole-body recirculation
+      kinetics of thoracic duct lymphocytes in healthy rats, not in human PDAC patients.
+      We use the spleen residence time of predominantly naive T cells as a mechanistic
+      proxy for naive CD8+ T-cell residence in peripheral lymphoid tissues in humans.
+      Although species and disease-state differences exist, basic lymphocyte trafficking
+      patterns and spleen architecture are sufficiently conserved that the rat data
+      provide a reasonable order-of-magnitude constraint with added translation uncertainty.
+    species_source: rat
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Rats were studied under non-inflammatory, non-tumor-bearing
+      conditions without pharmacologic interventions, so the measured TDL recirculation
+      kinetics reflect baseline physiological trafficking, which is the appropriate
+      reference for homeostatic naive CD8+ T-cell movement in the QSP model.
+    tme_compatibility: moderate
+    tme_compatibility_notes: The measurements characterize systemic recirculation
+      in healthy animals and do not include a tumor microenvironment. For the QSPIO-PDAC
+      model, the parameter q_nCD8_P_out governs naive CD8+ T-cell movement between
+      blood and peripheral tissues outside the tumor, so direct tumor microenvironment
+      effects are less critical, but chronic inflammation and desmoplasia in PDAC
+      patients could modestly alter spleen and peripheral trafficking compared with
+      healthy rats.
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: animal_in_vivo
+secondary_data_sources:
+- doi: 10.1073/pnas.1211717109
+  title: Quantification of lymph node transit times reveals differences in antigen
+    surveillance strategies of naive CD4+ and CD8+ T cells
+  authors:
+  - Mandl
+  - Liou
+  - Klauschen
+  - Vrisekoop
+  - Monteiro
+  - Yates
+  - Huang
+  - Germain
+  year: 2012
+  source_tag: Mandl2012
+  contribution: Provides high-quality measurements of naive CD4+ and CD8+ T-cell dwell
+    times and egress rates in mouse peripheral and mesenteric lymph nodes, supporting
+    the general scale of lymphocyte residence times in secondary lymphoid tissues
+    but not used directly for this peripheral-compartment egress rate, which excludes
+    lymph nodes in the QSP model.
+  source_relevance:
+    indication_match: proxy
+    indication_match_justification: "Mandl et al. study naive CD4+ and CD8+ T-cell\
+      \ homing and egress in lymph nodes of healthy mice. These data validate the\
+      \ general timescale (10\u201320 hours) of naive T-cell residence in secondary\
+      \ lymphoid organs but are not tumor- or species-matched to human PDAC and focus\
+      \ on lymph nodes rather than spleen or non-lymphoid tissues."
+    species_source: mouse
+    species_target: human
+    source_quality: primary_animal_in_vivo
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Lymph node transit times are measured after homing blockade
+      in otherwise unperturbed animals and primarily reflect baseline recirculation
+      kinetics.
+    tme_compatibility: moderate
+    tme_compatibility_notes: As with the rat study, these are systemic lymphoid trafficking
+      measurements in healthy mice without tumors. They support general immune surveillance
+      kinetics but do not capture PDAC-specific tumor microenvironmental effects.
+    measurement_directness: single_inversion
+    temporal_resolution: timecourse
+    experimental_system: animal_in_vivo
+tags:
+- naive_cd8_t_cells
+- lymphocyte_trafficking
+- spleen_residence_time
+- systemic_recirculation
+- q_nCD8_P_out
+extraction_model: gpt-4.1-2025-03-01
+extraction_reasoning_effort: medium

@@ -48,6 +48,7 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Species.V_T_VEGF",
     "Param.QSP.init_value.Species.V_T_Treg",
     "Param.QSP.init_value.Species.V_T_CD8",
+    "Param.QSP.init_value.Species.V_T_nCD8",
     "Param.QSP.init_value.Species.V_T_cDC1",
     "Param.QSP.init_value.Species.V_T_cDC2",
     "Param.QSP.init_value.Species.V_T_mcDC1",
@@ -56,6 +57,7 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Species.V_T_P1",
     "Param.QSP.init_value.Species.V_T_aPD1",
     "Param.QSP.init_value.Species.V_T_Th",
+    "Param.QSP.init_value.Species.V_T_nCD4",
     "Param.QSP.init_value.Species.V_T_IFNg",
     "Param.QSP.init_value.Species.V_T_TGFb",
     "Param.QSP.init_value.Species.V_T_MDSC",
@@ -616,7 +618,15 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Parameter.Tfh_50_B",
     "Param.QSP.init_value.Parameter.k_B_act_tumor",
     "Param.QSP.init_value.Parameter.k_B_pro_tumor",
+    "Param.QSP.init_value.Parameter.rho_B_max",
     "Param.QSP.init_value.Parameter.Tfh_50_plasma",
+    "Param.QSP.init_value.Parameter.k_nB_death",
+    "Param.QSP.init_value.Parameter.q_nB_LN_in",
+    "Param.QSP.init_value.Parameter.q_nB_LN_out",
+    "Param.QSP.init_value.Parameter.q_B_P_in",
+    "Param.QSP.init_value.Parameter.q_B_P_out",
+    "Param.QSP.init_value.Parameter.q_B_LN_out",
+    "Param.QSP.init_value.Parameter.q_B_T_in",
     "Param.QSP.init_value.Parameter.k_Ab_sec",
     "Param.QSP.init_value.Parameter.k_Ab_deg",
     "Param.QSP.init_value.Parameter.Ab_50_ADCC",
@@ -641,7 +651,7 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Parameter.CAF_total_T",
 };
 
-QSPParam::QSPParam() :_param(629, 0) {}
+QSPParam::QSPParam() :_param(639, 0) {}
 
 double QSPParam::getVal(int n) const { return _param[n]; }
 
@@ -649,7 +659,7 @@ void QSPParam::_readParameters(const std::string& filename){
     namespace pt = boost::property_tree;
     pt::ptree tree;
     pt::read_xml(filename, tree, pt::xml_parser::trim_whitespace);
-    for (int i = 0; i < 629; i++){
+    for (int i = 0; i < 639; i++){
         try { _param[i] = tree.get<double>(_xml_paths[i]); }
         catch (const pt::ptree_bad_path&) {
             std::cerr << "WARNING: QSP param not found: "
@@ -659,7 +669,7 @@ void QSPParam::_readParameters(const std::string& filename){
 }
 
 void QSPParam::printParam(void) const {
-    for (int i = 0; i < 629; i++)
+    for (int i = 0; i < 639; i++)
         std::cout << _xml_paths[i] << " = " << _param[i] << std::endl;
 }
 
