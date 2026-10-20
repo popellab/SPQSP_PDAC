@@ -138,6 +138,30 @@ public:
     bool dump_onset_state(const std::string& path, double t_warmup_s) const;
 
     /**
+     * Save the full QSP ODE state to a binary file.
+     * Includes species, nonspecies, delay events, triggers — everything needed
+     * to resume the ODE from this exact point via load_qsp_state().
+     * Also stores the warmup time and current tumor volume as a header.
+     *
+     * File layout:
+     *   char[4] magic "QSP1"
+     *   float64 t_warmup_s
+     *   float64 tumor_volume_m3
+     *   [CVODEBase::saveFullState payload]
+     */
+    bool save_qsp_state(const std::string& path, double t_warmup_s) const;
+
+    /**
+     * Load QSP ODE state from a binary file written by save_qsp_state().
+     * After loading, the caller must call updateVar() + resetSolver() or
+     * proceed to the next time_step() which handles re-init internally.
+     *
+     * @param[out] t_warmup_s  warmup time recovered from file header
+     * @return true on success
+     */
+    bool load_qsp_state(const std::string& path, double& t_warmup_s);
+
+    /**
      * Live tumor cancer-cell count (C1 + C2), in DISCRETE CELLS (unit-converted,
      * = getVAR_RAW). Used by the single-ledger presim to seed the ABM's cancer bulk
      * to its geometric box-share f·C1 at the Phase-C handoff (else the ABM cancer,

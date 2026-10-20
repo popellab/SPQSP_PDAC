@@ -2763,19 +2763,26 @@ params.IL6_50_Tfh.Notes = 'IL-6 EC50 for Th->Tfh differentiation in tumor. ABM: 
 params.IL6_50_Tfh.derivedFrom = {};
 
 %% B Cell Module Parameters
-% Initial conditions
-params.nB_C.Value = 2.5e8;
+% Naive B cell blood density (matches rho_nCD4/rho_nCD8 pattern)
+params.rho_nB.Value = 2e5;
+params.rho_nB.Units = 'cell/milliliter';
+params.rho_nB.Notes = 'Naive B cell density in blood (~200 cells/uL, Blanco 2018 PMID: 29686403). Total B ~250 cells/uL, ~80% naive.';
+params.rho_nB.derivedFrom = {};
+% Initial conditions (density x volume, matching nCD4_C/nCD8_C pattern)
+params.nB_C.Value = [];
 params.nB_C.Units = 'cell';
-params.nB_C.Notes = 'Naive B cells in blood at steady state (scaled from total B ~5e8, ~50% naive)';
-params.nB_C.derivedFrom = {};
-params.nB_LN.Value = 1e7;
+params.nB_C.Notes = 'Naive B cells in blood at steady state = rho_nB * V_C';
+params.nB_C.Factors = ["rho_nB", "V_C"];
+params.nB_C.Equation = 'p(1)*p(2)';
+params.nB_LN.Value = [];
 params.nB_LN.Units = 'cell';
-params.nB_LN.Notes = 'Naive B cells in LN at steady state (LN fraction ~4% of blood)';
-params.nB_LN.derivedFrom = {};
-% Marrow output of naive B cells
-params.k_nB_in.Value = 5e6;
+params.nB_LN.Notes = 'Naive B cells in LN at steady state (LN fraction ~4% of blood, matching nCD8_LN/nCD4_LN pattern)';
+params.nB_LN.Factors = ["nB_C"];
+params.nB_LN.Equation = 'p(1)*0.04';
+% Marrow output of naive B cells (scaled to match nB_C steady state)
+params.k_nB_in.Value = 1e4;
 params.k_nB_in.Units = 'cell/day';
-params.k_nB_in.Notes = 'Marrow output of naive B cells to blood (LeBien 2008, PMID: 18390730)';
+params.k_nB_in.Notes = 'Marrow output of naive B cells to blood (LeBien 2008, PMID: 18390730). Scaled to steady-state nB_C via rho_nB*V_C.';
 params.k_nB_in.derivedFrom = {};
 % LN activation rate
 params.k_B_act.Value = 10;
@@ -2826,9 +2833,9 @@ params.rho_B_max.Value = 5e6;
 params.rho_B_max.Units = 'cell/milliliter';
 params.rho_B_max.Notes = 'Maximum activated B cell density in tumor (carrying capacity for local proliferation). Analogous to rho_Th_max (5e6). Added to fix uncapped exponential B cell growth.';
 params.rho_B_max.derivedFrom = {};
-params.Tfh_50_plasma.Value = 100;
-params.Tfh_50_plasma.Units = 'cell';
-params.Tfh_50_plasma.Notes = 'Half-maximal tumor Tfh for aB -> plasma differentiation';
+params.Tfh_50_plasma.Value = 1e6;
+params.Tfh_50_plasma.Units = 'cell/milliliter';
+params.Tfh_50_plasma.Notes = 'Half-maximal tumor Tfh DENSITY for aB -> plasma differentiation. Uses concentration (Tfh/V_T) not raw count.';
 params.Tfh_50_plasma.derivedFrom = {};
 
 %% B Cell Transport Parameters (own rates, replacing reused Treg/nCD4 params)
@@ -2867,6 +2874,33 @@ params.q_B_T_in.Value = 5.8e-5;
 params.q_B_T_in.Units = '1/(centimeter^3*minute)';
 params.q_B_T_in.Notes = 'B cell transmigration into tumor (was q_Treg_T_in). Initialized to same value as Treg. B cells are larger and use different adhesion molecules, so calibrate independently.';
 params.q_B_T_in.derivedFrom = {};
+
+%% Breg Switching Parameters (tumor-only, TGFb + IL-10 driven)
+% Forward switching rate (B -> Breg at maximal signal)
+params.k_Breg_on.Value = 1.0;
+params.k_Breg_on.Units = '1/day';
+params.k_Breg_on.Notes = 'Forward B->Breg switching rate at maximal TGFb+IL10 signal. Breg is a transient functional state, not a lineage (Rosser 2015 PMID:25594691).';
+params.k_Breg_on.derivedFrom = {};
+% Reverse switching rate (Breg -> B reversion)
+params.k_Breg_off.Value = 2.0;
+params.k_Breg_off.Units = '1/day';
+params.k_Breg_off.Notes = 'Reverse Breg->B reversion rate. Faster than k_Breg_on to ensure transient Breg state (equilibrium fraction < 50% at full signal). Epigenetic HDAC-dependent IL-10 locus (Lal 2015 PMID:25488983).';
+params.k_Breg_off.derivedFrom = {};
+% TGFb EC50 for Breg switching
+params.TGFb_50_Breg.Value = 0.07;
+params.TGFb_50_Breg.Units = 'nanomolarity';
+params.TGFb_50_Breg.Notes = 'TGF-beta EC50 for Breg switching. Initialized to TGFb_50_M2pol (shared TGFb sensitivity scale).';
+params.TGFb_50_Breg.derivedFrom = {};
+% IL-10 EC50 for Breg switching
+params.IL10_50_Breg.Value = 8.0;
+params.IL10_50_Breg.Units = 'nanomolarity';
+params.IL10_50_Breg.Notes = 'IL-10 EC50 for Breg switching. Initialized to IL10_50_M2 (shared IL-10 sensitivity scale). Autocrine IL-10 amplification loop.';
+params.IL10_50_Breg.derivedFrom = {};
+% Breg IL-10 secretion rate
+params.k_IL10_sec_Breg.Value = 1.5e-12;
+params.k_IL10_sec_Breg.Units = 'nanomole/(cell*day)';
+params.k_IL10_sec_Breg.Notes = 'Breg IL-10 secretion rate. Initialized to k_IL10_sec_Treg magnitude (similar per-cell IL-10 output). ABM: PARAM_BCELL_IL10_RELEASE_BREG';
+params.k_IL10_sec_Breg.derivedFrom = {};
 
 %% Antibody / ADCC Parameters
 % Plasma cell secretion rate

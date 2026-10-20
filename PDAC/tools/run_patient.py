@@ -1,14 +1,11 @@
 """End-to-end patient pipeline: QSP onset → placement → coupled ABM.
 
-1. QSP-only warmup to 0.95× target volume (fast, CPU only)
-2. 2D placement from onset state (cancer disc + SA immune/stroma)
-3. Healthy tissue background at matching grid size (Vvas field)
-4. Coupled ABM+QSP presim: volume-stopped at the XML target
-   (initial_tumour_diameter → π/6 × D³)
-
-The presim loop (Phase C in main.cu) runs the coupled ABM+QSP forward
-from the placed state until the QSP tumor volume hits the XML target.
-No fixed step count needed — the volume stopper handles it.
+1. QSP-only warmup (tiny grid, --presim-steps 0) → qsp_warmup.bin + qsp_onset.json
+2. Compute grid size from onset volume
+3. Healthy tissue placement (background + Vvas)
+4. Tumor placement (cancer disc + SA immune/stroma)
+5. Coupled ABM+QSP presim: --placement + --qsp-state, volume-stopped
+   at the XML target (initial_tumour_diameter → π/6 × D³)
 
 Usage::
 
@@ -68,8 +65,6 @@ def main(argv: list[str] | None = None) -> None:
                    help="PASS01 sample ID (e.g. 100-DFC-003)")
     p.add_argument("--param-xml", type=str, required=True,
                    help="ABM parameter XML file (contains initial_tumour_diameter)")
-    p.add_argument("--onset-fraction", type=float, default=0.95,
-                   help="Fraction of target volume for QSP onset (default 0.95)")
     p.add_argument("--main-steps", type=int, default=0,
                    help="Post-target main-sim steps (treatment/observation, default 0)")
     p.add_argument("--sa-steps", type=int, default=5_000_000,
@@ -93,9 +88,8 @@ def main(argv: list[str] | None = None) -> None:
 
     param_xml = str(Path(args.param_xml).resolve())
 
-    # ── Derive target volume from XML ──
+    # ── Derive target volume from XML (informational) ──
     target_vol = _read_target_volume_from_xml(param_xml)
-    onset_vol = target_vol * args.onset_fraction
 
     # ── Output directory ──
     if args.output_dir:
@@ -104,26 +98,34 @@ def main(argv: list[str] | None = None) -> None:
         out = REPO / "results" / f"{date.today().isoformat()}_patient_{args.sample}"
     out.mkdir(parents=True, exist_ok=True)
 
-    onset_path = out / "onset.json"
     tumor_plc = out / "tumor.plc"
     healthy_plc = out / "healthy.plc"
 
     print(f"Patient pipeline: {args.sample}")
     print(f"  XML target vol:  {target_vol:.2e} m³ (from initial_tumour_diameter)")
-    print(f"  Onset volume:    {onset_vol:.2e} m³ ({args.onset_fraction:.0%})")
     print(f"  Main-sim steps:  {args.main_steps}")
     print(f"  Output:          {out}")
 
     # ═══════════════════════════════════════════════════════════
-    # Phase 1: QSP onset warmup (CPU only, ~1ms/step)
+    # Phase 1: QSP onset warmup
+    #   Run binary at tiny grid with -s 0 (no main-sim).
+    #   Phase A (QSP warmup) writes qsp_warmup.bin + qsp_onset.json,
+    #   then the volume-stopped presim runs on the tiny grid (fast, ~2s).
+    #   We only care about the QSP warmup files, not the ABM output.
     # ═══════════════════════════════════════════════════════════
+    warmup_dir = out / "warmup"
+    warmup_dir.mkdir(parents=True, exist_ok=True)
+    qsp_state_path = warmup_dir / "qsp_warmup.bin"
+    onset_path = warmup_dir / "qsp_onset.json"
+
     if not args.skip_onset:
         run([
             str(ABM_BIN),
             "-p", param_xml,
-            "-g", "11",
-            "--qsp-onset-volume", str(onset_vol),
-            "--dump-qsp-onset", str(onset_path),
+            "-gx", "11", "-gy", "11", "-gz", "1",
+            "-s", "0",
+            "-G", "0",
+            "--output-root", str(warmup_dir),
         ], "Phase 1: QSP onset warmup")
     else:
         print(f"\nSkipping onset (reusing {onset_path})")
@@ -188,10 +190,9 @@ def main(argv: list[str] | None = None) -> None:
 
     # ═══════════════════════════════════════════════════════════
     # Phase 5: Coupled ABM+QSP
-    #   --qsp-onset-volume  → Phase A re-warms QSP to same state
-    #   --placement         → agents from .plc instead of procedural init
-    #   presim (Phase C)    → volume-stopped at XML target (automatic)
-    #   -s N                → post-target main-sim steps (0 = none)
+    #   --placement + --qsp-state → load agents + QSP from files
+    #   presim (default)          → volume-stopped at XML target
+    #   -s N                      → post-target main-sim steps
     # ═══════════════════════════════════════════════════════════
     run([
         str(ABM_BIN),
@@ -199,10 +200,8 @@ def main(argv: list[str] | None = None) -> None:
         "-gx", str(gx),
         "-gy", str(gy),
         "-gz", "1",
-        "--qsp-onset-volume", str(onset_vol),
         "--placement", str(tumor_plc),
-        "--presim-mode", "qsp_abm",
-        "--main-mode", "qsp_abm",
+        "--qsp-state", str(qsp_state_path),
         "-s", str(args.main_steps),
         "-G", str(args.grid_output),
         "-oi", str(args.out_interval),

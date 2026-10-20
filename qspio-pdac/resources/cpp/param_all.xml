@@ -37,7 +37,7 @@
       <V_C_Cy>0.0</V_C_Cy>
       <V_C_Cy_eff>0.0</V_C_Cy_eff>
       <V_C_Tfh>0.0</V_C_Tfh>
-      <V_C_nB>250000000.0</V_C_nB>
+      <V_C_nB>1000000000.0</V_C_nB>
       <V_C_B>0.0</V_C_B>
       <V_P_nCD4>185344.827586207</V_P_nCD4>
       <V_P_Treg>0.0</V_P_Treg>
@@ -88,6 +88,8 @@
       <V_T_nB>0.0</V_T_nB>
       <V_T_aB>0.0</V_T_aB>
       <V_T_Plasma>0.0</V_T_Plasma>
+      <V_T_nBreg>0.0</V_T_nBreg>
+      <V_T_aBreg>0.0</V_T_aBreg>
       <V_T_Ab>0.0</V_T_Ab>
       <V_LN_nCD4>155.689655172414</V_LN_nCD4>
       <V_LN_aTreg>0.0</V_LN_aTreg>
@@ -105,7 +107,7 @@
       <V_LN_IFNg>0.0</V_LN_IFNg>
       <V_LN_aTfh>0.0</V_LN_aTfh>
       <V_LN_Tfh>0.0</V_LN_Tfh>
-      <V_LN_nB>10000000.0</V_LN_nB>
+      <V_LN_nB>40000000.0</V_LN_nB>
       <V_LN_aB>0.0</V_LN_aB>
       <V_LN_B>0.0</V_LN_B>
       <V_e_P0>1e-18</V_e_P0>
@@ -617,7 +619,7 @@
       <k_Tfh_diff_tumor>0.5</k_Tfh_diff_tumor>
       <IL6_50_Tfh>0.001</IL6_50_Tfh>
       <H_IL6_Tfh>0.0</H_IL6_Tfh>
-      <k_nB_in>5000000.0</k_nB_in>
+      <k_nB_in>10000.0</k_nB_in>
       <k_B_act>10.0</k_B_act>
       <n_B_clones>50.0</n_B_clones>
       <k_B_pro>2.0</k_B_pro>
@@ -628,7 +630,7 @@
       <k_B_act_tumor>1.0</k_B_act_tumor>
       <k_B_pro_tumor>1.0</k_B_pro_tumor>
       <rho_B_max>5000000.0</rho_B_max>
-      <Tfh_50_plasma>100.0</Tfh_50_plasma>
+      <Tfh_50_plasma>1000000.0</Tfh_50_plasma>
       <k_nB_death>0.002</k_nB_death>
       <q_nB_LN_in>0.1</q_nB_LN_in>
       <q_nB_LN_out>2.88</q_nB_LN_out>
@@ -644,6 +646,13 @@
       <DC_Ab_boost>3.95</DC_Ab_boost>
       <H_Ab>0.0</H_Ab>
       <H_Ab_DC>0.0</H_Ab_DC>
+      <k_Breg_on>1.0</k_Breg_on>
+      <k_Breg_off>2.0</k_Breg_off>
+      <TGFb_50_Breg>0.07</TGFb_50_Breg>
+      <IL10_50_Breg>8.0</IL10_50_Breg>
+      <k_IL10_sec_Breg>1.5e-12</k_IL10_sec_Breg>
+      <H_TGFb_Breg>0.0</H_TGFb_Breg>
+      <H_IL10_Breg>0.0</H_IL10_Breg>
       <CD8_total_T>0.0</CD8_total_T>
       <nucleated_total_T>0.0</nucleated_total_T>
       <CD8_exh_total_T>0.0</CD8_exh_total_T>

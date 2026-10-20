@@ -175,13 +175,6 @@ FLAMEGPU_AGENT_FUNCTION(bcell_state_step, flamegpu::MessageNone, flamegpu::Messa
             FLAMEGPU->setVariable<int>("cell_state", BCELL_ACTIVATED);
             FLAMEGPU->setVariable<int>("activation_timer", 0);
 
-            // Roll Breg fate at activation
-            const float breg_frac = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_BREG_FRACTION");
-            unsigned int rb = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0xB01u, sim_seed);
-            if (det_rng_uniform(rb) < breg_frac) {
-                FLAMEGPU->setVariable<int>("is_breg", 1);
-            }
-
             // Initialize division capability
             FLAMEGPU->setVariable<int>("divide_cd", FLAMEGPU->environment.getProperty<int>("PARAM_BCELL_DIV_CD"));
             FLAMEGPU->setVariable<int>("divide_limit", FLAMEGPU->environment.getProperty<int>("PARAM_BCELL_DIV_LIMIT"));
@@ -217,8 +210,9 @@ FLAMEGPU_AGENT_FUNCTION(bcell_state_step, flamegpu::MessageNone, flamegpu::Messa
             effective_threshold = 1e9f;  // never fires while gate is closed
         }
 
-        // Activated → Plasma: time-dependent differentiation
-        if (timer >= (int)effective_threshold) {
+        // Activated → Plasma: time-dependent differentiation (Bregs blocked — must revert first)
+        const int is_breg_act = FLAMEGPU->getVariable<int>("is_breg");
+        if (is_breg_act == 0 && timer >= (int)effective_threshold) {
             FLAMEGPU->setVariable<int>("cell_state", BCELL_PLASMA);
             FLAMEGPU->setVariable<int>("divide_flag", 0);
             FLAMEGPU->setVariable<int>("divide_cd", 0);
@@ -241,6 +235,50 @@ FLAMEGPU_AGENT_FUNCTION(bcell_state_step, flamegpu::MessageNone, flamegpu::Messa
         }
     }
     // BCELL_PLASMA: no state transitions, just life countdown (handled above)
+
+    // ── Per-step Breg switching (NAIVE and ACTIVATED only; plasma is irreversible) ──
+    {
+        const int cur_state = FLAMEGPU->getVariable<int>("cell_state");
+        if (cur_state == BCELL_NAIVE || cur_state == BCELL_ACTIVATED) {
+            const int gnx = FLAMEGPU->environment.getProperty<int>("grid_size_x");
+            const int gny = FLAMEGPU->environment.getProperty<int>("grid_size_y");
+            const int bx = FLAMEGPU->getVariable<int>("x");
+            const int by = FLAMEGPU->getVariable<int>("y");
+            const int bz = FLAMEGPU->getVariable<int>("z");
+            const int bvox = bz * gny * gnx + by * gnx + bx;
+
+            const float* tgfb_ptr = reinterpret_cast<const float*>(
+                FLAMEGPU->environment.getProperty<uint64_t>(PDE_CONC_TGFB));
+            const float* il10_ptr = reinterpret_cast<const float*>(
+                FLAMEGPU->environment.getProperty<uint64_t>(PDE_CONC_IL10));
+            const float local_tgfb = tgfb_ptr[bvox];
+            const float local_il10 = il10_ptr[bvox];
+
+            const float k_on  = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_K_BREG_ON");
+            const float k_off = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_K_BREG_OFF");
+            const float tgfb_50 = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_TGFB_50_BREG");
+            const float il10_50 = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_IL10_50_BREG");
+
+            const float H_tgfb = local_tgfb / (tgfb_50 + local_tgfb + 1e-30f);
+            const float H_il10 = local_il10 / (il10_50 + local_il10 + 1e-30f);
+
+            const float dt_days = FLAMEGPU->environment.getProperty<float>("PARAM_SEC_PER_SLICE") / 86400.0f;
+            int is_breg = FLAMEGPU->getVariable<int>("is_breg");
+
+            unsigned int rb = det_rng_seed(static_cast<int>(det_tag), FLAMEGPU->getStepCounter(), 0xB01u, sim_seed);
+            if (is_breg == 0) {
+                const float p_switch = k_on * H_tgfb * H_il10 * dt_days;
+                if (det_rng_uniform(rb) < fminf(p_switch, 1.0f)) {
+                    FLAMEGPU->setVariable<int>("is_breg", 1);
+                }
+            } else {
+                const float p_revert = k_off * dt_days;
+                if (det_rng_uniform(rb) < fminf(p_revert, 1.0f)) {
+                    FLAMEGPU->setVariable<int>("is_breg", 0);
+                }
+            }
+        }
+    }
 
     return flamegpu::ALIVE;
 }
@@ -291,15 +329,9 @@ FLAMEGPU_AGENT_FUNCTION(bcell_compute_chemical_sources, flamegpu::MessageNone, f
     const float voxel_volume = vs_cm * vs_cm * vs_cm;
 
     if (cs == BCELL_PLASMA) {
-        if (is_breg) {
-            // Breg plasma: secrete IL-10 (immunosuppressive)
-            float il10_rate = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_IL10_RELEASE");
-            PDE_SECRETE(FLAMEGPU, PDE_SRC_IL10, voxel, il10_rate / voxel_volume);
-        } else {
-            // Normal plasma: secrete antibody (ADCC)
-            float ab_rate = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_ANTIBODY_RELEASE");
-            PDE_SECRETE(FLAMEGPU, PDE_SRC_ANTIBODY, voxel, ab_rate / voxel_volume);
-        }
+        // Plasma cells secrete antibody (Bregs can't reach plasma — must revert first)
+        float ab_rate = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_ANTIBODY_RELEASE");
+        PDE_SECRETE(FLAMEGPU, PDE_SRC_ANTIBODY, voxel, ab_rate / voxel_volume);
         // Plasma B cells secrete CXCL13 (TLS organizing signal)
         float cxcl13_rate = FLAMEGPU->environment.getProperty<float>("PARAM_BCELL_PLASMA_CXCL13_RELEASE");
         PDE_SECRETE(FLAMEGPU, PDE_SRC_CXCL13, voxel, cxcl13_rate / voxel_volume);

@@ -1,4 +1,4 @@
-#include "CVODEBase.h"
+#include "qsp_sim_core/CVODEBase.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -542,11 +542,20 @@ void CVODEBase::resetSolver(realtype t0, realtype t1){
 	stale state, not the properly-initialized one.
 
 */
-void CVODEBase::setupSamplingRun(double tEndOfSim, double t0){
+void CVODEBase::setupSamplingRun(double tEndOfSim, double t0, double h0_hint){
 	restore_y();
 	resolveEvents(t0);
 	CVodeReInit(_cvode_mem, t0, _y);
 	CVodeSetStopTime(_cvode_mem, tEndOfSim);
+	if (h0_hint > 0.0) {
+		// Skip CVHin's heuristic h₀ pick. CVHin estimates h₀ from
+		// ||f(t0,y0)||_WRMS, which collapses to sub-ULP at solver times
+		// O(1e8) s when a bolus jolts a fast-binding subsystem — the
+		// step then advances t by less than one double-precision ULP
+		// and the outer loop's "did not advance" guard aborts the run.
+		// Passing the pre-event h_cur as the hint mirrors SimBiology.
+		CVodeSetInitStep(_cvode_mem, static_cast<realtype>(h0_hint));
+	}
 }
 
 /*! Advance CVODE from its current internal time to tEnd in CV_NORMAL mode.
@@ -566,6 +575,57 @@ void CVODEBase::simOdeSample(double tEnd){
 	// so getSpeciesOutputValue/operator<< emit current state.
 	save_y();
 	update_y_other();
+}
+
+/*! Advance CVODE by one internal step (CV_ONE_STEP) and return the resulting
+	integration time. Used by output loops that prefer solver-native cadence
+	to a fixed output grid: the caller dumps a row whenever t advances past a
+	configurable minimum cadence and at the simulation stop time. CVODE's
+	stop time is pinned by the prior setupSamplingRun call, so the step won't
+	walk past tEndOfSim regardless of `tEndClamp` (which CV_ONE_STEP uses only
+	to determine integration direction).
+*/
+double CVODEBase::simOdeStepOne(double tEndClamp){
+	realtype t_ret = tEndClamp;
+	int flag = CVode(_cvode_mem, tEndClamp, _y, &t_ret, CV_ONE_STEP);
+	if (flag != CV_TOO_CLOSE) {
+		check_flag(&flag, "CVode", 1);
+	}
+	save_y();
+	update_y_other();
+	return static_cast<double>(t_ret);
+}
+
+/*! Wrapper over CVodeGetNumSteps. Returns 0 on failure. The counter is reset
+	by CVodeReInit (so by setupSamplingRun and resetSolver), making it usable
+	for per-segment step instrumentation if the caller queries before each
+	re-init. Accumulating across segments is the caller's responsibility.
+*/
+long CVODEBase::getNumSteps() const {
+	long n_steps = 0;
+	int flag = CVodeGetNumSteps(_cvode_mem, &n_steps);
+	if (flag != CV_SUCCESS) {
+		return 0;
+	}
+	return n_steps;
+}
+
+CVODEBase::StepStats CVODEBase::getStepStats() const {
+	StepStats s{};
+	CVodeGetNumSteps(_cvode_mem, &s.nst);
+	CVodeGetNumRhsEvals(_cvode_mem, &s.nfe);
+	CVodeGetNumErrTestFails(_cvode_mem, &s.netf);
+	CVodeGetNumNonlinSolvConvFails(_cvode_mem, &s.ncfn);
+	CVodeGetNumJacEvals(_cvode_mem, &s.nje);
+	CVodeGetNumNonlinSolvIters(_cvode_mem, &s.nni);
+	CVodeGetNumLinSolvSetups(_cvode_mem, &s.nsetups);
+	CVodeGetLastOrder(_cvode_mem, &s.last_order);
+	realtype hlast = 0.0, hcur = 0.0;
+	CVodeGetLastStep(_cvode_mem, &hlast);
+	CVodeGetCurrentStep(_cvode_mem, &hcur);
+	s.last_h = static_cast<double>(hlast);
+	s.cur_h = static_cast<double>(hcur);
+	return s;
 }
 // ----- Evolve-cache full-state serialization -----------------------------
 //

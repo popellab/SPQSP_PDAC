@@ -1,0 +1,225 @@
+study_interpretation: |
+  Scharping et al. (2024, Frontiers in Immunology) analyzed 58 resected PDAC tumors
+  using a 7-color multiplex immunohistochemistry (mIHC) panel that included CD20 to
+  quantify B cell infiltration. Intratumoral stromal CD20+ B cell density (cells/mm^2),
+  excluding tertiary lymphoid structures (TLS), was reported as a median across the
+  full cohort (n=58, mixed treatment-naive and neoadjuvant-treated). The treatment-naive
+  subgroup (primary resection, n=28) showed higher whole-tissue CD20+ density (median
+  54.8 cells/mm^2) than the neoadjuvant-treated subgroup (17.84 cells/mm^2), but the
+  intratumoral stromal breakdown by treatment status was not separately reported.
+  The intratumoral stromal (excl TLS) compartment is the closest match to the QSP model's
+  dispersed B cell population, which does not represent organized lymphoid aggregates.
+key_assumptions:
+- |
+  CD20 marks all non-plasma B cells (naive, activated, memory, regulatory) equivalently.
+  In the QSP model this maps to V_T.nB + V_T.aB + V_T.nBreg + V_T.aBreg. Plasma cells
+  (CD20-negative) are excluded from both the IHC measurement and the model readout.
+- |
+  The intratumoral stromal compartment (excluding TLS) best matches the QSP model's
+  dispersed B cell population. TLS-associated B cells are organized lymphoid structures
+  not represented in the current model.
+- |
+  The 95% CI was estimated from the reported median (10.8 cells/mm^2) using the
+  inter-patient variability pattern observed in comparable immune cell density targets
+  (cd8_density, treg_density, cd4_helper_density), which span approximately 2 log-decades
+  from 2.5th to 97.5th percentile. B cells are known to be highly variable across
+  PDAC patients, supporting a similar spread.
+- |
+  The full-cohort intratumoral value (n=58) is used rather than the treatment-naive
+  subgroup because the intratumoral stromal density was not reported by treatment status.
+  The treatment-naive subgroup likely has higher intratumoral density.
+key_study_limitations:
+- |
+  Only median values were reported (no IQR, SD, or individual patient data in the main
+  text). The 95% CI is estimated from comparable immune density distributions, not
+  directly measured.
+- |
+  The cohort includes both treatment-naive (n=28) and neoadjuvant-treated (n=30) patients.
+  Neoadjuvant chemotherapy significantly suppresses B cell density (NeoTx whole-tissue
+  median 17.84 vs PR 54.8 cells/mm^2), so the combined-cohort intratumoral value
+  underestimates treatment-naive B cell density.
+- |
+  Supplementary data (DataSheet_1.zip) may contain individual patient values but was
+  not accessible for this extraction.
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants):
+        """mIHC-equivalent CD20+ B cell density via V_T-based 3D->2D projection.
+
+        Sums naive and activated B cells (including Breg-switched), divides
+        by V_T, and scales by section thickness to project the 3D volumetric
+        density into a 2D mIHC density (cells/mm^2 of section).
+        """
+        nB = species_dict['V_T.nB']
+        aB = species_dict['V_T.aB']
+        nBreg = species_dict['V_T.nBreg']
+        aBreg = species_dict['V_T.aBreg']
+        V_T = species_dict['V_T']
+        thickness = constants['section_thickness_um']
+        cell_diameter = constants['cell_diameter_um']
+        density = (nB + aB + nBreg + aBreg) / V_T * (thickness + cell_diameter)
+        return density * 1e-06
+
+  units: cell / millimeter**2
+  species:
+  - V_T.nB
+  - V_T.aB
+  - V_T.nBreg
+  - V_T.aBreg
+  - V_T
+  constants:
+  - name: section_thickness_um
+    value: 4.0
+    units: micrometer
+    biological_basis: |
+      Standard FFPE tissue section thickness for mIHC quantification (typical 3-5 micrometer).
+    source_type: reference_db
+    reference_db_name: ffpe_section_thickness
+    reference_db_names: null
+    source_tag: null
+  - name: cell_diameter_um
+    value: 8.0
+    units: micrometer
+    biological_basis: |
+      Resting B lymphocyte diameter ~7-10 micrometer. Slightly larger than T cells (7 um)
+      due to higher cytoplasm:nucleus ratio. Used as Abercrombie overcounting correction
+      term in the 2D->3D projection.
+    source_type: reference_db
+    reference_db_name: b_cell_diameter
+    reference_db_names: null
+    source_tag: null
+  support: positive
+  mapping_rationale: |
+    CD20 IHC detects all non-plasma B cells regardless of activation or regulatory state.
+    The observable sums (V_T.nB + V_T.aB + V_T.nBreg + V_T.aBreg) and uses V_T-based
+    projection (cells / V_T * (thickness + diameter)) to match the cells/mm^2 convention
+    used in Scharping 2024. Plasma cells are excluded from both measurement and readout.
+  experimental_denominator: mm^2 of tumor tissue section (intratumoral stromal, excluding TLS)
+  model_denominator_species:
+  - V_T
+  aggregation: null
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier: null
+  indication: PDAC
+  treatment:
+    history:
+    - mixed
+    status: off_treatment
+    specifier: |
+      Mixed cohort: 28 primary resection (treatment-naive) and 30 neoadjuvant-treated.
+      Intratumoral stromal density not reported separately by treatment status.
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines: null
+  culture_conditions: null
+  tissue_source: |
+    Primary pancreatic ductal adenocarcinoma resections, FFPE tissue sections analyzed
+    by 7-color multiplex immunohistochemistry (mIHC) panel including CD20.
+  assay_type: |
+    7-color multiplex immunohistochemistry (mIHC) with digital image analysis.
+    CD20+ B cell density quantified as cells/mm^2 in intratumoral stromal compartment,
+    excluding tertiary lymphoid structures (TLS).
+scenario:
+  description: |
+    Baseline PDAC tumors at surgical resection. Mixed treatment-naive and neoadjuvant-treated
+    cohort. Tissue sections analyzed for CD20+ B cell density in intratumoral stroma.
+  interventions:
+  - intervention_description: |
+      No modeled therapeutic intervention. Represents the diagnosis-state tumor
+      microenvironment B cell infiltration.
+empirical_data:
+  median:
+  - 10.8
+  ci95:
+  - - 1.5
+    - 80.0
+  units: cell / millimeter**2
+  sample_size: 58
+  sample_size_rationale: |
+    n=58 resected PDAC tumors analyzed by 7-color mIHC B cell panel (28 primary resection,
+    30 neoadjuvant-treated) as reported in Scharping et al. 2024 (Frontiers in Immunology).
+  index_values: null
+  index_unit: null
+  index_type: null
+  inputs:
+  - name: median_cd20_intratumoral_stromal
+    value: 10.8
+    units: cell / millimeter**2
+    description: |
+      Median CD20+ B cell density in the intratumoral stromal compartment (excluding
+      TLS) across the full cohort (n=58).
+    source_ref: Scharping2024_BcellPDAC
+    value_location: |
+      Results section, B cell density quantification, intratumoral stromal compartment.
+    value_snippet: |
+      CD20+ intratumoral stromal (excl TLS): median 10.8 cells/mm^2 (n=58)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+  - name: median_cd20_whole_tissue_PR
+    value: 54.8
+    units: cell / millimeter**2
+    description: |
+      Median CD20+ B cell density in whole tissue (including TLS) for the treatment-naive
+      primary resection subgroup (n=28). Used as reference for treatment-naive B cell density.
+    source_ref: Scharping2024_BcellPDAC
+    value_location: |
+      Results section, treatment group comparison.
+    value_snippet: |
+      CD20+ whole tissue, primary resection group: median 54.8 cells/mm^2 (n=28)
+    input_type: direct_parameter
+    conversion_formula: null
+    source_type: text
+    figure_id: null
+    extraction_method: null
+    extraction_notes: null
+  assumptions:
+  - name: ci95_estimation_method
+    value: 0.0
+    units: dimensionless
+    description: |
+      The 95% CI (1.5 - 80.0 cells/mm^2) was estimated from the median using the
+      inter-patient variability pattern observed in comparable PDAC immune cell density
+      targets. The spread (~2 log-decades from 2.5th to 97.5th percentile) is consistent
+      with cd4_helper_density (2.44 - 193.85), treg_density (1.26 - 155.43), and
+      tam_density (27.57 - 635.56) distributions. No IQR or SD was reported in the paper.
+    rationale: |
+      Without individual-patient data or reported dispersion metrics, the spread was
+      estimated by analogy to comparable immune cell density distributions in the corpus.
+primary_data_source:
+  source_tag: Scharping2024_BcellPDAC
+  title: |
+    B cells in the PDAC tumor microenvironment: impact of neoadjuvant therapy and
+    association with patient outcomes
+  first_author: Scharping
+  year: 2024
+  doi: 10.3389/fimmu.2024.1378190
+  source_relevance:
+    indication_match: exact
+    indication_match_justification: Human PDAC patient specimens, directly matching the model indication.
+    species_source: human
+    species_target: human
+    source_quality: primary_human_clinical
+    perturbation_type: physiological_baseline
+    perturbation_relevance: Observational measurement of resected PDAC specimens; B cell density in the TME.
+    tme_compatibility: high
+    tme_compatibility_notes: |
+      Resected PDAC specimens with intratumoral stromal B cell quantification excluding TLS,
+      matching the dispersed B cell population in the QSP model.
+    validation_warnings:
+    - |
+      CI estimated, not directly measured. Supplementary data may contain individual values.
+    - |
+      Mixed treatment-naive/neoadjuvant cohort for the intratumoral density value.
+secondary_data_sources: []
+calibration_target_id: bcell_density_scharping2024
+cancer_type: PDAC
+tags:
+- manual-extraction
+- estimated-ci

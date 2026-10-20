@@ -421,6 +421,20 @@
       "description": "Number of plasma cells in the tumor compartment (ABM: BCELL_PLASMA)"
     },
     {
+      "name": "V_T.nBreg",
+      "compartment": "V_T",
+      "base_name": "nBreg",
+      "units": "cell",
+      "description": "Naive regulatory B cells in tumor (Breg-switched nB, IL-10 functional state)"
+    },
+    {
+      "name": "V_T.aBreg",
+      "compartment": "V_T",
+      "base_name": "aBreg",
+      "units": "cell",
+      "description": "Activated regulatory B cells in tumor (Breg-switched aB, IL-10 secreting)"
+    },
+    {
       "name": "V_T.Ab",
       "compartment": "V_T",
       "base_name": "Ab",
@@ -3754,7 +3768,7 @@
     },
     {
       "name": "k_nB_in",
-      "value": 5.0E+6,
+      "value": 10000,
       "units": "cell/day",
       "description": "Marrow output of naive B cells to blood"
     },
@@ -3810,13 +3824,61 @@
       "name": "k_B_pro_tumor",
       "value": 1,
       "units": "1/day",
-      "description": "Tumor-local activated B proliferation rate"
+      "description": "Tumor-local activated B proliferation rate (saturating form)"
+    },
+    {
+      "name": "rho_B_max",
+      "value": 5.0E+6,
+      "units": "cell/milliliter",
+      "description": "Max activated B density in tumor (carrying capacity, analogous to rho_Th_max)"
     },
     {
       "name": "Tfh_50_plasma",
-      "value": 100,
-      "units": "cell",
+      "value": 1.0E+6,
+      "units": "cell/milliliter",
       "description": "Half-maximal tumor Tfh for aB -> plasma differentiation help"
+    },
+    {
+      "name": "k_nB_death",
+      "value": 0.002,
+      "units": "1/day",
+      "description": "Naive B cell death rate (was k_nTreg_death)"
+    },
+    {
+      "name": "q_nB_LN_in",
+      "value": 0.1,
+      "units": "1/day",
+      "description": "Naive B cell entry into LN (was q_nCD4_LN_in)"
+    },
+    {
+      "name": "q_nB_LN_out",
+      "value": 2.88,
+      "units": "1/day",
+      "description": "Naive B cell exit from LN (was q_nCD4_LN_out)"
+    },
+    {
+      "name": "q_B_P_in",
+      "value": 0.25,
+      "units": "1/minute",
+      "description": "Mature B cell transport C->P (was q_Treg_P_in)"
+    },
+    {
+      "name": "q_B_P_out",
+      "value": 24,
+      "units": "1/day",
+      "description": "Mature B cell transport P->C (was q_Treg_P_out)"
+    },
+    {
+      "name": "q_B_LN_out",
+      "value": 24,
+      "units": "1/day",
+      "description": "Mature B cell exit from LN (was q_Treg_LN_out)"
+    },
+    {
+      "name": "q_B_T_in",
+      "value": 5.8E-5,
+      "units": "1/(centimeter^3*minute)",
+      "description": "B cell transmigration into tumor (was q_Treg_T_in)"
     },
     {
       "name": "k_Ab_sec",
@@ -3865,6 +3927,48 @@
       "value": 0,
       "units": "dimensionless",
       "description": "Hill function for antibody-mediated DC uptake boost"
+    },
+    {
+      "name": "k_Breg_on",
+      "value": 1,
+      "units": "1/day",
+      "description": "Forward B->Breg switching rate (TGFb+IL10 gated)"
+    },
+    {
+      "name": "k_Breg_off",
+      "value": 2,
+      "units": "1/day",
+      "description": "Reverse Breg->B reversion rate"
+    },
+    {
+      "name": "TGFb_50_Breg",
+      "value": 0.07,
+      "units": "nanomolarity",
+      "description": "TGFb EC50 for Breg switching"
+    },
+    {
+      "name": "IL10_50_Breg",
+      "value": 8,
+      "units": "nanomolarity",
+      "description": "IL-10 EC50 for Breg switching"
+    },
+    {
+      "name": "k_IL10_sec_Breg",
+      "value": 1.5E-12,
+      "units": "nanomole/(cell*day)",
+      "description": "Breg IL-10 secretion rate (aBreg only)"
+    },
+    {
+      "name": "H_TGFb_Breg",
+      "value": 0,
+      "units": "dimensionless",
+      "description": "TGFb Hill for Breg switching"
+    },
+    {
+      "name": "H_IL10_Breg",
+      "value": 0,
+      "units": "dimensionless",
+      "description": "IL-10 Hill for Breg switching"
     },
     {
       "name": "CD8_total_T",
@@ -7797,9 +7901,9 @@
         "V_C.nB"
       ],
       "products": [],
-      "rate_law": "k_nTreg_death*V_C.nB",
+      "rate_law": "k_nB_death*V_C.nB",
       "parameters": [
-        "k_nTreg_death"
+        "k_nB_death"
       ]
     },
     {
@@ -7808,9 +7912,9 @@
         "V_LN.nB"
       ],
       "products": [],
-      "rate_law": "k_nTreg_death*V_LN.nB",
+      "rate_law": "k_nB_death*V_LN.nB",
       "parameters": [
-        "k_nTreg_death"
+        "k_nB_death"
       ]
     },
     {
@@ -7821,9 +7925,9 @@
       "products": [
         "V_LN.nB"
       ],
-      "rate_law": "q_nCD4_LN_in*V_C.nB",
+      "rate_law": "q_nB_LN_in*V_C.nB",
       "parameters": [
-        "q_nCD4_LN_in"
+        "q_nB_LN_in"
       ]
     },
     {
@@ -7834,9 +7938,9 @@
       "products": [
         "V_C.nB"
       ],
-      "rate_law": "q_nCD4_LN_out*V_LN.nB",
+      "rate_law": "q_nB_LN_out*V_LN.nB",
       "parameters": [
-        "q_nCD4_LN_out"
+        "q_nB_LN_out"
       ]
     },
     {
@@ -7931,9 +8035,9 @@
       "products": [
         "V_P.B"
       ],
-      "rate_law": "q_Treg_P_in*V_C.B",
+      "rate_law": "q_B_P_in*V_C.B",
       "parameters": [
-        "q_Treg_P_in"
+        "q_B_P_in"
       ]
     },
     {
@@ -7944,9 +8048,9 @@
       "products": [
         "V_C.B"
       ],
-      "rate_law": "q_Treg_P_out*V_P.B",
+      "rate_law": "q_B_P_out*V_P.B",
       "parameters": [
-        "q_Treg_P_out"
+        "q_B_P_out"
       ]
     },
     {
@@ -7957,9 +8061,9 @@
       "products": [
         "V_C.B"
       ],
-      "rate_law": "q_Treg_LN_out*V_LN.B",
+      "rate_law": "q_B_LN_out*V_LN.B",
       "parameters": [
-        "q_Treg_LN_out"
+        "q_B_LN_out"
       ]
     },
     {
@@ -7970,11 +8074,15 @@
       "products": [
         "V_T.nB"
       ],
-      "rate_law": "q_Treg_T_in*V_T*V_C.B*(C_total^2/(C_total^2 + K_C2_recruit))",
+      "rate_law": "q_B_T_in*V_T*V_C.B*(C_total^2/(C_total^2 + K_C2_recruit))*(1-H_CXCL12_Texcl)*H_vasc/(1 + (V_T.nB + V_T.aB + V_T.Plasma + V_T.nBreg + V_T.aBreg)/(rho_B_max*V_T + cell))",
       "parameters": [
+        "cell",
         "C_total",
-        "q_Treg_T_in",
-        "K_C2_recruit"
+        "H_CXCL12_Texcl",
+        "H_vasc",
+        "K_C2_recruit",
+        "rho_B_max",
+        "q_B_T_in"
       ]
     },
     {
@@ -7997,9 +8105,11 @@
       "products": [
         "V_T.aB"
       ],
-      "rate_law": "k_B_pro_tumor*V_T.aB",
+      "rate_law": "k_B_pro_tumor*V_T.aB/(1 + (V_T.nB + V_T.aB + V_T.Plasma + V_T.nBreg + V_T.aBreg)/(rho_B_max*V_T + cell))",
       "parameters": [
-        "k_B_pro_tumor"
+        "cell",
+        "k_B_pro_tumor",
+        "rho_B_max"
       ]
     },
     {
@@ -8010,7 +8120,7 @@
       "products": [
         "V_T.Plasma"
       ],
-      "rate_law": "k_B_to_plasma*V_T.aB*(V_T.Tfh/(V_T.Tfh + Tfh_50_plasma))",
+      "rate_law": "k_B_to_plasma*V_T.aB*((V_T.Tfh/V_T)/((V_T.Tfh/V_T) + Tfh_50_plasma))",
       "parameters": [
         "k_B_to_plasma",
         "Tfh_50_plasma"
@@ -8090,6 +8200,148 @@
     },
     {
       "name": "Reaction_316",
+      "reactants": [
+        "V_T.nB"
+      ],
+      "products": [
+        "V_T.nBreg"
+      ],
+      "rate_law": "k_Breg_on*H_TGFb_Breg*H_IL10_Breg*V_T.nB",
+      "parameters": [
+        "k_Breg_on",
+        "H_TGFb_Breg",
+        "H_IL10_Breg"
+      ]
+    },
+    {
+      "name": "Reaction_317",
+      "reactants": [
+        "V_T.aB"
+      ],
+      "products": [
+        "V_T.aBreg"
+      ],
+      "rate_law": "k_Breg_on*H_TGFb_Breg*H_IL10_Breg*V_T.aB",
+      "parameters": [
+        "k_Breg_on",
+        "H_TGFb_Breg",
+        "H_IL10_Breg"
+      ]
+    },
+    {
+      "name": "Reaction_318",
+      "reactants": [
+        "V_T.nBreg"
+      ],
+      "products": [
+        "V_T.nB"
+      ],
+      "rate_law": "k_Breg_off*V_T.nBreg",
+      "parameters": [
+        "k_Breg_off"
+      ]
+    },
+    {
+      "name": "Reaction_319",
+      "reactants": [
+        "V_T.aBreg"
+      ],
+      "products": [
+        "V_T.aB"
+      ],
+      "rate_law": "k_Breg_off*V_T.aBreg",
+      "parameters": [
+        "k_Breg_off"
+      ]
+    },
+    {
+      "name": "Reaction_320",
+      "reactants": [
+        "V_T.nBreg"
+      ],
+      "products": [
+        "V_T.aBreg"
+      ],
+      "rate_law": "k_B_act_tumor*H_P1*V_T.nBreg",
+      "parameters": [
+        "H_P1",
+        "k_B_act_tumor"
+      ]
+    },
+    {
+      "name": "Reaction_321",
+      "reactants": [],
+      "products": [
+        "V_T.aBreg"
+      ],
+      "rate_law": "k_B_pro_tumor*V_T.aBreg/(1 + (V_T.nB + V_T.aB + V_T.Plasma + V_T.nBreg + V_T.aBreg)/(rho_B_max*V_T + cell))",
+      "parameters": [
+        "cell",
+        "k_B_pro_tumor",
+        "rho_B_max"
+      ]
+    },
+    {
+      "name": "Reaction_322",
+      "reactants": [
+        "V_T.nBreg"
+      ],
+      "products": [],
+      "rate_law": "k_B_death*V_T.nBreg",
+      "parameters": [
+        "k_B_death"
+      ]
+    },
+    {
+      "name": "Reaction_323",
+      "reactants": [
+        "V_T.aBreg"
+      ],
+      "products": [],
+      "rate_law": "k_B_death*V_T.aBreg",
+      "parameters": [
+        "k_B_death"
+      ]
+    },
+    {
+      "name": "Reaction_324",
+      "reactants": [
+        "V_T.nBreg"
+      ],
+      "products": [],
+      "rate_law": "k_cell_clear*V_T.nBreg*(K_C2_recruit/(C_total^2 + K_C2_recruit))",
+      "parameters": [
+        "k_cell_clear",
+        "C_total",
+        "K_C2_recruit"
+      ]
+    },
+    {
+      "name": "Reaction_325",
+      "reactants": [
+        "V_T.aBreg"
+      ],
+      "products": [],
+      "rate_law": "k_cell_clear*V_T.aBreg*(K_C2_recruit/(C_total^2 + K_C2_recruit))",
+      "parameters": [
+        "k_cell_clear",
+        "C_total",
+        "K_C2_recruit"
+      ]
+    },
+    {
+      "name": "Reaction_326",
+      "reactants": [],
+      "products": [
+        "V_T.IL10"
+      ],
+      "rate_law": "k_IL10_sec_Breg*V_T.aBreg",
+      "parameters": [
+        "k_IL10_sec_Breg"
+      ]
+    },
+    {
+      "name": "Reaction_327",
       "reactants": [],
       "products": [
         "V_T.Ab"
@@ -8100,7 +8352,7 @@
       ]
     },
     {
-      "name": "Reaction_317",
+      "name": "Reaction_328",
       "reactants": [
         "V_T.Ab"
       ],

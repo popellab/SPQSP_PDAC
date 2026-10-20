@@ -6,13 +6,13 @@
 % anchors ABM ADCC parameters and cross-validates bulk-level dynamics.
 %
 % TUMOR COMPARTMENT mirrors ABM agent states (b_cell.cuh):
-%   V_T.nB     = BCELL_NAIVE      — recruited from blood, antigen-naive in tumor
-%   V_T.aB     = BCELL_ACTIVATED  — locally activated by antigen, can proliferate
-%   V_T.Plasma = BCELL_PLASMA     — Tfh-helped terminal differentiation
-%   V_T.Ab     = endogenous polyclonal IgG (nanomolarity)
-%
-% Breg fate removed from this model set (handled ABM-side by setting
-% PARAM_BCELL_BREG_FRACTION = 0.0).
+%   V_T.nB          = BCELL_NAIVE      — recruited from blood, antigen-naive in tumor
+%   V_T.aB          = BCELL_ACTIVATED  — locally activated by antigen, can proliferate
+%   V_T.Plasma      = BCELL_PLASMA     — Tfh-helped terminal differentiation (Ab-secreting)
+%   V_T.nBreg       = naive Breg       — TGFb+IL10-switched nB (reversible)
+%   V_T.aBreg       = activated Breg   — TGFb+IL10-switched aB (reversible, IL-10 secreting)
+%   (Plasma_Breg removed — Mirlekar 2022 found no IL-10/IL-35 from PDAC plasma cells)
+%   V_T.Ab          = endogenous polyclonal IgG (nanomolarity)
 %
 % Structure (mirrors the naive->activated->mature T-cell template):
 %   naive nB (C, LN)  --marrow source, death, C<->LN traffic
@@ -35,7 +35,9 @@
 %   k_B_to_plasma, k_plasma_death, Tfh_50_B (LN activation help),
 %   k_B_act_tumor, k_B_pro_tumor, rho_B_max (tumor carrying capacity),
 %   Tfh_50_plasma (tumor Tfh help for plasma),
-%   k_Ab_sec, k_Ab_deg, Ab_50_ADCC, ADCC_boost_max, Ab_50_DC, DC_Ab_boost.
+%   k_Ab_sec, k_Ab_deg, Ab_50_ADCC, ADCC_boost_max, Ab_50_DC, DC_Ab_boost,
+%   k_Breg_on, k_Breg_off, TGFb_50_Breg, IL10_50_Breg, k_IL10_sec_Breg.
+%   Breg aB CANNOT differentiate to plasma (must revert to aB first).
 %
 % Depends on Tfh_module (uses V_LN.Tfh, V_T.Tfh) — call after Tfh_module.
 
@@ -55,6 +57,9 @@ addspecies(model.Compartment(4),'B',0,'InitialAmountUnits','cell', 'Notes','Numb
 addspecies(model.Compartment(3),'nB',0,'InitialAmountUnits','cell', 'Notes','Number of naive B cells in the tumor compartment (ABM: BCELL_NAIVE)');
 addspecies(model.Compartment(3),'aB',0,'InitialAmountUnits','cell', 'Notes','Number of activated B cells in the tumor compartment (ABM: BCELL_ACTIVATED)');
 addspecies(model.Compartment(3),'Plasma',0,'InitialAmountUnits','cell', 'Notes','Number of plasma cells in the tumor compartment (ABM: BCELL_PLASMA)');
+% Tumor Breg species (switching targets — share kinetics with non-Breg)
+addspecies(model.Compartment(3),'nBreg',0,'InitialAmountUnits','cell', 'Notes','Naive regulatory B cells in tumor (Breg-switched nB, IL-10 functional state)');
+addspecies(model.Compartment(3),'aBreg',0,'InitialAmountUnits','cell', 'Notes','Activated regulatory B cells in tumor (Breg-switched aB, IL-10 secreting)');
 % Tumor-local endogenous antibody (polyclonal IgG, nanomolarity)
 addspecies(model.Compartment(3),'Ab',0,'InitialAmountUnits','nanomolarity', 'Notes','Endogenous polyclonal IgG in tumor (ABM: PDE_CONC_ANTIBODY)');
 
@@ -121,6 +126,24 @@ H_Ab = addparameter(model,'H_Ab',0,'ValueUnits','dimensionless','ConstantValue',
 H_Ab_DC = addparameter(model,'H_Ab_DC',0,'ValueUnits','dimensionless','ConstantValue',false, 'Notes','Hill function for antibody-mediated DC uptake boost');
 addrule(model,'H_Ab = V_T.Ab/(Ab_50_ADCC + V_T.Ab)','repeatedAssignment');
 addrule(model,'H_Ab_DC = V_T.Ab/(Ab_50_DC + V_T.Ab)','repeatedAssignment');
+
+% Breg switching parameters
+p = addparameter(model,'k_Breg_on',params.k_Breg_on.Value,'ValueUnits',params.k_Breg_on.Units, 'Notes','Forward B->Breg switching rate (TGFb+IL10 gated)');
+p.UserData.Source = params.k_Breg_on.Notes;  p.UserData.derivedFrom = params.k_Breg_on.derivedFrom;
+p = addparameter(model,'k_Breg_off',params.k_Breg_off.Value,'ValueUnits',params.k_Breg_off.Units, 'Notes','Reverse Breg->B reversion rate');
+p.UserData.Source = params.k_Breg_off.Notes;  p.UserData.derivedFrom = params.k_Breg_off.derivedFrom;
+p = addparameter(model,'TGFb_50_Breg',params.TGFb_50_Breg.Value,'ValueUnits',params.TGFb_50_Breg.Units, 'Notes','TGFb EC50 for Breg switching');
+p.UserData.Source = params.TGFb_50_Breg.Notes;  p.UserData.derivedFrom = params.TGFb_50_Breg.derivedFrom;
+p = addparameter(model,'IL10_50_Breg',params.IL10_50_Breg.Value,'ValueUnits',params.IL10_50_Breg.Units, 'Notes','IL-10 EC50 for Breg switching');
+p.UserData.Source = params.IL10_50_Breg.Notes;  p.UserData.derivedFrom = params.IL10_50_Breg.derivedFrom;
+p = addparameter(model,'k_IL10_sec_Breg',params.k_IL10_sec_Breg.Value,'ValueUnits',params.k_IL10_sec_Breg.Units, 'Notes','Breg IL-10 secretion rate (aBreg only)');
+p.UserData.Source = params.k_IL10_sec_Breg.Notes;  p.UserData.derivedFrom = params.k_IL10_sec_Breg.derivedFrom;
+
+% Breg Hill functions (TGFb and IL-10 gates for switching)
+H_TGFb_Breg = addparameter(model,'H_TGFb_Breg',0,'ValueUnits','dimensionless','ConstantValue',false, 'Notes','TGFb Hill for Breg switching');
+H_IL10_Breg = addparameter(model,'H_IL10_Breg',0,'ValueUnits','dimensionless','ConstantValue',false, 'Notes','IL-10 Hill for Breg switching');
+addrule(model,'H_TGFb_Breg = V_T.TGFb/(TGFb_50_Breg + V_T.TGFb)','repeatedAssignment');
+addrule(model,'H_IL10_Breg = V_T.IL10/(IL10_50_Breg + V_T.IL10)','repeatedAssignment');
 
 % ========================================================================
 % LYMPH NODE & SYSTEMIC DYNAMICS (unchanged)
@@ -193,8 +216,8 @@ reaction = addreaction(model,'V_LN.B -> V_C.B');
 % infiltration: without it, V_C.B → V_T.nB is the dominant B cell source
 % and drives Plasma to 2.7e10 cells (97% of V_T volume at 75d).
 reaction = addreaction(model,'V_C.B -> V_T.nB');
-    set(reaction,'ReactionRate','q_B_T_in*V_T*V_C.B*(C_total^2/(C_total^2 + K_C2_recruit))*(1-H_CXCL12_Texcl)*H_vasc/(1 + (V_T.nB + V_T.aB + V_T.Plasma)/(rho_B_max*V_T + cell))');
-    set(reaction,'Notes','B cell trafficking to tumor (arrives as naive, ABM: BCELL_NAIVE). Gated by CXCL12 exclusion, vasculature, and B lineage niche capacity.');
+    set(reaction,'ReactionRate','q_B_T_in*V_T*V_C.B*(C_total^2/(C_total^2 + K_C2_recruit))*(1-H_CXCL12_Texcl)*H_vasc/(1 + (V_T.nB + V_T.aB + V_T.Plasma + V_T.nBreg + V_T.aBreg)/(rho_B_max*V_T + cell))');
+    set(reaction,'Notes','B cell trafficking to tumor (arrives as naive, ABM: BCELL_NAIVE). Gated by CXCL12 exclusion, vasculature, and B lineage niche capacity (includes Breg).');
 
 % Tumor-local naive B activation (antigen-dependent, matches ABM)
 reaction = addreaction(model,'V_T.nB -> V_T.aB');
@@ -209,14 +232,15 @@ reaction = addreaction(model,'V_T.nB -> V_T.aB');
 % and uncapped aB->Plasma differentiation caused Plasma runaway (2.77e10
 % cells at 75d, 1500x cancer). Total-lineage cap prevents this.
 reaction = addreaction(model,'null -> V_T.aB');
-    set(reaction,'ReactionRate','k_B_pro_tumor*V_T.aB/(1 + (V_T.nB + V_T.aB + V_T.Plasma)/(rho_B_max*V_T + cell))');
-    set(reaction,'Notes','Tumor-local activated B cell proliferation (saturating with rho_B_max cap on TOTAL B lineage nB+aB+Plasma, matching Th F182 form)');
+    set(reaction,'ReactionRate','k_B_pro_tumor*V_T.aB/(1 + (V_T.nB + V_T.aB + V_T.Plasma + V_T.nBreg + V_T.aBreg)/(rho_B_max*V_T + cell))');
+    set(reaction,'Notes','Tumor-local activated B cell proliferation (saturating with rho_B_max cap on TOTAL B lineage including Breg, matching Th F182 form)');
 
-% Tumor-local aB -> Plasma differentiation (Tfh-helped)
-% Matches ABM requirement: Tfh help stabilizes plasma cell fate
+% Tumor-local aB -> Plasma differentiation (Tfh-helped, CONCENTRATION-based Hill)
+% Uses Tfh DENSITY (V_T.Tfh/V_T) with density-based EC50, not raw count.
+% Raw-count form had Tfh_50_plasma=100 cell vs V_T.Tfh~1.6e8 → H≈1.0 (saturated, no regulation).
 reaction = addreaction(model,'V_T.aB -> V_T.Plasma');
-    set(reaction,'ReactionRate','k_B_to_plasma*V_T.aB*(V_T.Tfh/(V_T.Tfh + Tfh_50_plasma))');
-    set(reaction,'Notes','Tumor-local aB -> plasma differentiation (Tfh-helped, ABM: ACTIVATED->PLASMA)');
+    set(reaction,'ReactionRate','k_B_to_plasma*V_T.aB*((V_T.Tfh/V_T)/((V_T.Tfh/V_T) + Tfh_50_plasma))');
+    set(reaction,'Notes','Tumor-local aB -> plasma differentiation (Tfh-helped density Hill, ABM: ACTIVATED->PLASMA)');
 
 % Tumor B cell death (all states)
 reaction = addreaction(model,'V_T.nB -> null');
@@ -241,6 +265,58 @@ reaction = addreaction(model,'V_T.Plasma -> null');
     set(reaction,'Notes','Plasma clearance upon antigen clearance');
 
 % ========================================================================
+% BREG SWITCHING (tumor compartment only — TGFb + IL-10 driven)
+% ========================================================================
+
+% Forward: B -> Breg (signal-dependent, reversible)
+reaction = addreaction(model,'V_T.nB -> V_T.nBreg');
+    set(reaction,'ReactionRate','k_Breg_on*H_TGFb_Breg*H_IL10_Breg*V_T.nB');
+    set(reaction,'Notes','Naive B -> naive Breg switching (TGFb + IL-10 gated)');
+reaction = addreaction(model,'V_T.aB -> V_T.aBreg');
+    set(reaction,'ReactionRate','k_Breg_on*H_TGFb_Breg*H_IL10_Breg*V_T.aB');
+    set(reaction,'Notes','Activated B -> activated Breg switching (TGFb + IL-10 gated)');
+
+% Reverse: Breg -> B (first-order reversion)
+reaction = addreaction(model,'V_T.nBreg -> V_T.nB');
+    set(reaction,'ReactionRate','k_Breg_off*V_T.nBreg');
+    set(reaction,'Notes','Naive Breg -> naive B reversion (epigenetic, HDAC-dependent)');
+reaction = addreaction(model,'V_T.aBreg -> V_T.aB');
+    set(reaction,'ReactionRate','k_Breg_off*V_T.aBreg');
+    set(reaction,'Notes','Activated Breg -> activated B reversion');
+
+% Breg activation (same rate as non-Breg nB -> aB)
+reaction = addreaction(model,'V_T.nBreg -> V_T.aBreg');
+    set(reaction,'ReactionRate','k_B_act_tumor*H_P1*V_T.nBreg');
+    set(reaction,'Notes','Tumor-local naive Breg activation (antigen-gated, same rate as nB)');
+
+% Breg proliferation (same saturating form, shared niche cap)
+reaction = addreaction(model,'null -> V_T.aBreg');
+    set(reaction,'ReactionRate','k_B_pro_tumor*V_T.aBreg/(1 + (V_T.nB + V_T.aB + V_T.Plasma + V_T.nBreg + V_T.aBreg)/(rho_B_max*V_T + cell))');
+    set(reaction,'Notes','Tumor-local activated Breg proliferation (saturating, shared B lineage niche cap)');
+
+% Breg aB CANNOT differentiate to plasma — must revert to aB first.
+% (Mirlekar 2022: no IL-10/IL-35 from plasma cells in PDAC.)
+
+% Breg death (same rates as non-Breg)
+reaction = addreaction(model,'V_T.nBreg -> null');
+    set(reaction,'ReactionRate','k_B_death*V_T.nBreg');
+    set(reaction,'Notes','Naive Breg death in tumor');
+reaction = addreaction(model,'V_T.aBreg -> null');
+    set(reaction,'ReactionRate','k_B_death*V_T.aBreg');
+    set(reaction,'Notes','Activated Breg death in tumor');
+% Breg antigen-clearance funneling (same as non-Breg)
+reaction = addreaction(model,'V_T.nBreg -> null');
+    set(reaction,'ReactionRate','k_cell_clear*V_T.nBreg*(K_C2_recruit/(C_total^2 + K_C2_recruit))');
+    set(reaction,'Notes','Naive Breg clearance upon antigen clearance');
+reaction = addreaction(model,'V_T.aBreg -> null');
+    set(reaction,'ReactionRate','k_cell_clear*V_T.aBreg*(K_C2_recruit/(C_total^2 + K_C2_recruit))');
+    set(reaction,'Notes','Activated Breg clearance upon antigen clearance');
+% Breg IL-10 secretion (aBreg only — plasma excluded per Mirlekar 2022)
+reaction = addreaction(model,'null -> V_T.IL10');
+    set(reaction,'ReactionRate','k_IL10_sec_Breg*V_T.aBreg');
+    set(reaction,'Notes','Breg IL-10 secretion (activated Breg only)');
+
+% ========================================================================
 % ANTIBODY DYNAMICS (tumor-local endogenous IgG)
 % ========================================================================
 
@@ -262,7 +338,7 @@ reaction = addreaction(model,'V_T.Ab -> null');
 model_rules = get(model,'Rules');
 volume_rule = model_rules(1);
 rule = get(volume_rule,'Rule');
-set(volume_rule,'Rule',[rule '+(V_T.nB+V_T.aB+V_T.Plasma)*vol_Tcell/Ve_T']);
+set(volume_rule,'Rule',[rule '+(V_T.nB+V_T.aB+V_T.Plasma+V_T.nBreg+V_T.aBreg)*vol_Tcell/Ve_T']);
 
 % ========================================================================
 % ASSEMBLY-TIME REWRITES (modify reactions from earlier modules)

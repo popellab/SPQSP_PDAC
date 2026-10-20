@@ -9,15 +9,22 @@ Each scenario produces (N, Q) raw positive species. The Q columns are
 defined by the ``SPECIES`` enum below and must be emitted in that order
 by the species function (ODE solver or trained surrogate).  V_T (tumor
 volume) and phi_collagen are assignment-rule quantities; the species
-function must compute and append them.
+function must compute and append them.  Columns 41+ are trajectory-
+derived scalar features pre-computed during pool generation.
 
 Scenarios
 ---------
-Three point-in-time scenarios:
+Six scenarios (three point-in-time, three longterm trajectory):
 
-    0  baseline           diagnosis snapshot (t=0)
-    1  gvax_d21           GVAX neoadjuvant, readout at day 21
-    2  gvax_nivo_d21      GVAX + nivolumab neoadjuvant, readout at day 21
+    0  baseline                diagnosis snapshot (t=0)
+    1  gvax_d21                GVAX neoadjuvant, readout at day 21
+    2  gvax_nivo_d21           GVAX + nivolumab neoadjuvant, readout at day 30
+    3  untreated_longterm      no treatment, 1095 days (trajectory features)
+    4  gvax_longterm           GVAX neoadjuvant, 1095 days (trajectory features)
+    5  gvax_nivo_longterm      GVAX + nivo neoadjuvant, 1095 days (trajectory features)
+
+Scenarios 1–2 also carry trajectory features (excursion mass-center
+timing, checkpoint release fold) extracted from the full CSV output.
 
 Auxiliary readout parameters (log_R)
 ------------------------------------
@@ -30,15 +37,6 @@ sampled during the fit alongside phi.  Indexed as:
     3  active_fraction_IL1      active:total IL-1 fraction
 
 All are on log scale in log_R, so the raw positive value is exp(log_R[i]).
-
-Targets NOT covered (require time-series pre-computation)
----------------------------------------------------------
-- 16 mechanistic targets (peak timing, TTP, diameter folds, etc.)
-- 1 clinical progression target (tumor doubling time)
-- 1 cross-scenario target (tumor_diameter_fold_d90_gvax_vs_untreated)
-These require full trajectory data and cannot be reduced to point-in-time
-readouts.  They will be added as extra surrogate species columns once the
-simulator's trajectory export is in place.
 
 Usage
 -----
@@ -91,20 +89,34 @@ class SP(IntEnum):
     aB       = 22
     Tfh      = 23
     Plasma   = 24
-    collagen = 25   # mg
-    IFNg     = 26   # nM
-    TGFb     = 27   # nM
-    IL10     = 28   # nM
-    IL12     = 29   # nM
-    CCL2     = 30   # nM
-    ArgI     = 31   # nM
-    NO       = 32   # nM
-    IL6      = 33   # nM
-    IL1      = 34   # nM
-    VEGF     = 35   # pg/mL
-    V_T      = 36   # tumor volume, mL  (assignment rule)
-    phi_col  = 37   # collagen volume fraction (assignment rule)
-    rho_col  = 38   # collagen packing density, g/mL (parameter)
+    nBreg    = 25
+    aBreg    = 26
+    collagen = 27   # mg
+    IFNg     = 28   # nM
+    TGFb     = 29   # nM
+    IL10     = 30   # nM
+    IL12     = 31   # nM
+    CCL2     = 32   # nM
+    ArgI     = 33   # nM
+    NO       = 34   # nM
+    IL6      = 35   # nM
+    IL1      = 36   # nM
+    VEGF     = 37   # pg/mL
+    V_T      = 38   # tumor volume, mL  (assignment rule)
+    phi_col  = 39   # collagen volume fraction (assignment rule)
+    rho_col  = 40   # collagen packing density, g/mL (parameter)
+    # ── trajectory-derived scalar features (pre-computed in pool) ─────
+    traj_C1_fold_d90   = 41   # C1(d90)/C1(d0)
+    traj_exh_fold_d90  = 42   # exhaustion fraction fold at d90
+    traj_ecm_fold_d90  = 43   # ECM concentration fold at d90
+    traj_diam_d365     = 44   # tumor diameter (cm) at d365
+    traj_diam_d730     = 45   # tumor diameter (cm) at d730
+    traj_diam_fold_d90 = 46   # diam(d90)/diam(d0)
+    traj_TTP           = 47   # time to progression (days)
+    traj_doubling_time = 48   # tumor volume doubling time (days)
+    traj_mapc_cd8_lag  = 49   # mAPC→CD8 excursion mass-center lag (days)
+    traj_tumor_cd8_lag = 50   # tumor-nadir → CD8-peak lag (days)
+    traj_ckpt_fold     = 51   # k_C_Tcell_eff fold at target day
 
 
 N_SPECIES = len(SP)
@@ -118,6 +130,7 @@ MODEL_IDX_TO_SP = {
     29: SP.cDC1, 30: SP.cDC2, 31: SP.mcDC1, 32: SP.mcDC2,
     49: SP.iCAF, 50: SP.myCAF, 51: SP.apCAF, 48: SP.qPSC,
     28: SP.nCD8, 57: SP.nB, 58: SP.aB, 56: SP.Tfh, 59: SP.Plasma,
+    60: SP.nBreg, 61: SP.aBreg,
     52: SP.collagen,
     38: SP.IFNg, 39: SP.TGFb, 47: SP.IL10, 46: SP.IL12,
     43: SP.CCL2, 42: SP.ArgI, 41: SP.NO, 54: SP.IL6, 55: SP.IL1,
@@ -128,8 +141,16 @@ MODEL_IDX_TO_SP = {
 # ═══════════════════════════════════════════════════════════════════════
 # Scenarios
 # ═══════════════════════════════════════════════════════════════════════
-SCENARIOS = ("baseline", "gvax_d21", "gvax_nivo_d21")
+SCENARIOS = (
+    "baseline",              # 0
+    "gvax_d21",              # 1
+    "gvax_nivo_d21",         # 2
+    "untreated_longterm",    # 3
+    "gvax_longterm",         # 4
+    "gvax_nivo_longterm",    # 5
+)
 _BL, _GV, _GN = 0, 1, 2
+_UL, _GL, _GNL = 3, 4, 5
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -140,6 +161,7 @@ _D_T    = 7.0       # T cell / Treg diameter, µm
 _D_DC   = 13.0      # dendritic cell diameter, µm
 _D_MDSC = 12.0      # MDSC diameter, µm
 _D_MAC  = 20.0      # macrophage diameter, µm
+_D_B    = 8.0       # B cell diameter, µm
 
 _MW_TGFB = 25_000.0   # TGF-β1 homodimer, g/mol
 _MW_IL12 = 70_000.0   # IL-12p70, g/mol
@@ -199,41 +221,59 @@ READOUTS = (
     "cdc1_density",                    # 22
     "cdc2_density",                    # 23
     "total_til_density",               # 24
+    "bcell_density",                   # 25
     # ── baseline ratios (log channel) ─────────────────────────────────
-    "cd8_treg_ratio",                  # 25
-    "m1_m2_ratio",                     # 26
-    "collagen_fold",                   # 27
+    "cd8_treg_ratio",                  # 26
+    "m1_m2_ratio",                     # 27
+    "collagen_fold",                   # 28
     # ── baseline cytokine concentrations (log channel) ────────────────
-    "tgfb_concentration",              # 28
-    "il12_concentration",              # 29
-    "arginase_concentration",          # 30
-    "il10_concentration",              # 31
-    "il1_concentration",               # 32
-    "il6_concentration",               # 33
-    "ccl2_concentration",              # 34
-    "vegf_concentration",              # 35
+    "tgfb_concentration",              # 29
+    "il12_concentration",              # 30
+    "arginase_concentration",          # 31
+    "il10_concentration",              # 32
+    "il1_concentration",               # 33
+    "il6_concentration",               # 34
+    "ccl2_concentration",              # 35
+    "vegf_concentration",              # 36
     # ── GVAX d21 targets ──────────────────────────────────────────────
-    "cd4_pct_gvax_d21",                # 36
-    "cd8_pct_gvax_d21",                # 37
-    "cd8exh_pct_gvax_d21",             # 38
-    "m1tam_pct_gvax_d21",              # 39
-    "m2tam_pct_gvax_d21",              # 40
-    "treg_pct_gvax_d21",               # 41
-    "cd8_fc_gvax_d21",                 # 42
-    "cd8gzmb_fc_gvax_d21",             # 43
-    "tumor_fold_d21_gvax",             # 44
+    "cd4_pct_gvax_d21",                # 37
+    "cd8_pct_gvax_d21",                # 38
+    "cd8exh_pct_gvax_d21",             # 39
+    "m1tam_pct_gvax_d21",              # 40
+    "m2tam_pct_gvax_d21",              # 41
+    "treg_pct_gvax_d21",               # 42
+    "cd8_fc_gvax_d21",                 # 43
+    "cd8gzmb_fc_gvax_d21",             # 44
+    "tumor_fold_d21_gvax",             # 45
     # ── GVAX+nivo d21 targets ─────────────────────────────────────────
-    "cd4_pct_gvax_nivo_d21",           # 45
-    "cd8_pct_gvax_nivo_d21",           # 46
-    "cd8exh_pct_gvax_nivo_d21",        # 47
-    "m1tam_pct_gvax_nivo_d21",         # 48
-    "m2tam_pct_gvax_nivo_d21",         # 49
-    "treg_pct_gvax_nivo_d21",          # 50
-    "cd8_fc_gvax_nivo_d21",            # 51
-    "cd8gzmb_fc_gvax_nivo_d21",        # 52
-    "treg_fraction_immune_gvax_nivo",  # 53
-    "m1_m2_ratio_gvax_nivo_d21",       # 54
-    "tumor_fold_d21_gvax_nivo",        # 55
+    "cd4_pct_gvax_nivo_d21",           # 46
+    "cd8_pct_gvax_nivo_d21",           # 47
+    "cd8exh_pct_gvax_nivo_d21",        # 48
+    "m1tam_pct_gvax_nivo_d21",         # 49
+    "m2tam_pct_gvax_nivo_d21",         # 50
+    "treg_pct_gvax_nivo_d21",          # 51
+    "cd8_fc_gvax_nivo_d21",            # 52
+    "cd8gzmb_fc_gvax_nivo_d21",        # 53
+    "treg_fraction_immune_gvax_nivo",  # 54
+    "m1_m2_ratio_gvax_nivo_d21",       # 55
+    "tumor_fold_d21_gvax_nivo",        # 56
+    # ── trajectory-derived readouts (log channel) ─────────────────────
+    "tumor_no_regression_d90",              # 57
+    "exhaustion_worsens_d90",               # 58
+    "ecm_stability_d90",                    # 59
+    "tumor_diameter_d365",                  # 60
+    "tumor_diameter_d730",                  # 61
+    "tumor_diam_fold_d90_untreated",        # 62
+    "time_to_progression",                  # 63
+    "tumor_doubling_time",                  # 64
+    "mapc_cd8_peak_lag_gvax",               # 65
+    "tumor_nadir_cd8_lag_gvax",             # 66
+    "tumor_diam_fold_d90_gvax",             # 67
+    "mapc_cd8_peak_lag_gvax_nivo",          # 68
+    "tumor_nadir_cd8_lag_gvax_nivo",        # 69
+    "tumor_diam_fold_d90_gvax_nivo",        # 70
+    "checkpoint_release_fold",              # 71
+    "tumor_diam_fold_d90_gvax_vs_untreated",# 72
 )
 
 M_R = len(READOUTS)
@@ -246,9 +286,9 @@ M_R = len(READOUTS)
 _logit_indices = {
     0, 1, 2, 3, 4, 5, 6, 7,           # baseline PASS-01 fractions
     8, 9, 10, 11, 12, 13, 14, 15, 16,  # baseline sub-fractions
-    36, 37, 38, 39, 40, 41,            # gvax pct
-    45, 46, 47, 48, 49, 50,            # gvax_nivo pct
-    53,                                 # treg fraction of immune
+    37, 38, 39, 40, 41, 42,            # gvax pct
+    46, 47, 48, 49, 50, 51,            # gvax_nivo pct
+    54,                                 # treg fraction of immune
 }
 
 LOGIT_READOUT = np.array([i in _logit_indices for i in range(M_R)])
@@ -270,6 +310,7 @@ def _pass01_denom(s):
           + s[:, SP.Th] + s[:, SP.Th_exh] + s[:, SP.Treg]
           + s[:, SP.CD8] + s[:, SP.CD8_exh]
           + s[:, SP.nB] + s[:, SP.aB]
+          + s[:, SP.nBreg] + s[:, SP.aBreg]
           + s[:, SP.cDC1] + s[:, SP.cDC2]
           + s[:, SP.mcDC1] + s[:, SP.mcDC2]
           + s[:, SP.MDSC]
@@ -285,6 +326,7 @@ def _nucleated_total(s):
           + s[:, SP.MDSC]
           + s[:, SP.cDC1] + s[:, SP.cDC2] + s[:, SP.mcDC1] + s[:, SP.mcDC2]
           + s[:, SP.nB] + s[:, SP.aB] + s[:, SP.Plasma]
+          + s[:, SP.nBreg] + s[:, SP.aBreg]
           + s[:, SP.Tfh]
           + s[:, SP.qPSC] + s[:, SP.iCAF] + s[:, SP.myCAF] + s[:, SP.apCAF])
 
@@ -323,8 +365,9 @@ def readouts(y, log_R=None):
     Parameters
     ----------
     y : tuple of jnp.ndarray
-        ``(y[0], y[1], y[2])`` with shapes ``(N, Q)`` each.
-        Scenario 0 = baseline, 1 = gvax_d21, 2 = gvax_nivo_d21.
+        ``(y[0], ..., y[5])`` with shapes ``(N, Q)`` each.
+        Scenarios: 0=baseline, 1=gvax_d21, 2=gvax_nivo_d21,
+        3=untreated_longterm, 4=gvax_longterm, 5=gvax_nivo_longterm.
     log_R : jnp.ndarray or None
         ``(4,)`` auxiliary readout parameters on log scale.
         If None, defaults to zeros (unit scaling).
@@ -332,6 +375,9 @@ def readouts(y, log_R=None):
     bl = y[0]   # baseline  (N, Q)
     gv = y[1]   # gvax d21  (N, Q)
     gn = y[2]   # gvax+nivo d21  (N, Q)
+    ul = y[3]   # untreated longterm  (N, Q)
+    gl = y[4]   # gvax longterm  (N, Q)
+    gnl = y[5]  # gvax+nivo longterm  (N, Q)
 
     if log_R is None:
         log_R = jnp.zeros(N_AUX)
@@ -353,7 +399,7 @@ def readouts(y, log_R=None):
     fib_frac    = (bl[:, SP.iCAF] + bl[:, SP.myCAF] + bl[:, SP.apCAF]) / denom_p
     dc_frac     = (bl[:, SP.cDC1] + bl[:, SP.cDC2] + bl[:, SP.mcDC1] + bl[:, SP.mcDC2]) / denom_p
     mdsc_frac   = (bl[:, SP.MDSC] + bl[:, SP.nCD8] + bl[:, SP.nCD4]) / denom_p
-    bcell_frac  = (bl[:, SP.nB] + bl[:, SP.aB]) / denom_p
+    bcell_frac  = (bl[:, SP.nB] + bl[:, SP.aB] + bl[:, SP.nBreg] + bl[:, SP.aBreg]) / denom_p
 
     cd8_total_bl = bl[:, SP.CD8] + bl[:, SP.CD8_exh]
     th_total_bl  = bl[:, SP.Th] + bl[:, SP.Th_exh]
@@ -391,6 +437,9 @@ def readouts(y, log_R=None):
     cdc2_dens   = _density(bl[:, SP.cDC2] + bl[:, SP.mcDC2], v_t, _D_DC)
     til_total   = cd8_total_bl + th_total_bl + bl[:, SP.Treg]
     til_dens    = _density(til_total, v_t, _D_T)
+
+    bcell_total_bl = bl[:, SP.nB] + bl[:, SP.aB] + bl[:, SP.nBreg] + bl[:, SP.aBreg]
+    bcell_dens  = _density(bcell_total_bl, v_t, _D_B)
 
     # ── baseline ratios (log) ─────────────────────────────────────────
     cd8_treg = cd8_total_bl / (bl[:, SP.Treg] + 1e-30)
@@ -448,6 +497,27 @@ def readouts(y, log_R=None):
     m1_m2_gn = gn[:, SP.Mac_M1] / (gn[:, SP.Mac_M2] + 1e-30)
     tumor_fold_gn = gn[:, SP.C1] / (bl[:, SP.C1] + 1e-30)
 
+    # ── trajectory-derived readouts (all log channel) ─────────────────
+    traj_no_regr    = ul[:, SP.traj_C1_fold_d90]
+    traj_exh_wors   = ul[:, SP.traj_exh_fold_d90]
+    traj_ecm_stab   = ul[:, SP.traj_ecm_fold_d90]
+    traj_diam_365   = ul[:, SP.traj_diam_d365]
+    traj_diam_730   = ul[:, SP.traj_diam_d730]
+    traj_fold_d90_u = ul[:, SP.traj_diam_fold_d90]
+    traj_ttp        = ul[:, SP.traj_TTP]
+    traj_dt         = ul[:, SP.traj_doubling_time]
+
+    traj_mapc_lag_gv  = gv[:, SP.traj_mapc_cd8_lag]
+    traj_tum_lag_gv   = gv[:, SP.traj_tumor_cd8_lag]
+    traj_fold_d90_gv  = gl[:, SP.traj_diam_fold_d90]
+
+    traj_mapc_lag_gn  = gn[:, SP.traj_mapc_cd8_lag]
+    traj_tum_lag_gn   = gn[:, SP.traj_tumor_cd8_lag]
+    traj_fold_d90_gn  = gnl[:, SP.traj_diam_fold_d90]
+    traj_ckpt         = gn[:, SP.traj_ckpt_fold]
+
+    traj_gvax_vs_untr = traj_fold_d90_gv / (traj_fold_d90_u + 1e-30)
+
     # ── assemble output ───────────────────────────────────────────────
     # Each readout goes through its channel: logit for (0,1) readouts,
     # log for positive readouts.
@@ -479,41 +549,59 @@ def readouts(y, log_R=None):
         jnp.log(cdc1_dens),             # 22
         jnp.log(cdc2_dens),             # 23
         jnp.log(til_dens),              # 24
+        jnp.log(bcell_dens),            # 25
         # baseline ratios → log
-        jnp.log(cd8_treg),              # 25
-        jnp.log(m1_m2_bl),              # 26
-        jnp.log(col_fold),              # 27
+        jnp.log(cd8_treg),              # 26
+        jnp.log(m1_m2_bl),              # 27
+        jnp.log(col_fold),              # 28
         # baseline cytokines → log
-        jnp.log(tgfb_conc),             # 28
-        jnp.log(il12_conc),             # 29
-        jnp.log(argi_conc),             # 30
-        jnp.log(il10_conc),             # 31
-        jnp.log(il1_conc),              # 32
-        jnp.log(il6_conc),              # 33
-        jnp.log(ccl2_conc),             # 34
-        jnp.log(vegf_conc),             # 35
+        jnp.log(tgfb_conc),             # 29
+        jnp.log(il12_conc),             # 30
+        jnp.log(argi_conc),             # 31
+        jnp.log(il10_conc),             # 32
+        jnp.log(il1_conc),              # 33
+        jnp.log(il6_conc),              # 34
+        jnp.log(ccl2_conc),             # 35
+        jnp.log(vegf_conc),             # 36
         # gvax d21 → logit for pct, log for folds
-        _logit(cd4_pct_gv),             # 36
-        _logit(cd8_pct_gv),             # 37
-        _logit(cd8exh_pct_gv),          # 38
-        _logit(m1_pct_gv),              # 39
-        _logit(m2_pct_gv),              # 40
-        _logit(treg_pct_gv),            # 41
-        jnp.log(cd8_fc_gv),             # 42
-        jnp.log(cd8gzmb_fc_gv),         # 43
-        jnp.log(tumor_fold_gv),         # 44
+        _logit(cd4_pct_gv),             # 37
+        _logit(cd8_pct_gv),             # 38
+        _logit(cd8exh_pct_gv),          # 39
+        _logit(m1_pct_gv),              # 40
+        _logit(m2_pct_gv),              # 41
+        _logit(treg_pct_gv),            # 42
+        jnp.log(cd8_fc_gv),             # 43
+        jnp.log(cd8gzmb_fc_gv),         # 44
+        jnp.log(tumor_fold_gv),         # 45
         # gvax+nivo d21 → logit for pct, log for folds/ratios
-        _logit(cd4_pct_gn),             # 45
-        _logit(cd8_pct_gn),             # 46
-        _logit(cd8exh_pct_gn),          # 47
-        _logit(m1_pct_gn),              # 48
-        _logit(m2_pct_gn),              # 49
-        _logit(treg_pct_gn),            # 50
-        jnp.log(cd8_fc_gn),             # 51
-        jnp.log(cd8gzmb_fc_gn),         # 52
-        _logit(treg_frac_imm_gn),       # 53
-        jnp.log(m1_m2_gn),              # 54
-        jnp.log(tumor_fold_gn),         # 55
+        _logit(cd4_pct_gn),             # 46
+        _logit(cd8_pct_gn),             # 47
+        _logit(cd8exh_pct_gn),          # 48
+        _logit(m1_pct_gn),              # 49
+        _logit(m2_pct_gn),              # 50
+        _logit(treg_pct_gn),            # 51
+        jnp.log(cd8_fc_gn),             # 52
+        jnp.log(cd8gzmb_fc_gn),         # 53
+        _logit(treg_frac_imm_gn),       # 54
+        jnp.log(m1_m2_gn),              # 55
+        jnp.log(tumor_fold_gn),         # 56
+        # trajectory readouts → log
+        jnp.log(traj_no_regr),          # 57
+        jnp.log(traj_exh_wors),         # 58
+        jnp.log(traj_ecm_stab),         # 59
+        jnp.log(traj_diam_365),         # 60
+        jnp.log(traj_diam_730),         # 61
+        jnp.log(traj_fold_d90_u),       # 62
+        jnp.log(traj_ttp),             # 63
+        jnp.log(traj_dt),              # 64
+        jnp.log(traj_mapc_lag_gv),      # 65
+        jnp.log(traj_tum_lag_gv),       # 66
+        jnp.log(traj_fold_d90_gv),      # 67
+        jnp.log(traj_mapc_lag_gn),      # 68
+        jnp.log(traj_tum_lag_gn),       # 69
+        jnp.log(traj_fold_d90_gn),      # 70
+        jnp.log(traj_ckpt),            # 71
+        jnp.log(traj_gvax_vs_untr),     # 72
     ]
     return jnp.stack(vals, axis=1)
 
@@ -535,7 +623,7 @@ if __name__ == "__main__":
 
     N = 16
     rng = np.random.default_rng(42)
-    y = tuple(jnp.array(rng.uniform(0.1, 10.0, (N, N_SPECIES))) for _ in range(3))
+    y = tuple(jnp.array(rng.uniform(0.1, 10.0, (N, N_SPECIES))) for _ in range(len(SCENARIOS)))
     log_R = jnp.zeros(N_AUX)
     out = readouts(y, log_R)
     print(f"Output:     {out.shape}  (expected ({N}, {M_R}))")

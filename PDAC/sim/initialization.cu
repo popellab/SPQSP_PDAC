@@ -19,161 +19,173 @@ namespace PDAC {
 // ============================================================================
 
 SimulationConfig::SimulationConfig()
-    : steps(500)
+    : grid_x(50), grid_y(50), grid_z(50)
+    , voxel_size(20.0f)
+    , steps(0)
     , random_seed(12345)
-    , init_method(0)  // 0 = single stem at center (new default)
-    , scenario(Scenario::Default)
-    , seed_position("x_low")
-    , placement_file("")     // §C6: empty = procedural init; set by --placement
-    , qsp_onset_volume(-1.0) // §C6.1: <=0 = no standalone QSP warm-up
-    , qsp_onset_dump("")
+    , init_method(0)
+    , placement_file("")
+    , qsp_state_file("")
+    , presim_steps(-1)
     , grid_out(0)
     , interval_out(1)
-    , presim_qsp_enabled(true)
-    , main_qsp_enabled(true)
-    , presim_steps(-1)
-    , xml_presim_steps(0)
-    , presim_volume_target(-1.0)
-    , presim_areal_target(-1.0)
-    , presim_steps_from_cli(false)
-    , presim_volume_from_cli(false)
-    , presim_areal_from_cli(false)
-    , main_steps_from_cli(false)
+    , spatial_feedback(false)
+    , dt_abm(21600.0f)
+    , molecular_steps(36)
+    , cancer_move_steps(6)
+    , tcell_move_steps(6)
+    , treg_move_steps(6)
+    , mdsc_move_steps(6)
+    , scenario(Scenario::Default)
+    , seed_position("x_low")
     , ripley_enabled(false)
 {
 }
 
 void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC::GPUParam gpu_params) {
-    // First, get defaults from XML
+    // Defaults from XML
     grid_x     = gpu_params.getInt(PARAM_X_SIZE);
     grid_y     = gpu_params.getInt(PARAM_Y_SIZE);
     grid_z     = gpu_params.getInt(PARAM_Z_SIZE);
     voxel_size = gpu_params.getInt(PARAM_VOXEL_SIZE);
 
-    // Then, parse command line to allow overrides
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
 
+        // ── Already consumed by main.cu pre-pass ──
         if ((arg == "--param-file" || arg == "-p") && i + 1 < argc) {
-            ++i;  // already handled before parseCommandLine
-        } else if ((arg == "--initialization" || arg == "-i") && i + 1 < argc) {
-            int val = std::atoi(argv[++i]);
-            if (val == 0 || val == 1 || val == 2) {
-                init_method = val;
-            } else {
-                std::cerr << "WARNING: -i must be 0 (single_stem), 1 (cluster), or 2 (structured_deprecated). Ignoring -i " << val << std::endl;
-            }
-        } else if ((arg == "--grid-size" || arg == "-g") && i + 1 < argc) {
-            int size = std::atoi(argv[++i]);
-            grid_x = size;
-            grid_y = size;
-            grid_z = size;
+            ++i;
+        } else if (arg == "--output-root" && i + 1 < argc) {
+            ++i;
+
+        // ── Grid ──
         } else if ((arg == "--grid-x" || arg == "-gx") && i + 1 < argc) {
             grid_x = std::atoi(argv[++i]);
         } else if ((arg == "--grid-y" || arg == "-gy") && i + 1 < argc) {
             grid_y = std::atoi(argv[++i]);
         } else if ((arg == "--grid-z" || arg == "-gz") && i + 1 < argc) {
             grid_z = std::atoi(argv[++i]);
+
+        // ── Simulation ──
         } else if ((arg == "--steps" || arg == "-s") && i + 1 < argc) {
             steps = std::atoi(argv[++i]);
-            main_steps_from_cli = true;
-        } else if ((arg == "--grid-output" || arg == "-G") && i + 1 < argc) {
-            grid_out = std::atoi(argv[++i]);
-        } else if ((arg == "--out_int" || arg == "-oi") && i + 1 < argc) {
-            interval_out =  std::atoi(argv[++i]);
         } else if (arg == "--seed" && i + 1 < argc) {
             random_seed = std::atoi(argv[++i]);
+
+        // ── Initialization ──
+        } else if ((arg == "--init-method" || arg == "--initialization" || arg == "-i") && i + 1 < argc) {
+            int val = std::atoi(argv[++i]);
+            if (val == 0 || val == 1) {
+                init_method = val;
+            } else {
+                std::cerr << "ERROR: -i must be 0 (single_stem) or 1 (simulated_annealing). Got: " << val << std::endl;
+                exit(1);
+            }
         } else if (arg == "--placement" && i + 1 < argc) {
-            // §C6: initialize by data-driven placement. Overrides -i / --scenario.
             placement_file = argv[++i];
-        } else if (arg == "--healthy-2d" && i + 1 < argc) {
-            placement_file = argv[++i];
-            grid_z = 1;
-        } else if (arg == "--qsp-onset-volume" && i + 1 < argc) {
-            qsp_onset_volume = std::atof(argv[++i]);
-        } else if (arg == "--dump-qsp-onset" && i + 1 < argc) {
-            qsp_onset_dump = argv[++i];
-        } else if (arg == "--presim-mode" && i + 1 < argc) {
-            std::string m = argv[++i];
-            if (m == "qsp_abm")        presim_qsp_enabled = true;
-            else if (m == "abm_only")  presim_qsp_enabled = false;
-            else {
-                std::cerr << "ERROR: --presim-mode must be qsp_abm or abm_only (got: " << m << ")" << std::endl;
-                exit(1);
-            }
-        } else if (arg == "--main-mode" && i + 1 < argc) {
-            std::string m = argv[++i];
-            if (m == "qsp_abm")        main_qsp_enabled = true;
-            else if (m == "abm_only")  main_qsp_enabled = false;
-            else {
-                std::cerr << "ERROR: --main-mode must be qsp_abm or abm_only (got: " << m << ")" << std::endl;
-                exit(1);
-            }
+        } else if (arg == "--qsp-state" && i + 1 < argc) {
+            qsp_state_file = argv[++i];
+
+        // ── Presim ──
         } else if (arg == "--presim-steps" && i + 1 < argc) {
             presim_steps = std::atoi(argv[++i]);
-            presim_steps_from_cli = true;
-        } else if (arg == "--presim-volume" && i + 1 < argc) {
-            presim_volume_target = std::atof(argv[++i]);
-            presim_volume_from_cli = true;
-        } else if (arg == "--presim-areal" && i + 1 < argc) {
-            presim_areal_target = std::atof(argv[++i]);
-            presim_areal_from_cli = true;
+
+        // ── Output ──
+        } else if ((arg == "--grid-output" || arg == "-G") && i + 1 < argc) {
+            grid_out = std::atoi(argv[++i]);
+        } else if ((arg == "--out-interval" || arg == "--out_int" || arg == "-oi") && i + 1 < argc) {
+            interval_out = std::atoi(argv[++i]);
+
+        // ── Flags ──
+        } else if (arg == "--spatial-feedback") {
+            spatial_feedback = true;
+
+        // ── Hidden / legacy ──
         } else if (arg == "--scenario" && i + 1 < argc) {
             std::string s = argv[++i];
-            if (s == "default") {
-                scenario = Scenario::Default;
-            } else if (s == "single_stem_edge") {
-                scenario = Scenario::SingleStemEdge;
-            } else {
-                std::cerr << "ERROR: --scenario must be 'default' or 'single_stem_edge' (got: " << s << ")" << std::endl;
+            if (s == "single_stem_edge") scenario = Scenario::SingleStemEdge;
+            else if (s != "default") {
+                std::cerr << "ERROR: --scenario must be 'default' or 'single_stem_edge'" << std::endl;
                 exit(1);
             }
         } else if (arg == "--seed-position" && i + 1 < argc) {
-            std::string s = argv[++i];
-            if (s != "x_low" && s != "x_high" && s != "y_low" &&
-                s != "y_high" && s != "z_low" && s != "z_high") {
-                std::cerr << "ERROR: --seed-position must be one of "
-                             "x_low|x_high|y_low|y_high|z_low|z_high (got: " << s << ")" << std::endl;
-                exit(1);
-            }
-            seed_position = s;
+            seed_position = argv[++i];
         } else if (arg == "--ripley") {
             ripley_enabled = true;
-        } else if (arg == "--output-root" && i + 1 < argc) {
-            // Consumed by main.cu pre-pass; skip the value so we don't error.
+
+        // ── Backward compat (consumed silently) ──
+        } else if (arg == "--presim-mode" && i + 1 < argc) {
+            std::cerr << "WARNING: --presim-mode is deprecated (always QSP+ABM coupled). Ignored." << std::endl;
             ++i;
+        } else if (arg == "--main-mode" && i + 1 < argc) {
+            std::cerr << "WARNING: --main-mode is deprecated (always QSP+ABM coupled). Ignored." << std::endl;
+            ++i;
+        } else if (arg == "--qsp-onset-volume" && i + 1 < argc) {
+            std::cerr << "WARNING: --qsp-onset-volume is deprecated (warmup target from XML). Ignored." << std::endl;
+            ++i;
+        } else if (arg == "--dump-qsp-onset" && i + 1 < argc) {
+            std::cerr << "WARNING: --dump-qsp-onset is deprecated (warmup state always saved). Ignored." << std::endl;
+            ++i;
+        } else if (arg == "--presim-volume" && i + 1 < argc) {
+            std::cerr << "WARNING: --presim-volume is deprecated (target from XML). Ignored." << std::endl;
+            ++i;
+        } else if (arg == "--presim-areal" && i + 1 < argc) {
+            std::cerr << "WARNING: --presim-areal is deprecated. Ignored." << std::endl;
+            ++i;
+        } else if ((arg == "--grid-size" || arg == "-g") && i + 1 < argc) {
+            std::cerr << "WARNING: -g is deprecated, use -gx/-gy/-gz." << std::endl;
+            int size = std::atoi(argv[++i]);
+            grid_x = size; grid_y = size; grid_z = size;
+        } else if (arg == "--healthy-2d" && i + 1 < argc) {
+            std::cerr << "WARNING: --healthy-2d is deprecated, use --placement + -gz 1." << std::endl;
+            placement_file = argv[++i];
+            grid_z = 1;
+
         } else if (arg == "-h" || arg == "--help") {
             std::cout << "Usage: " << argv[0] << " [options]\n"
-                      << "\nOptions:\n"
-                      << "  -p, --param-file FILE    Path to parameter XML file [default: param_all_test.xml]\n"
-                      << "  -i, --initialization N   Initialization type: 0=single_stem_center, 1=cluster_radius, 2=structured_deprecated [default: 0]\n"
-                      << "  -g, --grid-size N        Grid dimensions NxNxN [default: from XML]\n"
-                      << "  -gx, --grid-x N          Override grid X only (applied after -g)\n"
-                      << "  -gy, --grid-y N          Override grid Y only (applied after -g)\n"
-                      << "  -gz, --grid-z N          Override grid Z only (applied after -g)\n"
-                      << "  -s, --steps N            Number of simulation steps [default: 200]\n"
-                      << "  -G, --grid-output N      Grid output: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both [default: 0]\n"
-                      << "  -oi, --out_int N         Output interval frequency [default: 1]\n"
+                      << "\nGrid:\n"
+                      << "  -gx N                    Grid X dimension [default: from XML]\n"
+                      << "  -gy N                    Grid Y dimension [default: from XML]\n"
+                      << "  -gz N                    Grid Z dimension [default: from XML]\n"
+                      << "\nSimulation:\n"
+                      << "  -s, --steps N            Main simulation steps after presim [default: 0]\n"
                       << "  --seed N                 Random seed [default: 12345]\n"
-                      << "  --qsp-onset-volume V     Warm the QSP alone to V (m^3) before init, independent of the presim\n"
-                      << "  --dump-qsp-onset PATH    After the warm-up, write the onset JSON and exit (placement pass 1)\n"
-                      << "  --presim-mode MODE       Presim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
-                      << "  --main-mode MODE         Main-sim stepping mode: qsp_abm | abm_only [default: qsp_abm]\n"
-                      << "  --presim-areal F         Presim stop at cancer areal fraction F=N_cancer/(gx*gy*gz). Top precedence (section/SBI stopper).\n"
-                      << "  --presim-steps N         Presim step count override (>=0). Wins over --presim-volume and XML.\n"
-                      << "  --presim-volume V        Presim QSP tumor volume target (m^3). Used if --presim-steps absent.\n"
-                      << "  --scenario NAME          Scenario bundle: default | single_stem_edge [default: default]\n"
-                      << "                           single_stem_edge: resident vasc+PSC only, 1 stem cell at edge, ABM-only.\n"
-                      << "  --seed-position FACE     For single_stem_edge: x_low|x_high|y_low|y_high|z_low|z_high [default: x_low]\n"
-                      << "  --output-root PATH       Root directory for all output files [default: outputs]\n"
-                      << "                           Auto-named under results/ when --scenario single_stem_edge is set.\n"
-                      << "  --healthy-2d FILE        2D healthy-tissue .plc placement (forces grid_z=1)\n"
-                      << "  --ripley                 Enable Ripley's L(r) diagnostic (all subtype pairs, multiple r)\n"
+                      << "\nInitialization (without --placement):\n"
+                      << "  -i, --init-method N      0=single_stem (default), 1=simulated_annealing (TBD)\n"
+                      << "  QSP warms up to PARAM_PRESIM_ABM_START_FRACTION * target volume,\n"
+                      << "  then agents are initialized and coupled presim runs to 100%.\n"
+                      << "  Warmup state is always saved as qsp_warmup.bin + qsp_onset.json.\n"
+                      << "\nInitialization (with --placement):\n"
+                      << "  --placement FILE         Load agents from .plc (skips QSP warmup + init)\n"
+                      << "  --qsp-state FILE         Load QSP ODE state from .qsp binary (required)\n"
+                      << "  --presim-steps N         -1=volume stopper (default), >=0=fixed step count\n"
+                      << "\nOutput:\n"
+                      << "  -p, --param-file FILE    Path to parameter XML file\n"
+                      << "  --output-root PATH       Root directory for all outputs [default: outputs]\n"
+                      << "  -G, --grid-output N      0=none, 1=ABM, 2=PDE+ECM, 3=both [default: 0]\n"
+                      << "  -oi, --out-interval N    Output interval frequency [default: 1]\n"
+                      << "\nFlags:\n"
+                      << "  --spatial-feedback       Enable ABM->QSP spatial coupling (contact corrections)\n"
                       << "  -h, --help               Show this help\n";
             exit(0);
         }
     }
 
+    // Validate placement + qsp-state consistency
+    if (!placement_file.empty() && qsp_state_file.empty()) {
+        std::cerr << "ERROR: --placement requires --qsp-state (QSP ODE state at warmup endpoint)" << std::endl;
+        exit(1);
+    }
+    if (placement_file.empty() && !qsp_state_file.empty()) {
+        std::cerr << "ERROR: --qsp-state requires --placement" << std::endl;
+        exit(1);
+    }
+    if (placement_file.empty() && presim_steps >= 0) {
+        std::cerr << "ERROR: --presim-steps >= 0 requires --placement + --qsp-state" << std::endl;
+        exit(1);
+    }
+
+    // Populate derived fields from XML params
     cancer_move_steps = gpu_params.getInt(PARAM_CANCER_MOVE_STEPS);
     tcell_move_steps = gpu_params.getInt(PARAM_TCELL_MOVE_STEPS);
     treg_move_steps = gpu_params.getInt(PARAM_TCELL_MOVE_STEPS);
@@ -183,38 +195,36 @@ void SimulationConfig::parseCommandLine(int argc, const char** argv, const PDAC:
 }
 
 void SimulationConfig::print() const {
-    std::cout << "\n=== PDAC ABM-PDE GPU Simulation ===" << std::endl;
-    std::cout << "Grid: " << grid_x << "x" << grid_y << "x" << grid_z << std::endl;
-    std::cout << "Voxel size: " << voxel_size << " µm" << std::endl;
-    std::cout << "Steps: " << steps << std::endl;
+    std::cout << "\n=== PDAC ABM-QSP-PDE Simulation ===" << std::endl;
+    std::cout << "Grid: " << grid_x << "x" << grid_y << "x" << grid_z
+              << " (" << voxel_size << " µm/voxel)" << std::endl;
+    std::cout << "Main-sim steps: " << steps << std::endl;
     std::cout << "Random seed: " << random_seed << std::endl;
-    std::cout << "Init: ";
-    if      (init_method == 0) std::cout << "single_stem_center (-i 0)";
-    else if (init_method == 1) std::cout << "cluster_radius (-i 1)";
-    else if (init_method == 2) std::cout << "structured_deprecated (-i 2)";
-    else                       std::cout << "unknown (-i " << init_method << ")";
-    std::cout << std::endl;
-    std::cout << "Scenario: "
-              << (scenario == Scenario::SingleStemEdge ? "single_stem_edge" : "default");
-    if (scenario == Scenario::SingleStemEdge) {
-        std::cout << " (seed_position=" << seed_position << ")";
+
+    if (!placement_file.empty()) {
+        std::cout << "Init: placement file (" << placement_file << ")" << std::endl;
+        std::cout << "  QSP state: " << qsp_state_file << std::endl;
+    } else {
+        std::cout << "Init: "
+                  << (init_method == 0 ? "single_stem (-i 0)" : "simulated_annealing (-i 1)")
+                  << std::endl;
     }
+
+    std::cout << "Presim: QSP+ABM coupled, stopper: ";
+    if (presim_steps >= 0) std::cout << "fixed " << presim_steps << " steps";
+    else                   std::cout << "volume (XML target, resolved at runtime)";
     std::cout << std::endl;
 
-    std::cout << "\nSimulation modes:" << std::endl;
-    std::cout << "  Presim: " << (presim_qsp_enabled ? "qsp_abm" : "abm_only");
-    if (presim_areal_from_cli)          std::cout << "  (stopper: cancer areal frac=" << presim_areal_target << ")";
-    else if (presim_steps >= 0)         std::cout << "  (stopper: steps=" << presim_steps << ")";
-    else if (presim_volume_target > 0)  std::cout << "  (stopper: tum_vol=" << presim_volume_target << " m^3)";
-    else                                std::cout << "  (stopper: QSP-derived volume, resolved at runtime)";
-    std::cout << std::endl;
-    std::cout << "  Main:   " << (main_qsp_enabled ? "qsp_abm" : "abm_only") << std::endl;
+    std::cout << "Spatial feedback: " << (spatial_feedback ? "ON" : "OFF") << std::endl;
 
-    std::cout << "\nPDE Integration:" << std::endl;
-    std::cout << "  ABM timestep: " << dt_abm << " s (" << (dt_abm/60.0f) << " min)" << std::endl;
-    std::cout << "  Molecular substeps: " << molecular_steps << std::endl;
-    std::cout << "  PDE timestep: " << (dt_abm / molecular_steps) << " s" << std::endl;
-    std::cout << "===================================\n" << std::endl;
+    std::cout << "PDE: dt_abm=" << dt_abm << " s (" << (dt_abm/3600.0f) << " h)"
+              << ", " << molecular_steps << " substeps"
+              << ", dt_pde=" << (dt_abm / molecular_steps) << " s" << std::endl;
+
+    if (scenario == Scenario::SingleStemEdge) {
+        std::cout << "[scenario: single_stem_edge, seed_position=" << seed_position << "]" << std::endl;
+    }
+    std::cout << "====================================\n" << std::endl;
 }
 
 // ============================================================================
@@ -1111,11 +1121,8 @@ void initializeSingleStem(
                 cluster_radius, stem_div, prog_div, prog_max, cancer_sen_life, celltype_cdf);
             std::cout << "  Placed " << cancer_pop.size() << " cancer cells (cluster r="
                       << cluster_radius << ")" << std::endl;
-        } else if (config.presim_qsp_enabled && config.presim_volume_target > 0.0
-                   && lymph.get_tumor_cancer_cells() > 1.0) {
-            // -i 0 + coupled single-ledger presim: the decoupled Phase-A warmup already grew the
-            // QSP tumor, so seed the ABM cancer to its geometric box-share f·C1 (else it grows from
-            // 1 stem in the short Phase C and the window ends cancer-depleted). See seedCancerToQSPShare.
+        } else if (lymph.get_tumor_cancer_cells() > 1.0) {
+            // QSP warmup grew the tumor; seed ABM cancer to its geometric box-share f·C1.
             const double voxel_m   = static_cast<double>(config.voxel_size) * 1e-6;   // µm → m
             const double V_T_m3    = lymph.get_tumor_volume();
             const double C1_cells  = lymph.get_tumor_cancer_cells();

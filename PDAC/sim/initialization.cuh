@@ -14,87 +14,58 @@ namespace PDAC {
 // ============================================================================
 
 struct SimulationConfig {
-    // Grid parameters
+    // ── Grid ──
     int grid_x;
     int grid_y;
     int grid_z;
     float voxel_size;  // micrometers
 
-    // Simulation parameters
-    unsigned int steps;
+    // ── Simulation ──
+    unsigned int steps;          // main-sim steps (after presim)
     unsigned int random_seed;
 
-    // Initialization method:
+    // ── Initialization ──
     //   0 = single stem cell at grid center (default)
-    //   1 = tumor cluster with radius PARAM_DOMAIN_TUMOR_RADIUS_FRAC × grid_x
-    //   2 = structured lobular domain (deprecated; kept for reference)
+    //   1 = simulated-annealing placement (requires --phi-targets; TBD)
     int init_method;
 
-    // Scenario: bundles policy (auto-named output dir, mode forcing,
-    // immune-zero init). Orthogonal to init_method.
-    enum class Scenario { Default, SingleStemEdge };
-    Scenario scenario;
-
-    // For SingleStemEdge: which face of the domain to place the seed cell on.
-    // Accepts: x_low | x_high | y_low | y_high | z_low | z_high
-    std::string seed_position;
-
-    // Vascular agents removed (ABM rebuild Step 3b). O2+entry via Vvas field.
-
-    // §C6 initialization by placement. When non-empty, this OVERRIDES init_method and the
-    // scenario: agents and V_vas(t=0) come from the .plc file instead of being grown or
-    // seeded procedurally. Produced by abm-inference/analysis/make_placement.py.
+    // Placement file (.plc). When non-empty, SKIPS QSP warmup and procedural
+    // init: agents and V_vas(t=0) come from the file. Requires --qsp-state.
     std::string placement_file;
 
-    // §C6.1 QSP warm-up to treatment onset, decoupled from the presim.
-    //
-    // Phase A (QSP-alone growth) is what defines "the tumour the ABM is placed into", so a
-    // placement run needs it even though it runs NO presim. These two flags let Phase A be
-    // requested on its own:
-    //   qsp_onset_volume (m^3) — warm the QSP alone until V_T reaches this, then continue.
-    //   qsp_onset_dump         — after warm-up, write the onset JSON and exit.
-    // Pass 1 dumps, the generator builds the .plc from f·X_QSP, pass 2 warms to the SAME
-    // volume and places. Phase A is deterministic given (params, target), so pass 2 lands on
-    // the identical QSP state — which is why no ODE state serialization is needed.
-    double qsp_onset_volume;
-    std::string qsp_onset_dump;
+    // QSP state binary (.qsp). Required with --placement; written automatically
+    // during warmup when no placement is provided.
+    std::string qsp_state_file;
 
-    // Movement iterations per timestep
+    // ── Presim ──
+    //  -1 = volume stopper: run coupled presim until QSP tumor volume reaches
+    //       the XML target (initial_tumour_diameter → π/6 × D³). DEFAULT.
+    //  ≥0 = fixed step count (only valid with --placement + --qsp-state)
+    int presim_steps;
+
+    // ── Output ──
+    // grid_out: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both
+    int grid_out;
+    int interval_out;
+
+    // ── ABM→QSP spatial feedback ──
+    // When true, sets PARAM_COUPLING_MODE=1 (contact corrections).
+    // When false (default), PARAM_COUPLING_MODE stays at XML value (typically 0).
+    bool spatial_feedback;
+
+    // ── Derived from XML (populated after param load, not CLI) ──
+    float dt_abm;           // ABM timestep (seconds)
+    int molecular_steps;    // PDE substeps per ABM step
     int cancer_move_steps;
     int tcell_move_steps;
     int treg_move_steps;
     int mdsc_move_steps;
 
-    // PDE parameters
-    float dt_abm;           // ABM timestep (seconds)
-    int molecular_steps;    // PDE substeps per ABM step
-
-    // Output parameters
-    // grid_out: 0=none, 1=ABM only, 2=PDE+ECM only, 3=both
-    int grid_out;
-    int interval_out;
-
-    // Simulation mode (per phase): true = full QSP+ABM coupling, false = QSP frozen (ABM-only)
-    bool presim_qsp_enabled;   // default: true (legacy behavior)
-    bool main_qsp_enabled;     // default: true (legacy behavior)
-
-    // Presim duration. Resolved at runtime by precedence:
-    //   0. CLI --presim-areal F (presim_areal_from_cli=true): stop at cancer
-    //      areal fraction F = N_cancer/(gx·gy·gz). Section-domain / SBI stopper.
-    //   1. CLI --presim-steps N (presim_steps_from_cli=true, presim_steps>=0)
-    //   2. CLI --presim-volume V (presim_volume_from_cli=true, presim_volume_target>0)
-    //   3. XML <Simulation><PresimSteps> (xml_presim_steps>0)
-    //   4. XML <initial_tumour_diameter> → π/6 × D³ volume target
-    int    presim_steps;              // resolved step count (-1 if volume-based)
-    int    xml_presim_steps;          // raw XML default (0 = use volume fallback)
-    double presim_volume_target;      // cm³; >0 if either CLI vol or XML fallback
-    double presim_areal_target;       // cancer areal fraction [0,1]; -1 if unused
-    bool   presim_steps_from_cli;
-    bool   presim_volume_from_cli;
-    bool   presim_areal_from_cli;
-    bool   main_steps_from_cli;
-
-    // Ripley's L(r) diagnostic (--ripley)
+    // ── Hidden / legacy (not in --help) ──
+    // Scenario bundles (SingleStemEdge forces ABM-only + edge seed).
+    enum class Scenario { Default, SingleStemEdge };
+    Scenario scenario;
+    std::string seed_position;
     bool ripley_enabled;
 
     // Constructor with defaults
@@ -191,7 +162,7 @@ void seedSingleStemAtCenter(
 // Then places exactly one cancer stem cell on the chosen domain face
 // (config.seed_position). No immune agents are placed; FLAMEGPU requires
 // setPopulationData on every agent type so empty populations are submitted.
-// Designed to be run with --presim-mode abm_only --main-mode abm_only.
+// Designed for diagnostic edge-seeding runs (legacy).
 void initializeSingleStemEdge(
     flamegpu::CUDASimulation& simulation,
     flamegpu::ModelDescription& model,

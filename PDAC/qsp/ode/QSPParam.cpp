@@ -80,6 +80,8 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Species.V_T_nB",
     "Param.QSP.init_value.Species.V_T_aB",
     "Param.QSP.init_value.Species.V_T_Plasma",
+    "Param.QSP.init_value.Species.V_T_nBreg",
+    "Param.QSP.init_value.Species.V_T_aBreg",
     "Param.QSP.init_value.Species.V_T_Ab",
     "Param.QSP.init_value.Species.V_LN_nCD4",
     "Param.QSP.init_value.Species.V_LN_aTreg",
@@ -635,6 +637,13 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Parameter.DC_Ab_boost",
     "Param.QSP.init_value.Parameter.H_Ab",
     "Param.QSP.init_value.Parameter.H_Ab_DC",
+    "Param.QSP.init_value.Parameter.k_Breg_on",
+    "Param.QSP.init_value.Parameter.k_Breg_off",
+    "Param.QSP.init_value.Parameter.TGFb_50_Breg",
+    "Param.QSP.init_value.Parameter.IL10_50_Breg",
+    "Param.QSP.init_value.Parameter.k_IL10_sec_Breg",
+    "Param.QSP.init_value.Parameter.H_TGFb_Breg",
+    "Param.QSP.init_value.Parameter.H_IL10_Breg",
     "Param.QSP.init_value.Parameter.CD8_total_T",
     "Param.QSP.init_value.Parameter.nucleated_total_T",
     "Param.QSP.init_value.Parameter.CD8_exh_total_T",
@@ -651,7 +660,7 @@ const char* QSPParam::_xml_paths[] = {
     "Param.QSP.init_value.Parameter.CAF_total_T",
 };
 
-QSPParam::QSPParam() :_param(639, 0) {}
+QSPParam::QSPParam() :_param(648, 0) {}
 
 double QSPParam::getVal(int n) const { return _param[n]; }
 
@@ -659,7 +668,7 @@ void QSPParam::_readParameters(const std::string& filename){
     namespace pt = boost::property_tree;
     pt::ptree tree;
     pt::read_xml(filename, tree, pt::xml_parser::trim_whitespace);
-    for (int i = 0; i < 639; i++){
+    for (int i = 0; i < 648; i++){
         try { _param[i] = tree.get<double>(_xml_paths[i]); }
         catch (const pt::ptree_bad_path&) {
             std::cerr << "WARNING: QSP param not found: "
@@ -669,7 +678,7 @@ void QSPParam::_readParameters(const std::string& filename){
 }
 
 void QSPParam::printParam(void) const {
-    for (int i = 0; i < 639; i++)
+    for (int i = 0; i < 648; i++)
         std::cout << _xml_paths[i] << " = " << _param[i] << std::endl;
 }
 

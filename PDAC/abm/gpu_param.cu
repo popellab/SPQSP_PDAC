@@ -45,7 +45,10 @@ const char* _gpu_param_description[][3] = {
     {"Param.ABM.BCell.recruit_p", "", "pr"},  // PARAM_BCELL_RECRUIT_P
     {"Param.ABM.BCell.ec50_cxcl13_rec", "", "pr"},  // PARAM_BCELL_EC50_CXCL13_REC
     {"Param.ABM.BCell.tls_speedup", "", "pr"},  // PARAM_BCELL_TLS_SPEEDUP
-    {"Param.ABM.BCell.breg_fraction", "", "pr"},  // PARAM_BCELL_BREG_FRACTION
+    {"Param.ABM.BCell.k_breg_on", "", "pr"},  // PARAM_BCELL_K_BREG_ON
+    {"Param.ABM.BCell.k_breg_off", "", "pr"},  // PARAM_BCELL_K_BREG_OFF
+    {"Param.ABM.BCell.tgfb_50_breg", "", "pr"},  // PARAM_BCELL_TGFB_50_BREG
+    {"Param.ABM.BCell.il10_50_breg", "", "pr"},  // PARAM_BCELL_IL10_50_BREG
     {"Param.ABM.BCell.antibody_release", "", "pr"},  // PARAM_BCELL_ANTIBODY_RELEASE
     {"Param.ABM.BCell.il10_release", "", "pr"},  // PARAM_BCELL_IL10_RELEASE
     {"Param.ABM.BCell.il6_release", "", "pr"},  // PARAM_BCELL_IL6_RELEASE
@@ -492,7 +495,10 @@ void GPUParam::populateFlameGPUEnvironment(flamegpu::EnvironmentDescription& env
     env.newProperty<float>("PARAM_BCELL_RECRUIT_P", getFloat(PARAM_BCELL_RECRUIT_P));
     env.newProperty<float>("PARAM_BCELL_EC50_CXCL13_REC", getFloat(PARAM_BCELL_EC50_CXCL13_REC));
     env.newProperty<float>("PARAM_BCELL_TLS_SPEEDUP", getFloat(PARAM_BCELL_TLS_SPEEDUP));
-    env.newProperty<float>("PARAM_BCELL_BREG_FRACTION", getFloat(PARAM_BCELL_BREG_FRACTION));
+    env.newProperty<float>("PARAM_BCELL_K_BREG_ON", getFloat(PARAM_BCELL_K_BREG_ON));
+    env.newProperty<float>("PARAM_BCELL_K_BREG_OFF", getFloat(PARAM_BCELL_K_BREG_OFF));
+    env.newProperty<float>("PARAM_BCELL_TGFB_50_BREG", getFloat(PARAM_BCELL_TGFB_50_BREG));
+    env.newProperty<float>("PARAM_BCELL_IL10_50_BREG", getFloat(PARAM_BCELL_IL10_50_BREG));
     env.newProperty<float>("PARAM_BCELL_ANTIBODY_RELEASE", getFloat(PARAM_BCELL_ANTIBODY_RELEASE));
     env.newProperty<float>("PARAM_BCELL_IL10_RELEASE", getFloat(PARAM_BCELL_IL10_RELEASE));
     env.newProperty<float>("PARAM_BCELL_IL6_RELEASE", getFloat(PARAM_BCELL_IL6_RELEASE));

@@ -18,13 +18,13 @@
     env.newProperty<float>("PARAM_TCELL_IL2_PROLIF_TH", 
                     QP(CancerVCT::P_IL2_50) * 1e6 * env.getProperty<float>("PARAM_TCELL_IL2_COMMIT_TIME"));
 
-    // cDC1 → naive CD8 priming rate [1/s] from QSP k_CD8_act
-    env.newProperty<float>("PARAM_DC_PRIME_K_CD8", 
-                    QP(CancerVCT::P_k_CD8_act));
+    // cDC1 → naive CD8 priming rate [1/s] from QSP k_nCD8_pro (was k_CD8_act)
+    env.newProperty<float>("PARAM_DC_PRIME_K_CD8",
+                    QP(CancerVCT::P_k_T_activation_per_APC));
 
-    // cDC2 → naive CD4 (Th) priming rate [1/s] from QSP k_Th_act
-    env.newProperty<float>("PARAM_DC_PRIME_K_TH", 
-                    QP(CancerVCT::P_k_Th_act));
+    // cDC2 → naive CD4 (Th) priming rate [1/s] from QSP k_nCD4_pro (was k_Th_act)
+    env.newProperty<float>("PARAM_DC_PRIME_K_TH",
+                    QP(CancerVCT::P_k_T_activation_per_APC));
 
     // cDC2 → naive CD4 (Treg) priming rate [1/s] from QSP k_Treg_act
     env.newProperty<float>("PARAM_DC_PRIME_K_TREG", 
@@ -162,9 +162,9 @@
     env.newProperty<float>("PARAM_TREG_CTLA4_50", 
                     QP(CancerVCT::P_koff_PD1_aPD1) * QP(CancerVCT::P_k_xP1_deg));
 
-    // CTLA4 per Treg synapse
-    env.newProperty<float>("PARAM_CTLA4_TREG", 
-                    QP(CancerVCT::P_q_LN_aCTLA4) * QP(CancerVCT::P_k_xP1_deg));
+    // CTLA4 per Treg synapse (aCTLA4 removed from upstream QSP; zeroed)
+    env.newProperty<float>("PARAM_CTLA4_TREG",
+                    0.0f);
 
     // anti-CTLA4 ADCC rate of Treg per timestep
     env.newProperty<float>("PARAM_K_ADCC", 
@@ -216,9 +216,9 @@
     env.newProperty<float>("PARAM_K_C_EXH", 
                     QP(CancerVCT::P_K_C_exh) * AVOGADROS);
 
-    // IL-10 EC50 for Treg exhaustion modulation [nM]
-    env.newProperty<float>("PARAM_EXHAUST_IL10_EC50", 
-                    QP(CancerVCT::P_IL10_50) * 1e6);
+    // IL-10 EC50 for Treg exhaustion modulation [nM] (was generic P_IL10_50)
+    env.newProperty<float>("PARAM_EXHAUST_IL10_EC50",
+                    QP(CancerVCT::P_IL10_50_Treg) * 1e6);
 
     // Treg competitive suppression weight (ODE: 1/R50_Treg ≈ 3.23)
     env.newProperty<float>("PARAM_K_T_TREG", 
@@ -240,17 +240,17 @@
     env.newProperty<float>("PARAM_MAC_EC50_CCL2_REC", 
                     QP(CancerVCT::P_CCL2_50) * 1e6);
 
-    // TGFb half-max for polarization [nM]
-    env.newProperty<float>("PARAM_MAC_TGFB_EC50", 
-                    QP(CancerVCT::P_TGFb_50) * 1e6);
+    // TGFb half-max for M2 polarization [nM] (was generic P_TGFb_50)
+    env.newProperty<float>("PARAM_MAC_TGFB_EC50",
+                    QP(CancerVCT::P_TGFb_50_M2pol) * 1e6);
 
     // TGFb EC50 for Teff suppression [nM]
     env.newProperty<float>("PARAM_TEFF_TGFB_EC50", 
                     QP(CancerVCT::P_TGFb_50_Teff) * 1e6);
 
-    // IL-10 EC50 for macrophage [nM]
-    env.newProperty<float>("PARAM_MAC_IL_10_EC50", 
-                    QP(CancerVCT::P_IL10_50) * 1e6);
+    // IL-10 EC50 for macrophage polarization [nM] (was generic P_IL10_50)
+    env.newProperty<float>("PARAM_MAC_IL_10_EC50",
+                    QP(CancerVCT::P_IL10_50_M2) * 1e6);
 
     // IL-10 half-max for phagocytosis [nM]
     env.newProperty<float>("PARAM_MAC_IL_10_HALF_PHAGO", 
@@ -312,21 +312,21 @@
     env.newProperty<float>("PARAM_FIB_APCAF_ACTIVATION", 
                     QP(CancerVCT::P_k_PSC_to_apCAF) * t_step_sec);
 
-    // apCAF antigen (P1) uptake rate per timestep (ODE Flux331)
-    env.newProperty<float>("PARAM_APCAF_P1_UPTAKE", 
-                    QP(CancerVCT::P_k_P1_up_apCAF) * t_step_sec);
+    // apCAF antigen (P1) uptake rate per timestep (was P_k_P1_up_apCAF, now generic P_k_P1_up)
+    env.newProperty<float>("PARAM_APCAF_P1_UPTAKE",
+                    QP(CancerVCT::P_k_P1_up) * t_step_sec);
 
     // antigen EC50 for apCAF presentation [molecules/voxel]; shares PARAM_DC_ANTIGEN_50
     env.newProperty<float>("PARAM_APCAF_P1_50", 
                     1e8);
 
-    // apCAF-driven Th→Treg conversion rate per timestep (ODE Flux332 k_apCAF_Treg)
-    env.newProperty<float>("PARAM_APCAF_TREG_RATE", 
-                    QP(CancerVCT::P_k_apCAF_Treg) * t_step_sec);
+    // apCAF-driven Th→iTreg conversion rate per timestep (renamed k_apCAF_Treg → k_apCAF_iTreg)
+    env.newProperty<float>("PARAM_APCAF_TREG_RATE",
+                    QP(CancerVCT::P_k_apCAF_iTreg) * t_step_sec);
 
-    // half-saturation apCAF count, whole tumour [cells] (ODE Flux332 K_apCAF_Treg)
-    env.newProperty<float>("PARAM_APCAF_TREG_K_CELLS", 
-                    QP(CancerVCT::P_K_apCAF_Treg) * AVOGADROS);
+    // half-saturation apCAF count [cells] (K_apCAF_Treg removed; hardcoded from old XML value 1e8)
+    env.newProperty<float>("PARAM_APCAF_TREG_K_CELLS",
+                    1e8f * AVOGADROS);
 
     // iCAF→myCAF rate per timestep (H_TGFb gated)
     env.newProperty<float>("PARAM_FIB_ICAF_TO_MYCAF", 
@@ -506,9 +506,9 @@
     env.newProperty<float>("PARAM_DC_IL12_50", 
                     QP(CancerVCT::P_IL12_50) * 1e6);
 
-    // IL-10 EC50 for maturation suppression [nM]
-    env.newProperty<float>("PARAM_DC_IL10_50", 
-                    QP(CancerVCT::P_IL10_50) * 1e6);
+    // IL-10 EC50 for DC maturation suppression [nM] (was generic P_IL10_50)
+    env.newProperty<float>("PARAM_DC_IL10_50",
+                    QP(CancerVCT::P_IL10_50_APC) * 1e6);
 
     // TGF-b EC50 for DC maturation suppression [nM], literature 0.02–0.2 nM
     env.newProperty<float>("PARAM_DC_TGFB_50", 
@@ -599,9 +599,9 @@
     env.newProperty<float>("PARAM_CXCL12_DECAY_RATE", 
                     QP(CancerVCT::P_k_CXCL12_deg));
 
-    // CCL5 decay [1/s]
-    env.newProperty<float>("PARAM_CCL5_DECAY_RATE", 
-                    QP(CancerVCT::P_k_CCL5_deg));
+    // CCL5 decay [1/s] (CCL5 module removed from QSP SBML; ABM-only, from old XML k_CCL5_deg=1.5)
+    env.newProperty<float>("PARAM_CCL5_DECAY_RATE",
+                    1.5f);
 
     // molecules/(cell*s) → pmol/(cell*s); /voxel_vol → nM/s
     double qp_sec_to_abm = 1.0 / (AVOGADROS * 1e-12);
@@ -654,21 +654,21 @@
     env.newProperty<float>("PARAM_CXCL12_EC50_TEXCL", 
                     QP(CancerVCT::P_CXCL12_50_Texcl) * 1e6);
 
-    // CCL5 cancer secretion [pmol/(cell*s)]
-    env.newProperty<float>("PARAM_CCL5_CANCER_RELEASE", 
-                    QP(CancerVCT::P_k_CCL5_sec) * qp_sec_to_abm);
+    // CCL5 cancer secretion [pmol/(cell*s)] (CCL5 module removed from QSP; ABM-only, k_CCL5_sec=1e-12)
+    env.newProperty<float>("PARAM_CCL5_CANCER_RELEASE",
+                    1e-12 * qp_sec_to_abm);
 
-    // CCL5 iCAF secretion [pmol/(cell*s)]
-    env.newProperty<float>("PARAM_CCL5_ICAF_RELEASE", 
-                    QP(CancerVCT::P_k_CCL5_sec_iCAF) * qp_sec_to_abm);
+    // CCL5 iCAF secretion [pmol/(cell*s)] (CCL5 module removed from QSP; ABM-only, k_CCL5_sec_iCAF=3e-11)
+    env.newProperty<float>("PARAM_CCL5_ICAF_RELEASE",
+                    3e-11 * qp_sec_to_abm);
 
-    // CCL5 EC50 Treg recruitment [nM]
-    env.newProperty<float>("PARAM_CCL5_EC50_TREG", 
-                    QP(CancerVCT::P_CCL5_50_Treg) * 1e6);
+    // CCL5 EC50 Treg recruitment [nM] (CCL5 module removed from QSP; ABM-only, CCL5_50_Treg=1.0 M → 1e6 nM)
+    env.newProperty<float>("PARAM_CCL5_EC50_TREG",
+                    1.0f * 1e6);
 
-    // CCL5/CCR5 recruitment rate relative to base (k_CCR5_Treg_rec / q_Treg_T_in)
-    env.newProperty<float>("PARAM_CCL5_TREG_RATIO", 
-                    QP(CancerVCT::P_k_CCR5_Treg_rec) / QP(CancerVCT::P_q_Treg_T_in));
+    // CCL5/CCR5 recruitment rate relative to base (CCL5 module removed; k_CCR5_Treg_rec=0.0001 / q_Treg_T_in)
+    env.newProperty<float>("PARAM_CCL5_TREG_RATIO",
+                    0.0001f / QP(CancerVCT::P_q_Treg_T_in));
 
     // Treg TGF-β secretion [pmol/(cell*s)] from QSP k_TGFb_Tsec
     env.newProperty<float>("PARAM_TREG_TGFB_RELEASE", 

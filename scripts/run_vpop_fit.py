@@ -32,6 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from vpop.corpus import GammaSpec, load_corpus
 from vpop.model import (FunctionSurrogate, Measurement, Mechanism,
                         assemble_V, block_draw_plan, check_per_patient)
+from vpop.model.basis import Basis, row_sensitivity, truncated_basis
 from vpop.model.fit import Problem
 from vpop.prior import read_prior
 from vpop.surrogate.emulator import Arm, arm_p_ok, arm_species, load_arm
@@ -104,8 +105,21 @@ def main():
     parser.add_argument("--samples", type=int, default=400)
     parser.add_argument("--n-cloud", type=int, default=800)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--sampler", type=str, default="nuts",
+                        choices=["nuts", "walnuts"],
+                        help="MCMC sampler (default: nuts)")
     parser.add_argument("--gated", action="store_true",
-                        help="Use eligibility model (WALNUTS)")
+                        help="Use eligibility model")
+    parser.add_argument("--k-mu", type=int, default=None,
+                        help="Basis rank for mu (centre). None = auto from SVD")
+    parser.add_argument("--k-omega", type=int, default=None,
+                        help="Basis rank for omega (widths). None = no reduction")
+    parser.add_argument("--sv-threshold", type=float, default=0.95,
+                        help="Cumulative variance threshold for auto k selection")
+    parser.add_argument("--metric-file", type=str, default=None,
+                        help="Path to precomputed Laplace metric (.npy). "
+                             "Computed and saved to out_dir/laplace_metric.npy "
+                             "if not provided.")
     parser.add_argument("--out-dir", type=str, default=None)
     args = parser.parse_args()
 
@@ -175,14 +189,27 @@ def main():
         log_R_0=LOG_R_0,
         n_cloud=args.n_cloud, n_boot=1000, seed=args.seed + 2,
     )
-    cov = assemble_V(plans, v_boot)
-    V_chol = [jnp.asarray(L) for L in cov.chol]
     log.info("Problem assembled in %.1fs", time.time() - t0)
-    log.info("  V blocks: %d, total rows: %d",
-             len(V_chol), sum(L.shape[0] for L in V_chol))
 
-    # ── Build fit spec ───────────────────────────────────────────────
-    spec = pi.for_fit(
+    # ── Floor v_boot diagonal ───────────────────────────────────────
+    # Density readouts (cells/mm²) produce near-zero bootstrapped variance
+    # at the lower quantiles because the prior-predictive cloud clusters
+    # tightly. On log scale, sd < 0.01 means <1% relative spread — claiming
+    # measurement precision no instrument achieves. Floor at sd=0.05 (~5%
+    # relative on natural scale), applied to the diagonal only.
+    VAR_FLOOR = 0.05**2  # sd = 0.05 in log/logit space
+    n_floored = 0
+    for V in v_boot:
+        diag = np.diag(V)
+        low = diag < VAR_FLOOR
+        if low.any():
+            n_floored += int(low.sum())
+            np.fill_diagonal(V, np.maximum(diag, VAR_FLOOR))
+    if n_floored:
+        log.info("Floored %d v_boot diagonal entries (var < %.1e)", n_floored, VAR_FLOOR)
+
+    # ── Build preliminary fit spec (full rank, for Jacobian) ────────
+    spec_full = pi.for_fit(
         meas,
         tau_s=0.3,
         tau_u=0.3,
@@ -194,15 +221,117 @@ def main():
         pin_discrepancy=False,
         pin_aux=False,
     )
-    log.info("FitSpec: %d params, dim_gamma=%d, n_aux=%d",
-             spec.n_params, spec.dim_gamma, spec.n_aux)
+
+    # ── Basis reduction (centre + widths) ───────────────────────────
+    from vpop.model.basis import truncation_blocks
+
+    cov_full = assemble_V(plans, v_boot)
+    V_chol_full = [np.asarray(L) for L in cov_full.chol]
+    sizes = [L.shape[0] for L in V_chol_full]
+
+    def _auto_k(cum, threshold, floor=5):
+        k = int(np.searchsorted(cum, threshold) + 1)
+        return max(k, floor)
+
+    def _log_spectrum(label, sv, cum, k, P, threshold):
+        log.info("%s: k=%d / %d params (%.1f%% variance at threshold %.2f)",
+                 label, k, P, float(cum[min(k, len(cum)) - 1]) * 100, threshold)
+        log.info("  Top 10 singular values: %s",
+                 np.round(sv[:min(10, len(sv))], 4))
+        log.info("  Cumulative at k=5,10,20,30,50: %s",
+                 [f"{float(cum[min(i, len(cum))-1]):.3f}"
+                  for i in [5, 10, 20, 30, 50] if i <= len(cum)])
+
+    # --- Centre (mu) ---
+    A_mu = row_sensitivity(spec_full, problem, site="mu_raw")
+    _, sv_mu, cum_mu = truncated_basis(
+        A_mu, V_chol_full, k=min(A_mu.shape), hold=())
+
+    k_mu = args.k_mu if args.k_mu is not None else _auto_k(cum_mu, args.sv_threshold)
+    k_mu = min(k_mu, min(A_mu.shape))
+    _log_spectrum("mu basis", sv_mu, cum_mu, k_mu, pi.n_params, args.sv_threshold)
+
+    B_mu, _, _ = truncated_basis(A_mu, V_chol_full, k=k_mu, hold=())
+    mu_basis_obj = Basis(B=B_mu, A=A_mu, singular_values=sv_mu,
+                         cumulative=cum_mu, names=tuple(pi.names),
+                         held=(), site="mu_raw")
+
+    # --- Widths (omega) ---
+    A_u = row_sensitivity(spec_full, problem, site="u_raw")
+    _, sv_u, cum_u = truncated_basis(
+        A_u, V_chol_full, k=min(A_u.shape), hold=())
+
+    k_omega = args.k_omega if args.k_omega is not None else _auto_k(cum_u, args.sv_threshold)
+    k_omega = min(k_omega, min(A_u.shape))
+    _log_spectrum("omega basis", sv_u, cum_u, k_omega, pi.n_params, args.sv_threshold)
+
+    B_u, _, _ = truncated_basis(A_u, V_chol_full, k=k_omega, hold=())
+    u_basis_obj = Basis(B=B_u, A=A_u, singular_values=sv_u,
+                        cumulative=cum_u, names=tuple(pi.names),
+                        held=(), site="u_raw")
+
+    # --- Truncation covariance ---
+    trunc_V = truncation_blocks(sizes, centre=mu_basis_obj, widths=u_basis_obj)
+
+    cov = assemble_V(plans, v_boot, trunc=trunc_V)
+    V_chol = [jnp.asarray(L) for L in cov.chol]
+    V0_chol = ([jnp.asarray(L) for L in cov.chol_untruncated]
+               if hasattr(cov, 'chol_untruncated') and cov.chol_untruncated is not None
+               else None)
+    log.info("V reassembled with truncation: %d blocks, %d rows (V0_chol=%s)",
+             len(V_chol), sum(L.shape[0] for L in V_chol),
+             "yes" if V0_chol is not None else "no")
+
+    # ── Build reduced fit spec ───────────────────────────────────────
+    spec = pi.for_fit(
+        meas,
+        tau_s=0.3,
+        tau_u=0.3,
+        tau_gamma=0.25,
+        tau_beta=0.1,
+        n_beta=0,
+        log_R_0=LOG_R_0,
+        sigma_R=SIGMA_R,
+        pin_discrepancy=False,
+        pin_aux=False,
+        mu_basis=B_mu,
+        u_basis=B_u,
+    )
+
+    # Report effective sampled dimensions
+    from vpop.model.fit import site_spec
+    sampled_dims = sum(z.shape[0] if z.ndim else 1 for _, z, _ in site_spec(spec))
+    log.info("FitSpec: %d sampled dims (mu_c=%d + u_c=%d + aux), "
+             "reduced from %d+%d+aux",
+             sampled_dims, k_mu, k_omega, pi.n_params, pi.n_params)
+
+    # ── Compute or load Laplace metric ─────────────────────────────
+    from vpop.metric import laplace_inverse_mass
+
+    metric_path = (Path(args.metric_file) if args.metric_file
+                   else out_dir / "laplace_metric.npy")
+    if metric_path.exists():
+        log.info("Loading cached Laplace metric from %s", metric_path)
+        inv_metric = np.load(metric_path)
+        log.info("  shape=%s", inv_metric.shape)
+    else:
+        log.info("Computing Laplace inverse mass matrix...")
+        t0_metric = time.time()
+        inv_mass_dict = laplace_inverse_mass(spec, problem, V_chol)
+        inv_metric = np.asarray(next(iter(inv_mass_dict.values())))
+        elapsed_metric = time.time() - t0_metric
+        log.info("Laplace metric computed in %.1fs (%.1f min), shape=%s",
+                 elapsed_metric, elapsed_metric / 60, inv_metric.shape)
+        np.save(metric_path, inv_metric)
+        log.info("Saved metric to %s", metric_path)
 
     # ── Run sampler ──────────────────────────────────────────────────
     param_names = list(pi.names)
     labels = Labels(param=param_names)
 
     log.info("=" * 60)
-    if args.gated:
+    use_walnuts = args.sampler == "walnuts"
+    if use_walnuts:
         log.info("Running WALNUTS: %d chains, %d warmup, %d samples",
                  args.chains, args.warmup, args.samples)
         from vpop.samplers import walnuts
@@ -210,7 +339,8 @@ def main():
         idata = walnuts(
             spec, problem, V_chol, observed,
             chains=args.chains, warmup=args.warmup, samples=args.samples,
-            seed=args.seed, labels=labels,
+            seed=args.seed, labels=labels, V0_chol=V0_chol,
+            inv_metric=inv_metric,
         )
     else:
         log.info("Running NUTS: %d chains, %d warmup, %d samples",
@@ -220,7 +350,8 @@ def main():
         idata = nuts(
             spec, problem, V_chol, observed,
             chains=args.chains, warmup=args.warmup, samples=args.samples,
-            seed=args.seed, labels=labels,
+            seed=args.seed, labels=labels, V0_chol=V0_chol,
+            inv_metric=inv_metric,
         )
     elapsed = time.time() - t0
     log.info("Sampling completed in %.1fs (%.1f min)", elapsed, elapsed / 60)

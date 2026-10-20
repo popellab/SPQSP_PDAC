@@ -49,7 +49,7 @@
       <V_C_aCTLA4>0.0</V_C_aCTLA4>
       <V_C_Th>0.0</V_C_Th>
       <V_C_Tfh>0.0</V_C_Tfh>
-      <V_C_nB>100000000.0</V_C_nB>
+      <V_C_nB>2000.0</V_C_nB>
       <V_C_B>0.0</V_C_B>
       <V_C_Cy>0.0</V_C_Cy>
       <V_C_CA199>0.0</V_C_CA199>
@@ -73,6 +73,7 @@
       <V_T_Treg>0.0</V_T_Treg>
       <V_T_CCL5>0.0</V_T_CCL5>
       <V_T_CD8>0.0</V_T_CD8>
+      <V_T_nCD8>0.0</V_T_nCD8>
       <V_T_cDC1>0.0</V_T_cDC1>
       <V_T_cDC2>0.0</V_T_cDC2>
       <V_T_mcDC1>0.0</V_T_mcDC1>
@@ -83,12 +84,16 @@
       <V_T_aPDL1>0.0</V_T_aPDL1>
       <V_T_aCTLA4>0.0</V_T_aCTLA4>
       <V_T_Th>0.0</V_T_Th>
+      <V_T_nCD4>0.0</V_T_nCD4>
       <V_T_IFNg>0.0</V_T_IFNg>
       <V_T_TGFb>0.0</V_T_TGFb>
       <V_T_Tfh>0.0</V_T_Tfh>
       <V_T_nB>0.0</V_T_nB>
       <V_T_aB>0.0</V_T_aB>
       <V_T_Plasma>0.0</V_T_Plasma>
+      <V_T_nBreg>0.0</V_T_nBreg>
+      <V_T_aBreg>0.0</V_T_aBreg>
+      <V_T_Ab>0.0</V_T_Ab>
       <V_T_MDSC>0.0</V_T_MDSC>
       <V_T_NO>0.0</V_T_NO>
       <V_T_ArgI>0.0</V_T_ArgI>
@@ -123,7 +128,7 @@
       <V_LN_IL2>0.00019</V_LN_IL2>
       <V_LN_aTfh>0.0</V_LN_aTfh>
       <V_LN_Tfh>0.0</V_LN_Tfh>
-      <V_LN_nB>10000000.0</V_LN_nB>
+      <V_LN_nB>80.0</V_LN_nB>
       <V_LN_aB>0.0</V_LN_aB>
       <V_LN_B>0.0</V_LN_B>
       <V_e_P0>1e-18</V_e_P0>
@@ -500,7 +505,7 @@
       <H_TGFb_Teff>1.0</H_TGFb_Teff>
       <H_TGFb_Th_exh>1.0</H_TGFb_Th_exh>
       <k_Tfh_act>10.0</k_Tfh_act>
-      <k_nB_in>1000000.0</k_nB_in>
+      <k_nB_in>10000.0</k_nB_in>
       <k_B_act>5.0</k_B_act>
       <n_B_clones>120.0</n_B_clones>
       <k_B_pro>1.0</k_B_pro>
@@ -512,7 +517,30 @@
       <IL6_50_Tfh>1.0</IL6_50_Tfh>
       <k_B_act_tumor>1.0</k_B_act_tumor>
       <k_B_pro_tumor>0.5</k_B_pro_tumor>
-      <Tfh_50_plasma>1000.0</Tfh_50_plasma>
+      <Tfh_50_plasma>1000000.0</Tfh_50_plasma>
+      <k_Ab_sec>1e-05</k_Ab_sec>
+      <k_Ab_deg>0.033</k_Ab_deg>
+      <Ab_50_ADCC>0.01</Ab_50_ADCC>
+      <ADCC_boost_max>2.0</ADCC_boost_max>
+      <Ab_50_DC>29.3</Ab_50_DC>
+      <DC_Ab_boost>3.95</DC_Ab_boost>
+      <H_Ab>0.0</H_Ab>
+      <H_Ab_DC>0.0</H_Ab_DC>
+      <rho_B_max>5000000.0</rho_B_max>
+      <k_nB_death>0.002</k_nB_death>
+      <q_nB_LN_in>0.1</q_nB_LN_in>
+      <q_nB_LN_out>2.88</q_nB_LN_out>
+      <q_B_P_in>0.25</q_B_P_in>
+      <q_B_P_out>24.0</q_B_P_out>
+      <q_B_LN_out>24.0</q_B_LN_out>
+      <q_B_T_in>5.8e-05</q_B_T_in>
+      <k_Breg_on>1.0</k_Breg_on>
+      <k_Breg_off>2.0</k_Breg_off>
+      <TGFb_50_Breg>0.07</TGFb_50_Breg>
+      <IL10_50_Breg>8.0</IL10_50_Breg>
+      <k_IL10_sec_Breg>1.5e-12</k_IL10_sec_Breg>
+      <H_TGFb_Breg>0.0</H_TGFb_Breg>
+      <H_IL10_Breg>0.0</H_IL10_Breg>
       <k_CCL2_sec>2e-10</k_CCL2_sec>
       <k_CCL2_deg>0.06</k_CCL2_deg>
       <CCL2_50>0.23</CCL2_50>

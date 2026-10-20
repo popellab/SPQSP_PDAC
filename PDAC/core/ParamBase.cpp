@@ -84,6 +84,7 @@ bool ParamBase::readParamsFromXml( std::string inFileName){
 */
 bool ParamBase::processEntryFloat(unsigned int i, boost::property_tree::ptree & tree){
 
+	if (_paramDesc[i][0].empty()) return true;  // removed param slot
 	try{
 		double temp = tree.get<double>(_paramDesc[i][0]);
 		if ((_paramDesc[i][2] == "pos" && temp < 0) || 
@@ -124,10 +125,11 @@ bool ParamBase::processEntryFloat(unsigned int i, boost::property_tree::ptree & 
 	attribute of element is reserved for paramter space sweep.
 */
 bool ParamBase::processEntryInt(unsigned int i, boost::property_tree::ptree & tree){
-	
+
 	//unsigned int j = PARAM_FLOAT_COUNT + i;
 	size_t nrFloatParam = _paramFloat.size();
 	unsigned int j = i + nrFloatParam;
+	if (_paramDesc[j][0].empty()) return true;  // removed param slot
 	try{
 		int temp = tree.get<int>(_paramDesc[j][0]);
 		if ((_paramDesc[j][2] == "pos" && temp < 0)){
@@ -160,11 +162,12 @@ bool ParamBase::processEntryInt(unsigned int i, boost::property_tree::ptree & tr
 	attribute of element is reserved for paramter space sweep.
 */
 bool ParamBase::processEntryBool(unsigned int i, boost::property_tree::ptree & tree){
-	
+
 	//unsigned int j = PARAM_FLOAT_COUNT + PARAM_INT_COUNT + i;
 	size_t nrFloatParam = _paramFloat.size();
 	size_t nrIntParam = _paramInt.size();
 	unsigned int j = i + nrFloatParam + nrIntParam;
+	if (_paramDesc[j][0].empty()) return true;  // removed param slot
 	try{
 		bool temp = tree.get<bool>(_paramDesc[j][0]);
 		//std::cout <<  "\"" << _paramDesc[j][0] << "\", value: "<< temp << std::endl;

@@ -384,6 +384,59 @@ bool LymphCentralWrapper::dump_onset_state(const std::string& path, double t_war
     return true;
 }
 
+bool LymphCentralWrapper::save_qsp_state(const std::string& path, double t_warmup_s) const {
+    if (!_is_initialized || !_qsp_model) {
+        std::cerr << "ERROR: save_qsp_state called before QSP initialization" << std::endl;
+        return false;
+    }
+    std::ofstream f(path, std::ios::binary);
+    if (!f.is_open()) {
+        std::cerr << "ERROR: cannot write QSP state file '" << path << "'" << std::endl;
+        return false;
+    }
+    f.write("QSP1", 4);
+    f.write(reinterpret_cast<const char*>(&t_warmup_s), sizeof(double));
+    double vol = _compute_tumor_volume(_qsp_model->getSystem());
+    f.write(reinterpret_cast<const char*>(&vol), sizeof(double));
+    _qsp_model->getSystem()->saveFullState(f);
+    f.close();
+    std::cout << "  QSP state saved: " << path
+              << " (t=" << t_warmup_s << " s, V_T=" << vol << " m^3)" << std::endl;
+    return true;
+}
+
+bool LymphCentralWrapper::load_qsp_state(const std::string& path, double& t_warmup_s) {
+    if (!_is_initialized || !_qsp_model) {
+        std::cerr << "ERROR: load_qsp_state called before QSP initialization" << std::endl;
+        return false;
+    }
+    std::ifstream f(path, std::ios::binary);
+    if (!f.is_open()) {
+        std::cerr << "ERROR: cannot read QSP state file '" << path << "'" << std::endl;
+        return false;
+    }
+    char magic[4];
+    f.read(magic, 4);
+    if (std::string(magic, 4) != "QSP1") {
+        std::cerr << "ERROR: invalid QSP state file magic (expected QSP1)" << std::endl;
+        return false;
+    }
+    f.read(reinterpret_cast<char*>(&t_warmup_s), sizeof(double));
+    double vol = 0.0;
+    f.read(reinterpret_cast<char*>(&vol), sizeof(double));
+    try {
+        _qsp_model->getSystem()->loadFullState(f);
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: load_qsp_state failed: " << e.what() << std::endl;
+        return false;
+    }
+    _qsp_model->getSystem()->updateVar();
+    f.close();
+    std::cout << "  QSP state loaded: " << path
+              << " (t=" << t_warmup_s << " s, V_T=" << vol << " m^3)" << std::endl;
+    return true;
+}
+
 double LymphCentralWrapper::get_tumor_cancer_cells() const {
     if (!_is_initialized || !_qsp_model) return 0.0;
     // get_species_value → getSpeciesVar(idx, raw=true) = _species_var / unit_conv; for C1/C2
