@@ -1,28 +1,43 @@
 #!/bin/bash
 #SBATCH --job-name=pdac_build
 #SBATCH --partition=gpuA100x4
-#SBATCH --account=YOUR_ALLOCATION_HERE
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=4
 #SBATCH --gpus-per-node=1
 #SBATCH --mem=32g
 #SBATCH --time=01:30:00
-#SBATCH --chdir=/work/hdd/${USER}/SPQSP_PDAC-main/PDAC/sim
-#SBATCH --output=logs/build_%j.out
-#SBATCH --error=logs/build_%j.err
+#SBATCH --output=build_%j.out
+#SBATCH --error=build_%j.err
 
-module purge
-module load gcc/11.4.0
-module load cuda/12.3
-module load cmake/3.27
+# ============================================================================
+# Build PDAC on Delta A100.
+#
+# Usage (from repo root or PDAC/sim/):
+#   sbatch --account=bgre-delta-gpu PDAC/sim/build_delta.sbatch
+#   sbatch --account=bgre-delta-gpu build_delta.sbatch
+# ============================================================================
 
-mkdir -p logs
+set -e
+
+# Resolve PDAC/sim directory from script location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SIM_DIR="${SCRIPT_DIR}"
+
+# If submitted from repo root, SLURM_SUBMIT_DIR is the repo root
+# If submitted from PDAC/sim/, it's PDAC/sim/
+cd "${SIM_DIR}"
 
 echo "=== Build started: $(date) ==="
 echo "Node: $(hostname)"
 echo "Working dir: $(pwd)"
-echo "CUDA: $(nvcc --version | grep release)"
+
+# Delta default env has gcc 13.x and CUDA 12.8 via PrgEnv-gnu + cudatoolkit
+module load cmake/3.31.8 2>/dev/null || module load cmake 2>/dev/null || true
+
+echo "CUDA: $(nvcc --version 2>/dev/null | grep release || echo 'not found')"
+echo "cmake: $(cmake --version 2>/dev/null | head -1 || echo 'not found')"
+echo "gcc: $(gcc --version 2>/dev/null | head -1 || echo 'not found')"
 
 # First-time build fetches FLAMEGPU2, Boost, SUNDIALS from GitHub (~8-15 min)
 # Subsequent incremental builds are ~2 min
