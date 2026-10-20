@@ -20,12 +20,17 @@
 
 set -e
 
-# Resolve PDAC/sim directory from script location
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SIM_DIR="${SCRIPT_DIR}"
-
-# If submitted from repo root, SLURM_SUBMIT_DIR is the repo root
-# If submitted from PDAC/sim/, it's PDAC/sim/
+# SLURM copies scripts to a spool dir, so BASH_SOURCE won't work.
+# Use SLURM_SUBMIT_DIR (where sbatch was called from).
+# Submit from PDAC/sim/, or pass the path explicitly.
+if [[ -f "${SLURM_SUBMIT_DIR}/build.sh" ]]; then
+    SIM_DIR="${SLURM_SUBMIT_DIR}"
+elif [[ -f "${SLURM_SUBMIT_DIR}/PDAC/sim/build.sh" ]]; then
+    SIM_DIR="${SLURM_SUBMIT_DIR}/PDAC/sim"
+else
+    echo "ERROR: Can't find build.sh. Submit from PDAC/sim/ or repo root."
+    exit 1
+fi
 cd "${SIM_DIR}"
 
 echo "=== Build started: $(date) ==="
