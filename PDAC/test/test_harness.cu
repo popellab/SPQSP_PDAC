@@ -41,10 +41,10 @@ void defineTRegAgent(flamegpu::ModelDescription& model, bool include_state_divid
 void defineMDSCAgent(flamegpu::ModelDescription& model, bool include_state);
 void defineMacrophageAgent(flamegpu::ModelDescription& model, bool include_state);
 void defineFibroblastAgent(flamegpu::ModelDescription& model, bool include_state);
-void defineVascularCellAgent(flamegpu::ModelDescription& model);
 void defineBCellAgent(flamegpu::ModelDescription& model, bool include_state_divide);
 void defineDCAgent(flamegpu::ModelDescription& model, bool include_state);
-void defineCellLocationMessage(flamegpu::ModelDescription& model, float voxel_size, int grid_max);
+void defineCellLocationMessage(flamegpu::ModelDescription& model, float voxel_size,
+                               int grid_x, int grid_y, int grid_z);
 void defineEnvironment(flamegpu::ModelDescription& model,
                        int grid_x, int grid_y, int grid_z, float voxel_size,
                        const GPUParam& gpu_params);
@@ -242,14 +242,13 @@ std::unique_ptr<flamegpu::ModelDescription> buildTestModel(
     const int gs = config.grid_size;
 
     // Define messages + agents (all 9 types, with full state/divide functions)
-    defineCellLocationMessage(*model, config.voxel_size, gs);
+    defineCellLocationMessage(*model, config.voxel_size, gs, gs, gs);
     defineCancerCellAgent(*model, true);
     defineTCellAgent(*model, true);
     defineTRegAgent(*model, true);
     defineMDSCAgent(*model, true);
     defineMacrophageAgent(*model, true);
     defineFibroblastAgent(*model, true);
-    defineVascularCellAgent(*model);
     defineBCellAgent(*model, true);
     defineDCAgent(*model, true);
 

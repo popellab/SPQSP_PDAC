@@ -671,14 +671,17 @@ void defineDCAgent(flamegpu::ModelDescription& model, bool include_state) {
 }
 
 // Define the spatial message type for cell location broadcasting
-void defineCellLocationMessage(flamegpu::ModelDescription& model, float voxel_size, int grid_max) {
+void defineCellLocationMessage(flamegpu::ModelDescription& model, float voxel_size,
+                               int grid_x, int grid_y, int grid_z) {
     flamegpu::MessageSpatial3D::Description message = model.newMessage<flamegpu::MessageSpatial3D>(MSG_CELL_LOCATION);
 
     const float env_min = -voxel_size;
-    const float env_max = (grid_max + 1) * voxel_size;
+    const float env_max_x = (grid_x + 1) * voxel_size;
+    const float env_max_y = (grid_y + 1) * voxel_size;
+    const float env_max_z = (std::max(grid_z, 3) + 1) * voxel_size;  // min 3 bins for Spatial3D
 
     message.setMin(env_min, env_min, env_min);
-    message.setMax(env_max, env_max, env_max);
+    message.setMax(env_max_x, env_max_y, env_max_z);
     // Bin size = radius. All readers filter to the Moore (|d|<=1 voxel) neighborhood. With a
     // 1-voxel radius the 3x3x3 spatial bins are EXACTLY the 27-voxel Moore block — no over-read.
     // Verified safe: the regular MessageSpatial3D::In iterator returns ALL messages in the 3x3x3
@@ -886,12 +889,10 @@ std::unique_ptr<flamegpu::ModelDescription> buildModel(
 
     auto model = std::make_unique<flamegpu::ModelDescription>("PDAC_ABM_GPU");
 
-    int grid_max = std::max({grid_x, grid_y, grid_z});
-
     // MSG_CELL_LOCATION is still used by broadcast_location and scan_neighbors functions
     // (for state transitions and neighbor detection). MSG_INTENT has been removed;
     // all movement and division now use volume-based occupancy (d_volume_used).
-    defineCellLocationMessage(*model, voxel_size, grid_max);
+    defineCellLocationMessage(*model, voxel_size, grid_x, grid_y, grid_z);
 
     // Define agents with all functions
     defineCancerCellAgent(*model, true);
