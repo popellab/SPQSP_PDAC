@@ -41,6 +41,7 @@ detect_cluster() {
 CLUSTER="${CLUSTER:-$(detect_cluster)}"
 case "${CLUSTER}" in
     delta)
+        module unload cudatoolkit 2>/dev/null || true
         module load cuda/12.9
         module load cmake/3.31.8 2>/dev/null || true
         ;;

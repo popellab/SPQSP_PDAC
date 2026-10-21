@@ -77,7 +77,8 @@ CLUSTER="${CLUSTER:-$(detect_cluster)}"
 
 setup_delta() {
     # Delta @ NCSA — Cray PE with gcc-toolset
-    # CUDA libs (cufft etc.) need explicit module load
+    # CUDA libs (cufft etc.) need explicit module load; default cudatoolkit conflicts
+    module unload cudatoolkit 2>/dev/null || true
     module load cuda/12.9
     module load cmake/3.31.8 2>/dev/null || module load cmake 2>/dev/null || true
 
