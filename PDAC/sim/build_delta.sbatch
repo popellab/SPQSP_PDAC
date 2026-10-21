@@ -22,7 +22,6 @@ set -e
 
 # SLURM copies scripts to a spool dir, so BASH_SOURCE won't work.
 # Use SLURM_SUBMIT_DIR (where sbatch was called from).
-# Submit from PDAC/sim/, or pass the path explicitly.
 if [[ -f "${SLURM_SUBMIT_DIR}/build.sh" ]]; then
     SIM_DIR="${SLURM_SUBMIT_DIR}"
 elif [[ -f "${SLURM_SUBMIT_DIR}/PDAC/sim/build.sh" ]]; then
@@ -31,11 +30,13 @@ else
     echo "ERROR: Can't find build.sh. Submit from PDAC/sim/ or repo root."
     exit 1
 fi
+REPO_DIR="$(cd "${SIM_DIR}/../.." && pwd)"
 cd "${SIM_DIR}"
 
 echo "=== Build started: $(date) ==="
 echo "Node: $(hostname)"
 echo "Working dir: $(pwd)"
+echo "Repo dir: ${REPO_DIR}"
 
 # Delta default env has gcc 13+ but CUDA libs (cufft etc.) need explicit module
 # Default cudatoolkit conflicts with cuda module — swap it
@@ -47,7 +48,29 @@ echo "CUDA: $(nvcc --version 2>/dev/null | grep release || echo 'not found')"
 echo "cmake: $(cmake --version 2>/dev/null | head -1 || echo 'not found')"
 echo "gcc: $(gcc --version 2>/dev/null | head -1 || echo 'not found')"
 
-# First-time build fetches FLAMEGPU2, Boost, SUNDIALS from GitHub (~8-15 min)
+# ── Pre-stage Boost (CMake FetchContent tar extraction fails on Lustre) ──
+BOOST_STAGE="${REPO_DIR}/PDAC/sim/external"
+BOOST_VER="1.82.0"
+BOOST_DIR="${BOOST_STAGE}/boost-${BOOST_VER}"
+if [[ ! -f "${BOOST_DIR}/CMakeLists.txt" ]]; then
+    echo ""
+    echo "=== Pre-staging Boost ${BOOST_VER} ==="
+    mkdir -p "${BOOST_STAGE}"
+    BOOST_TAR="${BOOST_STAGE}/boost-${BOOST_VER}.tar.gz"
+    if [[ ! -f "${BOOST_TAR}" ]]; then
+        echo "  Downloading..."
+        curl -L -o "${BOOST_TAR}" \
+            "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VER}/boost-${BOOST_VER}.tar.gz"
+    fi
+    echo "  Extracting with system tar (avoids CMake timestamp bug)..."
+    cd "${BOOST_STAGE}"
+    tar xzf "${BOOST_TAR}"
+    cd "${SIM_DIR}"
+    echo "  Boost ready: ${BOOST_DIR}"
+fi
+export BOOST_ROOT="${BOOST_DIR}"
+
+# First-time build fetches FLAMEGPU2 + SUNDIALS from GitHub (~8-15 min)
 # Subsequent incremental builds are ~2 min
 ./build.sh --cuda-arch 80 -j 4
 
