@@ -44,6 +44,14 @@ module unload cudatoolkit 2>/dev/null || true
 module load cuda/12.9
 module load cmake/3.31.8 2>/dev/null || module load cmake 2>/dev/null || true
 
+# HPC SDK splits math libs (cufft, cublas, etc.) from the CUDA runtime
+CUDA_MATH_LIBS="/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/REDIST/math_libs/12.9/targets/x86_64-linux/lib"
+if [[ -d "${CUDA_MATH_LIBS}" ]]; then
+    export LIBRARY_PATH="${CUDA_MATH_LIBS}:${LIBRARY_PATH}"
+    export LD_LIBRARY_PATH="${CUDA_MATH_LIBS}:${LD_LIBRARY_PATH}"
+    echo "CUDA math libs: ${CUDA_MATH_LIBS}"
+fi
+
 echo "CUDA: $(nvcc --version 2>/dev/null | grep release || echo 'not found')"
 echo "cmake: $(cmake --version 2>/dev/null | head -1 || echo 'not found')"
 echo "gcc: $(gcc --version 2>/dev/null | head -1 || echo 'not found')"

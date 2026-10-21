@@ -43,6 +43,8 @@ case "${CLUSTER}" in
     delta)
         module unload cudatoolkit 2>/dev/null || true
         module load cuda/12.9
+        _MATH="/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/REDIST/math_libs/12.9/targets/x86_64-linux/lib"
+        [[ -d "${_MATH}" ]] && export LD_LIBRARY_PATH="${_MATH}:${LD_LIBRARY_PATH}"
         module load cmake/3.31.8 2>/dev/null || true
         ;;
     anvil)
