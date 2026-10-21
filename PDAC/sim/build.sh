@@ -134,6 +134,12 @@ CMAKE_ARGS=(
 [[ -n "${SUNDIALS_DIR}" ]] && CMAKE_ARGS+=(-DSUNDIALS_DIR="${SUNDIALS_DIR}")
 [[ -n "${BOOST_ROOT}" ]] && CMAKE_ARGS+=(-DBOOST_ROOT="${BOOST_ROOT}")
 
+# Pass through any extra CMake args (e.g. FETCHCONTENT_SOURCE_DIR overrides from cluster scripts)
+if [[ -n "${CMAKE_ARGS_EXTRA}" ]]; then
+    read -ra _extra <<< "${CMAKE_ARGS_EXTRA}"
+    CMAKE_ARGS+=("${_extra[@]}")
+fi
+
 echo ""
 echo "=== Configuring SPQSP PDAC ==="
 echo "  Build type:  ${BUILD_TYPE}"
