@@ -38,7 +38,7 @@ echo "Node: $(hostname)"
 echo "Working dir: $(pwd)"
 
 # Delta default env has gcc 13+ but CUDA libs (cufft etc.) need explicit module
-module load cuda 2>/dev/null || module load cudatoolkit 2>/dev/null || true
+module load cuda/12.9
 module load cmake/3.31.8 2>/dev/null || module load cmake 2>/dev/null || true
 
 echo "CUDA: $(nvcc --version 2>/dev/null | grep release || echo 'not found')"

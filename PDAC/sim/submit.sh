@@ -76,8 +76,9 @@ CLUSTER="${CLUSTER:-$(detect_cluster)}"
 # ============================================================================
 
 setup_delta() {
-    # Delta @ NCSA — Cray PE with gcc-toolset, cuda via cudatoolkit module
-    # Default env already has gcc 13.x and CUDA 12.8 via PrgEnv-gnu + cudatoolkit
+    # Delta @ NCSA — Cray PE with gcc-toolset
+    # CUDA libs (cufft etc.) need explicit module load
+    module load cuda/12.9
     module load cmake/3.31.8 2>/dev/null || module load cmake 2>/dev/null || true
 
     PARTITION="${PARTITION:-gpuA100x4}"

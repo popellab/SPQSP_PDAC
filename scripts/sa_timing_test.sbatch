@@ -28,6 +28,7 @@ BASELINE_DIR="${REPO_DIR}/results/sa_baseline"
 ABM_BIN="${REPO_DIR}/PDAC/sim/build/bin/pdac"
 
 # ── Cluster environment ──
+module load cuda/12.9
 module load cmake/3.31.8 2>/dev/null || true
 
 echo "================================================"
