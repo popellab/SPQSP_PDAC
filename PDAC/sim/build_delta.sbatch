@@ -38,10 +38,13 @@ echo "Node: $(hostname)"
 echo "Working dir: $(pwd)"
 echo "Repo dir: ${REPO_DIR}"
 
-# Delta default gcc-toolset-14 (gcc 14) is too new for FLAMEGPU2 v2.0.0-rc.4.
-# Load an older gcc before CUDA so nvcc picks it up as the host compiler.
-module load gcc/11.4.0 2>/dev/null || module load gcc/12.3.0 2>/dev/null || \
-    echo "WARNING: could not load older gcc module; build may fail with gcc 14"
+# Delta default gcc-toolset-14 (gcc 14) may be too new for FLAMEGPU2 v2.0.0-rc.4.
+# Try to load an older gcc; Delta Cray PE uses various module naming conventions.
+module load gcc-native/12.3 2>/dev/null || \
+    module load gcc-native/11.4 2>/dev/null || \
+    module load gcc/12.3.0 2>/dev/null || \
+    module load gcc/11.4.0 2>/dev/null || \
+    echo "WARNING: could not load older gcc module; using system gcc $(gcc -dumpversion)"
 
 # Default cudatoolkit conflicts with cuda module — swap it
 module unload cudatoolkit 2>/dev/null || true
@@ -50,15 +53,13 @@ module load cmake/3.31.8 2>/dev/null || module load cmake 2>/dev/null || true
 
 # HPC SDK splits math libs (cufft, cublas, etc.) from the CUDA runtime
 CUDA_MATH_LIBS="/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/REDIST/math_libs/12.9/targets/x86_64-linux/lib"
-CUDA_MATH_INC="/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/REDIST/math_libs/12.9/targets/x86_64-linux/include"
 if [[ -d "${CUDA_MATH_LIBS}" ]]; then
     export LIBRARY_PATH="${CUDA_MATH_LIBS}:${LIBRARY_PATH}"
     export LD_LIBRARY_PATH="${CUDA_MATH_LIBS}:${LD_LIBRARY_PATH}"
     echo "CUDA math libs: ${CUDA_MATH_LIBS}"
 fi
-if [[ -d "${CUDA_MATH_INC}" ]]; then
-    export CPATH="${CUDA_MATH_INC}:${CPATH}"
-fi
+# Do NOT add math_libs/include to CPATH — it shadows CUDA 12.9's own curand
+# headers with HPC SDK versions that use undefined macros
 
 echo "CUDA: $(nvcc --version 2>/dev/null | grep release || echo 'not found')"
 echo "cmake: $(cmake --version 2>/dev/null | head -1 || echo 'not found')"
