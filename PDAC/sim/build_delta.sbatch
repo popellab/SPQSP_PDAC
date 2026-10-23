@@ -111,9 +111,12 @@ if [[ ! -f "${YAMLCPP_DIR}/CMakeLists.txt" ]]; then
     echo "  yaml-cpp ready: ${YAMLCPP_DIR}"
 fi
 
-# Tell CMake to use pre-staged sources instead of fetching
-# FETCHCONTENT_SOURCE_DIR_<name> bypasses FetchContent download entirely
+# Bypass Cray PE compiler wrappers (cc/CC) — they inject HPC SDK math_libs
+# include paths that shadow CUDA 12.9's own curand headers with incompatible ones.
+# Use bare gcc/g++ so only CUDA toolkit's include paths are searched.
 export CMAKE_ARGS_EXTRA="\
+  -DCMAKE_C_COMPILER=gcc \
+  -DCMAKE_CXX_COMPILER=g++ \
   -DFETCHCONTENT_SOURCE_DIR_SUNDIALS=${SUNDIALS_DIR} \
   -DFETCHCONTENT_SOURCE_DIR_YAML-CPP=${YAMLCPP_DIR} \
   -DFETCHCONTENT_SOURCE_DIR_BOOST=${BOOST_DIR} \
