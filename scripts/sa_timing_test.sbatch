@@ -20,7 +20,12 @@
 #       scripts/sa_timing_test.sbatch
 # ============================================================================
 
-set -e
+# Don't set -e: the ABM may crash (that's what we're diagnosing), and we
+# still want the post-crash diagnostics (GPU mem, timing partial) to run.
+
+# SLURM requires the output directory to exist BEFORE the job starts.
+# Create it from the submit dir (this line runs on the compute node).
+mkdir -p "${SLURM_SUBMIT_DIR}/sa_logs" 2>/dev/null || true
 
 # SLURM copies scripts to a spool dir, so BASH_SOURCE won't work.
 if [[ -n "${SLURM_SUBMIT_DIR}" ]]; then
@@ -73,25 +78,40 @@ RUN_DIR="/tmp/${USER}/sa_timing_${SLURM_JOB_ID}"
 mkdir -p "${RUN_DIR}"
 cd "${RUN_DIR}"
 
+# Force synchronous kernel launches so cudaErrorIllegalAddress pinpoints the
+# exact failing kernel instead of surfacing at a later synchronization point.
+export CUDA_LAUNCH_BLOCKING=1
+
 echo ""
-echo "=== Running 10 ABM steps at full resolution ==="
+echo "=== Running 3 ABM steps at full resolution (debug: CUDA_LAUNCH_BLOCKING=1) ==="
 echo "  Run dir: ${RUN_DIR}"
 echo "  Grid: 3077 × 3077 × 1"
-echo "  Steps: 10"
+echo "  Steps: 3"
+echo "  CUDA_LAUNCH_BLOCKING=1 (synchronous kernel launches for crash localization)"
 echo ""
 
+# Optional: run under compute-sanitizer for exact memcheck (VERY slow — ~100x).
+# Set USE_SANITIZER=1 when submitting:  USE_SANITIZER=1 sbatch ...
+ABM_CMD="${ABM_BIN}"
+if [[ "${USE_SANITIZER:-0}" == "1" ]]; then
+    ABM_CMD="compute-sanitizer --tool memcheck --show-backtrace yes ${ABM_BIN}"
+    echo "  *** compute-sanitizer enabled (will be ~100x slower) ***"
+fi
+
 # Run ABM from placement file with timing output
-# -s 10: only 10 steps (enough to measure per-step time)
+# -s 3: only 3 steps (enough to trigger the crash; LAUNCH_BLOCKING makes it slow)
 # -G 0: no grid output (we just want timing)
 # --placement: load from placement file instead of initialization
-${ABM_BIN} \
+${ABM_CMD} \
     -p "${BASELINE_DIR}/param_all_median.xml" \
     -gx 3077 -gy 3077 -gz 1 \
-    -s 10 \
+    -s 3 \
     -G 0 \
     --placement "${BASELINE_DIR}/tumor.plc" \
     --qsp-state "${BASELINE_DIR}/qsp_warmup.bin" \
     --output-root "${RUN_DIR}"
+ABM_EXIT=$?
+echo "ABM exit code: ${ABM_EXIT}"
 
 echo ""
 echo "=== Timing results ==="

@@ -248,7 +248,12 @@ target_link_libraries(pdac PRIVATE cufft)
 
 # Link against yaml-cpp (healthy_state.yaml, scenario YAML)
 target_link_libraries(pdac PRIVATE yaml-cpp::yaml-cpp)
-target_compile_definitions(pdac PRIVATE FLAMEGPU_SEATBELTS=0)
+option(FLAMEGPU_SEATBELTS_ON "Enable FLAMEGPU device-side bounds checking (slow but catches invalid access)" OFF)
+if(FLAMEGPU_SEATBELTS_ON)
+    target_compile_definitions(pdac PRIVATE FLAMEGPU_SEATBELTS=1)
+else()
+    target_compile_definitions(pdac PRIVATE FLAMEGPU_SEATBELTS=0)
+endif()
 
 # Link against SUNDIALS (CVODE)
 if(_SUNDIALS_READY)

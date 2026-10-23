@@ -13,6 +13,7 @@ BUILD_TYPE="Release"
 CUDA_ARCH=""
 FLAMEGPU_PATH=""
 JOBS=""
+SEATBELTS="OFF"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -33,6 +34,10 @@ while [[ $# -gt 0 ]]; do
             JOBS="$2"
             shift 2
             ;;
+        --seatbelts)
+            SEATBELTS="ON"
+            shift
+            ;;
         --clean)
             echo "Cleaning build directory..."
             rm -rf "${BUILD_DIR}"
@@ -43,6 +48,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --debug             Build in debug mode"
+            echo "  --seatbelts         Enable FLAMEGPU device-side bounds checking (slow, for crash diagnosis)"
             echo "  --cuda-arch ARCH    Set CUDA architecture (e.g., 80 for A100, 90 for H100)"
             echo "  --flamegpu PATH     Path to local FLAMEGPU2 source"
             echo "  -j, --jobs N        Number of parallel build jobs (default: nproc)"
@@ -130,6 +136,7 @@ CMAKE_ARGS=(
 )
 
 [[ -n "${CUDA_ARCH}" ]] && CMAKE_ARGS+=(-DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCH}")
+[[ "${SEATBELTS}" == "ON" ]] && CMAKE_ARGS+=(-DFLAMEGPU_SEATBELTS_ON=ON)
 [[ -n "${FLAMEGPU_PATH}" ]] && CMAKE_ARGS+=(-DFLAMEGPU_ROOT="${FLAMEGPU_PATH}")
 [[ -n "${SUNDIALS_DIR}" ]] && CMAKE_ARGS+=(-DSUNDIALS_DIR="${SUNDIALS_DIR}")
 [[ -n "${BOOST_ROOT}" ]] && CMAKE_ARGS+=(-DBOOST_ROOT="${BOOST_ROOT}")
@@ -145,6 +152,7 @@ echo "=== Configuring SPQSP PDAC ==="
 echo "  Build type:  ${BUILD_TYPE}"
 echo "  Build dir:   ${BUILD_DIR}"
 [[ -n "${CUDA_ARCH}" ]] && echo "  CUDA arch:   ${CUDA_ARCH}"
+[[ "${SEATBELTS}" == "ON" ]] && echo "  SEATBELTS:   ON (device-side bounds checking enabled)"
 [[ -n "${SUNDIALS_DIR}" ]] && echo "  SUNDIALS:    ${SUNDIALS_DIR}"
 [[ -n "${BOOST_ROOT}" ]] && echo "  Boost:       ${BOOST_ROOT}"
 echo ""
