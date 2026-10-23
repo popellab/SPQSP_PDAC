@@ -154,10 +154,16 @@ echo ""
 cmake "${SCRIPT_DIR}" "${CMAKE_ARGS[@]}"
 
 # Patch FLAMEGPU Curve hash table limit (512 → 1024) for SPQSP's large variable count
-CURVE_HDR="${BUILD_DIR}/_deps/flamegpu-src/include/flamegpu/runtime/detail/curve/Curve.cuh"
-if [[ -f "${CURVE_HDR}" ]]; then
-    sed -i 's/MAX_VARIABLES = 512;/MAX_VARIABLES = 1024;/' "${CURVE_HDR}"
-fi
+# Check both FetchContent path and local/pre-staged path
+for _candidate in \
+    "${BUILD_DIR}/_deps/flamegpu-src/include/flamegpu/runtime/detail/curve/Curve.cuh" \
+    "${FLAMEGPU_PATH}/include/flamegpu/runtime/detail/curve/Curve.cuh"; do
+    if [[ -f "${_candidate}" ]]; then
+        sed -i 's/MAX_VARIABLES = 512;/MAX_VARIABLES = 1024;/' "${_candidate}"
+        echo "  Patched Curve MAX_VARIABLES: ${_candidate}"
+        break
+    fi
+done
 
 echo ""
 echo "=== Building (${JOBS} jobs) ==="
