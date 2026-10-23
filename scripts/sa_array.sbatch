@@ -24,8 +24,19 @@
 
 set -e
 
-SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "${SCRIPTS_DIR}")"
+# SLURM copies scripts to a spool dir, so BASH_SOURCE won't work.
+if [[ -n "${SLURM_SUBMIT_DIR}" ]]; then
+    if [[ -d "${SLURM_SUBMIT_DIR}/scripts" ]]; then
+        REPO_DIR="${SLURM_SUBMIT_DIR}"
+    elif [[ -d "${SLURM_SUBMIT_DIR}/../scripts" ]]; then
+        REPO_DIR="$(cd "${SLURM_SUBMIT_DIR}/.." && pwd)"
+    else
+        REPO_DIR="${SLURM_SUBMIT_DIR}"
+    fi
+else
+    SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    REPO_DIR="$(dirname "${SCRIPTS_DIR}")"
+fi
 
 # ── Cluster environment (mirrors submit.sh) ──
 detect_cluster() {
