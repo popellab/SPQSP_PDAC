@@ -18,11 +18,16 @@ set(FLAMEGPU_ROOT "" CACHE PATH "Path to FLAMEGPU2 installation or source")
 # This increases build time but eliminates JIT compilation delay on first run
 set(FLAMEGPU_ENABLE_RTC OFF CACHE BOOL "Disable RTC for ahead-of-time compilation")
 
-# Disable FLAMEGPU seatbelt runtime checks.
-# Seatbelts flag mixed read + atomic-write on the same MacroProperty in one layer,
-# but our occupancy grid uses CAS (which atomically handles compare-and-swap) — this
-# is semantically safe and the conservative seatbelt check produces false positives.
-set(FLAMEGPU_SEATBELTS OFF CACHE BOOL "Disable FLAMEGPU2 seatbelt checks" FORCE)
+# FLAMEGPU seatbelt runtime checks (device-side bounds checking).
+# Default OFF: seatbelts flag mixed read + atomic-write on the same MacroProperty in one
+# layer, but our occupancy grid uses CAS which is semantically safe.
+# Pass -DFLAMEGPU_SEATBELTS_ON=ON to enable for crash diagnosis.
+option(FLAMEGPU_SEATBELTS_ON "Enable FLAMEGPU device-side bounds checking (slow but catches invalid access)" OFF)
+if(FLAMEGPU_SEATBELTS_ON)
+    set(FLAMEGPU_SEATBELTS ON CACHE BOOL "Enable FLAMEGPU2 seatbelt checks" FORCE)
+else()
+    set(FLAMEGPU_SEATBELTS OFF CACHE BOOL "Disable FLAMEGPU2 seatbelt checks" FORCE)
+endif()
 
 # Set CUDA architecture
 # Common architectures:
@@ -248,12 +253,9 @@ target_link_libraries(pdac PRIVATE cufft)
 
 # Link against yaml-cpp (healthy_state.yaml, scenario YAML)
 target_link_libraries(pdac PRIVATE yaml-cpp::yaml-cpp)
-option(FLAMEGPU_SEATBELTS_ON "Enable FLAMEGPU device-side bounds checking (slow but catches invalid access)" OFF)
-if(FLAMEGPU_SEATBELTS_ON)
-    target_compile_definitions(pdac PRIVATE FLAMEGPU_SEATBELTS=1)
-else()
-    target_compile_definitions(pdac PRIVATE FLAMEGPU_SEATBELTS=0)
-endif()
+# FLAMEGPU_SEATBELTS is set as a PUBLIC compile definition by FLAMEGPU's own CMakeLists.txt
+# (controlled by the FLAMEGPU_SEATBELTS cache variable set near the top of this file).
+# Do NOT add a private override here — it causes link errors from ABI mismatch.
 
 # Link against SUNDIALS (CVODE)
 if(_SUNDIALS_READY)
