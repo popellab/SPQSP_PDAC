@@ -78,21 +78,17 @@ RUN_DIR="/tmp/${USER}/sa_timing_${SLURM_JOB_ID}"
 mkdir -p "${RUN_DIR}"
 cd "${RUN_DIR}"
 
-# Force synchronous kernel launches so cudaErrorIllegalAddress pinpoints the
-# exact failing kernel instead of surfacing at a later synchronization point.
-export CUDA_LAUNCH_BLOCKING=1
+# Debug env vars (uncomment to diagnose CUDA crashes):
+# export CUDA_LAUNCH_BLOCKING=1    # Synchronous kernel launches
+# export PDAC_CUDA_LAYER_CHECK=1   # Per-layer sync + error check
 
-# Per-layer CUDA error checking: sync + getLastError at each timing checkpoint
-# and after each host function with CUDA operations. The last checkpoint name
-# printed before the crash identifies the failing phase.
-export PDAC_CUDA_LAYER_CHECK=1
+STEPS=10
 
 echo ""
-echo "=== Running 3 ABM steps at full resolution (debug: CUDA_LAUNCH_BLOCKING=1) ==="
+echo "=== Running ${STEPS} ABM steps at full resolution ==="
 echo "  Run dir: ${RUN_DIR}"
 echo "  Grid: 3077 × 3077 × 1"
-echo "  Steps: 3"
-echo "  CUDA_LAUNCH_BLOCKING=1 (synchronous kernel launches for crash localization)"
+echo "  Steps: ${STEPS} (presim + main)"
 echo ""
 
 # Optional: run under compute-sanitizer for exact memcheck (VERY slow — ~100x).
@@ -104,13 +100,12 @@ if [[ "${USE_SANITIZER:-0}" == "1" ]]; then
 fi
 
 # Run ABM from placement file with timing output
-# -s 3: only 3 steps (enough to trigger the crash; LAUNCH_BLOCKING makes it slow)
 # -G 0: no grid output (we just want timing)
 # --placement: load from placement file instead of initialization
 ${ABM_CMD} \
     -p "${BASELINE_DIR}/param_all_median.xml" \
     -gx 3077 -gy 3077 -gz 1 \
-    -s 3 \
+    -s "${STEPS}" \
     -G 0 \
     --placement "${BASELINE_DIR}/tumor.plc" \
     --qsp-state "${BASELINE_DIR}/qsp_warmup.bin" \
@@ -121,18 +116,24 @@ echo "ABM exit code: ${ABM_EXIT}"
 echo ""
 echo "=== Timing results ==="
 
-# Print timing CSV if it exists
-if [[ -f "${RUN_DIR}/outputs/timing.csv" ]]; then
-    echo "Per-step timing (seconds):"
-    cat "${RUN_DIR}/outputs/timing.csv"
-    echo ""
+# Find the timing CSV (named timing_<seed>.csv or layer_timing.csv at output root)
+TIMING_CSV=$(find "${RUN_DIR}" -maxdepth 1 -name 'timing_*.csv' -o -name 'timing.csv' | head -1)
+LAYER_CSV=$(find "${RUN_DIR}" -maxdepth 1 -name 'layer_timing.csv' | head -1)
+
+if [[ -n "${TIMING_CSV}" ]]; then
+    echo "Per-step timing: ${TIMING_CSV}"
+    head -5 "${TIMING_CSV}"
+    echo "..."
     # Compute average step time
     python3 -c "
-import csv
-with open('${RUN_DIR}/outputs/timing.csv') as f:
+import csv, sys
+with open('${TIMING_CSV}') as f:
     rows = list(csv.DictReader(f))
 if rows:
-    totals = [float(r.get('total', r.get('step_time', 0))) for r in rows if float(r.get('total', r.get('step_time', 0))) > 0]
+    # Try common column names for total step time
+    for key in ('total', 'step_time', 'wall_s'):
+        totals = [float(r[key]) for r in rows if key in r and float(r[key]) > 0]
+        if totals: break
     if totals:
         print(f'  Steps measured: {len(totals)}')
         print(f'  Mean step time: {sum(totals)/len(totals):.2f} s')
@@ -140,10 +141,19 @@ if rows:
         print(f'  Max step time:  {max(totals):.2f} s')
         print(f'  Est. 50 steps:  {50*sum(totals)/len(totals)/60:.1f} min')
         print(f'  Est. 200 steps: {200*sum(totals)/len(totals)/60:.1f} min')
+    else:
+        print(f'  (columns: {list(rows[0].keys())})')
 " 2>/dev/null || echo "(could not parse timing)"
 else
-    echo "WARNING: timing.csv not found"
-    echo "Check stdout above for any timing output."
+    echo "WARNING: timing CSV not found in ${RUN_DIR}"
+    ls -la "${RUN_DIR}"/*.csv 2>/dev/null || echo "  (no CSV files)"
+fi
+
+if [[ -n "${LAYER_CSV}" ]]; then
+    echo ""
+    echo "Layer timing: ${LAYER_CSV}"
+    head -3 "${LAYER_CSV}"
+    echo "..."
 fi
 
 echo ""
