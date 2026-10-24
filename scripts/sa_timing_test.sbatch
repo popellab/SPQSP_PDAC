@@ -82,6 +82,11 @@ cd "${RUN_DIR}"
 # exact failing kernel instead of surfacing at a later synchronization point.
 export CUDA_LAUNCH_BLOCKING=1
 
+# Per-layer CUDA error checking: sync + getLastError at each timing checkpoint
+# and after each host function with CUDA operations. The last checkpoint name
+# printed before the crash identifies the failing phase.
+export PDAC_CUDA_LAYER_CHECK=1
+
 echo ""
 echo "=== Running 3 ABM steps at full resolution (debug: CUDA_LAUNCH_BLOCKING=1) ==="
 echo "  Run dir: ${RUN_DIR}"

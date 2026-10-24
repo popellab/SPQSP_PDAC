@@ -1,8 +1,9 @@
 #pragma once
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <vector>
-#include <cstdlib>
 #include <cuda_runtime.h>
 
 // ============================================================================
@@ -46,8 +47,35 @@ inline bool profile_sync_enabled() {
     return e != 0;
 }
 
+// Opt-in (env PDAC_CUDA_LAYER_CHECK=1): cudaDeviceSynchronize + cudaGetLastError
+// at each timing checkpoint to catch illegal-address and other async CUDA errors
+// at the phase boundary where they actually originate.
+inline bool cuda_layer_check_enabled() {
+    static int e = []{ const char* v = std::getenv("PDAC_CUDA_LAYER_CHECK"); return (v && v[0] == '1') ? 1 : 0; }();
+    return e != 0;
+}
+
+inline void cuda_layer_check(const char* checkpoint_name) {
+    if (!cuda_layer_check_enabled()) return;
+    fprintf(stderr, "CUDA_LAYER_CHECK[%s]: syncing...\n", checkpoint_name);
+    fflush(stderr);
+    cudaError_t err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "CUDA_LAYER_CHECK[%s]: cudaDeviceSynchronize -> %s (%d)\n",
+                checkpoint_name, cudaGetErrorString(err), static_cast<int>(err));
+        fflush(stderr);
+    }
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "CUDA_LAYER_CHECK[%s]: cudaGetLastError -> %s (%d)\n",
+                checkpoint_name, cudaGetErrorString(err), static_cast<int>(err));
+        fflush(stderr);
+    }
+}
+
 // Record elapsed time since last checkpoint under `name`, then reset checkpoint.
 inline void record_checkpoint(const char* name) {
+    cuda_layer_check(name);
     if (profile_sync_enabled()) cudaDeviceSynchronize();
     auto now = std::chrono::high_resolution_clock::now();
     double ms = std::chrono::duration<double, std::milli>(now - g_checkpoint_t).count();
@@ -57,6 +85,7 @@ inline void record_checkpoint(const char* name) {
 
 // Reset checkpoint timer (call at very start of each step).
 inline void reset_step_timer() {
+    cuda_layer_check("step_start");
     if (profile_sync_enabled()) cudaDeviceSynchronize();
     g_checkpoint_t = std::chrono::high_resolution_clock::now();
 }

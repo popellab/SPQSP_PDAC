@@ -503,6 +503,7 @@ FLAMEGPU_HOST_FUNCTION(reset_pde_buffers) {
     if (!g_pde_solver) { nvtxRangePop(); return; }
     g_pde_solver->reset_sources();
     g_pde_solver->reset_uptakes();
+    cuda_layer_check("reset_pde_buffers");
     nvtxRangePop();
 }
 
@@ -558,6 +559,7 @@ FLAMEGPU_HOST_FUNCTION(solve_pde_step) {
         std::cout << "PDE solved for step " << step
                   << " (mode=" << g_pde_solver->get_solve_mode() << ")" << std::endl;
     }
+    cuda_layer_check("solve_pde_step");
     nvtxRangePop();
 }
 
@@ -569,6 +571,7 @@ FLAMEGPU_HOST_FUNCTION(compute_pde_gradients) {
     nvtxRangePush("Compute PDE Gradients");
     if (!g_pde_solver) { nvtxRangePop(); return; }
     g_pde_solver->compute_gradients();
+    cuda_layer_check("compute_pde_gradients");
     nvtxRangePop();
 }
 
@@ -2514,6 +2517,7 @@ FLAMEGPU_HOST_FUNCTION(zero_occupancy_grid) {
         if (d_type_counts)     cudaMemset(d_type_counts,     0,
                                    static_cast<size_t>(N_OCC_CLASSES) * total_voxels * sizeof(unsigned int));
     }
+    cuda_layer_check("zero_occupancy_grid");
     nvtxRangePop();
 }
 
@@ -2525,6 +2529,7 @@ FLAMEGPU_HOST_FUNCTION(reset_voxel_owner) {
         int total_voxels = g_pde_solver->get_total_voxels();
         cudaMemset(d_voxel_owner, 0xFF, total_voxels * sizeof(unsigned long long));
     }
+    cuda_layer_check("reset_voxel_owner");
     nvtxRangePop();
 }
 
@@ -2712,6 +2717,7 @@ FLAMEGPU_HOST_FUNCTION(zero_fib_density_field) {
         int total_voxels = g_pde_solver->get_total_voxels();
         cudaMemset(d_fib_density_field, 0, total_voxels * sizeof(unsigned long long));
     }
+    cuda_layer_check("zero_fib_density_field");
     nvtxRangePop();
 }
 
@@ -2877,6 +2883,7 @@ __global__ void source_o2_from_vvas_kernel(
 // accumulation deterministic (exact integer sum) — see PDE_SECRETE in common.cuh.
 FLAMEGPU_HOST_FUNCTION(decode_pde_sources) {
     if (g_pde_solver) g_pde_solver->decode_sources_from_fp();
+    cuda_layer_check("decode_pde_sources");
 }
 
 // Kernel: add ECM-density-proportional uptake to TGF-β (and VEGF-A) float uptake buffers.
@@ -2908,6 +2915,7 @@ FLAMEGPU_HOST_FUNCTION(apply_ecm_sequestration) {
     const int threads = 256;
     const int blocks = (V + threads - 1) / threads;
     ecm_sequester_kernel<<<blocks, threads>>>(d_ecm_density, tgfb_upt, tgfb_ecm_rate, V);
+    cuda_layer_check("apply_ecm_sequestration");
 }
 
 // Host layer: compute Vvas, then source O2 from it. Runs after compute_chemical_sources,
@@ -2991,6 +2999,7 @@ FLAMEGPU_HOST_FUNCTION(compute_vvas_and_o2) {
     source_o2_from_vvas_kernel<<<grid, block>>>(d_vvas_field, o2conc, o2_src, o2_upt, nx, ny, nz,
                                                 KvLv_base, C_blood, voxel_volume);
     cudaDeviceSynchronize();
+    cuda_layer_check("compute_vvas_and_o2");
     nvtxRangePop();
 }
 
@@ -3096,6 +3105,7 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_grid) {
         k_mmp, alpha_crosslink,
         k_lox, yap_ec50);
     cudaDeviceSynchronize();
+    cuda_layer_check("update_ecm_grid");
 
     nvtxRangePop();
 }
@@ -3136,6 +3146,7 @@ FLAMEGPU_HOST_FUNCTION(decay_antigen_grid) {
         decay_antigen_kernel<<<grid_size, block_size>>>(d_antigen_grid, total_voxels, decay_factor);
         cudaDeviceSynchronize();
     }
+    cuda_layer_check("decay_antigen_grid");
     nvtxRangePop();
 }
 
@@ -3158,6 +3169,7 @@ FLAMEGPU_HOST_FUNCTION(decay_stress_field) {
             total_voxels, decay_factor);
         cudaDeviceSynchronize();
     }
+    cuda_layer_check("decay_stress_field");
     nvtxRangePop();
 }
 
@@ -3181,6 +3193,7 @@ FLAMEGPU_HOST_FUNCTION(decay_pressure_field) {
             d_pressure_field, total_voxels, decay_factor);
         cudaDeviceSynchronize();
     }
+    cuda_layer_check("decay_pressure_field");
     nvtxRangePop();
 }
 
@@ -3198,6 +3211,7 @@ FLAMEGPU_HOST_FUNCTION(decay_debris_field) {
             d_debris_field, total_voxels, decay_factor);
         cudaDeviceSynchronize();
     }
+    cuda_layer_check("decay_debris_field");
     nvtxRangePop();
 }
 
@@ -3219,6 +3233,7 @@ FLAMEGPU_HOST_FUNCTION(compute_pressure_gradients) {
             nx, ny, nz, inv_2dx);
         cudaDeviceSynchronize();
     }
+    cuda_layer_check("compute_pressure_gradients");
     nvtxRangePop();
 }
 
@@ -3255,6 +3270,7 @@ FLAMEGPU_HOST_FUNCTION(update_ecm_orientation) {
             dt, base_rate, w_traction, w_stress, alpha_crosslink);
         cudaDeviceSynchronize();
     }
+    cuda_layer_check("update_ecm_orientation");
     nvtxRangePop();
 }
 
