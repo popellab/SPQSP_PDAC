@@ -478,17 +478,16 @@ __global__ void compute_pressure_gradient_kernel(
 
     const int idx = tz * (nx * ny) + ty * nx + tx;
 
-    // Central differences with Neumann (no-flux) boundary: reflect at edges
-    int xm = (tx > 0)      ? idx - 1         : idx + 1;
-    int xp = (tx < nx - 1) ? idx + 1         : idx - 1;
-    int ym = (ty > 0)      ? idx - nx        : idx + nx;
-    int yp = (ty < ny - 1) ? idx + nx        : idx - nx;
-    int zm = (tz > 0)      ? idx - nx * ny   : idx + nx * ny;
-    int zp = (tz < nz - 1) ? idx + nx * ny   : idx - nx * ny;
+    // Central differences with Neumann (no-flux) boundary.
+    // For dimensions of size 1: gradient is identically zero (no neighbor to difference).
+    // For dimensions of size >1: reflect at edges (forward/backward difference via reflected index).
+    int xm = (nx > 1) ? ((tx > 0)      ? idx - 1       : idx + 1)       : idx;
+    int xp = (nx > 1) ? ((tx < nx - 1) ? idx + 1       : idx - 1)       : idx;
+    int ym = (ny > 1) ? ((ty > 0)      ? idx - nx      : idx + nx)      : idx;
+    int yp = (ny > 1) ? ((ty < ny - 1) ? idx + nx      : idx - nx)      : idx;
+    int zm = (nz > 1) ? ((tz > 0)      ? idx - nx * ny : idx + nx * ny) : idx;
+    int zp = (nz > 1) ? ((tz < nz - 1) ? idx + nx * ny : idx - nx * ny) : idx;
 
-    // Edge voxels: one-sided gradient (xp - idx or idx - xm) → factor = 1/dx not 1/(2dx).
-    // But reflection already handles this symmetrically: (P[idx+1] - P[idx-1])/(2dx) with
-    // reflected index gives the same forward/backward difference, so inv_2dx is correct.
     grad_x[idx] = (pressure[xp] - pressure[xm]) * inv_2dx;
     grad_y[idx] = (pressure[yp] - pressure[ym]) * inv_2dx;
     grad_z[idx] = (pressure[zp] - pressure[zm]) * inv_2dx;
