@@ -4,20 +4,27 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --gpus-per-node=1
 #SBATCH --mem=32G
-#SBATCH --time=00:15:00
+#SBATCH --time=01:30:00
 #SBATCH --output=sa_logs/sa_%A_%a.out
 #SBATCH --error=sa_logs/sa_%A_%a.err
 
 # ============================================================================
 # SLURM array job for ABM Morris sensitivity analysis.
 #
-# Each array task runs one shard (= one parameter set × one replicate).
-# The SA directory (--sa-dir) must already contain the DOE files from
-# `run_abm_sa.py generate`.
+# Each array task runs SHARDS_PER_JOB sequential shards to amortize queue
+# wait time and CUDA warmup.  Completed shards are auto-skipped by
+# run_abm_sa.py (checks for existing .npz).
+#
+# Environment variables (set by sa_submit.sh or export before sbatch):
+#   SA_DIR            — path to Morris SA directory (required)
+#   SHARDS_PER_JOB    — shards per array task (default: 10)
+#   N_TOTAL           — total shard count (required, for bounds check)
+#   BASE_SEED         — RNG seed offset (default: 1000)
+#   TIMEOUT           — per-shard timeout in seconds (default: 600)
 #
 # Usage:
-#   export SA_DIR=/path/to/sa_morris
-#   sbatch --array=0-5639 scripts/sa_array.sbatch
+#   export SA_DIR=/path/to/sa_morris N_TOTAL=5640 SHARDS_PER_JOB=10
+#   sbatch --array=0-563 scripts/sa_array.sbatch
 #
 # Or via sa_submit.sh which computes the array range automatically.
 # ============================================================================
@@ -67,13 +74,20 @@ esac
 
 # ── Required env vars ──
 SA_DIR="${SA_DIR:?Set SA_DIR to the Morris SA directory}"
+N_TOTAL="${N_TOTAL:?Set N_TOTAL to total shard count}"
+SHARDS_PER_JOB="${SHARDS_PER_JOB:-10}"
 BASE_SEED="${BASE_SEED:-1000}"
-TIMEOUT="${TIMEOUT:-7200}"
+TIMEOUT="${TIMEOUT:-600}"
 
-SHARD_ID="${SLURM_ARRAY_TASK_ID:?Must run as SLURM array job}"
+TASK_ID="${SLURM_ARRAY_TASK_ID:?Must run as SLURM array job}"
+FIRST_SHARD=$((TASK_ID * SHARDS_PER_JOB))
+LAST_SHARD=$(( (TASK_ID + 1) * SHARDS_PER_JOB - 1 ))
+if (( LAST_SHARD >= N_TOTAL )); then
+    LAST_SHARD=$((N_TOTAL - 1))
+fi
 
 echo "================================================"
-echo "SA Shard: ${SHARD_ID}"
+echo "SA Batch: task ${TASK_ID}, shards ${FIRST_SHARD}-${LAST_SHARD}"
 echo "  SA dir:    ${SA_DIR}"
 echo "  Mode:      placement + qsp-state → volume-stopped presim"
 echo "  Node:      $(hostname)"
@@ -91,10 +105,19 @@ fi
 
 cd "${REPO_DIR}"
 
-python -I scripts/run_abm_sa.py run-shard \
-    --sa-dir "${SA_DIR}" \
-    --shard-id "${SHARD_ID}" \
-    --base-seed "${BASE_SEED}" \
-    --timeout "${TIMEOUT}"
+FAILED=0
+for SHARD_ID in $(seq "${FIRST_SHARD}" "${LAST_SHARD}"); do
+    echo ""
+    echo "--- Shard ${SHARD_ID} ($(date)) ---"
+    python -I scripts/run_abm_sa.py run-shard \
+        --sa-dir "${SA_DIR}" \
+        --shard-id "${SHARD_ID}" \
+        --base-seed "${BASE_SEED}" \
+        --timeout "${TIMEOUT}" || {
+            echo "WARNING: Shard ${SHARD_ID} failed (exit $?), continuing"
+            FAILED=$((FAILED + 1))
+        }
+done
 
-echo "Shard ${SHARD_ID} complete: $(date)"
+echo ""
+echo "Batch ${TASK_ID} complete: shards ${FIRST_SHARD}-${LAST_SHARD}, ${FAILED} failures ($(date))"

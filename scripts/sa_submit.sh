@@ -35,6 +35,7 @@ PARTITION="gpuA100x4"
 ACCOUNT=""
 CONSOLIDATE_ONLY=false
 MAX_CONCURRENT=200
+SHARDS_PER_JOB=10
 
 # ── Parse args ──
 while [[ $# -gt 0 ]]; do
@@ -48,6 +49,7 @@ while [[ $# -gt 0 ]]; do
         --partition)     PARTITION="$2"; shift 2 ;;
         --account)       ACCOUNT="$2"; shift 2 ;;
         --max-concurrent) MAX_CONCURRENT="$2"; shift 2 ;;
+        --shards-per-job) SHARDS_PER_JOB="$2"; shift 2 ;;
         --consolidate-only) CONSOLIDATE_ONLY=true; shift ;;
         *) echo "Unknown arg: $1"; exit 1 ;;
     esac
@@ -109,23 +111,26 @@ if [[ "${CONSOLIDATE_ONLY}" == "true" ]]; then
 fi
 
 # ── Step 2: Submit array job ──
-ARRAY_MAX=$((N_TOTAL - 1))
+# Each array task runs SHARDS_PER_JOB sequential shards to reduce scheduler pressure.
+N_TASKS=$(( (N_TOTAL + SHARDS_PER_JOB - 1) / SHARDS_PER_JOB ))
+ARRAY_MAX=$((N_TASKS - 1))
 
 mkdir -p sa_logs
 
 echo "=== Submitting SA array job ==="
-echo "  Array: 0-${ARRAY_MAX}"
-echo "  Partition: ${PARTITION}"
-echo "  Account: ${ACCOUNT}"
-echo "  Mode: placement + qsp-state → volume-stopped presim"
-echo "  Max concurrent: ${MAX_CONCURRENT}"
+echo "  Total shards:    ${N_TOTAL}"
+echo "  Shards per job:  ${SHARDS_PER_JOB}"
+echo "  Array tasks:     ${N_TASKS} (0-${ARRAY_MAX})"
+echo "  Partition:       ${PARTITION}"
+echo "  Account:         ${ACCOUNT}"
+echo "  Max concurrent:  ${MAX_CONCURRENT}"
 
 ARRAY_JOB_ID=$(sbatch \
     --parsable \
     --account="${ACCOUNT}" \
     --partition="${PARTITION}" \
     --array="0-${ARRAY_MAX}%${MAX_CONCURRENT}" \
-    --export="SA_DIR=${SA_DIR}" \
+    --export="SA_DIR=${SA_DIR},SHARDS_PER_JOB=${SHARDS_PER_JOB},N_TOTAL=${N_TOTAL}" \
     scripts/sa_array.sbatch)
 
 echo "  Array job submitted: ${ARRAY_JOB_ID}"
@@ -135,7 +140,7 @@ CONSOL_JOB_ID=$(sbatch \
     --parsable \
     --account="${ACCOUNT}" \
     --partition=cpu \
-    --dependency="afterok:${ARRAY_JOB_ID}" \
+    --dependency="afterany:${ARRAY_JOB_ID}" \
     --nodes=1 --ntasks=1 --cpus-per-task=4 --mem=16G --time=00:30:00 \
     --job-name=pdac_sa_consol \
     --output=sa_logs/consolidate_%j.out \
@@ -148,7 +153,7 @@ echo "  Consolidation job submitted: ${CONSOL_JOB_ID} (depends on ${ARRAY_JOB_ID
 
 echo ""
 echo "=== Submitted ==="
-echo "  Array:         ${ARRAY_JOB_ID} (${N_TOTAL} shards, 0-${ARRAY_MAX})"
+echo "  Array:         ${ARRAY_JOB_ID} (${N_TASKS} tasks × ${SHARDS_PER_JOB} shards = ${N_TOTAL} total)"
 echo "  Consolidation: ${CONSOL_JOB_ID}"
 echo "  Monitor: squeue -u \$USER | grep pdac_sa"
 echo "  Results: ${SA_DIR}/results/"
