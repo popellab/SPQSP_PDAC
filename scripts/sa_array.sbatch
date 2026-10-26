@@ -4,7 +4,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --gpus-per-node=1
 #SBATCH --mem=32G
-#SBATCH --time=02:00:00
+#SBATCH --time=00:15:00
 #SBATCH --output=sa_logs/sa_%A_%a.out
 #SBATCH --error=sa_logs/sa_%A_%a.err
 
