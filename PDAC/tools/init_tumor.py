@@ -175,6 +175,7 @@ def grid_from_onset(
     margin_vox: int = 50,
     volume_fraction: float = 1.0,
     voxel_um: float = 20.0,
+    max_grid: int | None = None,
 ) -> dict:
     """Compute grid + counts from QSP onset JSON.
 
@@ -182,6 +183,12 @@ def grid_from_onset(
     *volume_fraction* can further scale the placed disc (default 1.0 =
     place exactly what the onset says).  Grid is sized for the FULL disc
     (1.0×) so the ABM has room to grow.
+
+    When *max_grid* is set and the natural grid exceeds it, the tumor is
+    scaled down into the smaller domain: the effective radius shrinks so
+    that ``2*r_eff + 2*margin == max_grid``, and all cell counts scale
+    by the area ratio ``(r_eff / r_3d)²``.  Voxel size stays unchanged,
+    preserving spatial metrics and PDE kinetics.
     """
     cells = onset["cells"]
 
@@ -198,21 +205,33 @@ def grid_from_onset(
         raise ValueError("Onset has no mapped tumor cells")
 
     r_3d = (3.0 * n_total_3d / (4.0 * np.pi)) ** (1.0 / 3.0)
-    n_disc_full = int(round(np.pi * r_3d ** 2))
+
+    # Natural (full-size) grid
+    grid_side_natural = int(np.ceil(2.0 * r_3d)) + 2 * margin_vox
+    if grid_side_natural % 2 == 0:
+        grid_side_natural += 1
+
+    # Domain scaling: shrink tumor into smaller grid if needed
+    domain_scale = 1.0
+    r_eff = r_3d
+    if max_grid is not None and grid_side_natural > max_grid:
+        grid_side = max_grid if max_grid % 2 == 1 else max_grid - 1
+        r_eff = (grid_side - 2 * margin_vox) / 2.0
+        domain_scale = (r_eff / r_3d) ** 2  # area ratio
+    else:
+        grid_side = grid_side_natural
+
+    n_disc_full = int(round(np.pi * r_eff ** 2))
     n_disc = max(1, int(round(volume_fraction * n_disc_full)))
 
-    grid_side = int(np.ceil(2.0 * r_3d)) + 2 * margin_vox
-    if grid_side % 2 == 0:
-        grid_side += 1
-
-    # Per-category 2D counts
+    # Per-category 2D counts (scaled by area ratio)
     scale = n_disc / n_total_3d
     cat_counts_2d: dict[str, int] = {}
     for cat in SA_CATEGORIES:
         cat_counts_2d[cat] = max(0, int(round(cat_totals_3d.get(cat, 0.0) * scale)))
     n_cancer_2d = sum(cat_counts_2d.get(c, 0) for c in CANCER_CATS)
 
-    # Sub-state fractions
+    # Sub-state fractions (ratios preserved regardless of scale)
     substate_frac: dict[str, dict[int, float]] = {}
     for cat, splits in QSP_SUBSTATE.items():
         total = sum(species_3d.get(sp, 0.0) for sp, _ in splits)
@@ -236,10 +255,13 @@ def grid_from_onset(
         "species_3d": species_3d,
         "substate_frac": substate_frac,
         "r_3d_vox": r_3d,
+        "r_eff_vox": r_eff,
+        "domain_scale": domain_scale,
         "volume_fraction": volume_fraction,
         "margin_vox": margin_vox,
         "domain_mm": grid_side * voxel_um / 1000.0,
-        "tumor_diam_mm": 2.0 * r_3d * voxel_um / 1000.0,
+        "tumor_diam_mm": 2.0 * r_eff * voxel_um / 1000.0,
+        "grid_natural": grid_side_natural,
         "V_T_m3": onset["V_T_m3"],
         "t_warmup_s": onset["t_warmup_s"],
     }
@@ -477,6 +499,9 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--margin", type=int, default=50,
                    help="Voxels of healthy tissue border around tumor "
                         "(for auto-grid, default 50 = 1 mm)")
+    p.add_argument("--max-grid", type=int, default=None,
+                   help="Cap grid side at this size and scale the tumor "
+                        "down proportionally (voxel size unchanged)")
     p.add_argument("--volume-fraction", type=float, default=0.95,
                    help="Fraction of QSP target volume to place (default "
                         "0.95 = 5%% growth room for ABM)")
@@ -520,6 +545,7 @@ def main(argv: list[str] | None = None) -> None:
             margin_vox=args.margin,
             volume_fraction=args.volume_fraction,
             voxel_um=voxel_um,
+            max_grid=args.max_grid,
         )
     elif args.qsp_csv:
         geo = grid_from_qsp(
@@ -543,6 +569,11 @@ def main(argv: list[str] | None = None) -> None:
               f"({geo['cancer_fraction']:.1%} of tumor)")
         print(f"  Sphere radius:         {geo['r_3d_vox']:.1f} vox "
               f"({geo['r_3d_vox'] * voxel_um / 1000:.2f} mm)")
+        if geo.get("domain_scale", 1.0) < 1.0:
+            print(f"  Domain scaling:        {geo['domain_scale']:.4f}x area "
+                  f"(natural grid {geo['grid_natural']}, capped at {geo['grid_x']})")
+            print(f"  Effective radius:      {geo['r_eff_vox']:.1f} vox "
+                  f"({geo['r_eff_vox'] * voxel_um / 1000:.2f} mm)")
         print(f"  Midplane disc (1.0x):  {geo['n_disc_full']:,d} cells")
         print(f"  Placed disc ({geo['volume_fraction']:.0%}):  "
               f"{geo['n_disc']:,d} cells  "
