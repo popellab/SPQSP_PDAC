@@ -35,7 +35,7 @@ PARTITION="gpuA100x4"
 ACCOUNT=""
 CONSOLIDATE_ONLY=false
 MAX_CONCURRENT=200
-SHARDS_PER_JOB=10
+SHARDS_PER_JOB=100
 
 # ── Parse args ──
 while [[ $# -gt 0 ]]; do
